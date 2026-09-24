@@ -32,6 +32,7 @@
 		6B43F18F972E1E61FBD82F88 /* FormatadorFrila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA32088E555C10CC772D882 /* FormatadorFrila.swift */; };
 		7099E790EA08059ECD1D5185 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
 		82F3D63694FF304FDB047AF2 /* FrilaDados.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; };
+		8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */; };
 		8D44DCBE863B3BEAF899FF5C /* FrilaApresentacao.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		9544502D8CC50FFF7BC18462 /* SupabaseApiCliente.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAFE23BD5136EB4B368E30A /* SupabaseApiCliente.swift */; };
 		95F55C7ED119121193117E89 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 94AA0E4986FA081B4EDF365F /* Localizable.xcstrings */; };
@@ -205,6 +206,7 @@
 		3B6AB2CF87FE4F8FED8FF891 /* CacheSwiftData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheSwiftData.swift; sourceTree = "<group>"; };
 		3E170CF5FEBE4A60D1A81D2C /* App.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = App.xcassets; sourceTree = "<group>"; };
 		44FCBC781830AFDC791F353D /* FrilaDados.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaDados.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A4761B77D354376319394B1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B43084AE2BBE6031C888000 /* ApiClienteEmMemoria.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClienteEmMemoria.swift; sourceTree = "<group>"; };
 		5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoKeychain.swift; sourceTree = "<group>"; };
 		60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodificadorErroAPI.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 		B1A382E13856303D3EF49B4D /* FrilaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FrilaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B380F8F29E809E2B842A6C80 /* FrilaUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FrilaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B4B3CEC4D7490ABD615F9262 /* Modelos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modelos.swift; sourceTree = "<group>"; };
+		B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbienteTests.swift; sourceTree = "<group>"; };
 		B846214E1DADC0F62827675D /* Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = "<group>"; };
 		C003E3313087A6450355751E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C5968D41D64341107B2ACE77 /* funcoes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = funcoes.json; sourceTree = "<group>"; };
@@ -365,6 +368,7 @@
 			children = (
 				C6FA10275A7C93ECAB311691 /* ApiEmMemoriaTests.swift */,
 				88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */,
+				B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */,
 				90A4AC403161D71F18466D6A /* DominioTests.swift */,
 				65115E2F0782067BF1010B60 /* ErrosAPITests.swift */,
 				CE7F5174A8365E2BCB231B62 /* FormatadorTests.swift */,
@@ -428,6 +432,7 @@
 				0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */,
 				330A7012F96AEC9C169084D2 /* Frila.entitlements */,
 				A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */,
+				4A4761B77D354376319394B1 /* Info.plist */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -526,6 +531,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 482F59F2A364FAAE3E62C5B8 /* Build configuration list for PBXNativeTarget "Frila" */;
 			buildPhases = (
+				2ABE6F1788F0286862129C54 /* Validate Supabase configuration */,
 				0199F941333D110F5C548333 /* Sources */,
 				BFFAAC581EACB7A2539D8163 /* Resources */,
 				51709561D2ABEF149BC09667 /* Frameworks */,
@@ -704,6 +710,26 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		2ABE6F1788F0286862129C54 /* Validate Supabase configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Validate Supabase configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\n# Fase de build: Dev e Prod não saem do Xcode sem Supabase configurado. Só lê as variáveis de build\n# e nunca imprime valores. Na CI a falta de configuração é erro; localmente, aviso, e o app abre na\n# tela de configuração incompleta em vez de usar o dublê em memória.\n\nset -euo pipefail\n\ncase \"${FRILA_ENVIRONMENT:-}\" in\n  local)\n    exit 0\n    ;;\n  frila-dev|frila-prod)\n    ;;\n  *)\n    echo \"error: unknown FRILA_ENVIRONMENT; expected local, frila-dev or frila-prod\" >&2\n    exit 1\n    ;;\nesac\n\nHINT=\"generate Configurations/Secrets.xcconfig with Scripts/generate-supabase-secrets.sh\"\n\nmissing() {\n  if [[ \"${CI:-false}\" == \"true\" ]]; then\n    echo \"error: $1 for ${FRILA_ENVIRONMENT}; $HINT\" >&2\n    exit 1\n  fi\n  echo \"warning: $1 for ${FRILA_ENVIRONMENT}; the app will open on the configuration error screen. $HINT\" >&2\n  exit 0\n}\n\nhas_placeholder() {\n  local value\n  value=\"$(printf '%s' \"$1\" | tr '[:upper:]' '[:lower:]')\"\n  for marker in not-configured seu-projeto cole-a-chave placeholder example changeme your- '<' '>' '$('; do\n    if [[ \"$value\" == *\"$marker\"* ]]; then\n      return 0\n    fi\n  done\n  return 1\n}\n\nURL=\"${FRILA_SUPABASE_URL:-}\"\nKEY=\"${FRILA_SUPABASE_PUBLISHABLE_KEY:-}\"\n\n# Chave secreta nunca entra num build, nem localmente.\nif [[ \"$KEY\" == sb_secret_* ]]; then\n  echo \"error: the Supabase key for ${FRILA_ENVIRONMENT} is a secret key; only the publishable key goes in the app\" >&2\n  exit 1\nfi\nif [[ \"$KEY\" == *.*.* ]]; then\n  ROLE=\"$(python3 -c '\nimport base64, json, os\npayload = os.environ[\"FRILA_SUPABASE_PUBLISHABLE_KEY\"].split(\".\")[1]\npayload += \"=\" * (-len(payload) % 4)\ntry:\n    print(json.loads(base64.urlsafe_b64decode(payload)).get(\"role\", \"\"))\nexcept Exception:\n    print(\"invalid\")\n')\"\n  if [[ \"$ROLE\" == \"service_role\" ]]; then\n    echo \"error: the Supabase key for ${FRILA_ENVIRONMENT} is a service_role key; it must never go in the app\" >&2\n    exit 1\n  fi\nfi\n\n[[ -n \"$URL\" ]] || missing \"Supabase URL is not configured\"\nif has_placeholder \"$URL\"; then missing \"Supabase URL is still a placeholder\"; fi\n[[ \"$URL\" == https://* ]] || missing \"Supabase URL must use https\"\n[[ -n \"$KEY\" ]] || missing \"Supabase publishable key is not configured\"\nif has_placeholder \"$KEY\"; then missing \"Supabase publishable key is still a placeholder\"; fi\n\nexit 0\n";
+			showEnvVarsInLog = 0;
+		};
 		C71CC6C8D6D9DB5FFC02F37B /* Select Firebase configuration */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -725,6 +751,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "#!/bin/bash\n\nset -euo pipefail\n\ncase \"${FRILA_ENVIRONMENT:-}\" in\n  local)\n    exit 0\n    ;;\n  frila-dev)\n    FIREBASE_ENVIRONMENT=\"Dev\"\n    ;;\n  frila-prod)\n    FIREBASE_ENVIRONMENT=\"Prod\"\n    ;;\n  *)\n    echo \"warning: unknown FRILA_ENVIRONMENT; Firebase configuration was not copied\" >&2\n    exit 0\n    ;;\nesac\n\nSOURCE_PLIST=\"${SRCROOT}/Resources/Firebase/${FIREBASE_ENVIRONMENT}/GoogleService-Info.plist\"\nDESTINATION_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\n\nif [[ ! -f \"$SOURCE_PLIST\" ]]; then\n  if [[ \"${CI:-false}\" == \"true\" ]]; then\n    echo \"error: missing Firebase configuration for ${FRILA_ENVIRONMENT}; run Scripts/inject-firebase-config.sh first\" >&2\n    exit 1\n  fi\n\n  echo \"warning: missing Firebase configuration for ${FRILA_ENVIRONMENT}; push messaging stays disabled in this local build\" >&2\n  exit 0\nfi\n\nmkdir -p \"$DESTINATION_DIR\"\ncp \"$SOURCE_PLIST\" \"$DESTINATION_DIR/GoogleService-Info.plist\"\n";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -799,6 +826,7 @@
 			files = (
 				323E59B84BDAA751E9A9E952 /* ApiEmMemoriaTests.swift in Sources */,
 				1BFAB3F95F669A94FE53BEB8 /* AtualizacaoObrigatoriaTests.swift in Sources */,
+				8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */,
 				0614982DC6AABA151649D361 /* DominioTests.swift in Sources */,
 				19C118B2A416731E092F1170 /* ErrosAPITests.swift in Sources */,
 				0B611AAFB501EE22B062A798 /* FormatadorTests.swift in Sources */,
@@ -908,13 +936,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
 				INFOPLIST_KEY_CFBundleDisplayName = Frila;
-				INFOPLIST_KEY_FRILA_API_MODE = "$(FRILA_API_MODE)";
-				INFOPLIST_KEY_FRILA_APP_STORE_URL = "$(FRILA_APP_STORE_URL)";
-				INFOPLIST_KEY_FRILA_ENVIRONMENT = "$(FRILA_ENVIRONMENT)";
-				INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY = "$(FRILA_SUPABASE_PUBLISHABLE_KEY)";
-				INFOPLIST_KEY_FRILA_SUPABASE_URL = "$(FRILA_SUPABASE_URL)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -927,7 +951,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Debug-Dev";
 		};
@@ -1009,6 +1033,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1025,13 +1050,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
 				INFOPLIST_KEY_CFBundleDisplayName = Frila;
-				INFOPLIST_KEY_FRILA_API_MODE = "$(FRILA_API_MODE)";
-				INFOPLIST_KEY_FRILA_APP_STORE_URL = "$(FRILA_APP_STORE_URL)";
-				INFOPLIST_KEY_FRILA_ENVIRONMENT = "$(FRILA_ENVIRONMENT)";
-				INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY = "$(FRILA_SUPABASE_PUBLISHABLE_KEY)";
-				INFOPLIST_KEY_FRILA_SUPABASE_URL = "$(FRILA_SUPABASE_URL)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1044,7 +1065,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Debug-Local";
 		};
@@ -1213,6 +1234,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1409,6 +1431,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1528,13 +1551,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
 				INFOPLIST_KEY_CFBundleDisplayName = Frila;
-				INFOPLIST_KEY_FRILA_API_MODE = "$(FRILA_API_MODE)";
-				INFOPLIST_KEY_FRILA_APP_STORE_URL = "$(FRILA_APP_STORE_URL)";
-				INFOPLIST_KEY_FRILA_ENVIRONMENT = "$(FRILA_ENVIRONMENT)";
-				INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY = "$(FRILA_SUPABASE_PUBLISHABLE_KEY)";
-				INFOPLIST_KEY_FRILA_SUPABASE_URL = "$(FRILA_SUPABASE_URL)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1547,7 +1566,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Release-Prod";
 		};

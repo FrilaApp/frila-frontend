@@ -1,9 +1,12 @@
 FRILA_BUNDLE_ID = com.frila.org.app
 FRILA_APP_STORE_URL = https:/$()/apps.apple.com/app/id6815311991
-FRILA_SUPABASE_DEV_URL = https:/$()/frila-dev.supabase.co
-FRILA_SUPABASE_DEV_PUBLISHABLE_KEY = public-key-not-configured
-FRILA_SUPABASE_PROD_URL = https:/$()/frila-prod.supabase.co
-FRILA_SUPABASE_PROD_PUBLISHABLE_KEY = public-key-not-configured
+
+// Vazios de propósito: sem Secrets.xcconfig, Dev e Prod falham na CI e abrem na tela de
+// configuração incompleta, nunca no dublê em memória. Veja Scripts/generate-supabase-secrets.sh.
+FRILA_SUPABASE_DEV_URL =
+FRILA_SUPABASE_DEV_PUBLISHABLE_KEY =
+FRILA_SUPABASE_PROD_URL =
+FRILA_SUPABASE_PROD_PUBLISHABLE_KEY =
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited)
 
 // Valores reais ficam somente neste arquivo ignorado pelo Git.
