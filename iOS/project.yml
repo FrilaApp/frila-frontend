@@ -30,6 +30,7 @@ settings:
     TARGETED_DEVICE_FAMILY: "1"
     SUPPORTS_MACCATALYST: NO
     SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+    SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ENABLE_MODULES: YES
     CODE_SIGN_STYLE: Automatic
@@ -110,9 +111,15 @@ targets:
       - target: FrilaDados
       - target: FrilaApresentacao
       - target: FrilaInfraestrutura
+    preBuildScripts:
+      - name: Validate Supabase configuration
+        path: Scripts/validate-supabase-config.sh
+        basedOnDependencyAnalysis: false
+        showEnvVars: false
     postBuildScripts:
       - name: Select Firebase configuration
         path: Scripts/copy-firebase-config.sh
+        showEnvVars: false
         inputFiles:
           - $(SRCROOT)/Resources/Firebase/Dev/GoogleService-Info.plist
           - $(SRCROOT)/Resources/Firebase/Prod/GoogleService-Info.plist
@@ -123,6 +130,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID)
         PRODUCT_NAME: Frila
+        # O preset de target do XcodeGen usa "1,2" e anula o valor do projeto; sem isto o app
+        # declara iPad no UIDeviceFamily e o Xcode passa a exigir as quatro orientações.
+        TARGETED_DEVICE_FAMILY: "1"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
@@ -132,11 +142,9 @@ targets:
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
-        INFOPLIST_KEY_FRILA_API_MODE: $(FRILA_API_MODE)
-        INFOPLIST_KEY_FRILA_ENVIRONMENT: $(FRILA_ENVIRONMENT)
-        INFOPLIST_KEY_FRILA_SUPABASE_URL: $(FRILA_SUPABASE_URL)
-        INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY: $(FRILA_SUPABASE_PUBLISHABLE_KEY)
-        INFOPLIST_KEY_FRILA_APP_STORE_URL: $(FRILA_APP_STORE_URL)
+        # INFOPLIST_KEY_* só aceita chaves da Apple; as chaves FRILA_* vêm deste plist parcial,
+        # que o Xcode mescla ao Info.plist gerado.
+        INFOPLIST_FILE: Sources/App/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Sources/App/Frila.entitlements
 

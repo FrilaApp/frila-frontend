@@ -1,0 +1,137 @@
+name: iOS
+
+on:
+  pull_request:
+    paths:
+      - "iOS/**"
+      - ".github/workflows/ios.yml"
+  push:
+    paths:
+      - "iOS/**"
+      - ".github/workflows/ios.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: Testes Local e builds Dev e Prod
+    runs-on: macos-26
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: iOS
+    env:
+      XCODEGEN_VERSION: "2.45.3"
+      XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Selecionar o Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -iv beta | sort -V | tail -1 || true)"
+          if [[ -z "$XCODE" ]]; then
+            echo "::error::Nenhum Xcode 26 disponível neste runner"
+            exit 1
+          fi
+          sudo xcode-select --switch "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Instalar o XcodeGen fixado
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check --status
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+
+      - name: Validar as fixtures do contrato
+        run: python3 Scripts/validate-fixtures.py
+
+      - name: Gerar o projeto e conferir que está versionado
+        run: |
+          xcodegen generate
+          if ! git diff --quiet -- Frila.xcodeproj || [[ -n "$(git status --porcelain -- Frila.xcodeproj)" ]]; then
+            git status --short -- Frila.xcodeproj
+            echo "::error::Frila.xcodeproj difere do project.yml. Rode 'xcodegen generate' em iOS/ e versione o resultado."
+            exit 1
+          fi
+
+      - name: Injetar a configuração do Firebase
+        env:
+          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
+          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
+        run: Scripts/inject-firebase-config.sh all
+
+      - name: Escolher um simulador de iPhone disponível
+        id: simulador
+        run: |
+          UDID="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          best = None
+          for runtime, devices in json.load(sys.stdin)["devices"].items():
+              if ".iOS-" not in runtime:
+                  continue
+              version = tuple(int(p) for p in runtime.rsplit(".iOS-", 1)[1].split("-"))
+              for device in devices:
+                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
+                      if best is None or version > best[0]:
+                          best = (version, device["udid"], device["name"])
+          if best:
+              print(best[2] + ", iOS " + ".".join(map(str, best[0])), file=sys.stderr)
+              print(best[1])
+          ')"
+          if [[ -z "$UDID" ]]; then
+            echo "::error::Nenhum simulador de iPhone disponível"
+            exit 1
+          fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Testes do Frila-Local (unitários e de interface, sem backend)
+        run: |
+          xcodebuild test \
+            -project Frila.xcodeproj \
+            -scheme Frila-Local \
+            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            | xcbeautify --renderer github-actions
+
+      - name: Build do Frila-Dev (Supabase frila-dev)
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
+        run: |
+          Scripts/generate-supabase-secrets.sh dev
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Dev \
+            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData"
+
+      - name: Build do Frila-Prod (Supabase frila-prod)
+        env:
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
+        run: |
+          Scripts/generate-supabase-secrets.sh prod
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Prod \
+            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData"
+
+      - name: Apagar segredos e temporários
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: |
+          rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
+          rm -f iOS/Resources/Firebase/*/GoogleService-Info.plist iOS/Resources/Firebase/*/GoogleService-Info.plist.tmp.*
+          rm -rf "$RUNNER_TEMP/DerivedData" "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
