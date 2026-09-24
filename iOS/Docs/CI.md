@@ -20,6 +20,6 @@ Etapas, na ordem:
 
 Nenhuma etapa assina código (o simulador usa a assinatura local ad-hoc) nem publica artefato. As fases de script do Xcode não exportam variáveis para o log, e o GitHub mascara os segredos.
 
-Falha esperada hoje: a etapa 12 para em `FRILA_SUPABASE_PROD_URL is not set` enquanto o projeto `frila-prod` não existir ([Dependências externas](ExternalSetup.md), item 9). Isso é intencional: Prod sem Supabase não compila em silêncio.
+Desde 24/09 a etapa 12 compila com o `frila-prod` ([Dependências externas](ExternalSetup.md), item 9). Se um dos dois secrets de Prod faltar, ela para em `FRILA_SUPABASE_PROD_URL is not set`, de propósito: Prod sem Supabase não compila em silêncio.
 
 Custo: o repositório é privado e cada minuto macOS consome cerca de dez vezes a cota de um minuto Linux. O orçamento de Actions da organização está em US$ 0 com bloqueio de uso adicional, então esgotar a cota interrompe a CI sem gerar cobrança.
