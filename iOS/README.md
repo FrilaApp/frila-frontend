@@ -58,6 +58,7 @@ O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources
 ```sh
 python3 Scripts/validate-fixtures.py
 xcodegen generate
+Scripts/contrato-em-dia.sh
 xcodebuild test  -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone disponível>'
 xcodebuild build -project Frila.xcodeproj -scheme Frila-Dev  -destination 'generic/platform=iOS Simulator'
 xcodebuild build -project Frila.xcodeproj -scheme Frila-Prod -destination 'generic/platform=iOS Simulator'
@@ -67,11 +68,20 @@ A CI roda a mesma sequência; ver [Integração contínua](Docs/CI.md).
 
 ## Cenários simulados
 
-No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória.
+No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.
 
 ## Contrato
 
-Os DTOs e fixtures desta fundação seguem o snapshot `0.2.0`, registrado em `Resources/Fixtures/contract-version.json`. `meusTurnos()` continua bloqueado no cliente real até o iOS ser sincronizado com o contrato publicado; o app não presume o schema. O estado do contrato está em [Dependências externas](Docs/ExternalSetup.md).
+O app segue o contrato `0.2.4`, espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.
+
+- `Sources/Dados/DTOsContrato.swift` tem um tipo por schema usado pelo app; `SupabaseApiCliente` chama as operações do Sprint 1, inclusive `meus_turnos`, e mais check-in, check-out e avaliação.
+- `Resources/Fixtures` guarda uma resposta ou requisição por arquivo, e `fixture-schemas.json` diz contra qual schema do contrato cada uma é validada. `ApiClienteEmMemoria` lê essas fixtures pelos mesmos DTOs do cliente real, e os testes conferem que cada requisição que o app monta é igual à fixture.
+- `Scripts/validate-fixtures.py` valida tipos, formatos, enums, obrigatórios e campos fora do contrato. Palavra-chave de schema que ele não conhece é erro, não aprovação.
+- `Scripts/contrato-em-dia.sh` confere a integridade do espelho e, com `FRILA_DOCS_TOKEN`, se ele ainda é igual ao do frila-docs.
+
+Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contrato/`, regrave a soma (`shasum -a 256 Contrato/openapi.yaml | awk '{print $1}' > Contrato/openapi.yaml.sha256`), atualize `contract-version.json`, DTOs e fixtures, e rode a validação e os testes.
+
+O estado das funções no `frila-dev` está em [Dependências externas](Docs/ExternalSetup.md).
 
 ## Decisões e operação
 

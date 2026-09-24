@@ -1,14 +1,82 @@
 {
-  "funcoes.json": {
-    "root": "array",
-    "required": ["id", "nome", "categoria"]
+  "avaliacao.json": {
+    "schema": "#/components/schemas/Avaliacao"
   },
-  "vaga.json": {
-    "root": "object",
-    "required": ["id", "estabelecimento", "funcao", "inicio_em", "fim_em", "local", "ponto", "valor_centavos", "posicoes", "posicoes_abertas", "inclusos", "responsavel_local", "modo", "estado"]
+  "candidatura-selecao.json": {
+    "schema": "#/components/schemas/ResultadoCandidatura"
+  },
+  "candidatura-urgencia.json": {
+    "schema": "#/components/schemas/ResultadoCandidatura"
+  },
+  "configuracao-do-app.json": {
+    "schema": "#/components/schemas/ConfiguracaoDoApp"
+  },
+  "contato.json": {
+    "schema": "#/components/schemas/Contato"
   },
   "erros.json": {
-    "root": "array",
-    "required": ["code", "message", "details", "hint"]
+    "schema": "#/components/schemas/Erro",
+    "lista": true
+  },
+  "estabelecimento.json": {
+    "schema": "#/components/schemas/Estabelecimento"
+  },
+  "funcoes.json": {
+    "schema": "#/components/schemas/Funcao",
+    "lista": true
+  },
+  "meus-estabelecimentos.json": {
+    "schema": "#/components/schemas/EstabelecimentoDaConta",
+    "lista": true
+  },
+  "painel.json": {
+    "schema": "#/components/schemas/Painel"
+  },
+  "perfil-profissional.json": {
+    "schema": "#/components/schemas/PerfilProfissional"
+  },
+  "perfil-publico.json": {
+    "schema": "#/components/schemas/PerfilPublico"
+  },
+  "requisicao-atualizar-perfil-profissional.json": {
+    "schema": "#/components/schemas/AlteracaoDoPerfilProfissional"
+  },
+  "requisicao-avaliar.json": {
+    "schema": "#/paths/~1rpc~1avaliar/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-cadastrar-estabelecimento.json": {
+    "schema": "#/paths/~1rpc~1cadastrar_estabelecimento/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-criar-conta.json": {
+    "schema": "#/paths/~1rpc~1criar_conta/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-criar-perfil-profissional.json": {
+    "schema": "#/components/schemas/DadosDoPerfilProfissional"
+  },
+  "requisicao-publicar-vaga.json": {
+    "schema": "#/components/schemas/NovaVaga"
+  },
+  "requisicao-registro-de-presenca.json": {
+    "schema": "#/components/schemas/RegistroDePresenca"
+  },
+  "resultado-registro.json": {
+    "schema": "#/components/schemas/ResultadoRegistro"
+  },
+  "turnos.json": {
+    "schema": "#/components/schemas/Turno",
+    "lista": true
+  },
+  "usuario.json": {
+    "schema": "#/components/schemas/Usuario"
+  },
+  "vaga-publicada.json": {
+    "schema": "#/components/schemas/VagaPublicada"
+  },
+  "vaga.json": {
+    "schema": "#/components/schemas/Vaga"
+  },
+  "vagas-abertas.json": {
+    "schema": "#/components/schemas/VagaNaLista",
+    "lista": true
   }
 }

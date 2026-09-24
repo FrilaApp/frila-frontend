@@ -18,6 +18,13 @@ struct ErrosAPITests {
         #expect(erro.detalhes == "ultima_posicao")
     }
 
+    @Test("Chamada sem sessão chega como não autenticado", arguments: ["PGRST301", "PGRST302", "42501"])
+    func semSessao(codigo: String) {
+        let erro = DecodificadorErroAPI.mapear(codigo: codigo, detalhes: nil)
+        #expect(erro.codigo == .naoAutenticado)
+        #expect(erro.codigoOriginal == codigo)
+    }
+
     @Test("Código desconhecido nunca é descartado")
     func desconhecido() {
         let erro = DecodificadorErroAPI.mapear(codigo: "codigo_novo", detalhes: nil)

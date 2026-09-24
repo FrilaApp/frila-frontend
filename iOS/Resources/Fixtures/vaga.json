@@ -2,22 +2,29 @@
   "id": "40000000-0000-0000-0000-000000000001",
   "estabelecimento": {
     "id": "30000000-0000-0000-0000-000000000001",
+    "tipo": "estabelecimento",
     "nome": "Bistrô Ipê",
-    "documento": "12.345.678/0001-90",
-    "tipo": "food_service",
-    "endereco": "Asa Sul, Brasília - DF",
-    "ponto": { "latitude": -15.7942, "longitude": -47.8822 },
-    "papel": "administrador"
+    "reputacao": {
+      "positivas": 18,
+      "total": 20,
+      "taxa_comparecimento": 0.95,
+      "turnos_considerados": 20,
+      "turnos_realizados": 21
+    }
   },
   "funcao": {
     "id": "20000000-0000-0000-0000-000000000001",
     "nome": "Garçom",
     "categoria": "Salão"
   },
-  "inicio_em": "2026-10-09T02:00:00Z",
-  "fim_em": "2026-10-09T06:00:00Z",
-  "local": "Asa Sul, Brasília - DF",
-  "ponto": { "latitude": -15.7942, "longitude": -47.8822 },
+  "inicio_em": "2026-10-09T21:00:00Z",
+  "fim_em": "2026-10-10T01:00:00Z",
+  "local": "CLS 405, Asa Sul, Brasília - DF",
+  "ponto": {
+    "latitude": -15.8121,
+    "longitude": -47.8997
+  },
+  "distancia_km": 2.4,
   "valor_centavos": 12000,
   "posicoes": 2,
   "posicoes_abertas": 2,
@@ -27,6 +34,10 @@
     "exige_material_proprio": false
   },
   "responsavel_local": "Marina",
+  "traje": "Camisa preta e calça escura",
+  "participa_rateio": true,
+  "observacoes": null,
   "modo": "urgencia",
-  "estado": "publicada"
+  "estado": "publicada",
+  "publicado_em": "2026-10-08T14:32:10.482913+00:00"
 }

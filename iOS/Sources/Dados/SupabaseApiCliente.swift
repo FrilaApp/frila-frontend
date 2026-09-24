@@ -4,19 +4,19 @@ import Supabase
 
 public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
     private let cliente: SupabaseClient
+    private let decodificador = ContratoAPI.decodificador()
     private let telemetria: any TelemetryReporter
-    private let codificadorISO = ISO8601DateFormatter()
 
     public init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
         let options = SupabaseClientOptions(
-            db: .init(decoder: decoder),
+            db: .init(decoder: ContratoAPI.decodificador()),
             auth: .init(autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
         )
         cliente = SupabaseClient(supabaseURL: url, supabaseKey: chavePublicavel, options: options)
         self.telemetria = telemetria
     }
+
+    // MARK: Entrada
 
     public func solicitarCodigo(email: String) async throws {
         do {
@@ -26,98 +26,125 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
         }
     }
 
-    public func verificarCodigo(email: String, codigo: String) async throws -> SessaoUsuario {
+    public func verificarCodigo(email: String, codigo: String) async throws {
         do {
-            let resposta = try await cliente.auth.verifyOTP(email: email, token: codigo, type: .email)
-            guard let valor = resposta.user.userMetadata["perfil"]?.stringValue,
-                  let perfil = PerfilConta(rawValue: valor) else {
-                throw ErroDaApi(codigo: .campoObrigatorio, detalhes: "perfil")
-            }
-            return SessaoUsuario(usuarioID: resposta.user.id, perfil: perfil)
-        } catch let erro as ErroDaApi {
-            throw erro
+            _ = try await cliente.auth.verifyOTP(email: email, token: codigo, type: .email)
         } catch {
             throw mapear(error)
         }
     }
 
-    public func criarConta(_ cadastro: CadastroConta) async throws -> SessaoUsuario {
-        let nascimento = cadastro.nascimento.formatted(.iso8601.year().month().day())
-        let params = ContratoAPI.CriarConta(
-            perfil: cadastro.perfil.rawValue,
-            nome: cadastro.nome,
-            telefone: cadastro.telefone,
-            nascimento: nascimento,
-            versaoTermos: cadastro.versaoTermos,
-            aceitouEm: codificadorISO.string(from: cadastro.aceitouEm)
-        )
-        let usuario: ContratoAPI.Usuario = try await rpc("criar_conta", params: params)
-        return SessaoUsuario(usuarioID: usuario.id, perfil: usuario.perfil)
+    public func entrarDemonstracao(email: String, codigo: String) async throws {
+        do {
+            let sessao: ContratoAPI.SessaoDTO = try await cliente.functions.invoke(
+                "entrar-demonstracao",
+                options: FunctionInvokeOptions(body: ContratoAPI.EntrarDemonstracao(email: email, codigo: codigo)),
+                decoder: decodificador
+            )
+            _ = try await cliente.auth.setSession(accessToken: sessao.accessToken, refreshToken: sessao.refreshToken)
+        } catch {
+            throw mapear(error)
+        }
     }
+
+    // MARK: Conta e perfil
+
+    public func minhaConta() async throws -> Conta {
+        let usuario: ContratoAPI.UsuarioDTO = try await rpc("minha_conta")
+        return try converter { try usuario.dominio() }
+    }
+
+    public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
+        let usuario: ContratoAPI.UsuarioDTO = try await rpc("criar_conta", params: ContratoAPI.CriarConta(cadastro))
+        return try converter { try usuario.dominio() }
+    }
+
+    public func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
+        let perfil: ContratoAPI.PerfilProfissionalDTO = try await rpc(
+            "criar_perfil_profissional",
+            params: ContratoAPI.DadosPerfilProfissionalDTO(dados)
+        )
+        return try converter { try perfil.dominio() }
+    }
+
+    public func meuPerfilProfissional() async throws -> PerfilProfissional {
+        let perfil: ContratoAPI.PerfilProfissionalDTO = try await rpc("meu_perfil_profissional")
+        return try converter { try perfil.dominio() }
+    }
+
+    public func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional {
+        let perfil: ContratoAPI.PerfilProfissionalDTO = try await rpc(
+            "atualizar_perfil_profissional",
+            params: ContratoAPI.AlteracaoPerfilProfissionalDTO(alteracao)
+        )
+        return try converter { try perfil.dominio() }
+    }
+
+    // MARK: Estabelecimento
+
+    public func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento {
+        let resposta: ContratoAPI.EstabelecimentoDTO = try await rpc(
+            "cadastrar_estabelecimento",
+            params: ContratoAPI.CadastroEstabelecimentoDTO(cadastro)
+        )
+        return try converter { try resposta.dominio() }
+    }
+
+    public func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] {
+        let resposta: [ContratoAPI.EstabelecimentoDaContaDTO] = try await rpc("meus_estabelecimentos")
+        return resposta.map { $0.dominio() }
+    }
+
+    public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
+        let params = ContratoAPI.PainelParametros(
+            estabelecimentoID: id,
+            de: ContratoAPI.texto(periodo.inicio),
+            ate: ContratoAPI.texto(periodo.fim)
+        )
+        let resposta: ContratoAPI.PainelDTO = try await rpc("painel_estabelecimento", params: params)
+        return try converter { try resposta.dominio() }
+    }
+
+    // MARK: Catálogo e vagas
 
     public func funcoes() async throws -> [Funcao] {
         do {
-            let resposta: [ContratoAPI.FuncaoDTO] = try await cliente.from("funcao").select().execute().value
+            let resposta: [ContratoAPI.FuncaoDTO] = try await cliente
+                .from("funcao")
+                .select("id,nome,categoria")
+                .eq("ativo", value: true)
+                .execute()
+                .value
             return resposta.map { $0.dominio() }
-        } catch { throw mapear(error) }
-    }
-
-    public func cadastrarEstabelecimento(_ estabelecimento: Estabelecimento) async throws -> Estabelecimento {
-        struct Params: Encodable {
-            let nome: String; let documento: String; let tipo: TipoEstabelecimento; let endereco: String; let ponto: ContratoAPI.CoordenadaDTO
+        } catch {
+            throw mapear(error)
         }
-        let resposta: ContratoAPI.EstabelecimentoDTO = try await rpc(
-            "cadastrar_estabelecimento",
-            params: Params(nome: estabelecimento.nome, documento: estabelecimento.documento, tipo: estabelecimento.tipo, endereco: estabelecimento.endereco, ponto: .init(estabelecimento.ponto))
-        )
-        return try resposta.dominio()
-    }
-
-    public func meusEstabelecimentos() async throws -> [Estabelecimento] {
-        let resposta: [ContratoAPI.EstabelecimentoDTO] = try await rpc("meus_estabelecimentos", params: SemParametros())
-        return try resposta.map { try $0.dominio() }
     }
 
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
-        let params = ContratoAPI.PublicarVaga(
-            estabelecimentoID: publicacao.estabelecimentoID,
-            funcaoID: publicacao.funcaoID,
-            inicioEm: codificadorISO.string(from: publicacao.periodo.inicio),
-            fimEm: codificadorISO.string(from: publicacao.periodo.fim),
-            local: publicacao.local,
-            ponto: .init(publicacao.ponto),
-            valorCentavos: publicacao.valor.centavos,
-            posicoes: publicacao.posicoes,
-            incluiRefeicao: publicacao.inclusos.refeicao,
-            incluiTransporte: publicacao.inclusos.transporte,
-            exigeMaterialProprio: publicacao.inclusos.exigeMaterialProprio,
-            responsavelLocal: publicacao.responsavelLocal,
-            modo: publicacao.modo,
-            chave: publicacao.chave
-        )
-        let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc("publicar_vaga", params: params)
+        let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc("publicar_vaga", params: ContratoAPI.NovaVaga(publicacao))
         return resposta.dominio()
     }
 
     public func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada {
         let params = ContratoAPI.RepublicarVaga(
             vagaID: id,
-            inicioEm: codificadorISO.string(from: periodo.inicio),
-            fimEm: codificadorISO.string(from: periodo.fim),
+            inicioEm: ContratoAPI.texto(periodo.inicio),
+            fimEm: ContratoAPI.texto(periodo.fim),
             chave: chave
         )
         let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc("republicar_vaga", params: params)
         return resposta.dominio()
     }
 
-    public func vagasAbertas() async throws -> [Vaga] {
-        let resposta: [ContratoAPI.VagaDTO] = try await rpc("vagas_abertas", params: SemParametros())
-        return try resposta.map { try $0.dominio() }
+    public func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] {
+        let resposta: [ContratoAPI.VagaNaListaDTO] = try await rpc("vagas_abertas", params: ContratoAPI.FiltroVagasDTO(filtro))
+        return try converter { try resposta.map { try $0.dominio() } }
     }
 
     public func detalheDaVaga(id: UUID) async throws -> Vaga {
         let resposta: ContratoAPI.VagaDTO = try await rpc("detalhe_vaga", params: ContratoAPI.ID("vaga_id", id))
-        return try resposta.dominio()
+        return try converter { try resposta.dominio() }
     }
 
     public func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura {
@@ -125,9 +152,16 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
         return resposta.dominio()
     }
 
+    public func perfilPublico(id: UUID) async throws -> PerfilPublico {
+        let resposta: ContratoAPI.PerfilPublicoDTO = try await rpc("perfil_publico", params: ContratoAPI.ID("id", id))
+        return resposta.dominio()
+    }
+
+    // MARK: Turno
+
     public func meusTurnos() async throws -> [Turno] {
-        // O DTO final depende da adição `contato_visivel_ate` do contrato 0.2.1.
-        throw ErroDaApi(codigo: .respostaInvalida, detalhes: "contrato_0.2.1_pendente")
+        let resposta: [ContratoAPI.TurnoDTO] = try await rpc("meus_turnos")
+        return try converter { try resposta.map { try $0.dominio() } }
     }
 
     public func contatoDoTurno(id: UUID) async throws -> Contato {
@@ -135,42 +169,30 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
         return resposta.dominio()
     }
 
-    public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, chave: UUID) async throws {
-        let params = ContratoAPI.RegistroPresenca(
-            turnoID: turnoID,
-            distanciaMetros: distanciaMetros,
-            registradoEm: codificadorISO.string(from: registradoEm),
-            chave: chave
-        )
-        let _: RespostaVazia = try await rpc("fazer_checkin", params: params)
+    public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
+        try await registrarPresenca("fazer_checkin", turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
 
-    public func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, chave: UUID) async throws {
-        let params = ContratoAPI.RegistroPresenca(
-            turnoID: turnoID,
-            distanciaMetros: distanciaMetros,
-            registradoEm: codificadorISO.string(from: registradoEm),
-            chave: chave
-        )
-        let _: RespostaVazia = try await rpc("fazer_checkout", params: params)
+    public func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
+        try await registrarPresenca("fazer_checkout", turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
 
-    public func avaliar(turnoID: UUID, resposta: Bool, chave: UUID) async throws -> Avaliacao {
-        let valor: ContratoAPI.AvaliacaoDTO = try await rpc(
-            "avaliar",
-            params: ContratoAPI.Avaliar(turnoID: turnoID, resposta: resposta, chave: chave)
-        )
+    public func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
+        let valor: ContratoAPI.AvaliacaoDTO = try await rpc("avaliar", params: ContratoAPI.Avaliar(turnoID: turnoID, resposta: resposta))
         return valor.dominio()
     }
 
+    // MARK: Aplicativo e dispositivo
+
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
-        let resposta: ContratoAPI.ConfiguracaoDTO = try await rpc("configuracao_do_app", params: SemParametros())
+        struct Params: Encodable { let plataforma = "ios" }
+        let resposta: ContratoAPI.ConfiguracaoDoAppDTO = try await rpc("configuracao_do_app", params: Params())
         return resposta.dominio()
     }
 
     public func removerDispositivo(tokenFCM: String) async throws {
         struct Params: Encodable { let token_fcm: String }
-        let _: RespostaVazia = try await rpc("remover_dispositivo", params: Params(token_fcm: tokenFCM))
+        let _: ContratoAPI.RemocaoDTO = try await rpc("remover_dispositivo", params: Params(token_fcm: tokenFCM))
     }
 
     public func sair(tokenFCM: String?) async {
@@ -178,10 +200,21 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
         try? await cliente.auth.signOut()
     }
 
-    private func rpc<Resposta: Decodable, Parametros: Encodable>(
-        _ nome: String,
-        params: Parametros
-    ) async throws -> Resposta {
+    // MARK: Chamada
+
+    private func registrarPresenca(_ nome: String, turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
+        let params = ContratoAPI.RegistroDePresenca(
+            turnoID: turnoID,
+            distanciaMetros: distanciaMetros,
+            registradoEm: ContratoAPI.texto(registradoEm)
+        )
+        let resposta: ContratoAPI.ResultadoRegistroDTO = try await rpc(nome, params: params)
+        return resposta.dominio()
+    }
+
+    // As leituras que o contrato descreve em GET vão por POST: o PostgREST aceita os dois para
+    // qualquer função, e o POST não esbarra na transação somente-leitura do GET.
+    private func rpc<Resposta: Decodable>(_ nome: String, params: some Encodable = SemParametros()) async throws -> Resposta {
         let relogio = ContinuousClock()
         let inicio = relogio.now
         do {
@@ -193,9 +226,26 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
         }
     }
 
+    private func converter<Valor>(_ conversao: () throws -> Valor) throws -> Valor {
+        do {
+            return try conversao()
+        } catch let erro as ErroDeConversao {
+            throw ErroDaApi(codigo: .respostaInvalida, detalhes: erro.campo)
+        } catch {
+            throw ErroDaApi(codigo: .respostaInvalida)
+        }
+    }
+
     private func mapear(_ error: Error) -> ErroDaApi {
+        if let erro = error as? ErroDaApi { return erro }
         if let postgrest = error as? PostgrestError {
             return DecodificadorErroAPI.mapear(codigo: postgrest.code, detalhes: postgrest.details)
+        }
+        if case let FunctionsError.httpError(codigo, dados) = error {
+            return DecodificadorErroAPI.mapear(statusCode: codigo, dados: dados)
+        }
+        if error is DecodingError {
+            return ErroDaApi(codigo: .respostaInvalida)
         }
         if let urlError = error as? URLError, urlError.code == .notConnectedToInternet {
             return ErroDaApi(codigo: .semRede)
@@ -205,4 +255,3 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
 }
 
 private struct SemParametros: Encodable {}
-private struct RespostaVazia: Decodable {}

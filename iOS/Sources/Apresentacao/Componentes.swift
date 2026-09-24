@@ -138,9 +138,9 @@ public struct AvisoFrila: View {
 }
 
 public struct CartaoVaga: View {
-    private let vaga: Vaga
+    private let vaga: VagaNaLista
     private let formatador = FormatadorFrila()
-    public init(_ vaga: Vaga) { self.vaga = vaga }
+    public init(_ vaga: VagaNaLista) { self.vaga = vaga }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -152,7 +152,7 @@ public struct CartaoVaga: View {
             Text(vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
             Label(vaga.local, systemImage: "mappin.and.ellipse")
-            Text("\(vaga.posicoesAbertas) de \(vaga.posicoes) vagas abertas").font(.caption)
+            Text("\(vaga.posicoesAbertas) vagas abertas").font(.caption)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)

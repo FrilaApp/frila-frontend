@@ -1,0 +1,34 @@
+[
+  {
+    "id": "40000000-0000-0000-0000-000000000001",
+    "funcao": {
+      "id": "20000000-0000-0000-0000-000000000001",
+      "nome": "Garçom",
+      "categoria": "Salão"
+    },
+    "estabelecimento": {
+      "id": "30000000-0000-0000-0000-000000000001",
+      "tipo": "estabelecimento",
+      "nome": "Bistrô Ipê",
+      "reputacao": {
+        "positivas": 18,
+        "total": 20,
+        "taxa_comparecimento": 0.95,
+        "turnos_considerados": 20,
+        "turnos_realizados": 21
+      }
+    },
+    "inicio_em": "2026-10-09T21:00:00Z",
+    "fim_em": "2026-10-10T01:00:00Z",
+    "local": "CLS 405, Asa Sul, Brasília - DF",
+    "distancia_km": 2.4,
+    "valor_centavos": 12000,
+    "posicoes_abertas": 2,
+    "inclusos": {
+      "inclui_refeicao": true,
+      "inclui_transporte": false,
+      "exige_material_proprio": false
+    },
+    "modo": "urgencia"
+  }
+]

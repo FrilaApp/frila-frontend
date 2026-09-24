@@ -12,6 +12,7 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case contaExistente = "conta_existente"
     case documentoJaCadastrado = "documento_ja_cadastrado"
     case administradorUnico = "administrador_unico"
+    case perfilJaExiste = "perfil_ja_existe"
     case campoObrigatorio = "campo_obrigatorio"
     case campoInvalido = "campo_invalido"
     case foraDaJanela = "fora_da_janela"

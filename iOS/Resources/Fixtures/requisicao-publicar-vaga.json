@@ -1,0 +1,21 @@
+{
+  "estabelecimento_id": "30000000-0000-0000-0000-000000000001",
+  "funcao_id": "20000000-0000-0000-0000-000000000001",
+  "inicio_em": "2026-10-09T21:00:00Z",
+  "fim_em": "2026-10-10T01:00:00Z",
+  "local": "CLS 405, Asa Sul, Brasília - DF",
+  "ponto": {
+    "latitude": -15.8121,
+    "longitude": -47.8997
+  },
+  "valor_centavos": 12000,
+  "posicoes": 2,
+  "inclui_refeicao": true,
+  "inclui_transporte": false,
+  "exige_material_proprio": false,
+  "responsavel_local": "Marina",
+  "traje": "Camisa preta e calça escura",
+  "participa_rateio": true,
+  "modo": "urgencia",
+  "chave": "90000000-0000-0000-0000-000000000001"
+}

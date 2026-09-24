@@ -105,14 +105,14 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
             if let existente = try modelContext.fetch(descritor).first {
                 existente.conteudo = try encoder.encode(turno)
                 existente.fim = turno.vaga.periodo.fim
-                existente.contatoVisivelAte = turno.contato?.visivelAte
+                existente.contatoVisivelAte = turno.contatoVisivelAte
                 existente.salvoEm = instante
             } else {
                 modelContext.insert(TurnoPersistido(
                     id: turno.id,
                     conteudo: try encoder.encode(turno),
                     fim: turno.vaga.periodo.fim,
-                    contatoVisivelAte: turno.contato?.visivelAte,
+                    contatoVisivelAte: turno.contatoVisivelAte,
                     salvoEm: instante
                 ))
             }
@@ -130,15 +130,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         decoder.dateDecodingStrategy = .iso8601
         return try todos.filter { $0.fim > limite }.map { registro in
             let turno = try decoder.decode(Turno.self, from: registro.conteudo)
-            guard let contato = turno.contato, !contato.estaVisivel(em: instante) else { return turno }
-            return Turno(
-                id: turno.id,
-                posicaoID: turno.posicaoID,
-                vaga: turno.vaga,
-                verificacao: turno.verificacao,
-                valorAcordado: turno.valorAcordado,
-                contato: nil
-            )
+            return turno.contatoVisivel(em: instante) ? turno : turno.com(contato: nil)
         }
     }
 

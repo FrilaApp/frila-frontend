@@ -1,0 +1,21 @@
+{
+  "funcoes": [
+    "20000000-0000-0000-0000-000000000001"
+  ],
+  "ponto_base": {
+    "latitude": -15.8267,
+    "longitude": -47.9218
+  },
+  "disponibilidades": [
+    {
+      "dia_semana": 5,
+      "hora_inicio": "18:00",
+      "hora_fim": "02:00"
+    },
+    {
+      "dia_semana": 6,
+      "hora_inicio": "18:00",
+      "hora_fim": "02:00"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "30000000-0000-0000-0000-000000000001",
+    "nome": "Bistrô Ipê",
+    "papel": "administrador",
+    "tipo": "food_service",
+    "reputacao": {
+      "positivas": 18,
+      "total": 20,
+      "taxa_comparecimento": 0.95,
+      "turnos_considerados": 20,
+      "turnos_realizados": 21
+    }
+  }
+]
