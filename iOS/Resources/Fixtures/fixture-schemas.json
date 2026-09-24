@@ -1,0 +1,14 @@
+{
+  "funcoes.json": {
+    "root": "array",
+    "required": ["id", "nome", "categoria"]
+  },
+  "vaga.json": {
+    "root": "object",
+    "required": ["id", "estabelecimento", "funcao", "inicio_em", "fim_em", "local", "ponto", "valor_centavos", "posicoes", "posicoes_abertas", "inclusos", "responsavel_local", "modo", "estado"]
+  },
+  "erros.json": {
+    "root": "array",
+    "required": ["code", "message", "details", "hint"]
+  }
+}

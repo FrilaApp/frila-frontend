@@ -1,0 +1,10 @@
+FRILA_BUNDLE_ID = com.frila.org.app
+FRILA_APP_STORE_URL = https:/$()/apps.apple.com/app/id6815311991
+FRILA_SUPABASE_DEV_URL = https:/$()/frila-dev.supabase.co
+FRILA_SUPABASE_DEV_PUBLISHABLE_KEY = public-key-not-configured
+FRILA_SUPABASE_PROD_URL = https:/$()/frila-prod.supabase.co
+FRILA_SUPABASE_PROD_PUBLISHABLE_KEY = public-key-not-configured
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited)
+
+// Valores reais ficam somente neste arquivo ignorado pelo Git.
+#include? "Secrets.xcconfig"

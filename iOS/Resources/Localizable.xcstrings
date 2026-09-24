@@ -1,0 +1,11 @@
+{
+  "sourceLanguage" : "pt-BR",
+  "strings" : {
+    "Atualização necessária" : {},
+    "Atualizar agora" : {},
+    "Carregando…" : {},
+    "Sem conexão. Mostrando os dados salvos neste aparelho." : {},
+    "Tentar novamente" : {}
+  },
+  "version" : "1.0"
+}

@@ -1,0 +1,1659 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04055AD7499797428CFEBD35 /* FrilaDados.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0614982DC6AABA151649D361 /* DominioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A4AC403161D71F18466D6A /* DominioTests.swift */; };
+		077BD891F4BBE33EEA05F2F3 /* CatalogoDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */; };
+		09A0B06C662525A8361F803D /* ConfiguracaoAmbiente.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */; };
+		0B611AAFB501EE22B062A798 /* FormatadorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7F5174A8365E2BCB231B62 /* FormatadorTests.swift */; };
+		0BE65A598CDC77340CCC66D6 /* CacheSwiftData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6AB2CF87FE4F8FED8FF891 /* CacheSwiftData.swift */; };
+		19C118B2A416731E092F1170 /* ErrosAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65115E2F0782067BF1010B60 /* ErrosAPITests.swift */; };
+		1BFAB3F95F669A94FE53BEB8 /* AtualizacaoObrigatoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */; };
+		201623114BD2EF743BBB96E2 /* TelemetriaMetricKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86BECB717CB5E93D31FA7D1C /* TelemetriaMetricKit.swift */; };
+		20A0B281B62D08359C3F8504 /* erros.json in Resources */ = {isa = PBXBuildFile; fileRef = 662F4DEFDF9C9599205723B5 /* erros.json */; };
+		29F49F8408BBB2BEA0E4CFD7 /* contract-version.json in Resources */ = {isa = PBXBuildFile; fileRef = D7EABD69C57585AF83655977 /* contract-version.json */; };
+		323E59B84BDAA751E9A9E952 /* ApiEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FA10275A7C93ECAB311691 /* ApiEmMemoriaTests.swift */; };
+		45025836682D6D56DD0D6DC7 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4A51F1AA8A8BB58B30E5CA52 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+		4BBF0BBD69794290A3625836 /* FrilaDados.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; };
+		4BFE04B989747FB2E51D71B3 /* ErrosDaAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044AA2F1727FE713F636F072 /* ErrosDaAPI.swift */; };
+		4C4E48140184A895EEC8377F /* fixture-schemas.json in Resources */ = {isa = PBXBuildFile; fileRef = AA69DB5A0CD077F679777AF0 /* fixture-schemas.json */; };
+		4CF639D7269F44CF208FB952 /* FrilaApresentacao.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4E246A9F6D8B280FE69149CE /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+		50157284EB98F5B50FD96ACF /* SincronizadorAcoes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E052D13CFCC12C0A35068658 /* SincronizadorAcoes.swift */; };
+		5496527AF7AB8E8961BC461E /* DesignSystem.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DF6818CE9FACD139F1FF24D /* DesignSystem.xcassets */; };
+		5CC31B3BBCFC04F22FF4A63C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C003E3313087A6450355751E /* PrivacyInfo.xcprivacy */; };
+		6B43F18F972E1E61FBD82F88 /* FormatadorFrila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA32088E555C10CC772D882 /* FormatadorFrila.swift */; };
+		7099E790EA08059ECD1D5185 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
+		82F3D63694FF304FDB047AF2 /* FrilaDados.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; };
+		8D44DCBE863B3BEAF899FF5C /* FrilaApresentacao.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		9544502D8CC50FFF7BC18462 /* SupabaseApiCliente.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAFE23BD5136EB4B368E30A /* SupabaseApiCliente.swift */; };
+		95F55C7ED119121193117E89 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 94AA0E4986FA081B4EDF365F /* Localizable.xcstrings */; };
+		9855C4FA7E2932FC37785F72 /* funcoes.json in Resources */ = {isa = PBXBuildFile; fileRef = C5968D41D64341107B2ACE77 /* funcoes.json */; };
+		9B7154A197C97A963836E33C /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 6E9B44D44F388557013F7FC6 /* Supabase */; };
+		9CBB63F1F429CC6D42C84569 /* Cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD10D457C0BA33C2707A053 /* Cache.swift */; };
+		A1ECBBA8CA338766CB1A8896 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A2CB4DC11D29F54B1BFB5A17 /* FrilaApresentacao.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; };
+		A815E2BE571BE753487E920E /* Modelos.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B3CEC4D7490ABD615F9262 /* Modelos.swift */; };
+		ACC5F7862C02C11DA160451E /* ApiClienteEmMemoria.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B43084AE2BBE6031C888000 /* ApiClienteEmMemoria.swift */; };
+		B588E4E496730CE3ACB5EC44 /* Componentes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F1776455FF3BC99C2521A6 /* Componentes.swift */; };
+		C0AF8B85A841AC750998C3E1 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1686AA539A8DA1D54FF79C2D /* DesignTokens.swift */; };
+		C31377FDC8A3725DCE939346 /* FrilaDominio.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C4028BAA32FBB5CC060372F7 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+		CA9ECE0B149FACE77CA6BF3A /* FrilaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB83B16D703D1E773D101730 /* FrilaUITests.swift */; };
+		CAEE50AAF627DDE036BC3DBA /* DTOsContrato.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5991D5076A59604B5F0C6D3 /* DTOsContrato.swift */; };
+		CF1724FEE835D71D514FAE23 /* FrilaDados.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		D9F7F328BB7C0EA59C565EFF /* Portas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29280FDF830FB5FD01A47356 /* Portas.swift */; };
+		DA7A8C61156468C3F8E0E12E /* SwiftDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5AB836C22721632CB647259 /* SwiftDataTests.swift */; };
+		DE5FCC0BA755A874B4961CD6 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
+		E056CF423891762CD4D6EDC3 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+		E37C08338359D5E72F19001B /* FrilaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */; };
+		E5B7819F1F793D2F32BEE292 /* vaga.json in Resources */ = {isa = PBXBuildFile; fileRef = A102BE37E5812AE84F4F8649 /* vaga.json */; };
+		E5BF46E186C7B979806C34EF /* FrilaApresentacao.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; };
+		E663326322FF24B467813D4C /* App.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E170CF5FEBE4A60D1A81D2C /* App.xcassets */; };
+		E78679D5778572DE77CA3C59 /* ArmazenamentoKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */; };
+		EB109A72EAD656B68AE13C04 /* ObjetosDeValor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900A311A3730D37606A75AEC /* ObjetosDeValor.swift */; };
+		F110162D220BD8C9C9635C1C /* EstadosDeTela.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA215437724E11E1540CB9C9 /* EstadosDeTela.swift */; };
+		F3F3CB939344D874A07406A7 /* AtualizacaoObrigatoria.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661B8589A9BDD4069E39ED1B /* AtualizacaoObrigatoria.swift */; };
+		FAA64BA2039C35BD23DE9A3E /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 11ACF6312B2CF11BD386390B /* InfoPlist.xcstrings */; };
+		FADC4387A4B493845BF5827B /* FrilaDominio.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		FB6BD75DCB79EAFBB9E24FF6 /* DecodificadorErroAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */; };
+		FDFCF7C60048C203D965CEE5 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0767F76AC92498F239DE9D38 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 83AC1900ED79B9911D075E2E;
+			remoteInfo = Frila;
+		};
+		0B1DEFF83ADFC97693C74E6F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2D53F81121F391C3E7304CC4;
+			remoteInfo = FrilaApresentacao;
+		};
+		39E4D532A2882D1727E5699F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2405D2EC08C75F83DA977B62;
+			remoteInfo = FrilaDados;
+		};
+		3E02533D9115E7A8E3221860 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9230EC34E08CCD7C3494346E;
+			remoteInfo = FrilaDominio;
+		};
+		5F7B0CDF1D97E0A188CAF9DC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9B52884096A2C69464BAC70F;
+			remoteInfo = FrilaInfraestrutura;
+		};
+		6EC61CDB64D0C94F72C053CD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 83AC1900ED79B9911D075E2E;
+			remoteInfo = Frila;
+		};
+		75D68F185D25D8393FC62462 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9B52884096A2C69464BAC70F;
+			remoteInfo = FrilaInfraestrutura;
+		};
+		93AE0F2B1F9D07D9C73599EC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9230EC34E08CCD7C3494346E;
+			remoteInfo = FrilaDominio;
+		};
+		95BD589514DF0272E5089550 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9230EC34E08CCD7C3494346E;
+			remoteInfo = FrilaDominio;
+		};
+		B066A91DDC94DC7B5A3BB9A8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9230EC34E08CCD7C3494346E;
+			remoteInfo = FrilaDominio;
+		};
+		B0B822EF3497525400B4BF01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2405D2EC08C75F83DA977B62;
+			remoteInfo = FrilaDados;
+		};
+		C8D6022F652728B34C6CE3DC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2D53F81121F391C3E7304CC4;
+			remoteInfo = FrilaApresentacao;
+		};
+		CB4DB8CB0E72FEBF7672D4A8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9230EC34E08CCD7C3494346E;
+			remoteInfo = FrilaDominio;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8F919EA70158EE66BA83925F /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C31377FDC8A3725DCE939346 /* FrilaDominio.framework in Embed Frameworks */,
+				CF1724FEE835D71D514FAE23 /* FrilaDados.framework in Embed Frameworks */,
+				4CF639D7269F44CF208FB952 /* FrilaApresentacao.framework in Embed Frameworks */,
+				45025836682D6D56DD0D6DC7 /* FrilaInfraestrutura.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E513D2C4DB6A071AFF545B79 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				FADC4387A4B493845BF5827B /* FrilaDominio.framework in Embed Frameworks */,
+				04055AD7499797428CFEBD35 /* FrilaDados.framework in Embed Frameworks */,
+				8D44DCBE863B3BEAF899FF5C /* FrilaApresentacao.framework in Embed Frameworks */,
+				A1ECBBA8CA338766CB1A8896 /* FrilaInfraestrutura.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		044AA2F1727FE713F636F072 /* ErrosDaAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrosDaAPI.swift; sourceTree = "<group>"; };
+		0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbiente.swift; sourceTree = "<group>"; };
+		11ACF6312B2CF11BD386390B /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		1686AA539A8DA1D54FF79C2D /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		1DF6818CE9FACD139F1FF24D /* DesignSystem.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = DesignSystem.xcassets; sourceTree = "<group>"; };
+		22F1776455FF3BC99C2521A6 /* Componentes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Componentes.swift; sourceTree = "<group>"; };
+		29280FDF830FB5FD01A47356 /* Portas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Portas.swift; sourceTree = "<group>"; };
+		330A7012F96AEC9C169084D2 /* Frila.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Frila.entitlements; sourceTree = "<group>"; };
+		3AA32088E555C10CC772D882 /* FormatadorFrila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatadorFrila.swift; sourceTree = "<group>"; };
+		3B6AB2CF87FE4F8FED8FF891 /* CacheSwiftData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheSwiftData.swift; sourceTree = "<group>"; };
+		3E170CF5FEBE4A60D1A81D2C /* App.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = App.xcassets; sourceTree = "<group>"; };
+		44FCBC781830AFDC791F353D /* FrilaDados.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaDados.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B43084AE2BBE6031C888000 /* ApiClienteEmMemoria.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClienteEmMemoria.swift; sourceTree = "<group>"; };
+		5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoKeychain.swift; sourceTree = "<group>"; };
+		60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodificadorErroAPI.swift; sourceTree = "<group>"; };
+		64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
+		65115E2F0782067BF1010B60 /* ErrosAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrosAPITests.swift; sourceTree = "<group>"; };
+		661B8589A9BDD4069E39ED1B /* AtualizacaoObrigatoria.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtualizacaoObrigatoria.swift; sourceTree = "<group>"; };
+		662F4DEFDF9C9599205723B5 /* erros.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = erros.json; sourceTree = "<group>"; };
+		67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaInfraestrutura.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		86BECB717CB5E93D31FA7D1C /* TelemetriaMetricKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetriaMetricKit.swift; sourceTree = "<group>"; };
+		88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtualizacaoObrigatoriaTests.swift; sourceTree = "<group>"; };
+		900A311A3730D37606A75AEC /* ObjetosDeValor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjetosDeValor.swift; sourceTree = "<group>"; };
+		90A4AC403161D71F18466D6A /* DominioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DominioTests.swift; sourceTree = "<group>"; };
+		94AA0E4986FA081B4EDF365F /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		9AD10D457C0BA33C2707A053 /* Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cache.swift; sourceTree = "<group>"; };
+		9E31499F2DC2276C58FAFE97 /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
+		A102BE37E5812AE84F4F8649 /* vaga.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = vaga.json; sourceTree = "<group>"; };
+		A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrilaApp.swift; sourceTree = "<group>"; };
+		A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogoDesignSystem.swift; sourceTree = "<group>"; };
+		AA69DB5A0CD077F679777AF0 /* fixture-schemas.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "fixture-schemas.json"; sourceTree = "<group>"; };
+		AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaDominio.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB83B16D703D1E773D101730 /* FrilaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrilaUITests.swift; sourceTree = "<group>"; };
+		B1A382E13856303D3EF49B4D /* FrilaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FrilaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B380F8F29E809E2B842A6C80 /* FrilaUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FrilaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B4B3CEC4D7490ABD615F9262 /* Modelos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modelos.swift; sourceTree = "<group>"; };
+		B846214E1DADC0F62827675D /* Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = "<group>"; };
+		C003E3313087A6450355751E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		C5968D41D64341107B2ACE77 /* funcoes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = funcoes.json; sourceTree = "<group>"; };
+		C5991D5076A59604B5F0C6D3 /* DTOsContrato.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTOsContrato.swift; sourceTree = "<group>"; };
+		C5AB836C22721632CB647259 /* SwiftDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataTests.swift; sourceTree = "<group>"; };
+		C6FA10275A7C93ECAB311691 /* ApiEmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiEmMemoriaTests.swift; sourceTree = "<group>"; };
+		CA215437724E11E1540CB9C9 /* EstadosDeTela.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EstadosDeTela.swift; sourceTree = "<group>"; };
+		CE7F5174A8365E2BCB231B62 /* FormatadorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatadorTests.swift; sourceTree = "<group>"; };
+		D7EABD69C57585AF83655977 /* contract-version.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "contract-version.json"; sourceTree = "<group>"; };
+		DDAFE23BD5136EB4B368E30A /* SupabaseApiCliente.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseApiCliente.swift; sourceTree = "<group>"; };
+		E052D13CFCC12C0A35068658 /* SincronizadorAcoes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SincronizadorAcoes.swift; sourceTree = "<group>"; };
+		E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaApresentacao.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC7474CFC038B7830A07C624 /* Frila.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Frila.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2A382DB29CB663CC20C7F98B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A51F1AA8A8BB58B30E5CA52 /* FrilaDominio.framework in Frameworks */,
+				4BBF0BBD69794290A3625836 /* FrilaDados.framework in Frameworks */,
+				E5BF46E186C7B979806C34EF /* FrilaApresentacao.framework in Frameworks */,
+				7099E790EA08059ECD1D5185 /* FrilaInfraestrutura.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		51709561D2ABEF149BC09667 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FDFCF7C60048C203D965CEE5 /* FrilaDominio.framework in Frameworks */,
+				82F3D63694FF304FDB047AF2 /* FrilaDados.framework in Frameworks */,
+				A2CB4DC11D29F54B1BFB5A17 /* FrilaApresentacao.framework in Frameworks */,
+				DE5FCC0BA755A874B4961CD6 /* FrilaInfraestrutura.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5686FB0EE91045C732928699 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4E246A9F6D8B280FE69149CE /* FrilaDominio.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		91855B905F40F8F64E00B6CE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C4028BAA32FBB5CC060372F7 /* FrilaDominio.framework in Frameworks */,
+				9B7154A197C97A963836E33C /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E5E5C7019F2EC508721C81E2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E056CF423891762CD4D6EDC3 /* FrilaDominio.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		090A4B7E219A6D2CC05A68BF /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				556B2EA501DA99E7B9443718 /* UI */,
+				623C5FF828A51708D0CA6EA9 /* Unitarios */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		0A3DF495C2E4F47CD076FD9C /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				B4FDD8E73721E7A951EAD644 /* App */,
+				EEDA05C532989184437CBEDC /* Apresentacao */,
+				865737B5A4A6B26BB2C8B54B /* Dados */,
+				692623E03EB53807788CFBF5 /* Dominio */,
+				2DB19EF53B8545E74B44AB3B /* Infraestrutura */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		243DFB311B5526358016146D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EC7474CFC038B7830A07C624 /* Frila.app */,
+				E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */,
+				44FCBC781830AFDC791F353D /* FrilaDados.framework */,
+				AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */,
+				67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */,
+				B1A382E13856303D3EF49B4D /* FrilaTests.xctest */,
+				B380F8F29E809E2B842A6C80 /* FrilaUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2DB19EF53B8545E74B44AB3B /* Infraestrutura */ = {
+			isa = PBXGroup;
+			children = (
+				5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */,
+				86BECB717CB5E93D31FA7D1C /* TelemetriaMetricKit.swift */,
+			);
+			path = Infraestrutura;
+			sourceTree = "<group>";
+		};
+		2F140DA7A9FFF1B47350CD47 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AA6EE08FB0AE6E7AD17A6FBA /* Fixtures */,
+				3E170CF5FEBE4A60D1A81D2C /* App.xcassets */,
+				1DF6818CE9FACD139F1FF24D /* DesignSystem.xcassets */,
+				11ACF6312B2CF11BD386390B /* InfoPlist.xcstrings */,
+				94AA0E4986FA081B4EDF365F /* Localizable.xcstrings */,
+				C003E3313087A6450355751E /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		556B2EA501DA99E7B9443718 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				AB83B16D703D1E773D101730 /* FrilaUITests.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		623C5FF828A51708D0CA6EA9 /* Unitarios */ = {
+			isa = PBXGroup;
+			children = (
+				C6FA10275A7C93ECAB311691 /* ApiEmMemoriaTests.swift */,
+				88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */,
+				90A4AC403161D71F18466D6A /* DominioTests.swift */,
+				65115E2F0782067BF1010B60 /* ErrosAPITests.swift */,
+				CE7F5174A8365E2BCB231B62 /* FormatadorTests.swift */,
+				C5AB836C22721632CB647259 /* SwiftDataTests.swift */,
+			);
+			path = Unitarios;
+			sourceTree = "<group>";
+		};
+		692623E03EB53807788CFBF5 /* Dominio */ = {
+			isa = PBXGroup;
+			children = (
+				9AD10D457C0BA33C2707A053 /* Cache.swift */,
+				044AA2F1727FE713F636F072 /* ErrosDaAPI.swift */,
+				3AA32088E555C10CC772D882 /* FormatadorFrila.swift */,
+				B4B3CEC4D7490ABD615F9262 /* Modelos.swift */,
+				900A311A3730D37606A75AEC /* ObjetosDeValor.swift */,
+				29280FDF830FB5FD01A47356 /* Portas.swift */,
+			);
+			path = Dominio;
+			sourceTree = "<group>";
+		};
+		86326EB32BC4841CBFD7ADE9 = {
+			isa = PBXGroup;
+			children = (
+				C1EB30A2E013C756E6D83712 /* Configurations */,
+				2F140DA7A9FFF1B47350CD47 /* Resources */,
+				0A3DF495C2E4F47CD076FD9C /* Sources */,
+				090A4B7E219A6D2CC05A68BF /* Tests */,
+				243DFB311B5526358016146D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		865737B5A4A6B26BB2C8B54B /* Dados */ = {
+			isa = PBXGroup;
+			children = (
+				4B43084AE2BBE6031C888000 /* ApiClienteEmMemoria.swift */,
+				3B6AB2CF87FE4F8FED8FF891 /* CacheSwiftData.swift */,
+				60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */,
+				C5991D5076A59604B5F0C6D3 /* DTOsContrato.swift */,
+				E052D13CFCC12C0A35068658 /* SincronizadorAcoes.swift */,
+				DDAFE23BD5136EB4B368E30A /* SupabaseApiCliente.swift */,
+			);
+			path = Dados;
+			sourceTree = "<group>";
+		};
+		AA6EE08FB0AE6E7AD17A6FBA /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				D7EABD69C57585AF83655977 /* contract-version.json */,
+				662F4DEFDF9C9599205723B5 /* erros.json */,
+				AA69DB5A0CD077F679777AF0 /* fixture-schemas.json */,
+				C5968D41D64341107B2ACE77 /* funcoes.json */,
+				A102BE37E5812AE84F4F8649 /* vaga.json */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		B4FDD8E73721E7A951EAD644 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */,
+				330A7012F96AEC9C169084D2 /* Frila.entitlements */,
+				A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C1EB30A2E013C756E6D83712 /* Configurations */ = {
+			isa = PBXGroup;
+			children = (
+				64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */,
+				B846214E1DADC0F62827675D /* Local.xcconfig */,
+				9E31499F2DC2276C58FAFE97 /* Prod.xcconfig */,
+			);
+			path = Configurations;
+			sourceTree = "<group>";
+		};
+		EEDA05C532989184437CBEDC /* Apresentacao */ = {
+			isa = PBXGroup;
+			children = (
+				661B8589A9BDD4069E39ED1B /* AtualizacaoObrigatoria.swift */,
+				A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */,
+				22F1776455FF3BC99C2521A6 /* Componentes.swift */,
+				1686AA539A8DA1D54FF79C2D /* DesignTokens.swift */,
+				CA215437724E11E1540CB9C9 /* EstadosDeTela.swift */,
+			);
+			path = Apresentacao;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2405D2EC08C75F83DA977B62 /* FrilaDados */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9E0EA486B6285903C6749A13 /* Build configuration list for PBXNativeTarget "FrilaDados" */;
+			buildPhases = (
+				0CD903A2E52D5717720BE537 /* Sources */,
+				2EE78A4B8BEB7BF865F6EC18 /* Resources */,
+				91855B905F40F8F64E00B6CE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				27C606DB6BCBA6B35F9AEEBD /* PBXTargetDependency */,
+			);
+			name = FrilaDados;
+			packageProductDependencies = (
+				6E9B44D44F388557013F7FC6 /* Supabase */,
+			);
+			productName = FrilaDados;
+			productReference = 44FCBC781830AFDC791F353D /* FrilaDados.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		2D53F81121F391C3E7304CC4 /* FrilaApresentacao */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CB85A695B9789DB4235384AD /* Build configuration list for PBXNativeTarget "FrilaApresentacao" */;
+			buildPhases = (
+				718079796B70D19A1D168E7F /* Sources */,
+				E390AF00ABB3669F2DF2007D /* Resources */,
+				E5E5C7019F2EC508721C81E2 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E0FDB6BCDDCBDE09C14C6197 /* PBXTargetDependency */,
+			);
+			name = FrilaApresentacao;
+			packageProductDependencies = (
+			);
+			productName = FrilaApresentacao;
+			productReference = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		56B891BA045601DD417DE9DF /* FrilaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6601C811A1A965DA9FC56FD6 /* Build configuration list for PBXNativeTarget "FrilaTests" */;
+			buildPhases = (
+				FE82A1C95D5EA286A675CA6E /* Sources */,
+				2A382DB29CB663CC20C7F98B /* Frameworks */,
+				8F919EA70158EE66BA83925F /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				21EBA79083A7B5F4959BE630 /* PBXTargetDependency */,
+				195FFFA8515095D89A3ED96F /* PBXTargetDependency */,
+				FCDD1ADAB8D1904DA8CC3782 /* PBXTargetDependency */,
+				A9384844C6563EF348FC6E22 /* PBXTargetDependency */,
+				9D29718AD9568056B8D674E4 /* PBXTargetDependency */,
+			);
+			name = FrilaTests;
+			packageProductDependencies = (
+			);
+			productName = FrilaTests;
+			productReference = B1A382E13856303D3EF49B4D /* FrilaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		83AC1900ED79B9911D075E2E /* Frila */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 482F59F2A364FAAE3E62C5B8 /* Build configuration list for PBXNativeTarget "Frila" */;
+			buildPhases = (
+				0199F941333D110F5C548333 /* Sources */,
+				BFFAAC581EACB7A2539D8163 /* Resources */,
+				51709561D2ABEF149BC09667 /* Frameworks */,
+				E513D2C4DB6A071AFF545B79 /* Embed Frameworks */,
+				C71CC6C8D6D9DB5FFC02F37B /* Select Firebase configuration */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CB6F1EAB7B0EBA74FC37BE55 /* PBXTargetDependency */,
+				B5AEF9F33A106ECC09E20098 /* PBXTargetDependency */,
+				3504F9F0C0D2E8CDA50FC5C5 /* PBXTargetDependency */,
+				E5D123FA9778E77B6F370CB1 /* PBXTargetDependency */,
+			);
+			name = Frila;
+			packageProductDependencies = (
+			);
+			productName = Frila;
+			productReference = EC7474CFC038B7830A07C624 /* Frila.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9230EC34E08CCD7C3494346E /* FrilaDominio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4833F34DB19BF83C1DD4764E /* Build configuration list for PBXNativeTarget "FrilaDominio" */;
+			buildPhases = (
+				3370CEEAC1DEB5F3C4A7E14E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FrilaDominio;
+			packageProductDependencies = (
+			);
+			productName = FrilaDominio;
+			productReference = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		9B52884096A2C69464BAC70F /* FrilaInfraestrutura */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 06E038DDB0CD3861A539AE4F /* Build configuration list for PBXNativeTarget "FrilaInfraestrutura" */;
+			buildPhases = (
+				28640693D07806C883133ED5 /* Sources */,
+				5686FB0EE91045C732928699 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2FC33D738AEE68F09CD2C895 /* PBXTargetDependency */,
+			);
+			name = FrilaInfraestrutura;
+			packageProductDependencies = (
+			);
+			productName = FrilaInfraestrutura;
+			productReference = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		BD6828F73C5E237563BBB488 /* FrilaUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D51EC87E39DE7E0F461D147 /* Build configuration list for PBXNativeTarget "FrilaUITests" */;
+			buildPhases = (
+				DC5681673129FEE0251776C3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A2F5FDD08039551EE6349C78 /* PBXTargetDependency */,
+			);
+			name = FrilaUITests;
+			packageProductDependencies = (
+			);
+			productName = FrilaUITests;
+			productReference = B380F8F29E809E2B842A6C80 /* FrilaUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8E642AF0B8E4D332748CA9D2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					2405D2EC08C75F83DA977B62 = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+					};
+					2D53F81121F391C3E7304CC4 = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+					};
+					56B891BA045601DD417DE9DF = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+					};
+					83AC1900ED79B9911D075E2E = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+					};
+					9230EC34E08CCD7C3494346E = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+					};
+					9B52884096A2C69464BAC70F = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+					};
+					BD6828F73C5E237563BBB488 = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 83AC1900ED79B9911D075E2E;
+					};
+				};
+			};
+			buildConfigurationList = 44C06925BC656D22C09A149C /* Build configuration list for PBXProject "Frila" */;
+			developmentRegion = "pt-BR";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				"pt-BR",
+			);
+			mainGroup = 86326EB32BC4841CBFD7ADE9;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				226DD53212C98F305F9EA937 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 243DFB311B5526358016146D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				83AC1900ED79B9911D075E2E /* Frila */,
+				2D53F81121F391C3E7304CC4 /* FrilaApresentacao */,
+				2405D2EC08C75F83DA977B62 /* FrilaDados */,
+				9230EC34E08CCD7C3494346E /* FrilaDominio */,
+				9B52884096A2C69464BAC70F /* FrilaInfraestrutura */,
+				56B891BA045601DD417DE9DF /* FrilaTests */,
+				BD6828F73C5E237563BBB488 /* FrilaUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2EE78A4B8BEB7BF865F6EC18 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				29F49F8408BBB2BEA0E4CFD7 /* contract-version.json in Resources */,
+				20A0B281B62D08359C3F8504 /* erros.json in Resources */,
+				4C4E48140184A895EEC8377F /* fixture-schemas.json in Resources */,
+				9855C4FA7E2932FC37785F72 /* funcoes.json in Resources */,
+				E5B7819F1F793D2F32BEE292 /* vaga.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BFFAAC581EACB7A2539D8163 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E663326322FF24B467813D4C /* App.xcassets in Resources */,
+				FAA64BA2039C35BD23DE9A3E /* InfoPlist.xcstrings in Resources */,
+				5CC31B3BBCFC04F22FF4A63C /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E390AF00ABB3669F2DF2007D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5496527AF7AB8E8961BC461E /* DesignSystem.xcassets in Resources */,
+				95F55C7ED119121193117E89 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C71CC6C8D6D9DB5FFC02F37B /* Select Firebase configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Resources/Firebase/Dev/GoogleService-Info.plist",
+				"$(SRCROOT)/Resources/Firebase/Prod/GoogleService-Info.plist",
+			);
+			name = "Select Firebase configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\n\nset -euo pipefail\n\ncase \"${FRILA_ENVIRONMENT:-}\" in\n  local)\n    exit 0\n    ;;\n  frila-dev)\n    FIREBASE_ENVIRONMENT=\"Dev\"\n    ;;\n  frila-prod)\n    FIREBASE_ENVIRONMENT=\"Prod\"\n    ;;\n  *)\n    echo \"warning: unknown FRILA_ENVIRONMENT; Firebase configuration was not copied\" >&2\n    exit 0\n    ;;\nesac\n\nSOURCE_PLIST=\"${SRCROOT}/Resources/Firebase/${FIREBASE_ENVIRONMENT}/GoogleService-Info.plist\"\nDESTINATION_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\n\nif [[ ! -f \"$SOURCE_PLIST\" ]]; then\n  if [[ \"${CI:-false}\" == \"true\" ]]; then\n    echo \"error: missing Firebase configuration for ${FRILA_ENVIRONMENT}; run Scripts/inject-firebase-config.sh first\" >&2\n    exit 1\n  fi\n\n  echo \"warning: missing Firebase configuration for ${FRILA_ENVIRONMENT}; push messaging stays disabled in this local build\" >&2\n  exit 0\nfi\n\nmkdir -p \"$DESTINATION_DIR\"\ncp \"$SOURCE_PLIST\" \"$DESTINATION_DIR/GoogleService-Info.plist\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0199F941333D110F5C548333 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				09A0B06C662525A8361F803D /* ConfiguracaoAmbiente.swift in Sources */,
+				E37C08338359D5E72F19001B /* FrilaApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CD903A2E52D5717720BE537 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ACC5F7862C02C11DA160451E /* ApiClienteEmMemoria.swift in Sources */,
+				0BE65A598CDC77340CCC66D6 /* CacheSwiftData.swift in Sources */,
+				CAEE50AAF627DDE036BC3DBA /* DTOsContrato.swift in Sources */,
+				FB6BD75DCB79EAFBB9E24FF6 /* DecodificadorErroAPI.swift in Sources */,
+				50157284EB98F5B50FD96ACF /* SincronizadorAcoes.swift in Sources */,
+				9544502D8CC50FFF7BC18462 /* SupabaseApiCliente.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28640693D07806C883133ED5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E78679D5778572DE77CA3C59 /* ArmazenamentoKeychain.swift in Sources */,
+				201623114BD2EF743BBB96E2 /* TelemetriaMetricKit.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3370CEEAC1DEB5F3C4A7E14E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9CBB63F1F429CC6D42C84569 /* Cache.swift in Sources */,
+				4BFE04B989747FB2E51D71B3 /* ErrosDaAPI.swift in Sources */,
+				6B43F18F972E1E61FBD82F88 /* FormatadorFrila.swift in Sources */,
+				A815E2BE571BE753487E920E /* Modelos.swift in Sources */,
+				EB109A72EAD656B68AE13C04 /* ObjetosDeValor.swift in Sources */,
+				D9F7F328BB7C0EA59C565EFF /* Portas.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		718079796B70D19A1D168E7F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F3F3CB939344D874A07406A7 /* AtualizacaoObrigatoria.swift in Sources */,
+				077BD891F4BBE33EEA05F2F3 /* CatalogoDesignSystem.swift in Sources */,
+				B588E4E496730CE3ACB5EC44 /* Componentes.swift in Sources */,
+				C0AF8B85A841AC750998C3E1 /* DesignTokens.swift in Sources */,
+				F110162D220BD8C9C9635C1C /* EstadosDeTela.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DC5681673129FEE0251776C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA9ECE0B149FACE77CA6BF3A /* FrilaUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FE82A1C95D5EA286A675CA6E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				323E59B84BDAA751E9A9E952 /* ApiEmMemoriaTests.swift in Sources */,
+				1BFAB3F95F669A94FE53BEB8 /* AtualizacaoObrigatoriaTests.swift in Sources */,
+				0614982DC6AABA151649D361 /* DominioTests.swift in Sources */,
+				19C118B2A416731E092F1170 /* ErrosAPITests.swift in Sources */,
+				0B611AAFB501EE22B062A798 /* FormatadorTests.swift in Sources */,
+				DA7A8C61156468C3F8E0E12E /* SwiftDataTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		195FFFA8515095D89A3ED96F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9230EC34E08CCD7C3494346E /* FrilaDominio */;
+			targetProxy = B066A91DDC94DC7B5A3BB9A8 /* PBXContainerItemProxy */;
+		};
+		21EBA79083A7B5F4959BE630 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 83AC1900ED79B9911D075E2E /* Frila */;
+			targetProxy = 6EC61CDB64D0C94F72C053CD /* PBXContainerItemProxy */;
+		};
+		27C606DB6BCBA6B35F9AEEBD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9230EC34E08CCD7C3494346E /* FrilaDominio */;
+			targetProxy = CB4DB8CB0E72FEBF7672D4A8 /* PBXContainerItemProxy */;
+		};
+		2FC33D738AEE68F09CD2C895 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9230EC34E08CCD7C3494346E /* FrilaDominio */;
+			targetProxy = 93AE0F2B1F9D07D9C73599EC /* PBXContainerItemProxy */;
+		};
+		3504F9F0C0D2E8CDA50FC5C5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2D53F81121F391C3E7304CC4 /* FrilaApresentacao */;
+			targetProxy = 0B1DEFF83ADFC97693C74E6F /* PBXContainerItemProxy */;
+		};
+		9D29718AD9568056B8D674E4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9B52884096A2C69464BAC70F /* FrilaInfraestrutura */;
+			targetProxy = 5F7B0CDF1D97E0A188CAF9DC /* PBXContainerItemProxy */;
+		};
+		A2F5FDD08039551EE6349C78 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 83AC1900ED79B9911D075E2E /* Frila */;
+			targetProxy = 0767F76AC92498F239DE9D38 /* PBXContainerItemProxy */;
+		};
+		A9384844C6563EF348FC6E22 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2D53F81121F391C3E7304CC4 /* FrilaApresentacao */;
+			targetProxy = C8D6022F652728B34C6CE3DC /* PBXContainerItemProxy */;
+		};
+		B5AEF9F33A106ECC09E20098 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2405D2EC08C75F83DA977B62 /* FrilaDados */;
+			targetProxy = B0B822EF3497525400B4BF01 /* PBXContainerItemProxy */;
+		};
+		CB6F1EAB7B0EBA74FC37BE55 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9230EC34E08CCD7C3494346E /* FrilaDominio */;
+			targetProxy = 95BD589514DF0272E5089550 /* PBXContainerItemProxy */;
+		};
+		E0FDB6BCDDCBDE09C14C6197 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9230EC34E08CCD7C3494346E /* FrilaDominio */;
+			targetProxy = 3E02533D9115E7A8E3221860 /* PBXContainerItemProxy */;
+		};
+		E5D123FA9778E77B6F370CB1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9B52884096A2C69464BAC70F /* FrilaInfraestrutura */;
+			targetProxy = 75D68F185D25D8393FC62462 /* PBXContainerItemProxy */;
+		};
+		FCDD1ADAB8D1904DA8CC3782 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2405D2EC08C75F83DA977B62 /* FrilaDados */;
+			targetProxy = 39E4D532A2882D1727E5699F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		047F35FAAE564612854BDC26 /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dados";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Dev";
+		};
+		1C52A3BF18F0169DCDA492AC /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				INFOPLIST_KEY_FRILA_API_MODE = "$(FRILA_API_MODE)";
+				INFOPLIST_KEY_FRILA_APP_STORE_URL = "$(FRILA_APP_STORE_URL)";
+				INFOPLIST_KEY_FRILA_ENVIRONMENT = "$(FRILA_ENVIRONMENT)";
+				INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY = "$(FRILA_SUPABASE_PUBLISHABLE_KEY)";
+				INFOPLIST_KEY_FRILA_SUPABASE_URL = "$(FRILA_SUPABASE_URL)";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
+				PRODUCT_NAME = Frila;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-Dev";
+		};
+		2FA27AB4B36E83D9F47CBFF2 /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).infraestrutura";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Dev";
+		};
+		355E5C11100C618B1EA5B7BD /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9E31499F2DC2276C58FAFE97 /* Prod.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Release-Prod";
+		};
+		41597879B6593B3D114BC50B /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				INFOPLIST_KEY_FRILA_API_MODE = "$(FRILA_API_MODE)";
+				INFOPLIST_KEY_FRILA_APP_STORE_URL = "$(FRILA_APP_STORE_URL)";
+				INFOPLIST_KEY_FRILA_ENVIRONMENT = "$(FRILA_ENVIRONMENT)";
+				INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY = "$(FRILA_SUPABASE_PUBLISHABLE_KEY)";
+				INFOPLIST_KEY_FRILA_SUPABASE_URL = "$(FRILA_SUPABASE_URL)";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
+				PRODUCT_NAME = Frila;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-Local";
+		};
+		418A5AB14C46E636E0D1D000 /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).tests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Frila.app/Frila";
+			};
+			name = "Debug-Local";
+		};
+		44BBF7715B2873ADC5FFD2D2 /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dominio";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Dev";
+		};
+		49285536FD2805AE44863113 /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).uitests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Frila;
+			};
+			name = "Debug-Dev";
+		};
+		4F98D654FC099BEFBE142C50 /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).apresentacao";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Local";
+		};
+		62C32421E79D5824B98E92A2 /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dados";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Prod";
+		};
+		6DB7F6AEAB371E5BCE99C45D /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = B846214E1DADC0F62827675D /* Local.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Debug-Local";
+		};
+		6DDBA0843CD4C0059D9303F1 /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dados";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Local";
+		};
+		77BC96DC8732EC17F775899E /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).apresentacao";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Prod";
+		};
+		8DD99F0B88AD41B0968EAAB8 /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).infraestrutura";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Local";
+		};
+		8FACC93092764D047531F0B1 /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).uitests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Frila;
+			};
+			name = "Debug-Local";
+		};
+		956AD0E2ED62ED1188605492 /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).uitests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Frila;
+			};
+			name = "Release-Prod";
+		};
+		A6D8528B3B3E4EED4E33BCC5 /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).infraestrutura";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Prod";
+		};
+		CB686C2C62E12372E5AEB973 /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Debug-Dev";
+		};
+		D20E98D17C6F80CE3329954E /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dominio";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Prod";
+		};
+		D7E760A4287B3371D0419C07 /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dominio";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Local";
+		};
+		DD5BC7EA724407451CC90985 /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).tests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Frila.app/Frila";
+			};
+			name = "Release-Prod";
+		};
+		DDCBDF243E550ECFF56EAB83 /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).tests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Frila.app/Frila";
+			};
+			name = "Debug-Dev";
+		};
+		F3C959D63D5A8A7F90AB34F3 /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).apresentacao";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-Dev";
+		};
+		FB7E7D62245B962BCD2E1295 /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				INFOPLIST_KEY_FRILA_API_MODE = "$(FRILA_API_MODE)";
+				INFOPLIST_KEY_FRILA_APP_STORE_URL = "$(FRILA_APP_STORE_URL)";
+				INFOPLIST_KEY_FRILA_ENVIRONMENT = "$(FRILA_ENVIRONMENT)";
+				INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY = "$(FRILA_SUPABASE_PUBLISHABLE_KEY)";
+				INFOPLIST_KEY_FRILA_SUPABASE_URL = "$(FRILA_SUPABASE_URL)";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
+				PRODUCT_NAME = Frila;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-Prod";
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		06E038DDB0CD3861A539AE4F /* Build configuration list for PBXNativeTarget "FrilaInfraestrutura" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2FA27AB4B36E83D9F47CBFF2 /* Debug-Dev */,
+				8DD99F0B88AD41B0968EAAB8 /* Debug-Local */,
+				A6D8528B3B3E4EED4E33BCC5 /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		44C06925BC656D22C09A149C /* Build configuration list for PBXProject "Frila" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB686C2C62E12372E5AEB973 /* Debug-Dev */,
+				6DB7F6AEAB371E5BCE99C45D /* Debug-Local */,
+				355E5C11100C618B1EA5B7BD /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		482F59F2A364FAAE3E62C5B8 /* Build configuration list for PBXNativeTarget "Frila" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1C52A3BF18F0169DCDA492AC /* Debug-Dev */,
+				41597879B6593B3D114BC50B /* Debug-Local */,
+				FB7E7D62245B962BCD2E1295 /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		4833F34DB19BF83C1DD4764E /* Build configuration list for PBXNativeTarget "FrilaDominio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				44BBF7715B2873ADC5FFD2D2 /* Debug-Dev */,
+				D7E760A4287B3371D0419C07 /* Debug-Local */,
+				D20E98D17C6F80CE3329954E /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		4D51EC87E39DE7E0F461D147 /* Build configuration list for PBXNativeTarget "FrilaUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				49285536FD2805AE44863113 /* Debug-Dev */,
+				8FACC93092764D047531F0B1 /* Debug-Local */,
+				956AD0E2ED62ED1188605492 /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		6601C811A1A965DA9FC56FD6 /* Build configuration list for PBXNativeTarget "FrilaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDCBDF243E550ECFF56EAB83 /* Debug-Dev */,
+				418A5AB14C46E636E0D1D000 /* Debug-Local */,
+				DD5BC7EA724407451CC90985 /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		9E0EA486B6285903C6749A13 /* Build configuration list for PBXNativeTarget "FrilaDados" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				047F35FAAE564612854BDC26 /* Debug-Dev */,
+				6DDBA0843CD4C0059D9303F1 /* Debug-Local */,
+				62C32421E79D5824B98E92A2 /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		CB85A695B9789DB4235384AD /* Build configuration list for PBXNativeTarget "FrilaApresentacao" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F3C959D63D5A8A7F90AB34F3 /* Debug-Dev */,
+				4F98D654FC099BEFBE142C50 /* Debug-Local */,
+				77BC96DC8732EC17F775899E /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		226DD53212C98F305F9EA937 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.55.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6E9B44D44F388557013F7FC6 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 226DD53212C98F305F9EA937 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+}

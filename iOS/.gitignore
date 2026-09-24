@@ -1,0 +1,10 @@
+Configurations/Secrets.xcconfig
+Resources/Firebase/**/GoogleService-Info.plist
+Secrets/
+*.p8
+DerivedData/
+build/
+.build/
+.DS_Store
+*.xcuserstate
+xcuserdata/

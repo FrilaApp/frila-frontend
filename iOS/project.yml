@@ -1,0 +1,211 @@
+name: Frila
+options:
+  bundleIdPrefix: com.frila
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  developmentLanguage: pt-BR
+
+configs:
+  Debug-Local: debug
+  Debug-Dev: debug
+  Release-Prod: release
+
+configFiles:
+  Debug-Local: Configurations/Local.xcconfig
+  Debug-Dev: Configurations/Dev.xcconfig
+  Release-Prod: Configurations/Prod.xcconfig
+
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    exactVersion: 2.55.2
+
+settings:
+  base:
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTS_MACCATALYST: NO
+    SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CLANG_ENABLE_MODULES: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: 8B7F7G3Y2U
+
+targets:
+  FrilaDominio:
+    type: framework
+    platform: iOS
+    sources:
+      - path: Sources/Dominio
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).dominio
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+
+  FrilaDados:
+    type: framework
+    platform: iOS
+    sources:
+      - path: Sources/Dados
+      - path: Resources/Fixtures
+        buildPhase: resources
+    dependencies:
+      - target: FrilaDominio
+      - package: Supabase
+        product: Supabase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).dados
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+
+  FrilaApresentacao:
+    type: framework
+    platform: iOS
+    sources:
+      - path: Sources/Apresentacao
+      - path: Resources/DesignSystem.xcassets
+        buildPhase: resources
+      - path: Resources/Localizable.xcstrings
+        buildPhase: resources
+    dependencies:
+      - target: FrilaDominio
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).apresentacao
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+
+  FrilaInfraestrutura:
+    type: framework
+    platform: iOS
+    sources:
+      - path: Sources/Infraestrutura
+    dependencies:
+      - target: FrilaDominio
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).infraestrutura
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+
+  Frila:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/App
+      - path: Resources/App.xcassets
+        buildPhase: resources
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      - path: Resources/InfoPlist.xcstrings
+        buildPhase: resources
+    dependencies:
+      - target: FrilaDominio
+      - target: FrilaDados
+      - target: FrilaApresentacao
+      - target: FrilaInfraestrutura
+    postBuildScripts:
+      - name: Select Firebase configuration
+        path: Scripts/copy-firebase-config.sh
+        inputFiles:
+          - $(SRCROOT)/Resources/Firebase/Dev/GoogleService-Info.plist
+          - $(SRCROOT)/Resources/Firebase/Prod/GoogleService-Info.plist
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID)
+        PRODUCT_NAME: Frila
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Frila
+        INFOPLIST_KEY_CFBundleDevelopmentRegion: pt-BR
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.business
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_FRILA_API_MODE: $(FRILA_API_MODE)
+        INFOPLIST_KEY_FRILA_ENVIRONMENT: $(FRILA_ENVIRONMENT)
+        INFOPLIST_KEY_FRILA_SUPABASE_URL: $(FRILA_SUPABASE_URL)
+        INFOPLIST_KEY_FRILA_SUPABASE_PUBLISHABLE_KEY: $(FRILA_SUPABASE_PUBLISHABLE_KEY)
+        INFOPLIST_KEY_FRILA_APP_STORE_URL: $(FRILA_APP_STORE_URL)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Sources/App/Frila.entitlements
+
+  FrilaTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/Unitarios
+    dependencies:
+      - target: Frila
+      - target: FrilaDominio
+      - target: FrilaDados
+      - target: FrilaApresentacao
+      - target: FrilaInfraestrutura
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).tests
+        GENERATE_INFOPLIST_FILE: YES
+
+  FrilaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/UI
+    dependencies:
+      - target: Frila
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Frila
+
+schemes:
+  Frila-Local:
+    build:
+      targets:
+        Frila: all
+        FrilaTests: [test]
+        FrilaUITests: [test]
+    run:
+      config: Debug-Local
+      commandLineArguments:
+        -FRILA_SCENARIO: true
+        success: true
+    test:
+      config: Debug-Local
+      targets:
+        - FrilaTests
+        - FrilaUITests
+    archive:
+      config: Debug-Local
+  Frila-Dev:
+    build:
+      targets:
+        Frila: all
+        FrilaTests: [test]
+    run:
+      config: Debug-Dev
+    test:
+      config: Debug-Dev
+      targets:
+        - FrilaTests
+    archive:
+      config: Debug-Dev
+  Frila-Prod:
+    build:
+      targets:
+        Frila: all
+    run:
+      config: Release-Prod
+    archive:
+      config: Release-Prod

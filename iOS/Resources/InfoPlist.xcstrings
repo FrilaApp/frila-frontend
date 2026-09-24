@@ -1,0 +1,11 @@
+{
+  "sourceLanguage" : "pt-BR",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Frila" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

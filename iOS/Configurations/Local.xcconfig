@@ -1,0 +1,5 @@
+#include "Shared.xcconfig"
+FRILA_ENVIRONMENT = local
+FRILA_API_MODE = mock
+FRILA_SUPABASE_URL = http:/$()/127.0.0.1:54321
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG LOCAL

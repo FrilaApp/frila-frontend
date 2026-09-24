@@ -1,0 +1,12 @@
+[
+  { "code": "posicao_ja_preenchida", "message": "posicao_ja_preenchida", "details": null, "hint": null },
+  { "code": "inelegivel", "message": "inelegivel", "details": "turno_sobreposto", "hint": null },
+  { "code": "perfil_incompativel", "message": "perfil_incompativel", "details": null, "hint": null },
+  { "code": "contato_expirado", "message": "contato_expirado", "details": null, "hint": null },
+  { "code": "campo_obrigatorio", "message": "campo_obrigatorio", "details": "telefone", "hint": null },
+  { "code": "campo_invalido", "message": "campo_invalido", "details": "nascimento", "hint": null },
+  { "code": "fora_da_janela", "message": "fora_da_janela", "details": null, "hint": null },
+  { "code": "registro_no_futuro", "message": "registro_no_futuro", "details": null, "hint": null },
+  { "code": "contestacao_ja_aberta", "message": "contestacao_ja_aberta", "details": null, "hint": null },
+  { "code": "sem_permissao", "message": "sem_permissao", "details": "conta_suspensa", "hint": null }
+]
