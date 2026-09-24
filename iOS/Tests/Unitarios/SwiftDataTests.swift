@@ -43,22 +43,19 @@ struct SwiftDataTests {
     }
 
     private func turno(fim: Date, contatoVisivelAte: Date) throws -> Turno {
-        let ponto = try Coordenada(latitude: -23.5505, longitude: -46.6333)
         let inicio = fim.addingTimeInterval(-3_600)
-        let vaga = Vaga(
-            id: UUID(),
-            estabelecimento: Estabelecimento(id: UUID(), nome: "Bistrô", tipo: .foodService, endereco: "Centro", ponto: ponto),
-            funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "Salão"),
-            periodo: try Periodo(inicio: inicio, fim: fim), local: "Centro", ponto: ponto,
-            valor: Dinheiro(centavos: 10000), posicoes: 1, posicoesAbertas: 0,
-            inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false),
-            responsavelLocal: "Marina", modo: .urgencia, estado: .preenchida
-        )
+        let vaga = VagaResumo(id: UUID(), funcao: "Garçom", local: "Centro", periodo: try Periodo(inicio: inicio, fim: fim), valor: Dinheiro(centavos: 10000))
+        let reputacao = Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
         let whatsapp = try #require(URL(string: "https://wa.me/5511999990000"))
         let contato = Contato(
             nome: "Bistrô", telefone: "+5511999990000",
             whatsappURL: whatsapp, visivelAte: contatoVisivelAte
         )
-        return Turno(id: UUID(), posicaoID: UUID(), vaga: vaga, verificacao: .pendente, valorAcordado: vaga.valor, contato: contato)
+        return Turno(
+            id: UUID(), posicaoID: UUID(), vaga: vaga,
+            contraparte: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bistrô", reputacao: reputacao),
+            contatoVisivelAte: contatoVisivelAte, verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false,
+            contato: contato
+        )
     }
 }

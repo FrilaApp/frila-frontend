@@ -98,6 +98,43 @@ public struct HoraDoDia: Codable, Hashable, Comparable, Sendable {
     }
 }
 
+public enum ErroDataCivil: Error, Equatable, Sendable {
+    case formatoInvalido
+}
+
+/// Data sem hora nem fuso (`AAAA-MM-DD`), como a de nascimento: 12/04 é 12/04 em qualquer fuso.
+public struct DataCivil: Codable, Hashable, Comparable, Sendable {
+    public let ano: Int
+    public let mes: Int
+    public let dia: Int
+
+    public init(ano: Int, mes: Int, dia: Int) throws(ErroDataCivil) {
+        let componentes = DateComponents(calendar: Calendar(identifier: .gregorian), year: ano, month: mes, day: dia)
+        guard (1...9999).contains(ano), componentes.isValidDate else { throw .formatoInvalido }
+        self.ano = ano
+        self.mes = mes
+        self.dia = dia
+    }
+
+    public init(_ valor: String) throws(ErroDataCivil) {
+        let partes = valor.split(separator: "-", omittingEmptySubsequences: false)
+        guard partes.count == 3,
+              partes[0].count == 4, partes[1].count == 2, partes[2].count == 2,
+              let ano = Int(partes[0]), let mes = Int(partes[1]), let dia = Int(partes[2]) else {
+            throw .formatoInvalido
+        }
+        try self.init(ano: ano, mes: mes, dia: dia)
+    }
+
+    public var contrato: String {
+        String(format: "%04d-%02d-%02d", ano, mes, dia)
+    }
+
+    public static func < (lhs: Self, rhs: Self) -> Bool {
+        (lhs.ano, lhs.mes, lhs.dia) < (rhs.ano, rhs.mes, rhs.dia)
+    }
+}
+
 public struct JanelaDeDisponibilidade: Codable, Hashable, Sendable {
     /// 0 = domingo, conforme o contrato.
     public let diaDaSemana: Int

@@ -1,6 +1,6 @@
 # Dependências externas do Sprint 0
 
-Estado das dependências externas da fundação iOS, conferido em 23/09/2026:
+Estado das dependências externas da fundação iOS, conferido em 23/09/2026 e, para o contrato, em 24/09/2026:
 
 1. Concluído: bundle ID definitivo `com.frila.org.app`, Team ID `8B7F7G3Y2U`.
 2. Concluído: App ID com Push Notifications. Evidência: o build assinado para `generic/platform=iOS` usa o perfil de equipe de `com.frila.org.app`, com `aps-environment`.
@@ -11,7 +11,9 @@ Estado das dependências externas da fundação iOS, conferido em 23/09/2026:
 7. Pendente operacional: transferir a chave `.p8` para o cofre da organização. Até lá, a cópia de trabalho permanece somente em `Secrets/APNs/`, diretório ignorado pelo Git; o conteúdo da chave não deve ser registrado no repositório nem na documentação.
 8. Concluído: Supabase `frila-dev`, na organização do Frila, região `sa-east-1`. URL e chave publicável estão nos segredos `FRILA_SUPABASE_DEV_*` da CI.
 9. Pendente externo: Supabase `frila-prod`. A criação foi recusada porque um administrador da organização já atingiu o limite de dois projetos gratuitos ativos. Destravar exige pausar ou remover um projeto desse membro, ou mudar o plano, decisão da organização. Depois: criar `frila-prod` em `sa-east-1`, rodar `Scripts/generate-supabase-secrets.sh` e cadastrar `FRILA_SUPABASE_PROD_URL` e `FRILA_SUPABASE_PROD_PUBLISHABLE_KEY`. Até lá, o build de Prod falha na CI de propósito.
-10. Pendente: sincronizar o cliente iOS com o contrato publicado. As fixtures e DTOs seguem o snapshot `0.2.0`; `meusTurnos()` continua bloqueado no cliente real e não presume o schema de `meus_turnos` nem `contato_visivel_ate`.
+10. Concluído no iOS: cliente sincronizado com o contrato `0.2.4` publicado no frila-docs (commit `641c440`), com `meusTurnos()` chamando `meus_turnos`.
+11. Pendente externo, do backend: em 24/09 o `frila-dev` só tem as funções `criar_conta` e `minha_conta`. As demais operações do contrato, inclusive `meus_turnos` e `configuracao_do_app`, respondem `404 PGRST202` até as migrações serem aplicadas no projeto remoto. Sem sessão, `criar_conta` e `minha_conta` respondem `401` com `42501`, que o app trata como não autenticado.
+12. Pendente: o secret `FRILA_DOCS_TOKEN` (PAT com leitura em `FrilaApp/frila-docs`) ainda não existe. Sem ele, a CI confere só a integridade do espelho do contrato, e avisa que não comparou com o original.
 
 Os dois plists foram cadastrados no GitHub Actions como `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64` e `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64`. A CI os injeta usando `Scripts/inject-firebase-config.sh`; eles nunca devem entrar no Git. A fase `Select Firebase configuration` copia somente o plist do ambiente ativo para o bundle.
 

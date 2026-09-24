@@ -20,7 +20,9 @@ public enum DecodificadorErroAPI {
         guard let codigo, !codigo.isEmpty else {
             return ErroDaApi(codigo: .desconhecido, codigoOriginal: "sem_codigo", detalhes: detalhes)
         }
-        if codigo.hasPrefix("PGRST3") {
+        // PGRST3xx: token ausente ou vencido. 42501: o papel `anon` não executa as funções do contrato,
+        // que são liberadas só para `authenticated` e conferem o papel por dentro (HTTP 401 sem sessão).
+        if codigo.hasPrefix("PGRST3") || codigo == "42501" {
             return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: codigo, detalhes: detalhes)
         }
         let tipado = CodigoErroAPI(rawValue: codigo) ?? .desconhecido

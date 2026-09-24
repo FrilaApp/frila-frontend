@@ -1,0 +1,36 @@
+[
+  {
+    "id": "60000000-0000-0000-0000-000000000001",
+    "posicao_id": "50000000-0000-0000-0000-000000000001",
+    "vaga": {
+      "id": "40000000-0000-0000-0000-000000000001",
+      "funcao": "Garçom",
+      "local": "CLS 405, Asa Sul, Brasília - DF",
+      "inicio_em": "2026-10-09T21:00:00Z",
+      "fim_em": "2026-10-10T01:00:00Z",
+      "valor_centavos": 12000
+    },
+    "contraparte": {
+      "id": "30000000-0000-0000-0000-000000000001",
+      "tipo": "estabelecimento",
+      "nome": "Bistrô Ipê",
+      "reputacao": {
+        "positivas": 18,
+        "total": 20,
+        "taxa_comparecimento": 0.95,
+        "turnos_considerados": 20,
+        "turnos_realizados": 21
+      }
+    },
+    "contato_visivel_ate": "2026-10-17T01:00:00Z",
+    "checkin_em": "2026-10-09T20:52:31.204+00:00",
+    "checkin_tipo": "geolocalizado",
+    "checkin_distancia_m": 38,
+    "checkin_confirmado_em": null,
+    "checkout_em": null,
+    "checkout_distancia_m": null,
+    "verificacao": "verificado",
+    "valor_acordado_centavos": 12000,
+    "pode_avaliar": false
+  }
+]

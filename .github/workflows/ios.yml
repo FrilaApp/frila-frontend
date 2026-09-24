@@ -53,8 +53,21 @@ jobs:
           unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
 
-      - name: Validar as fixtures do contrato
+      - name: Conferir o espelho do contrato
+        env:
+          FRILA_DOCS_TOKEN: ${{ secrets.FRILA_DOCS_TOKEN }}
+        run: Scripts/contrato-em-dia.sh
+
+      - name: Validar as fixtures contra o contrato
         run: python3 Scripts/validate-fixtures.py
+
+      - name: Conferir que só a camada Dados importa o Supabase
+        run: |
+          fora=$(grep -rlE '^(@testable )?import (Supabase|PostgREST|Auth|Functions|Realtime|Storage)$' Sources Tests | grep -v '^Sources/Dados/' || true)
+          if [[ -n "$fora" ]]; then
+            echo "::error::Supabase importado fora de Sources/Dados: $fora"
+            exit 1
+          fi
 
       - name: Gerar o projeto e conferir que está versionado
         run: |

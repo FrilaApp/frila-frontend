@@ -1,12 +1,140 @@
 [
-  { "code": "posicao_ja_preenchida", "message": "posicao_ja_preenchida", "details": null, "hint": null },
-  { "code": "inelegivel", "message": "inelegivel", "details": "turno_sobreposto", "hint": null },
-  { "code": "perfil_incompativel", "message": "perfil_incompativel", "details": null, "hint": null },
-  { "code": "contato_expirado", "message": "contato_expirado", "details": null, "hint": null },
-  { "code": "campo_obrigatorio", "message": "campo_obrigatorio", "details": "telefone", "hint": null },
-  { "code": "campo_invalido", "message": "campo_invalido", "details": "nascimento", "hint": null },
-  { "code": "fora_da_janela", "message": "fora_da_janela", "details": null, "hint": null },
-  { "code": "registro_no_futuro", "message": "registro_no_futuro", "details": null, "hint": null },
-  { "code": "contestacao_ja_aberta", "message": "contestacao_ja_aberta", "details": null, "hint": null },
-  { "code": "sem_permissao", "message": "sem_permissao", "details": "conta_suspensa", "hint": null }
+  {
+    "code": "PGRST301",
+    "message": "JWT expired",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "sem_permissao",
+    "message": "sem_permissao",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "contato_expirado",
+    "message": "contato_expirado",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "nao_encontrado",
+    "message": "nao_encontrado",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "posicao_ja_preenchida",
+    "message": "posicao_ja_preenchida",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "vaga_encerrada",
+    "message": "vaga_encerrada",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "inelegivel",
+    "message": "inelegivel",
+    "details": "turno_sobreposto",
+    "hint": null
+  },
+  {
+    "code": "campo_obrigatorio",
+    "message": "campo_obrigatorio",
+    "details": "responsavel_local",
+    "hint": null
+  },
+  {
+    "code": "selecao_sem_antecedencia",
+    "message": "selecao_sem_antecedencia",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "limite_excedido",
+    "message": "limite_excedido",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "sem_permissao",
+    "message": "sem_permissao",
+    "details": "conta_suspensa",
+    "hint": null
+  },
+  {
+    "code": "conta_existente",
+    "message": "conta_existente",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "documento_ja_cadastrado",
+    "message": "documento_ja_cadastrado",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "perfil_ja_existe",
+    "message": "perfil_ja_existe",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "perfil_incompativel",
+    "message": "perfil_incompativel",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "menor_de_idade",
+    "message": "menor_de_idade",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "campo_invalido",
+    "message": "campo_invalido",
+    "details": "nome",
+    "hint": null
+  },
+  {
+    "code": "horario_invalido",
+    "message": "horario_invalido",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "fora_da_janela",
+    "message": "fora_da_janela",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "registro_no_futuro",
+    "message": "registro_no_futuro",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "avaliacao_indisponivel",
+    "message": "avaliacao_indisponivel",
+    "details": "antes_do_fim",
+    "hint": null
+  },
+  {
+    "code": "avaliacao_ja_registrada",
+    "message": "avaliacao_ja_registrada",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "contestacao_ja_aberta",
+    "message": "contestacao_ja_aberta",
+    "details": null,
+    "hint": null
+  }
 ]
