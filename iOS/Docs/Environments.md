@@ -28,7 +28,9 @@ Para cadastrar sem expor o valor: `read -rs VALOR && printf '%s' "$VALOR" | gh s
 
 `Shared.xcconfig` declara as quatro variáveis `FRILA_SUPABASE_*` vazias e inclui o `Secrets.xcconfig` opcional. `Dev.xcconfig` e `Prod.xcconfig` copiam o par do ambiente para `FRILA_SUPABASE_URL` e `FRILA_SUPABASE_PUBLISHABLE_KEY`. `Sources/App/Info.plist` leva essas variáveis ao Info.plist, porque `INFOPLIST_KEY_*` só aceita chaves da Apple. Até o commit `a91176c` as chaves `FRILA_*` não chegavam ao Info.plist, e Dev e Prod rodavam sempre o dublê em memória.
 
-Sem valor, Dev e Prod não voltam ao simulado: falham na CI e, localmente, avisam no build e abrem na tela de configuração incompleta.
+A configuração `Release-Beta` (esquema `Frila-Beta`) é compilada como Release e aponta para o frila-dev: é a do TestFlight antes do frila-prod existir. Ela usa os valores de Dev do `Secrets.xcconfig`, mas não inclui o `Dev.xcconfig`, para não herdar o `DEBUG`. `Release-Prod` só recebe URL quando o frila-prod for criado. Cada abertura registra no log o ambiente e a URL, nunca a chave.
+
+Sem valor, Dev, Beta e Prod não voltam ao simulado: falham na CI e, localmente, avisam no build e abrem na tela de configuração incompleta.
 
 Rotação: gere o novo valor no provedor, rode `Scripts/generate-supabase-secrets.sh` e atualize o segredo do GitHub, valide, revogue o antigo e registre data/responsável. Nunca imprima chaves, token, e-mail, telefone ou coordenada em log.
 

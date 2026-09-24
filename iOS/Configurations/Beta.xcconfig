@@ -1,0 +1,8 @@
+#include "Shared.xcconfig"
+// Beta: compilada como Release e apontando para o frila-dev. É a dos builds 0.4 e 0.5 do TestFlight.
+FRILA_ENVIRONMENT = frila-dev
+FRILA_API_MODE = supabase
+FRILA_SUPABASE_URL = $(FRILA_SUPABASE_DEV_URL)
+FRILA_SUPABASE_PUBLISHABLE_KEY = $(FRILA_SUPABASE_DEV_PUBLISHABLE_KEY)
+SWIFT_COMPILATION_MODE = wholemodule
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) FRILA_BETA

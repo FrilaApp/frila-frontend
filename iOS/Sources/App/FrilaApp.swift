@@ -2,19 +2,24 @@ import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
 import FrilaInfraestrutura
+import OSLog
 import SwiftUI
 
 @main
 struct FrilaApp: App {
+    private static let logger = Logger(subsystem: "com.frila.org.app", category: "ambiente")
     private let inicializacao: Inicializacao
     private let versao: String
 
     init() {
-        versao = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+        let versao = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+        self.versao = versao
         do throws(ErroDeConfiguracao) {
             let ambiente = try ConfiguracaoAmbiente()
+            Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
             inicializacao = .pronta(Self.cliente(para: ambiente.selecao))
         } catch {
+            Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
         }
         ColetorMetricKit.compartilhado.iniciar()

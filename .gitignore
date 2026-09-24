@@ -1,0 +1,6 @@
+# Chave APNs e cofres de senha nunca entram no Git, em nenhuma pasta do repositório.
+*.p8
+*.kdbx
+
+# Metadados do Finder.
+.DS_Store

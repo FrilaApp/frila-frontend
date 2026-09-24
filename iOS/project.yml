@@ -10,11 +10,13 @@ options:
 configs:
   Debug-Local: debug
   Debug-Dev: debug
+  Release-Beta: release
   Release-Prod: release
 
 configFiles:
   Debug-Local: Configurations/Local.xcconfig
   Debug-Dev: Configurations/Dev.xcconfig
+  Release-Beta: Configurations/Beta.xcconfig
   Release-Prod: Configurations/Prod.xcconfig
 
 packages:
@@ -194,6 +196,8 @@ schemes:
       targets:
         - FrilaTests
         - FrilaUITests
+    profile:
+      config: Release-Prod
     archive:
       config: Debug-Local
   Frila-Dev:
@@ -207,13 +211,27 @@ schemes:
       config: Debug-Dev
       targets:
         - FrilaTests
+    profile:
+      config: Release-Prod
     archive:
       config: Debug-Dev
+  Frila-Beta:
+    build:
+      targets:
+        Frila: all
+    run:
+      config: Release-Beta
+    profile:
+      config: Release-Beta
+    archive:
+      config: Release-Beta
   Frila-Prod:
     build:
       targets:
         Frila: all
     run:
+      config: Release-Prod
+    profile:
       config: Release-Prod
     archive:
       config: Release-Prod

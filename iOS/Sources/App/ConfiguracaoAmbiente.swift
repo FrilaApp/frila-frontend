@@ -109,6 +109,14 @@ struct ConfiguracaoAmbiente: Sendable {
         urlDaLoja = URL(string: loja) ?? URL(string: "https://apps.apple.com/")!
     }
 
+    /// Linha do log de inicialização: para onde o app aponta, com a URL do projeto e nunca com a chave.
+    var resumoParaLog: String {
+        switch selecao {
+        case .emMemoria: "ambiente=\(ambiente.rawValue) api=mock"
+        case let .supabase(url, _): "ambiente=\(ambiente.rawValue) api=supabase url=\(url.absoluteString)"
+        }
+    }
+
     /// Marcadores dos arquivos de exemplo e de variável de build não expandida.
     static let marcadoresDeExemplo = ["not-configured", "seu-projeto", "cole-a-chave", "placeholder", "example", "changeme", "your-", "<", ">", "$("]
 
