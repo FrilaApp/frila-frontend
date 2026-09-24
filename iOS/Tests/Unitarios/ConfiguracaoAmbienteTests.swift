@@ -140,6 +140,15 @@ struct ConfiguracaoAmbienteTests {
         #expect(!String(reflecting: selecao).contains("abcdefghijklmnopqrst"))
     }
 
+    @Test("O log de inicialização mostra o ambiente e a URL, nunca a chave")
+    func resumoParaLog() throws {
+        let dev = try ConfiguracaoAmbiente(infoDictionary: Self.info())
+        #expect(dev.resumoParaLog == "ambiente=frila-dev api=supabase url=\(Self.urlValida)")
+        #expect(dev.resumoParaLog.contains(Self.chaveValida) == false)
+        let local = try ConfiguracaoAmbiente(infoDictionary: Self.info(ambiente: "local", modo: "mock", url: nil, chave: nil))
+        #expect(local.resumoParaLog == "ambiente=local api=mock")
+    }
+
     @Test("O Info.plist deste build resolve para o cliente do esquema")
     func infoPlistDoBuild() throws {
         let configuracao = try ConfiguracaoAmbiente(bundle: .main)

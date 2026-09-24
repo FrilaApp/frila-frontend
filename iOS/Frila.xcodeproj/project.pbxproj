@@ -252,6 +252,7 @@
 		67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaInfraestrutura.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		708C6DD218962FB12049B0A5 /* configuracao-do-app.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "configuracao-do-app.json"; sourceTree = "<group>"; };
 		7CAFE3AA3880C8095536F296 /* requisicao-registro-de-presenca.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-registro-de-presenca.json"; sourceTree = "<group>"; };
+		7ECDEFE5393FB5C98BA698CD /* Beta.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Beta.xcconfig; sourceTree = "<group>"; };
 		86BECB717CB5E93D31FA7D1C /* TelemetriaMetricKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetriaMetricKit.swift; sourceTree = "<group>"; };
 		88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtualizacaoObrigatoriaTests.swift; sourceTree = "<group>"; };
 		900A311A3730D37606A75AEC /* ObjetosDeValor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjetosDeValor.swift; sourceTree = "<group>"; };
@@ -512,6 +513,7 @@
 		C1EB30A2E013C756E6D83712 /* Configurations */ = {
 			isa = PBXGroup;
 			children = (
+				7ECDEFE5393FB5C98BA698CD /* Beta.xcconfig */,
 				64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */,
 				B846214E1DADC0F62827675D /* Local.xcconfig */,
 				9E31499F2DC2276C58FAFE97 /* Prod.xcconfig */,
@@ -1051,6 +1053,29 @@
 			};
 			name = "Debug-Dev";
 		};
+		2763D1862FDFF07B322E29CC /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dominio";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Beta";
+		};
 		2FA27AB4B36E83D9F47CBFF2 /* Debug-Dev */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1137,6 +1162,70 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Release-Prod";
+		};
+		35E5D394DFB833424146788C /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7ECDEFE5393FB5C98BA698CD /* Beta.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Release-Beta";
 		};
 		41597879B6593B3D114BC50B /* Debug-Local */ = {
 			isa = XCBuildConfiguration;
@@ -1268,6 +1357,23 @@
 			};
 			name = "Release-Prod";
 		};
+		6A12DFDAD13617B8E16C8BBE /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).tests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Frila.app/Frila";
+			};
+			name = "Release-Beta";
+		};
 		6DB7F6AEAB371E5BCE99C45D /* Debug-Local */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B846214E1DADC0F62827675D /* Local.xcconfig */;
@@ -1362,6 +1468,29 @@
 			};
 			name = "Debug-Local";
 		};
+		74F9828F69D4A1C0FBBA0D71 /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).infraestrutura";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Beta";
+		};
 		77BC96DC8732EC17F775899E /* Release-Prod */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1384,6 +1513,29 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = "Release-Prod";
+		};
+		7B8C786025357F9F59979348 /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).dados";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Beta";
 		};
 		8DD99F0B88AD41B0968EAAB8 /* Debug-Local */ = {
 			isa = XCBuildConfiguration;
@@ -1425,6 +1577,33 @@
 			};
 			name = "Debug-Local";
 		};
+		955C082E53138B0847DBB0CC /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/App/Info.plist;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
+				PRODUCT_NAME = Frila;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Release-Beta";
+		};
 		956AD0E2ED62ED1188605492 /* Release-Prod */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1441,6 +1620,29 @@
 				TEST_TARGET_NAME = Frila;
 			};
 			name = "Release-Prod";
+		};
+		A35143674BDACBB869898839 /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).apresentacao";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-Beta";
 		};
 		A6D8528B3B3E4EED4E33BCC5 /* Release-Prod */ = {
 			isa = XCBuildConfiguration;
@@ -1616,6 +1818,23 @@
 			};
 			name = "Debug-Dev";
 		};
+		E8BEAEE0A167A2FA41592A92 /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).uitests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Frila;
+			};
+			name = "Release-Beta";
+		};
 		F3C959D63D5A8A7F90AB34F3 /* Debug-Dev */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1674,6 +1893,7 @@
 			buildConfigurations = (
 				2FA27AB4B36E83D9F47CBFF2 /* Debug-Dev */,
 				8DD99F0B88AD41B0968EAAB8 /* Debug-Local */,
+				74F9828F69D4A1C0FBBA0D71 /* Release-Beta */,
 				A6D8528B3B3E4EED4E33BCC5 /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1684,6 +1904,7 @@
 			buildConfigurations = (
 				CB686C2C62E12372E5AEB973 /* Debug-Dev */,
 				6DB7F6AEAB371E5BCE99C45D /* Debug-Local */,
+				35E5D394DFB833424146788C /* Release-Beta */,
 				355E5C11100C618B1EA5B7BD /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1694,6 +1915,7 @@
 			buildConfigurations = (
 				1C52A3BF18F0169DCDA492AC /* Debug-Dev */,
 				41597879B6593B3D114BC50B /* Debug-Local */,
+				955C082E53138B0847DBB0CC /* Release-Beta */,
 				FB7E7D62245B962BCD2E1295 /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1704,6 +1926,7 @@
 			buildConfigurations = (
 				44BBF7715B2873ADC5FFD2D2 /* Debug-Dev */,
 				D7E760A4287B3371D0419C07 /* Debug-Local */,
+				2763D1862FDFF07B322E29CC /* Release-Beta */,
 				D20E98D17C6F80CE3329954E /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1714,6 +1937,7 @@
 			buildConfigurations = (
 				49285536FD2805AE44863113 /* Debug-Dev */,
 				8FACC93092764D047531F0B1 /* Debug-Local */,
+				E8BEAEE0A167A2FA41592A92 /* Release-Beta */,
 				956AD0E2ED62ED1188605492 /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1724,6 +1948,7 @@
 			buildConfigurations = (
 				DDCBDF243E550ECFF56EAB83 /* Debug-Dev */,
 				418A5AB14C46E636E0D1D000 /* Debug-Local */,
+				6A12DFDAD13617B8E16C8BBE /* Release-Beta */,
 				DD5BC7EA724407451CC90985 /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1734,6 +1959,7 @@
 			buildConfigurations = (
 				047F35FAAE564612854BDC26 /* Debug-Dev */,
 				6DDBA0843CD4C0059D9303F1 /* Debug-Local */,
+				7B8C786025357F9F59979348 /* Release-Beta */,
 				62C32421E79D5824B98E92A2 /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1744,6 +1970,7 @@
 			buildConfigurations = (
 				F3C959D63D5A8A7F90AB34F3 /* Debug-Dev */,
 				4F98D654FC099BEFBE142C50 /* Debug-Local */,
+				A35143674BDACBB869898839 /* Release-Beta */,
 				77BC96DC8732EC17F775899E /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;

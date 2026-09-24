@@ -129,6 +129,14 @@ jobs:
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$RUNNER_TEMP/DerivedData"
 
+      - name: Build do Frila-Beta (Release apontando para o frila-dev)
+        run: |
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Beta \
+            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData"
+
       - name: Build do Frila-Prod (Supabase frila-prod)
         env:
           FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}

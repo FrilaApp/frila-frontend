@@ -14,11 +14,12 @@ Etapas, na ordem:
 8. Escolhe o simulador de iPhone disponível com o iOS mais novo, sem aparelho fixo.
 9. `xcodebuild test` do `Frila-Local`: testes unitários, de contrato e de interface, sem backend.
 10. Gera o `Secrets.xcconfig` de Dev e compila o `Frila-Dev`.
-11. Gera o `Secrets.xcconfig` de Prod e compila o `Frila-Prod`.
-12. Apaga `Secrets.xcconfig`, plists, DerivedData e temporários, mesmo quando uma etapa falha.
+11. Compila o `Frila-Beta` (Release apontando para o frila-dev).
+12. Gera o `Secrets.xcconfig` de Prod e compila o `Frila-Prod`.
+13. Apaga `Secrets.xcconfig`, plists, DerivedData e temporários, mesmo quando uma etapa falha.
 
 Nenhuma etapa assina código (o simulador usa a assinatura local ad-hoc) nem publica artefato. As fases de script do Xcode não exportam variáveis para o log, e o GitHub mascara os segredos.
 
-Falha esperada hoje: a etapa 11 para em `FRILA_SUPABASE_PROD_URL is not set` enquanto o projeto `frila-prod` não existir ([Dependências externas](ExternalSetup.md), item 9). Isso é intencional: Prod sem Supabase não compila em silêncio.
+Falha esperada hoje: a etapa 12 para em `FRILA_SUPABASE_PROD_URL is not set` enquanto o projeto `frila-prod` não existir ([Dependências externas](ExternalSetup.md), item 9). Isso é intencional: Prod sem Supabase não compila em silêncio.
 
 Custo: o repositório é privado e cada minuto macOS consome cerca de dez vezes a cota de um minuto Linux. O orçamento de Actions da organização está em US$ 0 com bloqueio de uso adicional, então esgotar a cota interrompe a CI sem gerar cobrança.
