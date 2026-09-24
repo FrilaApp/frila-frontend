@@ -196,6 +196,8 @@ schemes:
       targets:
         - FrilaTests
         - FrilaUITests
+    profile:
+      config: Release-Prod
     archive:
       config: Debug-Local
   Frila-Dev:
@@ -209,6 +211,8 @@ schemes:
       config: Debug-Dev
       targets:
         - FrilaTests
+    profile:
+      config: Release-Prod
     archive:
       config: Debug-Dev
   Frila-Beta:
@@ -217,6 +221,8 @@ schemes:
         Frila: all
     run:
       config: Release-Beta
+    profile:
+      config: Release-Beta
     archive:
       config: Release-Beta
   Frila-Prod:
@@ -224,6 +230,8 @@ schemes:
       targets:
         Frila: all
     run:
+      config: Release-Prod
+    profile:
       config: Release-Prod
     archive:
       config: Release-Prod
