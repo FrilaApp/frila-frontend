@@ -3,7 +3,7 @@ import Foundation
 import FrilaDominio
 import Testing
 
-@Suite("Contrato 0.2.4")
+@Suite("Contrato 0.2.17")
 struct ContratoTests {
     static func objeto(_ valor: some Encodable) throws -> NSDictionary {
         let dados = try JSONEncoder().encode(valor)
@@ -17,7 +17,7 @@ struct ContratoTests {
     @Test("As fixtures declaram a versão do contrato espelhado")
     func versao() throws {
         struct Versao: Decodable { let version: String }
-        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.4")
+        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.17")
     }
 
     @Test("Conta, perfil e estabelecimento do contrato viram domínio")
