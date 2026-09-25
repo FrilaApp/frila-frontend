@@ -8,7 +8,6 @@ import SwiftUI
 @main
 struct FrilaApp: App {
     private static let logger = Logger(subsystem: "com.frila.org.app", category: "ambiente")
-    private static let chaveRetornoDeAutenticacao = "frila.debug.retorno-de-autenticacao"
     private let inicializacao: Inicializacao
     private let versao: String
 
@@ -28,36 +27,19 @@ struct FrilaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                switch inicializacao {
-                case let .pronta(api):
-                    PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                        #if DEBUG
-                        CatalogoDesignSystem(api: api, permitirSimulacaoDeConflito: Self.permiteSimulacaoDeConflito)
-                        #else
-                        TelaInicialDaFundacao()
-                        #endif
-                    }
-                case let .configuracaoInvalida(erro):
-                    TelaDeConfiguracaoInvalida(erro: erro)
+            switch inicializacao {
+            case let .pronta(api):
+                PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
+                    #if DEBUG
+                    // A simulação de conflito chama `candidatar`: só roda contra o dublê, nunca contra um
+                    // Supabase de verdade, para não criar candidatura real em nenhum ambiente.
+                    CatalogoDesignSystem(api: api, permitirSimulacaoDeConflito: api is ApiClienteEmMemoria)
+                    #else
+                    TelaInicialDaFundacao()
+                    #endif
                 }
-            }
-            .onOpenURL { url in
-                guard case let .pronta(api) = inicializacao,
-                      let cliente = api as? SupabaseApiCliente,
-                      url.scheme == "com.frila.org.app"
-                else { return }
-
-                Task {
-                    do {
-                        try await cliente.processarRetornoDeAutenticacao(url: url)
-                        await MainActor.run {
-                            UserDefaults.standard.set(true, forKey: Self.chaveRetornoDeAutenticacao)
-                        }
-                    } catch {
-                        Self.logger.error("retorno_auth falhou codigo=\(String(reflecting: type(of: error)), privacy: .public)")
-                    }
-                }
+            case let .configuracaoInvalida(erro):
+                TelaDeConfiguracaoInvalida(erro: erro)
             }
         }
     }
@@ -69,14 +51,6 @@ struct FrilaApp: App {
         case let .supabase(url, chavePublicavel):
             SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaMetricKit())
         }
-    }
-
-    private static var permiteSimulacaoDeConflito: Bool {
-        #if LOCAL
-        true
-        #else
-        false
-        #endif
     }
 }
 

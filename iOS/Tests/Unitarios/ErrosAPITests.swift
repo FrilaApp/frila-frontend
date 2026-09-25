@@ -11,6 +11,21 @@ struct ErrosAPITests {
         #expect(DecodificadorErroAPI.mapear(codigo: codigo.rawValue, detalhes: "x").codigo == codigo)
     }
 
+    @Test("Todo código da tabela de erros do contrato espelhado tem caso próprio em CodigoErroAPI")
+    func catalogoDoContrato() throws {
+        // Lê a tabela do Contrato/openapi.yaml, e não o próprio enum: um código novo no contrato
+        // sem caso no app falha aqui, em vez de cair calado em `.desconhecido`.
+        let contrato = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Contrato/openapi.yaml")
+        let texto = try String(contentsOf: contrato, encoding: .utf8)
+        let linha = /(?m)^\s*\| [0-9]{3} \| `([a-z0-9_]+)`/
+        let codigos = Set(texto.matches(of: linha).map { String($0.output.1) })
+        #expect(codigos.count >= 25, "a tabela de erros do contrato não foi encontrada")
+        let semCaso = codigos.filter { CodigoErroAPI(rawValue: $0) == nil }.sorted()
+        #expect(semCaso.isEmpty, "códigos do contrato sem caso em CodigoErroAPI: \(semCaso)")
+    }
+
     @Test("Todo exemplo de erro do contrato é decodificado e preserva seus detalhes")
     func exemplosDoContrato() throws {
         for envelope in try FixturesDoContrato.todosOsErros() {

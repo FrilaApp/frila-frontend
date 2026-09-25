@@ -21,6 +21,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private let configuracao: ConfiguracaoApp
     private let contatoDeExemplo: Contato
     private let perfilPublicoDeExemplo: PerfilPublico
+    private var sessaoAtiva = false
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
     private var estabelecimentos: [Estabelecimento]
@@ -60,11 +61,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func solicitarCodigo(email: String) async throws { try verificarRede() }
 
-    public func verificarCodigo(email: String, codigo: String) async throws { try verificarRede() }
+    public func verificarCodigo(email: String, codigo: String) async throws {
+        try verificarRede()
+        sessaoAtiva = true
+    }
+
+    public func possuiSessao() async -> Bool { sessaoAtiva }
 
     public func entrarDemonstracao(email: String, codigo: String) async throws {
         try verificarRede()
         guard !codigo.isEmpty else { throw erro("nao_encontrado") }
+        sessaoAtiva = true
     }
 
     // MARK: Conta e perfil
@@ -283,7 +290,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
-    public func sair(tokenFCM: String?) async {}
+    public func sair(tokenFCM: String?) async { sessaoAtiva = false }
 
     // MARK: Apoio
 

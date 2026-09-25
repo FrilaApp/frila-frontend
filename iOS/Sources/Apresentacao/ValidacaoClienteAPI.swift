@@ -31,7 +31,7 @@ public enum MensagemDoErroAPI {
 }
 
 /// Superfície exclusiva de builds Debug para conferir o cliente real sem registrar dados pessoais.
-/// No ambiente Local, o botão de conflito usa somente `ApiClienteEmMemoria`.
+/// O botão de conflito só aparece quando a API é o `ApiClienteEmMemoria` (quem decide é o `FrilaApp`).
 public struct ValidacaoClienteAPI: View {
     private let api: any ApiCliente
     private let permitirSimulacaoDeConflito: Bool
@@ -41,7 +41,7 @@ public struct ValidacaoClienteAPI: View {
     @State private var carregando = false
     @State private var mensagemDeSucesso: String?
     @State private var erro: ErroDaApi?
-    @AppStorage("frila.debug.retorno-de-autenticacao") private var retornoDeAutenticacao = false
+    @State private var sessao: EstadoDaSessao = .conferindo
 
     public init(api: any ApiCliente, permitirSimulacaoDeConflito: Bool) {
         self.api = api
@@ -51,9 +51,13 @@ public struct ValidacaoClienteAPI: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text("Validação do cliente").font(.title3.bold())
-            Text("Use um e-mail de teste que a equipe controla. O endereço, o código e o link não são registrados em logs.")
+            Text("Use um e-mail de teste que a equipe controla. O endereço e o código não são registrados em logs.")
                 .font(.footnote)
                 .foregroundStyle(FrilaCor.textoSecundario)
+
+            Text(sessao.texto)
+                .font(.footnote)
+                .accessibilityIdentifier("validacao-sessao")
 
             CampoFrila("E-mail de teste", texto: $email)
                 .textInputAutocapitalization(.never)
@@ -81,23 +85,23 @@ public struct ValidacaoClienteAPI: View {
                     .accessibilityIdentifier("validacao-sucesso")
             }
 
-            if retornoDeAutenticacao {
-                AvisoFrila("Entrada confirmada neste aparelho.", tom: .informativo)
-                    .accessibilityIdentifier("validacao-retorno-auth")
-            }
-
             if let erro {
                 AlertaDoErroAPI(erro: erro)
             }
         }
+        // Ao abrir, mostra se a sessão guardada no Keychain sobreviveu ao fechamento do app.
+        .task { await conferirSessao() }
+    }
+
+    private func conferirSessao() async {
+        sessao = await api.possuiSessao() ? .ativa : .ausente
     }
 
     private func solicitarCodigo() {
         let email = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        retornoDeAutenticacao = false
         executar {
             try await api.solicitarCodigo(email: email)
-            return "Código ou link enviado. Consulte a caixa de entrada do e-mail de teste."
+            return "Código enviado. Consulte a caixa de entrada do e-mail de teste."
         }
     }
 
@@ -106,7 +110,7 @@ public struct ValidacaoClienteAPI: View {
         let codigo = codigo.trimmingCharacters(in: .whitespacesAndNewlines)
         executar {
             try await api.verificarCodigo(email: email, codigo: codigo)
-            return "Entrada confirmada neste aparelho."
+            return "Código confirmado. A sessão foi aberta neste aparelho."
         }
     }
 
@@ -130,11 +134,24 @@ public struct ValidacaoClienteAPI: View {
             do {
                 mensagemDeSucesso = try await operacao()
                 codigo = ""
+                await conferirSessao()
             } catch let erro as ErroDaApi {
                 self.erro = erro
             } catch {
                 self.erro = ErroDaApi(codigo: .desconhecido, codigoOriginal: String(reflecting: type(of: error)))
             }
+        }
+    }
+}
+
+enum EstadoDaSessao: Equatable {
+    case conferindo, ativa, ausente
+
+    var texto: String {
+        switch self {
+        case .conferindo: "Conferindo a sessão deste aparelho…"
+        case .ativa: "Sessão ativa neste aparelho."
+        case .ausente: "Nenhuma sessão neste aparelho."
         }
     }
 }

@@ -183,6 +183,8 @@ public protocol ApiCliente: Sendable {
     func solicitarCodigo(email: String) async throws
     func verificarCodigo(email: String, codigo: String) async throws
     func entrarDemonstracao(email: String, codigo: String) async throws
+    /// Se há sessão guardada neste aparelho (válida ou renovável), sem expor e-mail nem token.
+    func possuiSessao() async -> Bool
 
     // Conta e perfil
     /// `ErroDaApi.naoEncontrado` quando há sessão e ainda não há conta: é o primeiro acesso.
