@@ -29,6 +29,15 @@ public struct FormatadorFrila: Sendable {
         )
     }
 
+    /// O dia civil de São Paulo em que o instante cai, que é o que o filtro `data` de
+    /// `vagas_abertas` espera. Às 22:30 em São Paulo já é o dia seguinte em UTC, e mandar o
+    /// dia de UTC mostraria as vagas de amanhã a quem pediu as de hoje.
+    public func dataCivilDeSaoPaulo(_ instante: Date) -> DataCivil {
+        let dia = diaDeSaoPaulo(instante)
+        // Ano, mês e dia vindos do calendário gregoriano formam sempre uma data válida.
+        return try! DataCivil(ano: dia.year!, mes: dia.month!, dia: dia.day!)
+    }
+
     public func janelaParaContrato(_ janela: JanelaDeDisponibilidade) -> (diaSemana: Int, inicio: String, fim: String) {
         (janela.diaDaSemana, janela.inicio.contrato, janela.fim.contrato)
     }
