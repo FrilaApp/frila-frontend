@@ -19,9 +19,14 @@ struct ErrosAPITests {
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "Contrato/openapi.yaml")
         let texto = try String(contentsOf: contrato, encoding: .utf8)
-        let linha = /(?m)^\s*\| [0-9]{3} \| `([a-z0-9_]+)`/
-        let codigos = Set(texto.matches(of: linha).map { String($0.output.1) })
-        #expect(codigos.count >= 25, "a tabela de erros do contrato não foi encontrada")
+        // A segunda coluna pode trazer mais de um código (`conta_existente`, `documento_ja_cadastrado`);
+        // a terceira, com os `details`, fica de fora.
+        let linha = /(?m)^\s*\| [0-9]{3} \| ([^|]+)\|/
+        let codigo = /`([a-z0-9_]+)`/
+        let codigos = Set(texto.matches(of: linha).flatMap { coluna in
+            coluna.output.1.matches(of: codigo).map { String($0.output.1) }
+        })
+        #expect(codigos.count >= 28, "a tabela de erros do contrato não foi encontrada inteira")
         let semCaso = codigos.filter { CodigoErroAPI(rawValue: $0) == nil }.sorted()
         #expect(semCaso.isEmpty, "códigos do contrato sem caso em CodigoErroAPI: \(semCaso)")
     }

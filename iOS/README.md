@@ -77,12 +77,12 @@ Em builds Debug, o catálogo traz a seção **Validação do cliente**. A entrad
 
 Roteiro do critério 1 com o Supabase local, sem o limite de e-mails do projeto hospedado:
 
-1. No `frila-backend`, `supabase start`. O `config.toml` usa `supabase/templates/codigo-de-entrada.html`, que manda só o código. `supabase status` mostra a chave publicável local e a URL do Inbucket (porta 54324).
+1. No `frila-backend`, `supabase start`. O `config.toml` usa `supabase/templates/codigo-de-entrada.html`, que manda o código; confira no Inbucket que o e-mail não traz link (a correção do comentário do modelo, que ainda cita a variável do link, está em PR no frila-backend). `supabase status` mostra a chave publicável local e a URL do Inbucket (porta 54324).
 2. Rode o esquema `Frila-Local` apontado para o Supabase local, sem gravar nada no repositório:
    `xcodebuild build -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone>' FRILA_API_MODE=supabase FRILA_SUPABASE_PUBLISHABLE_KEY=<chave publicável local>`
    e instale o app com `xcrun simctl install booted <caminho do Frila.app>`. O `local` só aceita `http` em `127.0.0.1`/`localhost`.
 3. Na seção **Validação do cliente**, informe um e-mail de teste, toque em **Enviar código**, copie o código de seis dígitos do Inbucket e toque em **Confirmar código**. A seção passa a mostrar "Sessão ativa neste aparelho.".
-4. Feche o app (`xcrun simctl terminate booted com.frila.org.app`) e abra de novo. A seção deve continuar mostrando "Sessão ativa neste aparelho.". Isso prova que a sessão sobreviveu ao fechamento.
+4. Com a rede ligada, feche o app (`xcrun simctl terminate booted com.frila.org.app`) e abra de novo. Sem rede e com o token de acesso vencido, a renovação falha e a seção mostra "Nenhuma sessão" mesmo com a sessão guardada. A seção deve continuar mostrando "Sessão ativa neste aparelho.". Isso prova que a sessão sobreviveu ao fechamento.
 5. Rode `Scripts/auditar-logs-sensiveis.sh`.
 
 O mesmo roteiro vale para o `frila-dev` com o esquema `Frila-Dev`, desde que o modelo de e-mail do projeto hospedado mande `{{ .Token }}`. Sem SMTP próprio, o Supabase hospedado envia só cerca de 2 e-mails por hora.
