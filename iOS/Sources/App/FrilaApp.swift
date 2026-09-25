@@ -31,7 +31,9 @@ struct FrilaApp: App {
             case let .pronta(api):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
                     #if DEBUG
-                    CatalogoDesignSystem()
+                    // A simulação de conflito chama `candidatar`: só roda contra o dublê, nunca contra um
+                    // Supabase de verdade, para não criar candidatura real em nenhum ambiente.
+                    CatalogoDesignSystem(api: api, permitirSimulacaoDeConflito: api is ApiClienteEmMemoria)
                     #else
                     TelaInicialDaFundacao()
                     #endif

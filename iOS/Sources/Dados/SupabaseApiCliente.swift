@@ -7,10 +7,17 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
     private let decodificador = ContratoAPI.decodificador()
     private let telemetria: any TelemetryReporter
 
-    public init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
+    public convenience init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
+        self.init(url: url, chavePublicavel: chavePublicavel, telemetria: telemetria, sessaoHTTP: .shared)
+    }
+
+    /// A sessão HTTP só muda nos testes, que respondem às chamadas sem rede.
+    init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter, sessaoHTTP: URLSession) {
+        // A sessão de autenticação fica no Keychain: é o armazenamento padrão do supabase-swift no iOS.
         let options = SupabaseClientOptions(
             db: .init(decoder: ContratoAPI.decodificador()),
-            auth: .init(autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
+            auth: .init(autoRefreshToken: true, emitLocalSessionAsInitialSession: true),
+            global: .init(session: sessaoHTTP)
         )
         cliente = SupabaseClient(supabaseURL: url, supabaseKey: chavePublicavel, options: options)
         self.telemetria = telemetria
@@ -20,6 +27,7 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
 
     public func solicitarCodigo(email: String) async throws {
         do {
+            // O modelo de e-mail do contrato leva só o código de seis dígitos ({{ .Token }}), sem link.
             try await cliente.auth.signInWithOTP(email: email)
         } catch {
             throw mapear(error)
@@ -32,6 +40,11 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
         } catch {
             throw mapear(error)
         }
+    }
+
+    public func possuiSessao() async -> Bool {
+        // Lê a sessão guardada no Keychain e a renova se o token de acesso venceu.
+        (try? await cliente.auth.session) != nil
     }
 
     public func entrarDemonstracao(email: String, codigo: String) async throws {

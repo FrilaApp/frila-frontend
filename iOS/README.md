@@ -68,6 +68,27 @@ xcodebuild build -project Frila.xcodeproj -scheme Frila-Prod -destination 'gener
 
 A CI roda a mesma sequência; ver [Integração contínua](Docs/CI.md).
 
+### Validação manual do cliente da API (#53)
+
+Em builds Debug, o catálogo traz a seção **Validação do cliente**. A entrada é só por código de seis dígitos, como o contrato define em `/otp`: o modelo de e-mail do Supabase leva `{{ .Token }}`, sem link. O app não registra esquema de URL nem trata retorno de autenticação.
+
+- **Sessão.** Ao abrir, a seção diz "Sessão ativa neste aparelho." ou "Nenhuma sessão neste aparelho.", sem mostrar e-mail nem token. A sessão fica no Keychain, que é o armazenamento padrão do supabase-swift no iOS, e é renovada pelo SDK.
+- **Conflito.** O botão **Simular vaga preenchida** só aparece quando a API é o dublê em memória (`ApiClienteEmMemoria`), porque ele chama `candidatar`. Contra um Supabase de verdade ele não aparece e não cria dado. Para conferir: `Frila-Local` com `-FRILA_SCENARIO vaga-preenchida`; a mensagem esperada é "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.".
+
+Roteiro do critério 1 com o Supabase local, sem o limite de e-mails do projeto hospedado:
+
+1. No `frila-backend`, `supabase start`. O `config.toml` usa `supabase/templates/codigo-de-entrada.html`, que manda só o código: em 25/09 o e-mail local foi conferido sem link de verificação. Com o CLI 2.75, `supabase start` e `supabase db reset` param no seed `cenarios.sql`; o contorno está no `docs/ESTADO.md` do frila-backend. `supabase status` mostra a chave publicável local e a caixa de e-mail local (porta 54324).
+2. Rode o esquema `Frila-Local` apontado para o Supabase local, sem gravar nada no repositório:
+   `xcodebuild build -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone>' FRILA_API_MODE=supabase FRILA_SUPABASE_PUBLISHABLE_KEY=<chave publicável local>`
+   e instale o app com `xcrun simctl install booted <caminho do Frila.app>`. O `local` só aceita `http` em `127.0.0.1`/`localhost`.
+3. Na seção **Validação do cliente**, informe um e-mail de teste, toque em **Enviar código**, copie o código de seis dígitos da caixa de e-mail local e toque em **Confirmar código**. A seção passa a mostrar "Sessão ativa neste aparelho.".
+4. Com a rede ligada, feche o app (`xcrun simctl terminate booted com.frila.org.app`) e abra de novo. Sem rede e com o token de acesso vencido, a renovação falha e a seção mostra "Nenhuma sessão" mesmo com a sessão guardada. A seção deve continuar mostrando "Sessão ativa neste aparelho.". Isso prova que a sessão sobreviveu ao fechamento.
+5. Rode `Scripts/auditar-logs-sensiveis.sh`.
+
+No `frila-dev` hospedado o roteiro ainda não funciona. O Supabase só deixa trocar o modelo de e-mail de projeto gratuito depois de configurado um SMTP próprio (cartão #200). Até lá, o e-mail do frila-dev leva o link padrão, e não o código que o app pede. Sem SMTP, o limite também é de cerca de 2 e-mails por hora. Depois do SMTP, o modelo a aplicar é o `codigo-de-entrada.html` do frila-backend.
+
+**Auditoria de dados sensíveis.** `Scripts/auditar-logs-sensiveis.sh` examina os últimos cinco minutos do subsistema `com.frila.org.app` e falha sem imprimir o valor caso encontre e-mail, bearer token, chave Supabase ou JWT. O código é conferido a cada `xcodebuild test` pelo `SegurancaDoCodigoTests`: nenhum `print`, `NSLog` ou `debugPrint` em `Sources/`, e nenhum log interpola e-mail, token, sessão, senha, telefone ou chave.
+
 ## Cenários simulados
 
 No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.
