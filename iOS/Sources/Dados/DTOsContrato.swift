@@ -6,7 +6,7 @@ struct ErroDeConversao: Error, Equatable {
     let campo: String
 }
 
-/// Tipos do contrato 0.2.4 (`Contrato/openapi.yaml`), um para cada schema usado pelo app.
+/// Tipos do contrato 0.2.11 (`Contrato/openapi.yaml`), um para cada schema usado pelo app.
 enum ContratoAPI {
     /// Instantes em ISO-8601 com ou sem fração de segundo, com `Z` ou `+00:00`, como o Postgres
     /// devolve. O `.iso8601` da Foundation do iOS 17 não aceita fração de segundo.

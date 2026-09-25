@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.4
+  version: 0.2.11
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -68,6 +68,9 @@ info:
     | 404 | `nao_encontrado` | O recurso não existe ou não é visível para quem pede (inclui bloqueio, RF26) |
     | 409 | `posicao_ja_preenchida` | Alguém chegou antes (RN19). **Funcionamento normal no modo urgência** |
     | 409 | `vaga_encerrada` | A vaga fechou, foi cancelada ou já começou |
+    | 409 | `checkin_pendente` | Check-out ou confirmação de um turno que ainda não teve check-in. O código diz qual é o passo que falta |
+    | 409 | `checkin_ja_confirmado` | Confirmação de um check-in geolocalizado, que já nasceu verificado |
+    | 409 | `posicao_nao_cancelavel` | A posição não está confirmada: aberta não tem o que cancelar, cumprida ou já cancelada não volta atrás |
     | 409 | `candidatura_indisponivel` | A candidatura foi retirada, expirou ou já foi escolhida |
     | 409 | `avaliacao_ja_registrada` | Já existe avaliação deste autor para o turno, com outra resposta |
     | 409 | `conta_existente`, `documento_ja_cadastrado` | Cadastro repetido |
@@ -89,6 +92,166 @@ info:
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.11, de 24/09/2026.** `cancelar_posicao` e `cancelar_vaga` foram
+    implementadas.
+
+    - **`409 posicao_nao_cancelavel`**, código novo: a posição não está confirmada.
+      Aberta não tem o que cancelar; cumprida ou já cancelada não volta atrás.
+    - **O motivo passa pelo filtro da diretriz 1.2** e recusa com `422 campo_invalido`,
+      `details: motivo`. Ele vai para a tela da outra parte, como qualquer texto livre.
+    - **Quem não é nenhum dos dois lados recebe `404`**, e não `403` — o mesmo critério
+      das outras operações do turno.
+    - **`cancelar_vaga` é só do contratante**: conta de profissional recebe
+      `422 perfil_incompativel`. Quem quer sair cancela a **própria posição**; cancelar a
+      vaga inteira tiraria o turno de outras pessoas.
+
+    A posição cancelada **não volta** para `aberta`: ela guarda de quem era e se houve
+    falta, que é o que RN12 exige registrar e a taxa de comparecimento precisa ler. A
+    vaga ganha uma posição **nova**, e é ela que `nova_posicao_id` devolve.
+
+    ---
+
+    **Versão 0.2.10, de 24/09/2026.** O registro de presença foi implementado:
+    `fazer_checkin`, `fazer_checkout` e `confirmar_checkin_manual`.
+
+    Dois códigos novos no catálogo, os dois 409:
+
+    - **`checkin_pendente`** — check-out de um turno que nunca teve check-in, ou
+      confirmação de um check-in que não existe. O código diz **qual é o passo que
+      falta**, para a tela poder levar a pessoa até ele em vez de só recusar.
+    - **`checkin_ja_confirmado`** — confirmar um check-in geolocalizado, que já nasceu
+      verificado. Não há o que confirmar.
+
+    E três coisas que a implementação fixou:
+
+    - **Quem decide o tipo é o servidor**, a partir da distância: até 200 m
+      `geolocalizado`, acima disso ou sem distância `manual`. Deixar o app declarar o
+      tipo seria deixar o app declarar a própria presença.
+    - **A distância do check-in manual não é gravada.** Ela não prova nada, e guardá-la
+      sugeriria que prova. O que vale é a confirmação de quem estava lá.
+    - **`registrado_em` até 2 minutos no futuro é aceito** — é a folga do relógio do
+      aparelho, que adianta. Acima disso, `422 registro_no_futuro`. A janela vai de 60
+      minutos antes do início até o fim previsto; fora dela, `422 fora_da_janela`.
+
+    O profissional que tenta confirmar o próprio check-in manual recebe `403
+    sem_permissao`, e não 404: ele é parte do turno e sabe que ele existe — esconder não
+    protegeria nada e confundiria a tela.
+
+    ---
+
+    **Versão 0.2.9, de 24/09/2026.** `contato_do_turno` foi implementada, e o único 403
+    que ela devolve é o do prazo.
+
+    - **Quem não é nenhum dos dois lados do turno recebe `404 nao_encontrado`**, e não
+      `403 sem_permissao`. O 403 confirmaria que aquele turno existe a quem não deveria
+      saber. O mesmo 404 responde antes da confirmação — sem confirmação não há contrato
+      a executar, e portanto não há base legal — e quando há bloqueio entre as partes.
+    - **`403 contato_expirado` é o prazo virando resposta**, e vale para os dois lados.
+      O sétimo dia conta inteiro: a recusa começa depois de `fim_em + 7 dias`.
+    - O contato do profissional traz o **nome da pessoa**; o da casa, o **nome do
+      estabelecimento**. Deste lado há gente, do outro há marca.
+
+    ---
+
+    **Versão 0.2.8, de 24/09/2026.** `meus_turnos` foi implementada, para os dois lados.
+
+    - **É a mesma operação para o profissional e para a casa**, e o que muda é quem
+      aparece em `contraparte`: para o profissional, o estabelecimento; para quem opera
+      a casa, o profissional. Com `estabelecimento_id`, quem pergunta precisa ser membro
+      — senão `403 sem_permissao`.
+    - **Conta de contratante sem `estabelecimento_id` recebe lista vazia**, e não erro.
+      A pergunta "quais são os meus turnos como profissional?" é válida vinda de
+      qualquer conta; a resposta é "nenhum".
+    - **A ordem é a da tela**: hoje e os próximos primeiro, do mais próximo para o mais
+      distante; os anteriores depois, do mais recente para o mais antigo. O turno de
+      hoje é o que a pessoa abre o app para ver.
+    - **Nenhum telefone sai por aqui.** O contato tem porta própria, `contato_do_turno`,
+      que confere o prazo de RN10 — uma lista que já trouxesse o contato tornaria o
+      prazo decorativo. `contato_visivel_ate` vem em cada turno justamente para que a
+      tela saiba se pode oferecer o botão antes de tocá-lo.
+
+    ---
+
+    **Versão 0.2.7, de 24/09/2026.** `candidatar` foi implementada no modo urgência, e
+    a implementação separou dois casos que o contrato tratava como um só.
+
+    - **Vaga `preenchida` recusa com `409 posicao_ja_preenchida`, e não com
+      `vaga_encerrada`.** Os dois são 409 e a diferença importa para a tela:
+      `vaga_encerrada` é "esta vaga não existe mais" — cancelada, encerrada ou já
+      começada; `posicao_ja_preenchida` é "alguém chegou antes", que o produto trata
+      como funcionamento normal. Uma vaga preenchida fechou porque **encheu**, e quem
+      chegou depois merece a tela do segundo caso.
+    - **`422 inelegivel` com `details: funcao_incompativel`** também para quem ainda não
+      tem perfil profissional. Sem perfil não há função cadastrada, e sem função nenhuma
+      vaga serve; os dois casos terminam na mesma tela, a de completar o perfil.
+    - **`404 nao_encontrado`** para vaga que o profissional não deveria alcançar —
+      bloqueio entre as partes ou conta de demonstração —, igual ao que `detalhe_vaga`
+      responde. Candidatar-se é a continuação natural de ter visto a vaga, e as duas
+      operações escondem a mesma coisa.
+
+    `contato` volta preenchido já na resposta da confirmação, com o prazo do RN10: o
+    fim previsto do turno mais 7 dias. O `whatsapp_url` sai sem o `+` do E.164, que o
+    `wa.me` não aceita — a regra mora no servidor para não ser reescrita em três apps.
+
+    ---
+
+    **Versão 0.2.6, de 24/09/2026.** `vagas_abertas` e `detalhe_vaga` foram
+    implementadas. As duas são leituras, e o que a implementação acrescentou aqui é
+    sobretudo **o que elas recusam** e **o que elas escondem**.
+
+    - **As duas são a tela de quem procura turno**, e recusam conta de contratante com
+      `422 perfil_incompativel`. Antes isso não estava escrito, e um cliente que
+      chamasse com a conta errada receberia uma lista vazia — que a tela leria como
+      "não há vagas", e não como "esta tela não é sua".
+    - **`limite` fora de 1..100 e `deslocamento` negativo** são `422 campo_invalido` com
+      o nome do parâmetro em `details`, e não um truncamento silencioso.
+    - **Sem coordenada e sem ponto base**, `vagas_abertas` recusa com
+      `422 campo_obrigatorio` e `details: latitude`. Sem ponto de referência não há
+      ordem, e ordenar por um ponto inventado devolveria uma lista plausível e errada.
+    - **`detalhe_vaga` responde `404 nao_encontrado`** para vaga que o profissional não
+      deveria alcançar — bloqueio entre as partes (RF26) ou conta de demonstração — e
+      não `403`. Um 403 confirmaria que aquela vaga existe, e quem bloqueou alguém não
+      deve receber prova de que a outra parte continua publicando.
+    - **Conta de demonstração e conta real não se enxergam** (diretrizes 2.1 e 4.2): a
+      lista e o detalhe de uma população nunca trazem a vaga da outra.
+    - **`PerfilPublico` de estabelecimento** traz `taxa_comparecimento` nula e os dois
+      contadores de turno em zero. A taxa é do profissional — é ele que comparece ou
+      falta —, e zero aqui não é "nunca trabalhou": é "este campo não se aplica a esta
+      ponta".
+
+    Uma correção, e não uma adição: `PerfilPublico` de **profissional** passou a trazer
+    `turnos_realizados`, que o schema `Reputacao` exige desde a 0.2.1 e a implementação
+    não devolvia. Um cliente gerado a partir do contrato quebraria ao desserializar.
+
+    ---
+
+    **Versão 0.2.5, de 24/09/2026.** `publicar_vaga` foi implementada, e o que a
+    implementação descobriu está escrito aqui.
+
+    - **`modo = selecao` é recusado na v1.0**, com `422 campo_invalido` e `details: modo`.
+      O escopo do MVP tem só o modo urgência. O código **não** é
+      `selecao_sem_antecedencia`: aquele é a regra das 24 horas de RN24, e ele só volta a
+      ter sentido na v1.1, quando o modo passar a existir e houver antecedência para
+      recusar. Um cliente que trate os dois como o mesmo erro vai dizer "publique com mais
+      antecedência" para quem escolheu um modo que ainda não existe.
+    - **`422 campo_invalido` com o campo em `details`** para `valor_centavos` não positivo,
+      `posicoes` fora de 1..200, `funcao_id` fora do catálogo e `ponto` com latitude ou
+      longitude fora da faixa. Antes isso chegava ao cliente como violação de restrição do
+      banco, que ele não sabe ler.
+    - **`403 sem_permissao`** para quem não é membro do estabelecimento — inclusive quando o
+      estabelecimento não existe, e de propósito: um 404 diria a quem não é membro que
+      aquele estabelecimento existe. Conta suspensa recebe o mesmo 403, com
+      `details: conta_suspensa` (RN13).
+    - **`422 perfil_incompativel`** para conta de profissional (RN25).
+    - **Diretriz 1.2**: `local`, `responsavel_local`, `traje` e `observacoes` passam pelo
+      filtro de termos bloqueados, e recusam com `422 campo_invalido` e o campo em
+      `details`, como a 0.2.3 antecipou.
+
+    A resposta não mudou: `VagaPublicada` com `vaga_id` e um id por posição. O despacho
+    continua fora da requisição (B15) — publicar enfileira e responde.
+
+    ---
 
     **Versão 0.2.4, de 23/09/2026.** Um código de erro novo e uma resposta que faltava.
 
@@ -816,9 +979,20 @@ paths:
         pelo agendador, em até 30 segundos (RNF03); publicar não espera o despacho (B15).
 
         Recusas: campo obrigatório ausente (`campo_obrigatorio`, com o nome do campo em `details`,
-        RN02), horário inválido, e modo seleção em vaga que começa em menos de 24 horas
-        (`selecao_sem_antecedencia`, RN24). `chave` torna o reenvio seguro: a mesma chave devolve a
-        mesma vaga.
+        RN02); valor, número de posições, função ou coordenada que o campo trouxe e a regra não
+        aceita (`campo_invalido`, com o campo em `details`); fim antes do início ou turno no passado
+        (`horario_invalido`); texto com termo bloqueado em `local`, `responsavel_local`, `traje` ou
+        `observacoes` (`campo_invalido`, diretriz 1.2). Conta de profissional recebe
+        `perfil_incompativel` (RN25); quem não é membro do estabelecimento recebe `403
+        sem_permissao`, e é o que responde também quando o estabelecimento não existe; conta
+        suspensa recebe `403 sem_permissao` com `details: conta_suspensa` (RN13).
+
+        **Na v1.0, `modo = selecao` é recusado** com `campo_invalido` e `details: modo` — o escopo
+        do MVP tem só urgência. `selecao_sem_antecedencia` é a regra das 24 horas (RN24) e volta na
+        v1.1, quando houver modo seleção para recusar.
+
+        `chave` torna o reenvio seguro: a mesma chave devolve a mesma vaga, com as mesmas posições,
+        e não enfileira o despacho de novo.
       x-requisitos: [RF04, RF09, RN02, RN03, RN04, RN18, RN24, UC01]
       requestBody:
         required: true
@@ -933,6 +1107,13 @@ paths:
         profissional, se nenhum for enviado). A distância aqui **ordena**, não filtra: o limite de
         15 km vale só para a notificação (B07). Vagas de estabelecimentos com bloqueio entre as partes
         não aparecem (RF26). A ordem não pode ser comprada (RN06).
+
+        É a tela de quem procura turno: conta de contratante recebe `422 perfil_incompativel`.
+        `limite` fora de 1..100 e `deslocamento` negativo são `422 campo_invalido` com o nome do
+        parâmetro em `details`. Sem coordenada e sem ponto base no perfil, `422 campo_obrigatorio`
+        com `details: latitude` — sem ponto de referência não há ordem.
+
+        Conta de demonstração e conta real não se enxergam (diretrizes 2.1 e 4.2).
       x-requisitos: [RF07, RN05, RN06, RF26, UC03]
       parameters:
         - name: latitude
@@ -994,7 +1175,14 @@ paths:
       tags: [Vagas]
       operationId: detalheVaga
       summary: Detalhe de uma vaga
-      description: Tudo o que o profissional vê antes de se candidatar (UC03, passo 2).
+      description: |
+        Tudo o que o profissional vê antes de se candidatar (UC03, passo 2). Sem documento do
+        estabelecimento e sem contato de ninguém: o telefone sai por `contato_do_turno`, depois da
+        confirmação e dentro do prazo (RN10).
+
+        Conta de contratante recebe `422 perfil_incompativel`. Vaga que o profissional não deveria
+        alcançar — bloqueio entre as partes (RF26) ou conta de demonstração — responde
+        `404 nao_encontrado`, e não `403`: o 403 confirmaria que ela existe.
       x-requisitos: [RF04, RF16, RN02, UC03]
       parameters:
         - name: vaga_id
@@ -1031,7 +1219,13 @@ paths:
 
         As três respostas são normais: `200` (entrou), `409 posicao_ja_preenchida` (alguém chegou
         antes — a tela diz "que pena, foi rápido", não "algo deu errado") e `422 inelegivel`
-        (`turno_sobreposto` ou `perfil_suspenso`). Reenviar para a mesma vaga devolve o mesmo resultado.
+        (`turno_sobreposto`, `perfil_suspenso` ou `funcao_incompativel`). Reenviar para a mesma vaga
+        devolve o mesmo resultado.
+
+        **Vaga `preenchida` também responde `posicao_ja_preenchida`**, e não `vaga_encerrada`: ela
+        fechou porque encheu. `vaga_encerrada` fica para a vaga cancelada, encerrada ou cujo início
+        já passou. Vaga escondida por bloqueio ou por demonstração responde `404 nao_encontrado`,
+        igual a `detalhe_vaga`.
       x-requisitos: [RF08, RF09, RF10, RF11, RN03, RN10, RN19, RN21, RN24, UC03, UC04]
       requestBody:
         required: true
@@ -1208,7 +1402,17 @@ paths:
       tags: [Turno]
       operationId: meusTurnos
       summary: Turnos do chamador, como profissional ou como estabelecimento
-      description: Base do histórico (UC13) e da leitura offline por 24 horas (RNF06).
+      description: |
+        Base do histórico (UC13) e da leitura offline por 24 horas (RNF06).
+
+        Hoje e os próximos primeiro, do mais próximo para o mais distante; os anteriores depois, do
+        mais recente para o mais antigo. Com `estabelecimento_id`, quem pergunta precisa ser membro
+        da casa — senão `403 sem_permissao`. Conta de contratante **sem** `estabelecimento_id`
+        recebe lista vazia, e não erro.
+
+        Nenhum telefone sai por aqui: o contato sai por `contato_do_turno`, que confere o prazo de
+        RN10. `contato_visivel_ate` vem em cada turno para que a tela saiba se pode oferecer o botão
+        antes de tocá-lo.
       x-requisitos: [RF13, RF22, RNF06, UC13]
       parameters:
         - name: de
@@ -1245,7 +1449,12 @@ paths:
       summary: Contato da outra parte do turno
       description: |
         Só existe depois da confirmação e só até 7 dias depois do fim do turno (RN10). A base legal é
-        a execução do contrato (LGPD, art. 7º, V). Depois do prazo, `403 contato_expirado`.
+        a execução do contrato (LGPD, art. 7º, V). Depois do prazo, `403 contato_expirado`, para os
+        dois lados; o sétimo dia conta inteiro.
+
+        Todo o resto é `404 nao_encontrado`: antes da confirmação, para quem não é nenhum dos dois
+        lados, e quando há bloqueio entre as partes. Um `403` confirmaria que aquele turno existe a
+        quem não deveria saber.
       x-requisitos: [RF11, RN10]
       parameters:
         - name: turno_id

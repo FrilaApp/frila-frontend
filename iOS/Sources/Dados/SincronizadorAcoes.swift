@@ -14,7 +14,7 @@ public actor SincronizadorAcoes {
         guard let acoes = try? await fila.pendentes() else { return }
         for acao in acoes {
             do {
-                // Check-in, check-out e avaliação são idempotentes pela chave natural do turno (contrato 0.2.4);
+                // Check-in, check-out e avaliação são idempotentes pela chave natural do turno (contrato 0.2.11);
                 // a `chave` da ação fica só na fila local.
                 switch acao.tipo {
                 case .checkin:
