@@ -2,17 +2,12 @@ import FrilaDominio
 import SwiftUI
 
 public struct CatalogoDesignSystem: View {
-    private let api: (any ApiCliente)?
-    private let permitirSimulacaoDeConflito: Bool
     @State private var texto = ""
     @State private var codigo = ""
     @State private var filtro = true
     @State private var resposta: Bool?
 
-    public init(api: (any ApiCliente)? = nil, permitirSimulacaoDeConflito: Bool = false) {
-        self.api = api
-        self.permitirSimulacaoDeConflito = permitirSimulacaoDeConflito
-    }
+    public init() {}
 
     public var body: some View {
         NavigationStack {
@@ -28,9 +23,6 @@ public struct CatalogoDesignSystem: View {
                     secao("Mensagens") { AvisoFrila("Sua ação será enviada quando a conexão voltar."); EstadoOffline(); EstadoPendente("Check-in aguardando envio") }
                     secao("Avaliação") { RespostaSimNao(resposta: $resposta) }
                     secao("Estados") { EstadoVazio("Nenhuma vaga", mensagem: "Novas oportunidades aparecerão aqui."); EstadoErro("Verifique sua conexão.") {} }
-                    if let api {
-                        ValidacaoClienteAPI(api: api, permitirSimulacaoDeConflito: permitirSimulacaoDeConflito)
-                    }
                     secao("Vaga") { CartaoVaga(Self.vagaDeExemplo) }
                 }
                 .padding(FrilaEspaco.medio)
