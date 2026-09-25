@@ -68,6 +68,12 @@ xcodebuild build -project Frila.xcodeproj -scheme Frila-Prod -destination 'gener
 
 A CI roda a mesma sequência; ver [Integração contínua](Docs/CI.md).
 
+### Validação manual do cliente da API
+
+Em `Frila-Dev` (Debug), o catálogo traz a seção **Validação do cliente**. Informe um e-mail de teste controlado pela equipe e peça o acesso no mesmo simulador. O cliente aceita tanto o código de seis dígitos quanto o link de acesso do template padrão do Supabase. Para o link voltar ao app, `Authentication > URL Configuration` do `frila-dev` deve permitir `com.frila.org.app://login-callback`; esse esquema está registrado no `Info.plist` e a sessão é criada pelo SDK antes de a tela exibir a confirmação. O campo não escreve e-mail, código, link ou token em log. Para conferir o caminho de conflito sem criar dados no Supabase, abra `Frila-Local` com `-FRILA_SCENARIO vaga-preenchida`, toque em **Simular vaga preenchida** e confira a mensagem "Esta vaga acabou de ser preenchida".
+
+Depois de fazer a entrada no simulador, execute `Scripts/auditar-logs-sensiveis.sh`. O script examina os últimos cinco minutos do subsistema `com.frila.org.app` e falha sem imprimir o valor caso encontre e-mail, bearer token, chave Supabase ou JWT.
+
 ## Cenários simulados
 
 No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.

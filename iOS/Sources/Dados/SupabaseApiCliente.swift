@@ -20,7 +20,10 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
 
     public func solicitarCodigo(email: String) async throws {
         do {
-            try await cliente.auth.signInWithOTP(email: email)
+            try await cliente.auth.signInWithOTP(
+                email: email,
+                redirectTo: URL(string: "com.frila.org.app://login-callback")
+            )
         } catch {
             throw mapear(error)
         }
@@ -29,6 +32,16 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
     public func verificarCodigo(email: String, codigo: String) async throws {
         do {
             _ = try await cliente.auth.verifyOTP(email: email, token: codigo, type: .email)
+        } catch {
+            throw mapear(error)
+        }
+    }
+
+    /// Conclui no aparelho os links de autenticação enviados pelo Supabase. O mesmo cliente
+    /// continua aceitando códigos de seis dígitos quando o template do projeto os utiliza.
+    public func processarRetornoDeAutenticacao(url: URL) async throws {
+        do {
+            _ = try await cliente.auth.session(from: url)
         } catch {
             throw mapear(error)
         }

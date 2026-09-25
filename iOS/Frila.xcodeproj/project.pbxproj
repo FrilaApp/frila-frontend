@@ -46,6 +46,7 @@
 		723AD6D9A4B4D48C1F93D6C0 /* requisicao-cadastrar-estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */; };
 		781446FFC40FD90A510DA4E8 /* vaga-publicada.json in Resources */ = {isa = PBXBuildFile; fileRef = A3E6257414B3A5DD6EA2CC29 /* vaga-publicada.json */; };
 		82F3D63694FF304FDB047AF2 /* FrilaDados.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; };
+		8B35F60187B1175A52D97063 /* ValidacaoClienteAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */; };
 		8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */; };
 		8C97FE7579D3C683369CFAD8 /* requisicao-publicar-vaga.json in Resources */ = {isa = PBXBuildFile; fileRef = AC0715D51EC624FFD2754B4B /* requisicao-publicar-vaga.json */; };
 		8D44DCBE863B3BEAF899FF5C /* FrilaApresentacao.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -245,6 +246,7 @@
 		5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoKeychain.swift; sourceTree = "<group>"; };
 		60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodificadorErroAPI.swift; sourceTree = "<group>"; };
 		6044BB78E5ED8913EC72A112 /* usuario.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = usuario.json; sourceTree = "<group>"; };
+		6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidacaoClienteAPI.swift; sourceTree = "<group>"; };
 		64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
 		65115E2F0782067BF1010B60 /* ErrosAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrosAPITests.swift; sourceTree = "<group>"; };
 		661B8589A9BDD4069E39ED1B /* AtualizacaoObrigatoria.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtualizacaoObrigatoria.swift; sourceTree = "<group>"; };
@@ -529,6 +531,7 @@
 				22F1776455FF3BC99C2521A6 /* Componentes.swift */,
 				1686AA539A8DA1D54FF79C2D /* DesignTokens.swift */,
 				CA215437724E11E1540CB9C9 /* EstadosDeTela.swift */,
+				6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */,
 			);
 			path = Apresentacao;
 			sourceTree = "<group>";
@@ -906,6 +909,7 @@
 				B588E4E496730CE3ACB5EC44 /* Componentes.swift in Sources */,
 				C0AF8B85A841AC750998C3E1 /* DesignTokens.swift in Sources */,
 				F110162D220BD8C9C9635C1C /* EstadosDeTela.swift in Sources */,
+				8B35F60187B1175A52D97063 /* ValidacaoClienteAPI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
