@@ -104,6 +104,20 @@ Limites conhecidos, que este código não cobre:
 
 ## Cenários simulados
 
+**Check-in e check-out no dublê.** O `ApiClienteEmMemoria` segue o `fazer_checkin` vigente do backend (`20260925233000_notificacao_para_qualquer_conta.sql`) e o `fazer_checkout` (`20260925000000_checkin_e_checkout.sql`):
+- idempotência antes de qualquer validação;
+- check-out sem check-in é `409 checkin_pendente`;
+- distância negativa é `422 campo_invalido`;
+- os 200 m valem só para o check-in, e o manual não guarda a distância;
+- o check-out não tem teto de distância.
+
+O dublê não é equivalente ao backend:
+- **Futuro.** O backend tolera até 2 minutos no futuro; o dublê recusa qualquer instante no futuro.
+- **Janela do turno.** O backend recusa com `fora_da_janela` o que cair fora de início − 60 min até o fim. O dublê não confere essa janela, então aceita registros que o backend recusaria.
+- **Conta de demonstração.** A exceção de janela dela não é modelada.
+- **Verificação.** No check-out e nas repetições, tipo e verificação vêm do check-in gravado no dublê. No backend a verificação é a atual do turno, que o `confirmar_checkin_manual` muda; essa operação não existe na porta `ApiCliente` nem no dublê. O `meusTurnos` do dublê também não reflete a verificação.
+
+
 No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.
 
 ## Contrato
