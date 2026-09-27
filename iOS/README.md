@@ -87,6 +87,19 @@ Roteiro do critério 1 com o Supabase local, sem o limite de e-mails do projeto 
 
 No `frila-dev` hospedado o roteiro ainda não funciona. O Supabase só deixa trocar o modelo de e-mail de projeto gratuito depois de configurado um SMTP próprio (cartão #200). Até lá, o e-mail do frila-dev leva o link padrão, e não o código que o app pede. Sem SMTP, o limite também é de cerca de 2 e-mails por hora. Depois do SMTP, o modelo a aplicar é o `codigo-de-entrada.html` do frila-backend.
 
+**Sessão encerrada por 401 (contrato 0.2.18).** Quando uma chamada volta com prova de que a sessão não vale mais, o `SupabaseApiCliente` encerra a sessão local e a tela recebe o erro original. O 401 prova autenticação inválida, não o motivo: pode ser conta encerrada (a 0.2.18), token vencido ou token recusado.
+- **O que conta como prova:** o código original `nao_autenticado` ou `PGRST301` numa RPC, ou o status 401 de uma Edge Function.
+- **O que não conta:** o `42501` continua aparecendo como "não autenticado" para a tela, mas sozinho não encerra a sessão, porque com sessão válida ele é falta de privilégio.
+- **Guarda contra 401 antigo:** só encerra se a sessão guardada ainda for a mesma com que a chamada saiu. Um 401 atrasado não derruba uma entrada nova.
+- **Serialização:** entrada, demonstração, saída e encerramento passam por uma fila FIFO, um de cada vez.
+- **Conferência:** depois do `signOut` local, o cliente lê o armazenamento de novo. No supabase-swift 2.55.2 o escopo local também chama `POST /logout`, e a falha dessa chamada não desfaz a remoção local.
+- **Aviso:** o `ObservadorDeSessao` repassa o `.signedOut` do SDK, e a seção de validação confere a sessão de novo.
+
+Limites conhecidos, que este código não cobre:
+- o `.signedOut` e a leitura sem sessão **não provam** remoção persistente: o SDK engole erro ao apagar do Keychain e devolve "sem sessão" quando a leitura falha;
+- a renovação automática do SDK não passa pela fila. No 2.55.2, uma falha de renovação não encerra a sessão, e uma renovação em voo pode regravá-la depois do encerramento;
+- um token vencido cuja renovação falhou sai como chamada anônima, e o backend responde `42501`, que não encerra a sessão.
+
 **Auditoria de dados sensíveis.** `Scripts/auditar-logs-sensiveis.sh` examina os últimos cinco minutos do subsistema `com.frila.org.app` e falha sem imprimir o valor caso encontre e-mail, bearer token, chave Supabase ou JWT. O código é conferido a cada `xcodebuild test` pelo `SegurancaDoCodigoTests`: nenhum `print`, `NSLog` ou `debugPrint` em `Sources/`, e nenhum log interpola e-mail, token, sessão, senha, telefone ou chave.
 
 ## Cenários simulados
@@ -109,14 +122,14 @@ No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso
 
 ## Contrato
 
-O app segue o contrato `0.2.17`, espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.
+O app segue o contrato `0.2.18`, espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.
 
 - `Sources/Dados/DTOsContrato.swift` tem um tipo por schema usado pelo app; `SupabaseApiCliente` chama as operações do Sprint 1, inclusive `meus_turnos`, e mais check-in, check-out e avaliação.
 - `Resources/Fixtures` guarda uma resposta ou requisição por arquivo, e `fixture-schemas.json` diz contra qual schema do contrato cada uma é validada. `ApiClienteEmMemoria` lê essas fixtures pelos mesmos DTOs do cliente real, e os testes conferem que cada requisição que o app monta é igual à fixture.
 - `Scripts/validate-fixtures.py` valida tipos, formatos, enums, obrigatórios e campos fora do contrato. Palavra-chave de schema que ele não conhece é erro, não aprovação.
 - `Scripts/contrato-em-dia.sh` confere a integridade do espelho e, com `FRILA_DOCS_TOKEN`, se ele ainda é igual ao do frila-docs.
 
-Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contrato/`, regrave a soma (`shasum -a 256 Contrato/openapi.yaml | awk '{print $1}' > Contrato/openapi.yaml.sha256`), atualize `contract-version.json`, DTOs e fixtures somente quando os schemas mudarem, e rode a validação e os testes. A atualização para 0.2.11 acrescentou os códigos `checkin_pendente`, `checkin_ja_confirmado` e `posicao_nao_cancelavel`, já tipados no app. Da 0.2.12 à 0.2.17 nenhum schema, payload ou código de erro usado pelo cliente mudou; o que entrou foram regras documentadas. A que toca o app é a da 0.2.16: `configuracao_do_app` responde `404 nao_encontrado` para plataforma sem loja, e a checagem de versão mínima hoje libera o app em qualquer falha (falha aberta), o que a própria 0.2.16 aponta como problema. O comportamento não muda aqui; a decisão é do cartão #201.
+Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contrato/`, regrave a soma (`shasum -a 256 Contrato/openapi.yaml | awk '{print $1}' > Contrato/openapi.yaml.sha256`), atualize `contract-version.json`, DTOs e fixtures somente quando os schemas mudarem, e rode a validação e os testes. A atualização para 0.2.11 acrescentou os códigos `checkin_pendente`, `checkin_ja_confirmado` e `posicao_nao_cancelavel`, já tipados no app. Da 0.2.12 à 0.2.17 nenhum schema, payload ou código de erro usado pelo cliente mudou; o que entrou foram regras documentadas. A que toca o app é a da 0.2.16: `configuracao_do_app` responde `404 nao_encontrado` para plataforma sem loja, e a checagem de versão mínima hoje libera o app em qualquer falha (falha aberta), o que a própria 0.2.16 aponta como problema. O comportamento não muda aqui; a decisão é do cartão #201. A 0.2.18 não traz schema, payload nem código de erro novo para o cliente: `nao_autenticado` entra na linha do 401 e já é caso de `CodigoErroAPI`. Ela fixa duas coisas que o app ainda não faz: encerrar a sessão local ao receber `401` (conta encerrada) e chamar `excluir-conta`. As duas ficam para mudanças próprias, fora desta sincronização.
 
 O estado das funções no `frila-dev` está em [Dependências externas](Docs/ExternalSetup.md).
 
