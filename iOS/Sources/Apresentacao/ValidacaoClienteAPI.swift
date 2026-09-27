@@ -91,6 +91,11 @@ public struct ValidacaoClienteAPI: View {
         }
         // Ao abrir, mostra se a sessão guardada no Keychain sobreviveu ao fechamento do app.
         .task { await conferirSessao() }
+        // Um 401 que encerra a sessão (ou a saída) chega aqui como aviso; a tela confere de novo.
+        .task {
+            guard let observador = api as? any ObservadorDeSessao else { return }
+            for await _ in observador.encerramentos() { await conferirSessao() }
+        }
     }
 
     private func conferirSessao() async {
