@@ -183,11 +183,12 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
-    func testTurnoSobrepostoMostraOConflitoComLink() {
+    func testTurnoSobrepostoMostraOConflitoSemApontarTurno() {
         let app = abrirDetalheECandidatar("inelegivel")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 10))
-        app.buttons["ver-meu-turno"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-turno-existente"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["ver-meu-turno"].exists, "sem link para um turno específico")
+        app.buttons["voltar-para-lista"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
     func testContaSuspensaMostraOMotivoEContestarDesabilitado() {

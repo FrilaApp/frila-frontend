@@ -57,7 +57,6 @@ enum TextosDoProfissional {
         static let contato = "Contato"
         static let contatoLiberado = "Liberado com a confirmação. Fica visível até 7 dias depois do turno."
         static let abrirWhatsApp = "Abrir no WhatsApp"
-        static let meusTurnosTitulo = "Meu turno"
 
         static let preenchidaTitulo = "Essa vaga já foi preenchida"
         static let preenchidaMensagem = "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação."
@@ -66,9 +65,7 @@ enum TextosDoProfissional {
         static let encerradaMensagem = "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação."
 
         static let sobrepostoTitulo = "Você já tem um turno nesse horário"
-        static let sobrepostoMensagem = "Não dá para estar em dois turnos ao mesmo tempo. Veja o turno que você já tem."
-        static let sobrepostoSemTurno = "Não dá para estar em dois turnos ao mesmo tempo. O turno em conflito aparece em Meus turnos."
-        static let verMeuTurno = "Ver meu turno"
+        static let sobrepostoMensagem = "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo."
 
         static let funcaoTitulo = "Essa vaga pede outra função"
         static let funcaoMensagem = "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil."

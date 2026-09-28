@@ -8,7 +8,6 @@ import SwiftUI
 public enum RotaDoProfissional: Hashable, Sendable {
     case detalhe(vagaID: UUID)
     case resultado(vaga: Vaga, resultado: ResultadoDaCandidatura)
-    case turno(Turno)
 }
 
 /// Pilha de navegação do fluxo. É a entrada que a notificação do tipo vaga (S2 #8) vai usar:
@@ -54,13 +53,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                             roteador.caminho.append(.resultado(vaga: vaga, resultado: resultado))
                         }
                     case let .resultado(vaga, resultado):
-                        TelaResultadoDaCandidatura(
-                            vaga: vaga, resultado: resultado,
-                            voltarParaLista: voltarParaLista,
-                            abrirTurno: { roteador.caminho.append(.turno($0)) }
-                        )
-                    case let .turno(turno):
-                        TelaTurnoExistente(turno: turno)
+                        TelaResultadoDaCandidatura(vaga: vaga, resultado: resultado, voltarParaLista: voltarParaLista)
                     }
                 }
         }

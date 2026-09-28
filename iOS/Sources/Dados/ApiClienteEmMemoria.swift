@@ -56,14 +56,6 @@ public actor ApiClienteEmMemoria: ApiCliente {
             estabelecimentos = [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
             let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
             vagas = [try Self.noFuturo(vaga, agora: relogio.agora)]
-            if cenario == .inelegivel, let aberta = vagas.first {
-                // O turno que conflita com a vaga aberta: é ele que o `turno_sobreposto` aponta.
-                turnos.append(Turno(
-                    id: UUID(), posicaoID: UUID(), vaga: aberta.resumo, contraparte: aberta.estabelecimento,
-                    contatoVisivelAte: aberta.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60),
-                    verificacao: .pendente, valorAcordado: aberta.valor, podeAvaliar: false
-                ))
-            }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
         }

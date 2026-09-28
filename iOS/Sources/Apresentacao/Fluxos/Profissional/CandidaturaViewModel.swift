@@ -4,8 +4,9 @@ import Observation
 
 /// Por que a pessoa não pôde entrar na vaga.
 public enum MotivoInelegivel: Hashable, Sendable {
-    /// Já há turno dela no mesmo horário. O servidor não manda qual; o app procura em `meus_turnos`.
-    case turnoSobreposto(conflito: Turno?)
+    /// Já há turno dela no mesmo horário. O servidor não diz qual, e o app não tenta adivinhar: `meus_turnos`
+    /// também traz turnos de posições canceladas e o `Turno` não tem estado.
+    case turnoSobreposto
     case funcaoIncompativel
     case outro(detalhes: String?)
 }
@@ -53,20 +54,14 @@ public final class CandidaturaViewModel {
     public let vaga: Vaga
     public private(set) var estado: EstadoDaCandidatura = .ocioso
     private let enviar: @Sendable (UUID) async throws -> ResultadoCandidatura
-    private let buscarMeusTurnos: @Sendable () async throws -> [Turno]
 
     public convenience init(vaga: Vaga, api: any ApiCliente) {
-        self.init(vaga: vaga, candidatar: { try await api.candidatar(vagaID: $0) }, meusTurnos: { try await api.meusTurnos() })
+        self.init(vaga: vaga, candidatar: { try await api.candidatar(vagaID: $0) })
     }
 
-    public init(
-        vaga: Vaga,
-        candidatar: @escaping @Sendable (UUID) async throws -> ResultadoCandidatura,
-        meusTurnos: @escaping @Sendable () async throws -> [Turno]
-    ) {
+    public init(vaga: Vaga, candidatar: @escaping @Sendable (UUID) async throws -> ResultadoCandidatura) {
         self.vaga = vaga
         self.enviar = candidatar
-        self.buscarMeusTurnos = meusTurnos
     }
 
     public var enviando: Bool { estado == .enviando }
@@ -80,7 +75,7 @@ public final class CandidaturaViewModel {
         do {
             resultado = Self.resultado(try await enviar(vaga.id))
         } catch let erro as ErroDaApi {
-            resultado = await mapear(erro)
+            resultado = Self.mapear(erro)
         } catch {
             resultado = .falha(ErroDaApi(codigo: .desconhecido, codigoOriginal: String(reflecting: type(of: error))))
         }
@@ -103,11 +98,11 @@ public final class CandidaturaViewModel {
         }
     }
 
-    private func mapear(_ erro: ErroDaApi) async -> ResultadoDaCandidatura {
+    static func mapear(_ erro: ErroDaApi) -> ResultadoDaCandidatura {
         switch (erro.codigo, erro.detalhes) {
         case (.posicaoJaPreenchida, _): return .vagaPreenchida
         case (.vagaEncerrada, _): return .vagaEncerrada
-        case (.inelegivel, "turno_sobreposto"): return .inelegivel(.turnoSobreposto(conflito: await conflito()))
+        case (.inelegivel, "turno_sobreposto"): return .inelegivel(.turnoSobreposto)
         case (.inelegivel, "perfil_suspenso"): return .contaSuspensa
         case (.inelegivel, "funcao_incompativel"): return .inelegivel(.funcaoIncompativel)
         case let (.inelegivel, detalhes): return .inelegivel(.outro(detalhes: detalhes))
@@ -115,13 +110,5 @@ public final class CandidaturaViewModel {
         case (.naoEncontrado, _): return .naoEncontrada
         default: return .falha(erro)
         }
-    }
-
-    /// O turno da pessoa que ocupa o mesmo horário da vaga. Sem rede ou sem achar, volta nil e a tela
-    /// explica sem o link.
-    private func conflito() async -> Turno? {
-        guard let turnos = try? await buscarMeusTurnos() else { return nil }
-        let alvo = vaga.periodo
-        return turnos.first { $0.vaga.periodo.inicio < alvo.fim && alvo.inicio < $0.vaga.periodo.fim }
     }
 }

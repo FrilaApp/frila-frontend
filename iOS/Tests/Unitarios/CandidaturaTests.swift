@@ -50,37 +50,20 @@ struct CandidaturaViewModelTests {
     @Test("409 posicao_ja_preenchida é vagaPreenchida e 409 vaga_encerrada é vagaEncerrada, nunca o mesmo caso")
     func conflitosDistintos() async throws {
         let vaga = try await vagaDoDuble(ApiClienteEmMemoria())
-        let preenchida = CandidaturaViewModel(vaga: vaga, candidatar: falhando(ErroDaApi(codigo: .posicaoJaPreenchida)), meusTurnos: { [] })
-        let encerrada = CandidaturaViewModel(vaga: vaga, candidatar: falhando(ErroDaApi(codigo: .vagaEncerrada)), meusTurnos: { [] })
+        let preenchida = CandidaturaViewModel(vaga: vaga, candidatar: falhando(ErroDaApi(codigo: .posicaoJaPreenchida)))
+        let encerrada = CandidaturaViewModel(vaga: vaga, candidatar: falhando(ErroDaApi(codigo: .vagaEncerrada)))
         await preenchida.candidatar()
         await encerrada.candidatar()
         #expect(preenchida.estado == .concluida(.vagaPreenchida))
         #expect(encerrada.estado == .concluida(.vagaEncerrada))
     }
 
-    @Test("Turno sobreposto traz o turno em conflito, achado em meus_turnos")
+    @Test("Turno sobreposto é resultado próprio, sem buscar nem apontar um turno específico")
     func turnoSobreposto() async throws {
         let api = ApiClienteEmMemoria(cenario: .inelegivel)
-        let vaga = try await vagaDoDuble(api)
-        let vm = CandidaturaViewModel(vaga: vaga, api: api)
+        let vm = CandidaturaViewModel(vaga: try await vagaDoDuble(ApiClienteEmMemoria()), api: api)
         await vm.candidatar()
-        guard case let .concluida(.inelegivel(.turnoSobreposto(conflito))) = vm.estado else {
-            Issue.record("esperado turno sobreposto: \(vm.estado)"); return
-        }
-        let turno = try #require(conflito)
-        #expect(turno.vaga.periodo.inicio < vaga.periodo.fim && vaga.periodo.inicio < turno.vaga.periodo.fim)
-    }
-
-    @Test("Turno sobreposto sem conseguir ler meus_turnos: resultado sem o link")
-    func turnoSobrepostoSemConflito() async throws {
-        let vaga = try await vagaDoDuble(ApiClienteEmMemoria())
-        let vm = CandidaturaViewModel(
-            vaga: vaga,
-            candidatar: falhando(ErroDaApi(codigo: .inelegivel, detalhes: "turno_sobreposto")),
-            meusTurnos: { throw ErroDaApi(codigo: .semRede) }
-        )
-        await vm.candidatar()
-        #expect(vm.estado == .concluida(.inelegivel(.turnoSobreposto(conflito: nil))))
+        #expect(vm.estado == .concluida(.inelegivel(.turnoSobreposto)))
     }
 
     @Test("Outros códigos: função incompatível, 403 conta suspensa, 404, sem rede",
@@ -92,7 +75,7 @@ struct CandidaturaViewModelTests {
           ])
     func outrosCodigos(erro: ErroDaApi, esperado: ResultadoDaCandidatura) async throws {
         let vaga = try await vagaDoDuble(ApiClienteEmMemoria())
-        let vm = CandidaturaViewModel(vaga: vaga, candidatar: falhando(erro), meusTurnos: { [] })
+        let vm = CandidaturaViewModel(vaga: vaga, candidatar: falhando(erro))
         await vm.candidatar()
         #expect(vm.estado == .concluida(esperado))
     }
@@ -102,8 +85,7 @@ struct CandidaturaViewModelTests {
         let vaga = try await vagaDoDuble(ApiClienteEmMemoria())
         let vm = CandidaturaViewModel(
             vaga: vaga,
-            candidatar: { _ in ResultadoCandidatura(estado: .pendente, candidaturaID: UUID(), posicaoID: nil, turnoID: nil, contato: nil) },
-            meusTurnos: { [] }
+            candidatar: { _ in ResultadoCandidatura(estado: .pendente, candidaturaID: UUID(), posicaoID: nil, turnoID: nil, contato: nil) }
         )
         await vm.candidatar()
         guard case let .concluida(.falha(erro)) = vm.estado else { Issue.record("esperado falha: \(vm.estado)"); return }
@@ -122,8 +104,7 @@ struct CandidaturaViewModelTests {
                 avisarChegada.yield()
                 for await _ in liberar { break }
                 return try await api.candidatar(vagaID: id)
-            },
-            meusTurnos: { [] }
+            }
         )
         let primeiro = Task { await vm.candidatar() }
         for await _ in chegou { break }

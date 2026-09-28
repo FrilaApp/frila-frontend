@@ -120,13 +120,13 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
   - `confirmada` leva ao "Meu turno" (stub do #109, só com os dados da confirmação e o contato da RN10);
   - `409 posicao_ja_preenchida` leva à tela "Vaga preenchida" (é o C2 do #53);
   - `409 vaga_encerrada` leva a uma tela própria, nunca à de vaga preenchida;
-  - `422 inelegivel/turno_sobreposto` mostra o turno em conflito, achado em `meus_turnos`, com link;
+  - `422 inelegivel/turno_sobreposto` leva a uma tela de conflito de horário, com mensagem genérica e sem link para um turno específico: o servidor não diz qual turno conflita, e `meus_turnos` também traz turnos de posições canceladas sem estado no app;
   - `perfil_suspenso` ou `403 sem_permissao/conta_suspensa` levam à tela de conta suspensa, com Contestar desabilitado (S2 #41);
   - `404` e falha de rede ficam no detalhe, com nova tentativa.
 - **Volta à lista.** As telas de resultado voltam para a lista e a atualizam.
 - **Sessão.** A candidatura não usa a fila de sessão do cliente: um 409 não encerra a sessão.
 - **Rota por vaga_id.** `-FRILA_VAGA_ID <uuid>` abre o detalhe, é a mesma entrada que o push do tipo vaga vai usar (S2 #8) e nunca candidata sozinha. Esse argumento e o `-FRILA_ABRIR_CATALOGO` só existem em Debug; um teste confere que ficam dentro de `#if DEBUG`, e o binário de Release não os contém.
-- **Cenários do dublê.** `vaga-preenchida`, `vaga-encerrada`, `inelegivel` (turno sobreposto, com o turno em conflito) e `inelegivel-suspenso`.
+- **Cenários do dublê.** `vaga-preenchida`, `vaga-encerrada`, `inelegivel` (turno sobreposto) e `inelegivel-suspenso`.
 
 ## Cenários simulados
 

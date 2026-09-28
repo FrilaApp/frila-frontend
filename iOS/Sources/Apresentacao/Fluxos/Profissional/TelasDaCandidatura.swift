@@ -38,11 +38,11 @@ public struct AreaDeCandidatura: View {
         }
         .onChange(of: viewModel.estado) { _, novo in
             guard case let .concluida(resultado) = novo else { return }
-            if Self.mensagemNoDetalhe(resultado) == nil {
+            if let texto = Self.mensagemNoDetalhe(resultado) {
+                AccessibilityNotification.Announcement(texto).post()
+            } else {
                 concluir(resultado)
                 viewModel.recomecar()
-            } else {
-                AccessibilityNotification.Announcement(Self.mensagemNoDetalhe(resultado) ?? "").post()
             }
         }
     }
@@ -63,13 +63,11 @@ public struct TelaResultadoDaCandidatura: View {
     private let vaga: Vaga
     private let resultado: ResultadoDaCandidatura
     private let voltarParaLista: () -> Void
-    private let abrirTurno: (Turno) -> Void
 
-    public init(vaga: Vaga, resultado: ResultadoDaCandidatura, voltarParaLista: @escaping () -> Void, abrirTurno: @escaping (Turno) -> Void) {
+    public init(vaga: Vaga, resultado: ResultadoDaCandidatura, voltarParaLista: @escaping () -> Void) {
         self.vaga = vaga
         self.resultado = resultado
         self.voltarParaLista = voltarParaLista
-        self.abrirTurno = abrirTurno
     }
 
     public var body: some View {
@@ -93,14 +91,9 @@ public struct TelaResultadoDaCandidatura: View {
         case .vagaEncerrada:
             mensagem(Textos.encerradaTitulo, Textos.encerradaMensagem, id: "resultado-vaga-encerrada")
             voltar
-        case let .inelegivel(.turnoSobreposto(conflito)):
-            mensagem(Textos.sobrepostoTitulo, conflito == nil ? Textos.sobrepostoSemTurno : Textos.sobrepostoMensagem,
-                     id: "resultado-turno-sobreposto")
-            if let conflito {
-                ResumoDoTurno(turno: conflito)
-                BotaoPrimario(LocalizedStringKey(Textos.verMeuTurno)) { abrirTurno(conflito) }
-                    .accessibilityIdentifier("ver-meu-turno")
-            }
+        case .inelegivel(.turnoSobreposto):
+            // Só o que o backend confirmou: há conflito de horário. Sem apontar um turno específico.
+            mensagem(Textos.sobrepostoTitulo, Textos.sobrepostoMensagem, id: "resultado-turno-sobreposto")
             voltar
         case .inelegivel(.funcaoIncompativel):
             mensagem(Textos.funcaoTitulo, Textos.funcaoMensagem, id: "resultado-funcao-incompativel")
@@ -186,42 +179,5 @@ private struct TurnoConfirmado: View {
             .cartaoFrila()
             .accessibilityIdentifier("contato-do-turno")
         }
-    }
-}
-
-/// Resumo do turno que a pessoa já tem (o conflito do turno sobreposto).
-struct ResumoDoTurno: View {
-    let turno: Turno
-
-    var body: some View {
-        let formatador = FormatadorFrila()
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text("\(turno.vaga.funcao) · \(turno.contraparte.nome)").font(.headline)
-            Text("\(formatador.intervalo(turno.vaga.periodo)) · \(formatador.dinheiro(turno.valorAcordado))")
-            Text(turno.vaga.local).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// O turno que a pessoa já tem, aberto pelo link do turno sobreposto: stub do #109, só leitura.
-public struct TelaTurnoExistente: View {
-    private let turno: Turno
-
-    public init(turno: Turno) { self.turno = turno }
-
-    public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(Textos.meusTurnosTitulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
-                ResumoDoTurno(turno: turno)
-            }
-            .padding(FrilaEspaco.medio)
-        }
-        .background(FrilaCor.fundo)
-        .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("tela-turno-existente")
     }
 }
