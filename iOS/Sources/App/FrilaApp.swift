@@ -30,13 +30,7 @@ struct FrilaApp: App {
             switch inicializacao {
             case let .pronta(api):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    #if DEBUG
-                    // A simulação de conflito chama `candidatar`: só roda contra o dublê, nunca contra um
-                    // Supabase de verdade, para não criar candidatura real em nenhum ambiente.
-                    CatalogoDesignSystem(api: api, permitirSimulacaoDeConflito: api is ApiClienteEmMemoria)
-                    #else
-                    TelaInicialDaFundacao()
-                    #endif
+                    EntradaDoApp(api: api)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -57,6 +51,84 @@ struct FrilaApp: App {
 private enum Inicializacao {
     case pronta(any ApiCliente)
     case configuracaoInvalida(ErroDeConfiguracao)
+}
+
+/// Decide o que o app abre. Com o dublê (esquema Local), ou com sessão guardada no Dev e no Prod, abre
+/// a lista de vagas do profissional (#104). Sem sessão, fica a tela de antes: a entrada por código é de
+/// outro cartão. Quando a sessão é encerrada (401 ou saída), reavalia.
+/// Limite: `possuiSessao()` pode precisar da rede para renovar; offline com sessão guardada, cai na
+/// tela de antes até a próxima abertura.
+private struct EntradaDoApp: View {
+    let api: any ApiCliente
+    @State private var roteador = RoteadorDoProfissional()
+    @State private var comSessao: Bool?
+    #if DEBUG
+    @State private var mostrandoCatalogo = false
+    #endif
+
+    var body: some View {
+        Group {
+            #if DEBUG
+            // Os UI tests do catálogo pedem o catálogo explicitamente; sem o argumento, o Local abre na lista.
+            if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
+                catalogo
+            } else {
+                fluxoOuTelaSemSessao
+            }
+            #else
+            fluxoOuTelaSemSessao
+            #endif
+        }
+        .task { await avaliarSessao() }
+        .task {
+            guard let observador = api as? any ObservadorDeSessao else { return }
+            for await _ in observador.encerramentos() {
+                roteador.voltarParaLista()
+                await avaliarSessao()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var fluxoOuTelaSemSessao: some View {
+        switch mostrarFluxo {
+        case nil:
+            EstadoCarregando()
+        case true?:
+            #if DEBUG
+            FluxoDoProfissional(api: api, roteador: roteador) {
+                Button("Catálogo") { mostrandoCatalogo = true }
+                    .accessibilityHint("Abre o catálogo de componentes, só em Debug")
+            }
+            .sheet(isPresented: $mostrandoCatalogo) { catalogo }
+            #else
+            FluxoDoProfissional(api: api, roteador: roteador)
+            #endif
+        case false?:
+            #if DEBUG
+            catalogo
+            #else
+            TelaInicialDaFundacao()
+            #endif
+        }
+    }
+
+    #if DEBUG
+    // A simulação de conflito chama `candidatar`: só roda contra o dublê, nunca contra um Supabase de
+    // verdade, para não criar candidatura real em nenhum ambiente.
+    private var catalogo: some View {
+        CatalogoDesignSystem(api: api, permitirSimulacaoDeConflito: api is ApiClienteEmMemoria)
+    }
+    #endif
+
+    private var mostrarFluxo: Bool? {
+        api is ApiClienteEmMemoria ? true : comSessao
+    }
+
+    private func avaliarSessao() async {
+        guard !(api is ApiClienteEmMemoria) else { return }
+        comSessao = await api.possuiSessao()
+    }
 }
 
 private struct TelaInicialDaFundacao: View {

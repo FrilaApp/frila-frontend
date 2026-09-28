@@ -151,14 +151,30 @@ public struct CartaoVaga: View {
             }
             Text(vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
-            Label(vaga.local, systemImage: "mappin.and.ellipse")
+            // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
+            Label("\(distancia) · \(vaga.local)", systemImage: "mappin.and.ellipse")
+            if !inclusos.isEmpty { Label(inclusos, systemImage: "checkmark.circle") }
+            Label(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao),
+                  systemImage: vaga.estabelecimento.reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup")
+                .font(.caption.weight(.medium))
             Text("\(vaga.posicoesAbertas) vagas abertas").font(.caption)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Vaga de \(vaga.funcao.nome), \(vaga.estabelecimento.nome), \(formatador.intervalo(vaga.periodo)), \(formatador.dinheiro(vaga.valor))")
+        .accessibilityLabel("Vaga de \(vaga.funcao.nome), \(vaga.estabelecimento.nome), \(formatador.intervalo(vaga.periodo)), \(formatador.dinheiro(vaga.valor)), a \(distancia), \(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao))")
+    }
+
+    private var distancia: String {
+        vaga.distanciaKm.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "pt_BR"))) + " km"
+    }
+
+    private var inclusos: String {
+        var itens: [String] = []
+        if vaga.inclusos.refeicao { itens.append("Refeição") }
+        if vaga.inclusos.transporte { itens.append("Transporte") }
+        return itens.joined(separator: " · ")
     }
 }
 
