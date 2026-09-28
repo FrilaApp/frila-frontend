@@ -88,6 +88,29 @@ final class VagasUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-reputacao"].exists)
     }
 
+    func testFiltroSemVagasMostraOEstadoVazio() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        // O dublê só tem vaga de Garçom; filtrar por Bartender deixa a lista vazia.
+        app.descendants(matching: .any)["filtro-funcao"].tap()
+        let bartender = app.buttons["Bartender"]
+        XCTAssertTrue(bartender.waitForExistence(timeout: 5))
+        bartender.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["vagas-vazio"].waitForExistence(timeout: 10))
+    }
+
+    func testErroDaAPIMostraOEstadoDeErroComTentarNovamente() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "erro-na-lista"]
+        app.launch()
+
+        XCTAssertTrue(app.descendants(matching: .any)["vagas-erro"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Tentar novamente"].exists)
+    }
+
     func testSemRedeMostraOEstadoSemConexao() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "sem-rede"]

@@ -22,6 +22,11 @@ private actor FonteDeVagas {
     }
 }
 
+private actor Contador {
+    private var valor = 0
+    func somar() -> Int { valor += 1; return valor }
+}
+
 private func vagasDoDuble() async throws -> [VagaNaLista] {
     try await ApiClienteEmMemoria().vagasAbertas(.todas)
 }
@@ -132,6 +137,68 @@ struct FeedVagasViewModelTests {
         #expect(ultimo.referencia == nil, "sem referência, o servidor usa o ponto base do perfil")
         #expect(ultimo.limite == 30)
         #expect(ultimo.deslocamento == 0)
+    }
+
+    @Test("Resposta de uma carga antiga não sobrescreve a da carga nova (filtro trocado no meio)")
+    func descartaRespostaAntiga() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { _ in
+                // A primeira carga fica retida; a segunda responde vazia na hora.
+                if await chamadas.somar() == 1 {
+                    avisarChegada.yield()
+                    for await _ in liberar { break }
+                    return [vaga]
+                }
+                return []
+            },
+            buscarFuncoes: { [] }
+        )
+        let primeira = Task { await vm.carregar() }
+        for await _ in chegou { break }
+        await vm.selecionar(distancia: .ate(km: 5))
+        #expect(vm.estado == .carregada([]))
+        sinal.yield()
+        await primeira.value
+        #expect(vm.estado == .carregada([]), "a resposta antiga foi descartada")
+    }
+
+    @Test("Puxar para atualizar mantém a lista na tela enquanto busca")
+    func atualizarMantemALista() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { _ in
+                if await chamadas.somar() == 2 {
+                    avisarChegada.yield()
+                    for await _ in liberar { break }
+                }
+                return [vaga]
+            },
+            buscarFuncoes: { [] }
+        )
+        await vm.carregar()
+        let atualizacao = Task { await vm.atualizar() }
+        for await _ in chegou { break }
+        #expect(vm.estado == .carregada([vaga]), "a lista continua enquanto atualiza")
+        sinal.yield()
+        await atualizacao.value
+        #expect(vm.estado == .carregada([vaga]))
+    }
+
+    @Test("Falha ao carregar mais não apaga a lista")
+    func falhaNaPaginaSeguinte() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let fonte = FonteDeVagas([.success([vaga, vaga]), .failure(ErroDaApi(codigo: .semRede))])
+        let vm = viewModel(fonte, pagina: 2)
+        await vm.carregar()
+        await vm.carregarMais()
+        #expect(vm.estado == .carregada([vaga, vaga]))
     }
 
     @Test("Paginação: a próxima página pede o deslocamento certo e soma à lista")

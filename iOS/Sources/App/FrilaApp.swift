@@ -60,6 +60,7 @@ private enum Inicializacao {
 /// tela de antes até a próxima abertura.
 private struct EntradaDoApp: View {
     let api: any ApiCliente
+    @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
     @State private var comSessao: Bool?
     #if DEBUG
@@ -80,6 +81,11 @@ private struct EntradaDoApp: View {
             #endif
         }
         .task { await avaliarSessao() }
+        // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
+        // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
+        .onChange(of: fase) { _, nova in
+            if nova == .active, comSessao == false { Task { await avaliarSessao() } }
+        }
         .task {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
