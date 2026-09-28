@@ -114,6 +114,20 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Estados da lista.** Carregando, vazia, erro, sem conexão e "sem ponto de referência" (`422 campo_obrigatorio/latitude`). Sem conexão é o `ErroDaApi.semRede`, que hoje só cobre `notConnectedToInternet`.
 - **Cartão e detalhe.** Mostram o `local` do contrato como vem, sem extrair bairro. O detalhe nunca tem telefone nem documento; o aviso da RN10 aparece antes de Candidatar-me. Denunciar e Bloquear ficam reservados e desabilitados (Sprint 2).
 
+**Candidatura (#105).** O botão Candidatar-me fica no detalhe, depois do aviso da RN10, e se desabilita enquanto a chamada está em voo.
+- **Toque duplo.** Um segundo toque durante o envio não chama `candidatar` de novo; o servidor também é idempotente.
+- **Resultado tipado.** O resultado vem do código do erro e dos `details`, nunca do texto:
+  - `confirmada` leva ao "Meu turno" (stub do #109, só com os dados da confirmação e o contato da RN10);
+  - `409 posicao_ja_preenchida` leva à tela "Vaga preenchida" (é o C2 do #53);
+  - `409 vaga_encerrada` leva a uma tela própria, nunca à de vaga preenchida;
+  - `422 inelegivel/turno_sobreposto` mostra o turno em conflito, achado em `meus_turnos`, com link;
+  - `perfil_suspenso` ou `403 sem_permissao/conta_suspensa` levam à tela de conta suspensa, com Contestar desabilitado (S2 #41);
+  - `404` e falha de rede ficam no detalhe, com nova tentativa.
+- **Volta à lista.** As telas de resultado voltam para a lista e a atualizam.
+- **Sessão.** A candidatura não usa a fila de sessão do cliente: um 409 não encerra a sessão.
+- **Rota por vaga_id.** `-FRILA_VAGA_ID <uuid>` abre o detalhe, é a mesma entrada que o push do tipo vaga vai usar (S2 #8) e nunca candidata sozinha. Esse argumento e o `-FRILA_ABRIR_CATALOGO` só existem em Debug; um teste confere que ficam dentro de `#if DEBUG`, e o binário de Release não os contém.
+- **Cenários do dublê.** `vaga-preenchida`, `vaga-encerrada`, `inelegivel` (turno sobreposto, com o turno em conflito) e `inelegivel-suspenso`.
+
 ## Cenários simulados
 
 **Check-in e check-out no dublê.** O `ApiClienteEmMemoria` segue o `fazer_checkin` vigente do backend (`20260925233000_notificacao_para_qualquer_conta.sql`) e o `fazer_checkout` (`20260925000000_checkin_e_checkout.sql`):

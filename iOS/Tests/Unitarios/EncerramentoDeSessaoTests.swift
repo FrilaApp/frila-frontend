@@ -1,4 +1,5 @@
 import Foundation
+import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
 import Testing
@@ -357,5 +358,29 @@ struct EncerramentoDeSessaoTests {
         await #expect(throws: ErroDaApi.self) { _ = try await cliente.minhaConta() }
 
         #expect(await primeiroAviso.value)
+    }
+}
+
+/// #105 e C2 do #53: o 409 do `candidatar` atravessa o cliente real até o view model como tipo, sem
+/// encerrar a sessão (o 409 não é prova de autenticação inválida).
+@MainActor
+@Suite("Candidatura contra respostas HTTP do contrato", .timeLimit(.minutes(1)))
+struct CandidaturaHTTPTests {
+    @Test("409 posicao_ja_preenchida e 409 vaga_encerrada chegam ao view model como casos distintos, com a sessão preservada",
+          arguments: [("posicao_ja_preenchida", ResultadoDaCandidatura.vagaPreenchida), ("vaga_encerrada", .vagaEncerrada)])
+    func conflitoTipado(codigo: String, esperado: ResultadoDaCandidatura) async throws {
+        let roteiro = Roteiro()
+        let cliente = try clienteDeTeste(roteiro)
+        try await cliente.verificarCodigo(email: "c1@example.com", codigo: "123456")
+        roteiro.rpc = .http(409, envelope(codigo))
+        let duble = ApiClienteEmMemoria()
+        let vaga = try await duble.detalheDaVaga(id: try #require(try await duble.vagasAbertas(.todas).first).id)
+
+        let vm = CandidaturaViewModel(vaga: vaga, api: cliente)
+        await vm.candidatar()
+
+        #expect(vm.estado == .concluida(esperado))
+        #expect(cliente.haSessaoGuardada)
+        #expect(roteiro.logouts == 0)
     }
 }

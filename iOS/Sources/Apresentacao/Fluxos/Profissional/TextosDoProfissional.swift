@@ -47,6 +47,44 @@ enum TextosDoProfissional {
         static let naoEncontrada = "Esta vaga não está mais disponível."
     }
 
+    /// Candidatura e resultados (#105). "Vaga preenchida" e "Meu turno" vêm do low-fi; inelegível, conta
+    /// suspensa e vaga encerrada são textos provisórios autorizados pelo Cauê (o low-fi não tem essas telas).
+    enum Candidatura {
+        static let enviando = "Enviando candidatura…"
+        static let voltarParaLista = "Ver outras vagas perto de você"
+
+        static let confirmadoTitulo = "Você está confirmado"
+        static let contato = "Contato"
+        static let contatoLiberado = "Liberado com a confirmação. Fica visível até 7 dias depois do turno."
+        static let abrirWhatsApp = "Abrir no WhatsApp"
+        static let meusTurnosTitulo = "Meu turno"
+
+        static let preenchidaTitulo = "Essa vaga já foi preenchida"
+        static let preenchidaMensagem = "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação."
+
+        static let encerradaTitulo = "Essa vaga não está mais aberta"
+        static let encerradaMensagem = "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação."
+
+        static let sobrepostoTitulo = "Você já tem um turno nesse horário"
+        static let sobrepostoMensagem = "Não dá para estar em dois turnos ao mesmo tempo. Veja o turno que você já tem."
+        static let sobrepostoSemTurno = "Não dá para estar em dois turnos ao mesmo tempo. O turno em conflito aparece em Meus turnos."
+        static let verMeuTurno = "Ver meu turno"
+
+        static let funcaoTitulo = "Essa vaga pede outra função"
+        static let funcaoMensagem = "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil."
+        static let inelegivelTitulo = "Você não pode se candidatar a esta vaga"
+        static let inelegivelMensagem = "O Frila não aceitou a candidatura para esta vaga."
+
+        static let suspensaTitulo = "Sua conta está suspensa"
+        static let suspensaMensagem = "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta."
+        static let contestar = "Contestar a suspensão"
+        static let contestarEmBreve = "A contestação chega numa próxima versão do app."
+
+        static let naoEncontrada = "Esta vaga não está mais disponível. Volte para a lista e escolha outra."
+        static let falha = "Não foi possível enviar a candidatura. Tente de novo."
+        static let semConexao = "Sem conexão. A candidatura não foi enviada; tente de novo quando a internet voltar."
+    }
+
     static func simNao(_ valor: Bool) -> String { valor ? "sim" : "não" }
 
     /// Reputação do estabelecimento vista pelo profissional (US08).

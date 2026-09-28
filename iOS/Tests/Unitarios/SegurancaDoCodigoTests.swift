@@ -38,6 +38,32 @@ struct SegurancaDoCodigoTests {
         #expect(achados.isEmpty, "saída fora do Logger em \(achados)")
     }
 
+    @Test("Argumentos de rota e de catálogo só existem dentro de #if DEBUG")
+    func argumentosSoEmDebug() throws {
+        let argumentosDeDebug = ["-FRILA_VAGA_ID", "-FRILA_ABRIR_CATALOGO"]
+        var achados: [String] = []
+        var encontrados = 0
+        for arquivo in try Self.arquivosSwift() {
+            // Pilha dos #if abertos: true quando o ramo atual só compila em DEBUG.
+            var pilha: [Bool] = []
+            for (indice, linha) in arquivo.linhas.enumerated() {
+                let codigo = linha.trimmingCharacters(in: .whitespaces)
+                if codigo.hasPrefix("#if") {
+                    pilha.append(codigo == "#if DEBUG")
+                } else if codigo.hasPrefix("#else") || codigo.hasPrefix("#elseif") {
+                    if !pilha.isEmpty { pilha[pilha.count - 1] = false }
+                } else if codigo.hasPrefix("#endif") {
+                    _ = pilha.popLast()
+                } else if argumentosDeDebug.contains(where: { linha.contains($0) }) {
+                    encontrados += 1
+                    if !pilha.contains(true) { achados.append("\(arquivo.nome):\(indice + 1)") }
+                }
+            }
+        }
+        #expect(encontrados > 0, "a busca não achou os argumentos: o teste não está olhando o lugar certo")
+        #expect(achados.isEmpty, "argumento de Debug fora de #if DEBUG em \(achados)")
+    }
+
     @Test("Nenhum log interpola e-mail, token, sessão, senha, telefone ou chave")
     func logsSemDadoSensivel() throws {
         let interpolacao = /\\\(([^)]*)\)/
