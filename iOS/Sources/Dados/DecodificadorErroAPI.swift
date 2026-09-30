@@ -7,7 +7,9 @@ public enum DecodificadorErroAPI {
         // O 401 do gateway das Edge Functions (`{"code":401,...}`, com `code` numérico) não é o
         // envelope do contrato e sai como `respostaInvalida`; o status já diz que é sessão inválida.
         if statusCode == 401, erro.codigo == .desconhecido || erro.codigo == .respostaInvalida {
-            return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: erro.codigoOriginal, detalhes: erro.detalhes)
+            // Sem envelope, o código original é o próprio status: a telemetria ainda sabe de onde veio.
+            let original = erro.codigo == .respostaInvalida ? "http_401" : erro.codigoOriginal
+            return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original, detalhes: erro.detalhes)
         }
         return erro
     }

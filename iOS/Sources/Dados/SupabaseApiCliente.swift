@@ -397,6 +397,9 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
                 return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)
             case 401, 403:
                 return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original)
+            case 400, 422 where codigoDoAuth == .validationFailed || original == "email_address_invalid":
+                // E-mail que o Auth recusa: a tela aponta o campo, como no 422 das RPCs.
+                return ErroDaApi(codigo: .campoInvalido, codigoOriginal: original, detalhes: "email")
             default:
                 if codigoDoAuth == .overEmailSendRateLimit || codigoDoAuth == .overRequestRateLimit {
                     return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)

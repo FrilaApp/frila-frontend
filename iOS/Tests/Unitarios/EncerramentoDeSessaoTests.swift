@@ -417,6 +417,26 @@ struct ErrosDaEntradaTests {
         #expect(erro?.codigo == .naoAutenticado)
     }
 
+    @Test("E-mail recusado pelo Auth (400 validation_failed) vira campo_invalido no campo email")
+    func emailInvalidoNoEnvio() async throws {
+        let roteiro = Roteiro()
+        roteiro.otp = .http(400, #"{"code":"validation_failed","error_code":"validation_failed","msg":"Unable to validate email address: invalid format"}"#)
+        let cliente = try clienteDeTeste(roteiro)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            try await cliente.solicitarCodigo(email: "nao-e-email")
+        }
+        #expect(erro?.codigo == .campoInvalido)
+        #expect(erro?.detalhes == "email")
+    }
+
+    @Test("401 do gateway sem envelope guarda o status como código original")
+    func quatroZeroUmSemEnvelope() {
+        let erro = DecodificadorErroAPI.mapear(statusCode: 401, dados: Data(#"{"code":401,"message":"Invalid JWT"}"#.utf8))
+        #expect(erro.codigo == .naoAutenticado)
+        #expect(erro.codigoOriginal == "http_401")
+    }
+
     @Test("401 na leitura do catálogo de funções encerra a sessão usada na chamada")
     func quatroZeroUmNoCatalogo() async throws {
         let roteiro = Roteiro()
