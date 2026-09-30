@@ -11,11 +11,23 @@ relatório local que não chegava ao time. O único produto Firebase integrado �
   fase `Select Firebase configuration`. Os plists são segredos e não entram no Git.
 - Local não tem plist: `RelatorioDeFalhas` não chama `FirebaseApp.configure()` e o Crashlytics
   permanece inativo, preservando o dublê e os testes locais.
-- A última fase de build executa o `run` do Crashlytics para enviar dSYMs. Releases usam
-  `dwarf-with-dsym`. Sem plist, inclusive em build de CI sem esse segredo, a fase avisa e sai
-  com sucesso.
-- Em Debug, o Catálogo de design system tem a ação **Forçar falha**. Após a falha, abra o app de
-  novo para permitir o envio do relatório. Ela não é compilada em Beta ou Prod.
+- Debug-Dev, Release-Beta e Release-Prod usam `dwarf-with-dsym` em **todos os targets**, e não
+  só no app. O código roda nos quatro frameworks (`FrilaDominio`, `FrilaDados`,
+  `FrilaApresentacao`, `FrilaInfraestrutura`), e o Crashlytics **retém a falha fatal** enquanto
+  falta o dSYM de algum binário da pilha: ela não aparece no painel, nem como "sem símbolos".
+- A última fase de build chama o `upload-symbols` com o dSYM do app e o de cada framework, e
+  grava a saída em `DerivedSources/crashlytics-upload-symbols.log`. Não usa o `Crashlytics/run`:
+  ele envia só o dSYM do app e descarta a saída do envio em segundo plano. No Release o envio é
+  síncrono e quebra o build se falhar; no Debug-Dev roda em segundo plano. Sem plist, inclusive
+  em build de CI sem esse segredo, a fase avisa e sai com sucesso. Um framework novo entra na
+  lista do script e nos `inputFiles` da fase, porque o sandbox de scripts só lê o que está
+  declarado.
+- Em Debug, o Catálogo de design system tem a ação **Forçar falha**. Ela não é compilada em Beta
+  ou Prod. Para testar: abra o app **sem depurador** (`xcrun simctl launch`, ou um teste de UI
+  que toque em `forcar-falha-crashlytics`), porque o Crashlytics ignora falhas com depurador
+  anexado; depois abra o app de novo, sem reinstalar, para o relatório ser enviado. Medido em
+  30/09: a falha apareceu com símbolos no painel do frila-dev cerca de 2 minutos depois do envio.
+- Os erros não fatais usam o domínio `frila.api.<codigo>`: uma issue por código de erro no painel.
 
 ## Dados permitidos nos eventos não fatais
 
