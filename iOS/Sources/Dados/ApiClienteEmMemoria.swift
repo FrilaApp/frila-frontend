@@ -15,6 +15,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
         /// backend e que não é falta de rede nem de ponto de referência (estado de erro do #104).
         case erroNaLista = "erro-na-lista"
+        /// `candidatar` responde `409 vaga_encerrada` (vaga cancelada, encerrada ou já iniciada).
+        case vagaEncerrada = "vaga-encerrada"
+        /// `candidatar` responde `422 inelegivel/perfil_suspenso` (conta suspensa, #105).
+        case inelegivelSuspenso = "inelegivel-suspenso"
     }
 
     private let cenario: Cenario
@@ -31,6 +35,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var vagas: [Vaga]
     private var turnos: [Turno] = []
     private var contatos: [UUID: Contato] = [:]
+    /// Quantas vezes `candidatar` foi chamado: os testes de toque duplo leem isso.
+    public private(set) var chamadasACandidatar = 0
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
@@ -232,9 +238,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura {
+        chamadasACandidatar += 1
         try verificarFalhaGeral()
         if cenario == .vagaPreenchida { throw erro("posicao_ja_preenchida") }
-        if cenario == .inelegivel { throw erro("inelegivel") }
+        if cenario == .vagaEncerrada { throw erro("vaga_encerrada") }
+        if cenario == .inelegivel { throw erro("inelegivel", detalhes: "turno_sobreposto") }
+        if cenario == .inelegivelSuspenso { throw erro("inelegivel", detalhes: "perfil_suspenso") }
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
         // Chegar depois da última posição é o funcionamento normal do modo urgência (RN19).

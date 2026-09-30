@@ -7,6 +7,7 @@ import SwiftUI
 /// Destinos do fluxo de quem procura turno.
 public enum RotaDoProfissional: Hashable, Sendable {
     case detalhe(vagaID: UUID)
+    case resultado(vaga: Vaga, resultado: ResultadoDaCandidatura)
 }
 
 /// Pilha de navegação do fluxo. É a entrada que a notificação do tipo vaga (S2 #8) vai usar:
@@ -14,6 +15,9 @@ public enum RotaDoProfissional: Hashable, Sendable {
 @MainActor @Observable
 public final class RoteadorDoProfissional {
     public var caminho: [RotaDoProfissional] = []
+    /// Sobrevive à saída do detalhe enquanto `candidatar` ainda está em voo. O roteador, e não a
+    /// view que iniciou a chamada, decide o destino do resultado definitivo.
+    private var candidaturaEmAndamento: CandidaturaViewModel?
 
     public init() {}
 
@@ -24,9 +28,22 @@ public final class RoteadorDoProfissional {
     public func voltarParaLista() {
         caminho = []
     }
+
+    public func candidatar(viewModel: CandidaturaViewModel) async {
+        if let candidaturaEmAndamento, candidaturaEmAndamento !== viewModel, candidaturaEmAndamento.enviando {
+            return
+        }
+        candidaturaEmAndamento = viewModel
+        await viewModel.candidatar()
+        guard candidaturaEmAndamento === viewModel,
+              case let .concluida(resultado) = viewModel.estado,
+              resultado.abreTelaPropria else { return }
+        caminho = [.resultado(vaga: viewModel.vaga, resultado: resultado)]
+        candidaturaEmAndamento = nil
+    }
 }
 
-/// Lista de vagas -> detalhe (#104).
+/// Lista de vagas -> detalhe (#104) -> candidatura e resultado (#105).
 public struct FluxoDoProfissional<Barra: View>: View {
     private let api: any ApiCliente
     @Bindable private var roteador: RoteadorDoProfissional
@@ -48,10 +65,21 @@ public struct FluxoDoProfissional<Barra: View>: View {
                 .navigationDestination(for: RotaDoProfissional.self) { rota in
                     switch rota {
                     case let .detalhe(vagaID):
-                        DestinoDoDetalhe(vagaID: vagaID, api: api)
+                        DestinoDoDetalhe(vagaID: vagaID, api: api, candidatar: roteador.candidatar)
+                    case let .resultado(vaga, resultado):
+                        TelaResultadoDaCandidatura(vaga: vaga, resultado: resultado, voltarParaLista: voltarParaLista)
                     }
                 }
         }
+    }
+}
+
+extension FluxoDoProfissional {
+    /// "Vaga preenchida" e os outros resultados voltam para a lista (#105 C4), que é atualizada.
+    private func voltarParaLista() {
+        roteador.voltarParaLista()
+        let feed = feed
+        Task { await feed.atualizar() }
     }
 }
 
@@ -64,10 +92,18 @@ extension FluxoDoProfissional where Barra == EmptyView {
 /// Guarda o view model do detalhe enquanto o destino estiver na pilha.
 private struct DestinoDoDetalhe: View {
     @State private var viewModel: DetalheVagaViewModel
+    private let api: any ApiCliente
+    private let candidatar: (CandidaturaViewModel) async -> Void
 
-    init(vagaID: UUID, api: any ApiCliente) {
+    init(vagaID: UUID, api: any ApiCliente, candidatar: @escaping (CandidaturaViewModel) async -> Void) {
         _viewModel = State(initialValue: DetalheVagaViewModel(vagaID: vagaID, api: api))
+        self.api = api
+        self.candidatar = candidatar
     }
 
-    var body: some View { TelaDetalheVaga(viewModel: viewModel) }
+    var body: some View {
+        TelaDetalheVaga(viewModel: viewModel) { vaga in
+            AreaDeCandidatura(vaga: vaga, api: api, candidatar: candidatar)
+        }
+    }
 }

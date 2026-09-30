@@ -65,6 +65,7 @@ private struct EntradaDoApp: View {
     @State private var comSessao: Bool?
     #if DEBUG
     @State private var mostrandoCatalogo = false
+    @State private var rotaInicialAplicada = false
     #endif
 
     var body: some View {
@@ -107,6 +108,13 @@ private struct EntradaDoApp: View {
                     .accessibilityHint("Abre o catálogo de componentes, só em Debug")
             }
             .sheet(isPresented: $mostrandoCatalogo) { catalogo }
+            .task {
+                // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
+                // vaga vai usar (S2 #8). Abre o detalhe; nunca candidata sozinho.
+                guard !rotaInicialAplicada, let vagaID = Self.vagaIDDosArgumentos() else { return }
+                rotaInicialAplicada = true
+                roteador.abrirVaga(id: vagaID)
+            }
             #else
             FluxoDoProfissional(api: api, roteador: roteador)
             #endif
@@ -120,6 +128,13 @@ private struct EntradaDoApp: View {
     }
 
     #if DEBUG
+    /// `-FRILA_VAGA_ID <uuid>`: só existe em Debug, e a leitura também fica dentro do bloco.
+    private static func vagaIDDosArgumentos() -> UUID? {
+        let argumentos = ProcessInfo.processInfo.arguments
+        guard let indice = argumentos.firstIndex(of: "-FRILA_VAGA_ID"), argumentos.indices.contains(indice + 1) else { return nil }
+        return UUID(uuidString: argumentos[indice + 1])
+    }
+
     // A simulação de conflito chama `candidatar`: só roda contra o dublê, nunca contra um Supabase de
     // verdade, para não criar candidatura real em nenhum ambiente.
     private var catalogo: some View {
