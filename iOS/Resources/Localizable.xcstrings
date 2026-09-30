@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "%@ às %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ às %@"
+          }
+        }
+      }
+    },
     "%lld aberta(s) de %lld": {
       "localizations": {
         "pt-BR": {
@@ -43,16 +53,6 @@
         }
       }
     },
-    "%@ às %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ às %@"
-          }
-        }
-      }
-    },
     "(dia seguinte)": {
       "localizations": {
         "pt-BR": {
@@ -83,12 +83,42 @@
         }
       }
     },
+    "Abre a conversa no WhatsApp com mensagem pré-formatada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre a conversa no WhatsApp com mensagem pré-formatada"
+          }
+        }
+      }
+    },
     "Abre o detalhe da vaga": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Abre o detalhe da vaga"
+          }
+        }
+      }
+    },
+    "Abre o detalhe do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o detalhe do turno"
+          }
+        }
+      }
+    },
+    "Abre o endereço no Apple Maps": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o endereço no Apple Maps"
           }
         }
       }
@@ -389,6 +419,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Contato"
+          }
+        }
+      }
+    },
+    "Contato encerrado. O contato fica disponível até 7 dias depois do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contato encerrado. O contato fica disponível até 7 dias depois do turno."
           }
         }
       }
@@ -763,6 +803,16 @@
         }
       }
     },
+    "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes."
+          }
+        }
+      }
+    },
     "Logística": {
       "localizations": {
         "pt-BR": {
@@ -793,6 +843,36 @@
         }
       }
     },
+    "Meu turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meu turno"
+          }
+        }
+      }
+    },
+    "Meus turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meus turnos"
+          }
+        }
+      }
+    },
+    "Modo offline: exibindo dados salvos anteriormente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo offline: exibindo dados salvos anteriormente."
+          }
+        }
+      }
+    },
     "Mude os filtros ou puxe para atualizar.": {
       "localizations": {
         "pt-BR": {
@@ -809,6 +889,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhum horário cadastrado. Sem horários definidos, você não receberá notificações de vagas."
+          }
+        }
+      }
+    },
+    "Nenhum turno confirmado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum turno confirmado"
           }
         }
       }
@@ -893,6 +983,16 @@
         }
       }
     },
+    "Não foi possível carregar os turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os turnos."
+          }
+        }
+      }
+    },
     "Não foi possível concluir esta ação. Tente novamente.": {
       "localizations": {
         "pt-BR": {
@@ -969,6 +1069,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "O valor é integral: o Frila não desconta taxa do turno."
+          }
+        }
+      }
+    },
+    "Olá! Sou o profissional do turno de %@ em %@ no %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olá! Sou o profissional do turno de %@ em %@ no %@."
           }
         }
       }
@@ -1099,6 +1209,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quando"
+          }
+        }
+      }
+    },
+    "Quando você tiver turnos confirmados, eles aparecerão aqui.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você tiver turnos confirmados, eles aparecerão aqui."
           }
         }
       }
@@ -1503,6 +1623,16 @@
         }
       }
     },
+    "Ver no Mapas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver no Mapas"
+          }
+        }
+      }
+    },
     "Ver outras vagas perto de você": {
       "localizations": {
         "pt-BR": {
@@ -1599,6 +1729,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "quem aceitar primeiro fica com a vaga"
+          }
+        }
+      }
+    },
+    "quem recebe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quem recebe"
           }
         }
       }

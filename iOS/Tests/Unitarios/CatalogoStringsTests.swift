@@ -144,6 +144,20 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Candidatura.outraEmAndamento,
         ]
 
+        let stringsDosTurnos = [
+            TextosDoProfissional.Turnos.tituloMeusTurnos,
+            TextosDoProfissional.Turnos.tituloMeuTurno,
+            TextosDoProfissional.Turnos.confirmadoTitulo,
+            TextosDoProfissional.Turnos.avisoCache,
+            TextosDoProfissional.Turnos.vazioTitulo,
+            TextosDoProfissional.Turnos.vazioMensagem,
+            TextosDoProfissional.Turnos.erroAoCarregar,
+            TextosDoProfissional.Turnos.contatoEncerrado,
+            TextosDoProfissional.Turnos.lembretesEVisibilidade,
+            TextosDoProfissional.Turnos.verNoMapas,
+            TextosDoProfissional.Turnos.quemRecebe,
+        ]
+
         let stringsDoPerfil = [
             TextosDoProfissional.Perfil.titulo,
             TextosDoProfissional.Perfil.cabecalho,
@@ -182,7 +196,7 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Perfil.buscar,
         ]
 
-        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDoPerfil + [
+        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDosTurnos + stringsDoPerfil + [
             TextosDoProfissional.simNao(true),
             TextosDoProfissional.simNao(false),
             "Sem histórico",
@@ -203,6 +217,7 @@ struct CatalogoStringsTests {
             "Trabalhariam lá de novo: %lld de %lld",
             "Remover horário de %@",
             "%@ às %@",
+            "Olá! Sou o profissional do turno de %@ em %@ no %@.",
         ]
         for padrao in padroesInterpolados {
             #expect(chaves.contains(padrao), "padrão interpolado fora do catálogo: \(padrao)")
@@ -265,6 +280,9 @@ struct CatalogoStringsTests {
             "Refeição: %@",
             "Transporte: %@",
             "Material próprio: %@",
+            "Abre o endereço no Apple Maps",
+            "Abre a conversa no WhatsApp com mensagem pré-formatada",
+            "Abre o detalhe do turno",
         ]
 
         var faltantes: [String] = []

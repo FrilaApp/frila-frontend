@@ -185,7 +185,7 @@ public protocol ObservadorDeSessao: Sendable {
     func encerramentos() -> AsyncStream<Void>
 }
 
-public protocol ApiCliente: Sendable {
+public protocol ApiCliente: TurnoRepositorio, Sendable {
     // Entrada
     func solicitarCodigo(email: String) async throws
     func verificarCodigo(email: String, codigo: String) async throws
@@ -244,6 +244,14 @@ public protocol ProfissionalRepositorio: Sendable {
 
 public protocol TurnoRepositorio: Sendable {
     func meusTurnos() async throws -> [Turno]
+    func ler() async throws -> LeituraDeTurnos
+}
+
+public extension TurnoRepositorio {
+    func ler() async throws -> LeituraDeTurnos {
+        let turnos = try await meusTurnos()
+        return LeituraDeTurnos(turnos: turnos, origem: .rede)
+    }
 }
 
 public protocol ContaRepositorio: Sendable {
