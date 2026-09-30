@@ -17,3 +17,19 @@ App -> Infraestrutura -> Dominio
 `DespachoService`, `NotificacaoService` e `ElegibilidadeSpec` não entram no app na v1.0. Elegibilidade, despacho, teto e agrupamento são regras críticas do backend; o cliente apenas consome vagas e recebe push. Isso resolve a divergência entre os diagramas antigos e o cartão mais recente da Sprint 0.
 
 `PerfilConta` é fixo em `SessaoUsuario`: não há troca de perfil na sessão.
+
+## Cache e fila offline (#111)
+
+O banco local é um `ModelContainer` do SwiftData em `Application Support/Frila/Frila.store`, com a proteção de arquivo `completeUntilFirstUserAuthentication` na pasta. Os arquivos criados nela herdam a classe. É a mesma proteção padrão do iOS para dados de app: o conteúdo fica cifrado até o primeiro desbloqueio depois de ligar o aparelho, e legível depois disso, inclusive em segundo plano, que é quando a fila precisa sair. A classe `complete` travaria a fila com a tela bloqueada.
+
+- **O que fica guardado:** turnos confirmados, catálogo de funções, sessão do app e a fila de check-in, check-out e avaliação. Candidatura nunca entra na fila: no modo urgência, candidatar horas depois engana o profissional.
+- **Prazos, pelo relógio do aparelho, porque sem rede não há outro:**
+  - o turno sai do cache 24 h depois do fim;
+  - o contato some depois de `visivel_ate` (RN10).
+- **`TurnosComCache`:** lê da API e regrava o cache. Só com `sem_rede` devolve o cache, marcado como `origem: .cache`. Qualquer outro erro sobe, para um 401 não mostrar os turnos de uma sessão encerrada.
+- **`ReenvioAoReconectar`:** manda a fila na passagem para conectado (`NWPathMonitor`) e ao abrir o app já com rede. Cada ação sai com o instante do toque, em ISO-8601 com precisão de segundo.
+- **`SaidaDaConta`:** apaga cache e fila ao sair e também quando a sessão é encerrada sem pedido (401 de conta excluída ou suspensa).
+
+**Fora do #111:**
+- as telas que leem o cache (Meus turnos, #109);
+- o indicador discreto de "sem conexão" e de ação pendente, que depende dos padrões de estado do design (#172).

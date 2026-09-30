@@ -182,6 +182,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Sources/App/Frila.entitlements
         OTHER_LDFLAGS: $(inherited) -ObjC
       configs:
+        Debug-Dev:
+          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         Release-Beta:
           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         Release-Prod:

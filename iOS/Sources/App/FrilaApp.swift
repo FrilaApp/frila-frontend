@@ -3,6 +3,7 @@ import FrilaDados
 import FrilaDominio
 import FrilaInfraestrutura
 import OSLog
+import SwiftData
 import SwiftUI
 
 @main
@@ -65,6 +66,7 @@ private struct EntradaDoApp: View {
     @State private var comSessao: Bool?
     #if DEBUG
     @State private var mostrandoCatalogo = false
+    @State private var rotaInicialAplicada = false
     #endif
 
     var body: some View {
@@ -93,6 +95,33 @@ private struct EntradaDoApp: View {
                 await avaliarSessao()
             }
         }
+        .task { await acompanharOffline() }
+    }
+
+    /// Cache e fila offline (#111): a fila sai quando a conexão volta, e a sessão encerrada apaga o
+    /// que este aparelho guardou da conta. Sem o banco local, o app funciona só com rede.
+    private func acompanharOffline() async {
+        let container: ModelContainer
+        do {
+            container = try PersistenciaFrila.criarContainer()
+        } catch {
+            Logger(subsystem: "com.frila.org.app", category: "cache")
+                .error("cache_indisponivel tipo=\(String(reflecting: type(of: error)), privacy: .public)")
+            return
+        }
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        let reenvio = ReenvioAoReconectar(
+            monitor: MonitorDeConexaoDoSistema(),
+            sincronizador: SincronizadorAcoes(fila: armazenamento, api: api)
+        )
+        let saida = SaidaDaConta(api: api, armazenamento: armazenamento)
+        let observador = api as? any ObservadorDeSessao
+        await withTaskGroup(of: Void.self) { grupo in
+            grupo.addTask { await reenvio.acompanhar() }
+            if let observador {
+                grupo.addTask { await saida.acompanharEncerramentos(de: observador) }
+            }
+        }
     }
 
     @ViewBuilder
@@ -107,6 +136,13 @@ private struct EntradaDoApp: View {
                     .accessibilityHint("Abre o catálogo de componentes, só em Debug")
             }
             .sheet(isPresented: $mostrandoCatalogo) { catalogo }
+            .task {
+                // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
+                // vaga vai usar (S2 #8). Abre o detalhe; nunca candidata sozinho.
+                guard !rotaInicialAplicada, let vagaID = Self.vagaIDDosArgumentos() else { return }
+                rotaInicialAplicada = true
+                roteador.abrirVaga(id: vagaID)
+            }
             #else
             FluxoDoProfissional(api: api, roteador: roteador)
             #endif
@@ -120,6 +156,13 @@ private struct EntradaDoApp: View {
     }
 
     #if DEBUG
+    /// `-FRILA_VAGA_ID <uuid>`: só existe em Debug, e a leitura também fica dentro do bloco.
+    private static func vagaIDDosArgumentos() -> UUID? {
+        let argumentos = ProcessInfo.processInfo.arguments
+        guard let indice = argumentos.firstIndex(of: "-FRILA_VAGA_ID"), argumentos.indices.contains(indice + 1) else { return nil }
+        return UUID(uuidString: argumentos[indice + 1])
+    }
+
     // A simulação de conflito chama `candidatar`: só roda contra o dublê, nunca contra um Supabase de
     // verdade, para não criar candidatura real em nenhum ambiente.
     private var catalogo: some View {

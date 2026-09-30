@@ -62,3 +62,8 @@ public protocol FilaDeAcoes: Sendable {
     func remover(id: UUID) async throws
     func limpar() async throws
 }
+
+/// Se o aparelho tem conexão agora. O primeiro valor é o estado atual; os seguintes, cada mudança.
+public protocol MonitorDeConexao: Sendable {
+    func estados() -> AsyncStream<Bool>
+}

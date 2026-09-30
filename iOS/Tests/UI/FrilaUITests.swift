@@ -143,3 +143,83 @@ final class VagasUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
     }
 }
+
+/// Candidatura (#105) pela tela real: lista -> detalhe -> Candidatar-me -> resultado.
+@MainActor
+final class CandidaturaUITests: XCTestCase {
+    private func abrirDetalheECandidatar(_ cenario: String, argumentos: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
+        app.launch()
+        let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
+        XCTAssertTrue(primeira.waitForExistence(timeout: 10))
+        primeira.tap()
+        let candidatar = app.buttons["candidatar"]
+        XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].exists, "o aviso da RN10 vem antes de Candidatar-me")
+        candidatar.tap()
+        return app
+    }
+
+    func testConfirmadaAbreMeuTurnoComOContato() {
+        let app = abrirDetalheECandidatar("success")
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].exists)
+        app.buttons["voltar-para-lista"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["1 vagas abertas"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
+    }
+
+    func testVagaPreenchidaTemTelaPropriaEVoltaParaALista() {
+        let app = abrirDetalheECandidatar("vaga-preenchida")
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-preenchida"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["resultado-vaga-encerrada"].exists)
+        app.buttons["voltar-para-lista-navegacao"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
+    func testVagaEncerradaTemTelaPropriaDiferenteDaPreenchida() {
+        let app = abrirDetalheECandidatar("vaga-encerrada")
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-encerrada"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["resultado-vaga-preenchida"].exists)
+        app.buttons["voltar-para-lista"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
+    func testTurnoSobrepostoMostraOConflitoSemApontarTurno() {
+        let app = abrirDetalheECandidatar("inelegivel")
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["ver-meu-turno"].exists, "sem link para um turno específico")
+        app.buttons["voltar-para-lista"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
+    func testContaSuspensaMostraOMotivoEContestarDesabilitado() {
+        let app = abrirDetalheECandidatar("inelegivel-suspenso")
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-conta-suspensa"].waitForExistence(timeout: 10))
+        let contestar = app.buttons["contestar"]
+        XCTAssertTrue(contestar.exists)
+        XCTAssertFalse(contestar.isEnabled)
+    }
+
+    func testResultadoComTamanhoDeAcessibilidadeMantemOBotaoDeVolta() {
+        let app = abrirDetalheECandidatar("vaga-preenchida", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-preenchida"].waitForExistence(timeout: 10))
+        let voltar = app.buttons["voltar-para-lista"]
+        XCTAssertTrue(voltar.waitForExistence(timeout: 5))
+        voltar.tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
+    func testRotaPorVagaIDAbreODetalheSemCandidatar() {
+        let app = XCUIApplication()
+        // vaga.json do dublê.
+        app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_VAGA_ID", "40000000-0000-0000-0000-000000000001"]
+        app.launch()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["candidatar"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["resultado-confirmada"].exists, "a rota abre o detalhe, nunca aceita sozinha")
+        app.buttons["candidatar"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
+    }
+}
