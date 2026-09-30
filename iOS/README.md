@@ -1,6 +1,6 @@
 # Frila iOS
 
-Fundação nativa em Swift 6.3, SwiftUI e SwiftData, com alvo mínimo iOS 17 e build pelo SDK do iOS 26.
+Fundação nativa em Swift 6.3, SwiftUI e SwiftData, com alvo mínimo iOS 17 e build pelo SDK do iOS 26. A CI fixa o Xcode 26.6 (build 17F113).
 
 ## Abrir e rodar
 

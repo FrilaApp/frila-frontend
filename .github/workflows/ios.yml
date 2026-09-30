@@ -30,21 +30,28 @@ jobs:
     env:
       XCODEGEN_VERSION: "2.45.3"
       XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
+      XCODE_VERSION: "26.6"
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Selecionar o Xcode 26
+      - name: Selecionar o Xcode 26.6 fixado
         run: |
-          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -iv beta | sort -V | tail -1 || true)"
-          if [[ -z "$XCODE" ]]; then
-            echo "::error::Nenhum Xcode 26 disponível neste runner"
+          XCODE="/Applications/Xcode_${XCODE_VERSION}.app"
+          if [[ ! -d "$XCODE" ]]; then
+            echo "::error::Xcode ${XCODE_VERSION} não está disponível neste runner"
             exit 1
           fi
           sudo xcode-select --switch "$XCODE/Contents/Developer"
-          xcodebuild -version
+          SAIDA="$(xcodebuild -version)"
+          printf '%s\n' "$SAIDA"
+          VERSION="${SAIDA%%$'\n'*}"
+          if [[ "$VERSION" != "Xcode ${XCODE_VERSION}" ]]; then
+            echo "::error::Versão de Xcode inesperada: $VERSION"
+            exit 1
+          fi
 
       - name: Instalar o XcodeGen fixado
         run: |
