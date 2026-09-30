@@ -16,9 +16,12 @@ public struct BotaoPrimario: View {
         Button(action: acao) {
             Group {
                 if carregando { ProgressView().tint(FrilaCor.sobrePrimaria) }
-                else { Text(titulo).font(.headline) }
+                else { Text(titulo).font(.headline).multilineTextAlignment(.center) }
             }
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+            // Sem isto o estilo `.plain` só recebe toque perto do texto: o frame de 44 pt é
+            // transparente e a borda do botão não responde (medido no catálogo, #139).
+            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
         }
         .buttonStyle(.plain)
         .foregroundStyle(FrilaCor.sobrePrimaria)
@@ -38,7 +41,11 @@ public struct BotaoSecundario: View {
     }
 
     public var body: some View {
-        Button(action: acao) { Text(titulo).font(.headline).frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo) }
+        Button(action: acao) {
+            Text(titulo).font(.headline).multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+        }
             .buttonStyle(.plain)
             .foregroundStyle(FrilaCor.primaria)
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.primaria, lineWidth: 1.5))
@@ -76,6 +83,7 @@ public struct CampoCodigo: View {
             .textContentType(.oneTimeCode)
             .font(.title2.monospacedDigit())
             .multilineTextAlignment(.center)
+            .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: 56)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
             .accessibilityHint("Digite os seis números enviados para seu e-mail")
@@ -96,6 +104,7 @@ public struct FiltroPill: View {
     public var body: some View {
         Button(action: acao) {
             Text(titulo).font(.subheadline.weight(.semibold)).padding(.horizontal, 14).frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
@@ -165,10 +174,11 @@ public struct CartaoVaga: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(vaga.funcao.nome).font(.headline)
-                Spacer()
-                Text(formatador.dinheiro(vaga.valor)).font(.headline).foregroundStyle(FrilaCor.primaria)
+            // Lado a lado quando cabem numa linha; empilhados nos tamanhos grandes, em que o HStack
+            // quebrava a função no meio da palavra ("Gar-çom") para caber ao lado do valor.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
             }
             Text(vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
@@ -186,6 +196,9 @@ public struct CartaoVaga: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rotuloDeAcessibilidade)
     }
+
+    private var funcao: some View { Text(vaga.funcao.nome).font(.headline) }
+    private var valor: some View { Text(formatador.dinheiro(vaga.valor)).font(.headline).foregroundStyle(FrilaCor.primaria) }
 
     public var rotuloDeAcessibilidade: String {
         var partes = [
@@ -232,6 +245,7 @@ public struct RespostaSimNao: View {
     private func escolha(_ titulo: LocalizedStringKey, valor: Bool, icone: String) -> some View {
         Button { resposta = valor } label: {
             Label(titulo, systemImage: icone).frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
         }
         .buttonStyle(.plain)
         .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)

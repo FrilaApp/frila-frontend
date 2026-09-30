@@ -18,8 +18,10 @@ Estado das dependências externas da fundação iOS, atualizado em 24/09/2026. O
 
 Os dois plists foram cadastrados no GitHub Actions como `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64` e `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64`. A CI os injeta usando `Scripts/inject-firebase-config.sh`; eles nunca devem entrar no Git. A fase `Select Firebase configuration` copia somente o plist do ambiente ativo para o bundle.
 
-Sem o plist, o build falha na CI com `missing Firebase configuration for <ambiente>`, e a injeção falha com `CI secret … is not configured`; localmente, sai só um aviso.
+Sem o plist, a fase de cópia e o envio de dSYMs avisam e saem sem falhar; o Crashlytics fica
+desabilitado naquele build. A injeção da CI continua exigindo os segredos quando ela é executada.
 
-Nesta fundação, o Firebase fica restrito ao transporte de push via FCM: não é banco, autenticação nem backend, e o app ainda não importa o SDK. O SDK/runtime de recebimento de notificações será integrado no Sprint 2, conforme o cartão de infraestrutura. O ícone definitivo foi adiado e não faz parte desta entrega.
+Firebase não é banco, autenticação nem backend. O app usa somente Crashlytics para relatório de
+falhas; Firebase Messaging continua fora deste cartão e será tratado separadamente.
 
 Responsável, organização Apple, conta Firebase e política de rotação devem constar no gestor de segredos da equipe, não neste repositório.

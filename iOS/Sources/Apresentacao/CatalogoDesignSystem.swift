@@ -28,6 +28,12 @@ public struct CatalogoDesignSystem: View {
                     secao("Mensagens") { AvisoFrila("Sua ação será enviada quando a conexão voltar."); EstadoOffline(); EstadoPendente("Check-in aguardando envio") }
                     secao("Avaliação") { RespostaSimNao(resposta: $resposta) }
                     secao("Estados") { EstadoVazio("Nenhuma vaga", mensagem: "Novas oportunidades aparecerão aqui."); EstadoErro("Verifique sua conexão.") {} }
+                    #if DEBUG
+                    secao("Diagnóstico") {
+                        Button("Forçar falha") { fatalError("Falha de teste do Crashlytics") }
+                            .accessibilityIdentifier("forcar-falha-crashlytics")
+                    }
+                    #endif
                     if let api {
                         ValidacaoClienteAPI(api: api, permitirSimulacaoDeConflito: permitirSimulacaoDeConflito)
                     }
