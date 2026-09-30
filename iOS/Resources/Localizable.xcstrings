@@ -63,12 +63,42 @@
         }
       }
     },
+    "Abre a conversa no WhatsApp com mensagem pré-formatada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre a conversa no WhatsApp com mensagem pré-formatada"
+          }
+        }
+      }
+    },
     "Abre o detalhe da vaga": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Abre o detalhe da vaga"
+          }
+        }
+      }
+    },
+    "Abre o detalhe do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o detalhe do turno"
+          }
+        }
+      }
+    },
+    "Abre o endereço no Apple Maps": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o endereço no Apple Maps"
           }
         }
       }
@@ -93,12 +123,32 @@
         }
       }
     },
+    "Ajuste o ponto movendo o marcador no mapa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuste o ponto movendo o marcador no mapa."
+          }
+        }
+      }
+    },
     "Algo deu errado": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Algo deu errado"
+          }
+        }
+      }
+    },
+    "Alimentação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alimentação"
           }
         }
       }
@@ -173,6 +223,56 @@
         }
       }
     },
+    "Brasília, DF": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brasília, DF"
+          }
+        }
+      }
+    },
+    "Buscar endereço": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar endereço"
+          }
+        }
+      }
+    },
+    "CPF ou CNPJ": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPF ou CNPJ"
+          }
+        }
+      }
+    },
+    "Cadastrar estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cadastrar estabelecimento"
+          }
+        }
+      }
+    },
+    "Café de teste": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Café de teste"
+          }
+        }
+      }
+    },
     "Candidatar-me": {
       "localizations": {
         "pt-BR": {
@@ -223,6 +323,36 @@
         }
       }
     },
+    "Confira o campo indicado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira o campo indicado."
+          }
+        }
+      }
+    },
+    "Confira o valor informado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira o valor informado."
+          }
+        }
+      }
+    },
+    "Conta de teste": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta de teste"
+          }
+        }
+      }
+    },
     "Contato": {
       "localizations": {
         "pt-BR": {
@@ -233,12 +363,32 @@
         }
       }
     },
+    "Contato encerrado. O contato fica disponível até 7 dias depois do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contato encerrado. O contato fica disponível até 7 dias depois do turno."
+          }
+        }
+      }
+    },
     "Contestar a suspensão": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Contestar a suspensão"
+          }
+        }
+      }
+    },
+    "Continuar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
           }
         }
       }
@@ -273,12 +423,32 @@
         }
       }
     },
+    "Documento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documento"
+          }
+        }
+      }
+    },
     "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação."
+          }
+        }
+      }
+    },
+    "Endereço": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endereço"
           }
         }
       }
@@ -333,6 +503,16 @@
         }
       }
     },
+    "Esta etapa estará disponível em breve.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta etapa estará disponível em breve."
+          }
+        }
+      }
+    },
     "Esta lista é para quem trabalha como profissional.": {
       "localizations": {
         "pt-BR": {
@@ -383,12 +563,42 @@
         }
       }
     },
+    "Estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estabelecimento"
+          }
+        }
+      }
+    },
     "Este check-in já foi confirmado.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Este check-in já foi confirmado."
+          }
+        }
+      }
+    },
+    "Este documento já está cadastrado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este documento já está cadastrado."
+          }
+        }
+      }
+    },
+    "Evento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evento"
           }
         }
       }
@@ -433,12 +643,72 @@
         }
       }
     },
+    "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes."
+          }
+        }
+      }
+    },
+    "Logística": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logística"
+          }
+        }
+      }
+    },
+    "Mapa do estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mapa do estabelecimento"
+          }
+        }
+      }
+    },
     "Material próprio: %@": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Material próprio: %@"
+          }
+        }
+      }
+    },
+    "Meu turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meu turno"
+          }
+        }
+      }
+    },
+    "Meus turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meus turnos"
+          }
+        }
+      }
+    },
+    "Modo offline: exibindo dados salvos anteriormente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo offline: exibindo dados salvos anteriormente."
           }
         }
       }
@@ -453,12 +723,42 @@
         }
       }
     },
+    "Nenhum turno confirmado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum turno confirmado"
+          }
+        }
+      }
+    },
     "Nenhuma vaga aberta": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Nenhuma vaga aberta"
+          }
+        }
+      }
+    },
+    "Nome": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome"
+          }
+        }
+      }
+    },
+    "Nome do estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome do estabelecimento"
           }
         }
       }
@@ -483,12 +783,32 @@
         }
       }
     },
+    "Não foi possível cadastrar o estabelecimento. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível cadastrar o estabelecimento. Tente novamente."
+          }
+        }
+      }
+    },
     "Não foi possível carregar as vagas.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível carregar as vagas."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar os turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os turnos."
           }
         }
       }
@@ -553,6 +873,16 @@
         }
       }
     },
+    "Olá! Sou o profissional do turno de %@ em %@ no %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olá! Sou o profissional do turno de %@ em %@ no %@."
+          }
+        }
+      }
+    },
     "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação.": {
       "localizations": {
         "pt-BR": {
@@ -563,12 +893,52 @@
         }
       }
     },
+    "Outro": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro"
+          }
+        }
+      }
+    },
+    "Ponto do estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponto do estabelecimento"
+          }
+        }
+      }
+    },
     "Posições": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Posições"
+          }
+        }
+      }
+    },
+    "Preencha este campo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preencha este campo."
+          }
+        }
+      }
+    },
+    "Publicar vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar vaga"
           }
         }
       }
@@ -613,6 +983,16 @@
         }
       }
     },
+    "Quando você tiver turnos confirmados, eles aparecerão aqui.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você tiver turnos confirmados, eles aparecerão aqui."
+          }
+        }
+      }
+    },
     "Quem recebe você": {
       "localizations": {
         "pt-BR": {
@@ -639,6 +1019,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Refeição: %@"
+          }
+        }
+      }
+    },
+    "Responsável": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Responsável"
           }
         }
       }
@@ -703,6 +1093,16 @@
         }
       }
     },
+    "Serviço doméstico": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serviço doméstico"
+          }
+        }
+      }
+    },
     "Sim": {
       "localizations": {
         "pt-BR": {
@@ -749,6 +1149,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tentar novamente"
+          }
+        }
+      }
+    },
+    "Tipo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo"
           }
         }
       }
@@ -843,6 +1253,26 @@
         }
       }
     },
+    "Varejo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varejo"
+          }
+        }
+      }
+    },
+    "Ver no Mapas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver no Mapas"
+          }
+        }
+      }
+    },
     "Ver outras vagas perto de você": {
       "localizations": {
         "pt-BR": {
@@ -933,312 +1363,22 @@
         }
       }
     },
+    "quem recebe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quem recebe"
+          }
+        }
+      }
+    },
     "sim": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "sim"
-          }
-        }
-      }
-    },
-    "Cadastrar estabelecimento": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cadastrar estabelecimento"
-          }
-        }
-      }
-    },
-    "Nome": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome"
-          }
-        }
-      }
-    },
-    "Nome do estabelecimento": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome do estabelecimento"
-          }
-        }
-      }
-    },
-    "Documento": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Documento"
-          }
-        }
-      }
-    },
-    "CPF ou CNPJ": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CPF ou CNPJ"
-          }
-        }
-      }
-    },
-    "Tipo": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tipo"
-          }
-        }
-      }
-    },
-    "Endereço": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Endereço"
-          }
-        }
-      }
-    },
-    "Buscar endereço": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buscar endereço"
-          }
-        }
-      }
-    },
-    "Ponto do estabelecimento": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ponto do estabelecimento"
-          }
-        }
-      }
-    },
-    "Ajuste o ponto movendo o marcador no mapa.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajuste o ponto movendo o marcador no mapa."
-          }
-        }
-      }
-    },
-    "Responsável": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Responsável"
-          }
-        }
-      }
-    },
-    "Continuar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continuar"
-          }
-        }
-      }
-    },
-    "Estabelecimento": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Estabelecimento"
-          }
-        }
-      }
-    },
-    "Publicar vaga": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publicar vaga"
-          }
-        }
-      }
-    },
-    "Esta etapa estará disponível em breve.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta etapa estará disponível em breve."
-          }
-        }
-      }
-    },
-    "Este documento já está cadastrado.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este documento já está cadastrado."
-          }
-        }
-      }
-    },
-    "Não foi possível cadastrar o estabelecimento. Tente novamente.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível cadastrar o estabelecimento. Tente novamente."
-          }
-        }
-      }
-    },
-    "Confira o campo indicado.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confira o campo indicado."
-          }
-        }
-      }
-    },
-    "Preencha este campo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preencha este campo."
-          }
-        }
-      }
-    },
-    "Confira o valor informado.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confira o valor informado."
-          }
-        }
-      }
-    },
-    "Alimentação": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alimentação"
-          }
-        }
-      }
-    },
-    "Evento": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Evento"
-          }
-        }
-      }
-    },
-    "Varejo": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Varejo"
-          }
-        }
-      }
-    },
-    "Logística": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Logística"
-          }
-        }
-      }
-    },
-    "Serviço doméstico": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Serviço doméstico"
-          }
-        }
-      }
-    },
-    "Outro": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Outro"
-          }
-        }
-      }
-    },
-    "Mapa do estabelecimento": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mapa do estabelecimento"
-          }
-        }
-      }
-    },
-    "Café de teste": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Café de teste"
-          }
-        }
-      }
-    },
-    "Brasília, DF": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Brasília, DF"
-          }
-        }
-      }
-    },
-    "Conta de teste": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conta de teste"
           }
         }
       }
