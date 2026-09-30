@@ -16,25 +16,28 @@ public enum TipoAcaoPendente: String, Codable, CaseIterable, Sendable {
     case checkin
     case checkout
     case avaliacao
+    case publicacaoVaga
 }
 
 public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
     public let id: UUID
     public let tipo: TipoAcaoPendente
-    public let turnoID: UUID
+    public let turnoID: UUID?
     public let instanteDoToque: Date
     public let chave: UUID
     public let distanciaMetros: Int?
     public let resposta: Bool?
+    public let publicacao: PublicacaoVaga?
 
     public init(
         id: UUID = UUID(),
         tipo: TipoAcaoPendente,
-        turnoID: UUID,
+        turnoID: UUID? = nil,
         instanteDoToque: Date,
         chave: UUID,
         distanciaMetros: Int? = nil,
-        resposta: Bool? = nil
+        resposta: Bool? = nil,
+        publicacao: PublicacaoVaga? = nil
     ) {
         self.id = id
         self.tipo = tipo
@@ -43,6 +46,7 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         self.chave = chave
         self.distanciaMetros = distanciaMetros
         self.resposta = resposta
+        self.publicacao = publicacao
     }
 }
 

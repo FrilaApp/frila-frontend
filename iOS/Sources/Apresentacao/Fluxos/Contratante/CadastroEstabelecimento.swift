@@ -22,7 +22,6 @@ private enum TextosCadastro {
     static let continuar = String(localized: "Continuar", bundle: bundleCadastro)
     static let estabelecimento = String(localized: "Estabelecimento", bundle: bundleCadastro)
     static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleCadastro)
-    static let publicacaoProvisoria = String(localized: "Esta etapa estará disponível em breve.", bundle: bundleCadastro)
     static let documentoDuplicado = String(localized: "Este documento já está cadastrado.", bundle: bundleCadastro)
     static let falha = String(localized: "Não foi possível cadastrar o estabelecimento. Tente novamente.", bundle: bundleCadastro)
     static let confiraCampo = String(localized: "Confira o campo indicado.", bundle: bundleCadastro)
@@ -49,6 +48,7 @@ public final class CadastroEstabelecimentoViewModel {
     public private(set) var enviando = false
     public private(set) var erro: ErroDeCadastroEstabelecimento?
     public private(set) var concluido = false
+    public private(set) var estabelecimentoCriado: Estabelecimento?
     private let cadastrar: (CadastroEstabelecimento) async throws -> Estabelecimento
 
     public init(api: any ApiCliente) {
@@ -96,7 +96,7 @@ public final class CadastroEstabelecimentoViewModel {
         enviando = true
         defer { enviando = false }
         do {
-            _ = try await cadastrar(CadastroEstabelecimento(nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), documento: documento, tipo: tipo, endereco: endereco, ponto: coordenada))
+            estabelecimentoCriado = try await cadastrar(CadastroEstabelecimento(nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), documento: documento, tipo: tipo, endereco: endereco, ponto: coordenada))
             concluido = true
         } catch let api as ErroDaApi {
             switch api.codigo {
@@ -131,10 +131,12 @@ public enum RegraCampoCadastro: Equatable { case obrigatorio, invalido }
 public struct TelaCadastroEstabelecimento: View {
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
+    private let api: any ApiCliente
     private let responsavelNome: String
     private let responsavelTelefone: String
+    private let fila: any FilaDeAcoes
 
-    public init(api: any ApiCliente, responsavelNome: String, responsavelTelefone: String) {
+    public init(api: any ApiCliente, fila: any FilaDeAcoes, responsavelNome: String, responsavelTelefone: String) {
         let model = CadastroEstabelecimentoViewModel(api: api)
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST") {
@@ -145,14 +147,17 @@ public struct TelaCadastroEstabelecimento: View {
         }
         #endif
         _model = State(initialValue: model)
+        self.api = api
         self.responsavelNome = responsavelNome
         self.responsavelTelefone = responsavelTelefone
+        self.fila = fila
     }
 
     public var body: some View {
-        NavigationStack {
-            if model.concluido { publicarVaga }
-            else { formulario }
+        if model.concluido, let estabelecimento = model.estabelecimentoCriado {
+            TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone)
+        } else {
+            NavigationStack { formulario }
         }
     }
 
@@ -209,13 +214,6 @@ public struct TelaCadastroEstabelecimento: View {
             }.padding()
         }
         .navigationTitle(Text(verbatim: TextosCadastro.estabelecimento))
-    }
-
-    private var publicarVaga: some View {
-        VStack(spacing: 16) {
-            Text(verbatim: TextosCadastro.publicarVaga).font(.largeTitle.bold())
-            Text(verbatim: TextosCadastro.publicacaoProvisoria).foregroundStyle(.secondary)
-        }.accessibilityIdentifier("publicar-vaga-provisorio")
     }
 
     @ViewBuilder private func campo<Conteudo: View>(_ titulo: String, campo: CampoCadastro, @ViewBuilder conteudo: () -> Conteudo) -> some View {

@@ -64,6 +64,7 @@ private struct EntradaDoApp: View {
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
     @State private var comSessao: Bool?
+    @State private var armazenamento: ArmazenamentoSwiftData?
     #if DEBUG
     @State private var mostrandoCatalogo = false
     @State private var rotaInicialAplicada = false
@@ -76,7 +77,11 @@ private struct EntradaDoApp: View {
             if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO") {
                 let apiCadastro = ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST")
                     ? ApiClienteEmMemoria(cenario: .primeiroAcesso) : api
-                TelaCadastroEstabelecimento(api: apiCadastro, responsavelNome: "Conta de teste", responsavelTelefone: "(61) 99999-0000")
+                if let armazenamento {
+                    TelaCadastroEstabelecimento(api: apiCadastro, fila: armazenamento, responsavelNome: "Conta de teste", responsavelTelefone: "(61) 99999-0000")
+                } else {
+                    EstadoCarregando()
+                }
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
                 catalogo
             } else {
@@ -114,6 +119,7 @@ private struct EntradaDoApp: View {
             return
         }
         let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        self.armazenamento = armazenamento
         let reenvio = ReenvioAoReconectar(
             monitor: MonitorDeConexaoDoSistema(),
             sincronizador: SincronizadorAcoes(fila: armazenamento, api: api)
