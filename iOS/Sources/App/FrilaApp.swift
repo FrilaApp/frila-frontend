@@ -3,6 +3,7 @@ import FrilaDados
 import FrilaDominio
 import FrilaInfraestrutura
 import OSLog
+import SwiftData
 import SwiftUI
 
 @main
@@ -92,6 +93,33 @@ private struct EntradaDoApp: View {
             for await _ in observador.encerramentos() {
                 roteador.voltarParaLista()
                 await avaliarSessao()
+            }
+        }
+        .task { await acompanharOffline() }
+    }
+
+    /// Cache e fila offline (#111): a fila sai quando a conexão volta, e a sessão encerrada apaga o
+    /// que este aparelho guardou da conta. Sem o banco local, o app funciona só com rede.
+    private func acompanharOffline() async {
+        let container: ModelContainer
+        do {
+            container = try PersistenciaFrila.criarContainer()
+        } catch {
+            Logger(subsystem: "com.frila.org.app", category: "cache")
+                .error("cache_indisponivel tipo=\(String(reflecting: type(of: error)), privacy: .public)")
+            return
+        }
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        let reenvio = ReenvioAoReconectar(
+            monitor: MonitorDeConexaoDoSistema(),
+            sincronizador: SincronizadorAcoes(fila: armazenamento, api: api)
+        )
+        let saida = SaidaDaConta(api: api, armazenamento: armazenamento)
+        let observador = api as? any ObservadorDeSessao
+        await withTaskGroup(of: Void.self) { grupo in
+            grupo.addTask { await reenvio.acompanhar() }
+            if let observador {
+                grupo.addTask { await saida.acompanharEncerramentos(de: observador) }
             }
         }
     }
