@@ -102,19 +102,25 @@ public struct CampoCodigo: View {
 }
 
 public struct FiltroPill: View {
-    private let titulo: LocalizedStringKey
+    private let titulo: Text
     private let selecionado: Bool
     private let acao: () -> Void
 
     public init(_ titulo: LocalizedStringKey, selecionado: Bool, acao: @escaping () -> Void) {
-        self.titulo = titulo
+        self.titulo = Text(titulo)
+        self.selecionado = selecionado
+        self.acao = acao
+    }
+
+    public init(verbatim titulo: String, selecionado: Bool, acao: @escaping () -> Void) {
+        self.titulo = Text(verbatim: titulo)
         self.selecionado = selecionado
         self.acao = acao
     }
 
     public var body: some View {
         Button(action: acao) {
-            Text(titulo).font(.subheadline.weight(.semibold)).padding(.horizontal, 14).frame(minHeight: FrilaMetrica.alvoMinimo)
+            titulo.font(.subheadline.weight(.semibold)).padding(.horizontal, 14).frame(minHeight: FrilaMetrica.alvoMinimo)
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)

@@ -158,7 +158,45 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Turnos.quemRecebe,
         ]
 
-        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDosTurnos + [
+        let stringsDoPerfil = [
+            TextosDoProfissional.Perfil.titulo,
+            TextosDoProfissional.Perfil.cabecalho,
+            TextosDoProfissional.Perfil.secaoFuncoes,
+            TextosDoProfissional.Perfil.pontoBase,
+            TextosDoProfissional.Perfil.pontoBaseSalvo,
+            TextosDoProfissional.Perfil.dicaPontoBase,
+            TextosDoProfissional.Perfil.buscarPontoBase,
+            TextosDoProfissional.Perfil.secaoHorarios,
+            TextosDoProfissional.Perfil.adicionarHorario,
+            TextosDoProfissional.Perfil.diaSeguinte,
+            TextosDoProfissional.Perfil.avisoFixo,
+            TextosDoProfissional.Perfil.salvarCriacao,
+            TextosDoProfissional.Perfil.salvarEdicao,
+            TextosDoProfissional.Perfil.erroSemFuncao,
+            TextosDoProfissional.Perfil.erroSemPontoBase,
+            TextosDoProfissional.Perfil.erroJanelaDuracaoZero,
+            TextosDoProfissional.Perfil.nenhumHorario,
+            TextosDoProfissional.Perfil.domingo,
+            TextosDoProfissional.Perfil.segunda,
+            TextosDoProfissional.Perfil.terca,
+            TextosDoProfissional.Perfil.quarta,
+            TextosDoProfissional.Perfil.quinta,
+            TextosDoProfissional.Perfil.sexta,
+            TextosDoProfissional.Perfil.sabado,
+            TextosDoProfissional.Perfil.diaSemana,
+            TextosDoProfissional.Perfil.inicio,
+            TextosDoProfissional.Perfil.fim,
+            TextosDoProfissional.Perfil.adicionar,
+            TextosDoProfissional.Perfil.remover,
+            TextosDoProfissional.Perfil.erroHorarioInvalido,
+            TextosDoProfissional.Perfil.erroCoordenadasInvalidas,
+            TextosDoProfissional.Perfil.erroCarregar,
+            TextosDoProfissional.Perfil.erroSalvar,
+            TextosDoProfissional.Perfil.perfilSalvoComSucesso,
+            TextosDoProfissional.Perfil.buscar,
+        ]
+
+        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDosTurnos + stringsDoPerfil + [
             TextosDoProfissional.simNao(true),
             TextosDoProfissional.simNao(false),
             "Sem histórico",
@@ -177,6 +215,8 @@ struct CatalogoStringsTests {
             "Até %lld km",
             "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.",
             "Trabalhariam lá de novo: %lld de %lld",
+            "Remover horário de %@",
+            "%@ às %@",
             "Olá! Sou o profissional do turno de %@ em %@ no %@.",
         ]
         for padrao in padroesInterpolados {
