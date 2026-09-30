@@ -82,9 +82,11 @@ public final class CadastroViewModel {
             let conta = try await api.criarConta(cadastro)
             switch conta.perfil {
             case .profissional:
-                return .funcoesEHorarios(conta)
+                DestinoGuardado.salvar(.funcoesEHorarios)
+                return .funcoesEHorarios
             case .contratante:
-                return .contratante(conta)
+                DestinoGuardado.salvar(.contratante)
+                return .contratante
             }
         } catch let erroApi as ErroDaApi {
             tratarErroDeCriacao(erroApi)

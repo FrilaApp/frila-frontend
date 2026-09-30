@@ -54,10 +54,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public init(
         cenario: Cenario = .sucesso,
         relogio: any Relogio = RelogioDoSistema(),
-        vagas: [Vaga]? = nil
+        vagas: [Vaga]? = nil,
+        sessaoAtivaInicial: Bool = false
     ) {
         self.cenario = cenario
         self.relogio = relogio
+        self.sessaoAtiva = sessaoAtivaInicial
         do {
             envelopes = try FixturesDoContrato.erros()
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
@@ -102,11 +104,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> ApiClienteEmMemoria {
+        #if DEBUG
+        let semSessaoArgumento = argumentos.contains("-FRILA_ABRIR_CATALOGO") || argumentos.contains("-FRILA_ENTRADA")
+        #else
+        let semSessaoArgumento = false
+        #endif
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
-            return ApiClienteEmMemoria()
+            return ApiClienteEmMemoria(sessaoAtivaInicial: !semSessaoArgumento)
         }
-        return ApiClienteEmMemoria(cenario: cenario)
+        let cenariosSemSessao: Set<Cenario> = [.primeiroAcesso, .entrada, .menorDeIdade, .codigoErrado, .codigoExpirado]
+        let sessaoAtiva = !semSessaoArgumento && !cenariosSemSessao.contains(cenario)
+        if cenario == .semRede {
+            DestinoGuardado.salvar(.profissional)
+        } else if !sessaoAtiva {
+            DestinoGuardado.limpar()
+        }
+        return ApiClienteEmMemoria(cenario: cenario, sessaoAtivaInicial: sessaoAtiva)
     }
 
     // MARK: Entrada
@@ -145,10 +159,6 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarRede()
         guard let conta else { throw erro("nao_encontrado") }
         return conta
-    }
-
-    public func contaParaModoOffline() -> Conta? {
-        conta
     }
 
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
@@ -428,7 +438,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
-    public func sair(tokenFCM: String?) async { sessaoAtiva = false }
+
+    public func sair(tokenFCM: String?) async {
+        sessaoAtiva = false
+        DestinoGuardado.limpar()
+    }
 
     // MARK: Apoio
 

@@ -126,11 +126,7 @@ struct AutenticacaoTests {
         vm.codigo = "123456"
 
         let destino = await vm.confirmarCodigo()
-        if case let .destino(.profissional(conta)) = destino {
-            #expect(conta.nome == "Ana Cunha")
-        } else {
-            Issue.record("Esperava destino .profissional com a conta carregada, obteve \(String(describing: destino))")
-        }
+        #expect(destino == .destino(.profissional))
     }
 
     @Test("CodigoViewModel: conta existente sem perfil profissional vai para Funções e horários")
@@ -140,11 +136,7 @@ struct AutenticacaoTests {
         vm.codigo = "123456"
 
         let destino = await vm.confirmarCodigo()
-        if case let .destino(.funcoesEHorarios(conta)) = destino {
-            #expect(conta.perfil == .profissional)
-        } else {
-            Issue.record("Esperava destino .funcoesEHorarios, obteve \(String(describing: destino))")
-        }
+        #expect(destino == .destino(.funcoesEHorarios))
     }
 
     @Test("CodigoViewModel: reenvio reinicia o temporizador e exibe confirmação")
@@ -242,13 +234,11 @@ struct AutenticacaoTests {
 
         #expect(vm.formularioPreenchido)
         let destino = await vm.criarConta()
-        if case let .funcoesEHorarios(conta) = destino {
-            #expect(conta.nome == "Beatriz Souza")
-            #expect(conta.perfil == .profissional)
-            #expect(conta.telefone == "+5561988887777")
-        } else {
-            Issue.record("Esperava destino .funcoesEHorarios, obteve \(String(describing: destino))")
-        }
+        #expect(destino == .funcoesEHorarios)
+        let conta = try await api.minhaConta()
+        #expect(conta.nome == "Beatriz Souza")
+        #expect(conta.perfil == .profissional)
+        #expect(conta.telefone == "+5561988887777")
     }
 
     @Test("CadastroViewModel cria conta contratante e vai para Início do contratante")
@@ -264,12 +254,10 @@ struct AutenticacaoTests {
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
-        if case let .contratante(conta) = destino {
-            #expect(conta.nome == "Carlos Gerente")
-            #expect(conta.perfil == .contratante)
-        } else {
-            Issue.record("Esperava destino .contratante, obteve \(String(describing: destino))")
-        }
+        #expect(destino == .contratante)
+        let conta = try await api.minhaConta()
+        #expect(conta.nome == "Carlos Gerente")
+        #expect(conta.perfil == .contratante)
     }
 
     // MARK: - DestinoDaConta
@@ -278,34 +266,21 @@ struct AutenticacaoTests {
     func destinoProfissionalComPerfil() async throws {
         let api = ApiClienteEmMemoria(cenario: .sucesso)
         let destino = try await DestinoDaConta.avaliar(api: api)
-        if case let .profissional(conta) = destino {
-            #expect(conta.nome == "Ana Cunha")
-            #expect(conta.perfil == .profissional)
-        } else {
-            Issue.record("Esperava .profissional, obteve \(destino)")
-        }
+        #expect(destino == .profissional)
     }
 
     @Test("DestinoDaConta: profissional sem perfil profissional vai para .funcoesEHorarios")
     func destinoProfissionalSemPerfil() async throws {
         let api = ApiClienteEmMemoria(cenario: .semPerfilProfissional)
         let destino = try await DestinoDaConta.avaliar(api: api)
-        if case let .funcoesEHorarios(conta) = destino {
-            #expect(conta.perfil == .profissional)
-        } else {
-            Issue.record("Esperava .funcoesEHorarios, obteve \(destino)")
-        }
+        #expect(destino == .funcoesEHorarios)
     }
 
     @Test("DestinoDaConta: contratante vai para .contratante")
     func destinoContratante() async throws {
         let api = ApiClienteEmMemoria(cenario: .contratante)
         let destino = try await DestinoDaConta.avaliar(api: api)
-        if case let .contratante(conta) = destino {
-            #expect(conta.perfil == .contratante)
-        } else {
-            Issue.record("Esperava .contratante, obteve \(destino)")
-        }
+        #expect(destino == .contratante)
     }
 
     @Test("DestinoDaConta: primeiro acesso (404 naoEncontrado) vai para .cadastro")
@@ -388,5 +363,44 @@ struct AutenticacaoTests {
 
         let chamadas = await api.chamadasACriarConta
         #expect(chamadas == 1)
+    }
+
+    // MARK: - Recuperação Offline e Saída da Conta
+
+    @Test("DestinoDaConta: semRede com destino guardado recupera o destino")
+    func destinoSemRedeComDestinoGuardado() async throws {
+        DestinoGuardado.salvar(.profissional)
+        defer { DestinoGuardado.limpar() }
+
+        let api = ApiClienteEmMemoria(cenario: .semRede)
+        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+        #expect(destino == .profissional)
+    }
+
+    @Test("DestinoDaConta: semRede sem destino guardado lança erro")
+    func destinoSemRedeSemDestinoGuardado() async throws {
+        DestinoGuardado.limpar()
+
+        let api = ApiClienteEmMemoria(cenario: .semRede)
+        do {
+            _ = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+            Issue.record("Deveria ter lançado erro de rede quando não há destino guardado")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .semRede)
+        }
+    }
+
+    @Test("SaidaDaConta: ao sair da conta, o destino guardado é apagado")
+    func saidaDaContaLimpaDestinoGuardado() async throws {
+        DestinoGuardado.salvar(.profissional)
+        #expect(DestinoGuardado.obter() == .profissional)
+
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let local = ArmazenamentoSwiftData(modelContainer: container)
+        let saida = SaidaDaConta(api: ApiClienteEmMemoria(), armazenamento: local)
+
+        await saida.sair(tokenFCM: nil)
+
+        #expect(DestinoGuardado.obter() == nil)
     }
 }

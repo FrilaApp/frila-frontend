@@ -164,10 +164,10 @@ private struct EntradaDoApp: View {
             switch destinoAtual {
             case .profissional:
                 fluxoProfissionalView
-            case let .funcoesEHorarios(conta):
-                TelaFuncoesEHorariosProvisoria(conta: conta)
-            case let .contratante(conta):
-                TelaInicioContratanteProvisoria(conta: conta)
+            case .funcoesEHorarios:
+                TelaFuncoesEHorariosProvisoria()
+            case .contratante:
+                TelaInicioContratanteProvisoria()
             case let .cadastro(email):
                 FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
                     aplicarDestinoManual(destino)
@@ -182,12 +182,15 @@ private struct EntradaDoApp: View {
 
     private func aplicarDestinoManual(_ destino: DestinoAposEntrada) {
         switch destino {
-        case let .profissional(conta):
-            destinoAtual = .profissional(conta)
-        case let .funcoesEHorarios(conta):
-            destinoAtual = .funcoesEHorarios(conta)
-        case let .contratante(conta):
-            destinoAtual = .contratante(conta)
+        case .profissional:
+            DestinoGuardado.salvar(.profissional)
+            destinoAtual = .profissional
+        case .funcoesEHorarios:
+            DestinoGuardado.salvar(.funcoesEHorarios)
+            destinoAtual = .funcoesEHorarios
+        case .contratante:
+            DestinoGuardado.salvar(.contratante)
+            destinoAtual = .contratante
         }
     }
 
@@ -242,23 +245,6 @@ private struct EntradaDoApp: View {
             carregandoDestino = false
             return
         }
-        if let memoria = api as? ApiClienteEmMemoria {
-            carregandoDestino = true
-            erroAoAvaliar = nil
-            do {
-                destinoAtual = try await DestinoDaConta.avaliar(api: memoria)
-            } catch let erroApi as ErroDaApi where erroApi.codigo == .semRede {
-                if let conta = await memoria.contaParaModoOffline() {
-                    destinoAtual = .profissional(conta)
-                } else {
-                    destinoAtual = nil
-                }
-            } catch {
-                destinoAtual = nil
-            }
-            carregandoDestino = false
-            return
-        }
         #endif
 
         carregandoDestino = true
@@ -271,7 +257,7 @@ private struct EntradaDoApp: View {
         }
 
         do {
-            destinoAtual = try await DestinoDaConta.avaliar(api: api)
+            destinoAtual = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
             carregandoDestino = false
         } catch let erroApi as ErroDaApi {
             erroAoAvaliar = MensagemDoErroAPI.texto(erroApi)

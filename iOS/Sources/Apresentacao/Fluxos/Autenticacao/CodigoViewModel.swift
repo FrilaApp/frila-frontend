@@ -114,12 +114,15 @@ public final class CodigoViewModel {
             switch destino {
             case let .cadastro(emailCad):
                 return .cadastro(email: emailCad ?? email)
-            case let .profissional(conta):
-                return .destino(.profissional(conta))
-            case let .funcoesEHorarios(conta):
-                return .destino(.funcoesEHorarios(conta))
-            case let .contratante(conta):
-                return .destino(.contratante(conta))
+            case .profissional:
+                DestinoGuardado.salvar(.profissional)
+                return .destino(.profissional)
+            case .funcoesEHorarios:
+                DestinoGuardado.salvar(.funcoesEHorarios)
+                return .destino(.funcoesEHorarios)
+            case .contratante:
+                DestinoGuardado.salvar(.contratante)
+                return .destino(.contratante)
             }
         } catch let erroApi as ErroDaApi {
             erro = MensagemDoErroAPI.texto(erroApi)
