@@ -271,4 +271,122 @@ struct AutenticacaoTests {
             Issue.record("Esperava destino .contratante, obteve \(String(describing: destino))")
         }
     }
+
+    // MARK: - DestinoDaConta
+
+    @Test("DestinoDaConta: profissional com perfil vai para .profissional")
+    func destinoProfissionalComPerfil() async throws {
+        let api = ApiClienteEmMemoria(cenario: .sucesso)
+        let destino = try await DestinoDaConta.avaliar(api: api)
+        if case let .profissional(conta) = destino {
+            #expect(conta.nome == "Ana Cunha")
+            #expect(conta.perfil == .profissional)
+        } else {
+            Issue.record("Esperava .profissional, obteve \(destino)")
+        }
+    }
+
+    @Test("DestinoDaConta: profissional sem perfil profissional vai para .funcoesEHorarios")
+    func destinoProfissionalSemPerfil() async throws {
+        let api = ApiClienteEmMemoria(cenario: .semPerfilProfissional)
+        let destino = try await DestinoDaConta.avaliar(api: api)
+        if case let .funcoesEHorarios(conta) = destino {
+            #expect(conta.perfil == .profissional)
+        } else {
+            Issue.record("Esperava .funcoesEHorarios, obteve \(destino)")
+        }
+    }
+
+    @Test("DestinoDaConta: contratante vai para .contratante")
+    func destinoContratante() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contratante)
+        let destino = try await DestinoDaConta.avaliar(api: api)
+        if case let .contratante(conta) = destino {
+            #expect(conta.perfil == .contratante)
+        } else {
+            Issue.record("Esperava .contratante, obteve \(destino)")
+        }
+    }
+
+    @Test("DestinoDaConta: primeiro acesso (404 naoEncontrado) vai para .cadastro")
+    func destinoPrimeiroAcessoVaiParaCadastro() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let destino = try await DestinoDaConta.avaliar(api: api, emailParaCadastro: "novo@frila.app")
+        #expect(destino == .cadastro(email: "novo@frila.app"))
+    }
+
+    @Test("DestinoDaConta: erro de rede em minhaConta não vai para cadastro e lança erro")
+    func destinoErroDeRedeMinhaConta() async throws {
+        let api = ApiClienteEmMemoria(cenario: .semRede)
+        do {
+            _ = try await DestinoDaConta.avaliar(api: api)
+            Issue.record("Deveria ter lançado erro de rede")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .semRede)
+        }
+    }
+
+    @Test("DestinoDaConta: erro de rede em meuPerfilProfissional não vai para funcoesEHorarios e lança erro")
+    func destinoErroDeRedePerfilProfissional() async throws {
+        let api = ApiClienteEmMemoria(cenario: .perfilProfissionalComErroDeRede)
+        do {
+            _ = try await DestinoDaConta.avaliar(api: api)
+            Issue.record("Deveria ter lançado erro de rede")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .semRede)
+        }
+    }
+
+    @Test("DemonstracaoContas aceita apenas os e-mails oficiais de revisão")
+    func demonstracaoContasFiltro() {
+        #expect(DemonstracaoContas.ehEmailDeDemonstracao("revisao-profissional@frila.app"))
+        #expect(DemonstracaoContas.ehEmailDeDemonstracao("revisao-contratante@frila.app"))
+        #expect(DemonstracaoContas.ehEmailDeDemonstracao("   revisao-profissional@frila.app  "))
+        #expect(!DemonstracaoContas.ehEmailDeDemonstracao("demo@example.com"))
+        #expect(!DemonstracaoContas.ehEmailDeDemonstracao("outro@frila.app"))
+    }
+
+    @Test("CodigoViewModel: falha de rede ao confirmar código exibe erro e não direciona para cadastro")
+    func confirmarCodigoComErroDeRede() async {
+        let api = ApiClienteEmMemoria(cenario: .semRede)
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+        vm.codigo = "123456"
+
+        let destino = await vm.confirmarCodigo()
+        #expect(destino == nil)
+        #expect(vm.erro != nil)
+        #expect(vm.erro?.contains("Sem conexão") == true)
+    }
+
+    @Test("CodigoViewModel: chamadas simultâneas a confirmarCodigo disparam a API apenas uma vez")
+    func confirmarCodigoReentrada() async throws {
+        let api = ApiClienteEmMemoria(cenario: .sucesso)
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+        vm.codigo = "123456"
+
+        async let primeira = vm.confirmarCodigo()
+        async let segunda = vm.confirmarCodigo()
+        _ = await (primeira, segunda)
+
+        let chamadas = await api.chamadasAVerificarCodigo
+        #expect(chamadas == 1)
+    }
+
+    @Test("CadastroViewModel: chamadas simultâneas a criarConta disparam a API apenas uma vez")
+    func criarContaReentrada() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let vm = CadastroViewModel(api: api, email: "teste@frila.app")
+        vm.nome = "Teste da Silva"
+        vm.telefone = "11999998888"
+        vm.nascimentoTexto = "01/01/1990"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        async let primeira = vm.criarConta()
+        async let segunda = vm.criarConta()
+        _ = await (primeira, segunda)
+
+        let chamadas = await api.chamadasACriarConta
+        #expect(chamadas == 1)
+    }
 }

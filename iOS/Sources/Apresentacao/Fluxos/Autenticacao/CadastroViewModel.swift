@@ -31,6 +31,7 @@ public final class CadastroViewModel {
     }
 
     public func criarConta() async -> DestinoAposEntrada? {
+        guard !carregando else { return nil }
         let nomeLimpo = nome.trimmingCharacters(in: .whitespacesAndNewlines)
         guard nomeLimpo.count >= 2 else {
             erro = String(localized: "Informe seu nome completo.", bundle: bundleApresentacao)

@@ -63,8 +63,9 @@ private struct EntradaDoApp: View {
     let api: any ApiCliente
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
-    @State private var comSessao: Bool?
-    @State private var destinoManual: DestinoAposEntrada?
+    @State private var destinoAtual: DestinoDaConta?
+    @State private var carregandoDestino: Bool = true
+    @State private var erroAoAvaliar: String?
     #if DEBUG
     @State private var mostrandoCatalogo = false
     @State private var rotaInicialAplicada = false
@@ -87,13 +88,13 @@ private struct EntradaDoApp: View {
         // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
         .onChange(of: fase) { _, nova in
-            if nova == .active, comSessao == false { Task { await avaliarSessao() } }
+            if nova == .active, destinoAtual == nil { Task { await avaliarSessao() } }
         }
         .task {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
                 roteador.voltarParaLista()
-                destinoManual = nil
+                destinoAtual = nil
                 await avaliarSessao()
             }
         }
@@ -128,30 +129,61 @@ private struct EntradaDoApp: View {
 
     @ViewBuilder
     private var fluxoOuTelaSemSessao: some View {
-        if let destinoManual {
-            switch destinoManual {
+        #if DEBUG
+        if deveAbrirEntrada {
+            FluxoDeEntrada(api: api) { destino in
+                aplicarDestinoManual(destino)
+            }
+        } else {
+            conteudoPrincipal
+        }
+        #else
+        conteudoPrincipal
+        #endif
+    }
+
+    @ViewBuilder
+    private var conteudoPrincipal: some View {
+        if carregandoDestino {
+            EstadoCarregando()
+        } else if let erroAoAvaliar {
+            VStack(spacing: FrilaEspaco.medio) {
+                AvisoFrila(verbatim: erroAoAvaliar, tom: .erro)
+                BotaoSecundario("Tentar novamente") {
+                    Task { await avaliarSessao() }
+                }
+            }
+            .padding(FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(FrilaCor.fundo.ignoresSafeArea())
+        } else if let destinoAtual {
+            switch destinoAtual {
             case .profissional:
                 fluxoProfissionalView
             case let .funcoesEHorarios(conta):
                 TelaFuncoesEHorariosProvisoria(conta: conta)
             case let .contratante(conta):
                 TelaInicioContratanteProvisoria(conta: conta)
-            }
-        } else if deveAbrirEntrada {
-            FluxoDeEntrada(api: api) { destino in
-                destinoManual = destino
-            }
-        } else {
-            switch mostrarFluxo {
-            case nil:
-                EstadoCarregando()
-            case true?:
-                fluxoProfissionalView
-            case false?:
-                FluxoDeEntrada(api: api) { destino in
-                    destinoManual = destino
+            case let .cadastro(email):
+                FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
+                    aplicarDestinoManual(destino)
                 }
             }
+        } else {
+            FluxoDeEntrada(api: api) { destino in
+                aplicarDestinoManual(destino)
+            }
+        }
+    }
+
+    private func aplicarDestinoManual(_ destino: DestinoAposEntrada) {
+        switch destino {
+        case let .profissional(conta):
+            destinoAtual = .profissional(conta)
+        case let .funcoesEHorarios(conta):
+            destinoAtual = .funcoesEHorarios(conta)
+        case let .contratante(conta):
+            destinoAtual = .contratante(conta)
         }
     }
 
@@ -175,6 +207,7 @@ private struct EntradaDoApp: View {
         #endif
     }
 
+    #if DEBUG
     private var deveAbrirEntrada: Bool {
         let args = ProcessInfo.processInfo.arguments
         if args.contains("-FRILA_ENTRADA") { return true }
@@ -185,7 +218,6 @@ private struct EntradaDoApp: View {
         return false
     }
 
-    #if DEBUG
     /// `-FRILA_VAGA_ID <uuid>`: só existe em Debug, e a leitura também fica dentro do bloco.
     private static func vagaIDDosArgumentos() -> UUID? {
         let argumentos = ProcessInfo.processInfo.arguments
@@ -200,13 +232,26 @@ private struct EntradaDoApp: View {
     }
     #endif
 
-    private var mostrarFluxo: Bool? {
-        api is ApiClienteEmMemoria ? true : comSessao
-    }
-
     private func avaliarSessao() async {
-        guard !(api is ApiClienteEmMemoria) else { return }
-        comSessao = await api.possuiSessao()
+        carregandoDestino = true
+        erroAoAvaliar = nil
+        let possuiSessao = await api.possuiSessao()
+        guard possuiSessao else {
+            destinoAtual = nil
+            carregandoDestino = false
+            return
+        }
+
+        do {
+            destinoAtual = try await DestinoDaConta.avaliar(api: api)
+            carregandoDestino = false
+        } catch let erroApi as ErroDaApi {
+            erroAoAvaliar = MensagemDoErroAPI.texto(erroApi)
+            carregandoDestino = false
+        } catch {
+            erroAoAvaliar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
+            carregandoDestino = false
+        }
     }
 }
 

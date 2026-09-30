@@ -38,9 +38,10 @@ public final class CodigoViewModel {
         segundosRestantes = 60
         tarefaTemporizador?.cancel()
         tarefaTemporizador = Task { [weak self] in
-            while let self, self.segundosRestantes > 0 {
+            while true {
                 try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { break }
+                guard !Task.isCancelled, let self else { break }
+                guard self.segundosRestantes > 0 else { break }
                 self.segundosRestantes -= 1
             }
         }
@@ -84,6 +85,7 @@ public final class CodigoViewModel {
     }
 
     public func confirmarCodigo() async -> DestinoCodigo? {
+        guard !carregando else { return nil }
         guard codigoValido else {
             erro = String(localized: "Digite os 6 números do código.", bundle: bundleApresentacao)
             return nil
@@ -99,10 +101,28 @@ public final class CodigoViewModel {
             } else {
                 try await api.verificarCodigo(email: email, codigo: codigo)
             }
-
-            return await avaliarConta()
         } catch let erroApi as ErroDaApi {
             tratarErroDeVerificacao(erroApi)
+            return nil
+        } catch {
+            erro = String(localized: "Não foi possível confirmar o código. Tente novamente.", bundle: bundleApresentacao)
+            return nil
+        }
+
+        do {
+            let destino = try await DestinoDaConta.avaliar(api: api, emailParaCadastro: email)
+            switch destino {
+            case let .cadastro(emailCad):
+                return .cadastro(email: emailCad ?? email)
+            case let .profissional(conta):
+                return .destino(.profissional(conta))
+            case let .funcoesEHorarios(conta):
+                return .destino(.funcoesEHorarios(conta))
+            case let .contratante(conta):
+                return .destino(.contratante(conta))
+            }
+        } catch let erroApi as ErroDaApi {
+            erro = MensagemDoErroAPI.texto(erroApi)
             return nil
         } catch {
             erro = String(localized: "Não foi possível confirmar o código. Tente novamente.", bundle: bundleApresentacao)
@@ -121,30 +141,6 @@ public final class CodigoViewModel {
             erro = String(localized: "Código incorreto. Confira os números e tente novamente.", bundle: bundleApresentacao)
         } else {
             erro = MensagemDoErroAPI.texto(erroApi)
-        }
-    }
-
-    private func avaliarConta() async -> DestinoCodigo {
-        do {
-            let conta = try await api.minhaConta()
-            // Quem já tem conta pula o cadastro
-            switch conta.perfil {
-            case .profissional:
-                do {
-                    _ = try await api.meuPerfilProfissional()
-                    return .destino(.profissional(conta))
-                } catch {
-                    // Sem perfil profissional vai para Funções e horários (#98)
-                    return .destino(.funcoesEHorarios(conta))
-                }
-            case .contratante:
-                return .destino(.contratante(conta))
-            }
-        } catch let erroApi as ErroDaApi where erroApi.codigo == .naoEncontrado {
-            // Primeiro acesso: não tem conta ainda
-            return .cadastro(email: email)
-        } catch {
-            return .cadastro(email: email)
         }
     }
 }

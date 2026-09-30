@@ -25,6 +25,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case contaExistente = "conta-existente"
         case semPerfilProfissional = "sem-perfil-profissional"
         case entrada = "entrada"
+        case contratante = "contratante"
+        case perfilProfissionalComErroDeRede = "perfil-profissional-com-erro-de-rede"
     }
 
     private let cenario: Cenario
@@ -43,6 +45,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var contatos: [UUID: Contato] = [:]
     /// Quantas vezes `candidatar` foi chamado: os testes de toque duplo leem isso.
     public private(set) var chamadasACandidatar = 0
+    public private(set) var chamadasAVerificarCodigo = 0
+    public private(set) var chamadasACriarConta = 0
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
@@ -61,15 +65,30 @@ public actor ApiClienteEmMemoria: ApiCliente {
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
-            if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade {
+            if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
                 conta = nil
                 perfilProfissional = nil
+                sessaoAtiva = false
             } else {
-                conta = usuario
-                if cenario == .semPerfilProfissional {
+                sessaoAtiva = true
+                if cenario == .contratante {
+                    conta = Conta(
+                        id: usuario.id,
+                        perfil: .contratante,
+                        nome: usuario.nome,
+                        telefone: usuario.telefone,
+                        email: usuario.email,
+                        nascimento: usuario.nascimento,
+                        estado: usuario.estado
+                    )
                     perfilProfissional = nil
                 } else {
-                    perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
+                    conta = usuario
+                    if cenario == .semPerfilProfissional {
+                        perfilProfissional = nil
+                    } else {
+                        perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
+                    }
                 }
             }
             estabelecimentos = [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
@@ -97,6 +116,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func solicitarCodigo(email: String) async throws { try verificarRede() }
 
     public func verificarCodigo(email: String, codigo: String) async throws {
+        chamadasAVerificarCodigo += 1
         try verificarRede()
         if cenario == .codigoErrado || codigo == "000000" {
             throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "codigo_invalido")
@@ -130,6 +150,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
+        chamadasACriarConta += 1
         try verificarRede()
         guard conta == nil && cenario != .contaExistente else { throw erro("conta_existente") }
         if cenario == .menorDeIdade {
@@ -164,6 +185,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func meuPerfilProfissional() async throws -> PerfilProfissional {
         try verificarRede()
+        if cenario == .perfilProfissionalComErroDeRede {
+            throw ErroDaApi(codigo: .semRede)
+        }
         guard let perfilProfissional else { throw erro("nao_encontrado") }
         return perfilProfissional
     }
