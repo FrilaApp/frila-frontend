@@ -40,6 +40,16 @@ settings:
     CLANG_ENABLE_MODULES: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: 8B7F7G3Y2U
+  # dSYM em todos os targets, e não só no app: o código roda nos quatro frameworks, e o
+  # Crashlytics segura a falha fatal enquanto falta o dSYM de qualquer binário da pilha. Com
+  # dSYM só no app, a falha forçada no catálogo (FrilaApresentacao) nunca apareceu no painel.
+  configs:
+    Debug-Dev:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+    Release-Beta:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+    Release-Prod:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
 targets:
   FrilaDominio:
@@ -133,8 +143,14 @@ targets:
         outputFiles:
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist
         basedOnDependencyAnalysis: false
-      # A fase precisa ficar por último: o script do Crashlytics envia os dSYMs do build já
-      # configurado. Local e builds sem segredo não têm plist e encerram esta fase sem falhar.
+      # A fase precisa ficar por último: envia os dSYMs do build já configurado. Local e builds
+      # sem segredo não têm plist e encerram esta fase sem falhar.
+      #
+      # Não usa o `Crashlytics/run`: ele manda só o dSYM do app (DWARF_DSYM_FILE_NAME) e roda o
+      # envio em segundo plano com a saída descartada, então o dSYM dos frameworks nunca subia e
+      # nada avisava. Aqui o `upload-symbols` recebe o dSYM do app e o de cada framework, e a
+      # saída fica em crashlytics-upload-symbols.log. No Release o envio é síncrono e a falha
+      # aparece no build; no Debug-Dev roda em segundo plano para não atrasar cada compilação.
       - name: Upload dos símbolos do Crashlytics
         script: |
           PLIST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist"
@@ -148,16 +164,52 @@ targets:
             exit 0
           fi
 
-          "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run"
+          ENVIAR="${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols"
+          LOG="${DERIVED_FILE_DIR}/crashlytics-upload-symbols.log"
+          DSYMS=("${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}")
+          for FRAMEWORK in FrilaDominio FrilaDados FrilaApresentacao FrilaInfraestrutura; do
+            DSYMS+=("${DWARF_DSYM_FOLDER_PATH}/${FRAMEWORK}.framework.dSYM")
+          done
+          for DSYM in "${DSYMS[@]}"; do
+            if [[ ! -d "$DSYM" ]]; then
+              echo "warning: dSYM ausente, a falha nesse binário fica retida no Crashlytics: ${DSYM##*/}" >&2
+            fi
+          done
+
+          if [[ "$CONFIGURATION" == Release-* ]]; then
+            if ! "$ENVIAR" -gsp "$PLIST" -p ios "${DSYMS[@]}" > "$LOG" 2>&1; then
+              echo "error: envio dos símbolos do Crashlytics falhou; veja $LOG" >&2
+              exit 1
+            fi
+            echo "Símbolos do Crashlytics enviados: $(grep -c 'Successfully submitted' "$LOG") dSYMs"
+          else
+            "$ENVIAR" -gsp "$PLIST" -p ios "${DSYMS[@]}" > "$LOG" 2>&1 &
+            echo "Envio dos símbolos do Crashlytics em segundo plano; resultado em $LOG"
+          fi
         showEnvVars: false
         inputFiles:
-          # Permite ao sandbox de scripts do Xcode executar o binário do pacote resolvido.
-          - $(BUILD_DIR)/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run
+          # O sandbox de scripts do Xcode só deixa ler o que está declarado: o binário do pacote
+          # resolvido, o plist e cada dSYM (pasta, DWARF e Info.plist).
+          - $(BUILD_DIR)/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist
+          - $(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)
           - $(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)
           - $(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(TARGET_NAME)
           - $(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Info.plist
-          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist
-          - $(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaDominio.framework.dSYM
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaDominio.framework.dSYM/Contents/Resources/DWARF/FrilaDominio
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaDominio.framework.dSYM/Contents/Info.plist
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaDados.framework.dSYM
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaDados.framework.dSYM/Contents/Resources/DWARF/FrilaDados
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaDados.framework.dSYM/Contents/Info.plist
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaApresentacao.framework.dSYM
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaApresentacao.framework.dSYM/Contents/Resources/DWARF/FrilaApresentacao
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaApresentacao.framework.dSYM/Contents/Info.plist
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaInfraestrutura.framework.dSYM
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaInfraestrutura.framework.dSYM/Contents/Resources/DWARF/FrilaInfraestrutura
+          - $(DWARF_DSYM_FOLDER_PATH)/FrilaInfraestrutura.framework.dSYM/Contents/Info.plist
+        outputFiles:
+          - $(DERIVED_FILE_DIR)/crashlytics-upload-symbols.log
         basedOnDependencyAnalysis: false
     settings:
       base:
@@ -181,13 +233,6 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Sources/App/Frila.entitlements
         OTHER_LDFLAGS: $(inherited) -ObjC
-      configs:
-        Debug-Dev:
-          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
-        Release-Beta:
-          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
-        Release-Prod:
-          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
   FrilaTests:
     type: bundle.unit-test
