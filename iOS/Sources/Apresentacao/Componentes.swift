@@ -118,19 +118,40 @@ public struct SeloReputacao: View {
 
 public struct AvisoFrila: View {
     public enum Tom { case informativo, alerta, erro }
-    private let texto: LocalizedStringKey
+    private enum Conteudo {
+        case localizado(LocalizedStringKey)
+        case literal(String)
+    }
+    private let conteudo: Conteudo
     private let tom: Tom
 
-    public init(_ texto: LocalizedStringKey, tom: Tom = .informativo) { self.texto = texto; self.tom = tom }
+    public init(_ texto: LocalizedStringKey, tom: Tom = .informativo) {
+        self.conteudo = .localizado(texto)
+        self.tom = tom
+    }
+
+    public init(verbatim: String, tom: Tom = .informativo) {
+        self.conteudo = .literal(verbatim)
+        self.tom = tom
+    }
 
     public var body: some View {
-        Label(texto, systemImage: icone)
-            .font(.callout)
-            .foregroundStyle(cor)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(FrilaEspaco.medio)
-            .background(cor.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .accessibilityElement(children: .combine)
+        Label {
+            switch conteudo {
+            case let .localizado(chave):
+                Text(chave)
+            case let .literal(texto):
+                Text(verbatim: texto)
+            }
+        } icon: {
+            Image(systemName: icone)
+        }
+        .font(.callout)
+        .foregroundStyle(cor)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(FrilaEspaco.medio)
+        .background(cor.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+        .accessibilityElement(children: .combine)
     }
 
     private var cor: Color { switch tom { case .informativo: FrilaCor.primaria; case .alerta: FrilaCor.alerta; case .erro: FrilaCor.perigo } }
@@ -151,14 +172,47 @@ public struct CartaoVaga: View {
             }
             Text(vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
-            Label(vaga.local, systemImage: "mappin.and.ellipse")
+            // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
+            Label("\(distancia) · \(vaga.local)", systemImage: "mappin.and.ellipse")
+            if !inclusos.isEmpty { Label(inclusos, systemImage: "checkmark.circle") }
+            Label(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao),
+                  systemImage: vaga.estabelecimento.reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup")
+                .font(.caption.weight(.medium))
             Text("\(vaga.posicoesAbertas) vagas abertas").font(.caption)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Vaga de \(vaga.funcao.nome), \(vaga.estabelecimento.nome), \(formatador.intervalo(vaga.periodo)), \(formatador.dinheiro(vaga.valor))")
+        .accessibilityLabel(rotuloDeAcessibilidade)
+    }
+
+    public var rotuloDeAcessibilidade: String {
+        var partes = [
+            "Vaga de \(vaga.funcao.nome)",
+            vaga.estabelecimento.nome,
+            formatador.intervalo(vaga.periodo),
+            formatador.dinheiro(vaga.valor),
+            "a \(distancia)",
+            vaga.local
+        ]
+        if !inclusos.isEmpty {
+            partes.append(inclusos)
+        }
+        partes.append(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao))
+        partes.append("\(vaga.posicoesAbertas) vagas abertas")
+        return partes.joined(separator: ", ")
+    }
+
+    private var distancia: String {
+        formatador.distancia(vaga.distanciaKm)
+    }
+
+    private var inclusos: String {
+        var itens: [String] = []
+        if vaga.inclusos.refeicao { itens.append("Refeição") }
+        if vaga.inclusos.transporte { itens.append("Transporte") }
+        return itens.joined(separator: " · ")
     }
 }
 

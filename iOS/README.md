@@ -102,6 +102,18 @@ Limites conhecidos, que este código não cobre:
 
 **Auditoria de dados sensíveis.** `Scripts/auditar-logs-sensiveis.sh` examina os últimos cinco minutos do subsistema `com.frila.org.app` e falha sem imprimir o valor caso encontre e-mail, bearer token, chave Supabase ou JWT. O código é conferido a cada `xcodebuild test` pelo `SegurancaDoCodigoTests`: nenhum `print`, `NSLog` ou `debugPrint` em `Sources/`, e nenhum log interpola e-mail, token, sessão, senha, telefone ou chave.
 
+## Fluxo do profissional (baixa fidelidade)
+
+As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade descartável**: não são design final e substituem por ora a alta fidelidade do profissional (#15) e os padrões de estado (#172). Os textos ficam todos em `TextosDoProfissional.swift`, marcados como **provisórios** até existir o guia de voz (#186).
+
+- **Entrada.** O esquema Local (dublê) abre direto na lista "Vagas no DF". No Dev e no Prod, a lista abre só se já houver sessão guardada; sem sessão fica a tela de antes, porque a entrada por código é de outro cartão. Quando a sessão é encerrada (401 ou saída), a entrada reavalia.
+- **Limite da entrada.** `possuiSessao()` pode precisar da rede para renovar a sessão; offline, com sessão guardada, o app cai na tela de antes até a próxima abertura.
+- **Depois de entrar pela validação (Debug).** No Dev sem sessão, quem entra pela seção "Validação do cliente" do catálogo continua no catálogo: o observador de sessão só avisa encerramento. A entrada confere a sessão de novo quando o app volta a ficar ativo (depois de ir para segundo plano) ou na próxima abertura, e aí abre a lista. A entrada por código de verdade é de outro cartão. Sem teste automatizado: a transição Dev + validação + segundo plano não roda no dublê e foi conferida por leitura.
+- **Catálogo.** Em Debug, o catálogo de componentes abre pelo botão "Catálogo" da barra, ou direto com `-FRILA_ABRIR_CATALOGO` (usado pelos UI tests do catálogo).
+- **Lista (#104).** Pede `vagas_abertas` sem coordenada, e o servidor usa o ponto base do perfil. A ordem é a do servidor. Os filtros são função, data e distância; a data vai como o dia de São Paulo (`DataCivil.deSaoPaulo`), qualquer que seja o fuso do aparelho. A lista pagina de 30 em 30 e aceita puxar para atualizar.
+- **Estados da lista.** Carregando, vazia, erro, sem conexão e "sem ponto de referência" (`422 campo_obrigatorio/latitude`). Sem conexão é o `ErroDaApi.semRede`, que hoje só cobre `notConnectedToInternet`.
+- **Cartão e detalhe.** Mostram o `local` do contrato como vem, sem extrair bairro. O detalhe nunca tem telefone nem documento; o aviso da RN10 aparece antes de Candidatar-me. Denunciar e Bloquear ficam reservados e desabilitados (Sprint 2).
+
 ## Cenários simulados
 
 **Check-in e check-out no dublê.** O `ApiClienteEmMemoria` segue o `fazer_checkin` vigente do backend (`20260925233000_notificacao_para_qualquer_conta.sql`) e o `fazer_checkout` (`20260925000000_checkin_e_checkout.sql`):

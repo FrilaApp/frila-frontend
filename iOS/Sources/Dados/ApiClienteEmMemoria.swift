@@ -12,6 +12,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case inelegivel
         case semRede = "sem-rede"
         case contaSuspensa = "conta-suspensa"
+        /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
+        /// backend e que não é falta de rede nem de ponto de referência (estado de erro do #104).
+        case erroNaLista = "erro-na-lista"
     }
 
     private let cenario: Cenario
@@ -206,6 +209,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] {
         try verificarFalhaGeral()
+        if cenario == .erroNaLista { throw erro("campo_invalido", detalhes: "limite") }
         let referencia = filtro.referencia ?? perfilProfissional?.pontoBase
         return vagas
             .filter { $0.estado == .publicada && (filtro.funcaoID == nil || $0.funcao.id == filtro.funcaoID) }

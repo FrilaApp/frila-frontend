@@ -11,6 +11,15 @@ struct FormatadorTests {
         #expect(resultado.contains("R$"))
     }
 
+    @Test("Distância formatada em km no padrão pt-BR")
+    func distancia() {
+        let formatador = FormatadorFrila()
+        #expect(formatador.distancia(2.5) == "2,5 km")
+        #expect(formatador.distancia(10.0) == "10 km")
+        #expect(formatador.distancia(0) == "0 km")
+        #expect(formatador.distancia(12.34) == "12,3 km")
+    }
+
     @Test("Intervalo atravessando meia-noite mostra os dois dias")
     func intervaloNoturno() throws {
         var calendario = Calendar(identifier: .gregorian)

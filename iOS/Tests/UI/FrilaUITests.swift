@@ -4,7 +4,7 @@ import XCTest
 final class FrilaUITests: XCTestCase {
     func testCatalogoAbreEmPortugues() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "success", "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"]
+        app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success", "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"]
         app.launch()
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Continuar"].exists)
@@ -12,14 +12,14 @@ final class FrilaUITests: XCTestCase {
 
     func testCatalogoComTamanhoDeAcessibilidade() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "success", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 5))
     }
 
     func testConflitoTipadoDoClienteChegaATela() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "vaga-preenchida"]
+        app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "vaga-preenchida"]
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Validação do cliente"].waitForExistence(timeout: 5))
@@ -29,7 +29,7 @@ final class FrilaUITests: XCTestCase {
 
     func testSolicitacaoDeAcessoChegaAoClienteSemExporOEmailNaTelaDeResultado() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
         app.launch()
 
         let email = app.textFields["validacao-email"]
@@ -44,7 +44,7 @@ final class FrilaUITests: XCTestCase {
 
     func testConfirmarCodigoAbreASessaoSemMostrarDadosDeAcesso() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Nenhuma sessão neste aparelho."].waitForExistence(timeout: 5))
@@ -62,5 +62,84 @@ final class FrilaUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Sessão ativa neste aparelho."].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["teste@frila.app"].exists)
         XCTAssertFalse(app.staticTexts["123456"].exists)
+    }
+}
+
+/// Fluxo real do profissional (#104): o esquema Local abre na lista, sem argumento especial.
+@MainActor
+final class VagasUITests: XCTestCase {
+    func testLocalAbreNaListaEODetalheTemOAvisoDaRN10SemTelefone() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
+        XCTAssertTrue(primeira.waitForExistence(timeout: 10))
+        primeira.tap()
+
+        let aviso = app.descendants(matching: .any)["aviso-rn10"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        XCTAssertTrue(aviso.label.contains("seu telefone e WhatsApp serão mostrados"))
+        // O detalhe não mostra telefone nem documento do estabelecimento.
+        let comTelefone = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", ".*\\(?\\d{2}\\)? ?9? ?\\d{4}-?\\d{4}.*"))
+        XCTAssertEqual(comTelefone.count, 0)
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] 'CNPJ' OR label CONTAINS[c] 'CPF'")).firstMatch.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-reputacao"].exists)
+    }
+
+    func testFiltroSemVagasMostraOEstadoVazio() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        // O dublê só tem vaga de Garçom; filtrar por Bartender deixa a lista vazia.
+        app.descendants(matching: .any)["filtro-funcao"].tap()
+        let bartender = app.buttons["Bartender"]
+        XCTAssertTrue(bartender.waitForExistence(timeout: 5))
+        bartender.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["vagas-vazio"].waitForExistence(timeout: 10))
+    }
+
+    func testErroDaAPIMostraOEstadoDeErroComTentarNovamente() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "erro-na-lista"]
+        app.launch()
+
+        XCTAssertTrue(app.descendants(matching: .any)["vagas-erro"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Tentar novamente"].exists)
+    }
+
+    func testSemRedeMostraOEstadoSemConexao() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "sem-rede"]
+        app.launch()
+
+        XCTAssertTrue(app.descendants(matching: .any)["vagas-sem-conexao"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Tentar novamente"].exists)
+    }
+
+    func testListaComTamanhoDeAcessibilidadeMantemTituloEFiltros() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["filtro-funcao"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["filtro-data"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["filtro-distancia"].exists)
+    }
+
+    func testCatalogoSoAbreComPedidoExplicito() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.navigationBars["Frila UI"].exists)
+        // Em Debug, o catálogo continua acessível pelo botão da barra.
+        app.buttons["Catálogo"].tap()
+        XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
     }
 }
