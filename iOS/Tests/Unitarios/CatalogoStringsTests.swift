@@ -144,7 +144,42 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Candidatura.outraEmAndamento,
         ]
 
-        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + [
+        let stringsDoPerfil = [
+            TextosDoProfissional.Perfil.titulo,
+            TextosDoProfissional.Perfil.cabecalho,
+            TextosDoProfissional.Perfil.secaoFuncoes,
+            TextosDoProfissional.Perfil.pontoBase,
+            TextosDoProfissional.Perfil.dicaPontoBase,
+            TextosDoProfissional.Perfil.buscarPontoBase,
+            TextosDoProfissional.Perfil.secaoHorarios,
+            TextosDoProfissional.Perfil.adicionarHorario,
+            TextosDoProfissional.Perfil.avisoFixo,
+            TextosDoProfissional.Perfil.salvarCriacao,
+            TextosDoProfissional.Perfil.salvarEdicao,
+            TextosDoProfissional.Perfil.erroSemFuncao,
+            TextosDoProfissional.Perfil.erroSemPontoBase,
+            TextosDoProfissional.Perfil.nenhumHorario,
+            TextosDoProfissional.Perfil.domingo,
+            TextosDoProfissional.Perfil.segunda,
+            TextosDoProfissional.Perfil.terca,
+            TextosDoProfissional.Perfil.quarta,
+            TextosDoProfissional.Perfil.quinta,
+            TextosDoProfissional.Perfil.sexta,
+            TextosDoProfissional.Perfil.sabado,
+            TextosDoProfissional.Perfil.diaSemana,
+            TextosDoProfissional.Perfil.inicio,
+            TextosDoProfissional.Perfil.fim,
+            TextosDoProfissional.Perfil.adicionar,
+            TextosDoProfissional.Perfil.remover,
+            TextosDoProfissional.Perfil.erroHorarioInvalido,
+            TextosDoProfissional.Perfil.erroCoordenadasInvalidas,
+            TextosDoProfissional.Perfil.erroCarregar,
+            TextosDoProfissional.Perfil.erroSalvar,
+            TextosDoProfissional.Perfil.perfilSalvoComSucesso,
+            TextosDoProfissional.Perfil.buscar,
+        ]
+
+        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDoPerfil + [
             TextosDoProfissional.simNao(true),
             TextosDoProfissional.simNao(false),
             "Sem histórico",
@@ -163,6 +198,7 @@ struct CatalogoStringsTests {
             "Até %lld km",
             "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.",
             "Trabalhariam lá de novo: %lld de %lld",
+            "Remover horário de %@",
         ]
         for padrao in padroesInterpolados {
             #expect(chaves.contains(padrao), "padrão interpolado fora do catálogo: \(padrao)")

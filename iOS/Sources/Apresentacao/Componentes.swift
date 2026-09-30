@@ -102,19 +102,25 @@ public struct CampoCodigo: View {
 }
 
 public struct FiltroPill: View {
-    private let titulo: LocalizedStringKey
+    private let titulo: Text
     private let selecionado: Bool
     private let acao: () -> Void
 
     public init(_ titulo: LocalizedStringKey, selecionado: Bool, acao: @escaping () -> Void) {
-        self.titulo = titulo
+        self.titulo = Text(titulo)
+        self.selecionado = selecionado
+        self.acao = acao
+    }
+
+    public init(verbatim titulo: String, selecionado: Bool, acao: @escaping () -> Void) {
+        self.titulo = Text(verbatim: titulo)
         self.selecionado = selecionado
         self.acao = acao
     }
 
     public var body: some View {
         Button(action: acao) {
-            Text(titulo).font(.subheadline.weight(.semibold)).padding(.horizontal, 14).frame(minHeight: FrilaMetrica.alvoMinimo)
+            titulo.font(.subheadline.weight(.semibold)).padding(.horizontal, 14).frame(minHeight: FrilaMetrica.alvoMinimo)
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -178,8 +184,8 @@ public struct AvisoFrila: View {
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }
 }
 
-private final class MarcadorComponentes: NSObject {}
-private let bundleApresentacao = Bundle(for: MarcadorComponentes.self)
+final class MarcadorComponentes: NSObject {}
+let bundleApresentacao = Bundle(for: MarcadorComponentes.self)
 
 public struct CartaoVaga: View {
     private let vaga: VagaNaLista
