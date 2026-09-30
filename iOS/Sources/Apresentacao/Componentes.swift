@@ -2,12 +2,18 @@ import FrilaDominio
 import SwiftUI
 
 public struct BotaoPrimario: View {
-    private let titulo: LocalizedStringKey
+    private let titulo: Text
     private let carregando: Bool
     private let acao: () -> Void
 
     public init(_ titulo: LocalizedStringKey, carregando: Bool = false, acao: @escaping () -> Void) {
-        self.titulo = titulo
+        self.titulo = Text(titulo)
+        self.carregando = carregando
+        self.acao = acao
+    }
+
+    public init(_ titulo: String, carregando: Bool = false, acao: @escaping () -> Void) {
+        self.titulo = Text(verbatim: titulo)
         self.carregando = carregando
         self.acao = acao
     }
@@ -16,7 +22,7 @@ public struct BotaoPrimario: View {
         Button(action: acao) {
             Group {
                 if carregando { ProgressView().tint(FrilaCor.sobrePrimaria) }
-                else { Text(titulo).font(.headline).multilineTextAlignment(.center) }
+                else { titulo.font(.headline).multilineTextAlignment(.center) }
             }
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
             // Sem isto o estilo `.plain` só recebe toque perto do texto: o frame de 44 pt é
@@ -53,16 +59,21 @@ public struct BotaoSecundario: View {
 }
 
 public struct CampoFrila: View {
-    private let titulo: LocalizedStringKey
+    private let titulo: Text
     @Binding private var texto: String
 
     public init(_ titulo: LocalizedStringKey, texto: Binding<String>) {
-        self.titulo = titulo
+        self.titulo = Text(titulo)
+        _texto = texto
+    }
+
+    public init(_ titulo: String, texto: Binding<String>) {
+        self.titulo = Text(verbatim: titulo)
         _texto = texto
     }
 
     public var body: some View {
-        TextField(titulo, text: $texto)
+        TextField(text: $texto, prompt: titulo) { titulo }
             .textFieldStyle(.plain)
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: FrilaMetrica.alvoMinimo)
