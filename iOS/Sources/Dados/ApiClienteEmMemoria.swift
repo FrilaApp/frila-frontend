@@ -68,9 +68,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
                 conta = nil
                 perfilProfissional = nil
-                sessaoAtiva = false
             } else {
-                sessaoAtiva = true
                 if cenario == .contratante {
                     conta = Conta(
                         id: usuario.id,
@@ -147,6 +145,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarRede()
         guard let conta else { throw erro("nao_encontrado") }
         return conta
+    }
+
+    public func contaParaModoOffline() -> Conta? {
+        conta
     }
 
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {

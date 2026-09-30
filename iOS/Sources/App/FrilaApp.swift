@@ -134,7 +134,7 @@ private struct EntradaDoApp: View {
     @ViewBuilder
     private var fluxoOuTelaSemSessao: some View {
         #if DEBUG
-        if deveAbrirEntrada {
+        if deveAbrirEntrada, destinoAtual == nil {
             FluxoDeEntrada(api: api) { destino in
                 aplicarDestinoManual(destino)
             }
@@ -237,6 +237,30 @@ private struct EntradaDoApp: View {
     #endif
 
     private func avaliarSessao() async {
+        #if DEBUG
+        if deveAbrirEntrada {
+            carregandoDestino = false
+            return
+        }
+        if let memoria = api as? ApiClienteEmMemoria {
+            carregandoDestino = true
+            erroAoAvaliar = nil
+            do {
+                destinoAtual = try await DestinoDaConta.avaliar(api: memoria)
+            } catch let erroApi as ErroDaApi where erroApi.codigo == .semRede {
+                if let conta = await memoria.contaParaModoOffline() {
+                    destinoAtual = .profissional(conta)
+                } else {
+                    destinoAtual = nil
+                }
+            } catch {
+                destinoAtual = nil
+            }
+            carregandoDestino = false
+            return
+        }
+        #endif
+
         carregandoDestino = true
         erroAoAvaliar = nil
         let possuiSessao = await api.possuiSessao()
