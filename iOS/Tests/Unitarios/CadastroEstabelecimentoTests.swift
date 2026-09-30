@@ -1,5 +1,6 @@
 import Foundation
 import FrilaDominio
+import MapKit
 import Testing
 @testable import FrilaApresentacao
 
@@ -14,6 +15,21 @@ struct CadastroEstabelecimentoTests {
         vm.atualizarDocumento("12345678000199")
         #expect(vm.documentoFormatado == "12.345.678/0001-99")
         #expect(vm.documento == "12345678000199")
+    }
+
+    @Test("Selecionar um segundo endereço atualiza o ponto e o alvo da câmera")
+    func cameraAcompanhaNovaSelecao() {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let primeiroPonto = CLLocationCoordinate2D(latitude: -15.78, longitude: -47.93)
+        let segundoPonto = CLLocationCoordinate2D(latitude: -15.80, longitude: -47.88)
+        vm.selecionar(MKMapItem(placemark: MKPlacemark(coordinate: primeiroPonto)))
+        #expect(vm.ponto?.latitude == primeiroPonto.latitude)
+        #expect(vm.alvoDaCamera?.longitude == primeiroPonto.longitude)
+        vm.selecionar(MKMapItem(placemark: MKPlacemark(coordinate: segundoPonto)))
+        #expect(vm.ponto?.latitude == segundoPonto.latitude)
+        #expect(vm.ponto?.longitude == segundoPonto.longitude)
+        #expect(vm.alvoDaCamera?.latitude == segundoPonto.latitude)
+        #expect(vm.alvoDaCamera?.longitude == segundoPonto.longitude)
     }
 
     @Test("Cadastro bem-sucedido conclui o formulário")

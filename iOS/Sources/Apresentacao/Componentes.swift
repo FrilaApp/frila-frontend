@@ -12,7 +12,7 @@ public struct BotaoPrimario: View {
         self.acao = acao
     }
 
-    public init(_ titulo: String, carregando: Bool = false, acao: @escaping () -> Void) {
+    public init(verbatim titulo: String, carregando: Bool = false, acao: @escaping () -> Void) {
         self.titulo = Text(verbatim: titulo)
         self.carregando = carregando
         self.acao = acao
@@ -67,7 +67,7 @@ public struct CampoFrila: View {
         _texto = texto
     }
 
-    public init(_ titulo: String, texto: Binding<String>) {
+    public init(verbatim titulo: String, texto: Binding<String>) {
         self.titulo = Text(verbatim: titulo)
         _texto = texto
     }
