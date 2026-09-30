@@ -15,8 +15,12 @@ enum FixturesDoContrato {
         try ContratoAPI.decodificador().decode(Valor.self, from: dados(nome))
     }
 
+    static func todosOsErros() throws -> [EnvelopeErroAPI] {
+        try carregar("erros", como: [EnvelopeErroAPI].self)
+    }
+
     static func erros() throws -> [String: EnvelopeErroAPI] {
-        let envelopes = try carregar("erros", como: [EnvelopeErroAPI].self)
+        let envelopes = try todosOsErros()
         return Dictionary(envelopes.map { ($0.code, $0) }, uniquingKeysWith: { primeiro, _ in primeiro })
     }
 }

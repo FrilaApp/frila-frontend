@@ -178,11 +178,20 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
 }
 
 /// As operações do contrato que o app usa até o Sprint 1, mais check-in, check-out e avaliação.
+/// Avisa quando a sessão deste aparelho foi encerrada: saída, ou um 401 que prova autenticação
+/// inválida (token vencido ou recusado, ou conta encerrada, contrato 0.2.18). O aviso não prova
+/// que o armazenamento apagou a sessão; quem precisa saber confere de novo.
+public protocol ObservadorDeSessao: Sendable {
+    func encerramentos() -> AsyncStream<Void>
+}
+
 public protocol ApiCliente: Sendable {
     // Entrada
     func solicitarCodigo(email: String) async throws
     func verificarCodigo(email: String, codigo: String) async throws
     func entrarDemonstracao(email: String, codigo: String) async throws
+    /// Se há sessão guardada neste aparelho (válida ou renovável), sem expor e-mail nem token.
+    func possuiSessao() async -> Bool
 
     // Conta e perfil
     /// `ErroDaApi.naoEncontrado` quando há sessão e ainda não há conta: é o primeiro acesso.

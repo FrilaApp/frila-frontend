@@ -74,13 +74,14 @@ struct ApiEmMemoriaTests {
         #expect(try await api.meusTurnos().map(\.id) == [turnoID])
         _ = try await api.contatoDoTurno(id: turnoID)
 
-        let registro = try await api.fazerCheckin(turnoID: turnoID, distanciaMetros: 38, registradoEm: .now.addingTimeInterval(-60))
-        #expect(registro.tipo == .geolocalizado && registro.verificacao == .verificado)
-        let manual = try await api.fazerCheckout(turnoID: turnoID, distanciaMetros: nil, registradoEm: .now.addingTimeInterval(-30))
-        #expect(manual.tipo == .manual && manual.verificacao == .pendente)
         await #expect(throws: ErroDaApi(codigo: .registroNoFuturo)) {
             try await api.fazerCheckin(turnoID: turnoID, distanciaMetros: 10, registradoEm: .now.addingTimeInterval(3_600))
         }
+        let registro = try await api.fazerCheckin(turnoID: turnoID, distanciaMetros: 38, registradoEm: .now.addingTimeInterval(-60))
+        #expect(registro.tipo == .geolocalizado && registro.verificacao == .verificado)
+        // O check-out mantém tipo e verificação do check-in, como o backend.
+        let saida = try await api.fazerCheckout(turnoID: turnoID, distanciaMetros: nil, registradoEm: .now.addingTimeInterval(-30))
+        #expect(saida.tipo == .geolocalizado && saida.verificacao == .verificado)
         _ = try await api.configuracaoDoApp()
         try await api.removerDispositivo(tokenFCM: "token-de-teste")
     }

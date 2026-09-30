@@ -2,15 +2,36 @@ import Foundation
 import FrilaDominio
 import Supabase
 
-public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
+public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecked Sendable {
     private let cliente: SupabaseClient
     private let decodificador = ContratoAPI.decodificador()
     private let telemetria: any TelemetryReporter
+    /// Entrada, demonstração, saída e encerramento por 401 passam por aqui, um de cada vez.
+    private let filaDeSessao = FilaDeSessao()
 
-    public init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
+    public convenience init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
+        self.init(url: url, chavePublicavel: chavePublicavel, telemetria: telemetria, sessaoHTTP: .shared)
+    }
+
+    /// A sessão HTTP e o armazenamento da sessão só mudam nos testes, que respondem às chamadas
+    /// sem rede e guardam a sessão em memória, fora do Keychain.
+    init(
+        url: URL,
+        chavePublicavel: String,
+        telemetria: any TelemetryReporter,
+        sessaoHTTP: URLSession,
+        armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria? = nil
+    ) {
+        // A sessão de autenticação fica no Keychain: é o armazenamento padrão do supabase-swift no iOS.
+        let auth: SupabaseClientOptions.AuthOptions = if let armazenamentoDaSessao {
+            .init(storage: armazenamentoDaSessao, autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
+        } else {
+            .init(autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
+        }
         let options = SupabaseClientOptions(
             db: .init(decoder: ContratoAPI.decodificador()),
-            auth: .init(autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
+            auth: auth,
+            global: .init(session: sessaoHTTP)
         )
         cliente = SupabaseClient(supabaseURL: url, supabaseKey: chavePublicavel, options: options)
         self.telemetria = telemetria
@@ -20,6 +41,7 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
 
     public func solicitarCodigo(email: String) async throws {
         do {
+            // O modelo de e-mail do contrato leva só o código de seis dígitos ({{ .Token }}), sem link.
             try await cliente.auth.signInWithOTP(email: email)
         } catch {
             throw mapear(error)
@@ -28,20 +50,38 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
 
     public func verificarCodigo(email: String, codigo: String) async throws {
         do {
-            _ = try await cliente.auth.verifyOTP(email: email, token: codigo, type: .email)
+            try await filaDeSessao.executar { [cliente] in
+                _ = try await cliente.auth.verifyOTP(email: email, token: codigo, type: .email)
+            }
         } catch {
             throw mapear(error)
         }
     }
 
+    public func possuiSessao() async -> Bool {
+        // Lê a sessão guardada no Keychain e a renova se o token de acesso venceu.
+        (try? await cliente.auth.session) != nil
+    }
+
     public func entrarDemonstracao(email: String, codigo: String) async throws {
         do {
-            let sessao: ContratoAPI.SessaoDTO = try await cliente.functions.invoke(
-                "entrar-demonstracao",
-                options: FunctionInvokeOptions(body: ContratoAPI.EntrarDemonstracao(email: email, codigo: codigo)),
-                decoder: decodificador
-            )
-            _ = try await cliente.auth.setSession(accessToken: sessao.accessToken, refreshToken: sessao.refreshToken)
+            try await filaDeSessao.executar { [self] in
+                let sessaoUsada = cliente.auth.currentSession?.accessToken
+                do {
+                    let sessao: ContratoAPI.SessaoDTO = try await cliente.functions.invoke(
+                        "entrar-demonstracao",
+                        options: FunctionInvokeOptions(body: ContratoAPI.EntrarDemonstracao(email: email, codigo: codigo)),
+                        decoder: decodificador
+                    )
+                    _ = try await cliente.auth.setSession(accessToken: sessao.accessToken, refreshToken: sessao.refreshToken)
+                } catch {
+                    // Já está dentro da fila: encerra aqui mesmo, sem entrar nela de novo.
+                    if Self.comprovaSessaoInvalida(error) {
+                        _ = await encerrarDentroDaFila(sessaoUsada: sessaoUsada)
+                    }
+                    throw error
+                }
+            }
         } catch {
             throw mapear(error)
         }
@@ -108,6 +148,8 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
     // MARK: Catálogo e vagas
 
     public func funcoes() async throws -> [Funcao] {
+        // Leitura de tabela, fora do `rpc()`: o 401 precisa encerrar a sessão do mesmo jeito.
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
         do {
             let resposta: [ContratoAPI.FuncaoDTO] = try await cliente
                 .from("funcao")
@@ -117,6 +159,9 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
                 .value
             return resposta.map { $0.dominio() }
         } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
             throw mapear(error)
         }
     }
@@ -197,7 +242,86 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
 
     public func sair(tokenFCM: String?) async {
         if let tokenFCM { try? await removerDispositivo(tokenFCM: tokenFCM) }
-        try? await cliente.auth.signOut()
+        try? await filaDeSessao.executar { [cliente] in
+            try? await cliente.auth.signOut()
+        }
+    }
+
+    // MARK: Encerramento por sessão inválida (contrato 0.2.18, RF25)
+
+    /// O que aconteceu com a sessão depois de um erro que comprova que ela não vale mais.
+    enum ResultadoDoEncerramento: Equatable, Sendable {
+        /// Não havia sessão quando a chamada saiu: nada a encerrar.
+        case semSessaoNaChamada
+        /// A sessão já não estava guardada quando o erro chegou (outro encerramento veio antes).
+        case jaEncerrada
+        /// Uma entrada nova trocou a sessão enquanto a chamada estava em voo: a nova fica.
+        case sessaoTrocada
+        /// Depois do `signOut` local, o SDK não devolve mais sessão ao ler o armazenamento.
+        /// Não prova remoção persistente: o SDK devolve nil também quando a leitura falha.
+        case semSessaoAposEncerrar
+        /// O SDK continua devolvendo a sessão: a remoção falhou (o armazenamento engole o erro).
+        case sessaoContinuaGuardada
+    }
+
+    /// Só o código original prova que a sessão não vale mais: `nao_autenticado` do backend ou
+    /// `PGRST301` do PostgREST numa RPC, ou o status 401 de uma Edge Function (o gateway recusa o
+    /// JWT; `entrar-demonstracao` nunca responde 401 por conta própria). O `42501` também vira
+    /// `.naoAutenticado` para a tela, mas sozinho não encerra: com sessão válida ele é falta de
+    /// privilégio (403), e derrubar a sessão aí seria errado.
+    static func comprovaSessaoInvalida(_ error: Error) -> Bool {
+        if let postgrest = error as? PostgrestError {
+            return postgrest.code == "nao_autenticado" || postgrest.code == "PGRST301"
+        }
+        if case let FunctionsError.httpError(status, _) = error {
+            return status == 401
+        }
+        return false
+    }
+
+    func encerrarPorSessaoInvalida(sessaoUsada: String?) async -> ResultadoDoEncerramento {
+        (try? await filaDeSessao.executar { [self] in await encerrarDentroDaFila(sessaoUsada: sessaoUsada) })
+            ?? .sessaoContinuaGuardada
+    }
+
+    /// Chamada só de dentro da fila, que garante que nenhuma entrada termine entre a comparação e o
+    /// `signOut`. Uma renovação automática do SDK não passa pela fila (limite conhecido, ver README).
+    private func encerrarDentroDaFila(sessaoUsada: String?) async -> ResultadoDoEncerramento {
+        guard let sessaoUsada else { return .semSessaoNaChamada }
+        guard let atual = cliente.auth.currentSession?.accessToken else { return .jaEncerrada }
+        guard atual == sessaoUsada else { return .sessaoTrocada }
+        do {
+            // No supabase-swift 2.55.2 o escopo local também chama `POST /logout`, depois de remover a
+            // sessão e emitir `.signedOut`. Falha nessa chamada não desfaz a remoção; o estado real é
+            // conferido abaixo em vez de presumido.
+            try await cliente.auth.signOut(scope: .local)
+        } catch {}
+        return cliente.auth.currentSession == nil ? .semSessaoAposEncerrar : .sessaoContinuaGuardada
+    }
+
+    /// Só para os testes: lê o armazenamento sem rede e sem renovar.
+    var haSessaoGuardada: Bool { cliente.auth.currentSession != nil }
+
+    /// Repassa só o `.signedOut` do SDK. O evento não prova que o armazenamento apagou a sessão.
+    public func encerramentos() -> AsyncStream<Void> { encerramentos(aoFicarPronto: nil) }
+
+    /// O SDK registra o ouvinte dentro de uma `Task` e emite `.initialSession` assim que ele está
+    /// registrado; esse primeiro evento é o sinal de pronto que os testes esperam, em vez de `sleep`.
+    func encerramentos(aoFicarPronto: (@Sendable () -> Void)?) -> AsyncStream<Void> {
+        let eventos = cliente.auth.authStateChanges
+        return AsyncStream { continuacao in
+            let tarefa = Task {
+                for await (evento, _) in eventos {
+                    switch evento {
+                    case .initialSession: aoFicarPronto?()
+                    case .signedOut: continuacao.yield()
+                    default: break
+                    }
+                }
+                continuacao.finish()
+            }
+            continuacao.onTermination = { _ in tarefa.cancel() }
+        }
     }
 
     // MARK: Chamada
@@ -217,9 +341,15 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
     private func rpc<Resposta: Decodable>(_ nome: String, params: some Encodable = SemParametros()) async throws -> Resposta {
         let relogio = ContinuousClock()
         let inicio = relogio.now
+        // A sessão com que a chamada sai, só em memória e nunca registrada. Serve para um 401 que
+        // chegue depois de uma entrada nova não derrubar a sessão nova.
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
         do {
             return try await cliente.rpc(nome, params: params).execute().value
         } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
             let tipado = mapear(error)
             await telemetria.registrarErroDaApi(codigo: tipado.codigoOriginal, rpc: nome, duracao: inicio.duration(to: relogio.now))
             throw tipado
@@ -238,6 +368,7 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
 
     private func mapear(_ error: Error) -> ErroDaApi {
         if let erro = error as? ErroDaApi { return erro }
+        if let auth = error as? AuthError { return Self.mapear(auth) }
         if let postgrest = error as? PostgrestError {
             return DecodificadorErroAPI.mapear(codigo: postgrest.code, detalhes: postgrest.details)
         }
@@ -252,6 +383,85 @@ public final class SupabaseApiCliente: ApiCliente, @unchecked Sendable {
         }
         return ErroDaApi(codigo: .desconhecido, codigoOriginal: String(reflecting: type(of: error)))
     }
+
+    /// `/otp` e `/verify` falham como `AuthError`, e não como `PostgrestError`. O contrato promete
+    /// `429 limite_excedido` no envio e `401 nao_autenticado` na confirmação; o GoTrue responde o
+    /// código errado ou vencido com 403 `otp_expired`, que vale o mesmo para a tela. O status HTTP
+    /// decide antes do `error_code`, que muda de campo conforme a versão da API do Auth.
+    static func mapear(_ auth: AuthError) -> ErroDaApi {
+        switch auth {
+        case let .api(_, codigoDoAuth, _, resposta):
+            let original = codigoDoAuth.rawValue
+            switch resposta.statusCode {
+            case 429:
+                return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)
+            case 401, 403:
+                return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original)
+            case 400, 422 where codigoDoAuth == .validationFailed || original == "email_address_invalid":
+                // E-mail que o Auth recusa: a tela aponta o campo, como no 422 das RPCs.
+                return ErroDaApi(codigo: .campoInvalido, codigoOriginal: original, detalhes: "email")
+            default:
+                if codigoDoAuth == .overEmailSendRateLimit || codigoDoAuth == .overRequestRateLimit {
+                    return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)
+                }
+                if codigoDoAuth == .otpExpired {
+                    return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original)
+                }
+                return ErroDaApi(codigo: .desconhecido, codigoOriginal: original)
+            }
+        case .sessionMissing:
+            return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: auth.errorCode.rawValue)
+        default:
+            return ErroDaApi(codigo: .desconhecido, codigoOriginal: auth.errorCode.rawValue)
+        }
+    }
 }
 
 private struct SemParametros: Encodable {}
+
+/// Fila FIFO para as mutações de sessão iniciadas pelo app. Um `actor` sozinho não serializa: ele
+/// é reentrante em cada `await`. Aqui cada operação espera a anterior terminar, e a troca de
+/// `ultima` acontece sem `await` no meio, então duas chamadas nunca se intercalam.
+///
+/// Invariante: uma operação que já está na fila nunca chama `executar` de novo, nem `rpc()` ou
+/// `encerrarPorSessaoInvalida`, que entram na fila. Ela esperaria a si mesma para sempre. De dentro
+/// da fila, o encerramento é `encerrarDentroDaFila`.
+actor FilaDeSessao {
+    private var ultima: Task<Void, Never>?
+
+    func executar<Valor: Sendable>(_ operacao: @escaping @Sendable () async throws -> Valor) async throws -> Valor {
+        let anterior = ultima
+        let tarefa = Task { () async throws -> Valor in
+            await anterior?.value
+            return try await operacao()
+        }
+        ultima = Task { _ = try? await tarefa.value }
+        return try await tarefa.value
+    }
+}
+
+/// Armazenamento da sessão em memória, só para os testes (que não podem importar o Supabase nem
+/// tocar o Keychain). `falharAoRemover` simula o Keychain recusando a remoção.
+final class ArmazenamentoDeSessaoEmMemoria: AuthLocalStorage, @unchecked Sendable {
+    private let trava = NSLock()
+    private var valores: [String: Data] = [:]
+    private let falharAoRemover: Bool
+
+    init(falharAoRemover: Bool = false) {
+        self.falharAoRemover = falharAoRemover
+    }
+
+    func store(key: String, value: Data) throws {
+        trava.withLock { valores[key] = value }
+    }
+
+    func retrieve(key: String) throws -> Data? {
+        trava.withLock { valores[key] }
+    }
+
+    func remove(key: String) throws {
+        struct RemocaoRecusada: Error {}
+        if falharAoRemover { throw RemocaoRecusada() }
+        trava.withLock { valores[key] = nil }
+    }
+}

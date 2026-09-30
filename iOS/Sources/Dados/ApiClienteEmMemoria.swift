@@ -21,12 +21,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private let configuracao: ConfiguracaoApp
     private let contatoDeExemplo: Contato
     private let perfilPublicoDeExemplo: PerfilPublico
+    private var sessaoAtiva = false
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
     private var estabelecimentos: [Estabelecimento]
     private var vagas: [Vaga]
     private var turnos: [Turno] = []
     private var contatos: [UUID: Contato] = [:]
+    /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
+    private var checkins: [UUID: ResultadoRegistro] = [:]
+    private var checkouts: [UUID: ResultadoRegistro] = [:]
 
     public init(cenario: Cenario = .sucesso, relogio: any Relogio = RelogioDoSistema()) {
         self.cenario = cenario
@@ -60,11 +64,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func solicitarCodigo(email: String) async throws { try verificarRede() }
 
-    public func verificarCodigo(email: String, codigo: String) async throws { try verificarRede() }
+    public func verificarCodigo(email: String, codigo: String) async throws {
+        try verificarRede()
+        sessaoAtiva = true
+    }
+
+    public func possuiSessao() async -> Bool { sessaoAtiva }
 
     public func entrarDemonstracao(email: String, codigo: String) async throws {
         try verificarRede()
         guard !codigo.isEmpty else { throw erro("nao_encontrado") }
+        sessaoAtiva = true
     }
 
     // MARK: Conta e perfil
@@ -260,12 +270,41 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return contato
     }
 
+    /// Segue `fazer_checkin` do backend (definição vigente em
+    /// `20260925233000_notificacao_para_qualquer_conta.sql`): repetir devolve o registro gravado;
+    /// até 200 m é `geolocalizado` e `verificado`, acima disso ou sem distância é `manual` e
+    /// `pendente`, e o manual não guarda a distância.
     public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
-        try registrar(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+        try verificarFalhaGeral()
+        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+        if let gravado = checkins[turnoID] { return gravado }
+        try validarRegistro(distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+        let perto = distanciaMetros.map { $0 <= 200 } ?? false
+        let registro = ResultadoRegistro(
+            turnoID: turnoID, tipo: perto ? .geolocalizado : .manual, verificacao: perto ? .verificado : .pendente,
+            registradoEm: registradoEm, distanciaMetros: perto ? distanciaMetros : nil
+        )
+        checkins[turnoID] = registro
+        return registro
     }
 
+    /// Segue `fazer_checkout` do backend (`20260925000000_checkin_e_checkout.sql`): sem check-in é
+    /// `409 checkin_pendente`; a distância não tem teto e é gravada como veio; repetir devolve o
+    /// registro gravado. Tipo e verificação vêm do check-in gravado no dublê; no backend a
+    /// verificação é a atual do turno, que o `confirmar_checkin_manual` muda (operação que a
+    /// porta `ApiCliente` e o dublê não têm).
     public func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
-        try registrar(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+        try verificarFalhaGeral()
+        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+        if let gravado = checkouts[turnoID] { return gravado }
+        guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }
+        try validarRegistro(distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+        let registro = ResultadoRegistro(
+            turnoID: turnoID, tipo: checkin.tipo, verificacao: checkin.verificacao,
+            registradoEm: registradoEm, distanciaMetros: distanciaMetros
+        )
+        checkouts[turnoID] = registro
+        return registro
     }
 
     public func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
@@ -283,19 +322,19 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
-    public func sair(tokenFCM: String?) async {}
+    public func sair(tokenFCM: String?) async { sessaoAtiva = false }
 
     // MARK: Apoio
 
-    private func registrar(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) throws -> ResultadoRegistro {
-        try verificarFalhaGeral()
-        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+    /// O que os dois registros validam depois da idempotência, na ordem do backend
+    /// (`privado.exigir_janela`). Diferenças declaradas: o backend tolera até 2 minutos no futuro
+    /// e o dublê recusa qualquer instante no futuro; o backend é mais restritivo na janela do turno
+    /// (`fora_da_janela` fora de início − 60 min até o fim), que o dublê não confere, então o
+    /// dublê aceita registros que o backend recusaria; a exceção de janela da conta de
+    /// demonstração também não é modelada.
+    private func validarRegistro(distanciaMetros: Int?, registradoEm: Date) throws {
         guard registradoEm <= relogio.agora else { throw erro("registro_no_futuro") }
-        let perto = distanciaMetros.map { $0 <= 200 } ?? false
-        return ResultadoRegistro(
-            turnoID: turnoID, tipo: perto ? .geolocalizado : .manual, verificacao: perto ? .verificado : .pendente,
-            registradoEm: registradoEm, distanciaMetros: distanciaMetros
-        )
+        if let distanciaMetros, distanciaMetros < 0 { throw erro("campo_invalido", detalhes: "distancia_m") }
     }
 
     private func doCatalogo(_ ids: [UUID]) throws -> [Funcao] {

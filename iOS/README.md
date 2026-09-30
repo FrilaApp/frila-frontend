@@ -68,7 +68,55 @@ xcodebuild build -project Frila.xcodeproj -scheme Frila-Prod -destination 'gener
 
 A CI roda a mesma sequência; ver [Integração contínua](Docs/CI.md).
 
+### Validação manual do cliente da API (#53)
+
+Em builds Debug, o catálogo traz a seção **Validação do cliente**. A entrada é só por código de seis dígitos, como o contrato define em `/otp`: o modelo de e-mail do Supabase leva `{{ .Token }}`, sem link. O app não registra esquema de URL nem trata retorno de autenticação.
+
+- **Sessão.** Ao abrir, a seção diz "Sessão ativa neste aparelho." ou "Nenhuma sessão neste aparelho.", sem mostrar e-mail nem token. A sessão fica no Keychain, que é o armazenamento padrão do supabase-swift no iOS, e é renovada pelo SDK.
+- **Conflito.** O botão **Simular vaga preenchida** só aparece quando a API é o dublê em memória (`ApiClienteEmMemoria`), porque ele chama `candidatar`. Contra um Supabase de verdade ele não aparece e não cria dado. Para conferir: `Frila-Local` com `-FRILA_SCENARIO vaga-preenchida`; a mensagem esperada é "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.".
+
+Roteiro do critério 1 com o Supabase local, sem o limite de e-mails do projeto hospedado:
+
+1. No `frila-backend`, `supabase start`. O `config.toml` usa `supabase/templates/codigo-de-entrada.html`, que manda só o código: em 25/09 o e-mail local foi conferido sem link de verificação. Com o CLI 2.75, `supabase start` e `supabase db reset` param no seed `cenarios.sql`; o contorno está no `docs/ESTADO.md` do frila-backend. `supabase status` mostra a chave publicável local e a caixa de e-mail local (porta 54324).
+2. Rode o esquema `Frila-Local` apontado para o Supabase local, sem gravar nada no repositório:
+   `xcodebuild build -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone>' FRILA_API_MODE=supabase FRILA_SUPABASE_PUBLISHABLE_KEY=<chave publicável local>`
+   e instale o app com `xcrun simctl install booted <caminho do Frila.app>`. O `local` só aceita `http` em `127.0.0.1`/`localhost`.
+3. Na seção **Validação do cliente**, informe um e-mail de teste, toque em **Enviar código**, copie o código de seis dígitos da caixa de e-mail local e toque em **Confirmar código**. A seção passa a mostrar "Sessão ativa neste aparelho.".
+4. Com a rede ligada, feche o app (`xcrun simctl terminate booted com.frila.org.app`) e abra de novo. Sem rede e com o token de acesso vencido, a renovação falha e a seção mostra "Nenhuma sessão" mesmo com a sessão guardada. A seção deve continuar mostrando "Sessão ativa neste aparelho.". Isso prova que a sessão sobreviveu ao fechamento.
+5. Rode `Scripts/auditar-logs-sensiveis.sh`.
+
+No `frila-dev` hospedado o roteiro ainda não funciona. O Supabase só deixa trocar o modelo de e-mail de projeto gratuito depois de configurado um SMTP próprio (cartão #200). Até lá, o e-mail do frila-dev leva o link padrão, e não o código que o app pede. Sem SMTP, o limite também é de cerca de 2 e-mails por hora. Depois do SMTP, o modelo a aplicar é o `codigo-de-entrada.html` do frila-backend.
+
+**Sessão encerrada por 401 (contrato 0.2.18).** Quando uma chamada volta com prova de que a sessão não vale mais, o `SupabaseApiCliente` encerra a sessão local e a tela recebe o erro original. O 401 prova autenticação inválida, não o motivo: pode ser conta encerrada (a 0.2.18), token vencido ou token recusado.
+- **O que conta como prova:** o código original `nao_autenticado` ou `PGRST301` numa RPC, ou o status 401 de uma Edge Function.
+- **O que não conta:** o `42501` continua aparecendo como "não autenticado" para a tela, mas sozinho não encerra a sessão, porque com sessão válida ele é falta de privilégio.
+- **Guarda contra 401 antigo:** só encerra se a sessão guardada ainda for a mesma com que a chamada saiu. Um 401 atrasado não derruba uma entrada nova.
+- **Serialização:** entrada, demonstração, saída e encerramento passam por uma fila FIFO, um de cada vez.
+- **Conferência:** depois do `signOut` local, o cliente lê o armazenamento de novo. No supabase-swift 2.55.2 o escopo local também chama `POST /logout`, e a falha dessa chamada não desfaz a remoção local.
+- **Aviso:** o `ObservadorDeSessao` repassa o `.signedOut` do SDK, e a seção de validação confere a sessão de novo.
+
+Limites conhecidos, que este código não cobre:
+- o `.signedOut` e a leitura sem sessão **não provam** remoção persistente: o SDK engole erro ao apagar do Keychain e devolve "sem sessão" quando a leitura falha;
+- a renovação automática do SDK não passa pela fila. No 2.55.2, uma falha de renovação não encerra a sessão, e uma renovação em voo pode regravá-la depois do encerramento;
+- um token vencido cuja renovação falhou sai como chamada anônima, e o backend responde `42501`, que não encerra a sessão.
+
+**Auditoria de dados sensíveis.** `Scripts/auditar-logs-sensiveis.sh` examina os últimos cinco minutos do subsistema `com.frila.org.app` e falha sem imprimir o valor caso encontre e-mail, bearer token, chave Supabase ou JWT. O código é conferido a cada `xcodebuild test` pelo `SegurancaDoCodigoTests`: nenhum `print`, `NSLog` ou `debugPrint` em `Sources/`, e nenhum log interpola e-mail, token, sessão, senha, telefone ou chave.
+
 ## Cenários simulados
+
+**Check-in e check-out no dublê.** O `ApiClienteEmMemoria` segue o `fazer_checkin` vigente do backend (`20260925233000_notificacao_para_qualquer_conta.sql`) e o `fazer_checkout` (`20260925000000_checkin_e_checkout.sql`):
+- idempotência antes de qualquer validação;
+- check-out sem check-in é `409 checkin_pendente`;
+- distância negativa é `422 campo_invalido`;
+- os 200 m valem só para o check-in, e o manual não guarda a distância;
+- o check-out não tem teto de distância.
+
+O dublê não é equivalente ao backend:
+- **Futuro.** O backend tolera até 2 minutos no futuro; o dublê recusa qualquer instante no futuro.
+- **Janela do turno.** O backend recusa com `fora_da_janela` o que cair fora de início − 60 min até o fim. O dublê não confere essa janela, então aceita registros que o backend recusaria.
+- **Conta de demonstração.** A exceção de janela dela não é modelada.
+- **Verificação.** No check-out e nas repetições, tipo e verificação vêm do check-in gravado no dublê. No backend a verificação é a atual do turno, que o `confirmar_checkin_manual` muda; essa operação não existe na porta `ApiCliente` nem no dublê. O `meusTurnos` do dublê também não reflete a verificação.
+
 
 No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.
 
