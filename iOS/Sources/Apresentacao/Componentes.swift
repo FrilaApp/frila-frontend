@@ -178,6 +178,9 @@ public struct AvisoFrila: View {
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }
 }
 
+final class MarcadorComponentes: NSObject {}
+let bundleApresentacao = Bundle(for: MarcadorComponentes.self)
+
 public struct CartaoVaga: View {
     private let vaga: VagaNaLista
     private let formatador = FormatadorFrila()
