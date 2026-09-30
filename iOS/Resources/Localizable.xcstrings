@@ -1,11 +1,926 @@
 {
-  "sourceLanguage" : "pt-BR",
-  "strings" : {
-    "Atualização necessária" : {},
-    "Atualizar agora" : {},
-    "Carregando…" : {},
-    "Sem conexão. Mostrando os dados salvos neste aparelho." : {},
-    "Tentar novamente" : {}
+  "sourceLanguage": "pt-BR",
+  "strings": {
+    "%lld aberta(s) de %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld aberta(s) de %lld"
+          }
+        }
+      }
+    },
+    "%lld de %lld chamariam de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %lld chamariam de novo"
+          }
+        }
+      }
+    },
+    "%lld vagas abertas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld vagas abertas"
+          }
+        }
+      }
+    },
+    "A contestação chega numa próxima versão do app.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A contestação chega numa próxima versão do app."
+          }
+        }
+      }
+    },
+    "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil."
+          }
+        }
+      }
+    },
+    "Abre o detalhe da vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o detalhe da vaga"
+          }
+        }
+      }
+    },
+    "Abrir no WhatsApp": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir no WhatsApp"
+          }
+        }
+      }
+    },
+    "Algo deu errado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algo deu errado"
+          }
+        }
+      }
+    },
+    "Amanhã": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amanhã"
+          }
+        }
+      }
+    },
+    "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno."
+          }
+        }
+      }
+    },
+    "Atualizar agora": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar agora"
+          }
+        }
+      }
+    },
+    "Atualização necessária": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualização necessária"
+          }
+        }
+      }
+    },
+    "Atualize o Frila para continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualize o Frila para continuar."
+          }
+        }
+      }
+    },
+    "Até %lld km": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até %lld km"
+          }
+        }
+      }
+    },
+    "Bloquear": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear"
+          }
+        }
+      }
+    },
+    "Candidatar-me": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-me"
+          }
+        }
+      }
+    },
+    "Carregando": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando"
+          }
+        }
+      }
+    },
+    "Carregando…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando…"
+          }
+        }
+      }
+    },
+    "Chamaria de novo?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamaria de novo?"
+          }
+        }
+      }
+    },
+    "Complete seu perfil com o ponto de partida para ver as vagas por distância.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete seu perfil com o ponto de partida para ver as vagas por distância."
+          }
+        }
+      }
+    },
+    "Contato": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contato"
+          }
+        }
+      }
+    },
+    "Contestar a suspensão": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contestar a suspensão"
+          }
+        }
+      }
+    },
+    "Código de acesso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de acesso"
+          }
+        }
+      }
+    },
+    "Denunciar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denunciar"
+          }
+        }
+      }
+    },
+    "Digite os seis números enviados para seu e-mail": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite os seis números enviados para seu e-mail"
+          }
+        }
+      }
+    },
+    "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação."
+          }
+        }
+      }
+    },
+    "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta."
+          }
+        }
+      }
+    },
+    "Enviando candidatura…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando candidatura…"
+          }
+        }
+      }
+    },
+    "Essa vaga já foi preenchida": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa vaga já foi preenchida"
+          }
+        }
+      }
+    },
+    "Essa vaga não está mais aberta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa vaga não está mais aberta"
+          }
+        }
+      }
+    },
+    "Essa vaga pede outra função": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa vaga pede outra função"
+          }
+        }
+      }
+    },
+    "Esta lista é para quem trabalha como profissional.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta lista é para quem trabalha como profissional."
+          }
+        }
+      }
+    },
+    "Esta posição não pode mais ser cancelada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta posição não pode mais ser cancelada."
+          }
+        }
+      }
+    },
+    "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga acabou de ser preenchida. Escolha outra oportunidade."
+          }
+        }
+      }
+    },
+    "Esta vaga não está mais disponível.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga não está mais disponível."
+          }
+        }
+      }
+    },
+    "Esta vaga não está mais disponível. Volte para a lista e escolha outra.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga não está mais disponível. Volte para a lista e escolha outra."
+          }
+        }
+      }
+    },
+    "Este check-in já foi confirmado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este check-in já foi confirmado."
+          }
+        }
+      }
+    },
+    "Faça o check-in antes de continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faça o check-in antes de continuar."
+          }
+        }
+      }
+    },
+    "Hoje": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoje"
+          }
+        }
+      }
+    },
+    "Horário": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horário"
+          }
+        }
+      }
+    },
+    "Liberado com a confirmação. Fica visível até 7 dias depois do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liberado com a confirmação. Fica visível até 7 dias depois do turno."
+          }
+        }
+      }
+    },
+    "Material próprio: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Material próprio: %@"
+          }
+        }
+      }
+    },
+    "Mude os filtros ou puxe para atualizar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mude os filtros ou puxe para atualizar."
+          }
+        }
+      }
+    },
+    "Nenhuma vaga aberta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma vaga aberta"
+          }
+        }
+      }
+    },
+    "Não": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não"
+          }
+        }
+      }
+    },
+    "Não foi possível abrir esta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir esta vaga."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar as vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar as vagas."
+          }
+        }
+      }
+    },
+    "Não foi possível concluir esta ação. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível concluir esta ação. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar a candidatura. Tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar a candidatura. Tente de novo."
+          }
+        }
+      }
+    },
+    "O Frila não aceitou a candidatura para esta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Frila não aceitou a candidatura para esta vaga."
+          }
+        }
+      }
+    },
+    "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo."
+          }
+        }
+      }
+    },
+    "O que está incluso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que está incluso"
+          }
+        }
+      }
+    },
+    "O valor é integral: o Frila não desconta taxa do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O valor é integral: o Frila não desconta taxa do turno."
+          }
+        }
+      }
+    },
+    "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação."
+          }
+        }
+      }
+    },
+    "Posições": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições"
+          }
+        }
+      }
+    },
+    "Qualquer data": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qualquer data"
+          }
+        }
+      }
+    },
+    "Qualquer distância": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qualquer distância"
+          }
+        }
+      }
+    },
+    "Qualquer função": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qualquer função"
+          }
+        }
+      }
+    },
+    "Quando": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando"
+          }
+        }
+      }
+    },
+    "Quem recebe você": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem recebe você"
+          }
+        }
+      }
+    },
+    "Refeição": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refeição"
+          }
+        }
+      }
+    },
+    "Refeição: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refeição: %@"
+          }
+        }
+      }
+    },
+    "Seleção": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleção"
+          }
+        }
+      }
+    },
+    "Sem conexão. A candidatura não foi enviada; tente de novo quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. A candidatura não foi enviada; tente de novo quando a internet voltar."
+          }
+        }
+      }
+    },
+    "Sem conexão. Mostrando os dados salvos neste aparelho.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. Mostrando os dados salvos neste aparelho."
+          }
+        }
+      }
+    },
+    "Sem conexão. Tente de novo quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. Tente de novo quando a internet voltar."
+          }
+        }
+      }
+    },
+    "Sem conexão. Tente novamente quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. Tente novamente quando a internet voltar."
+          }
+        }
+      }
+    },
+    "Sem histórico": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem histórico"
+          }
+        }
+      }
+    },
+    "Sim": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sim"
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa"
+          }
+        }
+      }
+    },
+    "Sua conta não pode realizar esta ação.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta não pode realizar esta ação."
+          }
+        }
+      }
+    },
+    "Sua sessão expirou. Entre novamente para continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua sessão expirou. Entre novamente para continuar."
+          }
+        }
+      }
+    },
+    "Tentar novamente": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar novamente"
+          }
+        }
+      }
+    },
+    "Trabalhariam lá de novo: %lld de %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trabalhariam lá de novo: %lld de %lld"
+          }
+        }
+      }
+    },
+    "Traje": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traje"
+          }
+        }
+      }
+    },
+    "Transporte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transporte"
+          }
+        }
+      }
+    },
+    "Transporte: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transporte: %@"
+          }
+        }
+      }
+    },
+    "Urgência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urgência"
+          }
+        }
+      }
+    },
+    "Vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga"
+          }
+        }
+      }
+    },
+    "Vaga de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga de %@"
+          }
+        }
+      }
+    },
+    "Vagas no DF": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vagas no DF"
+          }
+        }
+      }
+    },
+    "Valor": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor"
+          }
+        }
+      }
+    },
+    "Ver outras vagas perto de você": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver outras vagas perto de você"
+          }
+        }
+      }
+    },
+    "Você está confirmado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você está confirmado"
+          }
+        }
+      }
+    },
+    "Você fez muitas tentativas. Aguarde um instante e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você fez muitas tentativas. Aguarde um instante e tente novamente."
+          }
+        }
+      }
+    },
+    "Você já tem um turno nesse horário": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você já tem um turno nesse horário"
+          }
+        }
+      }
+    },
+    "Você não pode se candidatar a esta vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não pode se candidatar a esta vaga"
+          }
+        }
+      }
+    },
+    "filtro ativo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "filtro ativo"
+          }
+        }
+      }
+    },
+    "não": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "não"
+          }
+        }
+      }
+    },
+    "o estabelecimento escolhe entre os candidatos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o estabelecimento escolhe entre os candidatos"
+          }
+        }
+      }
+    },
+    "quem aceitar primeiro fica com a vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quem aceitar primeiro fica com a vaga"
+          }
+        }
+      }
+    },
+    "sim": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sim"
+          }
+        }
+      }
+    }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

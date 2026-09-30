@@ -143,6 +143,6 @@ private struct PilulaDeFiltro: View {
         .overlay(Capsule().stroke(ativo ? FrilaCor.primaria : FrilaCor.textoSecundario, lineWidth: 1))
         .foregroundStyle(FrilaCor.texto)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(ativo ? "filtro ativo" : "")
+        .accessibilityValue(ativo ? String(localized: "filtro ativo") : "")
     }
 }

@@ -24,7 +24,7 @@ public final class AtualizacaoObrigatoriaViewModel {
         do {
             let configuracao = try await api.configuracaoDoApp()
             if Self.comparar(versaoAtual, com: configuracao.versaoMinima) == .orderedAscending {
-                estado = .bloqueado(mensagem: configuracao.mensagem ?? "Atualize o Frila para continuar.", url: configuracao.urlDaLoja)
+                estado = .bloqueado(mensagem: configuracao.mensagem ?? String(localized: "Atualize o Frila para continuar."), url: configuracao.urlDaLoja)
             } else {
                 estado = .liberado
             }
