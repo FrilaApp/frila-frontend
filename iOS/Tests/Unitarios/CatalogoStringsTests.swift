@@ -177,6 +177,7 @@ struct CatalogoStringsTests {
             "Até %lld km",
             "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.",
             "Trabalhariam lá de novo: %lld de %lld",
+            "Olá! Sou o profissional do turno de %@ em %@ no %@.",
         ]
         for padrao in padroesInterpolados {
             #expect(chaves.contains(padrao), "padrão interpolado fora do catálogo: \(padrao)")

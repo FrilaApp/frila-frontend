@@ -553,6 +553,16 @@
         }
       }
     },
+    "Olá! Sou o profissional do turno de %@ em %@ no %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olá! Sou o profissional do turno de %@ em %@ no %@."
+          }
+        }
+      }
+    },
     "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação.": {
       "localizations": {
         "pt-BR": {

@@ -11,11 +11,23 @@ struct FrilaApp: App {
     private static let logger = Logger(subsystem: "com.frila.org.app", category: "ambiente")
     private let inicializacao: Inicializacao
     private let versao: String
+    private let armazenamento: ArmazenamentoSwiftData?
 
     init() {
         RelatorioDeFalhas.iniciarSeConfigurado()
         let versao = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
         self.versao = versao
+        let armazenamento: ArmazenamentoSwiftData?
+        do {
+            let container = try PersistenciaFrila.criarContainer()
+            armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        } catch {
+            Logger(subsystem: "com.frila.org.app", category: "cache")
+                .error("cache_indisponivel tipo=\(String(reflecting: type(of: error)), privacy: .public)")
+            armazenamento = nil
+        }
+        self.armazenamento = armazenamento
+
         do throws(ErroDeConfiguracao) {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
@@ -31,7 +43,7 @@ struct FrilaApp: App {
             switch inicializacao {
             case let .pronta(api):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    EntradaDoApp(api: api)
+                    EntradaDoApp(api: api, armazenamento: armazenamento)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -61,6 +73,7 @@ private enum Inicializacao {
 /// tela de antes até a próxima abertura.
 private struct EntradaDoApp: View {
     let api: any ApiCliente
+    let armazenamento: ArmazenamentoSwiftData?
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
@@ -70,11 +83,11 @@ private struct EntradaDoApp: View {
     @State private var rotaInicialAplicada = false
     #endif
 
-    init(api: any ApiCliente) {
+    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?) {
         self.api = api
-        if let container = try? PersistenciaFrila.criarContainer() {
-            let cache = ArmazenamentoSwiftData(modelContainer: container)
-            self.repositorioTurnos = TurnosComCache(buscar: { try await api.meusTurnos() }, cache: cache)
+        self.armazenamento = armazenamento
+        if let armazenamento {
+            self.repositorioTurnos = TurnosComCache(buscar: { try await api.meusTurnos() }, cache: armazenamento)
         } else {
             self.repositorioTurnos = api
         }
@@ -112,15 +125,7 @@ private struct EntradaDoApp: View {
     /// Cache e fila offline (#111): a fila sai quando a conexão volta, e a sessão encerrada apaga o
     /// que este aparelho guardou da conta. Sem o banco local, o app funciona só com rede.
     private func acompanharOffline() async {
-        let container: ModelContainer
-        do {
-            container = try PersistenciaFrila.criarContainer()
-        } catch {
-            Logger(subsystem: "com.frila.org.app", category: "cache")
-                .error("cache_indisponivel tipo=\(String(reflecting: type(of: error)), privacy: .public)")
-            return
-        }
-        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        guard let armazenamento else { return }
         let reenvio = ReenvioAoReconectar(
             monitor: MonitorDeConexaoDoSistema(),
             sincronizador: SincronizadorAcoes(fila: armazenamento, api: api)

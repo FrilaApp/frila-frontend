@@ -43,7 +43,10 @@ public final class MeuTurnoViewModel {
         guard let contato = contato, !contatoExpirado else { return nil }
         let formatador = FormatadorFrila()
         let dataFormatada = formatador.intervalo(turno.vaga.periodo)
-        let mensagem = "Olá! Sou o profissional do turno de \(turno.vaga.funcao) em \(dataFormatada) no \(turno.vaga.local)."
+        let mensagem = String(
+            localized: "Olá! Sou o profissional do turno de \(turno.vaga.funcao) em \(dataFormatada) no \(turno.vaga.local).",
+            bundle: bundleApresentacao
+        )
         var componentes = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)
         componentes?.queryItems = [URLQueryItem(name: "text", value: mensagem)]
         return componentes?.url ?? contato.whatsappURL
