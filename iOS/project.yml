@@ -149,8 +149,8 @@ targets:
       # Não usa o `Crashlytics/run`: ele manda só o dSYM do app (DWARF_DSYM_FILE_NAME) e roda o
       # envio em segundo plano com a saída descartada, então o dSYM dos frameworks nunca subia e
       # nada avisava. Aqui o `upload-symbols` recebe o dSYM do app e o de cada framework, e a
-      # saída fica em crashlytics-upload-symbols.log. No Release o envio é síncrono e a falha
-      # aparece no build; no Debug-Dev roda em segundo plano para não atrasar cada compilação.
+      # saída fica em crashlytics-upload-symbols.log. No archive o envio é síncrono e a falha
+      # aparece no build; nos outros builds roda em segundo plano; na CI não roda.
       - name: Upload dos símbolos do Crashlytics
         script: |
           PLIST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist"
@@ -176,9 +176,19 @@ targets:
             fi
           done
 
-          if [[ "$CONFIGURATION" == Release-* ]]; then
-            if ! "$ENVIAR" -gsp "$PLIST" -p ios "${DSYMS[@]}" > "$LOG" 2>&1; then
-              echo "error: envio dos símbolos do Crashlytics falhou; veja $LOG" >&2
+          # Build de simulador da CI nunca é distribuído, e o upload-symbols já caiu com
+          # Segmentation fault no runner do GitHub (30/09), derrubando o build do main.
+          if [[ -n "${CI:-}" ]]; then
+            echo "Build de CI: símbolos do Crashlytics não enviados"
+            exit 0
+          fi
+
+          # Archive (ACTION=install) é o que vai para o TestFlight: envio síncrono, com uma
+          # segunda tentativa, e o archive falha se os símbolos não subirem. Nos outros builds o
+          # envio roda em segundo plano para não atrasar cada compilação.
+          if [[ "${ACTION:-}" == "install" ]]; then
+            if ! "$ENVIAR" -gsp "$PLIST" -p ios "${DSYMS[@]}" > "$LOG" 2>&1                && ! "$ENVIAR" -gsp "$PLIST" -p ios "${DSYMS[@]}" >> "$LOG" 2>&1; then
+              echo "error: envio dos símbolos do Crashlytics falhou duas vezes; veja $LOG" >&2
               exit 1
             fi
             echo "Símbolos do Crashlytics enviados: $(grep -c 'Successfully submitted' "$LOG") dSYMs"

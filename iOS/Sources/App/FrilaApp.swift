@@ -74,8 +74,12 @@ private struct EntradaDoApp: View {
     var body: some View {
         Group {
             #if DEBUG
-            // Os UI tests do catálogo pedem o catálogo explicitamente; sem o argumento, o Local abre na lista.
-            if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
+            // Entrada isolada para o UI test do cadastro; a entrada por código fará a ligação de produto.
+            if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO") {
+                let apiCadastro = ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST")
+                    ? ApiClienteEmMemoria(cenario: .primeiroAcesso) : api
+                TelaCadastroEstabelecimento(api: apiCadastro, responsavelNome: "Conta de teste", responsavelTelefone: "(61) 99999-0000")
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
                 catalogo
             } else {
                 fluxoOuTelaSemSessao
