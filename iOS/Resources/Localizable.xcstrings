@@ -24,9 +24,21 @@
     "%lld vagas abertas": {
       "localizations": {
         "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld vagas abertas"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vaga aberta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vagas abertas"
+                }
+              }
+            }
           }
         }
       }

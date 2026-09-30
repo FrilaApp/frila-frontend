@@ -158,6 +158,9 @@ public struct AvisoFrila: View {
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }
 }
 
+private final class MarcadorComponentes: NSObject {}
+private let bundleApresentacao = Bundle(for: MarcadorComponentes.self)
+
 public struct CartaoVaga: View {
     private let vaga: VagaNaLista
     private let formatador = FormatadorFrila()
@@ -178,7 +181,7 @@ public struct CartaoVaga: View {
             Label(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao),
                   systemImage: vaga.estabelecimento.reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup")
                 .font(.caption.weight(.medium))
-            Text("\(vaga.posicoesAbertas) vagas abertas").font(.caption)
+            Text("\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao).font(.caption)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
@@ -200,7 +203,7 @@ public struct CartaoVaga: View {
             partes.append(inclusos)
         }
         partes.append(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao))
-        partes.append(String(localized: "\(vaga.posicoesAbertas) vagas abertas"))
+        partes.append(String(localized: "\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao))
         return partes.joined(separator: ", ")
     }
 
