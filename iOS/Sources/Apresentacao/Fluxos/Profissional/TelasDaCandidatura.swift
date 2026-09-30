@@ -7,25 +7,25 @@ import SwiftUI
 private typealias Textos = TextosDoProfissional.Candidatura
 
 /// Candidatar-me, no detalhe (#105). O botão fica desabilitado enquanto a chamada está em voo.
-/// Resultados com tela própria vão para `concluir`; não encontrada e falha ficam aqui, com nova tentativa.
+/// Resultados com tela própria vão pelo roteador; não encontrada e falha ficam aqui, com nova tentativa.
 public struct AreaDeCandidatura: View {
     @State private var viewModel: CandidaturaViewModel
-    private let concluir: (ResultadoDaCandidatura) -> Void
+    private let candidatar: (CandidaturaViewModel) async -> Void
 
-    public init(vaga: Vaga, api: any ApiCliente, concluir: @escaping (ResultadoDaCandidatura) -> Void) {
+    public init(vaga: Vaga, api: any ApiCliente, candidatar: @escaping (CandidaturaViewModel) async -> Void) {
         _viewModel = State(initialValue: CandidaturaViewModel(vaga: vaga, api: api))
-        self.concluir = concluir
+        self.candidatar = candidatar
     }
 
-    init(viewModel: CandidaturaViewModel, concluir: @escaping (ResultadoDaCandidatura) -> Void) {
+    init(viewModel: CandidaturaViewModel, candidatar: @escaping (CandidaturaViewModel) async -> Void) {
         _viewModel = State(initialValue: viewModel)
-        self.concluir = concluir
+        self.candidatar = candidatar
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             BotaoPrimario(LocalizedStringKey(TextosDoProfissional.Detalhe.candidatar), carregando: viewModel.enviando) {
-                Task { await viewModel.candidatar() }
+                Task { await candidatar(viewModel) }
             }
             .disabled(viewModel.enviando)
             .accessibilityIdentifier("candidatar")
@@ -40,9 +40,6 @@ public struct AreaDeCandidatura: View {
             guard case let .concluida(resultado) = novo else { return }
             if let texto = Self.mensagemNoDetalhe(resultado) {
                 AccessibilityNotification.Announcement(texto).post()
-            } else {
-                concluir(resultado)
-                viewModel.recomecar()
             }
         }
     }
@@ -77,6 +74,15 @@ public struct TelaResultadoDaCandidatura: View {
         }
         .background(FrilaCor.fundo)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: voltarParaLista) {
+                    Label(LocalizedStringKey(Textos.voltarParaLista), systemImage: "chevron.left")
+                }
+                .accessibilityIdentifier("voltar-para-lista-navegacao")
+            }
+        }
         .onAppear { AccessibilityNotification.Announcement(titulo).post() }
     }
 
@@ -85,6 +91,7 @@ public struct TelaResultadoDaCandidatura: View {
         switch resultado {
         case let .confirmada(_, contato):
             TurnoConfirmado(vaga: vaga, contato: contato)
+            voltar
         case .vagaPreenchida:
             mensagem(Textos.preenchidaTitulo, Textos.preenchidaMensagem, id: "resultado-vaga-preenchida")
             voltar

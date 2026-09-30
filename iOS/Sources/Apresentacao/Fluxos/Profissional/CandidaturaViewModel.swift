@@ -24,6 +24,15 @@ public enum ResultadoDaCandidatura: Equatable, Sendable {
     /// `404 nao_encontrado`: a vaga não existe mais ou não está visível.
     case naoEncontrada
     case falha(ErroDaApi)
+
+    /// Só recusas recuperáveis ficam no detalhe. Todo resultado definitivo precisa de uma tela
+    /// própria, mesmo que a pessoa tenha saído do detalhe enquanto a chamada terminava.
+    var abreTelaPropria: Bool {
+        switch self {
+        case .naoEncontrada, .falha: false
+        default: true
+        }
+    }
 }
 
 /// Hashable à mão para a rota de navegação: `ErroDaApi` é só Equatable no domínio.

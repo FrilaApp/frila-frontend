@@ -15,6 +15,9 @@ public enum RotaDoProfissional: Hashable, Sendable {
 @MainActor @Observable
 public final class RoteadorDoProfissional {
     public var caminho: [RotaDoProfissional] = []
+    /// Sobrevive à saída do detalhe enquanto `candidatar` ainda está em voo. O roteador, e não a
+    /// view que iniciou a chamada, decide o destino do resultado definitivo.
+    private var candidaturaEmAndamento: CandidaturaViewModel?
 
     public init() {}
 
@@ -24,6 +27,19 @@ public final class RoteadorDoProfissional {
 
     public func voltarParaLista() {
         caminho = []
+    }
+
+    public func candidatar(viewModel: CandidaturaViewModel) async {
+        if let candidaturaEmAndamento, candidaturaEmAndamento !== viewModel, candidaturaEmAndamento.enviando {
+            return
+        }
+        candidaturaEmAndamento = viewModel
+        await viewModel.candidatar()
+        guard candidaturaEmAndamento === viewModel,
+              case let .concluida(resultado) = viewModel.estado,
+              resultado.abreTelaPropria else { return }
+        caminho = [.resultado(vaga: viewModel.vaga, resultado: resultado)]
+        candidaturaEmAndamento = nil
     }
 }
 
@@ -49,9 +65,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                 .navigationDestination(for: RotaDoProfissional.self) { rota in
                     switch rota {
                     case let .detalhe(vagaID):
-                        DestinoDoDetalhe(vagaID: vagaID, api: api) { vaga, resultado in
-                            roteador.caminho.append(.resultado(vaga: vaga, resultado: resultado))
-                        }
+                        DestinoDoDetalhe(vagaID: vagaID, api: api, candidatar: roteador.candidatar)
                     case let .resultado(vaga, resultado):
                         TelaResultadoDaCandidatura(vaga: vaga, resultado: resultado, voltarParaLista: voltarParaLista)
                     }
@@ -79,17 +93,17 @@ extension FluxoDoProfissional where Barra == EmptyView {
 private struct DestinoDoDetalhe: View {
     @State private var viewModel: DetalheVagaViewModel
     private let api: any ApiCliente
-    private let concluir: (Vaga, ResultadoDaCandidatura) -> Void
+    private let candidatar: (CandidaturaViewModel) async -> Void
 
-    init(vagaID: UUID, api: any ApiCliente, concluir: @escaping (Vaga, ResultadoDaCandidatura) -> Void) {
+    init(vagaID: UUID, api: any ApiCliente, candidatar: @escaping (CandidaturaViewModel) async -> Void) {
         _viewModel = State(initialValue: DetalheVagaViewModel(vagaID: vagaID, api: api))
         self.api = api
-        self.concluir = concluir
+        self.candidatar = candidatar
     }
 
     var body: some View {
         TelaDetalheVaga(viewModel: viewModel) { vaga in
-            AreaDeCandidatura(vaga: vaga, api: api) { concluir(vaga, $0) }
+            AreaDeCandidatura(vaga: vaga, api: api, candidatar: candidatar)
         }
     }
 }

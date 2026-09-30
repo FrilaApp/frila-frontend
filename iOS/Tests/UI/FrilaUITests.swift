@@ -165,13 +165,16 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("success")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].exists)
+        app.buttons["voltar-para-lista"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["1 vagas abertas"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
     }
 
     func testVagaPreenchidaTemTelaPropriaEVoltaParaALista() {
         let app = abrirDetalheECandidatar("vaga-preenchida")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-preenchida"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["resultado-vaga-encerrada"].exists)
-        app.buttons["voltar-para-lista"].tap()
+        app.buttons["voltar-para-lista-navegacao"].tap()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 

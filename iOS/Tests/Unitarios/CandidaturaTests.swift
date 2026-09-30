@@ -116,4 +116,30 @@ struct CandidaturaViewModelTests {
         #expect(await api.chamadasACandidatar == 1)
         guard case .concluida(.confirmada) = vm.estado else { Issue.record("esperado confirmada: \(vm.estado)"); return }
     }
+
+    @Test("Resultado confirmado substitui uma vaga aberta enquanto a candidatura ainda está em voo")
+    func resultadoNaoSePerdeAoAbrirOutraVaga() async throws {
+        let api = ApiClienteEmMemoria()
+        let vaga = try await vagaDoDuble(api)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let viewModel = CandidaturaViewModel(vaga: vaga, candidatar: { id in
+            avisarChegada.yield()
+            for await _ in liberar { break }
+            return try await api.candidatar(vagaID: id)
+        })
+        let roteador = RoteadorDoProfissional()
+        roteador.abrirVaga(id: vaga.id)
+
+        let envio = Task { await roteador.candidatar(viewModel: viewModel) }
+        for await _ in chegou { break }
+        roteador.abrirVaga(id: UUID())
+        sinal.yield()
+        await envio.value
+
+        guard case let .resultado(vaga: vagaDoResultado, resultado: .confirmada) = roteador.caminho.last else {
+            Issue.record("esperado rota de resultado confirmada: \(roteador.caminho)"); return
+        }
+        #expect(vagaDoResultado.id == vaga.id)
+    }
 }
