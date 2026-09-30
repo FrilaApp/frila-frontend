@@ -12,6 +12,22 @@ public struct TurnoEmCache: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// De onde vieram os turnos: da API agora, ou do que ficou guardado da última leitura.
+public enum OrigemDosTurnos: Equatable, Sendable {
+    case rede
+    case cache
+}
+
+public struct LeituraDeTurnos: Equatable, Sendable {
+    public let turnos: [Turno]
+    public let origem: OrigemDosTurnos
+
+    public init(turnos: [Turno], origem: OrigemDosTurnos) {
+        self.turnos = turnos
+        self.origem = origem
+    }
+}
+
 public enum TipoAcaoPendente: String, Codable, CaseIterable, Sendable {
     case checkin
     case checkout

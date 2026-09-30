@@ -1602,6 +1602,156 @@
           }
         }
       }
+    },
+    "Abre a conversa no WhatsApp com mensagem pré-formatada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre a conversa no WhatsApp com mensagem pré-formatada"
+          }
+        }
+      }
+    },
+    "Abre o detalhe do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o detalhe do turno"
+          }
+        }
+      }
+    },
+    "Abre o endereço no Apple Maps": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o endereço no Apple Maps"
+          }
+        }
+      }
+    },
+    "Contato encerrado. O contato fica disponível até 7 dias depois do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contato encerrado. O contato fica disponível até 7 dias depois do turno."
+          }
+        }
+      }
+    },
+    "Esta etapa estará disponível em breve.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta etapa estará disponível em breve."
+          }
+        }
+      }
+    },
+    "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes."
+          }
+        }
+      }
+    },
+    "Meu turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meu turno"
+          }
+        }
+      }
+    },
+    "Meus turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meus turnos"
+          }
+        }
+      }
+    },
+    "Modo offline: exibindo dados salvos anteriormente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo offline: exibindo dados salvos anteriormente."
+          }
+        }
+      }
+    },
+    "Nenhum turno confirmado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum turno confirmado"
+          }
+        }
+      }
+    },
+    "Não foi possível carregar os turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os turnos."
+          }
+        }
+      }
+    },
+    "Olá! Sou o profissional do turno de %@ em %@ no %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olá! Sou o profissional do turno de %@ em %@ no %@."
+          }
+        }
+      }
+    },
+    "Quando você tiver turnos confirmados, eles aparecerão aqui.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você tiver turnos confirmados, eles aparecerão aqui."
+          }
+        }
+      }
+    },
+    "Ver no Mapas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver no Mapas"
+          }
+        }
+      }
+    },
+    "quem recebe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quem recebe"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

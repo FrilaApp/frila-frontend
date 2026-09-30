@@ -1,21 +1,6 @@
 import Foundation
 import FrilaDominio
 
-/// De onde vieram os turnos: da API agora, ou do que ficou guardado da última leitura.
-public enum OrigemDosTurnos: Equatable, Sendable {
-    case rede
-    case cache
-}
-
-public struct LeituraDeTurnos: Equatable, Sendable {
-    public let turnos: [Turno]
-    public let origem: OrigemDosTurnos
-
-    public init(turnos: [Turno], origem: OrigemDosTurnos) {
-        self.turnos = turnos
-        self.origem = origem
-    }
-}
 
 /// Meus turnos que abrem em modo avião (RNF06). Cada leitura com rede substitui o cache; sem rede,
 /// devolve o que ficou guardado. O `CacheLocal` já aplica as duas regras de prazo: o turno sai 24 h

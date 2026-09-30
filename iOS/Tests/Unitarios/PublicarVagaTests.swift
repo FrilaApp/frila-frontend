@@ -12,6 +12,13 @@ private actor FilaPublicacaoTeste: FilaDeAcoes {
     func limpar() { itens.removeAll() }
 }
 
+private actor FilaPublicacaoQueFalhaNaLeitura: FilaDeAcoes {
+    func enfileirar(_ acao: AcaoPendente) async throws {}
+    func pendentes() async throws -> [AcaoPendente] { throw ErroDaApi(codigo: .desconhecido) }
+    func remover(id: UUID) async throws {}
+    func limpar() async throws {}
+}
+
 private struct MonitorPublicacaoTeste: MonitorDeConexao {
     let sequencia: AsyncStream<Bool>
     func estados() -> AsyncStream<Bool> { sequencia }
@@ -140,6 +147,20 @@ struct PublicarVagaTests {
         #expect(await api.vagasCriadas == 1)
         #expect(await fila.pendentes().isEmpty)
         #expect(reaberto.resultado != nil)
+    }
+
+    @Test("Falha ao ler a fila encerra o estado de restauração")
+    func leituraFalhaDestravaPublicar() async throws {
+        let fila = FilaPublicacaoQueFalhaNaLeitura()
+        let fixed = agora
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { _ in
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+
+        await vm.restaurarPublicacaoPendente()
+
+        #expect(!vm.restaurandoPublicacao)
+        #expect(vm.mensagemErro != nil)
     }
 
     @Test("O sincronizador mantém publicação quando a API retorna resposta inválida")

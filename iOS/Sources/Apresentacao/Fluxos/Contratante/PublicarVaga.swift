@@ -147,6 +147,7 @@ public final class PublicarVagaViewModel {
 
     public func restaurarPublicacaoPendente() async {
         restaurandoPublicacao = true
+        defer { restaurandoPublicacao = false }
         do {
             let pendentes = try await fila.pendentes()
             if let estabelecimentoID = estabelecimento?.id,
@@ -156,7 +157,6 @@ public final class PublicarVagaViewModel {
                 acaoPendente = acao
                 publicacaoPendente = publicacao
             }
-            restaurandoPublicacao = false
         } catch {
             mensagemErro = TextosPublicarVaga.falhaFila
         }
