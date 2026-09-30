@@ -149,6 +149,15 @@ targets:
         INFOPLIST_FILE: Sources/App/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Sources/App/Frila.entitlements
+      configs:
+        Debug-Local:
+          TARGETED_DEVICE_FAMILY: "1"
+        Debug-Dev:
+          TARGETED_DEVICE_FAMILY: "1"
+        Release-Beta:
+          TARGETED_DEVICE_FAMILY: "1"
+        Release-Prod:
+          TARGETED_DEVICE_FAMILY: "1"
 
   FrilaTests:
     type: bundle.unit-test
