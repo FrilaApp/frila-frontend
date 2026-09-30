@@ -46,6 +46,7 @@
 		50157284EB98F5B50FD96ACF /* SincronizadorAcoes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E052D13CFCC12C0A35068658 /* SincronizadorAcoes.swift */; };
 		5496527AF7AB8E8961BC461E /* DesignSystem.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DF6818CE9FACD139F1FF24D /* DesignSystem.xcassets */; };
 		56C609734CF4023034809075 /* perfil-profissional.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DA156FA6E68AD723D3D9273 /* perfil-profissional.json */; };
+		5BE18DD27D48523970902937 /* AcessibilidadeDoCatalogoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */; };
 		5CC31B3BBCFC04F22FF4A63C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C003E3313087A6450355751E /* PrivacyInfo.xcprivacy */; };
 		60969818C532D7F87CE785B2 /* TurnosComCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F45CA229E7E687ADCF92F0 /* TurnosComCache.swift */; };
 		68BFBF4CB55A1D6E926782C2 /* resultado-registro.json in Resources */ = {isa = PBXBuildFile; fileRef = FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */; };
@@ -242,6 +243,7 @@
 /* Begin PBXFileReference section */
 		026BCBC5E9C1298BCCF168F8 /* CandidaturaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidaturaViewModel.swift; sourceTree = "<group>"; };
 		0275932BB983938342E8FC6A /* FeedVagasViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedVagasViewModel.swift; sourceTree = "<group>"; };
+		03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcessibilidadeDoCatalogoUITests.swift; sourceTree = "<group>"; };
 		044AA2F1727FE713F636F072 /* ErrosDaAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrosDaAPI.swift; sourceTree = "<group>"; };
 		0BBD26CA01BE17B1F08AC8AC /* avaliacao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = avaliacao.json; sourceTree = "<group>"; };
 		0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbiente.swift; sourceTree = "<group>"; };
@@ -452,6 +454,7 @@
 		556B2EA501DA99E7B9443718 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */,
 				AB83B16D703D1E773D101730 /* FrilaUITests.swift */,
 			);
 			path = UI;
@@ -1009,6 +1012,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5BE18DD27D48523970902937 /* AcessibilidadeDoCatalogoUITests.swift in Sources */,
 				CA9ECE0B149FACE77CA6BF3A /* FrilaUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
