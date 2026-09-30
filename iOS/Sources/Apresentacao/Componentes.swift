@@ -139,7 +139,7 @@ public struct AvisoFrila: View {
         Label {
             switch conteudo {
             case let .localizado(chave):
-                Text(chave)
+                Text(chave, bundle: bundleApresentacao)
             case let .literal(texto):
                 Text(verbatim: texto)
             }
@@ -157,9 +157,6 @@ public struct AvisoFrila: View {
     private var cor: Color { switch tom { case .informativo: FrilaCor.primaria; case .alerta: FrilaCor.alerta; case .erro: FrilaCor.perigo } }
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }
 }
-
-private final class MarcadorComponentes: NSObject {}
-private let bundleApresentacao = Bundle(for: MarcadorComponentes.self)
 
 public struct CartaoVaga: View {
     private let vaga: VagaNaLista

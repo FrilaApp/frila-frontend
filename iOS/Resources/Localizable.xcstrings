@@ -942,6 +942,536 @@
           }
         }
       }
+    },
+    "Informe um e-mail válido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe um e-mail válido."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar o código. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar o código. Tente novamente."
+          }
+        }
+      }
+    },
+    "Frila": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frila"
+          }
+        }
+      }
+    },
+    "Turnos avulsos no DF, perto de você.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turnos avulsos no DF, perto de você."
+          }
+        }
+      }
+    },
+    "E-mail": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail"
+          }
+        }
+      }
+    },
+    "voce@exemplo.com": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "voce@exemplo.com"
+          }
+        }
+      }
+    },
+    "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail."
+          }
+        }
+      }
+    },
+    "Receber código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receber código"
+          }
+        }
+      }
+    },
+    "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade."
+          }
+        }
+      }
+    },
+    "Entrar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar"
+          }
+        }
+      }
+    },
+    "Voltar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voltar"
+          }
+        }
+      }
+    },
+    "Digite o código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite o código"
+          }
+        }
+      }
+    },
+    "Enviamos um código de 6 dígitos para %@. Ele vale por pouco tempo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviamos um código de 6 dígitos para %@. Ele vale por pouco tempo."
+          }
+        }
+      }
+    },
+    "Vazio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vazio"
+          }
+        }
+      }
+    },
+    "Novo código enviado para seu e-mail.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novo código enviado para seu e-mail."
+          }
+        }
+      }
+    },
+    "Não foi possível reenviar o código. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível reenviar o código. Tente novamente."
+          }
+        }
+      }
+    },
+    "Digite os 6 números do código.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite os 6 números do código."
+          }
+        }
+      }
+    },
+    "Código expirado. Peça um novo código para continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código expirado. Peça um novo código para continuar."
+          }
+        }
+      }
+    },
+    "Código incorreto. Confira os números e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código incorreto. Confira os números e tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível confirmar o código. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível confirmar o código. Tente novamente."
+          }
+        }
+      }
+    },
+    "Reenviar código em %llds": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar código em %llds"
+          }
+        }
+      }
+    },
+    "Reenviar código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar código"
+          }
+        }
+      }
+    },
+    "Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta."
+          }
+        }
+      }
+    },
+    "Cadastro": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cadastro"
+          }
+        }
+      }
+    },
+    "Como você vai usar o Frila?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como você vai usar o Frila?"
+          }
+        }
+      }
+    },
+    "Quero trabalhar em turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quero trabalhar em turnos"
+          }
+        }
+      }
+    },
+    "Perfil de profissional: receba vagas perto de você e candidate-se sem formulário.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil de profissional: receba vagas perto de você e candidate-se sem formulário."
+          }
+        }
+      }
+    },
+    "Quero contratar para o meu negócio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quero contratar para o meu negócio"
+          }
+        }
+      }
+    },
+    "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar."
+          }
+        }
+      }
+    },
+    "**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo."
+          }
+        }
+      }
+    },
+    "Nome": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome"
+          }
+        }
+      }
+    },
+    "Como você quer ser chamado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como você quer ser chamado"
+          }
+        }
+      }
+    },
+    "Telefone com WhatsApp": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefone com WhatsApp"
+          }
+        }
+      }
+    },
+    "(61) 9 0000-0000": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(61) 9 0000-0000"
+          }
+        }
+      }
+    },
+    "A outra parte só vê o seu número depois que o turno é confirmado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A outra parte só vê o seu número depois que o turno é confirmado."
+          }
+        }
+      }
+    },
+    "Data de nascimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data de nascimento"
+          }
+        }
+      }
+    },
+    "dd/mm/aaaa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dd/mm/aaaa"
+          }
+        }
+      }
+    },
+    "Tenho 18 anos ou mais": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tenho 18 anos ou mais"
+          }
+        }
+      }
+    },
+    "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)"
+          }
+        }
+      }
+    },
+    "Li e aceito os Termos de uso e a Política de privacidade": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Li e aceito os Termos de uso e a Política de privacidade"
+          }
+        }
+      }
+    },
+    "Informe seu nome completo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe seu nome completo."
+          }
+        }
+      }
+    },
+    "Informe um telefone válido com DDD.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe um telefone válido com DDD."
+          }
+        }
+      }
+    },
+    "Informe a data de nascimento no formato dd/mm/aaaa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe a data de nascimento no formato dd/mm/aaaa."
+          }
+        }
+      }
+    },
+    "O Frila é exclusivo para maiores de 18 anos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Frila é exclusivo para maiores de 18 anos."
+          }
+        }
+      }
+    },
+    "Esta conta já foi cadastrada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta conta já foi cadastrada."
+          }
+        }
+      }
+    },
+    "É necessário aceitar os Termos de uso e a Política de privacidade para continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "É necessário aceitar os Termos de uso e a Política de privacidade para continuar."
+          }
+        }
+      }
+    },
+    "Não foi possível criar sua conta. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível criar sua conta. Tente novamente."
+          }
+        }
+      }
+    },
+    "Funções e horários": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funções e horários"
+          }
+        }
+      }
+    },
+    "Configuração de funções e horários disponíveis para o profissional (Cartão #98).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configuração de funções e horários disponíveis para o profissional (Cartão #98)."
+          }
+        }
+      }
+    },
+    "Início do contratante": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Início do contratante"
+          }
+        }
+      }
+    },
+    "Painel do contratante para publicação e gestão de turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Painel do contratante para publicação e gestão de turnos."
+          }
+        }
+      }
+    },
+    "Selecionado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecionado"
+          }
+        }
+      }
+    },
+    "Não selecionado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não selecionado"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

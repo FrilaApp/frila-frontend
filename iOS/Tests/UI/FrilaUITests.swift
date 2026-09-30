@@ -223,3 +223,123 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
     }
 }
+
+@MainActor
+final class AutenticacaoUITests: XCTestCase {
+    func testFluxoCompletoPrimeiroAcessoAteFuncoesEHorarios() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("novo@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        let nome = app.textFields["cadastro-nome"]
+        nome.tap()
+        nome.typeText("Novo Usuário")
+
+        let telefone = app.textFields["cadastro-telefone"]
+        telefone.tap()
+        telefone.typeText("61988887777")
+
+        let nascimento = app.textFields["cadastro-nascimento"]
+        nascimento.tap()
+        nascimento.typeText("15/05/1995")
+
+        app.buttons["cadastro-maior-de-idade"].tap()
+        app.buttons["cadastro-termos"].tap()
+
+        app.buttons["cadastro-continuar"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["funcoes-e-horarios-provisoria"].waitForExistence(timeout: 10))
+    }
+
+    func testContaExistentePulaCadastroEAbreVagas() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("existente@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
+    func testCodigoIncorretoExibeMensagemDeErro() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "codigo-errado"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("teste@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("000000")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["codigo-erro"].waitForExistence(timeout: 5))
+    }
+
+    func testMenorDeIdadeExibeRecusa() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("jovem@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        let nome = app.textFields["cadastro-nome"]
+        nome.tap()
+        nome.typeText("Menor de Idade")
+
+        let telefone = app.textFields["cadastro-telefone"]
+        telefone.tap()
+        telefone.typeText("61988887777")
+
+        let nascimento = app.textFields["cadastro-nascimento"]
+        nascimento.tap()
+        nascimento.typeText("01/01/2015")
+
+        app.buttons["cadastro-maior-de-idade"].tap()
+        app.buttons["cadastro-termos"].tap()
+
+        app.buttons["cadastro-continuar"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
+    }
+}

@@ -19,6 +19,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case vagaEncerrada = "vaga-encerrada"
         /// `candidatar` responde `422 inelegivel/perfil_suspenso` (conta suspensa, #105).
         case inelegivelSuspenso = "inelegivel-suspenso"
+        case codigoErrado = "codigo-errado"
+        case codigoExpirado = "codigo-expirado"
+        case menorDeIdade = "menor-de-idade"
+        case contaExistente = "conta-existente"
+        case semPerfilProfissional = "sem-perfil-profissional"
+        case entrada = "entrada"
     }
 
     private let cenario: Cenario
@@ -55,8 +61,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
-            conta = cenario == .primeiroAcesso ? nil : usuario
-            perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
+            if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade {
+                conta = nil
+                perfilProfissional = nil
+            } else {
+                conta = usuario
+                if cenario == .semPerfilProfissional {
+                    perfilProfissional = nil
+                } else {
+                    perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
+                }
+            }
             estabelecimentos = [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
             if let vagas {
                 self.vagas = vagas
@@ -83,6 +98,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func verificarCodigo(email: String, codigo: String) async throws {
         try verificarRede()
+        if cenario == .codigoErrado || codigo == "000000" {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "codigo_invalido")
+        }
+        if cenario == .codigoExpirado || codigo == "999999" {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "otp_expired")
+        }
         sessaoAtiva = true
     }
 
@@ -91,6 +112,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func entrarDemonstracao(email: String, codigo: String) async throws {
         try verificarRede()
         guard !codigo.isEmpty else { throw erro("nao_encontrado") }
+        if cenario == .codigoErrado || codigo == "000000" {
+            throw erro("nao_encontrado")
+        }
+        if cenario == .codigoExpirado || codigo == "999999" {
+            throw erro("nao_encontrado")
+        }
         sessaoAtiva = true
     }
 
@@ -104,7 +131,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
         try verificarRede()
-        guard conta == nil else { throw erro("conta_existente") }
+        guard conta == nil && cenario != .contaExistente else { throw erro("conta_existente") }
+        if cenario == .menorDeIdade {
+            throw erro("menor_de_idade")
+        }
+        if let hoje = DataCivil.deSaoPaulo(relogio.agora),
+           let aniversario18 = try? DataCivil(ano: cadastro.nascimento.ano + 18, mes: cadastro.nascimento.mes, dia: cadastro.nascimento.dia),
+           aniversario18 > hoje {
+            throw erro("menor_de_idade")
+        }
         let nova = Conta(
             id: UUID(), perfil: cadastro.perfil, nome: cadastro.nome, telefone: cadastro.telefone,
             email: "voce@frila.app", nascimento: cadastro.nascimento, estado: .ativa

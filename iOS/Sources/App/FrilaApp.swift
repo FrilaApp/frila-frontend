@@ -64,6 +64,7 @@ private struct EntradaDoApp: View {
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
     @State private var comSessao: Bool?
+    @State private var destinoManual: DestinoAposEntrada?
     #if DEBUG
     @State private var mostrandoCatalogo = false
     @State private var rotaInicialAplicada = false
@@ -92,6 +93,7 @@ private struct EntradaDoApp: View {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
                 roteador.voltarParaLista()
+                destinoManual = nil
                 await avaliarSessao()
             }
         }
@@ -126,33 +128,61 @@ private struct EntradaDoApp: View {
 
     @ViewBuilder
     private var fluxoOuTelaSemSessao: some View {
-        switch mostrarFluxo {
-        case nil:
-            EstadoCarregando()
-        case true?:
-            #if DEBUG
-            FluxoDoProfissional(api: api, roteador: roteador) {
-                Button("Catálogo") { mostrandoCatalogo = true }
-                    .accessibilityHint("Abre o catálogo de componentes, só em Debug")
+        if let destinoManual {
+            switch destinoManual {
+            case .profissional:
+                fluxoProfissionalView
+            case let .funcoesEHorarios(conta):
+                TelaFuncoesEHorariosProvisoria(conta: conta)
+            case let .contratante(conta):
+                TelaInicioContratanteProvisoria(conta: conta)
             }
-            .sheet(isPresented: $mostrandoCatalogo) { catalogo }
-            .task {
-                // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
-                // vaga vai usar (S2 #8). Abre o detalhe; nunca candidata sozinho.
-                guard !rotaInicialAplicada, let vagaID = Self.vagaIDDosArgumentos() else { return }
-                rotaInicialAplicada = true
-                roteador.abrirVaga(id: vagaID)
+        } else if deveAbrirEntrada {
+            FluxoDeEntrada(api: api) { destino in
+                destinoManual = destino
             }
-            #else
-            FluxoDoProfissional(api: api, roteador: roteador)
-            #endif
-        case false?:
-            #if DEBUG
-            catalogo
-            #else
-            TelaInicialDaFundacao()
-            #endif
+        } else {
+            switch mostrarFluxo {
+            case nil:
+                EstadoCarregando()
+            case true?:
+                fluxoProfissionalView
+            case false?:
+                FluxoDeEntrada(api: api) { destino in
+                    destinoManual = destino
+                }
+            }
         }
+    }
+
+    @ViewBuilder
+    private var fluxoProfissionalView: some View {
+        #if DEBUG
+        FluxoDoProfissional(api: api, roteador: roteador) {
+            Button("Catálogo") { mostrandoCatalogo = true }
+                .accessibilityHint("Abre o catálogo de componentes, só em Debug")
+        }
+        .sheet(isPresented: $mostrandoCatalogo) { catalogo }
+        .task {
+            // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
+            // vaga vai usar (S2 #8). Abre o detalhe; nunca candidata sozinho.
+            guard !rotaInicialAplicada, let vagaID = Self.vagaIDDosArgumentos() else { return }
+            rotaInicialAplicada = true
+            roteador.abrirVaga(id: vagaID)
+        }
+        #else
+        FluxoDoProfissional(api: api, roteador: roteador)
+        #endif
+    }
+
+    private var deveAbrirEntrada: Bool {
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-FRILA_ENTRADA") { return true }
+        if let indice = args.firstIndex(of: "-FRILA_SCENARIO"), args.indices.contains(indice + 1) {
+            let cenario = args[indice + 1]
+            return ["primeiro-acesso", "entrada", "codigo-errado", "codigo-expirado", "menor-de-idade"].contains(cenario)
+        }
+        return false
     }
 
     #if DEBUG
