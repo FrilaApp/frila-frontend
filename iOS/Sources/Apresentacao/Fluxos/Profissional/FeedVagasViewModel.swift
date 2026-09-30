@@ -7,6 +7,7 @@ public enum FalhaDaLista: Equatable, Sendable {
     case semConexao
     /// Sem coordenada e sem ponto base no perfil, o servidor responde `422 campo_obrigatorio/latitude`.
     case semPontoDeReferencia
+    case perfilIncompativel
     case erro(ErroDaApi)
 
     init(_ erro: Error) {
@@ -14,6 +15,7 @@ public enum FalhaDaLista: Equatable, Sendable {
         switch (erro.codigo, erro.detalhes) {
         case (.semRede, _): self = .semConexao
         case (.campoObrigatorio, "latitude"): self = .semPontoDeReferencia
+        case (.perfilIncompativel, _): self = .perfilIncompativel
         default: self = .erro(erro)
         }
     }
@@ -116,7 +118,9 @@ public final class FeedVagasViewModel {
         do {
             let pagina = try await buscarVagas(filtro(deslocamento: atuais.count))
             guard minha == geracao else { return }
-            estado = .carregada(atuais + pagina)
+            var vistos = Set<UUID>()
+            let unicas = (atuais + pagina).filter { vistos.insert($0.id).inserted }
+            estado = .carregada(unicas)
             haMaisPaginas = pagina.count == tamanhoDaPagina
         } catch {
             // A falha da página seguinte não apaga o que já está na tela; a próxima rolagem tenta de novo.

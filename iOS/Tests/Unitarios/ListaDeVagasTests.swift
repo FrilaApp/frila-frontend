@@ -1,5 +1,5 @@
 import Foundation
-import FrilaApresentacao
+@testable import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
 import Testing
@@ -29,6 +29,21 @@ private actor Contador {
 
 private func vagasDoDuble() async throws -> [VagaNaLista] {
     try await ApiClienteEmMemoria().vagasAbertas(.todas)
+}
+
+private func clonarComOutroID(_ vaga: VagaNaLista, id: UUID = UUID()) -> VagaNaLista {
+    VagaNaLista(
+        id: id,
+        funcao: vaga.funcao,
+        estabelecimento: vaga.estabelecimento,
+        periodo: vaga.periodo,
+        local: vaga.local,
+        distanciaKm: vaga.distanciaKm,
+        valor: vaga.valor,
+        posicoesAbertas: vaga.posicoesAbertas,
+        inclusos: vaga.inclusos,
+        modo: vaga.modo
+    )
 }
 
 @Suite("Dia de São Paulo para o filtro de data")
@@ -104,10 +119,11 @@ struct FeedVagasViewModelTests {
         #expect(vm.estado == .carregada([]))
     }
 
-    @Test("Falhas tipadas: sem conexão, sem ponto de referência e erro da API",
+    @Test("Falhas tipadas: sem conexão, sem ponto de referência, perfil incompatível e erro da API",
           arguments: [
               (ErroDaApi(codigo: .semRede), FalhaDaLista.semConexao),
               (ErroDaApi(codigo: .campoObrigatorio, detalhes: "latitude"), .semPontoDeReferencia),
+              (ErroDaApi(codigo: .perfilIncompativel), .perfilIncompativel),
               (ErroDaApi(codigo: .limiteExcedido), .erro(ErroDaApi(codigo: .limiteExcedido))),
           ])
     func falhas(erro: ErroDaApi, esperada: FalhaDaLista) async {
@@ -194,25 +210,41 @@ struct FeedVagasViewModelTests {
     @Test("Falha ao carregar mais não apaga a lista")
     func falhaNaPaginaSeguinte() async throws {
         let vaga = try #require(try await vagasDoDuble().first)
-        let fonte = FonteDeVagas([.success([vaga, vaga]), .failure(ErroDaApi(codigo: .semRede))])
+        let vaga2 = clonarComOutroID(vaga)
+        let fonte = FonteDeVagas([.success([vaga, vaga2]), .failure(ErroDaApi(codigo: .semRede))])
         let vm = viewModel(fonte, pagina: 2)
         await vm.carregar()
         await vm.carregarMais()
-        #expect(vm.estado == .carregada([vaga, vaga]))
+        #expect(vm.estado == .carregada([vaga, vaga2]))
     }
 
     @Test("Paginação: a próxima página pede o deslocamento certo e soma à lista")
     func paginacao() async throws {
-        // O dublê tem uma vaga; as páginas repetem essa vaga só para medir o deslocamento.
-        let vaga = try #require(try await vagasDoDuble().first)
-        let fonte = FonteDeVagas([.success([vaga, vaga]), .success([vaga])])
+        let vaga1 = try #require(try await vagasDoDuble().first)
+        let vaga2 = clonarComOutroID(vaga1)
+        let vaga3 = clonarComOutroID(vaga1)
+        let fonte = FonteDeVagas([.success([vaga1, vaga2]), .success([vaga3])])
         let vm = viewModel(fonte, pagina: 2)
         await vm.carregar()
         #expect(vm.haMaisPaginas)
         await vm.carregarMais()
-        #expect(vm.estado == .carregada([vaga, vaga, vaga]))
+        #expect(vm.estado == .carregada([vaga1, vaga2, vaga3]))
         #expect(!vm.haMaisPaginas)
         #expect(await fonte.filtros.last?.deslocamento == 2)
+    }
+
+    @Test("Paginação: remove repetidas por id mantendo a ordem quando a página 2 traz vaga da página 1")
+    func paginacaoSemRepetidas() async throws {
+        let vaga1 = try #require(try await vagasDoDuble().first)
+        let vaga2 = clonarComOutroID(vaga1)
+        let vaga3 = clonarComOutroID(vaga1)
+        // Página 1 devolve vaga1 e vaga2; página 2 traz vaga2 (já na lista) e vaga3 (nova).
+        let fonte = FonteDeVagas([.success([vaga1, vaga2]), .success([vaga2, vaga3])])
+        let vm = viewModel(fonte, pagina: 2)
+        await vm.carregar()
+        #expect(vm.estado == .carregada([vaga1, vaga2]))
+        await vm.carregarMais()
+        #expect(vm.estado == .carregada([vaga1, vaga2, vaga3]))
     }
 }
 
@@ -251,5 +283,28 @@ struct DetalheVagaViewModelTests {
         let campos = Mirror(reflecting: vaga).children.compactMap(\.label)
             + Mirror(reflecting: vaga.estabelecimento).children.compactMap(\.label)
         #expect(campos.filter { campo in proibidos.contains { campo.lowercased().contains($0) } }.isEmpty)
+    }
+
+    @Test("Nome do contratante com [x](https://y) e *z* entra como texto literal (verbatim) no AvisoFrila")
+    func avisoRN10Literal() {
+        let nomeMaldoso = "[x](https://y) e *z*"
+        let mensagem = TextosDoProfissional.Detalhe.avisoRN10(nomeMaldoso)
+        let aviso = AvisoFrila(verbatim: mensagem, tom: .alerta)
+        let descricao = String(describing: aviso.body)
+        #expect(descricao.contains("verbatim(\"\(mensagem)\")"))
+        #expect(descricao.contains("[x](https://y)"))
+        #expect(descricao.contains("*z*"))
+    }
+
+    @Test("Cartão de vaga inclui local, inclusos e vagas abertas no rótulo de acessibilidade")
+    func rotuloDeAcessibilidadeDoCartao() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let cartao = CartaoVaga(vaga)
+        let rotulo = cartao.rotuloDeAcessibilidade
+        #expect(rotulo.contains(vaga.local))
+        #expect(rotulo.contains("\(vaga.posicoesAbertas) vagas abertas"))
+        if vaga.inclusos.refeicao {
+            #expect(rotulo.contains("Refeição"))
+        }
     }
 }

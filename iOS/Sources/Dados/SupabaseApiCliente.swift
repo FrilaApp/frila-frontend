@@ -148,6 +148,8 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     // MARK: Catálogo e vagas
 
     public func funcoes() async throws -> [Funcao] {
+        // Leitura de tabela, fora do `rpc()`: o 401 precisa encerrar a sessão do mesmo jeito.
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
         do {
             let resposta: [ContratoAPI.FuncaoDTO] = try await cliente
                 .from("funcao")
@@ -157,6 +159,9 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
                 .value
             return resposta.map { $0.dominio() }
         } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
             throw mapear(error)
         }
     }
@@ -363,6 +368,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     private func mapear(_ error: Error) -> ErroDaApi {
         if let erro = error as? ErroDaApi { return erro }
+        if let auth = error as? AuthError { return Self.mapear(auth) }
         if let postgrest = error as? PostgrestError {
             return DecodificadorErroAPI.mapear(codigo: postgrest.code, detalhes: postgrest.details)
         }
@@ -376,6 +382,38 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             return ErroDaApi(codigo: .semRede)
         }
         return ErroDaApi(codigo: .desconhecido, codigoOriginal: String(reflecting: type(of: error)))
+    }
+
+    /// `/otp` e `/verify` falham como `AuthError`, e não como `PostgrestError`. O contrato promete
+    /// `429 limite_excedido` no envio e `401 nao_autenticado` na confirmação; o GoTrue responde o
+    /// código errado ou vencido com 403 `otp_expired`, que vale o mesmo para a tela. O status HTTP
+    /// decide antes do `error_code`, que muda de campo conforme a versão da API do Auth.
+    static func mapear(_ auth: AuthError) -> ErroDaApi {
+        switch auth {
+        case let .api(_, codigoDoAuth, _, resposta):
+            let original = codigoDoAuth.rawValue
+            switch resposta.statusCode {
+            case 429:
+                return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)
+            case 401, 403:
+                return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original)
+            case 400, 422 where codigoDoAuth == .validationFailed || original == "email_address_invalid":
+                // E-mail que o Auth recusa: a tela aponta o campo, como no 422 das RPCs.
+                return ErroDaApi(codigo: .campoInvalido, codigoOriginal: original, detalhes: "email")
+            default:
+                if codigoDoAuth == .overEmailSendRateLimit || codigoDoAuth == .overRequestRateLimit {
+                    return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)
+                }
+                if codigoDoAuth == .otpExpired {
+                    return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original)
+                }
+                return ErroDaApi(codigo: .desconhecido, codigoOriginal: original)
+            }
+        case .sessionMissing:
+            return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: auth.errorCode.rawValue)
+        default:
+            return ErroDaApi(codigo: .desconhecido, codigoOriginal: auth.errorCode.rawValue)
+        }
     }
 }
 

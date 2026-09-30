@@ -15,6 +15,10 @@ public struct FormatadorFrila: Sendable {
         )
     }
 
+    public func distancia(_ km: Double) -> String {
+        km.formatted(.number.precision(.fractionLength(0...1)).locale(Self.locale)) + " km"
+    }
+
     public func intervalo(_ periodo: Periodo) -> String {
         let calendario = Calendar(identifier: .gregorian).configuradoParaSaoPaulo
         let inicio = componentesDaData(periodo.inicio, calendario: calendario)

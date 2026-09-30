@@ -91,6 +91,9 @@ public struct TelaVagas: View {
         case .falha(.semPontoDeReferencia):
             EstadoErro(LocalizedStringKey(TextosDoProfissional.Lista.semPontoDeReferencia)) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("vagas-sem-referencia")
+        case .falha(.perfilIncompativel):
+            AvisoFrila(LocalizedStringKey(TextosDoProfissional.Lista.perfilIncompativel), tom: .alerta)
+                .accessibilityIdentifier("vagas-perfil-incompativel")
         case .falha(.erro):
             EstadoErro(LocalizedStringKey(TextosDoProfissional.Lista.erroMensagem)) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("vagas-erro")
