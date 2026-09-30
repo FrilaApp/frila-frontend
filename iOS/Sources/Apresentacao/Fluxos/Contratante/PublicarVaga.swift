@@ -53,6 +53,8 @@ private enum TextosPublicarVaga {
     static let estabelecimentoCampo = String(localized: "Não encontramos o estabelecimento cadastrado.", bundle: bundlePublicarVaga)
     static let responsavelCampo = String(localized: "Informe quem recebe o profissional no local.", bundle: bundlePublicarVaga)
     static let falhaFila = String(localized: "Não foi possível guardar a publicação neste aparelho.", bundle: bundlePublicarVaga)
+    static let verificandoPendente = String(localized: "Verificando publicação pendente…", bundle: bundlePublicarVaga)
+    static let pendenteDescricao = String(localized: "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga.", bundle: bundlePublicarVaga)
 }
 
 public enum CampoPublicacaoVaga: String, CaseIterable, Sendable {
@@ -96,6 +98,7 @@ public final class PublicarVagaViewModel {
     public private(set) var mensagemErro: String?
     public private(set) var resultado: VagaPublicada?
     public private(set) var publicacaoPendente: PublicacaoVaga?
+    public private(set) var restaurandoPublicacao: Bool
 
     private let carregar: @Sendable () async throws -> [Funcao]
     private let publicarAPI: @Sendable (PublicacaoVaga) async throws -> VagaPublicada
@@ -113,6 +116,7 @@ public final class PublicarVagaViewModel {
         local = estabelecimento.endereco
         self.fila = fila
         self.agora = agora
+        restaurandoPublicacao = true
         carregar = { try await api.funcoes() }
         publicarAPI = { try await api.publicarVaga($0) }
     }
@@ -133,12 +137,30 @@ public final class PublicarVagaViewModel {
         local = estabelecimento?.endereco ?? ""
         self.fila = fila
         self.agora = agora
+        restaurandoPublicacao = false
         carregar = { funcoes }
         publicarAPI = publicar
     }
 
     public var camposBloqueados: Bool { publicacaoPendente != nil }
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
+
+    public func restaurarPublicacaoPendente() async {
+        restaurandoPublicacao = true
+        do {
+            let pendentes = try await fila.pendentes()
+            if let estabelecimentoID = estabelecimento?.id,
+               let acao = pendentes.first(where: {
+                   $0.tipo == .publicacaoVaga && $0.publicacao?.estabelecimentoID == estabelecimentoID
+               }), let publicacao = acao.publicacao {
+                acaoPendente = acao
+                publicacaoPendente = publicacao
+            }
+            restaurandoPublicacao = false
+        } catch {
+            mensagemErro = TextosPublicarVaga.falhaFila
+        }
+    }
 
     public func carregarFuncoes() async {
         guard funcoes.isEmpty, !carregandoFuncoes else { return }
@@ -166,7 +188,7 @@ public final class PublicarVagaViewModel {
     }
 
     public func publicar() async {
-        guard !enviando else { return }
+        guard !enviando, !restaurandoPublicacao else { return }
         if publicacaoPendente == nil {
             guard validar(), let estabelecimento, let funcao = funcoes.first(where: { $0.id == funcaoID }),
                   let periodo = try? Periodo(inicio: inicio, fim: fim),
@@ -209,7 +231,7 @@ public final class PublicarVagaViewModel {
             self.acaoPendente = nil
         } catch let erro as ErroDaApi {
             tratar(erro)
-            if erro.codigo != .semRede && erro.codigo != .desconhecido {
+            if erro.codigo.recusaDefinitivaDePublicacao {
                 try? await fila.remover(id: acaoPendente.id)
                 publicacaoPendente = nil
                 self.acaoPendente = nil
@@ -274,13 +296,21 @@ public struct TelaPublicarVaga: View {
             if model.resultado != nil { minhasVagas }
             else { formulario }
         }
-        .task { await model.carregarFuncoes() }
+        .task {
+            await model.restaurarPublicacaoPendente()
+            await model.carregarFuncoes()
+        }
     }
 
     private var formulario: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 Text(verbatim: TextosPublicarVaga.titulo).font(.largeTitle.bold())
+                if model.restaurandoPublicacao {
+                    AvisoFrila(verbatim: TextosPublicarVaga.verificandoPendente, tom: .informativo)
+                } else if model.camposBloqueados {
+                    AvisoFrila(verbatim: TextosPublicarVaga.pendenteDescricao, tom: .informativo)
+                }
                 if let erro = model.erros[.estabelecimento] { AvisoFrila(verbatim: erro, tom: .erro) }
                 campo(.funcao, titulo: TextosPublicarVaga.funcao) {
                     Picker(TextosPublicarVaga.funcao, selection: $model.funcaoID) {
@@ -348,7 +378,7 @@ public struct TelaPublicarVaga: View {
                 BotaoPrimario(verbatim: model.camposBloqueados ? TextosPublicarVaga.tentarNovamente : TextosPublicarVaga.publicar, carregando: model.enviando) {
                     Task { await model.publicar() }
                 }
-                .disabled(model.enviando)
+                .disabled(model.enviando || model.restaurandoPublicacao)
                 .accessibilityIdentifier("publicar-vaga-botao")
             }
             .padding(FrilaEspaco.medio)

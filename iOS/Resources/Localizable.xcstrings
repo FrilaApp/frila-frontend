@@ -1582,6 +1582,26 @@
           }
         }
       }
+    },
+    "Verificando publicação pendente…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificando publicação pendente…"
+          }
+        }
+      }
+    },
+    "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -41,7 +41,7 @@ public actor SincronizadorAcoes {
                 try await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where erro.codigo == .semRede {
                 return
-            } catch let erro as ErroDaApi where acao.tipo == .publicacaoVaga && erro.codigo != .desconhecido {
+            } catch let erro as ErroDaApi where acao.tipo == .publicacaoVaga && erro.codigo.recusaDefinitivaDePublicacao {
                 // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
                 try? await fila.remover(id: acao.id)
             } catch {

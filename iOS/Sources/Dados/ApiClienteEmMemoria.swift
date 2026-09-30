@@ -21,6 +21,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case inelegivelSuspenso = "inelegivel-suspenso"
         /// A vaga foi criada, mas a primeira resposta se perdeu. A repetição precisa reutilizar a chave.
         case respostaPerdidaPublicacao = "resposta-perdida-publicacao"
+        /// A vaga foi criada, mas o gateway devolve uma resposta inválida na primeira tentativa.
+        case respostaInvalidaPublicacao = "resposta-invalida-publicacao"
     }
 
     private let cenario: Cenario
@@ -221,6 +223,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let resposta = VagaPublicada(vagaID: vaga.id, posicoes: (0..<publicacao.posicoes).map { _ in UUID() })
         publicacoesPorChave[publicacao.chave] = resposta
         if cenario == .respostaPerdidaPublicacao { throw ErroDaApi(codigo: .semRede) }
+        if cenario == .respostaInvalidaPublicacao { throw ErroDaApi(codigo: .respostaInvalida) }
         return resposta
     }
 

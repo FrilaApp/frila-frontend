@@ -100,6 +100,69 @@ struct PublicarVagaTests {
         #expect(vm.resultado != nil)
     }
 
+    @Test("Uma resposta inválida após gravar mantém a chave e não duplica na tentativa seguinte")
+    func respostaInvalidaRepeteMesmaChave() async throws {
+        let api = ApiClienteEmMemoria(cenario: .respostaInvalidaPublicacao)
+        let fila = FilaPublicacaoTeste()
+        let fixed = agora
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { try await api.publicarVaga($0) }
+        preencher(vm)
+
+        await vm.publicar()
+        let chaveOriginal = try #require(vm.publicacaoPendente?.chave)
+        #expect(await fila.pendentes().count == 1)
+        await vm.publicar()
+
+        #expect(await api.chavesPublicacaoRecebidas == [chaveOriginal, chaveOriginal])
+        #expect(await api.vagasCriadas == 1)
+        #expect(await fila.pendentes().isEmpty)
+        #expect(vm.resultado != nil)
+    }
+
+    @Test("View model novo restaura a publicação pendente e tenta com a mesma chave")
+    func restauraPublicacaoPendenteAoReabrir() async throws {
+        let api = ApiClienteEmMemoria(cenario: .respostaPerdidaPublicacao)
+        let fila = FilaPublicacaoTeste()
+        let fixed = agora
+        let estabelecimento = try estabelecimento()
+        let primeiro = PublicarVagaViewModel(estabelecimento: estabelecimento, funcoes: [funcao], fila: fila, agora: { fixed }) { try await api.publicarVaga($0) }
+        preencher(primeiro)
+        await primeiro.publicar()
+        let chaveOriginal = try #require(primeiro.publicacaoPendente?.chave)
+
+        let reaberto = PublicarVagaViewModel(estabelecimento: estabelecimento, funcoes: [funcao], fila: fila, agora: { fixed }) { try await api.publicarVaga($0) }
+        await reaberto.restaurarPublicacaoPendente()
+        #expect(reaberto.publicacaoPendente?.chave == chaveOriginal)
+        #expect(reaberto.camposBloqueados)
+        await reaberto.publicar()
+
+        #expect(await api.chavesPublicacaoRecebidas == [chaveOriginal, chaveOriginal])
+        #expect(await api.vagasCriadas == 1)
+        #expect(await fila.pendentes().isEmpty)
+        #expect(reaberto.resultado != nil)
+    }
+
+    @Test("O sincronizador mantém publicação quando a API retorna resposta inválida")
+    func sincronizadorMantemChaveEmRespostaInvalida() async throws {
+        let api = ApiClienteEmMemoria(cenario: .respostaInvalidaPublicacao)
+        let fila = FilaPublicacaoTeste()
+        let periodo = try Periodo(inicio: agora.addingTimeInterval(4 * 3_600), fim: agora.addingTimeInterval(7 * 3_600))
+        let publicacao = PublicacaoVaga(
+            estabelecimentoID: idEstabelecimento, funcaoID: funcao.id, periodo: periodo,
+            local: "Rua das Flores, 10", ponto: try Coordenada(latitude: -15.78, longitude: -47.93),
+            valor: Dinheiro(centavos: 14_000), posicoes: 2,
+            inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
+            responsavelLocal: "Renata no balcão", modo: .urgencia, alertaAntecedenciaMinutos: 180, chave: UUID()
+        )
+        let acao = AcaoPendente(tipo: .publicacaoVaga, instanteDoToque: agora, chave: publicacao.chave, publicacao: publicacao)
+        await fila.enfileirar(acao)
+
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+
+        #expect(await fila.pendentes().first?.chave == publicacao.chave)
+        #expect(await api.vagasCriadas == 1)
+    }
+
     @Test("O sincronizador reenvia a publicação persistida usando a mesma chave após resposta perdida")
     func sincronizadorRepeteChaveDaFila() async throws {
         let api = ApiClienteEmMemoria(cenario: .respostaPerdidaPublicacao)
