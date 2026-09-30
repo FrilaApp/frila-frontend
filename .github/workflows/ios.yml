@@ -45,7 +45,9 @@ jobs:
             exit 1
           fi
           sudo xcode-select --switch "$XCODE/Contents/Developer"
-          VERSION="$(xcodebuild -version | head -1)"
+          SAIDA="$(xcodebuild -version)"
+          printf '%s\n' "$SAIDA"
+          VERSION="${SAIDA%%$'\n'*}"
           if [[ "$VERSION" != "Xcode ${XCODE_VERSION}" ]]; then
             echo "::error::Versão de Xcode inesperada: $VERSION"
             exit 1
