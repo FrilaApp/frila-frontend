@@ -149,15 +149,18 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Perfil.cabecalho,
             TextosDoProfissional.Perfil.secaoFuncoes,
             TextosDoProfissional.Perfil.pontoBase,
+            TextosDoProfissional.Perfil.pontoBaseSalvo,
             TextosDoProfissional.Perfil.dicaPontoBase,
             TextosDoProfissional.Perfil.buscarPontoBase,
             TextosDoProfissional.Perfil.secaoHorarios,
             TextosDoProfissional.Perfil.adicionarHorario,
+            TextosDoProfissional.Perfil.diaSeguinte,
             TextosDoProfissional.Perfil.avisoFixo,
             TextosDoProfissional.Perfil.salvarCriacao,
             TextosDoProfissional.Perfil.salvarEdicao,
             TextosDoProfissional.Perfil.erroSemFuncao,
             TextosDoProfissional.Perfil.erroSemPontoBase,
+            TextosDoProfissional.Perfil.erroJanelaDuracaoZero,
             TextosDoProfissional.Perfil.nenhumHorario,
             TextosDoProfissional.Perfil.domingo,
             TextosDoProfissional.Perfil.segunda,
@@ -199,6 +202,7 @@ struct CatalogoStringsTests {
             "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.",
             "Trabalhariam lá de novo: %lld de %lld",
             "Remover horário de %@",
+            "%@ às %@",
         ]
         for padrao in padroesInterpolados {
             #expect(chaves.contains(padrao), "padrão interpolado fora do catálogo: \(padrao)")

@@ -158,9 +158,9 @@ public struct TelaPerfilProfissional: View {
                 .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
             }
 
-            if let ponto = viewModel.pontoBase {
+            if viewModel.pontoBase != nil {
                 Label(
-                    String(format: "Ponto base: (%.4f, %.4f)", ponto.latitude, ponto.longitude),
+                    viewModel.descricaoPontoBase ?? TextosDoProfissional.Perfil.pontoBaseSalvo,
                     systemImage: "mappin.circle.fill"
                 )
                 .font(.caption.weight(.medium))
@@ -246,6 +246,10 @@ public struct TelaPerfilProfissional: View {
                     do {
                         let inicio = try HoraDoDia(inicioNovo.trimmingCharacters(in: .whitespaces))
                         let fim = try HoraDoDia(fimNovo.trimmingCharacters(in: .whitespaces))
+                        guard inicio != fim else {
+                            erroFormatoJanela = TextosDoProfissional.Perfil.erroJanelaDuracaoZero
+                            return
+                        }
                         viewModel.adicionarJanela(diaDaSemana: diaNovo, inicio: inicio, fim: fim)
                         erroFormatoJanela = nil
                     } catch {

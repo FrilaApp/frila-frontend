@@ -58,7 +58,7 @@ struct PerfilProfissionalViewModelTests {
         #expect(api.dadosPerfilCriado?.disponibilidades.count == 1)
     }
 
-    @Test("A janela 18:00–02:00 é aceita e exibida corretamente (#98 C2)")
+    @Test("A janela 18:00–02:00 é aceita e exibida corretamente com dia seguinte (#98 C2)")
     func janelaAtravessandoMeiaNoite() throws {
         let api = criarDubleApi()
         let vm = PerfilProfissionalViewModel(api: api)
@@ -76,12 +76,17 @@ struct PerfilProfissionalViewModelTests {
 
         let formatado = vm.formatarJanela(janela)
         #expect(formatado.dia == "Sexta-feira")
-        #expect(formatado.horario == "18:00 às 02:00")
-        #expect(formatado.horario.contains("18:00"))
-        #expect(formatado.horario.contains("02:00"))
+        #expect(formatado.horario == "18:00 às 02:00 (dia seguinte)")
+        #expect(formatado.horario.contains("18:00 às 02:00"))
+        #expect(formatado.horario.contains("(dia seguinte)"))
 
         let descricao = vm.descricaoJanela(janela)
-        #expect(descricao == "Sexta-feira: 18:00 às 02:00")
+        #expect(descricao == "Sexta-feira: 18:00 às 02:00 (dia seguinte)")
+
+        // Janela no mesmo dia sem sufixo
+        let almoco = JanelaDeDisponibilidade(diaDaSemana: 1, inicio: try HoraDoDia("11:00"), fim: try HoraDoDia("15:00"))
+        let formatadoAlmoco = vm.formatarJanela(almoco)
+        #expect(formatadoAlmoco.horario == "11:00 às 15:00")
     }
 
     @Test("O ponto base não aparece em nenhuma tela de outra pessoa nem em DTOs públicos (#98 C3)")
@@ -178,6 +183,8 @@ struct PerfilProfissionalViewModelTests {
         #expect(!vm.funcoesSelecionadas.contains(funcao2.id))
         #expect(vm.pontoBase == coordOriginal)
         #expect(vm.disponibilidades == [janelaOriginal])
+        #expect(vm.enderecoTexto.isEmpty)
+        #expect(vm.descricaoPontoBase == TextosDoProfissional.Perfil.pontoBaseSalvo)
 
         // Usuário adiciona a segunda função
         vm.alternarFuncao(funcao2.id)
@@ -254,6 +261,38 @@ struct PerfilProfissionalViewModelTests {
         #expect(vm.enderecoTexto.contains("Guará"))
         #expect(vm.sugestoes.isEmpty)
     }
+
+    @Test("Janela com início igual ao fim é rejeitada com mensagem de erro (#98 ajuste 1)")
+    func janelaComInicioIgualAoFimRejeitada() throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+
+        let hora = try HoraDoDia("14:00")
+        vm.adicionarJanela(diaDaSemana: 1, inicio: hora, fim: hora)
+
+        #expect(vm.disponibilidades.isEmpty)
+        #expect(vm.mensagemDeErro == TextosDoProfissional.Perfil.erroJanelaDuracaoZero)
+    }
+
+    @Test("Chamadas simultâneas a salvar executam a API apenas uma vez (#98 ajuste 2)")
+    func chamadasSimultaneasAoSalvarExecutamApenasUmaVez() async throws {
+        let api = criarDubleApi()
+        api.pausaAoCriarMs = 50
+        let vm = PerfilProfissionalViewModel(api: api)
+        await vm.carregar()
+
+        let funcaoID = vm.funcoesDisponiveis[0].id
+        vm.alternarFuncao(funcaoID)
+        let coord = try Coordenada(latitude: -15.8267, longitude: -47.9218)
+        vm.definirPontoBase(coord, nome: "Guará")
+
+        async let chamada1 = vm.salvar()
+        async let chamada2 = vm.salvar()
+
+        let (r1, r2) = await (chamada1, chamada2)
+        #expect((r1 && !r2) || (!r1 && r2))
+        #expect(api.chamadasCriarPerfil == 1)
+    }
 }
 
 // MARK: - Dublê de testes
@@ -266,6 +305,9 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
     var dadosPerfilCriado: DadosPerfilProfissional?
     var alteracaoPerfilEnviada: AlteracaoPerfilProfissional?
     var erroAoSalvar: Error?
+    var chamadasCriarPerfil: Int = 0
+    var chamadasAtualizarPerfil: Int = 0
+    var pausaAoCriarMs: UInt64 = 0
 
     func funcoes() async throws -> [Funcao] {
         if let funcoesRetorno { return funcoesRetorno }
@@ -278,6 +320,10 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
     }
 
     func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
+        chamadasCriarPerfil += 1
+        if pausaAoCriarMs > 0 {
+            try? await Task.sleep(nanoseconds: pausaAoCriarMs * 1_000_000)
+        }
         if let erroAoSalvar { throw erroAoSalvar }
         dadosPerfilCriado = dados
         let funcs: [Funcao]
@@ -299,6 +345,7 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
     }
 
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional {
+        chamadasAtualizarPerfil += 1
         if let erroAoSalvar { throw erroAoSalvar }
         alteracaoPerfilEnviada = alteracao
         let atual = try await meuPerfilProfissional()

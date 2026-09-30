@@ -43,6 +43,26 @@
         }
       }
     },
+    "%@ às %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ às %@"
+          }
+        }
+      }
+    },
+    "(dia seguinte)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(dia seguinte)"
+          }
+        }
+      }
+    },
     "A contestação chega numa próxima versão do app.": {
       "localizations": {
         "pt-BR": {
@@ -913,6 +933,16 @@
         }
       }
     },
+    "O horário de início e fim não podem ser iguais.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O horário de início e fim não podem ser iguais."
+          }
+        }
+      }
+    },
     "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.": {
       "localizations": {
         "pt-BR": {
@@ -979,6 +1009,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ponto base"
+          }
+        }
+      }
+    },
+    "Ponto base salvo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponto base salvo"
           }
         }
       }

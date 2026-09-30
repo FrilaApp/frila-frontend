@@ -15,6 +15,7 @@ public final class PerfilProfissionalViewModel {
     public var funcoesSelecionadas: Set<UUID> = []
     public var enderecoTexto: String = ""
     public private(set) var pontoBase: Coordenada?
+    public private(set) var descricaoPontoBase: String?
     public private(set) var sugestoes: [MKMapItem] = []
     public private(set) var carregandoBusca: Bool = false
     public private(set) var disponibilidades: [JanelaDeDisponibilidade] = []
@@ -67,6 +68,9 @@ public final class PerfilProfissionalViewModel {
         pontoBase = coordenada
         if let nome {
             enderecoTexto = nome
+            descricaoPontoBase = nome
+        } else {
+            descricaoPontoBase = TextosDoProfissional.Perfil.pontoBaseSalvo
         }
         sugestoes = []
         mensagemDeErro = nil
@@ -96,6 +100,7 @@ public final class PerfilProfissionalViewModel {
             pontoBase = try Coordenada(latitude: coord.latitude, longitude: coord.longitude)
             let titulo = item.name.map { "\($0), \(item.placemark.title ?? "")" } ?? (item.placemark.title ?? enderecoTexto)
             enderecoTexto = titulo
+            descricaoPontoBase = titulo
             sugestoes = []
             mensagemDeErro = nil
         } catch {
@@ -105,6 +110,10 @@ public final class PerfilProfissionalViewModel {
 
     public func adicionarJanela(diaDaSemana: Int, inicio: HoraDoDia, fim: HoraDoDia) {
         guard (0...6).contains(diaDaSemana) else { return }
+        guard inicio != fim else {
+            mensagemDeErro = TextosDoProfissional.Perfil.erroJanelaDuracaoZero
+            return
+        }
         let nova = JanelaDeDisponibilidade(diaDaSemana: diaDaSemana, inicio: inicio, fim: fim)
         if !disponibilidades.contains(nova) {
             disponibilidades.append(nova)
@@ -128,7 +137,16 @@ public final class PerfilProfissionalViewModel {
 
     public func formatarJanela(_ janela: JanelaDeDisponibilidade) -> (dia: String, horario: String) {
         let dia = Self.nomeDoDia(janela.diaDaSemana)
-        let horario = "\(janela.inicio.contrato) às \(janela.fim.contrato)"
+        let inicio = janela.inicio.contrato
+        let fim = janela.fim.contrato
+        let base = String(localized: "\(inicio) às \(fim)", bundle: bundleApresentacao)
+        let horario: String
+        if janela.atravessaMeiaNoite {
+            let sufixo = String(localized: "(dia seguinte)", bundle: bundleApresentacao)
+            horario = "\(base) \(sufixo)"
+        } else {
+            horario = base
+        }
         return (dia, horario)
     }
 
@@ -151,6 +169,8 @@ public final class PerfilProfissionalViewModel {
     }
 
     public func salvar() async -> Bool {
+        guard !salvando else { return false }
+
         guard !funcoesSelecionadas.isEmpty else {
             mensagemDeErro = TextosDoProfissional.Perfil.erroSemFuncao
             return false
@@ -203,8 +223,7 @@ public final class PerfilProfissionalViewModel {
         self.funcoesSelecionadas = Set(perfil.funcoes.map(\.id))
         self.pontoBase = perfil.pontoBase
         self.disponibilidades = perfil.disponibilidades
-        if enderecoTexto.isEmpty {
-            enderecoTexto = String(format: "%.4f, %.4f", perfil.pontoBase.latitude, perfil.pontoBase.longitude)
-        }
+        self.enderecoTexto = ""
+        self.descricaoPontoBase = TextosDoProfissional.Perfil.pontoBaseSalvo
     }
 }
