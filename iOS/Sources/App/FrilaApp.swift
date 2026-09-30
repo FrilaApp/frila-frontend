@@ -61,6 +61,7 @@ private enum Inicializacao {
 /// tela de antes até a próxima abertura.
 private struct EntradaDoApp: View {
     let api: any ApiCliente
+    private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
     @State private var comSessao: Bool?
@@ -68,6 +69,16 @@ private struct EntradaDoApp: View {
     @State private var mostrandoCatalogo = false
     @State private var rotaInicialAplicada = false
     #endif
+
+    init(api: any ApiCliente) {
+        self.api = api
+        if let container = try? PersistenciaFrila.criarContainer() {
+            let cache = ArmazenamentoSwiftData(modelContainer: container)
+            self.repositorioTurnos = TurnosComCache(buscar: { try await api.meusTurnos() }, cache: cache)
+        } else {
+            self.repositorioTurnos = api
+        }
+    }
 
     var body: some View {
         Group {
@@ -131,7 +142,7 @@ private struct EntradaDoApp: View {
             EstadoCarregando()
         case true?:
             #if DEBUG
-            FluxoDoProfissional(api: api, roteador: roteador) {
+            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos) {
                 Button("Catálogo") { mostrandoCatalogo = true }
                     .accessibilityHint("Abre o catálogo de componentes, só em Debug")
             }
@@ -144,7 +155,7 @@ private struct EntradaDoApp: View {
                 roteador.abrirVaga(id: vagaID)
             }
             #else
-            FluxoDoProfissional(api: api, roteador: roteador)
+            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos)
             #endif
         case false?:
             #if DEBUG

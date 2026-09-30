@@ -85,17 +85,17 @@ enum TextosDoProfissional {
     }
 
     enum Turnos {
-        static let tituloMeusTurnos = String(localized: "Meus turnos")
-        static let tituloMeuTurno = String(localized: "Meu turno")
-        static let confirmadoTitulo = String(localized: "Você está confirmado")
-        static let avisoCache = String(localized: "Modo offline: exibindo dados salvos anteriormente.")
-        static let vazioTitulo = String(localized: "Nenhum turno confirmado")
-        static let vazioMensagem = String(localized: "Quando você tiver turnos confirmados, eles aparecerão aqui.")
-        static let erroAoCarregar = String(localized: "Não foi possível carregar os turnos.")
-        static let contatoEncerrado = String(localized: "Contato encerrado. O contato fica disponível até 7 dias depois do turno.")
-        static let lembretesEVisibilidade = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.")
-        static let verNoMapas = String(localized: "Ver no Mapas")
-        static let quemRecebe = String(localized: "quem recebe")
+        static let tituloMeusTurnos = String(localized: "Meus turnos", bundle: bundleApresentacao)
+        static let tituloMeuTurno = String(localized: "Meu turno", bundle: bundleApresentacao)
+        static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
+        static let avisoCache = String(localized: "Modo offline: exibindo dados salvos anteriormente.", bundle: bundleApresentacao)
+        static let vazioTitulo = String(localized: "Nenhum turno confirmado", bundle: bundleApresentacao)
+        static let vazioMensagem = String(localized: "Quando você tiver turnos confirmados, eles aparecerão aqui.", bundle: bundleApresentacao)
+        static let erroAoCarregar = String(localized: "Não foi possível carregar os turnos.", bundle: bundleApresentacao)
+        static let contatoEncerrado = String(localized: "Contato encerrado. O contato fica disponível até 7 dias depois do turno.", bundle: bundleApresentacao)
+        static let lembretesEVisibilidade = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.", bundle: bundleApresentacao)
+        static let verNoMapas = String(localized: "Ver no Mapas", bundle: bundleApresentacao)
+        static let quemRecebe = String(localized: "quem recebe", bundle: bundleApresentacao)
     }
 
     static func simNao(_ valor: Bool) -> String { valor ? String(localized: "sim") : String(localized: "não") }

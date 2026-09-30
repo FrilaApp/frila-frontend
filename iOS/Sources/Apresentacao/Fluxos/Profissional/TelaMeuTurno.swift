@@ -47,7 +47,7 @@ public struct TelaMeuTurno: View {
                     }
                     .accessibilityIdentifier("atalho-mapas")
                     .accessibilityLabel(TextosDoProfissional.Turnos.verNoMapas)
-                    .accessibilityHint(String(localized: "Abre o endereço no Apple Maps"))
+                    .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
                 }
                 Text("· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
             }
@@ -85,7 +85,7 @@ public struct TelaMeuTurno: View {
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("botao-whatsapp")
-                    .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada"))
+                    .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
                 }
 
                 Text(TextosDoProfissional.Turnos.lembretesEVisibilidade)

@@ -44,7 +44,7 @@ public struct TelaMeusTurnos: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if case let .carregada(_, origem) = viewModel.estado, origem == .cache {
-                    AvisoFrila(LocalizedStringKey(TextosDoProfissional.Turnos.avisoCache), tom: .informativo)
+                    AvisoFrila(verbatim: TextosDoProfissional.Turnos.avisoCache, tom: .informativo)
                         .accessibilityIdentifier("aviso-cache-turnos")
                 }
 
@@ -76,14 +76,15 @@ public struct TelaMeusTurnos: View {
                     ForEach(turnos) { turno in
                         Button { abrir(turno) } label: { CartaoMeuTurno(turno: turno) }
                             .buttonStyle(.plain)
+                            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
                             .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
-                            .accessibilityHint("Abre o detalhe do turno")
+                            .accessibilityHint(String(localized: "Abre o detalhe do turno", bundle: bundleApresentacao))
                     }
                 }
             }
         case let .falha(mensagem):
             VStack(spacing: FrilaEspaco.medio) {
-                AvisoFrila(LocalizedStringKey(mensagem), tom: .alerta)
+                AvisoFrila(verbatim: mensagem, tom: .alerta)
                 BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
             }
             .accessibilityIdentifier("meus-turnos-erro")

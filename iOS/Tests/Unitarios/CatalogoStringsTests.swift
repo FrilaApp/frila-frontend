@@ -144,7 +144,21 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Candidatura.outraEmAndamento,
         ]
 
-        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + [
+        let stringsDosTurnos = [
+            TextosDoProfissional.Turnos.tituloMeusTurnos,
+            TextosDoProfissional.Turnos.tituloMeuTurno,
+            TextosDoProfissional.Turnos.confirmadoTitulo,
+            TextosDoProfissional.Turnos.avisoCache,
+            TextosDoProfissional.Turnos.vazioTitulo,
+            TextosDoProfissional.Turnos.vazioMensagem,
+            TextosDoProfissional.Turnos.erroAoCarregar,
+            TextosDoProfissional.Turnos.contatoEncerrado,
+            TextosDoProfissional.Turnos.lembretesEVisibilidade,
+            TextosDoProfissional.Turnos.verNoMapas,
+            TextosDoProfissional.Turnos.quemRecebe,
+        ]
+
+        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDosTurnos + [
             TextosDoProfissional.simNao(true),
             TextosDoProfissional.simNao(false),
             "Sem histórico",
@@ -225,6 +239,9 @@ struct CatalogoStringsTests {
             "Refeição: %@",
             "Transporte: %@",
             "Material próprio: %@",
+            "Abre o endereço no Apple Maps",
+            "Abre a conversa no WhatsApp com mensagem pré-formatada",
+            "Abre o detalhe do turno",
         ]
 
         var faltantes: [String] = []
