@@ -307,4 +307,16 @@ struct DetalheVagaViewModelTests {
             #expect(rotulo.contains("Refeição"))
         }
     }
+
+    @Test("Rótulo de acessibilidade usa singular quando há 1 vaga aberta")
+    func rotuloDeAcessibilidadeSingular() async throws {
+        let base = try #require(try await vagasDoDuble().first)
+        let vaga = VagaNaLista(
+            id: base.id, funcao: base.funcao, estabelecimento: base.estabelecimento, periodo: base.periodo,
+            local: base.local, distanciaKm: base.distanciaKm, valor: base.valor, posicoesAbertas: 1,
+            inclusos: base.inclusos, modo: base.modo
+        )
+        let cartao = CartaoVaga(vaga)
+        #expect(cartao.rotuloDeAcessibilidade.contains("1 vaga aberta"))
+    }
 }

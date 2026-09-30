@@ -21,7 +21,19 @@ struct CatalogoStringsTests {
                         let state: String?
                         let value: String?
                     }
+                    struct Variacoes: Decodable {
+                        struct Plural: Decodable {
+                            struct Regra: Decodable {
+                                let stringUnit: Unidade?
+                            }
+                            let one: Regra?
+                            let other: Regra?
+                            let zero: Regra?
+                        }
+                        let plural: Plural?
+                    }
                     let stringUnit: Unidade?
+                    let variations: Variacoes?
                 }
                 struct Localizacoes: Decodable {
                     let ptBR: Localizacao?
@@ -43,6 +55,8 @@ struct CatalogoStringsTests {
         for (chave, entrada) in decodificado.strings {
             if let valor = entrada.localizations?.ptBR?.stringUnit?.value {
                 traducoes[chave] = valor
+            } else if let valorOther = entrada.localizations?.ptBR?.variations?.plural?.other?.stringUnit?.value {
+                traducoes[chave] = valorOther
             }
         }
         return (Set(decodificado.strings.keys), traducoes)
@@ -219,5 +233,29 @@ struct CatalogoStringsTests {
             }
         }
         #expect(faltantes.isEmpty, "literais de interface fora do catálogo: \(faltantes)")
+    }
+
+    @Test("Variação de plural para '%lld vagas abertas' está definida no catálogo pt-BR com one e other")
+    func pluralVagasAbertas() throws {
+        let url = Self.raiz.appending(path: "Resources/Localizable.xcstrings")
+        let dados = try Data(contentsOf: url)
+        let json = try JSONSerialization.jsonObject(with: dados) as? [String: Any]
+        let strings = json?["strings"] as? [String: Any]
+        let entrada = strings?["%lld vagas abertas"] as? [String: Any]
+        let localizations = entrada?["localizations"] as? [String: Any]
+        let ptBR = localizations?["pt-BR"] as? [String: Any]
+        let variations = ptBR?["variations"] as? [String: Any]
+        let plural = variations?["plural"] as? [String: Any]
+
+        let one = plural?["one"] as? [String: Any]
+        let oneUnit = one?["stringUnit"] as? [String: Any]
+        let oneValue = oneUnit?["value"] as? String
+
+        let other = plural?["other"] as? [String: Any]
+        let otherUnit = other?["stringUnit"] as? [String: Any]
+        let otherValue = otherUnit?["value"] as? String
+
+        #expect(oneValue == "%lld vaga aberta")
+        #expect(otherValue == "%lld vagas abertas")
     }
 }

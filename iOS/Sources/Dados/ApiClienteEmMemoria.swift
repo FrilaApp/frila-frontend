@@ -41,7 +41,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
 
-    public init(cenario: Cenario = .sucesso, relogio: any Relogio = RelogioDoSistema()) {
+    public init(
+        cenario: Cenario = .sucesso,
+        relogio: any Relogio = RelogioDoSistema(),
+        vagas: [Vaga]? = nil
+    ) {
         self.cenario = cenario
         self.relogio = relogio
         do {
@@ -54,8 +58,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
             conta = cenario == .primeiroAcesso ? nil : usuario
             perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
             estabelecimentos = [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
-            let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
-            vagas = [try Self.noFuturo(vaga, agora: relogio.agora)]
+            if let vagas {
+                self.vagas = vagas
+            } else {
+                let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
+                self.vagas = [try Self.noFuturo(vaga, agora: relogio.agora)]
+            }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
         }
@@ -216,9 +224,24 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] {
         try verificarFalhaGeral()
         if cenario == .erroNaLista { throw erro("campo_invalido", detalhes: "limite") }
+
+        let limite = filtro.limite ?? 30
+        let deslocamento = filtro.deslocamento ?? 0
+        if limite < 1 || limite > 100 {
+            throw erro("campo_invalido", detalhes: "limite")
+        }
+        if deslocamento < 0 {
+            throw erro("campo_invalido", detalhes: "deslocamento")
+        }
+
         let referencia = filtro.referencia ?? perfilProfissional?.pontoBase
-        return vagas
-            .filter { $0.estado == .publicada && (filtro.funcaoID == nil || $0.funcao.id == filtro.funcaoID) }
+        let ordenadas = vagas
+            .filter { vaga in
+                guard vaga.estado == .publicada else { return false }
+                if let funcaoID = filtro.funcaoID, vaga.funcao.id != funcaoID { return false }
+                if let data = filtro.data, DataCivil.deSaoPaulo(vaga.periodo.inicio) != data { return false }
+                return true
+            }
             .map { vaga in
                 let distancia = referencia.map { vaga.ponto.distancia(emMetrosDe: $0) / 1_000 } ?? 0
                 return VagaNaLista(
@@ -228,7 +251,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 )
             }
             .filter { vaga in filtro.distanciaMaximaKm.map { vaga.distanciaKm <= $0 } ?? true }
-            .sorted { $0.distanciaKm < $1.distanciaKm }
+            .sorted {
+                if $0.distanciaKm != $1.distanciaKm {
+                    return $0.distanciaKm < $1.distanciaKm
+                }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+
+        let inicio = min(deslocamento, ordenadas.count)
+        let fim = min(inicio + limite, ordenadas.count)
+        return Array(ordenadas[inicio..<fim])
     }
 
     public func detalheDaVaga(id: UUID) async throws -> Vaga {
