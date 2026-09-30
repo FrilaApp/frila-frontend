@@ -89,6 +89,7 @@
 		D5D374210279E2CD1D8DDF4E /* CandidaturaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 619DFD6BAB27B15FAE110431 /* CandidaturaTests.swift */; };
 		D9F7F328BB7C0EA59C565EFF /* Portas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29280FDF830FB5FD01A47356 /* Portas.swift */; };
 		DA7A8C61156468C3F8E0E12E /* SwiftDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5AB836C22721632CB647259 /* SwiftDataTests.swift */; };
+		DC7952E125C99359F1083E72 /* CatalogoStringsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102179ABA9DFAF4F06714C32 /* CatalogoStringsTests.swift */; };
 		DE5FCC0BA755A874B4961CD6 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
 		E056CF423891762CD4D6EDC3 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
 		E37C08338359D5E72F19001B /* FrilaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */; };
@@ -245,6 +246,7 @@
 		0BBD26CA01BE17B1F08AC8AC /* avaliacao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = avaliacao.json; sourceTree = "<group>"; };
 		0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbiente.swift; sourceTree = "<group>"; };
 		0F1AAB76FBC70F896F4BEE7F /* EncerramentoDeSessaoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncerramentoDeSessaoTests.swift; sourceTree = "<group>"; };
+		102179ABA9DFAF4F06714C32 /* CatalogoStringsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogoStringsTests.swift; sourceTree = "<group>"; };
 		11ACF6312B2CF11BD386390B /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		11E1ABDC7050A3310FB160AE /* DetalheVagaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetalheVagaViewModel.swift; sourceTree = "<group>"; };
 		120490C59760F033206A2EDD /* turnos.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = turnos.json; sourceTree = "<group>"; };
@@ -461,6 +463,7 @@
 				C6FA10275A7C93ECAB311691 /* ApiEmMemoriaTests.swift */,
 				88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */,
 				619DFD6BAB27B15FAE110431 /* CandidaturaTests.swift */,
+				102179ABA9DFAF4F06714C32 /* CatalogoStringsTests.swift */,
 				B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */,
 				B60A4C3E1C9933DE5E17492B /* ContratoTests.swift */,
 				90A4AC403161D71F18466D6A /* DominioTests.swift */,
@@ -1017,6 +1020,7 @@
 				323E59B84BDAA751E9A9E952 /* ApiEmMemoriaTests.swift in Sources */,
 				1BFAB3F95F669A94FE53BEB8 /* AtualizacaoObrigatoriaTests.swift in Sources */,
 				D5D374210279E2CD1D8DDF4E /* CandidaturaTests.swift in Sources */,
+				DC7952E125C99359F1083E72 /* CatalogoStringsTests.swift in Sources */,
 				8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */,
 				3A96BB6BFA60AB9E3FA036D5 /* ContratoTests.swift in Sources */,
 				0614982DC6AABA151649D361 /* DominioTests.swift in Sources */,
