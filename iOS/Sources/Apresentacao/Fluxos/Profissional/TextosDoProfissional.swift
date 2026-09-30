@@ -20,6 +20,7 @@ enum TextosDoProfissional {
         static let vazioMensagem = "Mude os filtros ou puxe para atualizar."
         static let erroMensagem = "Não foi possível carregar as vagas."
         static let semPontoDeReferencia = "Complete seu perfil com o ponto de partida para ver as vagas por distância."
+        static let perfilIncompativel = "Esta lista é para quem trabalha como profissional."
         static let semConexaoMensagem = "Sem conexão. Tente de novo quando a internet voltar."
     }
 

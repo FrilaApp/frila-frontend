@@ -84,7 +84,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .cartaoFrila()
             .accessibilityIdentifier("detalhe-reputacao")
 
-        AvisoFrila(LocalizedStringKey(TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome)), tom: .alerta)
+        AvisoFrila(TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome), tom: .alerta)
             .accessibilityIdentifier("aviso-rn10")
 
         acao(vaga)
@@ -107,8 +107,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
     private func cabecalho(_ vaga: Vaga) -> String {
         guard let km = vaga.distanciaKm else { return "\(vaga.estabelecimento.nome) · \(vaga.local)" }
-        let distancia = km.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "pt_BR")))
-        return "\(vaga.estabelecimento.nome) · \(vaga.local) · a \(distancia) km"
+        return "\(vaga.estabelecimento.nome) · \(vaga.local) · a \(FormatadorFrila().distancia(km))"
     }
 
     private func modoTitulo(_ modo: ModoPreenchimento) -> String {
