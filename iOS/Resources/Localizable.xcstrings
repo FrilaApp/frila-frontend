@@ -71,6 +71,16 @@
         }
       }
     },
+    "Aguarde o envio da candidatura anterior.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguarde o envio da candidatura anterior."
+          }
+        }
+      }
+    },
     "Algo deu errado": {
       "localizations": {
         "pt-BR": {
