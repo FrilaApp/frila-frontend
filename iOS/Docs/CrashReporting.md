@@ -17,8 +17,10 @@ relatório local que não chegava ao time. O único produto Firebase integrado �
   falta o dSYM de algum binário da pilha: ela não aparece no painel, nem como "sem símbolos".
 - A última fase de build chama o `upload-symbols` com o dSYM do app e o de cada framework, e
   grava a saída em `DerivedSources/crashlytics-upload-symbols.log`. Não usa o `Crashlytics/run`:
-  ele envia só o dSYM do app e descarta a saída do envio em segundo plano. No Release o envio é
-  síncrono e quebra o build se falhar; no Debug-Dev roda em segundo plano. Sem plist, inclusive
+  ele envia só o dSYM do app e descarta a saída do envio em segundo plano. No archive
+  (`ACTION=install`) o envio é síncrono, tenta duas vezes e quebra o archive se falhar; nos outros
+  builds roda em segundo plano; na CI (`$CI`) não roda, porque o build de simulador da CI não é
+  distribuído e o `upload-symbols` já caiu com Segmentation fault no runner. Sem plist, inclusive
   em build de CI sem esse segredo, a fase avisa e sai com sucesso. Um framework novo entra na
   lista do script e nos `inputFiles` da fase, porque o sandbox de scripts só lê o que está
   declarado.
