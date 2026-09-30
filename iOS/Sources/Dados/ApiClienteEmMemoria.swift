@@ -129,6 +129,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func verificarCodigo(email: String, codigo: String) async throws {
         chamadasAVerificarCodigo += 1
+        await Task.yield()
         try verificarRede()
         if cenario == .codigoErrado || codigo == "000000" {
             throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "codigo_invalido")
@@ -163,6 +164,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
         chamadasACriarConta += 1
+        await Task.yield()
         try verificarRede()
         guard conta == nil && cenario != .contaExistente else { throw erro("conta_existente") }
         if cenario == .menorDeIdade {
