@@ -6,6 +6,7 @@ on:
       - "iOS/**"
       - ".github/workflows/ios.yml"
   push:
+    branches: [main]
     paths:
       - "iOS/**"
       - ".github/workflows/ios.yml"
