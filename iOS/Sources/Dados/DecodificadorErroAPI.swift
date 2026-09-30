@@ -4,8 +4,11 @@ import FrilaDominio
 public enum DecodificadorErroAPI {
     public static func mapear(statusCode: Int, dados: Data) -> ErroDaApi {
         let erro = decodificar(dados)
-        if statusCode == 401, erro.codigo == .desconhecido { return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: erro.codigoOriginal, detalhes: erro.detalhes) }
-        if statusCode == 409 { return erro }
+        // O 401 do gateway das Edge Functions (`{"code":401,...}`, com `code` numérico) não é o
+        // envelope do contrato e sai como `respostaInvalida`; o status já diz que é sessão inválida.
+        if statusCode == 401, erro.codigo == .desconhecido || erro.codigo == .respostaInvalida {
+            return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: erro.codigoOriginal, detalhes: erro.detalhes)
+        }
         return erro
     }
 

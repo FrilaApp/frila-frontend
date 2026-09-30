@@ -17,6 +17,8 @@ final class Roteiro: @unchecked Sendable {
     private var _rpc: Resposta = .http(200, "{}")
     private var _funcao: Resposta = .http(404, #"{"code":"nao_encontrado","message":"nao_encontrado","details":null,"hint":null}"#)
     private var _logout: Resposta = .http(204, "")
+    private var _otp: Resposta = .http(200, "{}")
+    private var _tabela: Resposta = .http(200, "[]")
     private var _logouts = 0
     private var _segurarRPC = false
     private var retidas: [URLProtocol] = []
@@ -48,6 +50,15 @@ final class Roteiro: @unchecked Sendable {
     var logout: Resposta {
         get { trava.withLock { _logout } }
         set { trava.withLock { _logout = newValue } }
+    }
+    var otp: Resposta {
+        get { trava.withLock { _otp } }
+        set { trava.withLock { _otp = newValue } }
+    }
+    /// Leitura direta de tabela pelo PostgREST (`/rest/v1/<tabela>`), fora das RPCs.
+    var tabela: Resposta {
+        get { trava.withLock { _tabela } }
+        set { trava.withLock { _tabela = newValue } }
     }
     var logouts: Int { trava.withLock { _logouts } }
     func contarLogout() { trava.withLock { _logouts += 1 } }
@@ -111,6 +122,8 @@ private final class StubDeAuth: URLProtocol {
         switch url.path {
         case "/auth/v1/verify":
             Self.responder(self, com: roteiro.consumirFalhaDoVerify() ?? .http(200, Roteiro.sessao(roteiro.tokenDoVerify)))
+        case "/auth/v1/otp":
+            Self.responder(self, com: roteiro.otp)
         case "/auth/v1/logout":
             roteiro.contarLogout()
             Self.responder(self, com: roteiro.logout)
@@ -118,6 +131,8 @@ private final class StubDeAuth: URLProtocol {
             if !roteiro.reter(self) { Self.responder(self, com: roteiro.rpc) }
         case let caminho where caminho.hasPrefix("/functions/v1/"):
             Self.responder(self, com: roteiro.funcao)
+        case let caminho where caminho.hasPrefix("/rest/v1/"):
+            Self.responder(self, com: roteiro.tabela)
         default:
             Self.responder(self, com: .http(500, "{}"))
         }
@@ -329,11 +344,11 @@ struct EncerramentoDeSessaoTests {
         try await cliente.verificarCodigo(email: "c1@example.com", codigo: "123456")
         roteiro.funcao = .http(401, #"{"code":401,"message":"Invalid JWT"}"#)
 
-        // A tela recebe um ErroDaApi; qual caso é, depende do decodificador, que esta mudança não
-        // toca (hoje o `code` numérico do gateway vira respostaInvalida).
-        await #expect(throws: ErroDaApi.self) {
+        // O `code` numérico do gateway não é o envelope do contrato; o status 401 decide.
+        let erro = await #expect(throws: ErroDaApi.self) {
             try await cliente.entrarDemonstracao(email: "demo@example.com", codigo: "000000")
         }
+        #expect(erro?.codigo == .naoAutenticado)
 
         #expect(!cliente.haSessaoGuardada)
         #expect(roteiro.logouts == 1)
@@ -357,5 +372,63 @@ struct EncerramentoDeSessaoTests {
         await #expect(throws: ErroDaApi.self) { _ = try await cliente.minhaConta() }
 
         #expect(await primeiroAviso.value)
+    }
+}
+
+/// `/otp` e `/verify` falham como `AuthError`; o contrato promete `limite_excedido` e
+/// `nao_autenticado`, e a tela precisa saber qual dos dois aconteceu.
+@Suite("Erros da entrada e do catálogo")
+struct ErrosDaEntradaTests {
+    @Test("429 no envio do código vira limite_excedido")
+    func limiteNoEnvio() async throws {
+        let roteiro = Roteiro()
+        roteiro.otp = .http(429, #"{"code":"over_email_send_rate_limit","error_code":"over_email_send_rate_limit","msg":"email rate limit exceeded"}"#)
+        let cliente = try clienteDeTeste(roteiro)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            try await cliente.solicitarCodigo(email: "c1@example.com")
+        }
+        #expect(erro?.codigo == .limiteExcedido)
+        #expect(erro?.codigoOriginal == "over_email_send_rate_limit")
+    }
+
+    @Test("Código errado ou vencido (403 otp_expired do GoTrue) vira nao_autenticado")
+    func codigoErradoNaConfirmacao() async throws {
+        let roteiro = Roteiro()
+        roteiro.falharNoProximoVerify(com: .http(403, #"{"code":"otp_expired","error_code":"otp_expired","msg":"Token has expired or is invalid"}"#))
+        let cliente = try clienteDeTeste(roteiro)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            try await cliente.verificarCodigo(email: "c1@example.com", codigo: "000000")
+        }
+        #expect(erro?.codigo == .naoAutenticado)
+        #expect(!cliente.haSessaoGuardada)
+    }
+
+    @Test("401 do contrato na confirmação vira nao_autenticado")
+    func quatroZeroUmNaConfirmacao() async throws {
+        let roteiro = Roteiro()
+        roteiro.falharNoProximoVerify(com: .http(401, #"{"code":"nao_autenticado","error_code":"nao_autenticado","msg":"nao_autenticado"}"#))
+        let cliente = try clienteDeTeste(roteiro)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            try await cliente.verificarCodigo(email: "c1@example.com", codigo: "123456")
+        }
+        #expect(erro?.codigo == .naoAutenticado)
+    }
+
+    @Test("401 na leitura do catálogo de funções encerra a sessão usada na chamada")
+    func quatroZeroUmNoCatalogo() async throws {
+        let roteiro = Roteiro()
+        let cliente = try clienteDeTeste(roteiro)
+        try await cliente.verificarCodigo(email: "c1@example.com", codigo: "123456")
+        roteiro.tabela = .http(401, #"{"code":"PGRST301","message":"JWT expired","details":null,"hint":null}"#)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            _ = try await cliente.funcoes()
+        }
+        #expect(erro?.codigo == .naoAutenticado)
+        #expect(!cliente.haSessaoGuardada)
+        #expect(roteiro.logouts == 1)
     }
 }
