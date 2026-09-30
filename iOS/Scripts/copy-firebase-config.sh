@@ -22,12 +22,7 @@ SOURCE_PLIST="${SRCROOT}/Resources/Firebase/${FIREBASE_ENVIRONMENT}/GoogleServic
 DESTINATION_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
 
 if [[ ! -f "$SOURCE_PLIST" ]]; then
-  if [[ "${CI:-false}" == "true" ]]; then
-    echo "error: missing Firebase configuration for ${FRILA_ENVIRONMENT}; run Scripts/inject-firebase-config.sh first" >&2
-    exit 1
-  fi
-
-  echo "warning: missing Firebase configuration for ${FRILA_ENVIRONMENT}; push messaging stays disabled in this local build" >&2
+  echo "warning: missing Firebase configuration for ${FRILA_ENVIRONMENT}; Firebase permanece desabilitado neste build" >&2
   exit 0
 fi
 

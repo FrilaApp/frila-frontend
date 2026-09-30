@@ -12,6 +12,7 @@ struct FrilaApp: App {
     private let versao: String
 
     init() {
+        RelatorioDeFalhas.iniciarSeConfigurado()
         let versao = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
         self.versao = versao
         do throws(ErroDeConfiguracao) {
@@ -22,7 +23,6 @@ struct FrilaApp: App {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
         }
-        ColetorMetricKit.compartilhado.iniciar()
     }
 
     var body: some Scene {
@@ -43,7 +43,7 @@ struct FrilaApp: App {
         case .emMemoria:
             ApiClienteEmMemoria.pelosArgumentos()
         case let .supabase(url, chavePublicavel):
-            SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaMetricKit())
+            SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaCrashlytics())
         }
     }
 }
