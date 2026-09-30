@@ -58,7 +58,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
                     campo(TextosDoProfissional.Detalhe.valor, formatador.dinheiro(vaga.valor))
                 }
                 GridRow {
-                    campo(TextosDoProfissional.Detalhe.posicoes, "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)")
+                    campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)"))
                     campo(modoTitulo(vaga.modo), modoDetalhe(vaga.modo))
                 }
             }

@@ -17,7 +17,7 @@ public final class RoteadorDoProfissional {
     public var caminho: [RotaDoProfissional] = []
     /// Sobrevive à saída do detalhe enquanto `candidatar` ainda está em voo. O roteador, e não a
     /// view que iniciou a chamada, decide o destino do resultado definitivo.
-    private var candidaturaEmAndamento: CandidaturaViewModel?
+    var candidaturaEmAndamento: CandidaturaViewModel?
 
     public init() {}
 
@@ -31,15 +31,21 @@ public final class RoteadorDoProfissional {
 
     public func candidatar(viewModel: CandidaturaViewModel) async {
         if let candidaturaEmAndamento, candidaturaEmAndamento !== viewModel, candidaturaEmAndamento.enviando {
+            viewModel.indicarOutroEnvioEmAndamento()
             return
         }
+        guard !viewModel.enviando else { return }
         candidaturaEmAndamento = viewModel
+        defer {
+            if candidaturaEmAndamento === viewModel {
+                candidaturaEmAndamento = nil
+            }
+        }
         await viewModel.candidatar()
         guard candidaturaEmAndamento === viewModel,
               case let .concluida(resultado) = viewModel.estado,
               resultado.abreTelaPropria else { return }
         caminho = [.resultado(vaga: viewModel.vaga, resultado: resultado)]
-        candidaturaEmAndamento = nil
     }
 }
 

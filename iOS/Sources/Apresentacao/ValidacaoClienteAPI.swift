@@ -7,25 +7,25 @@ public enum MensagemDoErroAPI {
     public static func texto(_ erro: ErroDaApi) -> String {
         switch erro.codigo {
         case .posicaoJaPreenchida:
-            "Esta vaga acabou de ser preenchida. Escolha outra oportunidade."
+            String(localized: "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.")
         case .vagaEncerrada:
-            "Esta vaga não está mais disponível."
+            String(localized: "Esta vaga não está mais disponível.")
         case .checkinPendente:
-            "Faça o check-in antes de continuar."
+            String(localized: "Faça o check-in antes de continuar.")
         case .checkinJaConfirmado:
-            "Este check-in já foi confirmado."
+            String(localized: "Este check-in já foi confirmado.")
         case .posicaoNaoCancelavel:
-            "Esta posição não pode mais ser cancelada."
+            String(localized: "Esta posição não pode mais ser cancelada.")
         case .semRede:
-            "Sem conexão. Tente novamente quando a internet voltar."
+            String(localized: "Sem conexão. Tente novamente quando a internet voltar.")
         case .naoAutenticado:
-            "Sua sessão expirou. Entre novamente para continuar."
+            String(localized: "Sua sessão expirou. Entre novamente para continuar.")
         case .semPermissao, .perfilIncompativel:
-            "Sua conta não pode realizar esta ação."
+            String(localized: "Sua conta não pode realizar esta ação.")
         case .limiteExcedido:
-            "Você fez muitas tentativas. Aguarde um instante e tente novamente."
+            String(localized: "Você fez muitas tentativas. Aguarde um instante e tente novamente.")
         default:
-            "Não foi possível concluir esta ação. Tente novamente."
+            String(localized: "Não foi possível concluir esta ação. Tente novamente.")
         }
     }
 }

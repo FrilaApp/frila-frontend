@@ -1,5 +1,5 @@
 import Foundation
-import FrilaDados
+@testable import FrilaDados
 import FrilaDominio
 import Testing
 
@@ -122,6 +122,91 @@ struct ApiEmMemoriaTests {
         await #expect(throws: ErroDaApi(codigo: .semRede)) { try await ApiClienteEmMemoria(cenario: .semRede).funcoes() }
         await #expect(throws: ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa")) {
             try await ApiClienteEmMemoria(cenario: .contaSuspensa).funcoes()
+        }
+    }
+
+    private static func criarVagasDeTeste() throws -> [Vaga] {
+        let base = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
+        var calendario = Calendar(identifier: .gregorian)
+        calendario.timeZone = try #require(TimeZone(identifier: "America/Sao_Paulo"))
+
+        var resultado: [Vaga] = []
+        for i in 1...5 {
+            let componentes = DateComponents(year: 2026, month: 10, day: i <= 2 ? 1 : 2, hour: 12 + i, minute: 0)
+            let inicio = try #require(calendario.date(from: componentes))
+            let periodo = try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(14_400))
+            let ponto = try Coordenada(latitude: -15.8121 - Double(i) * 0.05, longitude: -47.8997)
+            let vaga = Vaga(
+                id: UUID(), estabelecimento: base.estabelecimento, funcao: base.funcao, periodo: periodo,
+                local: base.local, ponto: ponto, distanciaKm: Double(i), valor: base.valor,
+                posicoes: 1, posicoesAbertas: 1, inclusos: base.inclusos,
+                responsavelLocal: base.responsavelLocal, traje: base.traje,
+                participaRateio: base.participaRateio, observacoes: base.observacoes,
+                modo: base.modo, estado: .publicada, publicadoEm: inicio.addingTimeInterval(-86_400)
+            )
+            resultado.append(vaga)
+        }
+        return resultado
+    }
+
+    @Test("vagasAbertas respeita o filtro de data no fuso de São Paulo")
+    func vagasAbertasFiltroData() async throws {
+        let vagas = try Self.criarVagasDeTeste()
+        let api = ApiClienteEmMemoria(vagas: vagas)
+
+        let dia1 = try await api.vagasAbertas(FiltroVagas(data: try DataCivil("2026-10-01")))
+        #expect(dia1.count == 2)
+        #expect(dia1.map(\.id) == [vagas[0].id, vagas[1].id])
+
+        let dia2 = try await api.vagasAbertas(FiltroVagas(data: try DataCivil("2026-10-02")))
+        #expect(dia2.count == 3)
+        #expect(dia2.map(\.id) == [vagas[2].id, vagas[3].id, vagas[4].id])
+
+        let diaSemVagas = try await api.vagasAbertas(FiltroVagas(data: try DataCivil("2026-10-03")))
+        #expect(diaSemVagas.isEmpty)
+
+        let todas = try await api.vagasAbertas(.todas)
+        #expect(todas.count == 5)
+    }
+
+    @Test("vagasAbertas respeita limite e deslocamento na paginação")
+    func vagasAbertasPaginacao() async throws {
+        let vagas = try Self.criarVagasDeTeste()
+        let api = ApiClienteEmMemoria(vagas: vagas)
+
+        let pagina1 = try await api.vagasAbertas(FiltroVagas(limite: 2, deslocamento: 0))
+        #expect(pagina1.count == 2)
+        #expect(pagina1.map(\.id) == [vagas[0].id, vagas[1].id])
+
+        let pagina2 = try await api.vagasAbertas(FiltroVagas(limite: 2, deslocamento: 2))
+        #expect(pagina2.count == 2)
+        #expect(pagina2.map(\.id) == [vagas[2].id, vagas[3].id])
+
+        let pagina3 = try await api.vagasAbertas(FiltroVagas(limite: 2, deslocamento: 4))
+        #expect(pagina3.count == 1)
+        #expect(pagina3.map(\.id) == [vagas[4].id])
+
+        let paginaAlem = try await api.vagasAbertas(FiltroVagas(limite: 2, deslocamento: 5))
+        #expect(paginaAlem.isEmpty)
+
+        let deslocamentoMuitoGrande = try await api.vagasAbertas(FiltroVagas(limite: 2, deslocamento: 50))
+        #expect(deslocamentoMuitoGrande.isEmpty)
+    }
+
+    @Test("vagasAbertas valida limites fora de 1..100 e deslocamento negativo")
+    func vagasAbertasValidacaoParametros() async throws {
+        let api = ApiClienteEmMemoria()
+
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, detalhes: "limite")) {
+            try await api.vagasAbertas(FiltroVagas(limite: 0))
+        }
+
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, detalhes: "limite")) {
+            try await api.vagasAbertas(FiltroVagas(limite: 101))
+        }
+
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, detalhes: "deslocamento")) {
+            try await api.vagasAbertas(FiltroVagas(deslocamento: -1))
         }
     }
 }

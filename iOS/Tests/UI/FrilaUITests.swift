@@ -167,7 +167,7 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].exists)
         app.buttons["voltar-para-lista"].tap()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["1 vagas abertas"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
+        XCTAssertTrue(app.staticTexts["1 vaga aberta"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
     }
 
     func testVagaPreenchidaTemTelaPropriaEVoltaParaALista() {

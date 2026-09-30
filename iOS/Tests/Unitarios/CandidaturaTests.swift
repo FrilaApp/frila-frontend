@@ -1,5 +1,5 @@
 import Foundation
-import FrilaApresentacao
+@testable import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
 import Testing
@@ -141,5 +141,83 @@ struct CandidaturaViewModelTests {
             Issue.record("esperado rota de resultado confirmada: \(roteador.caminho)"); return
         }
         #expect(vagaDoResultado.id == vaga.id)
+    }
+
+    @Test("Candidatura com falha libera candidaturaEmAndamento no roteador via defer")
+    func candidaturaFalhaLiberaRoteadorViaDefer() async throws {
+        let api = ApiClienteEmMemoria()
+        let vaga = try await vagaDoDuble(api)
+        let roteador = RoteadorDoProfissional()
+        let vm = CandidaturaViewModel(vaga: vaga, candidatar: falhando(ErroDaApi(codigo: .desconhecido)))
+
+        await roteador.candidatar(viewModel: vm)
+
+        #expect(vm.estado == .concluida(.falha(ErroDaApi(codigo: .desconhecido))))
+        #expect(roteador.candidaturaEmAndamento == nil, "candidaturaEmAndamento deve ser liberada mesmo quando a chamada falha")
+        #expect(roteador.caminho.isEmpty, "não deve navegar para tela de resultado quando a candidatura falha")
+    }
+
+    @Test("Conclusão de candidatura anterior não apaga candidaturaEmAndamento mais nova")
+    func candidaturaConcluidaNaoApagaCandidaturaMaisNova() async throws {
+        let api = ApiClienteEmMemoria()
+        let vaga1 = try await vagaDoDuble(api)
+        let vaga2 = try await vagaDoDuble(api)
+        let roteador = RoteadorDoProfissional()
+
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let vm1 = CandidaturaViewModel(vaga: vaga1, candidatar: { _ in
+            avisarChegada.yield()
+            for await _ in liberar { break }
+            throw ErroDaApi(codigo: .desconhecido)
+        })
+        let vm2 = CandidaturaViewModel(vaga: vaga2, api: api)
+
+        let tarefa1 = Task { await roteador.candidatar(viewModel: vm1) }
+        for await _ in chegou { break }
+
+        // Simula uma candidatura mais nova assumindo o roteador enquanto a anterior estava em voo
+        roteador.candidaturaEmAndamento = vm2
+
+        sinal.yield()
+        await tarefa1.value
+
+        #expect(roteador.candidaturaEmAndamento === vm2, "candidatura mais nova não deve ser apagada pelo término da anterior")
+    }
+
+    @Test("Toque ignorado por ter outra candidatura em voo avisa no estado do viewModel")
+    func toqueEnquantoOutraEstaEmVooAvisaNoEstado() async throws {
+        let api = ApiClienteEmMemoria()
+        let vaga1 = try await vagaDoDuble(api)
+        let vaga2 = try await vagaDoDuble(api)
+        let roteador = RoteadorDoProfissional()
+
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let vm1 = CandidaturaViewModel(vaga: vaga1, candidatar: { id in
+            avisarChegada.yield()
+            for await _ in liberar { break }
+            return try await api.candidatar(vagaID: id)
+        })
+        let vm2 = CandidaturaViewModel(vaga: vaga2, api: api)
+
+        let tarefa1 = Task { await roteador.candidatar(viewModel: vm1) }
+        for await _ in chegou { break }
+
+        #expect(vm1.enviando)
+        await roteador.candidatar(viewModel: vm2)
+
+        #expect(vm2.estado == .concluida(.outraEmAndamento))
+        #expect(roteador.candidaturaEmAndamento === vm1, "a primeira candidatura continua em andamento")
+
+        sinal.yield()
+        await tarefa1.value
+        #expect(roteador.candidaturaEmAndamento == nil, "após a primeira terminar, o roteador é liberado")
+    }
+
+    @Test("Resultado outraEmAndamento gera aviso no detalhe e não abre tela própria")
+    func outraEmAndamentoFicaNoDetalhe() {
+        #expect(!ResultadoDaCandidatura.outraEmAndamento.abreTelaPropria)
+        #expect(AreaDeCandidatura.mensagemNoDetalhe(.outraEmAndamento) == TextosDoProfissional.Candidatura.outraEmAndamento)
     }
 }

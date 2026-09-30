@@ -158,6 +158,9 @@ public struct AvisoFrila: View {
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }
 }
 
+private final class MarcadorComponentes: NSObject {}
+private let bundleApresentacao = Bundle(for: MarcadorComponentes.self)
+
 public struct CartaoVaga: View {
     private let vaga: VagaNaLista
     private let formatador = FormatadorFrila()
@@ -178,7 +181,7 @@ public struct CartaoVaga: View {
             Label(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao),
                   systemImage: vaga.estabelecimento.reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup")
                 .font(.caption.weight(.medium))
-            Text("\(vaga.posicoesAbertas) vagas abertas").font(.caption)
+            Text("\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao).font(.caption)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
@@ -189,7 +192,7 @@ public struct CartaoVaga: View {
 
     public var rotuloDeAcessibilidade: String {
         var partes = [
-            "Vaga de \(vaga.funcao.nome)",
+            String(localized: "Vaga de \(vaga.funcao.nome)"),
             vaga.estabelecimento.nome,
             formatador.intervalo(vaga.periodo),
             formatador.dinheiro(vaga.valor),
@@ -200,7 +203,7 @@ public struct CartaoVaga: View {
             partes.append(inclusos)
         }
         partes.append(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao))
-        partes.append("\(vaga.posicoesAbertas) vagas abertas")
+        partes.append(String(localized: "\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao))
         return partes.joined(separator: ", ")
     }
 
@@ -210,8 +213,8 @@ public struct CartaoVaga: View {
 
     private var inclusos: String {
         var itens: [String] = []
-        if vaga.inclusos.refeicao { itens.append("Refeição") }
-        if vaga.inclusos.transporte { itens.append("Transporte") }
+        if vaga.inclusos.refeicao { itens.append(String(localized: "Refeição")) }
+        if vaga.inclusos.transporte { itens.append(String(localized: "Transporte")) }
         return itens.joined(separator: " · ")
     }
 }
