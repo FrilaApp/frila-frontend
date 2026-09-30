@@ -81,6 +81,7 @@ enum TextosDoProfissional {
         static let naoEncontrada = String(localized: "Esta vaga não está mais disponível. Volte para a lista e escolha outra.")
         static let falha = String(localized: "Não foi possível enviar a candidatura. Tente de novo.")
         static let semConexao = String(localized: "Sem conexão. A candidatura não foi enviada; tente de novo quando a internet voltar.")
+        static let outraEmAndamento = String(localized: "Aguarde o envio da candidatura anterior.")
     }
 
     enum Turnos {

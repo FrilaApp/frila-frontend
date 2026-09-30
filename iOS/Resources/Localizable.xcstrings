@@ -24,9 +24,21 @@
     "%lld vagas abertas": {
       "localizations": {
         "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld vagas abertas"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vaga aberta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vagas abertas"
+                }
+              }
+            }
           }
         }
       }
@@ -67,6 +79,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abrir no WhatsApp"
+          }
+        }
+      }
+    },
+    "Aguarde o envio da candidatura anterior.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguarde o envio da candidatura anterior."
           }
         }
       }
