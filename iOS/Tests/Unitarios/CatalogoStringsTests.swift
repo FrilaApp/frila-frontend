@@ -127,6 +127,7 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Candidatura.naoEncontrada,
             TextosDoProfissional.Candidatura.falha,
             TextosDoProfissional.Candidatura.semConexao,
+            TextosDoProfissional.Candidatura.outraEmAndamento,
         ]
 
         let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + [

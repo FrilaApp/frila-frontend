@@ -32,8 +32,8 @@ public struct AreaDeCandidatura: View {
             .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
 
             if case let .concluida(resultado) = viewModel.estado, let texto = Self.mensagemNoDetalhe(resultado) {
-                AvisoFrila(LocalizedStringKey(texto), tom: .erro)
-                    .accessibilityIdentifier("candidatura-falha")
+                AvisoFrila(LocalizedStringKey(texto), tom: resultado == .outraEmAndamento ? .alerta : .erro)
+                    .accessibilityIdentifier(resultado == .outraEmAndamento ? "candidatura-em-voo" : "candidatura-falha")
             }
         }
         .onChange(of: viewModel.estado) { _, novo in
@@ -50,6 +50,7 @@ public struct AreaDeCandidatura: View {
         case .naoEncontrada: Textos.naoEncontrada
         case let .falha(erro) where erro.codigo == .semRede: Textos.semConexao
         case .falha: Textos.falha
+        case .outraEmAndamento: Textos.outraEmAndamento
         default: nil
         }
     }
@@ -117,7 +118,7 @@ public struct TelaResultadoDaCandidatura: View {
                 .accessibilityIdentifier("contestar")
             Text(Textos.contestarEmBreve).font(.footnote).foregroundStyle(FrilaCor.textoSecundario)
             voltar
-        case .naoEncontrada, .falha:
+        case .naoEncontrada, .falha, .outraEmAndamento:
             // Esses ficam no detalhe; se chegarem aqui, a pessoa volta para a lista.
             voltar
         }
@@ -149,6 +150,7 @@ public struct TelaResultadoDaCandidatura: View {
         case .contaSuspensa: Textos.suspensaTitulo
         case .naoEncontrada: Textos.naoEncontrada
         case .falha: Textos.falha
+        case .outraEmAndamento: Textos.outraEmAndamento
         }
     }
 }

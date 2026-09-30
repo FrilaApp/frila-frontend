@@ -24,12 +24,14 @@ public enum ResultadoDaCandidatura: Equatable, Sendable {
     /// `404 nao_encontrado`: a vaga não existe mais ou não está visível.
     case naoEncontrada
     case falha(ErroDaApi)
+    /// Outra candidatura já está sendo enviada pelo roteador (#239).
+    case outraEmAndamento
 
     /// Só recusas recuperáveis ficam no detalhe. Todo resultado definitivo precisa de uma tela
     /// própria, mesmo que a pessoa tenha saído do detalhe enquanto a chamada terminava.
     var abreTelaPropria: Bool {
         switch self {
-        case .naoEncontrada, .falha: false
+        case .naoEncontrada, .falha, .outraEmAndamento: false
         default: true
         }
     }
@@ -46,6 +48,7 @@ extension ResultadoDaCandidatura: Hashable {
         case .contaSuspensa: hasher.combine(4)
         case .naoEncontrada: hasher.combine(5)
         case let .falha(erro): hasher.combine(6); hasher.combine(erro.codigo); hasher.combine(erro.codigoOriginal); hasher.combine(erro.detalhes)
+        case .outraEmAndamento: hasher.combine(7)
         }
     }
 }
@@ -91,10 +94,16 @@ public final class CandidaturaViewModel {
         estado = .concluida(resultado)
     }
 
-    /// Depois de um resultado que fica no detalhe (não encontrada ou falha), deixa tentar de novo.
+    /// Depois de um resultado que fica no detalhe (não encontrada, falha ou outra em andamento), deixa tentar de novo.
     public func recomecar() {
         guard !enviando else { return }
         estado = .ocioso
+    }
+
+    /// Chamado pelo roteador quando um toque é ignorado porque outra candidatura já está em voo (#239).
+    public func indicarOutroEnvioEmAndamento() {
+        guard !enviando else { return }
+        estado = .concluida(.outraEmAndamento)
     }
 
     static func resultado(_ resposta: ResultadoCandidatura) -> ResultadoDaCandidatura {
