@@ -289,7 +289,7 @@ struct DetalheVagaViewModelTests {
     func avisoRN10Literal() {
         let nomeMaldoso = "[x](https://y) e *z*"
         let mensagem = TextosDoProfissional.Detalhe.avisoRN10(nomeMaldoso)
-        let aviso = AvisoFrila(mensagem, tom: .alerta)
+        let aviso = AvisoFrila(verbatim: mensagem, tom: .alerta)
         let descricao = String(describing: aviso.body)
         #expect(descricao.contains("verbatim(\"\(mensagem)\")"))
         #expect(descricao.contains("[x](https://y)"))

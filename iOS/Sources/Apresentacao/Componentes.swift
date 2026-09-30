@@ -130,8 +130,8 @@ public struct AvisoFrila: View {
         self.tom = tom
     }
 
-    public init(_ literal: String, tom: Tom = .informativo) {
-        self.conteudo = .literal(literal)
+    public init(verbatim: String, tom: Tom = .informativo) {
+        self.conteudo = .literal(verbatim)
         self.tom = tom
     }
 

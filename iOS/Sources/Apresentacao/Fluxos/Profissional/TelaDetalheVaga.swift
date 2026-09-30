@@ -84,7 +84,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .cartaoFrila()
             .accessibilityIdentifier("detalhe-reputacao")
 
-        AvisoFrila(TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome), tom: .alerta)
+        AvisoFrila(verbatim: TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome), tom: .alerta)
             .accessibilityIdentifier("aviso-rn10")
 
         acao(vaga)
