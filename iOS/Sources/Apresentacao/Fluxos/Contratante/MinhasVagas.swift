@@ -71,6 +71,12 @@ public enum SecaoMinhasVagas: String, CaseIterable, Identifiable, Sendable {
 
 @MainActor @Observable
 public final class MinhasVagasViewModel {
+    public static var calendarioSaoPaulo: Calendar {
+        var calendario = Calendar(identifier: .gregorian)
+        calendario.timeZone = TimeZone(identifier: "America/Sao_Paulo")!
+        return calendario
+    }
+
     public let estabelecimentoID: UUID
     public let nomeEstabelecimento: String
     public let vagaRecemPublicadaID: UUID?
@@ -87,7 +93,7 @@ public final class MinhasVagasViewModel {
         estabelecimento: Estabelecimento,
         vagaRecemPublicadaID: UUID? = nil,
         agora: @escaping @Sendable () -> Date = Date.init,
-        calendario: Calendar = .current
+        calendario: Calendar = MinhasVagasViewModel.calendarioSaoPaulo
     ) {
         self.estabelecimentoID = estabelecimento.id
         self.nomeEstabelecimento = estabelecimento.nome
@@ -112,7 +118,7 @@ public final class MinhasVagasViewModel {
         estabelecimento: EstabelecimentoDaConta,
         vagaRecemPublicadaID: UUID? = nil,
         agora: @escaping @Sendable () -> Date = Date.init,
-        calendario: Calendar = .current
+        calendario: Calendar = MinhasVagasViewModel.calendarioSaoPaulo
     ) {
         self.init(
             api: api,
@@ -130,7 +136,7 @@ public final class MinhasVagasViewModel {
         nomeEstabelecimento: String,
         vagaRecemPublicadaID: UUID? = nil,
         agora: @escaping @Sendable () -> Date = Date.init,
-        calendario: Calendar = .current
+        calendario: Calendar = MinhasVagasViewModel.calendarioSaoPaulo
     ) {
         self.estabelecimentoID = estabelecimentoID
         self.nomeEstabelecimento = nomeEstabelecimento
@@ -154,7 +160,7 @@ public final class MinhasVagasViewModel {
         estabelecimento: Estabelecimento,
         vagaRecemPublicadaID: UUID? = nil,
         agora: @escaping @Sendable () -> Date = Date.init,
-        calendario: Calendar = .current,
+        calendario: Calendar = MinhasVagasViewModel.calendarioSaoPaulo,
         buscarPainel: @escaping @Sendable () async throws -> Painel
     ) {
         self.estabelecimentoID = estabelecimento.id

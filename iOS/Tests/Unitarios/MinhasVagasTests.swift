@@ -68,6 +68,33 @@ struct MinhasVagasTests {
         #expect(vm.tempoAteInicio(alerta) == "2 h 0 min")
     }
 
+    @Test("Usa o dia civil de São Paulo mesmo que o calendário do aparelho esteja em UTC")
+    func hojeSegueFusoDeSaoPaulo() async throws {
+        let formatador = ISO8601DateFormatter()
+        formatador.timeZone = TimeZone(secondsFromGMT: 0)
+        let agoraEmUTC = try #require(formatador.date(from: "2026-02-02T01:30:00Z")) // 22:30 em São Paulo
+        let inicioEmUTC = try #require(formatador.date(from: "2026-02-02T02:00:00Z")) // 23:00 em São Paulo
+        var calendarioDoAparelho = Calendar(identifier: .gregorian)
+        calendarioDoAparelho.timeZone = TimeZone(secondsFromGMT: 0)!
+        #expect(calendarioDoAparelho.timeZone.secondsFromGMT() == 0)
+        #expect(MinhasVagasViewModel.calendarioSaoPaulo.timeZone.identifier == "America/Sao_Paulo")
+
+        let estabelecimento = try estabelecimento()
+        let periodo = try Periodo(inicio: inicioEmUTC, fim: inicioEmUTC.addingTimeInterval(3_600))
+        let resumo = VagaResumo(
+            id: UUID(uuidString: "73000000-0000-0000-0000-000000000015")!, funcao: "Garçom",
+            local: "Rua das Flores, 10", periodo: periodo, valor: Dinheiro(centavos: 14_000)
+        )
+        let vaga = VagaNoPainel(vaga: resumo, modo: .urgencia, estado: .publicada, alertaVagaVazia: false, candidatosPendentes: 0, posicoes: [])
+        let painel = Painel(estabelecimentoID: estabelecimento.id, vagas: [vaga], checkinsPendentes: [])
+        let vm = MinhasVagasViewModel(estabelecimento: estabelecimento, agora: { agoraEmUTC }) { painel }
+
+        await vm.carregar()
+
+        #expect(vm.vagas(na: .hoje).map(\.vaga.id) == [vaga.vaga.id])
+        #expect(vm.vagas(na: .proximas).isEmpty)
+    }
+
     @Test("A vaga publicada nesta sessão aparece antes das outras na sua seção")
     func promovePublicacaoRecente() async throws {
         let primeira = try vaga(id: "73000000-0000-0000-0000-000000000021", inicioEm: 2 * 86_400)
