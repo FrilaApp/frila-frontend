@@ -11,11 +11,21 @@ public final class MeuTurnoViewModel {
     public private(set) var carregandoContato: Bool = false
 
     private let api: any ApiCliente
+    private let filaDeAcoes: (any FilaDeAcoes)?
+    private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
 
-    public init(turno: Turno, api: any ApiCliente, relogio: any Relogio = RelogioDoSistema()) {
+    public init(
+        turno: Turno,
+        api: any ApiCliente,
+        fila: (any FilaDeAcoes)? = nil,
+        armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
+        relogio: any Relogio = RelogioDoSistema()
+    ) {
         self.turno = turno
         self.api = api
+        self.filaDeAcoes = fila
+        self.armazenamentoAvaliacoes = armazenamentoAvaliacoes
         self.relogio = relogio
 
         if let c = turno.contato {
@@ -27,6 +37,32 @@ public final class MeuTurnoViewModel {
             self.contato = nil
             self.contatoExpirado = !visivel
         }
+    }
+
+    public var podeAvaliar: Bool {
+        // Critério 1: a avaliação só aparece depois do fim previsto e com presença verificada (RN07).
+        guard turno.verificacao == .verificado else { return false }
+        guard turno.vaga.periodo.fim <= relogio.agora else { return false }
+        return true
+    }
+
+    public var respostaAvaliacao: Bool? {
+        armazenamentoAvaliacoes.resposta(para: turno.id)
+    }
+
+    public var jaAvaliado: Bool {
+        respostaAvaliacao != nil || (!turno.podeAvaliar && podeAvaliar)
+    }
+
+    public func criarAvaliacaoViewModel() -> AvaliacaoTurnoViewModel {
+        AvaliacaoTurnoViewModel(
+            turnoID: turno.id,
+            turno: turno,
+            api: api,
+            fila: filaDeAcoes,
+            armazenamento: armazenamentoAvaliacoes,
+            relogio: relogio
+        )
     }
 
     public var quemRecebeExibicao: String {

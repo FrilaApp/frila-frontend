@@ -144,4 +144,35 @@ enum TextosDoProfissional {
         public static let perfilSalvoComSucesso = String(localized: "Perfil salvo com sucesso!", bundle: bundleApresentacao)
         public static let buscar = String(localized: "Buscar", bundle: bundleApresentacao)
     }
+
+    public enum Avaliacao {
+        public static let titulo = String(localized: "Avaliar turno", bundle: bundleApresentacao)
+        public static let perguntaProfissional = String(localized: "Você trabalharia nesse local de novo?", bundle: bundleApresentacao)
+        public static let perguntaContratante = String(localized: "Você chamaria essa pessoa de novo?", bundle: bundleApresentacao)
+        public static let explicacao = String(
+            localized: "Sua resposta é anônima e compõe a reputação do estabelecimento no Frila. Cada turno concluído conta para o índice de recomendação.",
+            bundle: bundleApresentacao
+        )
+        public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)
+        public static let avaliadoSucesso = String(localized: "Avaliação registrada com sucesso!", bundle: bundleApresentacao)
+        public static let avaliadoOffline = String(localized: "Avaliação salva. Será enviada quando a internet voltar.", bundle: bundleApresentacao)
+        public static let respostaRegistrada = String(localized: "Você já avaliou este turno.", bundle: bundleApresentacao)
+        public static let suaResposta = String(localized: "Sua resposta", bundle: bundleApresentacao)
+        public static let erroIndisponivel = String(localized: "A avaliação só fica disponível após o término do turno e com presença confirmada.", bundle: bundleApresentacao)
+        public static let erroJaRegistrada = String(localized: "Esta avaliação já foi registrada.", bundle: bundleApresentacao)
+        public static let erroSemRede = String(localized: "Sem conexão. Tente novamente quando a internet voltar.", bundle: bundleApresentacao)
+        public static let erroGenerico = String(localized: "Não foi possível enviar a avaliação. Tente novamente.", bundle: bundleApresentacao)
+        public static let erroSelecioneResposta = String(localized: "Selecione Sim ou Não para avaliar.", bundle: bundleApresentacao)
+        public static let cartaoTitulo = String(localized: "Avaliação do turno", bundle: bundleApresentacao)
+        public static let cartaoChamada = String(localized: "Como foi sua experiência no turno?", bundle: bundleApresentacao)
+        public static let botaoAvaliar = String(localized: "Avaliar turno", bundle: bundleApresentacao)
+        public static let botaoVerAvaliacao = String(localized: "Ver avaliação", bundle: bundleApresentacao)
+        public static let statusAvaliado = String(localized: "Turno avaliado", bundle: bundleApresentacao)
+        public static func statusResposta(_ resposta: Bool) -> String {
+            resposta
+                ? String(localized: "Turno avaliado · Resposta: Sim", bundle: bundleApresentacao)
+                : String(localized: "Turno avaliado · Resposta: Não", bundle: bundleApresentacao)
+        }
+    }
 }
+

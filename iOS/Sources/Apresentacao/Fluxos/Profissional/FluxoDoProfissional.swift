@@ -15,6 +15,7 @@ public enum RotaDoProfissional: Hashable, Sendable {
     case detalhe(vagaID: UUID)
     case resultado(vaga: Vaga, resultado: ResultadoDaCandidatura)
     case meuTurno(turno: Turno)
+    case avaliacao(turnoID: UUID)
 }
 
 /// Pilha de navegação do fluxo. É a entrada que a notificação do tipo vaga (S2 #8) vai usar:
@@ -36,6 +37,11 @@ public final class RoteadorDoProfissional {
 
     public func abrirMeusTurnos() {
         aba = .turnos
+    }
+
+    public func abrirAvaliacao(turnoID: UUID) {
+        aba = .turnos
+        caminho.append(.avaliacao(turnoID: turnoID))
     }
 
     public func voltarParaLista() {
@@ -65,6 +71,7 @@ public final class RoteadorDoProfissional {
 /// Lista de vagas -> detalhe (#104) -> candidatura e resultado (#105), e aba Meus turnos (#109).
 public struct FluxoDoProfissional<Barra: View>: View {
     private let api: any ApiCliente
+    private let fila: (any FilaDeAcoes)?
     private let repositorioTurnos: any TurnoRepositorio
     private let relogio: any Relogio
     @Bindable private var roteador: RoteadorDoProfissional
@@ -77,10 +84,12 @@ public struct FluxoDoProfissional<Barra: View>: View {
         api: any ApiCliente,
         roteador: RoteadorDoProfissional,
         repositorioTurnos: (any TurnoRepositorio)? = nil,
+        fila: (any FilaDeAcoes)? = nil,
         relogio: any Relogio = RelogioDoSistema(),
         @ViewBuilder barra: @escaping () -> Barra
     ) {
         self.api = api
+        self.fila = fila
         let repo = repositorioTurnos ?? api
         self.repositorioTurnos = repo
         self.relogio = relogio
@@ -112,7 +121,9 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .resultado(vaga, resultado):
                             TelaResultadoDaCandidatura(vaga: vaga, resultado: resultado, voltarParaLista: voltarParaLista)
                         case let .meuTurno(turno):
-                            DestinoDoMeuTurno(turno: turno, api: api, relogio: relogio)
+                            DestinoDoMeuTurno(turno: turno, api: api, fila: fila, relogio: relogio)
+                        case let .avaliacao(turnoID):
+                            TelaAvaliacao(turnoID: turnoID, api: api, fila: fila, relogio: relogio)
                         }
                     }
             }
@@ -126,7 +137,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                     caminhoTurnos.append(turno)
                 }
                 .navigationDestination(for: Turno.self) { turno in
-                    DestinoDoMeuTurno(turno: turno, api: api, relogio: relogio)
+                    DestinoDoMeuTurno(turno: turno, api: api, fila: fila, relogio: relogio)
                 }
             }
             .tabItem {
@@ -155,9 +166,10 @@ extension FluxoDoProfissional where Barra == EmptyView {
         api: any ApiCliente,
         roteador: RoteadorDoProfissional,
         repositorioTurnos: (any TurnoRepositorio)? = nil,
+        fila: (any FilaDeAcoes)? = nil,
         relogio: any Relogio = RelogioDoSistema()
     ) {
-        self.init(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, relogio: relogio) { EmptyView() }
+        self.init(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, fila: fila, relogio: relogio) { EmptyView() }
     }
 }
 
@@ -184,8 +196,8 @@ private struct DestinoDoDetalhe: View {
 private struct DestinoDoMeuTurno: View {
     @State private var viewModel: MeuTurnoViewModel
 
-    init(turno: Turno, api: any ApiCliente, relogio: any Relogio) {
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, relogio: relogio))
+    init(turno: Turno, api: any ApiCliente, fila: (any FilaDeAcoes)?, relogio: any Relogio) {
+        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, fila: fila, relogio: relogio))
     }
 
     var body: some View {

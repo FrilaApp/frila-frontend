@@ -151,7 +151,7 @@ private struct EntradaDoApp: View {
             EstadoCarregando()
         case true?:
             #if DEBUG
-            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos) {
+            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, fila: armazenamento) {
                 Button("Catálogo") { mostrandoCatalogo = true }
                     .accessibilityHint("Abre o catálogo de componentes, só em Debug")
             }
@@ -164,7 +164,7 @@ private struct EntradaDoApp: View {
                 roteador.abrirVaga(id: vagaID)
             }
             #else
-            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos)
+            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, fila: armazenamento)
             #endif
         case false?:
             #if DEBUG

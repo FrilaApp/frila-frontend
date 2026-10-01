@@ -63,6 +63,16 @@
         }
       }
     },
+    "A avaliação só fica disponível após o término do turno e com presença confirmada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A avaliação só fica disponível após o término do turno e com presença confirmada."
+          }
+        }
+      }
+    },
     "A contestação chega numa próxima versão do app.": {
       "localizations": {
         "pt-BR": {
@@ -253,6 +263,46 @@
         }
       }
     },
+    "Avaliar turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaliar turno"
+          }
+        }
+      }
+    },
+    "Avaliação do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaliação do turno"
+          }
+        }
+      }
+    },
+    "Avaliação registrada com sucesso!": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaliação registrada com sucesso!"
+          }
+        }
+      }
+    },
+    "Avaliação salva. Será enviada quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaliação salva. Será enviada quando a internet voltar."
+          }
+        }
+      }
+    },
     "Bloquear": {
       "localizations": {
         "pt-BR": {
@@ -369,6 +419,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chamaria de novo?"
+          }
+        }
+      }
+    },
+    "Como foi sua experiência no turno?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como foi sua experiência no turno?"
           }
         }
       }
@@ -563,6 +623,16 @@
         }
       }
     },
+    "Enviar avaliação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar avaliação"
+          }
+        }
+      }
+    },
     "Essa vaga já foi preenchida": {
       "localizations": {
         "pt-BR": {
@@ -589,6 +659,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Essa vaga pede outra função"
+          }
+        }
+      }
+    },
+    "Esta avaliação já foi registrada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta avaliação já foi registrada."
           }
         }
       }
@@ -1003,6 +1083,16 @@
         }
       }
     },
+    "Não foi possível enviar a avaliação. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar a avaliação. Tente novamente."
+          }
+        }
+      }
+    },
     "Não foi possível enviar a candidatura. Tente de novo.": {
       "localizations": {
         "pt-BR": {
@@ -1333,6 +1423,16 @@
         }
       }
     },
+    "Selecione Sim ou Não para avaliar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecione Sim ou Não para avaliar."
+          }
+        }
+      }
+    },
     "Selecione ao menos uma função.": {
       "localizations": {
         "pt-BR": {
@@ -1473,6 +1573,26 @@
         }
       }
     },
+    "Sua resposta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua resposta"
+          }
+        }
+      }
+    },
+    "Sua resposta é anônima e compõe a reputação do estabelecimento no Frila. Cada turno concluído conta para o índice de recomendação.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua resposta é anônima e compõe a reputação do estabelecimento no Frila. Cada turno concluído conta para o índice de recomendação."
+          }
+        }
+      }
+    },
     "Sua sessão expirou. Entre novamente para continuar.": {
       "localizations": {
         "pt-BR": {
@@ -1563,6 +1683,36 @@
         }
       }
     },
+    "Turno avaliado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno avaliado"
+          }
+        }
+      }
+    },
+    "Turno avaliado · Resposta: Não": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno avaliado · Resposta: Não"
+          }
+        }
+      }
+    },
+    "Turno avaliado · Resposta: Sim": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno avaliado · Resposta: Sim"
+          }
+        }
+      }
+    },
     "Urgência": {
       "localizations": {
         "pt-BR": {
@@ -1623,6 +1773,16 @@
         }
       }
     },
+    "Ver avaliação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver avaliação"
+          }
+        }
+      }
+    },
     "Ver no Mapas": {
       "localizations": {
         "pt-BR": {
@@ -1643,6 +1803,16 @@
         }
       }
     },
+    "Você chamaria essa pessoa de novo?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você chamaria essa pessoa de novo?"
+          }
+        }
+      }
+    },
     "Você está confirmado": {
       "localizations": {
         "pt-BR": {
@@ -1659,6 +1829,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você fez muitas tentativas. Aguarde um instante e tente novamente."
+          }
+        }
+      }
+    },
+    "Você já avaliou este turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você já avaliou este turno."
           }
         }
       }
@@ -1689,6 +1869,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar."
+          }
+        }
+      }
+    },
+    "Você trabalharia nesse local de novo?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você trabalharia nesse local de novo?"
           }
         }
       }

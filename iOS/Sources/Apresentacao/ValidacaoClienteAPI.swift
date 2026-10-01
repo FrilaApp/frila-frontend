@@ -7,25 +7,29 @@ public enum MensagemDoErroAPI {
     public static func texto(_ erro: ErroDaApi) -> String {
         switch erro.codigo {
         case .posicaoJaPreenchida:
-            String(localized: "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.")
+            String(localized: "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.", bundle: bundleApresentacao)
         case .vagaEncerrada:
-            String(localized: "Esta vaga não está mais disponível.")
+            String(localized: "Esta vaga não está mais disponível.", bundle: bundleApresentacao)
         case .checkinPendente:
-            String(localized: "Faça o check-in antes de continuar.")
+            String(localized: "Faça o check-in antes de continuar.", bundle: bundleApresentacao)
         case .checkinJaConfirmado:
-            String(localized: "Este check-in já foi confirmado.")
+            String(localized: "Este check-in já foi confirmado.", bundle: bundleApresentacao)
         case .posicaoNaoCancelavel:
-            String(localized: "Esta posição não pode mais ser cancelada.")
+            String(localized: "Esta posição não pode mais ser cancelada.", bundle: bundleApresentacao)
         case .semRede:
-            String(localized: "Sem conexão. Tente novamente quando a internet voltar.")
+            String(localized: "Sem conexão. Tente novamente quando a internet voltar.", bundle: bundleApresentacao)
         case .naoAutenticado:
-            String(localized: "Sua sessão expirou. Entre novamente para continuar.")
+            String(localized: "Sua sessão expirou. Entre novamente para continuar.", bundle: bundleApresentacao)
         case .semPermissao, .perfilIncompativel:
-            String(localized: "Sua conta não pode realizar esta ação.")
+            String(localized: "Sua conta não pode realizar esta ação.", bundle: bundleApresentacao)
         case .limiteExcedido:
-            String(localized: "Você fez muitas tentativas. Aguarde um instante e tente novamente.")
+            String(localized: "Você fez muitas tentativas. Aguarde um instante e tente novamente.", bundle: bundleApresentacao)
+        case .avaliacaoIndisponivel:
+            String(localized: "A avaliação só fica disponível após o término do turno e com presença confirmada.", bundle: bundleApresentacao)
+        case .avaliacaoJaRegistrada:
+            String(localized: "Esta avaliação já foi registrada.", bundle: bundleApresentacao)
         default:
-            String(localized: "Não foi possível concluir esta ação. Tente novamente.")
+            String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
         }
     }
 }
