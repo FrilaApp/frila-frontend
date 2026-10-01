@@ -11,6 +11,66 @@
         }
       }
     },
+    "%@ – %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ – %@"
+          }
+        }
+      }
+    },
+    "%d de %d chamariam de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d de %d chamariam de novo"
+          }
+        }
+      }
+    },
+    "%d de %d confirmadas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d de %d confirmadas"
+          }
+        }
+      }
+    },
+    "%d h %d min": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d h %d min"
+          }
+        }
+      }
+    },
+    "%d min": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min"
+          }
+        }
+      }
+    },
+    "%d posições": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d posições"
+          }
+        }
+      }
+    },
     "%lld aberta(s) de %lld": {
       "localizations": {
         "pt-BR": {
@@ -183,6 +243,16 @@
         }
       }
     },
+    "Abre o texto da licença": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o texto da licença"
+          }
+        }
+      }
+    },
     "Abrir no WhatsApp": {
       "localizations": {
         "pt-BR": {
@@ -323,6 +393,16 @@
         }
       }
     },
+    "Atualizar vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar vagas"
+          }
+        }
+      }
+    },
     "Atualização necessária": {
       "localizations": {
         "pt-BR": {
@@ -359,6 +439,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avisar se a vaga seguir vazia"
+          }
+        }
+      }
+    },
+    "Avisos do pacote": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisos do pacote"
           }
         }
       }
@@ -483,6 +573,26 @@
         }
       }
     },
+    "Começa em %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Começa em %@"
+          }
+        }
+      }
+    },
+    "Comparecimento: %d%%": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparecimento: %d%%"
+          }
+        }
+      }
+    },
     "Comparecimento: %lld%": {
       "localizations": {
         "pt-BR": {
@@ -603,6 +713,16 @@
         }
       }
     },
+    "Detalhe da vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalhe da vaga"
+          }
+        }
+      }
+    },
     "Dia da semana": {
       "localizations": {
         "pt-BR": {
@@ -679,6 +799,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação."
+          }
+        }
+      }
+    },
+    "Em alerta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em alerta"
+          }
+        }
+      }
+    },
+    "Encerradas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerradas"
           }
         }
       }
@@ -1103,6 +1243,36 @@
         }
       }
     },
+    "Licença": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licença"
+          }
+        }
+      }
+    },
+    "Licenças de código aberto": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licenças de código aberto"
+          }
+        }
+      }
+    },
+    "Ligar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligar"
+          }
+        }
+      }
+    },
     "Link pendente": {
       "localizations": {
         "pt-BR": {
@@ -1159,6 +1329,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Material próprio: %@"
+          }
+        }
+      }
+    },
+    "Menos de um minuto para começar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menos de um minuto para começar"
           }
         }
       }
@@ -1343,12 +1523,32 @@
         }
       }
     },
+    "Não foi possível carregar as licenças.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar as licenças."
+          }
+        }
+      }
+    },
     "Não foi possível carregar as vagas.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível carregar as vagas."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar o contato. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o contato. Tente novamente."
           }
         }
       }
@@ -1369,6 +1569,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível carregar os turnos."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar suas vagas. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar suas vagas. Tente novamente."
           }
         }
       }
@@ -1459,6 +1669,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo."
+          }
+        }
+      }
+    },
+    "O prazo para ver este contato terminou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O prazo para ver este contato terminou."
           }
         }
       }
@@ -1563,6 +1783,16 @@
         }
       }
     },
+    "Perfil público": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil público"
+          }
+        }
+      }
+    },
     "Perfil salvo com sucesso!": {
       "localizations": {
         "pt-BR": {
@@ -1623,6 +1853,16 @@
         }
       }
     },
+    "Posição aberta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição aberta"
+          }
+        }
+      }
+    },
     "Posições": {
       "localizations": {
         "pt-BR": {
@@ -1643,12 +1883,42 @@
         }
       }
     },
+    "Profissionais confirmados": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profissionais confirmados"
+          }
+        }
+      }
+    },
+    "Próximas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximas"
+          }
+        }
+      }
+    },
     "Publicar vaga": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Publicar vaga"
+          }
+        }
+      }
+    },
+    "Publique sua primeira vaga para acompanhar posições abertas, confirmações e alertas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publique sua primeira vaga para acompanhar posições abertas, confirmações e alertas."
           }
         }
       }
@@ -1809,6 +2079,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remover horário de %@"
+          }
+        }
+      }
+    },
+    "Repositório": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repositório"
           }
         }
       }
@@ -2063,6 +2343,16 @@
         }
       }
     },
+    "Suas vagas aparecem aqui": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas vagas aparecem aqui"
+          }
+        }
+      }
+    },
     "Sábado": {
       "localizations": {
         "pt-BR": {
@@ -2273,6 +2563,16 @@
         }
       }
     },
+    "Ver contato liberado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver contato liberado"
+          }
+        }
+      }
+    },
     "Ver no Mapas": {
       "localizations": {
         "pt-BR": {
@@ -2293,12 +2593,42 @@
         }
       }
     },
+    "Ver perfil público": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver perfil público"
+          }
+        }
+      }
+    },
+    "Ver posições e confirmações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver posições e confirmações"
+          }
+        }
+      }
+    },
     "Verificando publicação pendente…": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Verificando publicação pendente…"
+          }
+        }
+      }
+    },
+    "Versão": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versão"
           }
         }
       }
@@ -2359,6 +2689,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar."
+          }
+        }
+      }
+    },
+    "WhatsApp": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp"
           }
         }
       }
