@@ -214,6 +214,11 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    public func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho {
+        let resposta: ContratoAPI.ResultadoACaminhoDTO = try await rpc("avisar_a_caminho", params: ContratoAPI.ID("turno_id", turnoID))
+        return resposta.dominio()
+    }
+
     public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try await registrarPresenca("fazer_checkin", turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }

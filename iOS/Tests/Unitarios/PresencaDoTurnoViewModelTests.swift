@@ -79,6 +79,7 @@ private final class ApiDePresenca: ApiCliente, @unchecked Sendable {
 
     func meusTurnos() async throws -> [Turno] { try await base.meusTurnos() }
     func contatoDoTurno(id: UUID) async throws -> Contato { try await base.contatoDoTurno(id: id) }
+    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho { try await base.avisarACaminho(turnoID: turnoID) }
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try exigirRede()
         if let erro { throw erro }

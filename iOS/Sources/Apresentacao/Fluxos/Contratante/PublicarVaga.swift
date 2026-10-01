@@ -199,6 +199,8 @@ public final class PublicarVagaViewModel {
                 funcaoID: funcao.id,
                 periodo: periodo,
                 local: local.trimmingCharacters(in: .whitespacesAndNewlines),
+                // Contrato 0.2.20: a região do turno vem preenchida com a do estabelecimento.
+                regiaoAdministrativa: estabelecimento.regiaoAdministrativa,
                 ponto: ponto,
                 valor: Dinheiro(centavos: valorCentavos),
                 posicoes: Int(posicoesTexto) ?? 1,

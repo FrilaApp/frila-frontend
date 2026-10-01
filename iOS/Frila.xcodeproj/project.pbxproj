@@ -11,8 +11,11 @@
 		0614982DC6AABA151649D361 /* DominioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A4AC403161D71F18466D6A /* DominioTests.swift */; };
 		077BD891F4BBE33EEA05F2F3 /* CatalogoDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */; };
 		09A0B06C662525A8361F803D /* ConfiguracaoAmbiente.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */; };
+		0B1584363C1DE0FA44C6D850 /* requisicao-avisar-a-caminho.json in Resources */ = {isa = PBXBuildFile; fileRef = 7BC76B02923AFFCF1F576C1E /* requisicao-avisar-a-caminho.json */; };
 		0B611AAFB501EE22B062A798 /* FormatadorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7F5174A8365E2BCB231B62 /* FormatadorTests.swift */; };
 		0BE65A598CDC77340CCC66D6 /* CacheSwiftData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6AB2CF87FE4F8FED8FF891 /* CacheSwiftData.swift */; };
+		0F18BD89A01CA7CA02372058 /* resultado-a-caminho.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D83726938F020261BC04047 /* resultado-a-caminho.json */; };
+		1108F21B4C8976E326E3F7D4 /* RegrasDeVagaEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */; };
 		15C4569424D4AC09D70E599C /* PresencaDoTurnoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */; };
 		17C8BD0EFAFBA194A1550EF9 /* PublicarVagaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FA4D697A25E8C15E7BEB18 /* PublicarVagaTests.swift */; };
 		19C118B2A416731E092F1170 /* ErrosAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65115E2F0782067BF1010B60 /* ErrosAPITests.swift */; };
@@ -101,6 +104,7 @@
 		C91289D49F1A0AAEFCC7A007 /* ReenvioAoReconectar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC766BBFE2B44AD71DD73A5F /* ReenvioAoReconectar.swift */; };
 		CA9ECE0B149FACE77CA6BF3A /* FrilaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB83B16D703D1E773D101730 /* FrilaUITests.swift */; };
 		CAEE50AAF627DDE036BC3DBA /* DTOsContrato.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5991D5076A59604B5F0C6D3 /* DTOsContrato.swift */; };
+		CE48015D336B991E50633BAF /* vaga-oculta.json in Resources */ = {isa = PBXBuildFile; fileRef = F1A91ED2D7A356D4C070F6E8 /* vaga-oculta.json */; };
 		CF1724FEE835D71D514FAE23 /* FrilaDados.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		D04946F3A08DE62AEAAF5E59 /* TelaDetalheVaga.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36973DAE7B5E42A3B72A746B /* TelaDetalheVaga.swift */; };
 		D48412096593C59680DE365C /* PublicarVaga.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB20C405232F2FAA4C57C2B /* PublicarVaga.swift */; };
@@ -297,6 +301,7 @@
 		44FCBC781830AFDC791F353D /* FrilaDados.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaDados.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A4761B77D354376319394B1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B43084AE2BBE6031C888000 /* ApiClienteEmMemoria.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClienteEmMemoria.swift; sourceTree = "<group>"; };
+		4D83726938F020261BC04047 /* resultado-a-caminho.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-a-caminho.json"; sourceTree = "<group>"; };
 		4DE21D78F07B1461627E524E /* TelemetriaCrashlytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetriaCrashlytics.swift; sourceTree = "<group>"; };
 		4FEEDEB6A20B30B0C7F37E43 /* RegistroDePresencaEmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistroDePresencaEmMemoriaTests.swift; sourceTree = "<group>"; };
 		5268253D3E9962AAF683E3E3 /* requisicao-atualizar-perfil-profissional.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-atualizar-perfil-profissional.json"; sourceTree = "<group>"; };
@@ -317,6 +322,7 @@
 		708C6DD218962FB12049B0A5 /* configuracao-do-app.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "configuracao-do-app.json"; sourceTree = "<group>"; };
 		728FBA1A7EABDE751ECCAF2F /* ListaDeVagasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListaDeVagasTests.swift; sourceTree = "<group>"; };
 		77974316540827A3BE34F061 /* MeuTurnoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeuTurnoViewModel.swift; sourceTree = "<group>"; };
+		7BC76B02923AFFCF1F576C1E /* requisicao-avisar-a-caminho.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-avisar-a-caminho.json"; sourceTree = "<group>"; };
 		7C82E02114780C98AC98BD1A /* OfflineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineTests.swift; sourceTree = "<group>"; };
 		7CAFE3AA3880C8095536F296 /* requisicao-registro-de-presenca.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-registro-de-presenca.json"; sourceTree = "<group>"; };
 		7ECDEFE5393FB5C98BA698CD /* Beta.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Beta.xcconfig; sourceTree = "<group>"; };
@@ -381,8 +387,10 @@
 		E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaApresentacao.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC7474CFC038B7830A07C624 /* Frila.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Frila.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED4681E82BFB78ADC11F0C80 /* LeitorDeLocalizacaoDoSistema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeitorDeLocalizacaoDoSistema.swift; sourceTree = "<group>"; };
+		F1A91ED2D7A356D4C070F6E8 /* vaga-oculta.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vaga-oculta.json"; sourceTree = "<group>"; };
 		F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresencaDoTurnoViewModelTests.swift; sourceTree = "<group>"; };
 		FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-registro.json"; sourceTree = "<group>"; };
+		FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegrasDeVagaEmMemoriaTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -528,6 +536,7 @@
 				F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */,
 				E3FA4D697A25E8C15E7BEB18 /* PublicarVagaTests.swift */,
 				4FEEDEB6A20B30B0C7F37E43 /* RegistroDePresencaEmMemoriaTests.swift */,
+				FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */,
 				BDCD65257F314605356F4842 /* SegurancaDoCodigoTests.swift */,
 				B41B867B134F94D5FFF24940 /* SupabaseApiClienteTests.swift */,
 				C5AB836C22721632CB647259 /* SwiftDataTests.swift */,
@@ -607,14 +616,17 @@
 				2C6E29E69383AE68FCC59B8B /* perfil-publico.json */,
 				5268253D3E9962AAF683E3E3 /* requisicao-atualizar-perfil-profissional.json */,
 				1DA362D29BF0C32C2F429D63 /* requisicao-avaliar.json */,
+				7BC76B02923AFFCF1F576C1E /* requisicao-avisar-a-caminho.json */,
 				B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */,
 				D91DD797B126C62FB438B586 /* requisicao-criar-conta.json */,
 				9511BF28366F443CB8C40462 /* requisicao-criar-perfil-profissional.json */,
 				AC0715D51EC624FFD2754B4B /* requisicao-publicar-vaga.json */,
 				7CAFE3AA3880C8095536F296 /* requisicao-registro-de-presenca.json */,
+				4D83726938F020261BC04047 /* resultado-a-caminho.json */,
 				FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */,
 				120490C59760F033206A2EDD /* turnos.json */,
 				6044BB78E5ED8913EC72A112 /* usuario.json */,
+				F1A91ED2D7A356D4C070F6E8 /* vaga-oculta.json */,
 				A3E6257414B3A5DD6EA2CC29 /* vaga-publicada.json */,
 				A102BE37E5812AE84F4F8649 /* vaga.json */,
 				3F7D2A82477B3B29CAF6CFC3 /* vagas-abertas.json */,
@@ -931,14 +943,17 @@
 				B0A2F223F90194BF0E55C3EA /* perfil-publico.json in Resources */,
 				4A169BB24BDBD8649C0389C7 /* requisicao-atualizar-perfil-profissional.json in Resources */,
 				F3C64A189570D51222056804 /* requisicao-avaliar.json in Resources */,
+				0B1584363C1DE0FA44C6D850 /* requisicao-avisar-a-caminho.json in Resources */,
 				723AD6D9A4B4D48C1F93D6C0 /* requisicao-cadastrar-estabelecimento.json in Resources */,
 				2E1DEAEFC1C73FBEBAECC5D7 /* requisicao-criar-conta.json in Resources */,
 				E37DB90D849C9E50F0887241 /* requisicao-criar-perfil-profissional.json in Resources */,
 				8C97FE7579D3C683369CFAD8 /* requisicao-publicar-vaga.json in Resources */,
 				F5D102C7834CA15748EA7FAC /* requisicao-registro-de-presenca.json in Resources */,
+				0F18BD89A01CA7CA02372058 /* resultado-a-caminho.json in Resources */,
 				68BFBF4CB55A1D6E926782C2 /* resultado-registro.json in Resources */,
 				9E1C5FBFE68947D014E1FDA5 /* turnos.json in Resources */,
 				90A64B886BA2372172581C39 /* usuario.json in Resources */,
+				CE48015D336B991E50633BAF /* vaga-oculta.json in Resources */,
 				781446FFC40FD90A510DA4E8 /* vaga-publicada.json in Resources */,
 				E5B7819F1F793D2F32BEE292 /* vaga.json in Resources */,
 				3CECC573C9D7BFA9E99C3B0E /* vagas-abertas.json in Resources */,
@@ -1170,6 +1185,7 @@
 				15C4569424D4AC09D70E599C /* PresencaDoTurnoViewModelTests.swift in Sources */,
 				17C8BD0EFAFBA194A1550EF9 /* PublicarVagaTests.swift in Sources */,
 				1FF1265CD5E2DE83DBFF35C9 /* RegistroDePresencaEmMemoriaTests.swift in Sources */,
+				1108F21B4C8976E326E3F7D4 /* RegrasDeVagaEmMemoriaTests.swift in Sources */,
 				FB7A719CB5DC43A1229C05B9 /* SegurancaDoCodigoTests.swift in Sources */,
 				4EA5E1C133FBD6A347F74651 /* SupabaseApiClienteTests.swift in Sources */,
 				DA7A8C61156468C3F8E0E12E /* SwiftDataTests.swift in Sources */,

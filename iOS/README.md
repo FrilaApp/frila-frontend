@@ -155,12 +155,24 @@ O dublê não é equivalente ao backend:
 - **Conta de demonstração.** A exceção de janela dela não é modelada.
 - **Verificação.** No check-out e nas repetições, tipo e verificação vêm do check-in gravado no dublê. No backend a verificação é a atual do turno, que o `confirmar_checkin_manual` muda; essa operação não existe na porta `ApiCliente` nem no dublê. O `meusTurnos` do dublê também não reflete a verificação.
 
+**Vagas no dublê (contrato 0.2.19 a 0.2.25).** O `ApiClienteEmMemoria` segue as recusas de `candidatar` na ordem do backend (`20260929234100_modo_selecao.sql`):
+- a vaga que já começou sai da lista, responde `409 vaga_encerrada` em `candidatar` e continua abrindo no detalhe, com `posicoes_abertas = 0`;
+- a vaga ocultada sai da lista, responde `404` no detalhe e na candidatura de quem não está nela, `oculta: true` para quem está, e `422 vaga_oculta` em `republicar_vaga`;
+- a vaga de seleção só é publicada com mais de 24 horas de antecedência, e a candidatura nela fica `pendente`;
+- `avisar_a_caminho` vale de 3 horas antes até 15 minutos depois do início, e repetir devolve o primeiro aviso.
+
+Também aqui o dublê não é equivalente ao backend:
+- **Posição reaberta por atraso.** A porta não tem `reabrir_por_atraso`: no dublê, a vaga que começou nunca volta a aceitar candidatura.
+- **Reenvio de `candidatar`.** O backend devolve o mesmo turno a quem já está confirmado. O dublê simula uma conta só, e cada chamada é uma candidatura nova, inclusive na vaga ocultada, que responde `404`. Só a candidatura pendente da seleção é devolvida igual.
+- **Moderação.** Ocultar e reexibir são da Equipe Frila, fora da API. No dublê existe `moderar(vagaID:oculta:)`, fora da porta `ApiCliente`, para os testes.
+- **Modo seleção.** Não há `escolher_candidato` nem o fechamento automático das 24 horas: a candidatura fica pendente, e a vaga, publicada.
+
 
 No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.
 
 ## Contrato
 
-O app segue o contrato `0.2.18`, espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.
+O app segue o contrato `0.2.27`, espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.
 
 - `Sources/Dados/DTOsContrato.swift` tem um tipo por schema usado pelo app; `SupabaseApiCliente` chama as operações do Sprint 1, inclusive `meus_turnos`, e mais check-in, check-out e avaliação.
 - `Resources/Fixtures` guarda uma resposta ou requisição por arquivo, e `fixture-schemas.json` diz contra qual schema do contrato cada uma é validada. `ApiClienteEmMemoria` lê essas fixtures pelos mesmos DTOs do cliente real, e os testes conferem que cada requisição que o app monta é igual à fixture.
@@ -168,6 +180,18 @@ O app segue o contrato `0.2.18`, espelhado byte a byte em `Contrato/openapi.yaml
 - `Scripts/contrato-em-dia.sh` confere a integridade do espelho e, com `FRILA_DOCS_TOKEN`, se ele ainda é igual ao do frila-docs.
 
 Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contrato/`, regrave a soma (`shasum -a 256 Contrato/openapi.yaml | awk '{print $1}' > Contrato/openapi.yaml.sha256`), atualize `contract-version.json`, DTOs e fixtures somente quando os schemas mudarem, e rode a validação e os testes. A atualização para 0.2.11 acrescentou os códigos `checkin_pendente`, `checkin_ja_confirmado` e `posicao_nao_cancelavel`, já tipados no app. Da 0.2.12 à 0.2.17 nenhum schema, payload ou código de erro usado pelo cliente mudou; o que entrou foram regras documentadas. A que toca o app é a da 0.2.16: `configuracao_do_app` responde `404 nao_encontrado` para plataforma sem loja, e a checagem de versão mínima hoje libera o app em qualquer falha (falha aberta), o que a própria 0.2.16 aponta como problema. O comportamento não muda aqui; a decisão é do cartão #201. A 0.2.18 não traz schema, payload nem código de erro novo para o cliente: `nao_autenticado` entra na linha do 401 e já é caso de `CodigoErroAPI`. Ela fixa duas coisas que o app ainda não faz: encerrar a sessão local ao receber `401` (conta encerrada) e chamar `excluir-conta`. As duas ficam para mudanças próprias, fora desta sincronização.
+
+**Da 0.2.19 à 0.2.27 (#242).** Foi a primeira sincronização em que mudaram schemas que o app usa. O que cada versão traz para o cliente, e o que o app faz com ela:
+
+- **0.2.19, vaga que já começou.** Nenhum campo novo. `vagas_abertas` esconde a vaga cujo início passou, `candidatar` responde `409 vaga_encerrada` e `detalhe_vaga` continua respondendo `200`, com `posicoes_abertas = 0`. O dublê segue as três regras. O detalhe ainda mostra Candidatar-me em toda vaga: a regra de tela da 0.2.19 (botão só com `estado = publicada` e `posicoes_abertas > 0`) fica para mudança própria.
+- **0.2.20, `regiao_administrativa`.** Obrigatória em `cadastrar_estabelecimento` e em `publicar_vaga`, e presente em `Estabelecimento`, `Vaga`, `VagaNaLista` e `VagaResumo`. O cadastro do estabelecimento (#99) ganhou o campo Região Administrativa, obrigatório e de texto livre. Publicar vaga (#100) manda a região do estabelecimento, sem campo próprio na tela. As telas de vaga e de turno continuam mostrando o `local`: a região está no modelo e ainda não aparece nelas.
+- **0.2.21 e 0.2.22, catálogo de erros** de `denunciar`, `bloquear` e `incluir_na_equipe`, operações que o app ainda não chama. Os exemplos novos entraram em `erros.json`.
+- **0.2.23, vaga ocultada pela moderação.** `oculta` em `Vaga` e em `VagaNoPainel`, e o código `vaga_oculta`. Os dois são lidos e tipados. Nenhuma tela mostra "oculta pela Equipe": o painel do contratante é de outro cartão.
+- **0.2.24, modo seleção.** `publicar_vaga` aceita `modo = selecao` com mais de 24 horas de antecedência (`422 selecao_sem_antecedencia` com 24 horas ou menos), e `candidatar` numa vaga de seleção devolve `pendente`. DTO, enum e dublê aceitam o modo. Publicar vaga não o oferece, por decisão de produto em aberto, e o profissional não tem a tela de candidatura pendente: `pendente` segue tratado como falha recuperável no detalhe. Os avisos `candidatura_recusada` e `selecao_encerrada` chegam com o push (S2).
+- **0.2.25, "Estou a caminho".** `avisar_a_caminho` está na porta `ApiCliente`, no cliente Supabase e no dublê, e `a_caminho_em` é lido em `Turno` e em `PosicaoNoPainel`. O botão em Meu turno não existe: a funcionalidade é da v1.1, por decisão de produto.
+- **0.2.26 e 0.2.27, nada para o cliente.** O `422` de `registrar_dispositivo` é de operação que o app ainda não chama, e a 0.2.27 só alinha textos.
+
+O `Codable` dos modelos de domínio é o formato do cache do aparelho, e não o da API. Um turno guardado antes da 0.2.20 não tem a região da vaga e continua legível, com a região vazia, até a próxima leitura com rede.
 
 O estado das funções no `frila-dev` está em [Dependências externas](Docs/ExternalSetup.md).
 

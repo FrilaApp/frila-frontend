@@ -39,6 +39,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var vagas: [Vaga]
     private var turnos: [Turno] = []
     private var contatos: [UUID: Contato] = [:]
+    /// Candidatura pendente por vaga de seleção (contrato 0.2.24): reenviar devolve a mesma.
+    private var candidaturasPendentes: [UUID: UUID] = [:]
     /// Quantas vezes `candidatar` foi chamado: os testes de toque duplo leem isso.
     public private(set) var chamadasACandidatar = 0
     public private(set) var chamadasAPublicarVaga = 0
@@ -161,10 +163,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento {
         try verificarFalhaGeral()
         if let conta, conta.perfil == .profissional { throw erro("perfil_incompativel") }
+        // Obrigatória desde o contrato 0.2.20; em branco é ausência, como no backend.
+        let regiao = cadastro.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !regiao.isEmpty else { throw erro("campo_obrigatorio", detalhes: "regiao_administrativa") }
         guard !estabelecimentos.contains(where: { $0.documento == cadastro.documento }) else { throw erro("documento_ja_cadastrado") }
         let novo = Estabelecimento(
             id: UUID(), nome: cadastro.nome, documento: cadastro.documento, tipo: cadastro.tipo,
-            endereco: cadastro.endereco, ponto: cadastro.ponto, papel: .administrador
+            endereco: cadastro.endereco, regiaoAdministrativa: regiao, ponto: cadastro.ponto, papel: .administrador
         )
         estabelecimentos.append(novo)
         return novo
@@ -184,13 +189,19 @@ public actor ApiClienteEmMemoria: ApiCliente {
             estabelecimentoID: id,
             vagas: daCasa.map { vaga in
                 let confirmadas = turnos.filter { $0.vaga.id == vaga.id }.map { turno in
-                    PosicaoNoPainel(id: turno.posicaoID, estado: .confirmada, profissional: perfilPublicoDeExemplo, turnoID: turno.id, verificacao: turno.verificacao, emAtraso: false)
+                    PosicaoNoPainel(
+                        id: turno.posicaoID, estado: .confirmada, profissional: perfilPublicoDeExemplo, turnoID: turno.id,
+                        verificacao: turno.verificacao, emAtraso: false, aCaminhoEm: turno.aCaminhoEm
+                    )
                 }
                 let abertas = (0..<vaga.posicoesAbertas).map { _ in
                     PosicaoNoPainel(id: UUID(), estado: .aberta, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false)
                 }
                 let vazia = vaga.posicoesAbertas == vaga.posicoes && vaga.periodo.inicio.timeIntervalSince(agora) < 3 * 60 * 60
-                return VagaNoPainel(vaga: vaga.resumo, modo: vaga.modo, estado: vaga.estado, alertaVagaVazia: vazia, candidatosPendentes: 0, posicoes: confirmadas + abertas)
+                return VagaNoPainel(
+                    vaga: vaga.resumo, modo: vaga.modo, estado: vaga.estado, oculta: vaga.oculta, alertaVagaVazia: vazia,
+                    candidatosPendentes: candidaturasPendentes[vaga.id] == nil ? 0 : 1, posicoes: confirmadas + abertas
+                )
             },
             checkinsPendentes: []
         )
@@ -210,10 +221,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if let resposta = publicacoesPorChave[publicacao.chave] { return resposta }
         try verificarFalhaGeral()
         guard let estabelecimento = estabelecimentos.first(where: { $0.id == publicacao.estabelecimentoID }) else { throw erro("sem_permissao") }
+        let regiao = publicacao.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !regiao.isEmpty else { throw erro("campo_obrigatorio", detalhes: "regiao_administrativa") }
         guard let funcao = catalogo.first(where: { $0.id == publicacao.funcaoID }) else { throw erro("campo_invalido", detalhes: "funcao_id") }
+        // RN24, contrato 0.2.24: o modo seleção fecha 24 h antes do início; com 24 h ou menos, a vaga nem entra.
+        if publicacao.modo == .selecao, publicacao.periodo.inicio <= relogio.agora.addingTimeInterval(Self.antecedenciaDaSelecao) {
+            throw erro("selecao_sem_antecedencia")
+        }
         let vaga = Vaga(
             id: UUID(), estabelecimento: perfilDo(estabelecimento), funcao: funcao, periodo: publicacao.periodo,
-            local: publicacao.local, ponto: publicacao.ponto, valor: publicacao.valor, posicoes: publicacao.posicoes,
+            local: publicacao.local, regiaoAdministrativa: regiao, ponto: publicacao.ponto, valor: publicacao.valor, posicoes: publicacao.posicoes,
             posicoesAbertas: publicacao.posicoes, inclusos: publicacao.inclusos, responsavelLocal: publicacao.responsavelLocal,
             traje: publicacao.traje, participaRateio: publicacao.participaRateio, observacoes: publicacao.observacoes,
             modo: publicacao.modo, estado: .publicada, publicadoEm: relogio.agora
@@ -229,10 +246,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada {
         guard let original = vagas.first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
+        // Contrato 0.2.23: republicar não contorna a moderação.
+        guard !original.oculta else { throw erro("vaga_oculta") }
         return try await publicarVaga(
             PublicacaoVaga(
                 estabelecimentoID: original.estabelecimento.id, funcaoID: original.funcao.id, periodo: periodo,
-                local: original.local, ponto: original.ponto, valor: original.valor, posicoes: original.posicoes,
+                local: original.local, regiaoAdministrativa: original.regiaoAdministrativa, ponto: original.ponto,
+                valor: original.valor, posicoes: original.posicoes,
                 inclusos: original.inclusos, responsavelLocal: original.responsavelLocal, traje: original.traje,
                 participaRateio: original.participaRateio, observacoes: original.observacoes, modo: original.modo, chave: chave
             )
@@ -253,9 +273,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         let referencia = filtro.referencia ?? perfilProfissional?.pontoBase
+        let agora = relogio.agora
         let ordenadas = vagas
             .filter { vaga in
-                guard vaga.estado == .publicada else { return false }
+                // Fora da vitrine: a vaga ocultada pela moderação (contrato 0.2.23) e a que já começou (0.2.19).
+                guard vaga.estado == .publicada, !vaga.oculta, vaga.periodo.inicio > agora else { return false }
                 if let funcaoID = filtro.funcaoID, vaga.funcao.id != funcaoID { return false }
                 if let data = filtro.data, DataCivil.deSaoPaulo(vaga.periodo.inicio) != data { return false }
                 return true
@@ -264,8 +286,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let distancia = referencia.map { vaga.ponto.distancia(emMetrosDe: $0) / 1_000 } ?? 0
                 return VagaNaLista(
                     id: vaga.id, funcao: vaga.funcao, estabelecimento: vaga.estabelecimento, periodo: vaga.periodo,
-                    local: vaga.local, distanciaKm: distancia, valor: vaga.valor, posicoesAbertas: vaga.posicoesAbertas,
-                    inclusos: vaga.inclusos, modo: vaga.modo
+                    local: vaga.local, regiaoAdministrativa: vaga.regiaoAdministrativa, distanciaKm: distancia,
+                    valor: vaga.valor, posicoesAbertas: vaga.posicoesAbertas, inclusos: vaga.inclusos, modo: vaga.modo
                 )
             }
             .filter { vaga in filtro.distanciaMaximaKm.map { vaga.distanciaKm <= $0 } ?? true }
@@ -284,6 +306,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func detalheDaVaga(id: UUID) async throws -> Vaga {
         try verificarFalhaGeral()
         guard let vaga = vagas.first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
+        // Contrato 0.2.23: a vaga ocultada só abre, com `oculta: true`, para quem ocupa posição ou tem
+        // candidatura nela; para os demais é o mesmo 404 da vaga escondida por bloqueio.
+        if vaga.oculta, !turnos.contains(where: { $0.vaga.id == id }), candidaturasPendentes[id] == nil {
+            throw erro("nao_encontrado")
+        }
+        // Contrato 0.2.19: depois do início o detalhe continua respondendo, com o estado real e sem
+        // nada para pegar. Não vira 404, para o toque numa notificação antiga abrir a vaga.
+        guard vaga.periodo.inicio > relogio.agora else { return Self.copia(vaga, posicoesAbertas: 0) }
         return vaga
     }
 
@@ -296,9 +326,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if cenario == .inelegivelSuspenso { throw erro("inelegivel", detalhes: "perfil_suspenso") }
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
+        // Contrato 0.2.23: candidatura nova em vaga ocultada responde 404, como a escondida por bloqueio.
+        guard !vaga.oculta else { throw erro("nao_encontrado") }
         // Chegar depois da última posição é o funcionamento normal do modo urgência (RN19).
         guard vaga.estado != .preenchida, vaga.posicoesAbertas > 0 else { throw erro("posicao_ja_preenchida") }
         guard vaga.estado == .publicada else { throw erro("vaga_encerrada") }
+        // Contrato 0.2.19: início já passado é vaga encerrada. A exceção é a posição reaberta por
+        // atraso, que o dublê não tem (a porta não traz `reabrir_por_atraso`).
+        let agora = relogio.agora
+        guard vaga.periodo.inicio > agora else { throw erro("vaga_encerrada") }
+        // Contrato 0.2.24: na vaga de seleção a candidatura fica pendente, sem posição, turno nem
+        // contato, e a vaga não aceita candidatura a partir de 24 h antes do início (RN24).
+        if vaga.modo == .selecao {
+            guard agora < vaga.periodo.inicio.addingTimeInterval(-Self.antecedenciaDaSelecao) else { throw erro("vaga_encerrada") }
+            let candidaturaID = candidaturasPendentes[vagaID] ?? UUID()
+            candidaturasPendentes[vagaID] = candidaturaID
+            return ResultadoCandidatura(estado: .pendente, candidaturaID: candidaturaID, posicaoID: nil, turnoID: nil, contato: nil)
+        }
 
         let visivelAte = vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
         let contato = Contato(nome: vaga.estabelecimento.nome, telefone: contatoDeExemplo.telefone, whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: visivelAte)
@@ -331,6 +375,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard let turno = turnos.first(where: { $0.id == id }), let contato = contatos[id] else { throw erro("nao_encontrado") }
         guard turno.contatoVisivel(em: relogio.agora) else { throw erro("contato_expirado") }
         return contato
+    }
+
+    /// Segue `avisar_a_caminho` do backend (`20260930160000_avisar_a_caminho.sql`): o aviso já
+    /// gravado volta como está, antes de conferir a janela; a janela vai de 3 h antes até 15 min
+    /// depois do início, com as duas bordas dentro; turno que não é de quem chama é `403 sem_permissao`.
+    public func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho {
+        try verificarFalhaGeral()
+        guard let indice = turnos.firstIndex(where: { $0.id == turnoID }) else { throw erro("sem_permissao") }
+        let turno = turnos[indice]
+        if let gravado = turno.aCaminhoEm { return ResultadoACaminho(turnoID: turnoID, aCaminhoEm: gravado) }
+        let agora = relogio.agora
+        let inicio = turno.vaga.periodo.inicio
+        guard agora >= inicio.addingTimeInterval(-3 * 60 * 60), agora <= inicio.addingTimeInterval(15 * 60) else {
+            throw erro("a_caminho_fora_da_janela")
+        }
+        turnos[indice] = turno.com(aCaminhoEm: agora)
+        return ResultadoACaminho(turnoID: turnoID, aCaminhoEm: agora)
     }
 
     /// Segue `fazer_checkin` do backend (definição vigente em
@@ -387,7 +448,19 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
     public func sair(tokenFCM: String?) async { sessaoAtiva = false }
 
+    // MARK: Moderação
+
+    /// Ocultar e reexibir uma vaga (contrato 0.2.23). Fica fora da porta `ApiCliente` de propósito:
+    /// no backend é operação da Equipe Frila pela chave de serviço. Aqui serve aos testes e às prévias.
+    public func moderar(vagaID: UUID, oculta: Bool) {
+        guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { return }
+        vagas[indice] = Self.copia(vagas[indice], oculta: oculta)
+    }
+
     // MARK: Apoio
+
+    /// RN24: a vaga de seleção fecha 24 horas antes do início.
+    private static let antecedenciaDaSelecao: TimeInterval = 24 * 60 * 60
 
     /// O que os dois registros validam depois da idempotência, na ordem do backend
     /// (`privado.exigir_janela`). Diferenças declaradas: o backend tolera até 2 minutos no futuro
@@ -433,22 +506,25 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private static func noFuturo(_ vaga: Vaga, agora: Date) throws -> Vaga {
         let inicio = agora.addingTimeInterval(24 * 60 * 60)
         let periodo = try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(vaga.periodo.fim.timeIntervalSince(vaga.periodo.inicio)))
-        return Vaga(
-            id: vaga.id, estabelecimento: vaga.estabelecimento, funcao: vaga.funcao, periodo: periodo, local: vaga.local,
-            ponto: vaga.ponto, distanciaKm: vaga.distanciaKm, valor: vaga.valor, posicoes: vaga.posicoes,
-            posicoesAbertas: vaga.posicoesAbertas, inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal,
-            traje: vaga.traje, participaRateio: vaga.participaRateio, observacoes: vaga.observacoes, modo: vaga.modo,
-            estado: vaga.estado, publicadoEm: agora
-        )
+        return copia(vaga, periodo: periodo, publicadoEm: agora)
     }
 
     private static func comPosicoesAbertas(_ abertas: Int, em vaga: Vaga) -> Vaga {
+        copia(vaga, posicoesAbertas: abertas, estado: abertas == 0 ? .preenchida : vaga.estado)
+    }
+
+    /// A vaga com o que o dublê muda nela; o que não vier fica como está.
+    private static func copia(
+        _ vaga: Vaga, periodo: Periodo? = nil, posicoesAbertas: Int? = nil, estado: EstadoVaga? = nil, oculta: Bool? = nil,
+        publicadoEm: Date? = nil
+    ) -> Vaga {
         Vaga(
-            id: vaga.id, estabelecimento: vaga.estabelecimento, funcao: vaga.funcao, periodo: vaga.periodo, local: vaga.local,
-            ponto: vaga.ponto, distanciaKm: vaga.distanciaKm, valor: vaga.valor, posicoes: vaga.posicoes,
-            posicoesAbertas: abertas, inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal, traje: vaga.traje,
+            id: vaga.id, estabelecimento: vaga.estabelecimento, funcao: vaga.funcao, periodo: periodo ?? vaga.periodo,
+            local: vaga.local, regiaoAdministrativa: vaga.regiaoAdministrativa, ponto: vaga.ponto, distanciaKm: vaga.distanciaKm,
+            valor: vaga.valor, posicoes: vaga.posicoes, posicoesAbertas: posicoesAbertas ?? vaga.posicoesAbertas,
+            inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal, traje: vaga.traje,
             participaRateio: vaga.participaRateio, observacoes: vaga.observacoes, modo: vaga.modo,
-            estado: abertas == 0 ? .preenchida : vaga.estado, publicadoEm: vaga.publicadoEm
+            estado: estado ?? vaga.estado, oculta: oculta ?? vaga.oculta, publicadoEm: publicadoEm ?? vaga.publicadoEm
         )
     }
 }
