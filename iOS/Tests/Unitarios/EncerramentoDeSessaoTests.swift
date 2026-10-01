@@ -455,6 +455,46 @@ struct ErrosDaEntradaTests {
         #expect(erro?.detalhes == "email")
     }
 
+    @Test("400 email_address_invalid também aponta o campo email")
+    func enderecoRecusadoNoEnvio() async throws {
+        let roteiro = Roteiro()
+        roteiro.otp = .http(400, #"{"code":"email_address_invalid","error_code":"email_address_invalid","msg":"Email address is invalid"}"#)
+        let cliente = try clienteDeTeste(roteiro)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            try await cliente.solicitarCodigo(email: "c1@example.invalid")
+        }
+        #expect(erro?.codigo == .campoInvalido)
+        #expect(erro?.detalhes == "email")
+    }
+
+    @Test("400 ou 422 do Auth com outro código não vira campo_invalido", arguments: [400, 422])
+    func outroCodigoNoEnvio(status: Int) async throws {
+        let roteiro = Roteiro()
+        roteiro.otp = .http(status, #"{"code":"bad_json","error_code":"bad_json","msg":"Could not parse request body as JSON"}"#)
+        let cliente = try clienteDeTeste(roteiro)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            try await cliente.solicitarCodigo(email: "c1@example.com")
+        }
+        #expect(erro?.codigo == .desconhecido)
+        #expect(erro?.codigoOriginal == "bad_json")
+        #expect(erro?.detalhes == nil)
+    }
+
+    @Test("400 otp_expired na confirmação vira nao_autenticado, e não campo_invalido")
+    func codigoVencidoComQuatrocentos() async throws {
+        let roteiro = Roteiro()
+        roteiro.falharNoProximoVerify(com: .http(400, #"{"code":"otp_expired","error_code":"otp_expired","msg":"Token has expired or is invalid"}"#))
+        let cliente = try clienteDeTeste(roteiro)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            try await cliente.verificarCodigo(email: "c1@example.com", codigo: "000000")
+        }
+        #expect(erro?.codigo == .naoAutenticado)
+        #expect(erro?.detalhes == nil)
+    }
+
     @Test("401 do gateway sem envelope guarda o status como código original")
     func quatroZeroUmSemEnvelope() {
         let erro = DecodificadorErroAPI.mapear(statusCode: 401, dados: Data(#"{"code":401,"message":"Invalid JWT"}"#.utf8))
