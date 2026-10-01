@@ -103,6 +103,16 @@
         }
       }
     },
+    "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga."
+          }
+        }
+      }
+    },
     "A contestação chega numa próxima versão do app.": {
       "localizations": {
         "pt-BR": {
@@ -1599,6 +1609,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Refeição: %@"
+          }
+        }
+      }
+    },
+    "Região Administrativa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Região Administrativa"
           }
         }
       }

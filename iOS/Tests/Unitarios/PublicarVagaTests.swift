@@ -32,7 +32,10 @@ struct PublicarVagaTests {
     private let funcao = Funcao(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!, nome: "Garçom", categoria: "Salão")
 
     private func estabelecimento() throws -> Estabelecimento {
-        Estabelecimento(id: idEstabelecimento, nome: "Bistrô", tipo: .foodService, endereco: "Rua das Flores, 10", ponto: try Coordenada(latitude: -15.78, longitude: -47.93))
+        Estabelecimento(
+            id: idEstabelecimento, nome: "Bistrô", tipo: .foodService, endereco: "Rua das Flores, 10",
+            regiaoAdministrativa: "Águas Claras", ponto: try Coordenada(latitude: -15.78, longitude: -47.93)
+        )
     }
 
     private func modelo() throws -> PublicarVagaViewModel {
@@ -170,7 +173,7 @@ struct PublicarVagaTests {
         let periodo = try Periodo(inicio: agora.addingTimeInterval(4 * 3_600), fim: agora.addingTimeInterval(7 * 3_600))
         let publicacao = PublicacaoVaga(
             estabelecimentoID: idEstabelecimento, funcaoID: funcao.id, periodo: periodo,
-            local: "Rua das Flores, 10", ponto: try Coordenada(latitude: -15.78, longitude: -47.93),
+            local: "Rua das Flores, 10", regiaoAdministrativa: "Águas Claras", ponto: try Coordenada(latitude: -15.78, longitude: -47.93),
             valor: Dinheiro(centavos: 14_000), posicoes: 2,
             inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
             responsavelLocal: "Renata no balcão", modo: .urgencia, alertaAntecedenciaMinutos: 180, chave: UUID()
@@ -192,7 +195,7 @@ struct PublicarVagaTests {
         let periodo = try Periodo(inicio: agora.addingTimeInterval(4 * 3_600), fim: agora.addingTimeInterval(7 * 3_600))
         let publicacao = PublicacaoVaga(
             estabelecimentoID: idEstabelecimento, funcaoID: funcao.id, periodo: periodo,
-            local: "Rua das Flores, 10", ponto: try Coordenada(latitude: -15.78, longitude: -47.93),
+            local: "Rua das Flores, 10", regiaoAdministrativa: "Águas Claras", ponto: try Coordenada(latitude: -15.78, longitude: -47.93),
             valor: Dinheiro(centavos: 14_000), posicoes: 2,
             inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
             responsavelLocal: "Renata no balcão", modo: .urgencia, alertaAntecedenciaMinutos: 180, chave: UUID()
@@ -226,5 +229,17 @@ struct PublicarVagaTests {
         #expect(await api.publicacoesRecebidas.last?.modo == .urgencia)
         #expect(await api.publicacoesRecebidas.last?.alertaAntecedenciaMinutos == 180)
         #expect(await api.publicacoesRecebidas.last?.inclusos == Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false))
+    }
+
+    @Test("A publicação leva a região administrativa do estabelecimento (contrato 0.2.20)")
+    func regiaoAdministrativaDoEstabelecimento() async throws {
+        let api = ApiClienteEmMemoria()
+        let fixed = agora
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: FilaPublicacaoTeste(), agora: { fixed }) { try await api.publicarVaga($0) }
+        preencher(vm)
+        await vm.publicar()
+        let vagaID = try #require(vm.resultado?.vagaID)
+        #expect(await api.publicacoesRecebidas.last?.regiaoAdministrativa == "Águas Claras")
+        #expect(try await api.detalheDaVaga(id: vagaID).regiaoAdministrativa == "Águas Claras")
     }
 }

@@ -19,10 +19,12 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case campoObrigatorio = "campo_obrigatorio"
     case campoInvalido = "campo_invalido"
     case foraDaJanela = "fora_da_janela"
+    case aCaminhoForaDaJanela = "a_caminho_fora_da_janela"
     case registroNoFuturo = "registro_no_futuro"
     case menorDeIdade = "menor_de_idade"
     case perfilIncompativel = "perfil_incompativel"
     case selecaoSemAntecedencia = "selecao_sem_antecedencia"
+    case vagaOculta = "vaga_oculta"
     case horarioInvalido = "horario_invalido"
     case inelegivel
     case funcaoIncompativel = "funcao_incompativel"
