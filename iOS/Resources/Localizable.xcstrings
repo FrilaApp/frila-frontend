@@ -31,6 +31,16 @@
         }
       }
     },
+    "%lld horários cadastrados": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld horários cadastrados"
+          }
+        }
+      }
+    },
     "%lld vagas abertas": {
       "localizations": {
         "pt-BR": {
@@ -203,12 +213,42 @@
         }
       }
     },
+    "Administrador": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrador"
+          }
+        }
+      }
+    },
     "Aguarde o envio da candidatura anterior.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Aguarde o envio da candidatura anterior."
+          }
+        }
+      }
+    },
+    "Ainda não há turnos considerados.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não há turnos considerados."
+          }
+        }
+      }
+    },
+    "Ajuda": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuda"
           }
         }
       }
@@ -443,6 +483,16 @@
         }
       }
     },
+    "Comparecimento: %lld%": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparecimento: %lld%"
+          }
+        }
+      }
+    },
     "Complete seu perfil com o ponto de partida para ver as vagas por distância.": {
       "localizations": {
         "pt-BR": {
@@ -573,6 +623,26 @@
         }
       }
     },
+    "Disponível no cartão #219": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disponível no cartão #219"
+          }
+        }
+      }
+    },
+    "Disponível no cartão #50": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disponível no cartão #50"
+          }
+        }
+      }
+    },
     "Documento": {
       "localizations": {
         "pt-BR": {
@@ -593,6 +663,16 @@
         }
       }
     },
+    "E-mail": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail"
+          }
+        }
+      }
+    },
     "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação.": {
       "localizations": {
         "pt-BR": {
@@ -609,6 +689,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Endereço"
+          }
+        }
+      }
+    },
+    "Endereço de suporte pendente": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endereço de suporte pendente"
           }
         }
       }
@@ -783,12 +873,52 @@
         }
       }
     },
+    "Excluir conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir conta"
+          }
+        }
+      }
+    },
+    "Exportar meus dados": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar meus dados"
+          }
+        }
+      }
+    },
+    "Fale com o suporte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fale com o suporte"
+          }
+        }
+      }
+    },
     "Faça o check-in antes de continuar.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Faça o check-in antes de continuar."
+          }
+        }
+      }
+    },
+    "Fechar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
           }
         }
       }
@@ -859,6 +989,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Horário inválido. Use o formato HH:mm."
+          }
+        }
+      }
+    },
+    "Horários disponíveis": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horários disponíveis"
           }
         }
       }
@@ -963,6 +1103,16 @@
         }
       }
     },
+    "Link pendente": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link pendente"
+          }
+        }
+      }
+    },
     "Logística": {
       "localizations": {
         "pt-BR": {
@@ -1013,6 +1163,16 @@
         }
       }
     },
+    "Meu perfil": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meu perfil"
+          }
+        }
+      }
+    },
     "Meu turno": {
       "localizations": {
         "pt-BR": {
@@ -1059,6 +1219,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mude os filtros ou puxe para atualizar."
+          }
+        }
+      }
+    },
+    "Nenhum estabelecimento disponível.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum estabelecimento disponível."
           }
         }
       }
@@ -1179,6 +1349,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível carregar as vagas."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar o perfil.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o perfil."
           }
         }
       }
@@ -1333,6 +1513,16 @@
         }
       }
     },
+    "Operador": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operador"
+          }
+        }
+      }
+    },
     "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação.": {
       "localizations": {
         "pt-BR": {
@@ -1363,12 +1553,32 @@
         }
       }
     },
+    "Perfil do estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil do estabelecimento"
+          }
+        }
+      }
+    },
     "Perfil salvo com sucesso!": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Perfil salvo com sucesso!"
+          }
+        }
+      }
+    },
+    "Política de privacidade": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Política de privacidade"
           }
         }
       }
@@ -1399,6 +1609,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ponto do estabelecimento"
+          }
+        }
+      }
+    },
+    "Por que recebo vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por que recebo vagas"
           }
         }
       }
@@ -1593,12 +1813,42 @@
         }
       }
     },
+    "Respondemos em até 5 dias úteis.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respondemos em até 5 dias úteis."
+          }
+        }
+      }
+    },
     "Responsável": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Responsável"
+          }
+        }
+      }
+    },
+    "Restaurante ou bar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurante ou bar"
+          }
+        }
+      }
+    },
+    "Sair": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair"
           }
         }
       }
@@ -1733,6 +1983,16 @@
         }
       }
     },
+    "Seu acesso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu acesso"
+          }
+        }
+      }
+    },
     "Seu perfil de profissional": {
       "localizations": {
         "pt-BR": {
@@ -1813,12 +2073,32 @@
         }
       }
     },
+    "Telefone": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefone"
+          }
+        }
+      }
+    },
     "Tentar novamente": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Tentar novamente"
+          }
+        }
+      }
+    },
+    "Termos de uso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termos de uso"
           }
         }
       }
@@ -1879,6 +2159,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Transporte: %@"
+          }
+        }
+      }
+    },
+    "Turnos considerados: %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turnos considerados: %lld"
           }
         }
       }
@@ -2053,6 +2343,16 @@
         }
       }
     },
+    "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
+          }
+        }
+      }
+    },
     "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar.": {
       "localizations": {
         "pt-BR": {
@@ -2119,6 +2419,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "sim"
+          }
+        }
+      }
+    },
+    "—": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—"
           }
         }
       }

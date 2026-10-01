@@ -286,8 +286,11 @@ public struct TelaPublicarVaga: View {
     @State private var model: PublicarVagaViewModel
     @State private var regiaoMapa: MKCoordinateRegion
     private let telefoneResponsavel: String
+    private let api: any ApiCliente
+    @State private var mostrandoPerfilEstabelecimento = false
 
     public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String) {
+        self.api = api
         _model = State(initialValue: PublicarVagaViewModel(api: api, fila: fila, estabelecimento: estabelecimento))
         _regiaoMapa = State(initialValue: MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: estabelecimento.ponto.latitude, longitude: estabelecimento.ponto.longitude), span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)))
         self.telefoneResponsavel = telefoneResponsavel
@@ -297,6 +300,20 @@ public struct TelaPublicarVaga: View {
         NavigationStack {
             if model.resultado != nil { minhasVagas }
             else { formulario }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { mostrandoPerfilEstabelecimento = true } label: {
+                    Image(systemName: "building.2.crop.circle")
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                }
+                .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+            }
+        }
+        .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
+            NavigationStack {
+                TelaPerfilEstabelecimento(api: api) { Task { await api.sair(tokenFCM: nil) } }
+            }
         }
         .task {
             await model.restaurarPublicacaoPendente()

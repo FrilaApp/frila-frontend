@@ -12,6 +12,7 @@ public enum AbaDoProfissional: Hashable, Sendable {
 
 /// Destinos do fluxo de quem procura turno.
 public enum RotaDoProfissional: Hashable, Sendable {
+    case meuPerfil
     case detalhe(vagaID: UUID)
     case resultado(vaga: Vaga, resultado: ResultadoDaCandidatura)
     case meuTurno(turno: Turno)
@@ -104,9 +105,19 @@ public struct FluxoDoProfissional<Barra: View>: View {
                             .accessibilityIdentifier("abrir-meus-turnos")
                         }
                         ToolbarItem(placement: .topBarTrailing) { barra() }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            NavigationLink(value: RotaDoProfissional.meuPerfil) {
+                                Image(systemName: "person.crop.circle")
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            }
+                            .accessibilityLabel(String(localized: "Meu perfil", bundle: bundleApresentacao))
+                            .accessibilityIdentifier("abrir-meu-perfil")
+                        }
                     }
                     .navigationDestination(for: RotaDoProfissional.self) { rota in
                         switch rota {
+                        case .meuPerfil:
+                            TelaMeuPerfilProfissional(api: api) { Task { await api.sair(tokenFCM: nil) } }
                         case let .detalhe(vagaID):
                             DestinoDoDetalhe(vagaID: vagaID, api: api, candidatar: roteador.candidatar)
                         case let .resultado(vaga, resultado):

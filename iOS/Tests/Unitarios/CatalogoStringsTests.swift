@@ -285,6 +285,20 @@ struct CatalogoStringsTests {
             "Abre o detalhe do turno",
             "Região Administrativa",
             "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.",
+            "Ainda não há turnos considerados.",
+            "Comparecimento: %lld%",
+            "Turnos considerados: %lld",
+            "Meu perfil",
+            "Perfil do estabelecimento",
+            "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.",
+            "Respondemos em até 5 dias úteis.",
+            "Termos de uso",
+            "Política de privacidade",
+            "Disponível no cartão #219",
+            "Disponível no cartão #50",
+            "Endereço de suporte pendente",
+            "Link pendente",
+            "%lld horários cadastrados",
         ]
 
         var faltantes: [String] = []
