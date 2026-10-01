@@ -58,12 +58,12 @@ public struct ValidacaoClienteAPI: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text("Validação do cliente").font(.title3.bold())
-            Text("Use um e-mail de teste que a equipe controla. O endereço e o código não são registrados em logs.")
+            Text("Validação do cliente", bundle: bundleApresentacao).font(.title3.bold())
+            Text("Use um e-mail de teste que a equipe controla. O endereço e o código não são registrados em logs.", bundle: bundleApresentacao)
                 .font(.footnote)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
-            Text(sessao.texto)
+            Text(verbatim: sessao.texto)
                 .font(.footnote)
                 .accessibilityIdentifier("validacao-sessao")
 
@@ -89,7 +89,7 @@ public struct ValidacaoClienteAPI: View {
             }
 
             if let mensagemDeSucesso {
-                AvisoFrila(LocalizedStringKey(mensagemDeSucesso), tom: .informativo)
+                AvisoFrila(verbatim: mensagemDeSucesso, tom: .informativo)
                     .accessibilityIdentifier("validacao-sucesso")
             }
 
@@ -177,7 +177,7 @@ public struct AlertaDoErroAPI: View {
     }
 
     public var body: some View {
-        AvisoFrila(LocalizedStringKey(MensagemDoErroAPI.texto(erro)), tom: .erro)
+        AvisoFrila(verbatim: MensagemDoErroAPI.texto(erro), tom: .erro)
             .accessibilityIdentifier("erro-api-\(erro.codigo.rawValue)")
     }
 }

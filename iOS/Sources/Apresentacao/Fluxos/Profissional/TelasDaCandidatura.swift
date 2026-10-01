@@ -24,7 +24,7 @@ public struct AreaDeCandidatura: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            BotaoPrimario(LocalizedStringKey(TextosDoProfissional.Detalhe.candidatar), carregando: viewModel.enviando) {
+            BotaoPrimario(verbatim: TextosDoProfissional.Detalhe.candidatar, carregando: viewModel.enviando) {
                 Task { await candidatar(viewModel) }
             }
             .disabled(viewModel.enviando)
@@ -32,7 +32,7 @@ public struct AreaDeCandidatura: View {
             .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
 
             if case let .concluida(resultado) = viewModel.estado, let texto = Self.mensagemNoDetalhe(resultado) {
-                AvisoFrila(LocalizedStringKey(texto), tom: resultado == .outraEmAndamento ? .alerta : .erro)
+                AvisoFrila(verbatim: texto, tom: resultado == .outraEmAndamento ? .alerta : .erro)
                     .accessibilityIdentifier(resultado == .outraEmAndamento ? "candidatura-em-voo" : "candidatura-falha")
             }
         }
@@ -79,7 +79,11 @@ public struct TelaResultadoDaCandidatura: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(action: voltarParaLista) {
-                    Label(LocalizedStringKey(Textos.voltarParaLista), systemImage: "chevron.left")
+                    Label {
+                        Text(verbatim: Textos.voltarParaLista)
+                    } icon: {
+                        Image(systemName: "chevron.left")
+                    }
                 }
                 .accessibilityIdentifier("voltar-para-lista-navegacao")
             }
@@ -112,11 +116,11 @@ public struct TelaResultadoDaCandidatura: View {
         case .contaSuspensa:
             mensagem(Textos.suspensaTitulo, Textos.suspensaMensagem, id: "resultado-conta-suspensa")
             // Caminho para contestar: stub desabilitado até o cartão de contestação (S2 #41).
-            BotaoSecundario(LocalizedStringKey(Textos.contestar)) {}
+            BotaoSecundario(verbatim: Textos.contestar) {}
                 .disabled(true)
                 .accessibilityHint(Textos.contestarEmBreve)
                 .accessibilityIdentifier("contestar")
-            Text(Textos.contestarEmBreve).font(.footnote).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: Textos.contestarEmBreve).font(.footnote).foregroundStyle(FrilaCor.textoSecundario)
             voltar
         case .naoEncontrada, .falha, .outraEmAndamento:
             // Esses ficam no detalhe; se chegarem aqui, a pessoa volta para a lista.
@@ -125,14 +129,14 @@ public struct TelaResultadoDaCandidatura: View {
     }
 
     private var voltar: some View {
-        BotaoSecundario(LocalizedStringKey(Textos.voltarParaLista), acao: voltarParaLista)
+        BotaoSecundario(verbatim: Textos.voltarParaLista, acao: voltarParaLista)
             .accessibilityIdentifier("voltar-para-lista")
     }
 
     private func mensagem(_ titulo: String, _ texto: String, id: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(titulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
-            Text(texto).font(.body).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: titulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+            Text(verbatim: texto).font(.body).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -163,12 +167,12 @@ private struct TurnoConfirmado: View {
 
     var body: some View {
         let formatador = FormatadorFrila()
-        Text(Textos.confirmadoTitulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+        Text(verbatim: Textos.confirmadoTitulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("resultado-confirmada")
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text("\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)").font(.headline)
-            Text("\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
-            Text("\(vaga.local) · \(TextosDoProfissional.Detalhe.quemRecebe.lowercased()): \(vaga.responsavelLocal)")
+            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)").font(.headline)
+            Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
+            Text(verbatim: "\(vaga.local) · \(TextosDoProfissional.Detalhe.quemRecebe.lowercased()): \(vaga.responsavelLocal)")
                 .font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -177,12 +181,14 @@ private struct TurnoConfirmado: View {
 
         if let contato {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(Textos.contato).font(.footnote.weight(.semibold)).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: Textos.contato).font(.footnote.weight(.semibold)).foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityAddTraits(.isHeader)
-                Text("\(contato.nome) · \(contato.telefone)").font(.body.weight(.semibold))
-                Link(Textos.abrirWhatsApp, destination: contato.whatsappURL)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                Text(Textos.contatoLiberado).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: "\(contato.nome) · \(contato.telefone)").font(.body.weight(.semibold))
+                Link(destination: contato.whatsappURL) {
+                    Text(verbatim: Textos.abrirWhatsApp)
+                }
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                Text(verbatim: Textos.contatoLiberado).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()

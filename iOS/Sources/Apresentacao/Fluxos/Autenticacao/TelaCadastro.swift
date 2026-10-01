@@ -60,7 +60,7 @@ public struct TelaCadastro: View {
 
                 // Aviso de perfil fixo na conta (RN25)
                 AvisoFrila(
-                    LocalizedStringKey("**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo."),
+                    "**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo.",
                     tom: .alerta
                 )
                 .accessibilityIdentifier("cadastro-aviso-fixo")
@@ -179,11 +179,11 @@ public struct TelaCadastro: View {
             viewModel.perfil = perfil
         } label: {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(titulo)
+                Text(verbatim: titulo)
                     .font(.headline)
                     .foregroundStyle(FrilaCor.texto)
 
-                Text(descricao)
+                Text(verbatim: descricao)
                     .font(.footnote)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
@@ -197,8 +197,8 @@ public struct TelaCadastro: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(titulo)
-        .accessibilityValue(selecionado ? "Selecionado" : "Não selecionado")
+        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityValue(selecionado ? String(localized: "Selecionado", bundle: bundleApresentacao) : String(localized: "Não selecionado", bundle: bundleApresentacao))
         .accessibilityAddTraits(selecionado ? [.isSelected] : [])
         .accessibilityIdentifier(identificador)
     }

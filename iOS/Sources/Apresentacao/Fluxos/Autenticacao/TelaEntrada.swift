@@ -17,7 +17,7 @@ public struct TelaEntrada: View {
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text("Frila", bundle: bundleApresentacao)
-                        .font(.system(size: 44, weight: .bold))
+                        .font(.largeTitle.bold())
                         .foregroundStyle(FrilaCor.texto)
 
                     Text("Turnos avulsos no DF, perto de você.", bundle: bundleApresentacao)

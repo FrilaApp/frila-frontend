@@ -9,79 +9,79 @@ import FrilaDominio
 
 enum TextosDoProfissional {
     enum Lista {
-        static let titulo = String(localized: "Vagas no DF")
-        static let qualquerFuncao = String(localized: "Qualquer função")
-        static let qualquerData = String(localized: "Qualquer data")
-        static let hoje = String(localized: "Hoje")
-        static let amanha = String(localized: "Amanhã")
-        static let qualquerDistancia = String(localized: "Qualquer distância")
-        static func ateKm(_ km: Int) -> String { String(localized: "Até \(km) km") }
-        static let vazioTitulo = String(localized: "Nenhuma vaga aberta")
-        static let vazioMensagem = String(localized: "Mude os filtros ou puxe para atualizar.")
-        static let erroMensagem = String(localized: "Não foi possível carregar as vagas.")
-        static let semPontoDeReferencia = String(localized: "Complete seu perfil com o ponto de partida para ver as vagas por distância.")
-        static let perfilIncompativel = String(localized: "Esta lista é para quem trabalha como profissional.")
-        static let semConexaoMensagem = String(localized: "Sem conexão. Tente de novo quando a internet voltar.")
+        static let titulo = String(localized: "Vagas no DF", bundle: bundleApresentacao)
+        static let qualquerFuncao = String(localized: "Qualquer função", bundle: bundleApresentacao)
+        static let qualquerData = String(localized: "Qualquer data", bundle: bundleApresentacao)
+        static let hoje = String(localized: "Hoje", bundle: bundleApresentacao)
+        static let amanha = String(localized: "Amanhã", bundle: bundleApresentacao)
+        static let qualquerDistancia = String(localized: "Qualquer distância", bundle: bundleApresentacao)
+        static func ateKm(_ km: Int) -> String { String(localized: "Até \(km) km", bundle: bundleApresentacao) }
+        static let vazioTitulo = String(localized: "Nenhuma vaga aberta", bundle: bundleApresentacao)
+        static let vazioMensagem = String(localized: "Mude os filtros ou puxe para atualizar.", bundle: bundleApresentacao)
+        static let erroMensagem = String(localized: "Não foi possível carregar as vagas.", bundle: bundleApresentacao)
+        static let semPontoDeReferencia = String(localized: "Complete seu perfil com o ponto de partida para ver as vagas por distância.", bundle: bundleApresentacao)
+        static let perfilIncompativel = String(localized: "Esta lista é para quem trabalha como profissional.", bundle: bundleApresentacao)
+        static let semConexaoMensagem = String(localized: "Sem conexão. Tente de novo quando a internet voltar.", bundle: bundleApresentacao)
     }
 
     enum Detalhe {
-        static let titulo = String(localized: "Vaga")
-        static let quando = String(localized: "Quando")
-        static let horario = String(localized: "Horário")
-        static let valor = String(localized: "Valor")
-        static let posicoes = String(localized: "Posições")
-        static let valorIntegral = String(localized: "O valor é integral: o Frila não desconta taxa do turno.")
-        static let incluso = String(localized: "O que está incluso")
-        static let quemRecebe = String(localized: "Quem recebe você")
-        static let traje = String(localized: "Traje")
-        static let urgencia = String(localized: "Urgência")
-        static let urgenciaDetalhe = String(localized: "quem aceitar primeiro fica com a vaga")
-        static let selecao = String(localized: "Seleção")
-        static let selecaoDetalhe = String(localized: "o estabelecimento escolhe entre os candidatos")
+        static let titulo = String(localized: "Vaga", bundle: bundleApresentacao)
+        static let quando = String(localized: "Quando", bundle: bundleApresentacao)
+        static let horario = String(localized: "Horário", bundle: bundleApresentacao)
+        static let valor = String(localized: "Valor", bundle: bundleApresentacao)
+        static let posicoes = String(localized: "Posições", bundle: bundleApresentacao)
+        static let valorIntegral = String(localized: "O valor é integral: o Frila não desconta taxa do turno.", bundle: bundleApresentacao)
+        static let incluso = String(localized: "O que está incluso", bundle: bundleApresentacao)
+        static let quemRecebe = String(localized: "Quem recebe você", bundle: bundleApresentacao)
+        static let traje = String(localized: "Traje", bundle: bundleApresentacao)
+        static let urgencia = String(localized: "Urgência", bundle: bundleApresentacao)
+        static let urgenciaDetalhe = String(localized: "quem aceitar primeiro fica com a vaga", bundle: bundleApresentacao)
+        static let selecao = String(localized: "Seleção", bundle: bundleApresentacao)
+        static let selecaoDetalhe = String(localized: "o estabelecimento escolhe entre os candidatos", bundle: bundleApresentacao)
         static func avisoRN10(_ estabelecimento: String) -> String {
-            String(localized: "Ao confirmar, seu telefone e WhatsApp serão mostrados ao \(estabelecimento) para combinar o turno.")
+            String(localized: "Ao confirmar, seu telefone e WhatsApp serão mostrados ao \(estabelecimento) para combinar o turno.", bundle: bundleApresentacao)
         }
-        static let candidatar = String(localized: "Candidatar-me")
-        static let denunciar = String(localized: "Denunciar")
-        static let bloquear = String(localized: "Bloquear")
-        static let erroMensagem = String(localized: "Não foi possível abrir esta vaga.")
-        static let naoEncontrada = String(localized: "Esta vaga não está mais disponível.")
+        static let candidatar = String(localized: "Candidatar-me", bundle: bundleApresentacao)
+        static let denunciar = String(localized: "Denunciar", bundle: bundleApresentacao)
+        static let bloquear = String(localized: "Bloquear", bundle: bundleApresentacao)
+        static let erroMensagem = String(localized: "Não foi possível abrir esta vaga.", bundle: bundleApresentacao)
+        static let naoEncontrada = String(localized: "Esta vaga não está mais disponível.", bundle: bundleApresentacao)
     }
 
     /// Candidatura e resultados (#105). "Vaga preenchida" e "Meu turno" vêm do low-fi; inelegível, conta
     /// suspensa e vaga encerrada são textos provisórios autorizados pelo Cauê (o low-fi não tem essas telas).
     enum Candidatura {
-        static let enviando = String(localized: "Enviando candidatura…")
-        static let voltarParaLista = String(localized: "Ver outras vagas perto de você")
+        static let enviando = String(localized: "Enviando candidatura…", bundle: bundleApresentacao)
+        static let voltarParaLista = String(localized: "Ver outras vagas perto de você", bundle: bundleApresentacao)
 
-        static let confirmadoTitulo = String(localized: "Você está confirmado")
-        static let contato = String(localized: "Contato")
-        static let contatoLiberado = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno.")
-        static let abrirWhatsApp = String(localized: "Abrir no WhatsApp")
+        static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
+        static let contato = String(localized: "Contato", bundle: bundleApresentacao)
+        static let contatoLiberado = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno.", bundle: bundleApresentacao)
+        static let abrirWhatsApp = String(localized: "Abrir no WhatsApp", bundle: bundleApresentacao)
 
-        static let preenchidaTitulo = String(localized: "Essa vaga já foi preenchida")
-        static let preenchidaMensagem = String(localized: "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação.")
+        static let preenchidaTitulo = String(localized: "Essa vaga já foi preenchida", bundle: bundleApresentacao)
+        static let preenchidaMensagem = String(localized: "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação.", bundle: bundleApresentacao)
 
-        static let encerradaTitulo = String(localized: "Essa vaga não está mais aberta")
-        static let encerradaMensagem = String(localized: "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação.")
+        static let encerradaTitulo = String(localized: "Essa vaga não está mais aberta", bundle: bundleApresentacao)
+        static let encerradaMensagem = String(localized: "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação.", bundle: bundleApresentacao)
 
-        static let sobrepostoTitulo = String(localized: "Você já tem um turno nesse horário")
-        static let sobrepostoMensagem = String(localized: "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.")
+        static let sobrepostoTitulo = String(localized: "Você já tem um turno nesse horário", bundle: bundleApresentacao)
+        static let sobrepostoMensagem = String(localized: "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.", bundle: bundleApresentacao)
 
-        static let funcaoTitulo = String(localized: "Essa vaga pede outra função")
-        static let funcaoMensagem = String(localized: "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.")
-        static let inelegivelTitulo = String(localized: "Você não pode se candidatar a esta vaga")
-        static let inelegivelMensagem = String(localized: "O Frila não aceitou a candidatura para esta vaga.")
+        static let funcaoTitulo = String(localized: "Essa vaga pede outra função", bundle: bundleApresentacao)
+        static let funcaoMensagem = String(localized: "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.", bundle: bundleApresentacao)
+        static let inelegivelTitulo = String(localized: "Você não pode se candidatar a esta vaga", bundle: bundleApresentacao)
+        static let inelegivelMensagem = String(localized: "O Frila não aceitou a candidatura para esta vaga.", bundle: bundleApresentacao)
 
-        static let suspensaTitulo = String(localized: "Sua conta está suspensa")
-        static let suspensaMensagem = String(localized: "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta.")
-        static let contestar = String(localized: "Contestar a suspensão")
-        static let contestarEmBreve = String(localized: "A contestação chega numa próxima versão do app.")
+        static let suspensaTitulo = String(localized: "Sua conta está suspensa", bundle: bundleApresentacao)
+        static let suspensaMensagem = String(localized: "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta.", bundle: bundleApresentacao)
+        static let contestar = String(localized: "Contestar a suspensão", bundle: bundleApresentacao)
+        static let contestarEmBreve = String(localized: "A contestação chega numa próxima versão do app.", bundle: bundleApresentacao)
 
-        static let naoEncontrada = String(localized: "Esta vaga não está mais disponível. Volte para a lista e escolha outra.")
-        static let falha = String(localized: "Não foi possível enviar a candidatura. Tente de novo.")
-        static let semConexao = String(localized: "Sem conexão. A candidatura não foi enviada; tente de novo quando a internet voltar.")
-        static let outraEmAndamento = String(localized: "Aguarde o envio da candidatura anterior.")
+        static let naoEncontrada = String(localized: "Esta vaga não está mais disponível. Volte para a lista e escolha outra.", bundle: bundleApresentacao)
+        static let falha = String(localized: "Não foi possível enviar a candidatura. Tente de novo.", bundle: bundleApresentacao)
+        static let semConexao = String(localized: "Sem conexão. A candidatura não foi enviada; tente de novo quando a internet voltar.", bundle: bundleApresentacao)
+        static let outraEmAndamento = String(localized: "Aguarde o envio da candidatura anterior.", bundle: bundleApresentacao)
     }
 
     enum Turnos {
@@ -98,13 +98,13 @@ enum TextosDoProfissional {
         static let quemRecebe = String(localized: "quem recebe", bundle: bundleApresentacao)
     }
 
-    static func simNao(_ valor: Bool) -> String { valor ? String(localized: "sim") : String(localized: "não") }
+    static func simNao(_ valor: Bool) -> String { valor ? String(localized: "sim", bundle: bundleApresentacao) : String(localized: "não", bundle: bundleApresentacao) }
 
     /// Reputação do estabelecimento vista pelo profissional (US08).
     static func reputacaoDoEstabelecimento(_ reputacao: Reputacao) -> String {
         reputacao.semHistorico
-            ? String(localized: "Sem histórico")
-            : String(localized: "Trabalhariam lá de novo: \(reputacao.positivas) de \(reputacao.total)")
+            ? String(localized: "Sem histórico", bundle: bundleApresentacao)
+            : String(localized: "Trabalhariam lá de novo: \(reputacao.positivas) de \(reputacao.total)", bundle: bundleApresentacao)
     }
 
     public enum Perfil {

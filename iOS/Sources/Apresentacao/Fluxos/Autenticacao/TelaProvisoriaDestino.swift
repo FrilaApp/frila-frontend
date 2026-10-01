@@ -11,7 +11,7 @@ public struct TelaFuncoesEHorariosProvisoria: View {
     public var body: some View {
         VStack(spacing: FrilaEspaco.medio) {
             Image(systemName: "clock.badge.checkmark")
-                .font(.system(size: 48))
+                .font(.largeTitle)
                 .foregroundStyle(FrilaCor.primaria)
 
             Text("Funções e horários", bundle: bundleApresentacao)
@@ -41,7 +41,7 @@ public struct TelaInicioContratanteProvisoria: View {
     public var body: some View {
         VStack(spacing: FrilaEspaco.medio) {
             Image(systemName: "building.2.fill")
-                .font(.system(size: 48))
+                .font(.largeTitle)
                 .foregroundStyle(FrilaCor.primaria)
 
             Text("Início do contratante", bundle: bundleApresentacao)

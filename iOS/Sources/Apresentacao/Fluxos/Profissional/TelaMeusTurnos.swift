@@ -12,17 +12,25 @@ public struct CartaoMeuTurno: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             HStack(alignment: .firstTextBaseline) {
-                Text(turno.vaga.funcao).font(.headline)
+                Text(verbatim: turno.vaga.funcao).font(.headline)
                 Spacer()
-                Text(formatador.dinheiro(turno.valorAcordado))
+                Text(verbatim: formatador.dinheiro(turno.valorAcordado))
                     .font(.headline)
                     .foregroundStyle(FrilaCor.primaria)
             }
-            Text(turno.contraparte.nome)
+            Text(verbatim: turno.contraparte.nome)
                 .font(.subheadline)
                 .foregroundStyle(FrilaCor.textoSecundario)
-            Label(formatador.intervalo(turno.vaga.periodo), systemImage: "calendar")
-            Label(turno.vaga.local, systemImage: "mappin.and.ellipse")
+            Label {
+                Text(verbatim: formatador.intervalo(turno.vaga.periodo))
+            } icon: {
+                Image(systemName: "calendar")
+            }
+            Label {
+                Text(verbatim: turno.vaga.local)
+            } icon: {
+                Image(systemName: "mappin.and.ellipse")
+            }
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
@@ -53,7 +61,7 @@ public struct TelaMeusTurnos: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(TextosDoProfissional.Turnos.tituloMeusTurnos)
+        .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeusTurnos))
         .refreshable { await viewModel.atualizar() }
         .task { if viewModel.estado == .ociosa { await viewModel.carregar() } }
         .accessibilityIdentifier("tela-meus-turnos")
@@ -67,8 +75,8 @@ public struct TelaMeusTurnos: View {
         case let .carregada(turnos, _):
             if turnos.isEmpty {
                 EstadoVazio(
-                    LocalizedStringKey(TextosDoProfissional.Turnos.vazioTitulo),
-                    mensagem: LocalizedStringKey(TextosDoProfissional.Turnos.vazioMensagem)
+                    verbatim: TextosDoProfissional.Turnos.vazioTitulo,
+                    mensagem: TextosDoProfissional.Turnos.vazioMensagem
                 )
                 .accessibilityIdentifier("meus-turnos-vazio")
             } else {

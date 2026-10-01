@@ -20,7 +20,7 @@ struct SecaoDePresenca: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(Textos.titulo.uppercased())
+            Text(verbatim: Textos.titulo.uppercased())
                 .font(.caption.weight(.bold))
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
@@ -70,7 +70,7 @@ struct SecaoDePresenca: View {
             aviso(titulo: Textos.explicacaoTitulo, textos: [Textos.explicacao], identificador: "explicacao-localizacao")
             BotaoPrimario(verbatim: Textos.continuar) { Task { await viewModel.continuarComPermissao() } }
                 .accessibilityIdentifier("permitir-localizacao")
-            BotaoSecundario(LocalizedStringKey(Textos.agoraNao)) { viewModel.cancelar() }
+            BotaoSecundario(verbatim: Textos.agoraNao) { viewModel.cancelar() }
                 .accessibilityIdentifier("cancelar-presenca")
         case .lendo:
             progresso(Textos.lendo)
@@ -86,27 +86,29 @@ struct SecaoDePresenca: View {
                 Task { await viewModel.registrarSemGPS() }
             }
             .accessibilityIdentifier("registro-manual")
-            BotaoSecundario(LocalizedStringKey(Textos.tentarGPS)) { Task { await viewModel.tentarGPSDeNovo() } }
+            BotaoSecundario(verbatim: Textos.tentarGPS) { Task { await viewModel.tentarGPSDeNovo() } }
                 .accessibilityIdentifier("tentar-gps")
             if motivo == .permissaoNegada || motivo == .localizacaoAproximada,
                let ajustes = URL(string: UIApplication.openSettingsURLString) {
-                Link(Textos.abrirAjustes, destination: ajustes)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityIdentifier("abrir-ajustes")
+                Link(destination: ajustes) {
+                    Text(verbatim: Textos.abrirAjustes)
+                }
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .accessibilityIdentifier("abrir-ajustes")
             }
-            BotaoSecundario(LocalizedStringKey(Textos.agoraNao)) { viewModel.cancelar() }
+            BotaoSecundario(verbatim: Textos.agoraNao) { viewModel.cancelar() }
                 .accessibilityIdentifier("cancelar-presenca")
         }
     }
 
     private func aviso(titulo: String, textos: [String], identificador: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(titulo)
+            Text(verbatim: titulo)
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityFocused($focoNoAviso)
                 .accessibilityIdentifier(identificador)
-            ForEach(textos, id: \.self) { Text($0).font(.subheadline) }
+            ForEach(textos, id: \.self) { Text(verbatim: $0).font(.subheadline) }
         }
         .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -115,7 +117,7 @@ struct SecaoDePresenca: View {
     private func progresso(_ texto: String) -> some View {
         HStack(spacing: FrilaEspaco.pequeno) {
             ProgressView()
-            Text(texto).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: texto).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -132,11 +134,15 @@ struct SecaoDePresenca: View {
 
     /// Ícone e texto dizem a situação; a cor só acompanha.
     private func linha(_ situacao: LinhaDeSituacao) -> some View {
-        Label(situacao.texto, systemImage: situacao.icone)
-            .font(.subheadline)
-            .foregroundStyle(situacao.cor)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+        Label {
+            Text(verbatim: situacao.texto)
+        } icon: {
+            Image(systemName: situacao.icone)
+        }
+        .font(.subheadline)
+        .foregroundStyle(situacao.cor)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private var situacaoDoCheckin: LinhaDeSituacao? {

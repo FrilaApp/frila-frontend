@@ -10,16 +10,35 @@ public enum EstadoTela<Conteudo: Sendable>: Sendable {
 }
 
 public struct EstadoVazio: View {
-    private let titulo: LocalizedStringKey
-    private let mensagem: LocalizedStringKey
-    public init(_ titulo: LocalizedStringKey, mensagem: LocalizedStringKey) { self.titulo = titulo; self.mensagem = mensagem }
-    public var body: some View { MensagemDeEstado(icone: "tray", titulo: titulo, mensagem: mensagem) }
+    private let titulo: LocalizedStringKey?
+    private let mensagem: LocalizedStringKey?
+    private let tituloVerbatim: String?
+    private let mensagemVerbatim: String?
+    public init(_ titulo: LocalizedStringKey, mensagem: LocalizedStringKey) {
+        self.titulo = titulo
+        self.mensagem = mensagem
+        self.tituloVerbatim = nil
+        self.mensagemVerbatim = nil
+    }
+    public init(verbatim titulo: String, mensagem: String) {
+        self.titulo = nil
+        self.mensagem = nil
+        self.tituloVerbatim = titulo
+        self.mensagemVerbatim = mensagem
+    }
+    public var body: some View {
+        if let titulo, let mensagem {
+            MensagemDeEstado(icone: "tray", titulo: titulo, mensagem: mensagem)
+        } else if let tituloVerbatim, let mensagemVerbatim {
+            MensagemDeEstado(icone: "tray", tituloVerbatim: tituloVerbatim, mensagemVerbatim: mensagemVerbatim)
+        }
+    }
 }
 
 public struct EstadoCarregando: View {
     public init() {}
     public var body: some View {
-        VStack(spacing: FrilaEspaco.medio) { ProgressView(); Text("Carregando…").foregroundStyle(FrilaCor.textoSecundario) }
+        VStack(spacing: FrilaEspaco.medio) { ProgressView(); Text("Carregando…", bundle: bundleApresentacao).foregroundStyle(FrilaCor.textoSecundario) }
             .frame(maxWidth: .infinity, minHeight: 160)
             .accessibilityElement(children: .combine)
     }
@@ -43,9 +62,9 @@ public struct EstadoErro: View {
         VStack(spacing: FrilaEspaco.medio) {
             VStack(spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "exclamationmark.triangle").font(.largeTitle).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
-                Text("Algo deu errado").font(.headline)
+                Text("Algo deu errado", bundle: bundleApresentacao).font(.headline)
                 if let mensagem {
-                    Text(mensagem).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+                    Text(mensagem, bundle: bundleApresentacao).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
                 } else if let mensagemVerbatim {
                     Text(verbatim: mensagemVerbatim).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
                 }
@@ -70,13 +89,24 @@ public struct EstadoPendente: View {
 
 private struct MensagemDeEstado: View {
     let icone: String
-    let titulo: LocalizedStringKey
-    let mensagem: LocalizedStringKey
+    var titulo: LocalizedStringKey? = nil
+    var mensagem: LocalizedStringKey? = nil
+    var tituloVerbatim: String? = nil
+    var mensagemVerbatim: String? = nil
+
     var body: some View {
         VStack(spacing: FrilaEspaco.pequeno) {
             Image(systemName: icone).font(.largeTitle).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
-            Text(titulo).font(.headline)
-            Text(mensagem).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+            if let titulo {
+                Text(titulo, bundle: bundleApresentacao).font(.headline)
+            } else if let tituloVerbatim {
+                Text(verbatim: tituloVerbatim).font(.headline)
+            }
+            if let mensagem {
+                Text(mensagem, bundle: bundleApresentacao).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+            } else if let mensagemVerbatim {
+                Text(verbatim: mensagemVerbatim).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 160)
         .accessibilityElement(children: .combine)

@@ -25,19 +25,19 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 case let .carregado(vaga):
                     conteudo(vaga)
                 case .naoEncontrada:
-                    AvisoFrila(LocalizedStringKey(TextosDoProfissional.Detalhe.naoEncontrada), tom: .alerta)
+                    AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
                         .accessibilityIdentifier("detalhe-nao-encontrada")
                 case .falha(.semConexao):
-                    AvisoFrila(LocalizedStringKey(TextosDoProfissional.Lista.semConexaoMensagem), tom: .alerta)
+                    AvisoFrila(verbatim: TextosDoProfissional.Lista.semConexaoMensagem, tom: .alerta)
                     BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
                 case .falha:
-                    EstadoErro(LocalizedStringKey(TextosDoProfissional.Detalhe.erroMensagem)) { Task { await viewModel.carregar() } }
+                    EstadoErro(verbatim: TextosDoProfissional.Detalhe.erroMensagem) { Task { await viewModel.carregar() } }
                 }
             }
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(TextosDoProfissional.Detalhe.titulo)
+        .navigationTitle(Text(verbatim: TextosDoProfissional.Detalhe.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
         .accessibilityIdentifier("tela-detalhe-vaga")
@@ -47,8 +47,8 @@ public struct TelaDetalheVaga<Acao: View>: View {
     private func conteudo(_ vaga: Vaga) -> some View {
         let formatador = FormatadorFrila()
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(vaga.funcao.nome).font(.title.bold()).accessibilityAddTraits(.isHeader)
-            Text(cabecalho(vaga)).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: vaga.funcao.nome).font(.title.bold()).accessibilityAddTraits(.isHeader)
+            Text(verbatim: cabecalho(vaga)).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
         }
 
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -58,23 +58,23 @@ public struct TelaDetalheVaga<Acao: View>: View {
                     campo(TextosDoProfissional.Detalhe.valor, formatador.dinheiro(vaga.valor))
                 }
                 GridRow {
-                    campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)"))
+                    campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)", bundle: bundleApresentacao))
                     campo(modoTitulo(vaga.modo), modoDetalhe(vaga.modo))
                 }
             }
-            Text(TextosDoProfissional.Detalhe.valorIntegral).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
 
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(TextosDoProfissional.Detalhe.incluso).font(.footnote.weight(.semibold)).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: TextosDoProfissional.Detalhe.incluso).font(.footnote.weight(.semibold)).foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
-            Text("Refeição: \(TextosDoProfissional.simNao(vaga.inclusos.refeicao))")
-            Text("Transporte: \(TextosDoProfissional.simNao(vaga.inclusos.transporte))")
-            Text("Material próprio: \(TextosDoProfissional.simNao(vaga.inclusos.exigeMaterialProprio))")
-            if let traje = vaga.traje, !traje.isEmpty { Text("\(TextosDoProfissional.Detalhe.traje): \(traje)") }
-            Text("\(TextosDoProfissional.Detalhe.quemRecebe): \(vaga.responsavelLocal)")
+            Text(verbatim: "Refeição: \(TextosDoProfissional.simNao(vaga.inclusos.refeicao))")
+            Text(verbatim: "Transporte: \(TextosDoProfissional.simNao(vaga.inclusos.transporte))")
+            Text(verbatim: "Material próprio: \(TextosDoProfissional.simNao(vaga.inclusos.exigeMaterialProprio))")
+            if let traje = vaga.traje, !traje.isEmpty { Text(verbatim: "\(TextosDoProfissional.Detalhe.traje): \(traje)") }
+            Text(verbatim: "\(TextosDoProfissional.Detalhe.quemRecebe): \(vaga.responsavelLocal)")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -92,16 +92,16 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
         // Reservado para o Sprint 2 (Denunciar e Bloquear): ocupa o espaço e fica desabilitado.
         HStack(spacing: FrilaEspaco.grande) {
-            Button(TextosDoProfissional.Detalhe.denunciar) {}.disabled(true)
-            Button(TextosDoProfissional.Detalhe.bloquear) {}.disabled(true)
+            Button { } label: { Text(verbatim: TextosDoProfissional.Detalhe.denunciar) }.disabled(true)
+            Button { } label: { Text(verbatim: TextosDoProfissional.Detalhe.bloquear) }.disabled(true)
         }
         .frame(minHeight: FrilaMetrica.alvoMinimo)
     }
 
     private func campo(_ titulo: String, _ valor: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(titulo).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
-            Text(valor).font(.body.weight(.semibold))
+            Text(verbatim: titulo).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: valor).font(.body.weight(.semibold))
         }
         .accessibilityElement(children: .combine)
     }

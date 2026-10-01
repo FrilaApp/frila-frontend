@@ -23,7 +23,7 @@ public struct TelaVagas: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(TextosDoProfissional.Lista.titulo)
+        .navigationTitle(Text(verbatim: TextosDoProfissional.Lista.titulo))
         .refreshable { await viewModel.atualizar() }
         .task { if viewModel.estado == .ociosa { await viewModel.carregar() } }
         .accessibilityIdentifier("tela-vagas")
@@ -33,9 +33,9 @@ public struct TelaVagas: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: FrilaEspaco.pequeno) {
                 Menu {
-                    Button(TextosDoProfissional.Lista.qualquerFuncao) { selecionar { await $0.selecionar(funcao: nil) } }
+                    Button { selecionar { await $0.selecionar(funcao: nil) } } label: { Text(verbatim: TextosDoProfissional.Lista.qualquerFuncao) }
                     ForEach(viewModel.funcoes) { funcao in
-                        Button(funcao.nome) { selecionar { await $0.selecionar(funcao: funcao.id) } }
+                        Button { selecionar { await $0.selecionar(funcao: funcao.id) } } label: { Text(verbatim: funcao.nome) }
                     }
                 } label: {
                     PilulaDeFiltro(titulo: nomeDaFuncao, ativo: viewModel.funcaoID != nil)
@@ -44,7 +44,7 @@ public struct TelaVagas: View {
 
                 Menu {
                     ForEach(FiltroDeData.allCases, id: \.self) { opcao in
-                        Button(Self.titulo(opcao)) { selecionar { await $0.selecionar(data: opcao) } }
+                        Button { selecionar { await $0.selecionar(data: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
                     }
                 } label: {
                     PilulaDeFiltro(titulo: Self.titulo(viewModel.data), ativo: viewModel.data != .qualquer)
@@ -53,7 +53,7 @@ public struct TelaVagas: View {
 
                 Menu {
                     ForEach(FiltroDeDistancia.opcoes, id: \.self) { opcao in
-                        Button(Self.titulo(opcao)) { selecionar { await $0.selecionar(distancia: opcao) } }
+                        Button { selecionar { await $0.selecionar(distancia: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
                     }
                 } label: {
                     PilulaDeFiltro(titulo: Self.titulo(viewModel.distancia), ativo: viewModel.distancia != .qualquer)
@@ -69,8 +69,8 @@ public struct TelaVagas: View {
         case .ociosa, .carregando:
             EstadoCarregando()
         case let .carregada(vagas) where vagas.isEmpty:
-            EstadoVazio(LocalizedStringKey(TextosDoProfissional.Lista.vazioTitulo),
-                        mensagem: LocalizedStringKey(TextosDoProfissional.Lista.vazioMensagem))
+            EstadoVazio(verbatim: TextosDoProfissional.Lista.vazioTitulo,
+                        mensagem: TextosDoProfissional.Lista.vazioMensagem)
                 .accessibilityIdentifier("vagas-vazio")
         case let .carregada(vagas):
             LazyVStack(spacing: FrilaEspaco.medio) {
@@ -84,18 +84,18 @@ public struct TelaVagas: View {
             }
         case .falha(.semConexao):
             VStack(spacing: FrilaEspaco.medio) {
-                AvisoFrila(LocalizedStringKey(TextosDoProfissional.Lista.semConexaoMensagem), tom: .alerta)
+                AvisoFrila(verbatim: TextosDoProfissional.Lista.semConexaoMensagem, tom: .alerta)
                 BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
             }
             .accessibilityIdentifier("vagas-sem-conexao")
         case .falha(.semPontoDeReferencia):
-            EstadoErro(LocalizedStringKey(TextosDoProfissional.Lista.semPontoDeReferencia)) { Task { await viewModel.carregar() } }
+            EstadoErro(verbatim: TextosDoProfissional.Lista.semPontoDeReferencia) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("vagas-sem-referencia")
         case .falha(.perfilIncompativel):
-            AvisoFrila(LocalizedStringKey(TextosDoProfissional.Lista.perfilIncompativel), tom: .alerta)
+            AvisoFrila(verbatim: TextosDoProfissional.Lista.perfilIncompativel, tom: .alerta)
                 .accessibilityIdentifier("vagas-perfil-incompativel")
         case .falha(.erro):
-            EstadoErro(LocalizedStringKey(TextosDoProfissional.Lista.erroMensagem)) { Task { await viewModel.carregar() } }
+            EstadoErro(verbatim: TextosDoProfissional.Lista.erroMensagem) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("vagas-erro")
         }
     }
@@ -133,7 +133,7 @@ private struct PilulaDeFiltro: View {
     var body: some View {
         HStack(spacing: FrilaEspaco.minimo) {
             if ativo { Image(systemName: "checkmark").accessibilityHidden(true) }
-            Text(titulo)
+            Text(verbatim: titulo)
             Image(systemName: "chevron.down").font(.caption).accessibilityHidden(true)
         }
         .font(.subheadline.weight(.semibold))
@@ -143,6 +143,6 @@ private struct PilulaDeFiltro: View {
         .overlay(Capsule().stroke(ativo ? FrilaCor.primaria : FrilaCor.textoSecundario, lineWidth: 1))
         .foregroundStyle(FrilaCor.texto)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(ativo ? String(localized: "filtro ativo") : "")
+        .accessibilityValue(ativo ? String(localized: "filtro ativo", bundle: bundleApresentacao) : "")
     }
 }
