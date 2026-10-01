@@ -70,7 +70,15 @@ esperar_reprovacao "criptografia ausente" "ITSAppUsesNonExemptEncryption" "$app"
 
 app="$(novo_app_bom criptografia-sim)"
 plutil -replace ITSAppUsesNonExemptEncryption -bool YES "$app/Info.plist"
-esperar_reprovacao "criptografia diferente de NO" "deve ser NO" "$app"
+esperar_reprovacao "criptografia verdadeira" "booleano false" "$app"
+
+app="$(novo_app_bom criptografia-string-no)"
+plutil -replace ITSAppUsesNonExemptEncryption -string NO "$app/Info.plist"
+esperar_reprovacao "criptografia como string NO" "booleano false" "$app"
+
+app="$(novo_app_bom criptografia-string-false)"
+plutil -replace ITSAppUsesNonExemptEncryption -string false "$app/Info.plist"
+esperar_reprovacao "criptografia como string false" "booleano false" "$app"
 
 app="$(novo_app_bom localizacao-sempre)"
 plutil -insert NSLocationAlwaysUsageDescription -string 'localização' "$app/Info.plist"
@@ -96,7 +104,7 @@ app="$(novo_app_bom sem-privacidade)"
 rm "$app/PrivacyInfo.xcprivacy"
 esperar_reprovacao "manifesto de privacidade ausente" "PrivacyInfo.xcprivacy" "$app"
 
-for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ENTRADA' 'forcar-falha-crashlytics'; do
+for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_CADASTRO_UI_TEST' '-FRILA_ENTRADA' '-FRILA_VAGA_ID' 'forcar-falha-crashlytics'; do
   app="$(novo_app_bom "gancho-$RANDOM")"
   printf '\n%s\n' "$gancho" >> "$app/Frila"
   esperar_reprovacao "gancho no executável: $gancho" "$gancho" "$app"
@@ -107,5 +115,12 @@ mkdir -p "$app/Frameworks/Teste.framework"
 printf 'binario com -FRILA_SCENARIO\n' > "$app/Frameworks/Teste.framework/Teste"
 chmod +x "$app/Frameworks/Teste.framework/Teste"
 esperar_reprovacao "gancho em framework embutido" "-FRILA_SCENARIO" "$app"
+
+for simbolo in pelosArgumentos CatalogoDesignSystem TelaLicencas; do
+  app="$(novo_app_bom "simbolo-$RANDOM")"
+  printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
+    xcrun clang -x c -o "$app/Frila" -
+  esperar_reprovacao "símbolo no executável: $simbolo" "$simbolo" "$app"
+done
 
 echo "OK: autoteste de conferir-release.sh passou"

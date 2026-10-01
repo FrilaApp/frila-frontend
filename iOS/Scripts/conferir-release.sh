@@ -20,10 +20,13 @@ app="$1"
 info_plist="$app/Info.plist"
 [[ -f "$info_plist" ]] || falhar "Info.plist não encontrado no bundle: $info_plist"
 
-if ! criptografia="$(plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$info_plist" 2>/dev/null)"; then
+if ! criptografia_xml="$(plutil -extract ITSAppUsesNonExemptEncryption xml1 -o - "$info_plist" 2>/dev/null)"; then
   falhar "Info.plist não define ITSAppUsesNonExemptEncryption"
 fi
-[[ "$criptografia" == "NO" || "$criptografia" == "false" ]] || falhar "ITSAppUsesNonExemptEncryption deve ser NO (encontrado: $criptografia)"
+if [[ "$criptografia_xml" != *"<false/>"* ]]; then
+  criptografia="$(plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$info_plist" 2>/dev/null || true)"
+  falhar "ITSAppUsesNonExemptEncryption deve ser o booleano false (encontrado: $criptografia)"
+fi
 
 chave_localizacao_sempre="$(
   plutil -convert json -o - "$info_plist" |
@@ -59,8 +62,20 @@ fi
 ganchos_de_desenvolvimento=(
   '-FRILA_SCENARIO'
   '-FRILA_ABRIR_CATALOGO'
+  '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO'
+  '-FRILA_CADASTRO_UI_TEST'
   '-FRILA_ENTRADA'
+  '-FRILA_VAGA_ID'
   'forcar-falha-crashlytics'
+)
+
+# Strings Swift curtas podem ser materializadas diretamente nas instruções do
+# processador, sem uma sequência de bytes contígua. Esses símbolos só podem
+# existir em Debug; em um bundle de Release indicam um gancho de desenvolvimento.
+simbolos_de_desenvolvimento=(
+  'pelosArgumentos'
+  'CatalogoDesignSystem'
+  'TelaLicencas'
 )
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
@@ -72,6 +87,18 @@ for arquivo in "${arquivos_para_conferir[@]}"; do
       [[ $status_grep -eq 1 ]] || falhar "não foi possível examinar o binário: $arquivo"
     fi
   done
+
+  tipo_do_arquivo="$(LC_ALL=C file -b "$arquivo")"
+  if [[ "$tipo_do_arquivo" == *"Mach-O"* ]]; then
+    if ! simbolos="$(nm -U "$arquivo" 2>/dev/null | xcrun swift-demangle)"; then
+      falhar "não foi possível examinar os símbolos do binário: $arquivo"
+    fi
+    for simbolo in "${simbolos_de_desenvolvimento[@]}"; do
+      if [[ "$simbolos" == *"$simbolo"* ]]; then
+        falhar "binário de Release contém símbolo de desenvolvimento '$simbolo' em $arquivo"
+      fi
+    done
+  fi
 done
 
 echo "OK: bundle de Release em conformidade: $app"
