@@ -57,6 +57,10 @@ targets:
     platform: iOS
     sources:
       - path: Sources/Dominio
+      # Manifesto de privacidade de cada framework que usa UserDefaults (#96): a Apple pede o
+      # manifesto no bundle que contém a biblioteca dinâmica, não só no do app.
+      - path: Resources/Frameworks/PrivacyInfo.xcprivacy
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).dominio
@@ -69,6 +73,8 @@ targets:
     sources:
       - path: Sources/Dados
       - path: Resources/Fixtures
+        buildPhase: resources
+      - path: Resources/Frameworks/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:
       - target: FrilaDominio
@@ -91,6 +97,8 @@ targets:
         buildPhase: resources
       - path: Resources/Licencas.json
         buildPhase: resources
+      - path: Resources/Frameworks/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - target: FrilaDominio
     settings:
@@ -104,6 +112,8 @@ targets:
     platform: iOS
     sources:
       - path: Sources/Infraestrutura
+      - path: Resources/Frameworks/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - target: FrilaDominio
       - package: Firebase
@@ -230,7 +240,7 @@ targets:
         # O preset de target do XcodeGen usa "1,2" e anula o valor do projeto; sem isto o app
         # declara iPad no UIDeviceFamily e o Xcode passa a exigir as quatro orientações.
         TARGETED_DEVICE_FAMILY: "1"
-        MARKETING_VERSION: "0.1.0"
+        MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Frila

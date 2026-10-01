@@ -45,6 +45,24 @@ if plutil -extract NSUserTrackingUsageDescription raw -o /dev/null "$info_plist"
   falhar "Info.plist não pode conter NSUserTrackingUsageDescription"
 fi
 
+# O app lê a localização em uso e pede a precisão temporária no check-in: sem estes dois textos o
+# sistema não mostra o pedido.
+localizacao="$(python3 - "$info_plist" <<'PYLOCALIZACAO'
+import plistlib, sys
+with open(sys.argv[1], "rb") as arquivo:
+    info = plistlib.load(arquivo)
+em_uso = info.get("NSLocationWhenInUseUsageDescription")
+temporaria = info.get("NSLocationTemporaryUsageDescriptionDictionary")
+if not (isinstance(em_uso, str) and em_uso.strip()):
+    print("NSLocationWhenInUseUsageDescription")
+elif not (isinstance(temporaria, dict) and temporaria and all(isinstance(v, str) and v.strip() for v in temporaria.values())):
+    print("NSLocationTemporaryUsageDescriptionDictionary")
+else:
+    print("ok")
+PYLOCALIZACAO
+)"
+[[ "$localizacao" == "ok" ]] || falhar "Info.plist precisa de $localizacao com texto"
+
 if ! familias="$(plutil -extract UIDeviceFamily json -o - "$info_plist" 2>/dev/null)"; then
   falhar "Info.plist não define UIDeviceFamily"
 fi
