@@ -14,6 +14,9 @@ public struct TelaMeuTurno: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoTurno
+                if let presenca = viewModel.presenca {
+                    SecaoDePresenca(viewModel: presenca)
+                }
                 cartaoContato
             }
             .padding(FrilaEspaco.medio)

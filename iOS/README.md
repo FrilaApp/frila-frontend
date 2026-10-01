@@ -128,6 +128,18 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Rota por vaga_id.** `-FRILA_VAGA_ID <uuid>` abre o detalhe, é a mesma entrada que o push do tipo vaga vai usar (S2 #8) e nunca candidata sozinha. Esse argumento e o `-FRILA_ABRIR_CATALOGO` só existem em Debug; um teste confere que ficam dentro de `#if DEBUG`, e o binário de Release não os contém.
 - **Cenários do dublê.** `vaga-preenchida`, `vaga-encerrada`, `inelegivel` (turno sobreposto) e `inelegivel-suspenso`.
 
+**Check-in e check-out (#17).** A seção "Presença" de Meu turno (`SecaoDePresenca`, `PresencaDoTurnoViewModel`) é provisória como o resto do fluxo; os textos ficam em `TextosDaPresenca.swift`, extensão de `TextosDoProfissional`.
+- **Só no toque.** A localização é lida uma vez, quando a pessoa toca em Fazer check-in ou Fazer check-out, com a permissão "ao usar". O app não declara a permissão "sempre" nem modo de segundo plano, e um teste confere o Info.plist instalado e o código.
+- **Explicação antes do pedido.** Com a permissão ainda não decidida, o primeiro toque mostra a explicação; o alerta do sistema só aparece em Continuar.
+- **O que vai ao servidor.** A distância inteira, em metros, até o ponto da vaga (`Coordenada.distancia`), e o instante do toque. A coordenada não sai do aparelho.
+- **Leitura.** Tempo-limite de 10 s; para na primeira posição com precisão de até 100 m. Precisão horizontal acima de 100 m não vale.
+- **Não consegui pelo GPS.** Sem permissão, com localização aproximada mantida (depois de pedir a precisa com a chave `CheckIn`), sem sinal, com leitura imprecisa ou, no check-in, a mais de 200 m, a tela oferece o check-in manual. Ele vai sem distância, com o instante do toque no botão do manual, e fica "aguardando confirmação" do contratante.
+- **Check-out.** Mesmo fluxo, sem teto de distância: a 350 m é enviado com a distância. Sem GPS, a saída é registrada sem localização.
+- **Sem rede.** `sem_rede` no envio põe a ação na fila offline (#111) com o instante do toque; ela sobe pelo `ReenvioAoReconectar`. Ao reabrir a tela, o que está na fila aparece como pendente.
+- **Ponto da vaga.** `meus_turnos` não traz o ponto: ele vem do detalhe da vaga, que a tela já carrega. Com a tela aberta sem rede desde o início, o ponto não chega e o registro sai como manual, mesmo com GPS.
+- **Limites.** A tela aberta não se atualiza sozinha quando a fila sobe. Uma ação da fila recusada pelo servidor (por exemplo `fora_da_janela`) continua na fila, como no #111. O `meusTurnos` do dublê não reflete o check-in, então reabrir o turno no esquema Local mostra o botão de novo, e o toque devolve o registro já gravado.
+- **GPS simulado.** No esquema Local, `-FRILA_LOCALIZACAO` seguido de `perto` (150 m), `longe` (350 m), `negada`, `sem-sinal`, `imprecisa` ou `aproximada` troca o CoreLocation pelo `LeitorDeLocalizacaoSimulado`, com as distâncias medidas até a vaga das fixtures. Só vale com o dublê em memória; sem o argumento, o esquema Local usa o GPS do simulador (`xcrun simctl location <udid> set <lat>,<lon>`).
+
 ## Cenários simulados
 
 **Check-in e check-out no dublê.** O `ApiClienteEmMemoria` segue o `fazer_checkin` vigente do backend (`20260925233000_notificacao_para_qualquer_conta.sql`) e o `fazer_checkout` (`20260925000000_checkin_e_checkout.sql`):

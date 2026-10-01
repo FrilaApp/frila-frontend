@@ -5,6 +5,17 @@
       "localizations" : {
         "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Frila" } }
       }
+    },
+    "CheckIn" : {
+      "comment" : "Texto do pedido de localização precisa (NSLocationTemporaryUsageDescriptionDictionary).",
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "A localização precisa confirma que você está no endereço da vaga neste check-in ou check-out." } }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Frila usa sua localização só quando você toca em fazer check-in ou check-out, para medir a distância até o endereço da vaga. Só a distância é enviada." } }
+      }
     }
   },
   "version" : "1.0"
