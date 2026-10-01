@@ -38,6 +38,22 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case respostaInvalida = "resposta_invalida"
     case desconhecido
 }
+
+public extension CodigoErroAPI {
+    /// Uma publicação com esses erros foi recusada antes de ser criada; repetir a chave não pode
+    /// transformar a mesma solicitação em sucesso.
+    var recusaDefinitivaDePublicacao: Bool {
+        switch self {
+        case .campoObrigatorio, .campoInvalido, .horarioInvalido, .funcaoIncompativel,
+             .perfilIncompativel, .selecaoSemAntecedencia, .semPermissao, .contaSuspensa,
+             .naoEncontrado:
+            true
+        default:
+            false
+        }
+    }
+}
+
 public struct ErroDaApi: Error, Equatable, Sendable {
     public let codigo: CodigoErroAPI
     public let codigoOriginal: String
