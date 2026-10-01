@@ -81,6 +81,7 @@ private final class ApiClienteAvaliacaoDuble: ApiCliente, @unchecked Sendable {
     func perfilPublico(id: UUID) async throws -> PerfilPublico { try await base.perfilPublico(id: id) }
     func meusTurnos() async throws -> [Turno] { try await base.meusTurnos() }
     func contatoDoTurno(id: UUID) async throws -> Contato { try await base.contatoDoTurno(id: id) }
+    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho { try await base.avisarACaminho(turnoID: turnoID) }
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try await base.fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
