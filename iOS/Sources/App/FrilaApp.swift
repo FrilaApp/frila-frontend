@@ -125,7 +125,7 @@ private struct EntradaDoApp: View {
                 let apiCadastro = ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST")
                     ? ApiClienteEmMemoria(cenario: .primeiroAcesso) : api
                 if let armazenamento {
-                    TelaCadastroEstabelecimento(api: apiCadastro, fila: armazenamento, responsavelNome: "Conta de teste", responsavelTelefone: "(61) 99999-0000")
+                    TelaCadastroEstabelecimento(api: apiCadastro, fila: armazenamento, responsavelNome: "Conta de teste", responsavelTelefone: "(61) 99999-0000", sair: acaoDeSair)
                 } else {
                     EstadoCarregando()
                 }
@@ -239,7 +239,7 @@ private struct EntradaDoApp: View {
     @ViewBuilder
     private var fluxoProfissionalView: some View {
         #if DEBUG
-        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento) {
+        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair) {
             Button("Catálogo") { mostrandoCatalogo = true }
                 .accessibilityHint("Abre o catálogo de componentes, só em Debug")
         }
@@ -252,7 +252,7 @@ private struct EntradaDoApp: View {
             roteador.abrirVaga(id: vagaID)
         }
         #else
-        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento)
+        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair)
         #endif
     }
 
@@ -308,6 +308,18 @@ private struct EntradaDoApp: View {
             erroAoAvaliar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
             carregandoDestino = false
         }
+    }
+
+    private var acaoDeSair: () -> Void {
+        { Task { await sairDaConta() } }
+    }
+
+    @MainActor
+    private func sairDaConta() async {
+        await SaidaDaConta(api: api, armazenamento: armazenamento).sair(tokenFCM: nil)
+        roteador.voltarParaLista()
+        destinoAtual = nil
+        await avaliarSessao()
     }
 }
 

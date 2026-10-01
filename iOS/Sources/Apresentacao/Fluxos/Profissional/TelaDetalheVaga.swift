@@ -79,7 +79,8 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
 
-        Label(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao), systemImage: "hand.thumbsup")
+        SeloReputacao(vaga.estabelecimento.reputacao)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()
             .accessibilityIdentifier("detalhe-reputacao")

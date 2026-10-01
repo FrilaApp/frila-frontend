@@ -134,11 +134,34 @@ public struct SeloReputacao: View {
     private let reputacao: Reputacao
     public init(_ reputacao: Reputacao) { self.reputacao = reputacao }
 
+    public static func descricao(_ reputacao: Reputacao) -> String {
+        guard !reputacao.semHistorico else { return String(localized: "Sem histórico", bundle: bundleApresentacao) }
+        return String(localized: "\(reputacao.positivas) de \(reputacao.total) chamariam de novo", bundle: bundleApresentacao)
+    }
+
+    public static func descricaoComparecimento(_ reputacao: Reputacao) -> String? {
+        guard !reputacao.semHistorico else { return nil }
+        if reputacao.turnosConsiderados == 1 {
+            return String(localized: "Compareceu a \(reputacao.turnosRealizados) de \(reputacao.turnosConsiderados) turno", bundle: bundleApresentacao)
+        }
+        return String(localized: "Compareceu a \(reputacao.turnosRealizados) de \(reputacao.turnosConsiderados) turnos", bundle: bundleApresentacao)
+    }
+
     public var body: some View {
-        Label(reputacao.descricao(), systemImage: reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup.fill")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(reputacao.semHistorico ? FrilaCor.textoSecundario : FrilaCor.sucesso)
-            .accessibilityElement(children: .combine)
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Label(Self.descricao(reputacao), systemImage: reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup.fill")
+                .font(.subheadline.weight(.semibold))
+            if reputacao.semHistorico {
+                Text(String(localized: "Ainda não há turnos considerados.", bundle: bundleApresentacao))
+                    .font(.caption)
+            } else {
+                if let comparecimento = Self.descricaoComparecimento(reputacao) {
+                    Text(verbatim: comparecimento).font(.caption)
+                }
+            }
+        }
+        .foregroundStyle(reputacao.semHistorico ? FrilaCor.textoSecundario : FrilaCor.sucesso)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -203,9 +226,7 @@ public struct CartaoVaga: View {
             // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
             Label("\(distancia) · \(vaga.local)", systemImage: "mappin.and.ellipse")
             if !inclusos.isEmpty { Label(inclusos, systemImage: "checkmark.circle") }
-            Label(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao),
-                  systemImage: vaga.estabelecimento.reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup")
-                .font(.caption.weight(.medium))
+            SeloReputacao(vaga.estabelecimento.reputacao)
             Text("\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao).font(.caption)
         }
         .font(.subheadline)
@@ -230,7 +251,8 @@ public struct CartaoVaga: View {
         if !inclusos.isEmpty {
             partes.append(inclusos)
         }
-        partes.append(TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao))
+        partes.append(SeloReputacao.descricao(vaga.estabelecimento.reputacao))
+        if let comparecimento = SeloReputacao.descricaoComparecimento(vaga.estabelecimento.reputacao) { partes.append(comparecimento) }
         partes.append(String(localized: "\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao))
         return partes.joined(separator: ", ")
     }

@@ -32,7 +32,7 @@ final class MinhasVagasUITests: XCTestCase {
         perfil.tap()
         XCTAssertTrue(app.staticTexts["Ana Cunha"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["7 de 7 chamariam de novo"].exists)
-        XCTAssertTrue(app.staticTexts["Comparecimento: 100%"].exists)
+        XCTAssertTrue(app.staticTexts["Compareceu a 7 de 7 turnos"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
         let contato = app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"]

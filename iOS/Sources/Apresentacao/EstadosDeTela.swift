@@ -26,12 +26,32 @@ public struct EstadoCarregando: View {
 }
 
 public struct EstadoErro: View {
-    private let mensagem: LocalizedStringKey
+    private let mensagem: LocalizedStringKey?
+    private let mensagemVerbatim: String?
     private let tentarNovamente: () -> Void
-    public init(_ mensagem: LocalizedStringKey, tentarNovamente: @escaping () -> Void) { self.mensagem = mensagem; self.tentarNovamente = tentarNovamente }
+    public init(_ mensagem: LocalizedStringKey, tentarNovamente: @escaping () -> Void) {
+        self.mensagem = mensagem
+        self.mensagemVerbatim = nil
+        self.tentarNovamente = tentarNovamente
+    }
+    public init(verbatim mensagem: String, tentarNovamente: @escaping () -> Void) {
+        self.mensagem = nil
+        self.mensagemVerbatim = mensagem
+        self.tentarNovamente = tentarNovamente
+    }
     public var body: some View {
         VStack(spacing: FrilaEspaco.medio) {
-            MensagemDeEstado(icone: "exclamationmark.triangle", titulo: "Algo deu errado", mensagem: mensagem)
+            VStack(spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "exclamationmark.triangle").font(.largeTitle).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
+                Text("Algo deu errado").font(.headline)
+                if let mensagem {
+                    Text(mensagem).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+                } else if let mensagemVerbatim {
+                    Text(verbatim: mensagemVerbatim).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 160)
+            .accessibilityElement(children: .combine)
             BotaoSecundario("Tentar novamente", acao: tentarNovamente)
         }
     }

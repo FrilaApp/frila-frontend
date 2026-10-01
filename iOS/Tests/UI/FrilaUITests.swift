@@ -284,6 +284,31 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
+    func testSairDoPerfilApagaSessaoEVoltaParaEntrada() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("existente@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+        let codigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
+        codigo.tap()
+        codigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        app.buttons["abrir-meu-perfil"].tap()
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 10))
+        app.buttons["Sair"].tap()
+
+        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.navigationBars["Meu perfil"].exists)
+    }
+
     func testCodigoIncorretoExibeMensagemDeErro() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "codigo-errado"]
