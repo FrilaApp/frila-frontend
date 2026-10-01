@@ -158,12 +158,21 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
     public func enfileirar(_ acao: AcaoPendente) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        modelContext.insert(AcaoPendentePersistida(
-            id: acao.id,
-            tipo: acao.tipo.rawValue,
-            conteudo: try encoder.encode(acao),
-            instanteDoToque: acao.instanteDoToque
-        ))
+        let id = acao.id
+        let descritor = FetchDescriptor<AcaoPendentePersistida>(predicate: #Predicate { $0.id == id })
+        let conteudo = try encoder.encode(acao)
+        if let existente = try modelContext.fetch(descritor).first {
+            existente.tipo = acao.tipo.rawValue
+            existente.conteudo = conteudo
+            existente.instanteDoToque = acao.instanteDoToque
+        } else {
+            modelContext.insert(AcaoPendentePersistida(
+                id: acao.id,
+                tipo: acao.tipo.rawValue,
+                conteudo: conteudo,
+                instanteDoToque: acao.instanteDoToque
+            ))
+        }
         try modelContext.save()
     }
 

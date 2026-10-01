@@ -53,7 +53,7 @@ private func armazenamento() throws -> ArmazenamentoSwiftData {
 
 private func turno(fim: Date) throws -> Turno {
     let inicio = fim.addingTimeInterval(-4 * 3_600)
-    let vaga = VagaResumo(id: UUID(), funcao: "Garçom", local: "Asa Sul", periodo: try Periodo(inicio: inicio, fim: fim), valor: Dinheiro(centavos: 15000))
+    let vaga = VagaResumo(id: UUID(), funcao: "Garçom", local: "Asa Sul", regiaoAdministrativa: "Plano Piloto", periodo: try Periodo(inicio: inicio, fim: fim), valor: Dinheiro(centavos: 15000))
     let reputacao = Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
     let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
     let contato = Contato(nome: "Bistrô", telefone: "+5561999990000", whatsappURL: try #require(URL(string: "https://wa.me/5561999990000")), visivelAte: visivelAte)

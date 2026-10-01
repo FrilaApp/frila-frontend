@@ -40,7 +40,7 @@ public struct TelaMeuTurno: View {
                 .font(.headline)
             Text("\(formatador.intervalo(viewModel.turno.vaga.periodo)) · \(formatador.dinheiro(viewModel.turno.valorAcordado))")
                 .font(.subheadline)
-            
+
             HStack(spacing: FrilaEspaco.minimo) {
                 Text(viewModel.turno.vaga.local)
                 if let urlMapas = viewModel.urlMapas {

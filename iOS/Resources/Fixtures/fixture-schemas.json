@@ -44,8 +44,11 @@
   "requisicao-avaliar.json": {
     "schema": "#/paths/~1rpc~1avaliar/post/requestBody/content/application~1json/schema"
   },
+  "requisicao-avisar-a-caminho.json": {
+    "schema": "#/paths/~1rpc~1avisar_a_caminho/post/requestBody/content/application~1json/schema"
+  },
   "requisicao-cadastrar-estabelecimento.json": {
-    "schema": "#/paths/~1rpc~1cadastrar_estabelecimento/post/requestBody/content/application~1json/schema"
+    "schema": "#/components/schemas/NovoEstabelecimento"
   },
   "requisicao-criar-conta.json": {
     "schema": "#/paths/~1rpc~1criar_conta/post/requestBody/content/application~1json/schema"
@@ -59,6 +62,9 @@
   "requisicao-registro-de-presenca.json": {
     "schema": "#/components/schemas/RegistroDePresenca"
   },
+  "resultado-a-caminho.json": {
+    "schema": "#/components/schemas/ResultadoACaminho"
+  },
   "resultado-registro.json": {
     "schema": "#/components/schemas/ResultadoRegistro"
   },
@@ -68,6 +74,9 @@
   },
   "usuario.json": {
     "schema": "#/components/schemas/Usuario"
+  },
+  "vaga-oculta.json": {
+    "schema": "#/components/schemas/Vaga"
   },
   "vaga-publicada.json": {
     "schema": "#/components/schemas/VagaPublicada"
