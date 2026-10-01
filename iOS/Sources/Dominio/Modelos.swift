@@ -151,6 +151,8 @@ public struct Estabelecimento: Codable, Hashable, Identifiable, Sendable {
     public let documento: String
     public let tipo: TipoEstabelecimento
     public let endereco: String
+    /// Região Administrativa do DF (contrato 0.2.20): vai para os pushes no lugar do endereço com número.
+    public let regiaoAdministrativa: String
     public let ponto: Coordenada
     public let papel: PapelMembro
 
@@ -160,6 +162,7 @@ public struct Estabelecimento: Codable, Hashable, Identifiable, Sendable {
         documento: String = "",
         tipo: TipoEstabelecimento,
         endereco: String,
+        regiaoAdministrativa: String,
         ponto: Coordenada,
         papel: PapelMembro = .administrador
     ) {
@@ -168,6 +171,7 @@ public struct Estabelecimento: Codable, Hashable, Identifiable, Sendable {
         self.documento = documento
         self.tipo = tipo
         self.endereco = endereco
+        self.regiaoAdministrativa = regiaoAdministrativa
         self.ponto = ponto
         self.papel = papel
     }
@@ -231,6 +235,7 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
     public let funcao: Funcao
     public let periodo: Periodo
     public let local: String
+    public let regiaoAdministrativa: String
     public let ponto: Coordenada
     public let distanciaKm: Double?
     public let valor: Dinheiro
@@ -243,6 +248,9 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
     public let observacoes: String?
     public let modo: ModoPreenchimento
     public let estado: EstadoVaga
+    /// A moderação da Equipe Frila ocultou a vaga (contrato 0.2.23). Só chega verdadeiro a quem ocupa
+    /// posição ou tem candidatura nela; o `estado` continua o do ciclo de vida.
+    public let oculta: Bool
     public let publicadoEm: Date
 
     public init(
@@ -251,6 +259,7 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         funcao: Funcao,
         periodo: Periodo,
         local: String,
+        regiaoAdministrativa: String,
         ponto: Coordenada,
         distanciaKm: Double? = nil,
         valor: Dinheiro,
@@ -263,6 +272,7 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         observacoes: String? = nil,
         modo: ModoPreenchimento,
         estado: EstadoVaga,
+        oculta: Bool = false,
         publicadoEm: Date
     ) {
         self.id = id
@@ -270,6 +280,7 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         self.funcao = funcao
         self.periodo = periodo
         self.local = local
+        self.regiaoAdministrativa = regiaoAdministrativa
         self.ponto = ponto
         self.distanciaKm = distanciaKm
         self.valor = valor
@@ -282,11 +293,12 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         self.observacoes = observacoes
         self.modo = modo
         self.estado = estado
+        self.oculta = oculta
         self.publicadoEm = publicadoEm
     }
 
     public var resumo: VagaResumo {
-        VagaResumo(id: id, funcao: funcao.nome, local: local, periodo: periodo, valor: valor)
+        VagaResumo(id: id, funcao: funcao.nome, local: local, regiaoAdministrativa: regiaoAdministrativa, periodo: periodo, valor: valor)
     }
 
     public func validar(agora: Date) -> [ErroValidacaoVaga] {
@@ -312,6 +324,7 @@ public struct VagaNaLista: Codable, Hashable, Identifiable, Sendable {
     public let estabelecimento: PerfilPublico
     public let periodo: Periodo
     public let local: String
+    public let regiaoAdministrativa: String
     public let distanciaKm: Double
     public let valor: Dinheiro
     public let posicoesAbertas: Int
@@ -324,6 +337,7 @@ public struct VagaNaLista: Codable, Hashable, Identifiable, Sendable {
         estabelecimento: PerfilPublico,
         periodo: Periodo,
         local: String,
+        regiaoAdministrativa: String,
         distanciaKm: Double,
         valor: Dinheiro,
         posicoesAbertas: Int,
@@ -335,6 +349,7 @@ public struct VagaNaLista: Codable, Hashable, Identifiable, Sendable {
         self.estabelecimento = estabelecimento
         self.periodo = periodo
         self.local = local
+        self.regiaoAdministrativa = regiaoAdministrativa
         self.distanciaKm = distanciaKm
         self.valor = valor
         self.posicoesAbertas = posicoesAbertas
@@ -347,15 +362,31 @@ public struct VagaResumo: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let funcao: String
     public let local: String
+    public let regiaoAdministrativa: String
     public let periodo: Periodo
     public let valor: Dinheiro
 
-    public init(id: UUID, funcao: String, local: String, periodo: Periodo, valor: Dinheiro) {
+    public init(id: UUID, funcao: String, local: String, regiaoAdministrativa: String, periodo: Periodo, valor: Dinheiro) {
         self.id = id
         self.funcao = funcao
         self.local = local
+        self.regiaoAdministrativa = regiaoAdministrativa
         self.periodo = periodo
         self.valor = valor
+    }
+
+    /// O `Codable` do domínio é o formato do cache do aparelho (`TurnoPersistido`), não o da API.
+    /// Turno guardado por um build anterior ao contrato 0.2.20 não tem a região: continua legível,
+    /// com a região vazia, até a próxima leitura com rede regravar o cache. Sem isto, Meus turnos
+    /// deixaria de abrir em modo avião logo depois da atualização do app.
+    public init(from decoder: any Decoder) throws {
+        let campos = try decoder.container(keyedBy: CodingKeys.self)
+        id = try campos.decode(UUID.self, forKey: .id)
+        funcao = try campos.decode(String.self, forKey: .funcao)
+        local = try campos.decode(String.self, forKey: .local)
+        regiaoAdministrativa = try campos.decodeIfPresent(String.self, forKey: .regiaoAdministrativa) ?? ""
+        periodo = try campos.decode(Periodo.self, forKey: .periodo)
+        valor = try campos.decode(Dinheiro.self, forKey: .valor)
     }
 }
 
@@ -428,6 +459,9 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
     public let vaga: VagaResumo
     public let contraparte: PerfilPublico
     public let contatoVisivelAte: Date
+    /// Quando o profissional avisou que está a caminho (contrato 0.2.25). Não é presença: o
+    /// check-in continua sendo o registro que vale.
+    public let aCaminhoEm: Date?
     public let checkin: Presenca?
     public let checkout: Presenca?
     public let verificacao: Verificacao
@@ -443,6 +477,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         vaga: VagaResumo,
         contraparte: PerfilPublico,
         contatoVisivelAte: Date,
+        aCaminhoEm: Date? = nil,
         checkin: Presenca? = nil,
         checkout: Presenca? = nil,
         verificacao: Verificacao,
@@ -455,6 +490,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         self.vaga = vaga
         self.contraparte = contraparte
         self.contatoVisivelAte = contatoVisivelAte
+        self.aCaminhoEm = aCaminhoEm
         self.checkin = checkin
         self.checkout = checkout
         self.verificacao = verificacao
@@ -468,8 +504,16 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
     public func com(contato: Contato?) -> Turno {
         Turno(
             id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
-            checkin: checkin, checkout: checkout, verificacao: verificacao, valorAcordado: valorAcordado,
-            podeAvaliar: podeAvaliar, contato: contato
+            aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
+            valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato
+        )
+    }
+
+    public func com(aCaminhoEm: Date?) -> Turno {
+        Turno(
+            id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
+            aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
+            valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato
         )
     }
 }
@@ -487,6 +531,17 @@ public struct ResultadoRegistro: Codable, Hashable, Sendable {
         self.verificacao = verificacao
         self.registradoEm = registradoEm
         self.distanciaMetros = distanciaMetros
+    }
+}
+
+/// Resposta de `avisar_a_caminho` (contrato 0.2.25): o instante que ficou gravado no turno.
+public struct ResultadoACaminho: Codable, Hashable, Sendable {
+    public let turnoID: UUID
+    public let aCaminhoEm: Date
+
+    public init(turnoID: UUID, aCaminhoEm: Date) {
+        self.turnoID = turnoID
+        self.aCaminhoEm = aCaminhoEm
     }
 }
 
@@ -509,14 +564,20 @@ public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
     public let turnoID: UUID?
     public let verificacao: Verificacao?
     public let emAtraso: Bool
+    /// Nulo enquanto o profissional não avisou, ou se a posição ainda não tem turno (contrato 0.2.25).
+    public let aCaminhoEm: Date?
 
-    public init(id: UUID, estado: EstadoPosicao, profissional: PerfilPublico?, turnoID: UUID?, verificacao: Verificacao?, emAtraso: Bool) {
+    public init(
+        id: UUID, estado: EstadoPosicao, profissional: PerfilPublico?, turnoID: UUID?, verificacao: Verificacao?,
+        emAtraso: Bool, aCaminhoEm: Date? = nil
+    ) {
         self.id = id
         self.estado = estado
         self.profissional = profissional
         self.turnoID = turnoID
         self.verificacao = verificacao
         self.emAtraso = emAtraso
+        self.aCaminhoEm = aCaminhoEm
     }
 }
 
@@ -524,14 +585,21 @@ public struct VagaNoPainel: Codable, Hashable, Sendable {
     public let vaga: VagaResumo
     public let modo: ModoPreenchimento
     public let estado: EstadoVaga
+    /// "Oculta pela Equipe" (contrato 0.2.23): fora da vitrine e do despacho, sem escolha de
+    /// candidato e sem republicação, até a Equipe Frila reexibi-la. O `estado` não muda.
+    public let oculta: Bool
     public let alertaVagaVazia: Bool
     public let candidatosPendentes: Int
     public let posicoes: [PosicaoNoPainel]
 
-    public init(vaga: VagaResumo, modo: ModoPreenchimento, estado: EstadoVaga, alertaVagaVazia: Bool, candidatosPendentes: Int, posicoes: [PosicaoNoPainel]) {
+    public init(
+        vaga: VagaResumo, modo: ModoPreenchimento, estado: EstadoVaga, oculta: Bool = false, alertaVagaVazia: Bool,
+        candidatosPendentes: Int, posicoes: [PosicaoNoPainel]
+    ) {
         self.vaga = vaga
         self.modo = modo
         self.estado = estado
+        self.oculta = oculta
         self.alertaVagaVazia = alertaVagaVazia
         self.candidatosPendentes = candidatosPendentes
         self.posicoes = posicoes

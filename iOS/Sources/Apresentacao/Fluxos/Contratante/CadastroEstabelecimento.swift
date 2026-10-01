@@ -15,6 +15,8 @@ private enum TextosCadastro {
     static let tipo = String(localized: "Tipo", bundle: bundleCadastro)
     static let endereco = String(localized: "Endereço", bundle: bundleCadastro)
     static let buscarEndereco = String(localized: "Buscar endereço", bundle: bundleCadastro)
+    static let regiaoAdministrativa = String(localized: "Região Administrativa", bundle: bundleApresentacao)
+    static let regiaoAdministrativaAjuda = String(localized: "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.", bundle: bundleApresentacao)
     static let ponto = String(localized: "Ponto do estabelecimento", bundle: bundleCadastro)
     static let mapa = String(localized: "Mapa do estabelecimento", bundle: bundleCadastro)
     static let dicaMapa = String(localized: "Ajuste o ponto movendo o marcador no mapa.", bundle: bundleCadastro)
@@ -41,6 +43,8 @@ public final class CadastroEstabelecimentoViewModel {
     public var documento = ""
     public var tipo: TipoEstabelecimento = .foodService
     public var endereco = ""
+    /// Região Administrativa do DF, obrigatória desde o contrato 0.2.20. Texto livre: quem informa é a casa.
+    public var regiaoAdministrativa = ""
     public var ponto: CLLocationCoordinate2D?
     public private(set) var alvoDaCamera: CLLocationCoordinate2D?
     public var sugestoes: [MKMapItem] = []
@@ -93,10 +97,12 @@ public final class CadastroEstabelecimentoViewModel {
         guard documento.count == 11 || documento.count == 14 else { erro = .campo(.documento, .invalido); return }
         guard !endereco.isEmpty, let ponto else { erro = .campo(.endereco, .obrigatorio); return }
         guard let coordenada = try? Coordenada(latitude: ponto.latitude, longitude: ponto.longitude) else { erro = .campo(.endereco, .invalido); return }
+        let regiao = regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !regiao.isEmpty else { erro = .campo(.regiaoAdministrativa, .obrigatorio); return }
         enviando = true
         defer { enviando = false }
         do {
-            estabelecimentoCriado = try await cadastrar(CadastroEstabelecimento(nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), documento: documento, tipo: tipo, endereco: endereco, ponto: coordenada))
+            estabelecimentoCriado = try await cadastrar(CadastroEstabelecimento(nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), documento: documento, tipo: tipo, endereco: endereco, regiaoAdministrativa: regiao, ponto: coordenada))
             concluido = true
         } catch let api as ErroDaApi {
             switch api.codigo {
@@ -109,7 +115,7 @@ public final class CadastroEstabelecimentoViewModel {
     }
 
     private static func campo(_ detalhes: String?) -> CampoCadastro {
-        switch detalhes { case "nome": .nome; case "documento": .documento; case "tipo": .tipo; case "endereco", "ponto", "latitude", "longitude": .endereco; default: .endereco }
+        switch detalhes { case "nome": .nome; case "documento": .documento; case "tipo": .tipo; case "regiao_administrativa": .regiaoAdministrativa; case "endereco", "ponto", "latitude", "longitude": .endereco; default: .endereco }
     }
 
     private static func mascara(_ valor: String, padroes: [(Int, String)]) -> String {
@@ -122,7 +128,7 @@ public final class CadastroEstabelecimentoViewModel {
     }
 }
 
-public enum CampoCadastro: Equatable { case nome, documento, tipo, endereco }
+public enum CampoCadastro: Equatable { case nome, documento, tipo, endereco, regiaoAdministrativa }
 public enum ErroDeCadastroEstabelecimento: Equatable {
     case documentoDuplicado, campo(CampoCadastro, RegraCampoCadastro), falha
 }
@@ -143,6 +149,7 @@ public struct TelaCadastroEstabelecimento: View {
             model.nome = "Café de teste"
             model.atualizarDocumento("12345678901")
             model.endereco = "Brasília, DF"
+            model.regiaoAdministrativa = "Plano Piloto"
             model.ponto = CLLocationCoordinate2D(latitude: -15.78, longitude: -47.93)
         }
         #endif
@@ -203,6 +210,12 @@ public struct TelaCadastroEstabelecimento: View {
                     }
                     .frame(height: 220).accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
                     Text(verbatim: TextosCadastro.dicaMapa).font(.caption)
+                }
+                campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
+                    CampoFrila(verbatim: TextosCadastro.regiaoAdministrativa, texto: $model.regiaoAdministrativa)
+                        .textInputAutocapitalization(.words)
+                        .accessibilityIdentifier("regiao-administrativa")
+                    Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(.caption).foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading) {
                     Text(verbatim: TextosCadastro.responsavel).font(.headline)

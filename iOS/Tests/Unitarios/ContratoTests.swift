@@ -3,7 +3,7 @@ import Foundation
 import FrilaDominio
 import Testing
 
-@Suite("Contrato 0.2.18")
+@Suite("Contrato 0.2.27")
 struct ContratoTests {
     static func objeto(_ valor: some Encodable) throws -> NSDictionary {
         let dados = try JSONEncoder().encode(valor)
@@ -14,10 +14,13 @@ struct ContratoTests {
         try #require(JSONSerialization.jsonObject(with: FixturesDoContrato.dados(nome)) as? NSDictionary)
     }
 
+    /// O `a_caminho_em` das fixtures do turno, do painel e do resultado do aviso.
+    static let aCaminho = ContratoAPI.instante("2026-10-09T19:40:12Z")
+
     @Test("As fixtures declaram a versão do contrato espelhado")
     func versao() throws {
         struct Versao: Decodable { let version: String }
-        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.18")
+        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.27")
     }
 
     @Test("Conta, perfil e estabelecimento do contrato viram domínio")
@@ -35,7 +38,8 @@ struct ContratoTests {
         let publico = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
         #expect(publico.tipo == .profissional)
 
-        _ = try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()
+        let casa = try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()
+        #expect(casa.regiaoAdministrativa == "Plano Piloto")
         let casas = try FixturesDoContrato.carregar("meus-estabelecimentos", como: [ContratoAPI.EstabelecimentoDaContaDTO].self)
         #expect(casas.map { $0.dominio().papel } == [.administrador])
     }
@@ -45,9 +49,12 @@ struct ContratoTests {
         let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
         #expect(vaga.estabelecimento.tipo == .estabelecimento)
         #expect(vaga.traje != nil && vaga.observacoes == nil)
+        #expect(vaga.regiaoAdministrativa == "Plano Piloto")
+        #expect(!vaga.oculta)
 
         let lista = try FixturesDoContrato.carregar("vagas-abertas", como: [ContratoAPI.VagaNaListaDTO].self).map { try $0.dominio() }
         #expect(lista.first?.id == vaga.id)
+        #expect(lista.first?.regiaoAdministrativa == "Plano Piloto")
 
         let publicada = try FixturesDoContrato.carregar("vaga-publicada", como: ContratoAPI.VagaPublicadaDTO.self).dominio()
         #expect(publicada.posicoes.count == vaga.posicoes)
@@ -63,6 +70,8 @@ struct ContratoTests {
         #expect(turno.checkout == nil)
         #expect(turno.contato == nil)
         #expect(turno.vaga.id == vaga.id)
+        #expect(turno.vaga.regiaoAdministrativa == "Plano Piloto")
+        #expect(turno.aCaminhoEm == Self.aCaminho)
 
         let contato = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
         #expect(contato.visivelAte == turno.contatoVisivelAte)
@@ -71,9 +80,14 @@ struct ContratoTests {
     @Test("Painel, registro, avaliação e configuração do contrato viram domínio")
     func painelEOutros() throws {
         let painel = try FixturesDoContrato.carregar("painel", como: ContratoAPI.PainelDTO.self).dominio()
-        let posicoes = try #require(painel.vagas.first?.posicoes)
+        let noPainel = try #require(painel.vagas.first)
+        #expect(!noPainel.oculta)
+        #expect(noPainel.vaga.regiaoAdministrativa == "Plano Piloto")
+        let posicoes = noPainel.posicoes
         #expect(posicoes.map(\.estado) == [.confirmada, .aberta])
         #expect(posicoes.last?.profissional == nil)
+        // Só a posição com turno pode ter o aviso de "a caminho" (0.2.25).
+        #expect(posicoes.map(\.aCaminhoEm) == [Self.aCaminho, nil])
 
         let registro = try FixturesDoContrato.carregar("resultado-registro", como: ContratoAPI.ResultadoRegistroDTO.self).dominio()
         #expect(registro.verificacao == .verificado)
@@ -112,7 +126,10 @@ struct ContratoTests {
     func estabelecimentoEVaga() throws {
         let ponto = try Coordenada(latitude: -15.8121, longitude: -47.8997)
         let endereco = "CLS 405, Asa Sul, Brasília - DF"
-        let cadastro = CadastroEstabelecimento(nome: "Bistrô Ipê", documento: "12345678000190", tipo: .foodService, endereco: endereco, ponto: ponto)
+        let cadastro = CadastroEstabelecimento(
+            nome: "Bistrô Ipê", documento: "12345678000190", tipo: .foodService, endereco: endereco,
+            regiaoAdministrativa: "Plano Piloto", ponto: ponto
+        )
         #expect(try Self.objeto(ContratoAPI.CadastroEstabelecimentoDTO(cadastro)) == Self.fixture("requisicao-cadastrar-estabelecimento"))
 
         let inicio = Date(timeIntervalSince1970: 1_791_579_600)
@@ -120,12 +137,41 @@ struct ContratoTests {
             estabelecimentoID: try #require(UUID(uuidString: "30000000-0000-0000-0000-000000000001")),
             funcaoID: try #require(UUID(uuidString: "20000000-0000-0000-0000-000000000001")),
             periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(14_400)),
-            local: endereco, ponto: ponto, valor: Dinheiro(centavos: 12000), posicoes: 2,
+            local: endereco, regiaoAdministrativa: "Plano Piloto", ponto: ponto, valor: Dinheiro(centavos: 12000), posicoes: 2,
             inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false),
             responsavelLocal: "Marina", traje: "Camisa preta e calça escura", participaRateio: true,
             chave: try #require(UUID(uuidString: "90000000-0000-0000-0000-000000000001"))
         )
         #expect(try Self.objeto(ContratoAPI.NovaVaga(publicacao)) == Self.fixture("requisicao-publicar-vaga"))
+    }
+
+    @Test("Vaga ocultada pela moderação chega com oculta e com o estado do ciclo de vida (0.2.23)")
+    func vagaOculta() throws {
+        let vaga = try FixturesDoContrato.carregar("vaga-oculta", como: ContratoAPI.VagaDTO.self).dominio()
+        #expect(vaga.oculta)
+        #expect(vaga.estado == .publicada)
+    }
+
+    @Test("O modo seleção sai em publicar_vaga como o contrato escreve (0.2.24)")
+    func modoSelecao() throws {
+        let inicio = Date(timeIntervalSince1970: 1_791_579_600)
+        let publicacao = PublicacaoVaga(
+            estabelecimentoID: UUID(), funcaoID: UUID(), periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(14_400)),
+            local: "CLS 405", regiaoAdministrativa: "Plano Piloto", ponto: try Coordenada(latitude: -15.8121, longitude: -47.8997),
+            valor: Dinheiro(centavos: 12000), posicoes: 1,
+            inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
+            responsavelLocal: "Marina", modo: .selecao, chave: UUID()
+        )
+        #expect(try Self.objeto(ContratoAPI.NovaVaga(publicacao))["modo"] as? String == "selecao")
+    }
+
+    @Test("avisar_a_caminho manda só o turno e devolve o instante gravado (0.2.25)")
+    func aCaminho() throws {
+        let turno = try #require(UUID(uuidString: "60000000-0000-0000-0000-000000000001"))
+        #expect(try Self.objeto(ContratoAPI.ID("turno_id", turno)) == Self.fixture("requisicao-avisar-a-caminho"))
+
+        let resultado = try FixturesDoContrato.carregar("resultado-a-caminho", como: ContratoAPI.ResultadoACaminhoDTO.self).dominio()
+        #expect(resultado == ResultadoACaminho(turnoID: turno, aCaminhoEm: try #require(Self.aCaminho)))
     }
 
     @Test("Registro de presença manda distancia_m nulo, e avaliar não manda chave")

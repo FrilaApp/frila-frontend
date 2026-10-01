@@ -37,12 +37,41 @@ struct CadastroEstabelecimentoTests {
         let vm = CadastroEstabelecimentoViewModel { cadastro in
             #expect(cadastro.documento == "12345678901")
             #expect(cadastro.tipo == .foodService)
-            return Estabelecimento(id: UUID(), nome: cadastro.nome, documento: cadastro.documento, tipo: cadastro.tipo, endereco: cadastro.endereco, ponto: cadastro.ponto)
+            return Self.criado(cadastro)
         }
         preencher(vm)
         await vm.salvar()
         #expect(vm.concluido)
         #expect(vm.erro == nil)
+    }
+
+    @Test("O cadastro envia a região administrativa, sem os espaços das pontas (contrato 0.2.20)")
+    func enviaARegiaoAdministrativa() async throws {
+        let enviados = Enviados()
+        let vm = CadastroEstabelecimentoViewModel { cadastro in
+            await enviados.guardar(cadastro)
+            return Self.criado(cadastro)
+        }
+        preencher(vm)
+        vm.regiaoAdministrativa = "  Águas Claras \n"
+        await vm.salvar()
+        #expect(vm.concluido)
+        #expect(await enviados.todos.map(\.regiaoAdministrativa) == ["Águas Claras"])
+    }
+
+    @Test("Sem região administrativa, o erro fica no campo e nada é enviado", arguments: ["", "   "])
+    func regiaoAdministrativaObrigatoria(regiao: String) async {
+        let enviados = Enviados()
+        let vm = CadastroEstabelecimentoViewModel { cadastro in
+            await enviados.guardar(cadastro)
+            return Self.criado(cadastro)
+        }
+        preencher(vm)
+        vm.regiaoAdministrativa = regiao
+        await vm.salvar()
+        #expect(vm.erro == .campo(.regiaoAdministrativa, .obrigatorio))
+        #expect(!vm.concluido)
+        #expect(await enviados.todos.isEmpty)
     }
 
     @Test("409 de documento duplicado mostra estado próprio")
@@ -63,10 +92,35 @@ struct CadastroEstabelecimentoTests {
         }
     }
 
+    @Test("422 do servidor na região administrativa destaca o campo da região")
+    func errosNaRegiaoAdministrativa() async {
+        // `campo_invalido` aqui é o filtro de texto da diretriz 1.2, que só o servidor aplica.
+        for (regra, codigo) in [(RegraCampoCadastro.obrigatorio, CodigoErroAPI.campoObrigatorio), (.invalido, .campoInvalido)] {
+            let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: codigo, detalhes: "regiao_administrativa") }
+            preencher(vm)
+            await vm.salvar()
+            #expect(vm.erro == .campo(.regiaoAdministrativa, regra))
+        }
+    }
+
     private func preencher(_ vm: CadastroEstabelecimentoViewModel) {
         vm.nome = "Bar Frila"
         vm.atualizarDocumento("12345678901")
         vm.endereco = "Brasília, DF"
+        vm.regiaoAdministrativa = "Plano Piloto"
         vm.ponto = .init(latitude: -15.78, longitude: -47.93)
     }
+
+    private static func criado(_ cadastro: CadastroEstabelecimento) -> Estabelecimento {
+        Estabelecimento(
+            id: UUID(), nome: cadastro.nome, documento: cadastro.documento, tipo: cadastro.tipo, endereco: cadastro.endereco,
+            regiaoAdministrativa: cadastro.regiaoAdministrativa, ponto: cadastro.ponto
+        )
+    }
+}
+
+/// O que a tela mandou para `cadastrar_estabelecimento`.
+private actor Enviados {
+    private(set) var todos: [CadastroEstabelecimento] = []
+    func guardar(_ cadastro: CadastroEstabelecimento) { todos.append(cadastro) }
 }
