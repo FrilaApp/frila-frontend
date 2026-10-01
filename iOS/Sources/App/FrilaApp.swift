@@ -31,7 +31,7 @@ struct FrilaApp: App {
         do throws(ErroDeConfiguracao) {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
-            let api = Self.cliente(para: ambiente.selecao)
+            let api = try Self.cliente(para: ambiente)
             inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
@@ -52,21 +52,29 @@ struct FrilaApp: App {
         }
     }
 
-    private static func cliente(para selecao: SelecaoDeAPI) -> any ApiCliente {
-        switch selecao {
+    private static func cliente(para ambiente: ConfiguracaoAmbiente) throws(ErroDeConfiguracao) -> any ApiCliente {
+        switch ambiente.selecao {
         case .emMemoria:
-            ApiClienteEmMemoria.pelosArgumentos()
+            #if DEBUG
+            return ApiClienteEmMemoria.pelosArgumentos()
+            #else
+            // O dublê e os argumentos de lançamento ficam fora do Release (#96), que nunca abre com
+            // dados simulados.
+            throw ErroDeConfiguracao(ambiente: ambiente.ambiente, motivo: .simuladoForaDoLocal)
+            #endif
         case let .supabase(url, chavePublicavel):
-            SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaCrashlytics())
+            return SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaCrashlytics())
         }
     }
 
     /// Um leitor para o app inteiro. Só o dublê em memória (esquema Local) aceita o GPS simulado de
     /// `-FRILA_LOCALIZACAO`; com Supabase é sempre o CoreLocation.
     private static func leitorDeLocalizacao(para api: any ApiCliente) -> any LeitorDeLocalizacao {
+        #if DEBUG
         if api is ApiClienteEmMemoria, let simulado = LeitorDeLocalizacaoSimulado.pelosArgumentos() {
             return simulado
         }
+        #endif
         return LeitorDeLocalizacaoDoSistema()
     }
 }

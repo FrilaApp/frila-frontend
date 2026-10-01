@@ -70,8 +70,10 @@ ganchos_de_desenvolvimento=(
   '-FRILA_SCENARIO'
   '-FRILA_ABRIR_CATALOGO'
   '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO'
+  '-FRILA_ABRIR_MINHAS_VAGAS'
   '-FRILA_CADASTRO_UI_TEST'
   '-FRILA_ENTRADA'
+  '-FRILA_LOCALIZACAO'
   '-FRILA_VAGA_ID'
   'forcar-falha-crashlytics'
 )
@@ -79,10 +81,11 @@ ganchos_de_desenvolvimento=(
 # Strings Swift curtas podem ser materializadas diretamente nas instruções do
 # processador, sem uma sequência de bytes contígua. Esses símbolos só podem
 # existir em Debug; em um bundle de Release indicam um gancho de desenvolvimento.
+# A TelaLicencas não entra aqui: é tela de produto (#178) e fica compilada no Release. O que se
+# reprova é o atalho que a abre (o catálogo e os argumentos -FRILA_ABRIR_*).
 simbolos_de_desenvolvimento=(
   'pelosArgumentos'
   'CatalogoDesignSystem'
-  'TelaLicencas'
 )
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
