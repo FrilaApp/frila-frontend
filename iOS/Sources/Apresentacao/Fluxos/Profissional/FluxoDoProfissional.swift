@@ -71,9 +71,10 @@ public final class RoteadorDoProfissional {
 /// Lista de vagas -> detalhe (#104) -> candidatura e resultado (#105), e aba Meus turnos (#109).
 public struct FluxoDoProfissional<Barra: View>: View {
     private let api: any ApiCliente
-    private let fila: (any FilaDeAcoes)?
     private let repositorioTurnos: any TurnoRepositorio
     private let relogio: any Relogio
+    private let localizacao: (any LeitorDeLocalizacao)?
+    private let fila: (any FilaDeAcoes)?
     @Bindable private var roteador: RoteadorDoProfissional
     @State private var feed: FeedVagasViewModel
     @State private var turnosViewModel: MeusTurnosViewModel
@@ -84,15 +85,17 @@ public struct FluxoDoProfissional<Barra: View>: View {
         api: any ApiCliente,
         roteador: RoteadorDoProfissional,
         repositorioTurnos: (any TurnoRepositorio)? = nil,
-        fila: (any FilaDeAcoes)? = nil,
         relogio: any Relogio = RelogioDoSistema(),
+        localizacao: (any LeitorDeLocalizacao)? = nil,
+        fila: (any FilaDeAcoes)? = nil,
         @ViewBuilder barra: @escaping () -> Barra
     ) {
         self.api = api
-        self.fila = fila
         let repo = repositorioTurnos ?? api
         self.repositorioTurnos = repo
         self.relogio = relogio
+        self.localizacao = localizacao
+        self.fila = fila
         self.roteador = roteador
         _feed = State(initialValue: FeedVagasViewModel(api: api, relogio: relogio))
         _turnosViewModel = State(initialValue: MeusTurnosViewModel(repositorio: repo))
@@ -121,7 +124,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .resultado(vaga, resultado):
                             TelaResultadoDaCandidatura(vaga: vaga, resultado: resultado, voltarParaLista: voltarParaLista)
                         case let .meuTurno(turno):
-                            DestinoDoMeuTurno(turno: turno, api: api, fila: fila, relogio: relogio)
+                            destinoDoMeuTurno(turno)
                         case let .avaliacao(turnoID):
                             TelaAvaliacao(turnoID: turnoID, api: api, fila: fila, relogio: relogio)
                         }
@@ -137,7 +140,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                     caminhoTurnos.append(turno)
                 }
                 .navigationDestination(for: Turno.self) { turno in
-                    DestinoDoMeuTurno(turno: turno, api: api, fila: fila, relogio: relogio)
+                    destinoDoMeuTurno(turno)
                 }
             }
             .tabItem {
@@ -149,6 +152,14 @@ public struct FluxoDoProfissional<Barra: View>: View {
 }
 
 extension FluxoDoProfissional {
+    /// O registro de presença aceito pelo servidor atualiza Meus turnos, que é de onde a tela reabre.
+    private func destinoDoMeuTurno(_ turno: Turno) -> some View {
+        let turnos = turnosViewModel
+        return DestinoDoMeuTurno(turno: turno, api: api, relogio: relogio, localizacao: localizacao, fila: fila) {
+            Task { await turnos.atualizar() }
+        }
+    }
+
     /// "Vaga preenchida" e os outros resultados voltam para a lista (#105 C4), que é atualizada.
     private func voltarParaLista() {
         roteador.voltarParaLista()
@@ -166,10 +177,11 @@ extension FluxoDoProfissional where Barra == EmptyView {
         api: any ApiCliente,
         roteador: RoteadorDoProfissional,
         repositorioTurnos: (any TurnoRepositorio)? = nil,
-        fila: (any FilaDeAcoes)? = nil,
-        relogio: any Relogio = RelogioDoSistema()
+        relogio: any Relogio = RelogioDoSistema(),
+        localizacao: (any LeitorDeLocalizacao)? = nil,
+        fila: (any FilaDeAcoes)? = nil
     ) {
-        self.init(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, fila: fila, relogio: relogio) { EmptyView() }
+        self.init(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, relogio: relogio, localizacao: localizacao, fila: fila) { EmptyView() }
     }
 }
 
@@ -196,8 +208,19 @@ private struct DestinoDoDetalhe: View {
 private struct DestinoDoMeuTurno: View {
     @State private var viewModel: MeuTurnoViewModel
 
-    init(turno: Turno, api: any ApiCliente, fila: (any FilaDeAcoes)?, relogio: any Relogio) {
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, fila: fila, relogio: relogio))
+    init(
+        turno: Turno,
+        api: any ApiCliente,
+        relogio: any Relogio,
+        localizacao: (any LeitorDeLocalizacao)?,
+        fila: (any FilaDeAcoes)?,
+        aoRegistrar: @escaping @MainActor () -> Void
+    ) {
+        // Sem leitor de localização (prévias), a tela fica sem a seção de presença.
+        let presenca = localizacao.map {
+            PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
+        }
+        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, fila: fila, relogio: relogio, presenca: presenca))
     }
 
     var body: some View {

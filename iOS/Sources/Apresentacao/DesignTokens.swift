@@ -1,10 +1,11 @@
 import Foundation
 import SwiftUI
 
-private final class MarcadorBundle: NSObject {}
+public final class MarcadorApresentacao: NSObject {}
+public let bundleApresentacao = Bundle(for: MarcadorApresentacao.self)
 
 public enum FrilaCor {
-    private static let recursos = Bundle(for: MarcadorBundle.self)
+    private static let recursos = bundleApresentacao
     public static let primaria = Color("BrandPrimary", bundle: recursos)
     public static let sobrePrimaria = Color("BrandOnPrimary", bundle: recursos)
     public static let fundo = Color("Surface", bundle: recursos)

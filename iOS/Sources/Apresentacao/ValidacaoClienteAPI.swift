@@ -28,6 +28,10 @@ public enum MensagemDoErroAPI {
             String(localized: "A avaliação só fica disponível após o término do turno e com presença confirmada.", bundle: bundleApresentacao)
         case .avaliacaoJaRegistrada:
             String(localized: "Esta avaliação já foi registrada.", bundle: bundleApresentacao)
+        case .menorDeIdade:
+            String(localized: "O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
+        case .contaExistente:
+            String(localized: "Esta conta já foi cadastrada.", bundle: bundleApresentacao)
         default:
             String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
         }

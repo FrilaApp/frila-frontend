@@ -15,6 +15,19 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         return app
     }
 
+    /// Rola até o elemento ficar tocável e espera a rolagem parar. Um toque durante a desaceleração
+    /// só freia a lista e não chega ao botão, o que fazia o teste falhar às vezes na CI.
+    private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        for _ in 0..<tentativas where !elemento.isHittable { app.swipeUp(velocity: .slow) }
+        var anterior = CGRect.null
+        for _ in 0..<10 {
+            let atual = elemento.frame
+            if atual == anterior { break }
+            anterior = atual
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+    }
+
     /// Percorre o catálogo inteiro em AX5 e confere cada botão e campo que aparece na tela.
     func testTodoControleTemRotuloEAlvoMinimoEmAX5() {
         let app = abrirCatalogo(tamanho: Self.ax5)
@@ -60,7 +73,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     func testToqueNaBordaDoSimSeleciona() {
         let app = abrirCatalogo()
         let sim = app.buttons["Sim"]
-        for _ in 0..<6 where !sim.isHittable { app.swipeUp() }
+        trazerParaATela(sim, em: app, tentativas: 6)
         XCTAssertTrue(sim.isHittable)
         XCTAssertFalse(sim.isSelected)
 
@@ -76,7 +89,8 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         app.launch()
         let botao = app.buttons["Simular vaga preenchida"]
         XCTAssertTrue(botao.waitForExistence(timeout: 10))
-        for _ in 0..<8 where !botao.isHittable { app.swipeUp() }
+        trazerParaATela(botao, em: app)
+        XCTAssertTrue(botao.isHittable)
 
         botao.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.5)).tap()
 

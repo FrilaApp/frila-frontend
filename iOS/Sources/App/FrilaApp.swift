@@ -31,7 +31,8 @@ struct FrilaApp: App {
         do throws(ErroDeConfiguracao) {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
-            inicializacao = .pronta(Self.cliente(para: ambiente.selecao))
+            let api = Self.cliente(para: ambiente.selecao)
+            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
@@ -41,9 +42,9 @@ struct FrilaApp: App {
     var body: some Scene {
         WindowGroup {
             switch inicializacao {
-            case let .pronta(api):
+            case let .pronta(api, localizacao):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    EntradaDoApp(api: api, armazenamento: armazenamento)
+                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -59,10 +60,19 @@ struct FrilaApp: App {
             SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaCrashlytics())
         }
     }
+
+    /// Um leitor para o app inteiro. Só o dublê em memória (esquema Local) aceita o GPS simulado de
+    /// `-FRILA_LOCALIZACAO`; com Supabase é sempre o CoreLocation.
+    private static func leitorDeLocalizacao(para api: any ApiCliente) -> any LeitorDeLocalizacao {
+        if api is ApiClienteEmMemoria, let simulado = LeitorDeLocalizacaoSimulado.pelosArgumentos() {
+            return simulado
+        }
+        return LeitorDeLocalizacaoDoSistema()
+    }
 }
 
 private enum Inicializacao {
-    case pronta(any ApiCliente)
+    case pronta(any ApiCliente, any LeitorDeLocalizacao)
     case configuracaoInvalida(ErroDeConfiguracao)
 }
 
@@ -74,18 +84,22 @@ private enum Inicializacao {
 private struct EntradaDoApp: View {
     let api: any ApiCliente
     let armazenamento: ArmazenamentoSwiftData?
+    let localizacao: any LeitorDeLocalizacao
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
-    @State private var comSessao: Bool?
+    @State private var destinoAtual: DestinoDaConta?
+    @State private var carregandoDestino: Bool = true
+    @State private var erroAoAvaliar: String?
     #if DEBUG
     @State private var mostrandoCatalogo = false
     @State private var rotaInicialAplicada = false
     #endif
 
-    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?) {
+    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao) {
         self.api = api
         self.armazenamento = armazenamento
+        self.localizacao = localizacao
         if let armazenamento {
             self.repositorioTurnos = TurnosComCache(buscar: { try await api.meusTurnos() }, cache: armazenamento)
         } else {
@@ -128,12 +142,13 @@ private struct EntradaDoApp: View {
         // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
         .onChange(of: fase) { _, nova in
-            if nova == .active, comSessao == false { Task { await avaliarSessao() } }
+            if nova == .active, destinoAtual == nil { Task { await avaliarSessao() } }
         }
         .task {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
                 roteador.voltarParaLista()
+                destinoAtual = nil
                 await avaliarSessao()
             }
         }
@@ -160,36 +175,98 @@ private struct EntradaDoApp: View {
 
     @ViewBuilder
     private var fluxoOuTelaSemSessao: some View {
-        switch mostrarFluxo {
-        case nil:
+        #if DEBUG
+        if deveAbrirEntrada, destinoAtual == nil {
+            FluxoDeEntrada(api: api) { destino in
+                aplicarDestinoManual(destino)
+            }
+        } else {
+            conteudoPrincipal
+        }
+        #else
+        conteudoPrincipal
+        #endif
+    }
+
+    @ViewBuilder
+    private var conteudoPrincipal: some View {
+        if carregandoDestino {
             EstadoCarregando()
-        case true?:
-            #if DEBUG
-            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, fila: armazenamento) {
-                Button("Catálogo") { mostrandoCatalogo = true }
-                    .accessibilityHint("Abre o catálogo de componentes, só em Debug")
+        } else if let erroAoAvaliar {
+            VStack(spacing: FrilaEspaco.medio) {
+                AvisoFrila(verbatim: erroAoAvaliar, tom: .erro)
+                BotaoSecundario("Tentar novamente") {
+                    Task { await avaliarSessao() }
+                }
             }
-            .sheet(isPresented: $mostrandoCatalogo) { catalogo }
-            .task {
-                // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
-                // vaga vai usar (S2 #8). Abre o detalhe; nunca candidata sozinho.
-                guard !rotaInicialAplicada, let vagaID = Self.vagaIDDosArgumentos() else { return }
-                rotaInicialAplicada = true
-                roteador.abrirVaga(id: vagaID)
+            .padding(FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(FrilaCor.fundo.ignoresSafeArea())
+        } else if let destinoAtual {
+            switch destinoAtual {
+            case .profissional:
+                fluxoProfissionalView
+            case .funcoesEHorarios:
+                TelaFuncoesEHorariosProvisoria()
+            case .contratante:
+                TelaInicioContratanteProvisoria()
+            case let .cadastro(email):
+                FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
+                    aplicarDestinoManual(destino)
+                }
             }
-            #else
-            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, fila: armazenamento)
-            #endif
-        case false?:
-            #if DEBUG
-            catalogo
-            #else
-            TelaInicialDaFundacao()
-            #endif
+        } else {
+            FluxoDeEntrada(api: api) { destino in
+                aplicarDestinoManual(destino)
+            }
         }
     }
 
+    private func aplicarDestinoManual(_ destino: DestinoAposEntrada) {
+        switch destino {
+        case .profissional:
+            DestinoGuardado.salvar(.profissional)
+            destinoAtual = .profissional
+        case .funcoesEHorarios:
+            DestinoGuardado.salvar(.funcoesEHorarios)
+            destinoAtual = .funcoesEHorarios
+        case .contratante:
+            DestinoGuardado.salvar(.contratante)
+            destinoAtual = .contratante
+        }
+    }
+
+    @ViewBuilder
+    private var fluxoProfissionalView: some View {
+        #if DEBUG
+        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento) {
+            Button("Catálogo") { mostrandoCatalogo = true }
+                .accessibilityHint("Abre o catálogo de componentes, só em Debug")
+        }
+        .sheet(isPresented: $mostrandoCatalogo) { catalogo }
+        .task {
+            // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
+            // vaga vai usar (S2 #8). Abre o detalhe; nunca candidata sozinho.
+            guard !rotaInicialAplicada, let vagaID = Self.vagaIDDosArgumentos() else { return }
+            rotaInicialAplicada = true
+            roteador.abrirVaga(id: vagaID)
+        }
+        #else
+        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento)
+        #endif
+    }
+
     #if DEBUG
+    private var deveAbrirEntrada: Bool {
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-FRILA_ENTRADA") { return true }
+        if let indice = args.firstIndex(of: "-FRILA_SCENARIO"), args.indices.contains(indice + 1) {
+            let cenario = args[indice + 1]
+            return ["primeiro-acesso", "entrada", "codigo-errado", "codigo-expirado", "menor-de-idade"].contains(cenario)
+        }
+        return false
+    }
+
     /// `-FRILA_VAGA_ID <uuid>`: só existe em Debug, e a leitura também fica dentro do bloco.
     private static func vagaIDDosArgumentos() -> UUID? {
         let argumentos = ProcessInfo.processInfo.arguments
@@ -204,13 +281,33 @@ private struct EntradaDoApp: View {
     }
     #endif
 
-    private var mostrarFluxo: Bool? {
-        api is ApiClienteEmMemoria ? true : comSessao
-    }
-
     private func avaliarSessao() async {
-        guard !(api is ApiClienteEmMemoria) else { return }
-        comSessao = await api.possuiSessao()
+        #if DEBUG
+        if deveAbrirEntrada {
+            carregandoDestino = false
+            return
+        }
+        #endif
+
+        carregandoDestino = true
+        erroAoAvaliar = nil
+        let possuiSessao = await api.possuiSessao()
+        guard possuiSessao else {
+            destinoAtual = nil
+            carregandoDestino = false
+            return
+        }
+
+        do {
+            destinoAtual = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+            carregandoDestino = false
+        } catch let erroApi as ErroDaApi {
+            erroAoAvaliar = MensagemDoErroAPI.texto(erroApi)
+            carregandoDestino = false
+        } catch {
+            erroAoAvaliar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
+            carregandoDestino = false
+        }
     }
 }
 
