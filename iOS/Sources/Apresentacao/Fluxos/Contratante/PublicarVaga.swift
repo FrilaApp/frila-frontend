@@ -287,10 +287,12 @@ public struct TelaPublicarVaga: View {
     @State private var regiaoMapa: MKCoordinateRegion
     private let telefoneResponsavel: String
     private let api: any ApiCliente
+    private let sair: () -> Void
     @State private var mostrandoPerfilEstabelecimento = false
 
-    public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String) {
+    public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String, sair: @escaping () -> Void = {}) {
         self.api = api
+        self.sair = sair
         _model = State(initialValue: PublicarVagaViewModel(api: api, fila: fila, estabelecimento: estabelecimento))
         _regiaoMapa = State(initialValue: MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: estabelecimento.ponto.latitude, longitude: estabelecimento.ponto.longitude), span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)))
         self.telefoneResponsavel = telefoneResponsavel
@@ -312,7 +314,7 @@ public struct TelaPublicarVaga: View {
         }
         .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
             NavigationStack {
-                TelaPerfilEstabelecimento(api: api) { Task { await api.sair(tokenFCM: nil) } }
+                TelaPerfilEstabelecimento(api: api, sair: sair)
             }
         }
         .task {

@@ -397,10 +397,38 @@ struct AutenticacaoTests {
 
         let container = try PersistenciaFrila.criarContainer(emMemoria: true)
         let local = ArmazenamentoSwiftData(modelContainer: container)
-        let saida = SaidaDaConta(api: ApiClienteEmMemoria(), armazenamento: local)
+        let api = ApiClienteEmMemoria()
+        let usuarioID = UUID()
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+        let inicio = instante.addingTimeInterval(3_600)
+        let fim = inicio.addingTimeInterval(3_600)
+        let resumo = VagaResumo(
+            id: UUID(), funcao: "Garçom", local: "Asa Sul", regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: inicio, fim: fim), valor: Dinheiro(centavos: 12_000)
+        )
+        let reputacao = Reputacao(positivas: 1, total: 1, taxaComparecimento: 1, turnosConsiderados: 1, turnosRealizados: 1)
+        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
+        let contato = Contato(nome: "Bistrô", telefone: "+5561999990000", whatsappURL: try #require(URL(string: "https://wa.me/5561999990000")), visivelAte: visivelAte)
+        let turno = Turno(
+            id: UUID(), posicaoID: UUID(), vaga: resumo,
+            contraparte: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bistrô", reputacao: reputacao),
+            contatoVisivelAte: visivelAte, verificacao: .pendente, valorAcordado: resumo.valor, podeAvaliar: false,
+            contato: contato
+        )
+        try await local.salvar(sessao: SessaoUsuario(usuarioID: usuarioID, perfil: .profissional))
+        try await local.salvar(turnos: [turno], em: instante)
+        try await local.salvar(funcoes: [Funcao(id: UUID(), nome: "Garçom", categoria: "Restaurante")])
+        try await local.enfileirar(AcaoPendente(tipo: .checkin, turnoID: turno.id, instanteDoToque: instante, chave: UUID(), distanciaMetros: 20))
+        #expect(try await local.turnosValidos(em: instante).first?.contato?.telefone == "+5561999990000")
+        #expect(try await local.pendentes().count == 1)
+        let saida = SaidaDaConta(api: api, armazenamento: local)
 
         await saida.sair(tokenFCM: nil)
 
         #expect(DestinoGuardado.obter() == nil)
+        #expect(try await local.sessao() == nil)
+        #expect(try await local.turnosValidos(em: instante).isEmpty)
+        #expect(try await local.funcoes().isEmpty)
+        #expect(try await local.pendentes().isEmpty)
     }
 }

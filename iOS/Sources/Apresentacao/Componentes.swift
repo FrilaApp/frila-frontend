@@ -140,13 +140,11 @@ public struct SeloReputacao: View {
     }
 
     public static func descricaoComparecimento(_ reputacao: Reputacao) -> String? {
-        guard !reputacao.semHistorico, let taxa = reputacao.taxaComparecimento else { return nil }
-        return String(localized: "Comparecimento: \(Int((taxa * 100).rounded()))%", bundle: bundleApresentacao)
-    }
-
-    public static func descricaoTurnos(_ reputacao: Reputacao) -> String? {
         guard !reputacao.semHistorico else { return nil }
-        return String(localized: "Turnos considerados: \(reputacao.turnosConsiderados)", bundle: bundleApresentacao)
+        if reputacao.turnosConsiderados == 1 {
+            return String(localized: "Compareceu a \(reputacao.turnosRealizados) de \(reputacao.turnosConsiderados) turno", bundle: bundleApresentacao)
+        }
+        return String(localized: "Compareceu a \(reputacao.turnosRealizados) de \(reputacao.turnosConsiderados) turnos", bundle: bundleApresentacao)
     }
 
     public var body: some View {
@@ -160,7 +158,6 @@ public struct SeloReputacao: View {
                 if let comparecimento = Self.descricaoComparecimento(reputacao) {
                     Text(verbatim: comparecimento).font(.caption)
                 }
-                if let turnos = Self.descricaoTurnos(reputacao) { Text(verbatim: turnos).font(.caption) }
             }
         }
         .foregroundStyle(reputacao.semHistorico ? FrilaCor.textoSecundario : FrilaCor.sucesso)
@@ -255,12 +252,7 @@ public struct CartaoVaga: View {
             partes.append(inclusos)
         }
         partes.append(SeloReputacao.descricao(vaga.estabelecimento.reputacao))
-        if let comparecimento = SeloReputacao.descricaoComparecimento(vaga.estabelecimento.reputacao) {
-            partes.append(comparecimento)
-        }
-        if let turnos = SeloReputacao.descricaoTurnos(vaga.estabelecimento.reputacao) {
-            partes.append(turnos)
-        }
+        if let comparecimento = SeloReputacao.descricaoComparecimento(vaga.estabelecimento.reputacao) { partes.append(comparecimento) }
         partes.append(String(localized: "\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao))
         return partes.joined(separator: ", ")
     }

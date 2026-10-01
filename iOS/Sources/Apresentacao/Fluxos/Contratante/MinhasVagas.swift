@@ -31,14 +31,11 @@ private enum TextosMinhasVagas {
     static let posicaoAberta = String(localized: "Posição aberta", bundle: bundleMinhasVagas)
     static let perfil = String(localized: "Ver perfil público", bundle: bundleMinhasVagas)
     static let perfilTitulo = String(localized: "Perfil público", bundle: bundleMinhasVagas)
-    static let semHistorico = String(localized: "Sem histórico", bundle: bundleMinhasVagas)
-    static let taxaComparecimento = String(localized: "Comparecimento: %d%%", bundle: bundleMinhasVagas)
     static let verContato = String(localized: "Ver contato liberado", bundle: bundleMinhasVagas)
     static let contatoExpirado = String(localized: "O prazo para ver este contato terminou.", bundle: bundleMinhasVagas)
     static let contatoFalhou = String(localized: "Não foi possível carregar o contato. Tente novamente.", bundle: bundleMinhasVagas)
     static let ligar = String(localized: "Ligar", bundle: bundleMinhasVagas)
     static let whatsApp = String(localized: "WhatsApp", bundle: bundleMinhasVagas)
-    static let chamariamDeNovo = String(localized: "%d de %d chamariam de novo", bundle: bundleMinhasVagas)
     static let periodo = String(localized: "%@ – %@", bundle: bundleMinhasVagas)
 }
 

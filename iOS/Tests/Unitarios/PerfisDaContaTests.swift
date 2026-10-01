@@ -42,14 +42,18 @@ struct PerfisDaContaTests {
         #expect(SeloReputacao.descricao(reputacao) == "Sem histórico")
         #expect(!SeloReputacao.descricao(reputacao).contains("0 de 0"))
         #expect(SeloReputacao.descricaoComparecimento(reputacao) == nil)
-        #expect(SeloReputacao.descricaoTurnos(reputacao) == nil)
     }
 
-    @Test("O selo mantém numerador, denominador e percentual")
+    @Test("O selo mostra comparecimento com numerador, denominador e plural correto")
     func reputacaoComHistorico() {
-        let reputacao = Reputacao(positivas: 11, total: 12, taxaComparecimento: 0.92, turnosConsiderados: 25, turnosRealizados: 23)
+        let reputacao = Reputacao(positivas: 11, total: 12, taxaComparecimento: 0.92, turnosConsiderados: 12, turnosRealizados: 11)
         #expect(SeloReputacao.descricao(reputacao) == "11 de 12 chamariam de novo")
-        #expect(SeloReputacao.descricaoComparecimento(reputacao) == "Comparecimento: 92%")
-        #expect(SeloReputacao.descricaoTurnos(reputacao) == "Turnos considerados: 25")
+        #expect(SeloReputacao.descricaoComparecimento(reputacao) == "Compareceu a 11 de 12 turnos")
+    }
+
+    @Test("O selo usa o singular para um turno")
+    func compareceuUmTurno() {
+        let reputacao = Reputacao(positivas: 1, total: 1, taxaComparecimento: 1, turnosConsiderados: 1, turnosRealizados: 1)
+        #expect(SeloReputacao.descricaoComparecimento(reputacao) == "Compareceu a 1 de 1 turno")
     }
 }

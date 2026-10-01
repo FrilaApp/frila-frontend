@@ -6,9 +6,9 @@ import FrilaDominio
 /// entrar no mesmo iPhone. A exclusão de conta (S2) passa por aqui também.
 public struct SaidaDaConta: ContaRepositorio {
     private let api: any ApiCliente
-    private let armazenamento: any CacheLocal & FilaDeAcoes
+    private let armazenamento: (any CacheLocal & FilaDeAcoes)?
 
-    public init(api: any ApiCliente, armazenamento: any CacheLocal & FilaDeAcoes) {
+    public init(api: any ApiCliente, armazenamento: (any CacheLocal & FilaDeAcoes)?) {
         self.api = api
         self.armazenamento = armazenamento
     }
@@ -27,10 +27,12 @@ public struct SaidaDaConta: ContaRepositorio {
     }
 
     private func apagarDadosLocais() async {
-        // `ArmazenamentoSwiftData.limpar` apaga turnos, funções, sessão e fila de uma vez; as duas
-        // chamadas mantêm a regra certa se as portas passarem a ter implementações separadas.
-        try? await (armazenamento as any CacheLocal).limpar()
-        try? await (armazenamento as any FilaDeAcoes).limpar()
+        if let armazenamento {
+            // `ArmazenamentoSwiftData.limpar` apaga turnos, funções, sessão e fila de uma vez; as duas
+            // chamadas mantêm a regra certa se as portas passarem a ter implementações separadas.
+            try? await (armazenamento as any CacheLocal).limpar()
+            try? await (armazenamento as any FilaDeAcoes).limpar()
+        }
         DestinoGuardado.limpar()
     }
 }

@@ -10,7 +10,7 @@ private enum TextosPerfilConta {
     static let email = String(localized: "E-mail", bundle: bundleApresentacao)
     static let funcoesHorarios = String(localized: "Funções e horários", bundle: bundleApresentacao)
     static let porQueRecebo = String(localized: "Por que recebo vagas", bundle: bundleApresentacao)
-    static let explicacaoVagas = String(localized: "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.", bundle: bundleApresentacao)
+    static let explicacaoVagas = String(localized: "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.", bundle: bundleApresentacao)
     static let ajuda = String(localized: "Ajuda", bundle: bundleApresentacao)
     static let suporte = String(localized: "Fale com o suporte", bundle: bundleApresentacao)
     static let prazoSuporte = String(localized: "Respondemos em até 5 dias úteis.", bundle: bundleApresentacao)
@@ -116,7 +116,7 @@ public struct TelaMeuPerfilProfissional: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if model.carregando { EstadoCarregando() }
-                else if let erro = model.mensagemErro { EstadoErro(LocalizedStringKey(erro)) { Task { await model.carregar() } } }
+                else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let conta = model.conta, let perfil = model.perfil {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text(conta.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)
@@ -182,7 +182,7 @@ public struct TelaPerfilEstabelecimento: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if model.carregando { EstadoCarregando() }
-                else if let erro = model.mensagemErro { EstadoErro(LocalizedStringKey(erro)) { Task { await model.carregar() } } }
+                else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let estabelecimento = model.estabelecimento {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text(estabelecimento.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)

@@ -75,6 +75,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
     @State private var turnosViewModel: MeusTurnosViewModel
     @State private var caminhoTurnos: [Turno] = []
     private let barra: () -> Barra
+    private let sair: () -> Void
 
     public init(
         api: any ApiCliente,
@@ -83,6 +84,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
         relogio: any Relogio = RelogioDoSistema(),
         localizacao: (any LeitorDeLocalizacao)? = nil,
         fila: (any FilaDeAcoes)? = nil,
+        sair: @escaping () -> Void = {},
         @ViewBuilder barra: @escaping () -> Barra
     ) {
         self.api = api
@@ -95,6 +97,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
         _feed = State(initialValue: FeedVagasViewModel(api: api, relogio: relogio))
         _turnosViewModel = State(initialValue: MeusTurnosViewModel(repositorio: repo))
         self.barra = barra
+        self.sair = sair
     }
 
     public var body: some View {
@@ -123,7 +126,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                     .navigationDestination(for: RotaDoProfissional.self) { rota in
                         switch rota {
                         case .meuPerfil:
-                            TelaMeuPerfilProfissional(api: api) { Task { await api.sair(tokenFCM: nil) } }
+                            TelaMeuPerfilProfissional(api: api, sair: sair)
                         case let .detalhe(vagaID):
                             DestinoDoDetalhe(vagaID: vagaID, api: api, candidatar: roteador.candidatar)
                         case let .resultado(vaga, resultado):
@@ -182,9 +185,10 @@ extension FluxoDoProfissional where Barra == EmptyView {
         repositorioTurnos: (any TurnoRepositorio)? = nil,
         relogio: any Relogio = RelogioDoSistema(),
         localizacao: (any LeitorDeLocalizacao)? = nil,
-        fila: (any FilaDeAcoes)? = nil
+        fila: (any FilaDeAcoes)? = nil,
+        sair: @escaping () -> Void = {}
     ) {
-        self.init(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, relogio: relogio, localizacao: localizacao, fila: fila) { EmptyView() }
+        self.init(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, relogio: relogio, localizacao: localizacao, fila: fila, sair: sair) { EmptyView() }
     }
 }
 

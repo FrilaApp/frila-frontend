@@ -141,8 +141,9 @@ public struct TelaCadastroEstabelecimento: View {
     private let responsavelNome: String
     private let responsavelTelefone: String
     private let fila: any FilaDeAcoes
+    private let sair: () -> Void
 
-    public init(api: any ApiCliente, fila: any FilaDeAcoes, responsavelNome: String, responsavelTelefone: String) {
+    public init(api: any ApiCliente, fila: any FilaDeAcoes, responsavelNome: String, responsavelTelefone: String, sair: @escaping () -> Void = {}) {
         let model = CadastroEstabelecimentoViewModel(api: api)
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST") {
@@ -158,11 +159,12 @@ public struct TelaCadastroEstabelecimento: View {
         self.responsavelNome = responsavelNome
         self.responsavelTelefone = responsavelTelefone
         self.fila = fila
+        self.sair = sair
     }
 
     public var body: some View {
         if model.concluido, let estabelecimento = model.estabelecimentoCriado {
-            TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone)
+            TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone, sair: sair)
         } else {
             NavigationStack { formulario }
         }
