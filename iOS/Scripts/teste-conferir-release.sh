@@ -76,6 +76,14 @@ app="$(novo_app_bom criptografia-string-no)"
 plutil -replace ITSAppUsesNonExemptEncryption -string NO "$app/Info.plist"
 esperar_reprovacao "criptografia como string NO" "booleano false" "$app"
 
+app="$(novo_app_bom criptografia-array)"
+plutil -replace ITSAppUsesNonExemptEncryption -json '[false]' "$app/Info.plist"
+esperar_reprovacao "criptografia como array com false" "booleano false" "$app"
+
+app="$(novo_app_bom criptografia-dicionario)"
+plutil -replace ITSAppUsesNonExemptEncryption -json '{"valor": false}' "$app/Info.plist"
+esperar_reprovacao "criptografia como dicionário com false" "booleano false" "$app"
+
 app="$(novo_app_bom criptografia-string-false)"
 plutil -replace ITSAppUsesNonExemptEncryption -string false "$app/Info.plist"
 esperar_reprovacao "criptografia como string false" "booleano false" "$app"

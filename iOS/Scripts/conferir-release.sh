@@ -20,13 +20,20 @@ app="$1"
 info_plist="$app/Info.plist"
 [[ -f "$info_plist" ]] || falhar "Info.plist não encontrado no bundle: $info_plist"
 
-if ! criptografia_xml="$(plutil -extract ITSAppUsesNonExemptEncryption xml1 -o - "$info_plist" 2>/dev/null)"; then
-  falhar "Info.plist não define ITSAppUsesNonExemptEncryption"
-fi
-if [[ "$criptografia_xml" != *"<false/>"* ]]; then
-  criptografia="$(plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$info_plist" 2>/dev/null || true)"
-  falhar "ITSAppUsesNonExemptEncryption deve ser o booleano false (encontrado: $criptografia)"
-fi
+# O valor tem de ser exatamente o booleano false: procurar <false/> no XML aceitaria um array ou
+# um dicionário que contivesse false, e a string "NO" não é o que o App Store Connect lê.
+criptografia="$(python3 - "$info_plist" <<'PYCRIPTO'
+import plistlib, sys
+with open(sys.argv[1], "rb") as arquivo:
+    valor = plistlib.load(arquivo).get("ITSAppUsesNonExemptEncryption", "ausente")
+print("ok" if valor is False else ("ausente" if valor == "ausente" else f"{type(valor).__name__} {valor!r}"))
+PYCRIPTO
+)"
+case "$criptografia" in
+  ok) ;;
+  ausente) falhar "Info.plist não define ITSAppUsesNonExemptEncryption" ;;
+  *) falhar "ITSAppUsesNonExemptEncryption deve ser o booleano false (encontrado: $criptografia)" ;;
+esac
 
 chave_localizacao_sempre="$(
   plutil -convert json -o - "$info_plist" |
