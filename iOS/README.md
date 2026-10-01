@@ -146,6 +146,23 @@ O dublê não é equivalente ao backend:
 
 No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.
 
+## Licenças de terceiros (#178)
+
+`TelaLicencas` lista os pacotes do build com versão, tipo e texto da licença. Ela lê `Resources/Licencas.json` do bundle do `FrilaApresentacao`. A interface é provisória e, enquanto a tela de Ajuda não existe, a entrada fica no fim do catálogo (Debug).
+
+`Licencas.json` é gerado, não se edita à mão. Depois de acrescentar, tirar ou atualizar um pacote:
+
+```sh
+xcodebuild -resolvePackageDependencies -project Frila.xcodeproj -scheme Frila-Local -derivedDataPath <pasta>
+Scripts/gerar-licencas.py --checkouts <pasta>/SourcePackages/checkouts
+```
+
+- **De onde vem o texto.** Do arquivo de licença na raiz de cada checkout do SPM, copiado como está; o `NOTICE`, quando o pacote traz um, entra junto.
+- **O que entra.** Todos os pacotes do `Package.resolved`, inclusive os que o Firebase declara e o app não liga.
+- **Erro, e não entrada vazia.** Pacote sem arquivo de licença, checkout em revisão diferente da do `Package.resolved` ou licença de tipo que o script não reconhece interrompem a geração.
+- **Guarda.** `LicencasTests` falha se um pacote do `Package.resolved` ficar sem entrada, se a entrada for de outra revisão ou se sobrar entrada de pacote que saiu.
+- **Limite.** Licenças de código de terceiros embutido dentro de um pacote (pastas `third_party`) só aparecem quando o próprio pacote as reproduz no arquivo de licença da raiz, como faz o GoogleUtilities.
+
 ## Contrato
 
 O app segue o contrato `0.2.18`, espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.

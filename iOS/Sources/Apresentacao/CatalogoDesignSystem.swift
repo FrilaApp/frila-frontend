@@ -38,6 +38,16 @@ public struct CatalogoDesignSystem: View {
                         ValidacaoClienteAPI(api: api, permitirSimulacaoDeConflito: permitirSimulacaoDeConflito)
                     }
                     secao("Vaga") { CartaoVaga(Self.vagaDeExemplo) }
+                    // Entrada provisória da tela de licenças (#178): sai daqui quando existir a Ajuda.
+                    NavigationLink { TelaLicencas() } label: {
+                        Text(verbatim: TextosDeLicencas.titulo).font(.headline).multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(FrilaCor.primaria)
+                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.primaria, lineWidth: 1.5))
+                    .accessibilityIdentifier("abrir-licencas")
                 }
                 .padding(FrilaEspaco.medio)
                 .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)

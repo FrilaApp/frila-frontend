@@ -163,6 +163,16 @@
         }
       }
     },
+    "Abre o texto da licença": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o texto da licença"
+          }
+        }
+      }
+    },
     "Abrir no WhatsApp": {
       "localizations": {
         "pt-BR": {
@@ -309,6 +319,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avisar se a vaga seguir vazia"
+          }
+        }
+      }
+    },
+    "Avisos do pacote": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisos do pacote"
           }
         }
       }
@@ -953,6 +973,26 @@
         }
       }
     },
+    "Licença": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licença"
+          }
+        }
+      }
+    },
+    "Licenças de código aberto": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licenças de código aberto"
+          }
+        }
+      }
+    },
     "Logística": {
       "localizations": {
         "pt-BR": {
@@ -1159,6 +1199,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível carregar as informações."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar as licenças.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar as licenças."
           }
         }
       }
@@ -1569,6 +1619,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remover horário de %@"
+          }
+        }
+      }
+    },
+    "Repositório": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repositório"
           }
         }
       }
@@ -1989,6 +2049,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Verificando publicação pendente…"
+          }
+        }
+      }
+    },
+    "Versão": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versão"
           }
         }
       }
