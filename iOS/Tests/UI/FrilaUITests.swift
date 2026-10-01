@@ -156,7 +156,7 @@ final class CandidaturaUITests: XCTestCase {
         primeira.tap()
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].exists, "o aviso da RN10 vem antes de Candidatar-me")
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 5), "o aviso da RN10 vem antes de Candidatar-me")
         candidatar.tap()
         return app
     }

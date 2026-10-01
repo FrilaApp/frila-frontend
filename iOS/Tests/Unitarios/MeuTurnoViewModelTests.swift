@@ -27,7 +27,7 @@ private func criarTurnoExemplo(
     contatoVisivelAte: Date,
     contato: Contato? = nil
 ) throws -> Turno {
-    let vaga = VagaResumo(id: UUID(), funcao: funcao, local: local, periodo: try Periodo(inicio: inicio, fim: fim), valor: valor)
+    let vaga = VagaResumo(id: UUID(), funcao: funcao, local: local, regiaoAdministrativa: "Plano Piloto", periodo: try Periodo(inicio: inicio, fim: fim), valor: valor)
     let reputacao = Reputacao(positivas: 10, total: 10, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
     let contraparte = PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bar da Quadra", reputacao: reputacao)
     return Turno(
@@ -109,6 +109,7 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
         if let onContatoDoTurno { return try await onContatoDoTurno(id) }
         return try await base.contatoDoTurno(id: id)
     }
+    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho { try await base.avisarACaminho(turnoID: turnoID) }
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try await base.fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
@@ -281,6 +282,7 @@ struct MeuTurnoViewModelTests {
             funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "SALA"),
             periodo: turno.vaga.periodo,
             local: turno.vaga.local,
+            regiaoAdministrativa: turno.vaga.regiaoAdministrativa,
             ponto: try Coordenada(latitude: -15.7, longitude: -47.8),
             valor: turno.valorAcordado,
             posicoes: 1,

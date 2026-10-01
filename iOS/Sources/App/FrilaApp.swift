@@ -102,7 +102,11 @@ private struct EntradaDoApp: View {
             if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO") {
                 let apiCadastro = ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST")
                     ? ApiClienteEmMemoria(cenario: .primeiroAcesso) : api
-                TelaCadastroEstabelecimento(api: apiCadastro, responsavelNome: "Conta de teste", responsavelTelefone: "(61) 99999-0000")
+                if let armazenamento {
+                    TelaCadastroEstabelecimento(api: apiCadastro, fila: armazenamento, responsavelNome: "Conta de teste", responsavelTelefone: "(61) 99999-0000")
+                } else {
+                    EstadoCarregando()
+                }
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
                 catalogo
             } else {

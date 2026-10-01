@@ -15,6 +15,8 @@ private enum TextosCadastro {
     static let tipo = String(localized: "Tipo", bundle: bundleCadastro)
     static let endereco = String(localized: "Endereço", bundle: bundleCadastro)
     static let buscarEndereco = String(localized: "Buscar endereço", bundle: bundleCadastro)
+    static let regiaoAdministrativa = String(localized: "Região Administrativa", bundle: bundleApresentacao)
+    static let regiaoAdministrativaAjuda = String(localized: "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.", bundle: bundleApresentacao)
     static let ponto = String(localized: "Ponto do estabelecimento", bundle: bundleCadastro)
     static let mapa = String(localized: "Mapa do estabelecimento", bundle: bundleCadastro)
     static let dicaMapa = String(localized: "Ajuste o ponto movendo o marcador no mapa.", bundle: bundleCadastro)
@@ -22,7 +24,6 @@ private enum TextosCadastro {
     static let continuar = String(localized: "Continuar", bundle: bundleCadastro)
     static let estabelecimento = String(localized: "Estabelecimento", bundle: bundleCadastro)
     static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleCadastro)
-    static let publicacaoProvisoria = String(localized: "Esta etapa estará disponível em breve.", bundle: bundleCadastro)
     static let documentoDuplicado = String(localized: "Este documento já está cadastrado.", bundle: bundleCadastro)
     static let falha = String(localized: "Não foi possível cadastrar o estabelecimento. Tente novamente.", bundle: bundleCadastro)
     static let confiraCampo = String(localized: "Confira o campo indicado.", bundle: bundleCadastro)
@@ -42,6 +43,8 @@ public final class CadastroEstabelecimentoViewModel {
     public var documento = ""
     public var tipo: TipoEstabelecimento = .foodService
     public var endereco = ""
+    /// Região Administrativa do DF, obrigatória desde o contrato 0.2.20. Texto livre: quem informa é a casa.
+    public var regiaoAdministrativa = ""
     public var ponto: CLLocationCoordinate2D?
     public private(set) var alvoDaCamera: CLLocationCoordinate2D?
     public var sugestoes: [MKMapItem] = []
@@ -49,6 +52,7 @@ public final class CadastroEstabelecimentoViewModel {
     public private(set) var enviando = false
     public private(set) var erro: ErroDeCadastroEstabelecimento?
     public private(set) var concluido = false
+    public private(set) var estabelecimentoCriado: Estabelecimento?
     private let cadastrar: (CadastroEstabelecimento) async throws -> Estabelecimento
 
     public init(api: any ApiCliente) {
@@ -93,10 +97,12 @@ public final class CadastroEstabelecimentoViewModel {
         guard documento.count == 11 || documento.count == 14 else { erro = .campo(.documento, .invalido); return }
         guard !endereco.isEmpty, let ponto else { erro = .campo(.endereco, .obrigatorio); return }
         guard let coordenada = try? Coordenada(latitude: ponto.latitude, longitude: ponto.longitude) else { erro = .campo(.endereco, .invalido); return }
+        let regiao = regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !regiao.isEmpty else { erro = .campo(.regiaoAdministrativa, .obrigatorio); return }
         enviando = true
         defer { enviando = false }
         do {
-            _ = try await cadastrar(CadastroEstabelecimento(nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), documento: documento, tipo: tipo, endereco: endereco, ponto: coordenada))
+            estabelecimentoCriado = try await cadastrar(CadastroEstabelecimento(nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), documento: documento, tipo: tipo, endereco: endereco, regiaoAdministrativa: regiao, ponto: coordenada))
             concluido = true
         } catch let api as ErroDaApi {
             switch api.codigo {
@@ -109,7 +115,7 @@ public final class CadastroEstabelecimentoViewModel {
     }
 
     private static func campo(_ detalhes: String?) -> CampoCadastro {
-        switch detalhes { case "nome": .nome; case "documento": .documento; case "tipo": .tipo; case "endereco", "ponto", "latitude", "longitude": .endereco; default: .endereco }
+        switch detalhes { case "nome": .nome; case "documento": .documento; case "tipo": .tipo; case "regiao_administrativa": .regiaoAdministrativa; case "endereco", "ponto", "latitude", "longitude": .endereco; default: .endereco }
     }
 
     private static func mascara(_ valor: String, padroes: [(Int, String)]) -> String {
@@ -122,7 +128,7 @@ public final class CadastroEstabelecimentoViewModel {
     }
 }
 
-public enum CampoCadastro: Equatable { case nome, documento, tipo, endereco }
+public enum CampoCadastro: Equatable { case nome, documento, tipo, endereco, regiaoAdministrativa }
 public enum ErroDeCadastroEstabelecimento: Equatable {
     case documentoDuplicado, campo(CampoCadastro, RegraCampoCadastro), falha
 }
@@ -131,28 +137,34 @@ public enum RegraCampoCadastro: Equatable { case obrigatorio, invalido }
 public struct TelaCadastroEstabelecimento: View {
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
+    private let api: any ApiCliente
     private let responsavelNome: String
     private let responsavelTelefone: String
+    private let fila: any FilaDeAcoes
 
-    public init(api: any ApiCliente, responsavelNome: String, responsavelTelefone: String) {
+    public init(api: any ApiCliente, fila: any FilaDeAcoes, responsavelNome: String, responsavelTelefone: String) {
         let model = CadastroEstabelecimentoViewModel(api: api)
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST") {
             model.nome = "Café de teste"
             model.atualizarDocumento("12345678901")
             model.endereco = "Brasília, DF"
+            model.regiaoAdministrativa = "Plano Piloto"
             model.ponto = CLLocationCoordinate2D(latitude: -15.78, longitude: -47.93)
         }
         #endif
         _model = State(initialValue: model)
+        self.api = api
         self.responsavelNome = responsavelNome
         self.responsavelTelefone = responsavelTelefone
+        self.fila = fila
     }
 
     public var body: some View {
-        NavigationStack {
-            if model.concluido { publicarVaga }
-            else { formulario }
+        if model.concluido, let estabelecimento = model.estabelecimentoCriado {
+            TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone)
+        } else {
+            NavigationStack { formulario }
         }
     }
 
@@ -199,6 +211,12 @@ public struct TelaCadastroEstabelecimento: View {
                     .frame(height: 220).accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
                     Text(verbatim: TextosCadastro.dicaMapa).font(.caption)
                 }
+                campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
+                    CampoFrila(verbatim: TextosCadastro.regiaoAdministrativa, texto: $model.regiaoAdministrativa)
+                        .textInputAutocapitalization(.words)
+                        .accessibilityIdentifier("regiao-administrativa")
+                    Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(.caption).foregroundStyle(.secondary)
+                }
                 VStack(alignment: .leading) {
                     Text(verbatim: TextosCadastro.responsavel).font(.headline)
                     Text(verbatim: responsavelNome); Text(verbatim: responsavelTelefone).foregroundStyle(.secondary)
@@ -209,13 +227,6 @@ public struct TelaCadastroEstabelecimento: View {
             }.padding()
         }
         .navigationTitle(Text(verbatim: TextosCadastro.estabelecimento))
-    }
-
-    private var publicarVaga: some View {
-        VStack(spacing: 16) {
-            Text(verbatim: TextosCadastro.publicarVaga).font(.largeTitle.bold())
-            Text(verbatim: TextosCadastro.publicacaoProvisoria).foregroundStyle(.secondary)
-        }.accessibilityIdentifier("publicar-vaga-provisorio")
     }
 
     @ViewBuilder private func campo<Conteudo: View>(_ titulo: String, campo: CampoCadastro, @ViewBuilder conteudo: () -> Conteudo) -> some View {
