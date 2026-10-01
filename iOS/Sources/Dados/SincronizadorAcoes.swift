@@ -18,24 +18,32 @@ public actor SincronizadorAcoes {
                 // a `chave` da ação fica só na fila local.
                 switch acao.tipo {
                 case .checkin:
+                    guard let turnoID = acao.turnoID else { continue }
                     _ = try await api.fazerCheckin(
-                        turnoID: acao.turnoID,
+                        turnoID: turnoID,
                         distanciaMetros: acao.distanciaMetros,
                         registradoEm: acao.instanteDoToque
                     )
                 case .checkout:
+                    guard let turnoID = acao.turnoID else { continue }
                     _ = try await api.fazerCheckout(
-                        turnoID: acao.turnoID,
+                        turnoID: turnoID,
                         distanciaMetros: acao.distanciaMetros,
                         registradoEm: acao.instanteDoToque
                     )
                 case .avaliacao:
-                    guard let resposta = acao.resposta else { continue }
-                    _ = try await api.avaliar(turnoID: acao.turnoID, resposta: resposta)
+                    guard let turnoID = acao.turnoID, let resposta = acao.resposta else { continue }
+                    _ = try await api.avaliar(turnoID: turnoID, resposta: resposta)
+                case .publicacaoVaga:
+                    guard let publicacao = acao.publicacao else { continue }
+                    _ = try await api.publicarVaga(publicacao)
                 }
                 try await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where erro.codigo == .semRede {
                 return
+            } catch let erro as ErroDaApi where acao.tipo == .publicacaoVaga && erro.codigo.recusaDefinitivaDePublicacao {
+                // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
+                try? await fila.remover(id: acao.id)
             } catch {
                 // A ação permanece para uma nova tentativa idempotente.
                 continue

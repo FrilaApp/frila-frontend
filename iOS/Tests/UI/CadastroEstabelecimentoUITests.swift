@@ -11,6 +11,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Responsável"].exists)
         app.buttons["continuar-cadastro"].tap()
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-provisorio"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
+        XCTAssertTrue(app.staticTexts["O profissional recebe o valor integral"].exists)
     }
 }

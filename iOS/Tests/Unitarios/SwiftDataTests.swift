@@ -1,6 +1,7 @@
 import Foundation
 import FrilaDados
 import FrilaDominio
+import SwiftData
 import Testing
 
 @Suite("Cache e fila SwiftData")
@@ -18,6 +19,40 @@ struct SwiftDataTests {
         #expect(lida.distanciaMetros == 42)
         try await armazenamento.limpar()
         #expect(try await armazenamento.pendentes().isEmpty)
+    }
+
+    @Test("Publicação pendente preserva o payload e a chave na fila persistente")
+    func publicacaoPendentePersistePayload() async throws {
+        let diretorio = FileManager.default.temporaryDirectory.appending(path: "frila-publicacao-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let esquema = Schema([TurnoPersistido.self, FuncaoPersistida.self, SessaoPersistida.self, AcaoPendentePersistida.self])
+        let caminho = diretorio.appending(path: "Fila.store")
+        let configuracao = ModelConfiguration("FilaPublicacaoTeste", schema: esquema, url: caminho)
+        var containerAntesDeFechar: ModelContainer? = try ModelContainer(for: esquema, configurations: [configuracao])
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+        let chave = UUID()
+        let periodo = try Periodo(inicio: instante.addingTimeInterval(14_400), fim: instante.addingTimeInterval(25_200))
+        let publicacao = PublicacaoVaga(
+            estabelecimentoID: UUID(), funcaoID: UUID(), periodo: periodo, local: "Rua das Flores, 10",
+            ponto: try Coordenada(latitude: -15.78, longitude: -47.93), valor: Dinheiro(centavos: 14_000), posicoes: 2,
+            inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false), responsavelLocal: "Renata",
+            modo: .urgencia, alertaAntecedenciaMinutos: 180, chave: chave
+        )
+        var antesDeFechar: ArmazenamentoSwiftData? = ArmazenamentoSwiftData(modelContainer: containerAntesDeFechar!)
+        let acao = AcaoPendente(tipo: .publicacaoVaga, instanteDoToque: instante, chave: chave, publicacao: publicacao)
+        try await antesDeFechar!.enfileirar(acao)
+        try await antesDeFechar!.enfileirar(acao)
+        antesDeFechar = nil
+        containerAntesDeFechar = nil
+
+        let containerReaberto = try ModelContainer(for: esquema, configurations: [configuracao])
+        let depoisDeAbrir = ArmazenamentoSwiftData(modelContainer: containerReaberto)
+        let restaurada = try #require(await depoisDeAbrir.pendentes().first)
+
+        #expect(try await depoisDeAbrir.pendentes().count == 1)
+        #expect(restaurada.publicacao == publicacao)
+        #expect(restaurada.chave == chave)
     }
 
     @Test("Perfil fica disponível offline e logout limpa todos os dados")

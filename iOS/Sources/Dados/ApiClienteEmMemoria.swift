@@ -19,6 +19,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case vagaEncerrada = "vaga-encerrada"
         /// `candidatar` responde `422 inelegivel/perfil_suspenso` (conta suspensa, #105).
         case inelegivelSuspenso = "inelegivel-suspenso"
+        /// A vaga foi criada, mas a primeira resposta se perdeu. A repetição precisa reutilizar a chave.
+        case respostaPerdidaPublicacao = "resposta-perdida-publicacao"
+        /// A vaga foi criada, mas o gateway devolve uma resposta inválida na primeira tentativa.
+        case respostaInvalidaPublicacao = "resposta-invalida-publicacao"
     }
 
     private let cenario: Cenario
@@ -37,6 +41,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var contatos: [UUID: Contato] = [:]
     /// Quantas vezes `candidatar` foi chamado: os testes de toque duplo leem isso.
     public private(set) var chamadasACandidatar = 0
+    public private(set) var chamadasAPublicarVaga = 0
+    public private(set) var chavesPublicacaoRecebidas: [UUID] = []
+    public private(set) var publicacoesRecebidas: [PublicacaoVaga] = []
+    public private(set) var vagasCriadas = 0
+    private var publicacoesPorChave: [UUID: VagaPublicada] = [:]
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
@@ -195,6 +204,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
+        chamadasAPublicarVaga += 1
+        chavesPublicacaoRecebidas.append(publicacao.chave)
+        publicacoesRecebidas.append(publicacao)
+        if let resposta = publicacoesPorChave[publicacao.chave] { return resposta }
         try verificarFalhaGeral()
         guard let estabelecimento = estabelecimentos.first(where: { $0.id == publicacao.estabelecimentoID }) else { throw erro("sem_permissao") }
         guard let funcao = catalogo.first(where: { $0.id == publicacao.funcaoID }) else { throw erro("campo_invalido", detalhes: "funcao_id") }
@@ -206,7 +219,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
             modo: publicacao.modo, estado: .publicada, publicadoEm: relogio.agora
         )
         vagas.append(vaga)
-        return VagaPublicada(vagaID: vaga.id, posicoes: (0..<publicacao.posicoes).map { _ in UUID() })
+        vagasCriadas += 1
+        let resposta = VagaPublicada(vagaID: vaga.id, posicoes: (0..<publicacao.posicoes).map { _ in UUID() })
+        publicacoesPorChave[publicacao.chave] = resposta
+        if cenario == .respostaPerdidaPublicacao { throw ErroDaApi(codigo: .semRede) }
+        if cenario == .respostaInvalidaPublicacao { throw ErroDaApi(codigo: .respostaInvalida) }
+        return resposta
     }
 
     public func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada {
