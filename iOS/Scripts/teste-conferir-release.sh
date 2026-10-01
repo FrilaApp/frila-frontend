@@ -130,7 +130,7 @@ app="$(novo_app_bom sem-privacidade)"
 rm "$app/PrivacyInfo.xcprivacy"
 esperar_reprovacao "manifesto de privacidade ausente" "PrivacyInfo.xcprivacy" "$app"
 
-for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_CADASTRO_UI_TEST' '-FRILA_ENTRADA' '-FRILA_VAGA_ID' 'forcar-falha-crashlytics'; do
+for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_ABRIR_MINHAS_VAGAS' '-FRILA_CADASTRO_UI_TEST' '-FRILA_ENTRADA' '-FRILA_LOCALIZACAO' '-FRILA_VAGA_ID' 'forcar-falha-crashlytics'; do
   app="$(novo_app_bom "gancho-$RANDOM")"
   printf '\n%s\n' "$gancho" >> "$app/Frila"
   esperar_reprovacao "gancho no executável: $gancho" "$gancho" "$app"
@@ -142,11 +142,17 @@ printf 'binario com -FRILA_SCENARIO\n' > "$app/Frameworks/Teste.framework/Teste"
 chmod +x "$app/Frameworks/Teste.framework/Teste"
 esperar_reprovacao "gancho em framework embutido" "-FRILA_SCENARIO" "$app"
 
-for simbolo in pelosArgumentos CatalogoDesignSystem TelaLicencas; do
+for simbolo in pelosArgumentos CatalogoDesignSystem; do
   app="$(novo_app_bom "simbolo-$RANDOM")"
   printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
     xcrun clang -x c -o "$app/Frila" -
   esperar_reprovacao "símbolo no executável: $simbolo" "$simbolo" "$app"
 done
+
+# A tela de licenças é de produto (#178): o símbolo dela no Release não reprova.
+app="$(novo_app_bom simbolo-de-produto)"
+printf 'int TelaLicencas(void) { return 0; }\nint main(void) { return TelaLicencas(); }\n' |
+  xcrun clang -x c -o "$app/Frila" -
+esperar_aprovacao "$app"
 
 echo "OK: autoteste de conferir-release.sh passou"

@@ -139,12 +139,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
     }
 
+    #if DEBUG
+    /// Só em Debug (#96): o Release não lê argumentos de lançamento.
     public static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> ApiClienteEmMemoria {
-        #if DEBUG
         let semSessaoArgumento = argumentos.contains("-FRILA_ABRIR_CATALOGO") || argumentos.contains("-FRILA_ENTRADA")
-        #else
-        let semSessaoArgumento = false
-        #endif
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
             return ApiClienteEmMemoria(sessaoAtivaInicial: !semSessaoArgumento)
@@ -158,6 +156,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         return ApiClienteEmMemoria(cenario: cenario, sessaoAtivaInicial: sessaoAtiva)
     }
+    #endif
 
     // MARK: Entrada
 

@@ -5,9 +5,22 @@ import XCTest
 @MainActor
 final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     private static let ax5 = "UICTContentSizeCategoryAccessibilityXXXL"
+    private var appAtual: XCUIApplication?
+
+    override func tearDown() {
+        if let appAtual, let testRun, testRun.failureCount > 0 {
+            let anexo = XCTAttachment(screenshot: appAtual.screenshot())
+            anexo.name = "falha-\(name)"
+            anexo.lifetime = .keepAlways
+            add(anexo)
+        }
+        appAtual = nil
+        super.tearDown()
+    }
 
     private func abrirCatalogo(tamanho: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
+        appAtual = app
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
         if let tamanho { app.launchArguments += ["-UIPreferredContentSizeCategoryName", tamanho] }
         app.launch()
@@ -15,10 +28,33 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         return app
     }
 
-    /// Rola até o elemento ficar tocável e espera a rolagem parar. Um toque durante a desaceleração
-    /// só freia a lista e não chega ao botão, o que fazia o teste falhar às vezes na CI.
+    /// Rola até o elemento ficar totalmente visível na área segura e espera a rolagem parar.
+    /// Um elemento na borda inferior pode ter `isHittable == true` pelo XCTest mesmo estando
+    /// cortado pela tela ou sob a área do indicador de início (home indicator), onde toques
+    /// com deslocamento caem fora da área útil.
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
-        for _ in 0..<tentativas where !elemento.isHittable { app.swipeUp(velocity: .slow) }
+        let janela = app.windows.firstMatch.frame
+        let margemSuperior: CGFloat = 120
+        let margemInferior: CGFloat = 60
+
+        for _ in 0..<tentativas {
+            guard elemento.exists else {
+                app.swipeUp(velocity: .slow)
+                continue
+            }
+            let quadro = elemento.frame
+            let visivel = elemento.isHittable
+                && quadro.minY >= margemSuperior
+                && quadro.maxY <= (janela.height - margemInferior)
+            if visivel { break }
+
+            if quadro.maxY > (janela.height - margemInferior) || !elemento.isHittable {
+                app.swipeUp(velocity: .slow)
+            } else if quadro.minY < margemSuperior {
+                app.swipeDown(velocity: .slow)
+            }
+        }
+
         var anterior = CGRect.null
         for _ in 0..<10 {
             let atual = elemento.frame
@@ -85,6 +121,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     /// Botão de largura total com o texto no meio: a lateral fica longe do texto.
     func testToqueNaLateralDoBotaoSecundarioDispara() {
         let app = XCUIApplication()
+        appAtual = app
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "vaga-preenchida"]
         app.launch()
         let botao = app.buttons["Simular vaga preenchida"]
@@ -94,10 +131,14 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
 
         botao.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.5)).tap()
 
-        XCTAssertTrue(
-            app.staticTexts["Esta vaga acabou de ser preenchida. Escolha outra oportunidade."].waitForExistence(timeout: 5),
-            "o toque na lateral do botão não chegou à ação"
-        )
+        let apareceu = app.staticTexts["Esta vaga acabou de ser preenchida. Escolha outra oportunidade."].waitForExistence(timeout: 5)
+        if !apareceu {
+            let captura = XCTAttachment(screenshot: app.screenshot())
+            captura.name = "falha-toque-lateral"
+            captura.lifetime = .keepAlways
+            add(captura)
+        }
+        XCTAssertTrue(apareceu, "o toque na lateral do botão não chegou à ação")
     }
 
     /// Capturas do catálogo em AX5, anexadas ao resultado, para conferir texto cortado.

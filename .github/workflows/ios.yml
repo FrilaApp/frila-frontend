@@ -148,16 +148,26 @@ jobs:
             | xcbeautify --renderer github-actions
 
       - name: Testes do Frila-Local (unitários e de interface, sem recompilar)
+        id: testes
         run: |
           xcodebuild test-without-building \
             -project Frila.xcodeproj \
             -scheme Frila-Local \
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
+            -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
+
+      - name: Publicar xcresult em caso de falha nos testes
+        if: failure() && steps.testes.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: xcresult-testes-frila-local
+          path: ${{ env.DERIVED_DATA_PATH }}/Logs/Test/Frila-Local.xcresult
+          if-no-files-found: warn
 
       - name: Build do Frila-Dev (Supabase frila-dev)
         env:
