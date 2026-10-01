@@ -108,6 +108,7 @@ private func criarTurno(
         id: UUID(),
         funcao: "Garçom",
         local: "Bar do Lago",
+        regiaoAdministrativa: "Plano Piloto",
         periodo: try Periodo(inicio: inicio, fim: fim),
         valor: Dinheiro(centavos: 15000)
     )
