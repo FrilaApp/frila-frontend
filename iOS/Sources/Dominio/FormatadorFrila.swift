@@ -26,6 +26,11 @@ public struct FormatadorFrila: Sendable {
         return "\(inicio.dia) \(inicio.hora) – \(fim.dia) \(fim.hora)"
     }
 
+    /// Hora e minuto no fuso de São Paulo, como em `intervalo`.
+    public func hora(_ instante: Date) -> String {
+        componentesDaData(instante, calendario: Calendar(identifier: .gregorian).configuradoParaSaoPaulo).hora
+    }
+
     public func diaDeSaoPaulo(_ instante: Date) -> DateComponents {
         Calendar(identifier: .gregorian).configuradoParaSaoPaulo.dateComponents(
             [.year, .month, .day],

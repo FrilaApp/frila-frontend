@@ -31,7 +31,8 @@ struct FrilaApp: App {
         do throws(ErroDeConfiguracao) {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
-            inicializacao = .pronta(Self.cliente(para: ambiente.selecao))
+            let api = Self.cliente(para: ambiente.selecao)
+            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
@@ -41,9 +42,9 @@ struct FrilaApp: App {
     var body: some Scene {
         WindowGroup {
             switch inicializacao {
-            case let .pronta(api):
+            case let .pronta(api, localizacao):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    EntradaDoApp(api: api, armazenamento: armazenamento)
+                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -59,10 +60,19 @@ struct FrilaApp: App {
             SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaCrashlytics())
         }
     }
+
+    /// Um leitor para o app inteiro. Só o dublê em memória (esquema Local) aceita o GPS simulado de
+    /// `-FRILA_LOCALIZACAO`; com Supabase é sempre o CoreLocation.
+    private static func leitorDeLocalizacao(para api: any ApiCliente) -> any LeitorDeLocalizacao {
+        if api is ApiClienteEmMemoria, let simulado = LeitorDeLocalizacaoSimulado.pelosArgumentos() {
+            return simulado
+        }
+        return LeitorDeLocalizacaoDoSistema()
+    }
 }
 
 private enum Inicializacao {
-    case pronta(any ApiCliente)
+    case pronta(any ApiCliente, any LeitorDeLocalizacao)
     case configuracaoInvalida(ErroDeConfiguracao)
 }
 
@@ -74,6 +84,7 @@ private enum Inicializacao {
 private struct EntradaDoApp: View {
     let api: any ApiCliente
     let armazenamento: ArmazenamentoSwiftData?
+    let localizacao: any LeitorDeLocalizacao
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
@@ -83,9 +94,10 @@ private struct EntradaDoApp: View {
     @State private var rotaInicialAplicada = false
     #endif
 
-    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?) {
+    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao) {
         self.api = api
         self.armazenamento = armazenamento
+        self.localizacao = localizacao
         if let armazenamento {
             self.repositorioTurnos = TurnosComCache(buscar: { try await api.meusTurnos() }, cache: armazenamento)
         } else {
@@ -155,7 +167,7 @@ private struct EntradaDoApp: View {
             EstadoCarregando()
         case true?:
             #if DEBUG
-            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos) {
+            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento) {
                 Button("Catálogo") { mostrandoCatalogo = true }
                     .accessibilityHint("Abre o catálogo de componentes, só em Debug")
             }
@@ -168,7 +180,7 @@ private struct EntradaDoApp: View {
                 roteador.abrirVaga(id: vagaID)
             }
             #else
-            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos)
+            FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento)
             #endif
         case false?:
             #if DEBUG
