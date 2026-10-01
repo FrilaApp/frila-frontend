@@ -34,7 +34,10 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Relato automático de falhas, sem dados pessoais (#198).
 
 ### Privacidade e conformidade
-- A localização é pedida só durante o uso, e só a distância até a vaga é enviada.
+- A localização é pedida só durante o uso. No check-in e no check-out, a coordenada lida do GPS
+  não sai do aparelho: só a distância até a vaga é enviada.
+- Os pontos escolhidos no mapa (o ponto base de quem trabalha e o ponto do estabelecimento) são
+  enviados ao servidor.
 - O app não rastreia e não pede permissão de rastreamento.
 - O manifesto de privacidade declara os dados da conta e o uso de `UserDefaults` (#96).
 - O build de Release não leva catálogo de componentes nem atalhos de desenvolvimento (#96).
