@@ -31,6 +31,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case respostaPerdidaPublicacao = "resposta-perdida-publicacao"
         /// A vaga foi criada, mas o gateway devolve uma resposta inválida na primeira tentativa.
         case respostaInvalidaPublicacao = "resposta-invalida-publicacao"
+        /// Painel com uma vaga vazia dentro da janela de alerta do contratante.
+        case alertaVagaVazia = "alerta-vaga-vazia"
+        /// Painel com uma posição confirmada para testar perfil público e contato liberado.
+        case painelContratante = "painel-contratante"
+        /// Painel sem vagas para conferir a orientação do primeiro acesso do contratante.
+        case painelVazio = "painel-vazio"
     }
 
     private let cenario: Cenario
@@ -107,7 +113,26 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 self.vagas = vagas
             } else {
                 let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
-                self.vagas = [try Self.noFuturo(vaga, agora: relogio.agora)]
+                let ateInicio: TimeInterval = cenario == .alertaVagaVazia ? 2 * 60 * 60 : 24 * 60 * 60
+                self.vagas = [try Self.noFuturo(vaga, agora: relogio.agora, inicioEm: ateInicio)]
+            }
+            if cenario == .painelVazio { self.vagas = [] }
+            if cenario == .painelContratante, let vaga = self.vagas.first {
+                let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
+                let posicaoID = UUID(uuidString: "82000000-0000-0000-0000-000000000002")!
+                let contato = Contato(
+                    nome: perfilPublicoDeExemplo.nome,
+                    telefone: contatoDeExemplo.telefone,
+                    whatsappURL: contatoDeExemplo.whatsappURL,
+                    visivelAte: vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
+                )
+                turnos = [Turno(
+                    id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
+                    contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
+                    verificacao: .verificado, valorAcordado: vaga.valor, podeAvaliar: false
+                )]
+                contatos[turnoID] = contato
+                self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
             }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
@@ -580,8 +605,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return DecodificadorErroAPI.mapear(codigo: envelope?.code ?? codigo, detalhes: detalhes ?? envelope?.details)
     }
 
-    private static func noFuturo(_ vaga: Vaga, agora: Date) throws -> Vaga {
-        let inicio = agora.addingTimeInterval(24 * 60 * 60)
+    private static func noFuturo(_ vaga: Vaga, agora: Date, inicioEm: TimeInterval = 24 * 60 * 60) throws -> Vaga {
+        let inicio = agora.addingTimeInterval(inicioEm)
         let periodo = try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(vaga.periodo.fim.timeIntervalSince(vaga.periodo.inicio)))
         return copia(vaga, periodo: periodo, publicadoEm: agora)
     }
