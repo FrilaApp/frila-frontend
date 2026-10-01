@@ -136,5 +136,29 @@
     "message": "contestacao_ja_aberta",
     "details": null,
     "hint": null
+  },
+  {
+    "code": "sem_permissao",
+    "message": "sem_permissao",
+    "details": "sem_turno_cumprido",
+    "hint": null
+  },
+  {
+    "code": "campo_invalido",
+    "message": "campo_invalido",
+    "details": "relato",
+    "hint": null
+  },
+  {
+    "code": "vaga_oculta",
+    "message": "vaga_oculta",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "a_caminho_fora_da_janela",
+    "message": "a_caminho_fora_da_janela",
+    "details": null,
+    "hint": null
   }
 ]

@@ -316,6 +316,8 @@ struct CatalogoStringsTests {
             "WhatsApp",
             "%d de %d chamariam de novo",
             "%@ – %@",
+            "Região Administrativa",
+            "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.",
         ]
 
         var faltantes: [String] = []

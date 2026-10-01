@@ -47,14 +47,21 @@ public struct CadastroEstabelecimento: Codable, Equatable, Sendable {
     /// CPF (11) ou CNPJ (14), só dígitos.
     public let documento: String
     public let tipo: TipoEstabelecimento
+    /// Logradouro, número e complemento.
     public let endereco: String
+    /// Região Administrativa do DF onde o estabelecimento fica. Obrigatória desde o contrato 0.2.20.
+    public let regiaoAdministrativa: String
     public let ponto: Coordenada
 
-    public init(nome: String, documento: String, tipo: TipoEstabelecimento, endereco: String, ponto: Coordenada) {
+    public init(
+        nome: String, documento: String, tipo: TipoEstabelecimento, endereco: String, regiaoAdministrativa: String,
+        ponto: Coordenada
+    ) {
         self.nome = nome
         self.documento = documento
         self.tipo = tipo
         self.endereco = endereco
+        self.regiaoAdministrativa = regiaoAdministrativa
         self.ponto = ponto
     }
 }
@@ -64,6 +71,9 @@ public struct PublicacaoVaga: Codable, Equatable, Sendable {
     public let funcaoID: UUID
     public let periodo: Periodo
     public let local: String
+    /// Região Administrativa do DF onde o turno acontece. Vem preenchida com a do estabelecimento
+    /// (contrato 0.2.20).
+    public let regiaoAdministrativa: String
     public let ponto: Coordenada
     public let valor: Dinheiro
     public let posicoes: Int
@@ -81,6 +91,7 @@ public struct PublicacaoVaga: Codable, Equatable, Sendable {
         funcaoID: UUID,
         periodo: Periodo,
         local: String,
+        regiaoAdministrativa: String,
         ponto: Coordenada,
         valor: Dinheiro,
         posicoes: Int,
@@ -97,6 +108,7 @@ public struct PublicacaoVaga: Codable, Equatable, Sendable {
         self.funcaoID = funcaoID
         self.periodo = periodo
         self.local = local
+        self.regiaoAdministrativa = regiaoAdministrativa
         self.ponto = ponto
         self.valor = valor
         self.posicoes = posicoes
@@ -218,6 +230,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     // Turno
     func meusTurnos() async throws -> [Turno]
     func contatoDoTurno(id: UUID) async throws -> Contato
+    /// "Estou a caminho" (contrato 0.2.25): de 3 h antes até 15 min depois do início, e idempotente
+    /// pelo turno. Não é presença. A porta existe; o botão fica para a v1.1 (decisão de produto).
+    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro
     func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro
     func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao

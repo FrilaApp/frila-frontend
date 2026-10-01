@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.18
+  version: 0.2.27
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -15,8 +15,9 @@ info:
       confirmar, check-in, avaliar, denunciar — é uma função no Postgres, chamada em
       `POST /rest/v1/rpc/<nome>` (leituras em `GET`). A regra é escrita uma vez, no banco, e vale igual
       para os três clientes. Os apps não escrevem direto nas tabelas.
-    - **Leitura sob Row Level Security; escrita só por função.** Toda tabela tem política de leitura,
-      e nenhuma tem política de escrita para os clientes. As funções que gravam são `SECURITY DEFINER`:
+    - **Leitura sob Row Level Security; escrita só por função.** Toda tabela do produto tem política
+      de leitura, e nenhuma tem política de escrita para os clientes. As duas tabelas de operação,
+      `entrada_demonstracao` e `pedido_de_exclusao`, não têm política nenhuma: ninguém as lê pela API. As funções que gravam são `SECURITY DEFINER`:
       conferem por dentro quem chama, o perfil (RN25) e o papel, e só então escrevem. O que é da outra
       parte (perfil público, contato) também sai por função, só com as colunas permitidas. As políticas
       estão na Modelagem de Banco de Dados.
@@ -34,7 +35,7 @@ info:
     | Tempo | UTC em ISO-8601: `"inicio_em": "2026-09-19T21:00:00Z"` (RN18). O fuso `America/Sao_Paulo` é da tela |
     | Identificadores | `uuid` |
     | Nomes | `snake_case`, iguais às colunas do banco |
-    | Idempotência | Reenviar a mesma escrita devolve o mesmo resultado. Onde há chave natural (candidatura por vaga e profissional, check-in por turno, avaliação por turno e autor, bloqueio por par), ela basta. `publicar_vaga` e `denunciar`, que não têm chave natural, recebem `chave` (uuid gerado pelo app) |
+    | Idempotência | Reenviar a mesma escrita devolve o mesmo resultado. Onde há chave natural (candidatura por vaga e profissional, check-in por turno, avaliação por turno e lado, bloqueio por par), ela basta. `publicar_vaga` e `denunciar`, que não têm chave natural, recebem `chave` (uuid gerado pelo app) |
     | Versão | Mudança incompatível vira função nova (`publicar_vaga_v2`); a antiga continua no ar enquanto houver app antigo na loja |
 
     ## Erros
@@ -63,11 +64,11 @@ info:
     | HTTP | `code` | Quando |
     |---|---|---|
     | 401 | `nao_autenticado`, `PGRST301` e afins | Token ausente, expirado, inválido ou de conta já encerrada/anonimizada (RF25) |
-    | 403 | `sem_permissao` | Autenticado, mas sem papel para a ação (RF21). `details`: `conta_suspensa` quando a conta está suspensa e a ação exige conta ativa (RN13) |
+    | 403 | `sem_permissao` | Autenticado, mas sem papel para a ação (RF21); ou profissional sem turno verificado prévio na casa ao incluir na equipe (UC11). `details`: `conta_suspensa` quando a conta está suspensa e a ação exige conta ativa (RN13), ou `sem_turno_cumprido` (UC11) |
     | 403 | `contato_expirado` | Contato pedido depois de 7 dias do fim do turno (RN10) |
-    | 404 | `nao_encontrado` | O recurso não existe ou não é visível para quem pede (inclui bloqueio, RF26) |
+    | 404 | `nao_encontrado` | O recurso não existe ou não é visível para quem pede (inclui bloqueio, RF26, e vaga ocultada pela moderação da Equipe Frila, diretriz 1.2) |
     | 409 | `posicao_ja_preenchida` | Alguém chegou antes (RN19). **Funcionamento normal no modo urgência** |
-    | 409 | `vaga_encerrada` | A vaga fechou, foi cancelada ou já começou |
+    | 409 | `vaga_encerrada` | A vaga fechou, foi cancelada ou já começou. Posição reaberta por atraso: a partir de `fim_em - 1 h` |
     | 409 | `checkin_pendente` | Check-out ou confirmação de um turno que ainda não teve check-in. O código diz qual é o passo que falta |
     | 409 | `checkin_ja_confirmado` | Confirmação de um check-in geolocalizado, que já nasceu verificado |
     | 409 | `posicao_nao_cancelavel` | A posição não está confirmada: aberta não tem o que cancelar, cumprida ou já cancelada não volta atrás |
@@ -77,21 +78,218 @@ info:
     | 409 | `administrador_unico` | Exclusão de conta de quem é o único administrador (UC16) |
     | 409 | `perfil_ja_existe` | `criar_perfil_profissional` numa conta que já tem perfil. Conflito, e não sobrescrita: sobrescrever apagaria a grade de quem tocasse duas vezes no botão |
     | 409 | `contestacao_ja_aberta` | Já existe contestação em análise para a suspensão em vigor (RF24) |
-    | 422 | `campo_obrigatorio` | Falta campo exigido; `details` diz qual (RN02) |
+    | 422 | `campo_obrigatorio` | Falta campo exigido; `details` diz qual (na vaga, RN02) |
     | 422 | `campo_invalido` | O campo veio, e o valor é recusado pela regra; `details` diz qual campo. Distinto de `campo_obrigatorio`, que é ausência — a tela destaca o mesmo campo, com texto diferente |
     | 422 | `menor_de_idade` | Nascimento com menos de 18 anos (RN20) |
     | 422 | `perfil_incompativel` | A ação é do outro perfil: conta de contratante criando perfil de profissional, ou conta de profissional cadastrando estabelecimento (RN25) |
     | 422 | `selecao_sem_antecedencia` | Modo seleção em vaga que começa em menos de 24 h (RN24) |
+    | 422 | `vaga_oculta` | A vaga foi ocultada pela moderação da Equipe Frila (diretriz 1.2): não se escolhe candidato nela nem se republica a partir dela até ser reexibida |
     | 422 | `horario_invalido` | Fim antes do início, ou turno no passado |
     | 422 | `inelegivel` | `details`: `turno_sobreposto` (RN21), `perfil_suspenso` (RN13) ou `funcao_incompativel` (RN05) |
     | 422 | `avaliacao_indisponivel` | `details`: `antes_do_fim` ou `sem_presenca_verificada` (RN07) |
     | 422 | `fora_da_janela` | Check-in ou check-out fora da janela que a regra permite para o turno (RN22) |
+    | 422 | `a_caminho_fora_da_janela` | Chamada de `avisar_a_caminho` fora da janela permitida (de 3 h antes até 15 min depois do início do turno) (US14, RF12) |
     | 422 | `registro_no_futuro` | Instante de check-in ou check-out adiante do relógio do servidor. O relógio que vale é o do servidor, nunca o do aparelho |
     | 422 | `reabertura_antes_da_tolerancia` | Reabrir por atraso antes dos 15 minutos (D06) |
     | 422 | `sem_suspensao_ativa` | Contestação sem suspensão em vigor (RF24) |
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.27, de 30/09/2026.** Só texto: nenhuma operação, campo, código de erro ou status
+    muda. Alinha a descrição ao que o backend faz e registra duas decisões de produto de 30/09,
+    tomadas na revisão dos documentos de engenharia para a entrega parcial de 02/10.
+
+    - **`meus_estabelecimentos`**: o `operador` publica vagas; só a equipe de confiança
+      (`incluir_na_equipe`, `remover_da_equipe`) é do `administrador`. O texto anterior dizia que o
+      operador não cadastrava vaga, o que nem o backend nem os documentos de requisitos fazem.
+    - **Convenções**: a idempotência da avaliação é por turno e **lado** (0.2.12), não por autor; e
+      as tabelas de operação `entrada_demonstracao` e `pedido_de_exclusao` não têm política de
+      leitura.
+    - **`denunciar` e `bloquear`**: as recusas por campo faltando citavam a RN02, que é a regra dos
+      campos da vaga; passam a citar a RF26. `denunciar` registra que fraude e documento falso
+      chegam pelo motivo `outro` (decisão de 30/09), sem mudar o enum `MotivoDenuncia`.
+    - **`perfil_publico`**: a divergência aberta na 0.2.12 foi decidida em 30/09 — o bloqueio vai
+      esconder também o perfil público. O comportamento não muda nesta versão; entra numa próxima,
+      junto com o backend e o app.
+    - **Anonimização**: desde a migração `20260929160000_excluir_conta_autor.sql`, a exclusão grava
+      `nome = 'Conta encerrada'` na própria linha. A frase da 0.2.12 ("a anonimização não apaga o
+      nome da linha — quem mascara é a leitura") ficou velha; o que o cliente vê não muda.
+
+    ---
+
+    **Versão 0.2.26, de 30/09/2026.** Alinhamento de contrato em `/rpc/registrar_dispositivo` (autorizado em 30/09/2026).
+    Declara formalmente a resposta `422 RegraRecusou` (`campo_obrigatorio`, `campo_invalido`), já emitida
+    pela implementação ao validar `token_fcm` e `plataforma`.
+
+    - **`/rpc/registrar_dispositivo`**: adicionada a resposta `422: $ref: '#/components/responses/RegraRecusou'`.
+
+    ---
+
+    **Versão 0.2.25, de 29/09/2026.** Contrato para a ação "Estou a caminho" (cartão h53CJVP7,
+    US14 cenário 1, RF12). Não altera presença nem taxa de comparecimento: é um sinal operacional
+    para a casa acompanhar no salão. Decisão de produto registrada no cartão 8zLfn0mt (item 7,
+    28/09/2026): a funcionalidade fica para a v1.1.
+
+    - **`/rpc/avisar_a_caminho(turno_id)`**: chamada POST restrita ao profissional confirmado no
+      turno (`403 sem_permissao` para terceiros). Permitida exclusivamente na janela entre 3 horas
+      antes do início previsto e 15 minutos após o início do turno; fora dessa janela, responde
+      `422 a_caminho_fora_da_janela` (código novo no catálogo). Operação idempotente: chamar uma
+      segunda vez não altera o instante já gravado e devolve o mesmo registro (`ResultadoACaminho`).
+    - **`turno.a_caminho_em` exposto em `PosicaoNoPainel`**: a leitura `/rpc/painel_estabelecimento`
+      passa a incluir o instante `a_caminho_em` em cada posição do painel (nulo enquanto o
+      profissional não tiver acionado o aviso ou se a posição não tiver turno confirmado).
+    - **`Turno.a_caminho_em`**: o schema `Turno` também passa a expor o campo `a_caminho_em`
+      (nulo se ainda não avisou), consumido pela tela Meu turno do app iOS.
+
+    ---
+
+    **Versão 0.2.24, de 29/09/2026.** Modo seleção liberado (cartão d3A1WjG3, US12, RF09, RN24,
+    UC04). O contrato já declarava `escolher_candidato`, `candidatos_da_vaga`,
+    `retirar_candidatura` e `minhas_candidaturas`, mas `publicar_vaga` recusava `modo = selecao`.
+    Nenhuma assinatura, schema ou código de erro novo: muda o comportamento de `publicar_vaga` e
+    de `candidatar`, e entram dois tipos de aviso.
+
+    - **`publicar_vaga` aceita `modo = selecao`** quando o início está a mais de 24 horas. Com 24
+      horas ou menos, `422 selecao_sem_antecedencia` (RN24), no lugar do `campo_invalido` com
+      `details: modo` da v1.0.
+    - **`candidatar` numa vaga de seleção** devolve `estado: pendente`, com `posicao_id`,
+      `turno_id` e `contato` nulos: a posição só é decidida na escolha. Reenviar devolve a mesma
+      candidatura; a retirada volta a `pendente` se o profissional se candidatar de novo. A partir
+      de 24 horas antes do início a vaga de seleção não aceita candidatura (`409 vaga_encerrada`).
+    - **`escolher_candidato`** é do membro do estabelecimento (`403 sem_permissao` para os demais).
+      O escolhido recebe o aviso `confirmacao`. Quando a escolha ocupa a última posição, as
+      candidaturas ainda pendentes passam a `recusada` e cada profissional recebe
+      `candidatura_recusada`. Escolher de novo uma candidatura já escolhida responde `409
+      candidatura_indisponivel`; escolher depois do fechamento das 24 horas, `409 vaga_encerrada`.
+    - **Fechamento automático (RN24).** A 24 horas do início, o agendador fecha a vaga de seleção:
+      as posições ainda abertas passam a `cancelada`, as candidaturas pendentes a `expirada`, e
+      cada candidato pendente e cada membro do estabelecimento recebem `selecao_encerrada`. A vaga
+      vai a `encerrada` quando ninguém foi escolhido, ou a `preenchida` quando alguma posição foi.
+    - **Dois tipos de aviso novos:** `candidatura_recusada` e `selecao_encerrada`. O payload é o de
+      sempre (RN15): `tipo` e `vaga_id`, nada mais. Os textos do push são do design; até eles
+      chegarem, sai o texto genérico.
+    - A 0.2.23 (vaga ocultada pela moderação) vem antes desta.
+
+    ---
+
+    **Versão 0.2.23, de 29/09/2026.** Vaga ocultada pela moderação da Equipe Frila (cartão
+    Oxh0AWE7, diretriz 1.2 da App Store). Ocultar é moderação **reversível** e **não cancela** a
+    vaga: o `estado` não muda, os profissionais confirmados seguem confirmados e as candidaturas
+    pendentes seguem pendentes. A vaga só deixa de ser oferecida e de gerar turno novo, até a Equipe
+    reexibi-la:
+
+    - **Campo novo `oculta`** (booleano, sempre presente) em `Vaga` (`/rpc/detalhe_vaga`) e em
+      `VagaNoPainel` (`/rpc/painel_estabelecimento`). A casa vê a vaga na lista dela como "oculta
+      pela Equipe"; o `estado` continua o do ciclo de vida.
+    - **Código novo `422 vaga_oculta`:** `/rpc/escolher_candidato` numa vaga ocultada e
+      `/rpc/republicar_vaga` a partir de uma vaga ocultada (republicar não contorna a moderação).
+    - **`/rpc/vagas_abertas`:** a vaga ocultada não aparece na lista.
+    - **`/rpc/detalhe_vaga`:** `200`, com `oculta: true`, para quem ocupa posição ou tem
+      candidatura na vaga; `404 nao_encontrado` para os demais.
+    - **`/rpc/candidatar`:** candidatura nova responde `404 nao_encontrado`, como a vaga escondida
+      por bloqueio. O reenvio de quem já está confirmado devolve o próprio turno, como antes.
+    - **`/rpc/minhas_candidaturas`** e **`/rpc/candidatos_da_vaga`:** sem mudança. A candidatura
+      pendente continua listada para o profissional e legível pela casa.
+    - **Notificações:** a vaga ocultada não é despachada, e o aviso `vaga` ou `vagas_agrupadas`
+      que ainda não saiu deixa de sair. Os avisos do turno confirmado seguem.
+
+    Ocultar e reexibir são operações da Equipe Frila pela chave de serviço, fora da API.
+
+    ---
+
+    **Versão 0.2.22, de 29/09/2026.** Documentação da recusa por ausência de turno cumprido
+    ao incluir profissional na equipe de confiança em `/rpc/incluir_na_equipe` (cartão jl6nbekI,
+    UC11). O catálogo de erros passa a documentar explicitamente `sem_turno_cumprido` como
+    motivo complementar (`details`) em `sem_permissao` (403), cobrindo a regra de negócio
+    segundo a qual apenas profissionais com histórico de presença verificada no estabelecimento
+    podem ser adicionados à equipe de confiança pelo administrador da casa:
+
+    - **`sem_turno_cumprido`:** Em `/rpc/incluir_na_equipe`, recusa com HTTP 403 `sem_permissao`
+      (`details: sem_turno_cumprido`) quando o profissional indicado não possui nenhum turno
+      com presença verificada no estabelecimento.
+    - **Catálogo de respostas (`SemPermissao`):** Acrescentado o exemplo `sem_turno_cumprido`
+      nos exemplos de `components/responses/SemPermissao`.
+
+    ---
+
+    **Versão 0.2.21, de 29/09/2026.** Respostas de erro e catálogo de validação em
+    `/rpc/denunciar` e `/rpc/bloquear` (cartão JWJOPAOL). `/rpc/denunciar` passa a documentar
+    explicitamente a resposta `422` (`RegraRecusou`), e ambas as operações documentam as recusas
+    com códigos padronizados coerentes com seus schemas de entrada:
+
+    - **`campo_obrigatorio`:** Ausência de campos obrigatórios (`details: alvo_tipo`, `alvo_id`,
+      `motivo`, `relato` ou `chave` em `/rpc/denunciar`; `details: alvo_tipo` ou `alvo_id` em
+      `/rpc/bloquear`, RN02).
+    - **`campo_invalido`:** Campo enviado com valor recusado pela regra de negócio (`details:
+      alvo_tipo` fora do enum `TipoDeAlvo`, `alvo_id` não UUID ou auto-bloqueio, `motivo` fora
+      do enum `MotivoDenuncia`, `relato` com menos de 10 caracteres ou `chave` não UUID).
+    - **Mapeamento de 422 em `/rpc/denunciar`:** Adicionado `$ref: '#/components/responses/RegraRecusou'`
+      em `responses`, alinhando a operação a `/rpc/bloquear` e às demais RPCs de escrita do contrato.
+
+    ---
+
+    **Versão 0.2.20, de 28/09/2026.** Região administrativa estruturada do estabelecimento
+    e do local da vaga para interpolação nos pushes (cartão x0jkygj0, decisões VyY2SGsX e
+    8zLfn0mt). Até aqui, `vaga.local` e `estabelecimento.endereco` eram texto livre com
+    número e logradouro, o que impedia os pushes aprovados pela liderança e produto de exibir
+    `{bairro_ou_regiao}` e `{estabelecimento} ({regiao})` sem expor endereço completo com
+    número na tela de bloqueio (violando a RN10 e a RN15).
+
+    - **`regiao_administrativa` em Estabelecimento e Vaga.** Novo campo textual obrigatório
+      no cadastro do estabelecimento (`NovoEstabelecimento`) e em `Estabelecimento`, e na
+      publicação da vaga (`NovaVaga`), detalhe da vaga (`Vaga`), resumo (`VagaResumo`) e lista
+      (`VagaNaLista`).
+    - **Validação e filtro de texto ofensivo.** `regiao_administrativa` passa pelas validações
+      da diretriz 1.2 aplicadas aos demais campos textuais.
+    - **Interpolação nos pushes.** Pushes de vaga (01, 02 e 04) e lembretes de turno (09 e 11)
+      passam a interpolar a região administrativa estruturada sem exibir telefone nem
+      logradouro com número na tela de bloqueio (RN10 e RN15).
+
+    ---
+
+    **Versão 0.2.19, de 28/09/2026.** Posição reaberta por atraso aceita candidatura depois
+    do início do turno (decisão 8zLfn0mt, item 5, aprovada e registrada no cartão em
+    28/09/2026). Até aqui, vaga cujo início já passou recusava `candidatar` com
+    `409 vaga_encerrada`, e a reabertura de `reabrir_por_atraso` nascia sem ter quem a pegasse.
+    Nenhuma assinatura, campo ou código de erro é novo, mas mudam regras de leitura, e uma delas
+    vale para **toda** vaga:
+
+    - **O prazo é o fim previsto menos 1 h.** A posição aberta por `reabrir_por_atraso` aceita
+      candidatura enquanto o relógio do servidor estiver antes de `fim_em - 1 h`. Depois disso,
+      `409 vaga_encerrada`, como qualquer vaga encerrada. A hora que falta até o fim dá ao
+      substituto da região tempo de chegar e ainda cobrir o resto do serviço.
+    - **A exceção é da posição, não da vaga.** `candidatar` recebe a vaga e o servidor escolhe
+      a posição. Antes do início, vale qualquer posição `aberta`, como sempre. Depois do início,
+      o servidor só escolhe posição criada por `reabrir_por_atraso`, e só até `fim_em - 1 h`.
+      Posição original que ficou `aberta` sem ninguém não é oferecida depois do início, mesmo
+      numa vaga que tem, ao lado dela, uma posição reaberta por atraso. Vaga que já começou e
+      não tem posição reaberta por atraso `aberta` dentro do prazo responde
+      `409 vaga_encerrada`; perder a corrida pela posição reaberta é `409 posicao_ja_preenchida`,
+      como antes do início.
+    - **`posicoes_abertas` conta o que se pode pegar.** Na lista e no detalhe, depois do
+      início, o campo conta só as posições reabertas por atraso ainda dentro do prazo. Fora do
+      prazo, ou sem reabertura, é `0`. Antes do início, nada muda.
+    - **Regra nova para toda vaga: `vagas_abertas` esconde vaga que já começou.** Até a 0.2.18
+      o contrato não dizia nada, e a vaga `publicada` continuava na lista até o fim, porque ela
+      só passa a `encerrada` depois de `fim_em`. A partir da 0.2.19, vaga cujo início já passou
+      sai da lista, salvo a que tem posição reaberta por atraso dentro do prazo. Ela sai no
+      mesmo instante em que `candidatar` passa a recusar.
+    - **`detalhe_vaga` continua respondendo fora do prazo.** Responde `200` com a vaga e o
+      `estado` real (o início não muda o estado da vaga: a `publicada` segue `publicada` até
+      o fim) e `posicoes_abertas = 0`. Não vira `404`,
+      para que o toque numa notificação antiga abra a vaga em vez de cair em erro. A tela
+      mostra o botão de candidatura só com `estado = publicada` e `posicoes_abertas > 0`, e
+      nunca decide pelo relógio do aparelho. O `404` continua só para bloqueio (RF26) e conta
+      de demonstração.
+    - **O valor não muda.** O valor anunciado é o do turno inteiro (RN01), mesmo para quem
+      chega com o turno em andamento. A tela de reabertura deve dizer isso ao contratante.
+    - **Modo seleção.** Na v1.0 toda vaga é de urgência (`modo = selecao` é recusado), e a
+      posição reaberta por atraso confirma o primeiro elegível na hora. Como a vaga em seleção
+      fecha 24 h antes do início (RN24), a reabertura por atraso não cabe nela; a regra para a
+      v1.1 fica para quando o modo seleção entrar.
+
+    ---
 
     **Versão 0.2.18, de 26/09/2026.** Exclusão de conta e proteção de escrita para contas
     encerradas (RF25, RN15). A exclusão de conta agora conta com a Edge Function
@@ -536,7 +734,7 @@ tags:
   - name: Candidatura e confirmação
     description: Candidatura sem formulário e confirmação sem duplicidade (RF08, RF09, RF10, RN19, RN24).
   - name: Turno
-    description: Contato, check-in, check-out, cancelamento e reabertura (RF11, RF13, RF14, RN10, RN22).
+    description: Contato, aviso a caminho, check-in, check-out, cancelamento e reabertura (RF11, RF12, RF13, RF14, RN10, RN22).
   - name: Avaliação e reputação
     description: Avaliação binária e perfil público com denominador (RF15, RF16, RN07, RN08).
   - name: Painel do gestor
@@ -976,28 +1174,15 @@ paths:
       description: |
         Cria o estabelecimento com o chamador como administrador. Aceita CNPJ ou CPF, porque serviço
         doméstico também contrata pelo Frila. `tipo` serve para leitura e filtro, nunca para barrar
-        ninguém. Conta de profissional é recusada com `422 perfil_incompativel` (RN25).
+        ninguém. `regiao_administrativa` é a Região Administrativa do DF onde o estabelecimento fica.
+        Conta de profissional é recusada com `422 perfil_incompativel` (RN25).
       x-requisitos: [RF02, RF21, RN25, UC10]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [nome, documento, tipo, endereco, ponto]
-              properties:
-                nome:
-                  type: string
-                documento:
-                  type: string
-                  pattern: '^([0-9]{11}|[0-9]{14})$'
-                  description: CPF (11) ou CNPJ (14), só dígitos.
-                tipo:
-                  $ref: '#/components/schemas/TipoEstabelecimento'
-                endereco:
-                  type: string
-                ponto:
-                  $ref: '#/components/schemas/Coordenada'
+              $ref: '#/components/schemas/NovoEstabelecimento'
       responses:
         '200':
           description: Estabelecimento criado.
@@ -1023,8 +1208,9 @@ paths:
         chamar qualquer outra coisa. Sem esta operação, o app só descobre o `estabelecimento_id`
         cadastrando um novo, que é o caminho errado para quem já tem.
 
-        Devolve o papel junto: `operador` não cadastra vaga em nome da casa nem mexe na equipe, e a
-        tela precisa esconder o que o servidor vai recusar com `403 sem_permissao` (RF21).
+        Devolve o papel junto: o `operador` publica e acompanha as vagas da casa, mas não inclui nem
+        remove profissionais da equipe de confiança, que é do `administrador` (RF18, RF21). A tela
+        precisa esconder o que o servidor vai recusar com `403 sem_permissao`.
 
         Lista vazia é resposta legítima: conta de contratante recém-criada, antes do primeiro
         cadastro. Conta de **profissional** recebe `422 perfil_incompativel`, e não lista vazia — a
@@ -1080,6 +1266,10 @@ paths:
         O profissional da equipe recebe a notificação das vagas do estabelecimento mesmo além de 15 km,
         desde que tenha a função e esteja disponível (RF18). Não há exclusividade de tempo nem ordem.
         Idempotente.
+
+        Apenas o administrador do estabelecimento pode incluir profissionais na equipe (RF21). Exige que
+        o profissional tenha cumprido ao menos um turno com presença verificada no estabelecimento (UC11);
+        caso contrário, recusa com `403 sem_permissao` (`details: sem_turno_cumprido`).
       x-requisitos: [RF18, RN05, UC11]
       requestBody:
         required: true
@@ -1175,15 +1365,17 @@ paths:
         Recusas: campo obrigatório ausente (`campo_obrigatorio`, com o nome do campo em `details`,
         RN02); valor, número de posições, função ou coordenada que o campo trouxe e a regra não
         aceita (`campo_invalido`, com o campo em `details`); fim antes do início ou turno no passado
-        (`horario_invalido`); texto com termo bloqueado em `local`, `responsavel_local`, `traje` ou
-        `observacoes` (`campo_invalido`, diretriz 1.2). Conta de profissional recebe
-        `perfil_incompativel` (RN25); quem não é membro do estabelecimento recebe `403
+        (`horario_invalido`); texto com termo bloqueado em `local`, `regiao_administrativa`,
+        `responsavel_local`, `traje` ou `observacoes` (`campo_invalido`, diretriz 1.2). Conta de profissional
+        recebe `perfil_incompativel` (RN25); quem não é membro do estabelecimento recebe `403
         sem_permissao`, e é o que responde também quando o estabelecimento não existe; conta
         suspensa recebe `403 sem_permissao` com `details: conta_suspensa` (RN13).
 
-        **Na v1.0, `modo = selecao` é recusado** com `campo_invalido` e `details: modo` — o escopo
-        do MVP tem só urgência. `selecao_sem_antecedencia` é a regra das 24 horas (RN24) e volta na
-        v1.1, quando houver modo seleção para recusar.
+        **Modo seleção (RN24), desde a 0.2.24:** `modo = selecao` é aceito quando o início está a
+        mais de 24 horas; com 24 horas ou menos, `422 selecao_sem_antecedencia`. A vaga nova é
+        notificada igual nos dois modos; no seleção, os candidatos ficam pendentes até a escolha
+        (`escolher_candidato`). Até a 0.2.23 o modo seleção era recusado com `campo_invalido` e
+        `details: modo`.
 
         `chave` torna o reenvio seguro: a mesma chave devolve a mesma vaga, com as mesmas posições,
         e não enfileira o despacho de novo.
@@ -1226,6 +1418,9 @@ paths:
 
         `publicado_por` da vaga nova é **quem republicou** (RF04), e não quem publicou a de origem.
         `evento_id` não é copiado: `publicar_vaga` não o recebe.
+
+        Vaga de origem ocultada pela moderação da Equipe Frila responde `422 vaga_oculta`: a cópia
+        levaria o conteúdo moderado de volta à vitrine como vaga nova (0.2.23).
       x-requisitos: [RF05, UC01]
       requestBody:
         required: true
@@ -1313,7 +1508,13 @@ paths:
         Todas as vagas abertas, ordenadas pela distância até o ponto informado (ou até o ponto base do
         profissional, se nenhum for enviado). A distância aqui **ordena**, não filtra: o limite de
         15 km vale só para a notificação (B07). Vagas de estabelecimentos com bloqueio entre as partes
-        não aparecem (RF26). A ordem não pode ser comprada (RN06).
+        não aparecem (RF26), nem a vaga ocultada pela moderação da Equipe Frila (diretriz 1.2, 0.2.23).
+        A ordem não pode ser comprada (RN06).
+
+        Vaga cujo início já passou não aparece (regra da 0.2.19, vale para toda vaga), com uma
+        exceção: a que tem posição reaberta por atraso (`reabrir_por_atraso`) `aberta` continua na
+        lista até `fim_em - 1 h` (decisão 8zLfn0mt, item 5) — o mesmo prazo em que `candidatar` a
+        aceita. Depois do início, `posicoes_abertas` conta só essas posições reabertas.
 
         É a tela de quem procura turno: conta de contratante recebe `422 perfil_incompativel`.
         `limite` fora de 1..100 e `deslocamento` negativo são `422 campo_invalido` com o nome do
@@ -1388,8 +1589,18 @@ paths:
         confirmação e dentro do prazo (RN10).
 
         Conta de contratante recebe `422 perfil_incompativel`. Vaga que o profissional não deveria
-        alcançar — bloqueio entre as partes (RF26) ou conta de demonstração — responde
-        `404 nao_encontrado`, e não `403`: o 403 confirmaria que ela existe.
+        alcançar — bloqueio entre as partes (RF26), conta de demonstração ou vaga ocultada pela
+        moderação da Equipe Frila (diretriz 1.2) sem que ele ocupe posição ou tenha candidatura
+        nela — responde `404 nao_encontrado`, e não `403`: o 403 confirmaria que ela existe. Quem
+        ocupa posição ou tem candidatura na vaga ocultada recebe `200` com `oculta: true`, o mesmo
+        que já vê em `minhas_candidaturas` ou `meus_turnos`.
+
+        **Depois do início**, o detalhe continua respondendo `200`, com o `estado` real (o início
+        não muda o estado da vaga: a `publicada` segue `publicada` até o fim). `posicoes_abertas` conta só as posições reabertas por atraso
+        (`reabrir_por_atraso`) ainda antes de `fim_em - 1 h` (decisão 8zLfn0mt, item 5); fora
+        desse prazo, ou sem reabertura, é `0`. Não há `404` por horário: o toque numa notificação
+        antiga abre a vaga. A tela mostra o botão de candidatura só com `estado = publicada` e
+        `posicoes_abertas > 0`, nunca pelo relógio do aparelho.
       x-requisitos: [RF04, RF16, RN02, UC03]
       parameters:
         - name: vaga_id
@@ -1422,8 +1633,11 @@ paths:
         - **Modo urgência:** o primeiro elegível que aceita é confirmado na hora, por escrita
           condicional no banco (RN19). A resposta já traz o turno e o contato da outra parte (RN10).
           O profissional e cada membro do estabelecimento recebem o aviso `confirmacao` (RF10).
-        - **Modo seleção:** a candidatura fica pendente até o contratante escolher. Ela vale até a vaga
-          fechar, e a vaga fecha sozinha 24 horas antes do início se ninguém for escolhido (RN24).
+        - **Modo seleção:** a candidatura fica pendente até o contratante escolher, com `posicao_id`,
+          `turno_id` e `contato` nulos — a posição só é decidida na escolha. Ela vale até a vaga
+          fechar, e a vaga fecha sozinha 24 horas antes do início se ninguém for escolhido (RN24); a
+          partir daí a candidatura recebe `409 vaga_encerrada`. Reenviar devolve a mesma candidatura
+          pendente, e a retirada volta a `pendente` quando o profissional se candidata de novo.
 
         As três respostas são normais: `200` (entrou), `409 posicao_ja_preenchida` (alguém chegou
         antes — a tela diz "que pena, foi rápido", não "algo deu errado") e `422 inelegivel`
@@ -1432,8 +1646,15 @@ paths:
 
         **Vaga `preenchida` também responde `posicao_ja_preenchida`**, e não `vaga_encerrada`: ela
         fechou porque encheu. `vaga_encerrada` fica para a vaga cancelada, encerrada ou cujo início
-        já passou. Vaga escondida por bloqueio ou por demonstração responde `404 nao_encontrado`,
-        igual a `detalhe_vaga`.
+        já passou. Vaga escondida por bloqueio, por demonstração ou pela moderação da Equipe Frila
+        (diretriz 1.2) responde `404 nao_encontrado`, igual a `detalhe_vaga`.
+
+        **Exceção: posição reaberta por atraso** (`reabrir_por_atraso`) aceita candidatura após o
+        início, até `fim_em - 1 h` (decisão 8zLfn0mt, item 5). A exceção é da posição: depois do
+        início, o servidor só escolhe posição criada por `reabrir_por_atraso`, nunca uma posição
+        original que ficou `aberta` sem ninguém. Vaga começada sem posição reaberta `aberta`
+        dentro do prazo responde `409 vaga_encerrada`; perder a corrida pela posição reaberta é
+        `409 posicao_ja_preenchida`. O valor continua o anunciado para o turno inteiro (RN01).
       x-requisitos: [RF08, RF09, RF10, RF11, RN03, RN10, RN19, RN21, RN24, UC03, UC04]
       requestBody:
         required: true
@@ -1487,7 +1708,7 @@ paths:
       tags: [Candidatura e confirmação]
       operationId: retirarCandidatura
       summary: Retirar a candidatura antes de ser escolhido
-      description: Sem penalidade (RN24). Candidatura já escolhida não se retira; vira cancelamento (`cancelar_posicao`).
+      description: Sem penalidade (RN24). Candidatura já escolhida não se retira; vira cancelamento (`cancelar_posicao`). Retirar de novo devolve a mesma candidatura retirada; recusada ou expirada responde `409 candidatura_indisponivel`.
       x-requisitos: [RN16, RN24, UC04]
       requestBody:
         required: true
@@ -1518,6 +1739,9 @@ paths:
       tags: [Candidatura e confirmação]
       operationId: minhasCandidaturas
       summary: Candidaturas do profissional
+      description: |
+        A candidatura pendente numa vaga ocultada pela moderação da Equipe Frila continua listada e
+        pendente (0.2.23); o detalhe da vaga abre para quem a tem, com `oculta: true`.
       x-requisitos: [RF08, UC04]
       parameters:
         - name: estado
@@ -1541,7 +1765,10 @@ paths:
       tags: [Candidatura e confirmação]
       operationId: candidatosDaVaga
       summary: Candidatos de uma vaga no modo seleção
-      description: Com reputação, denominador e taxa de comparecimento de cada um (RN08, UC04).
+      description: |
+        Com reputação, denominador e taxa de comparecimento de cada um (RN08, UC04). Continua legível
+        pela casa quando a vaga foi ocultada pela moderação da Equipe Frila; escolher é que é
+        recusado (`escolher_candidato`, `422 vaga_oculta`).
       x-requisitos: [RF09, RF16, RN08, UC04]
       parameters:
         - name: vaga_id
@@ -1575,7 +1802,15 @@ paths:
         urgência (RN19). Respostas: `200` com o turno e o contato do profissional; `409
         posicao_ja_preenchida` se todas as posições já foram ocupadas; `409 candidatura_indisponivel`
         se o candidato retirou ou a candidatura expirou; `422 inelegivel` com `turno_sobreposto` se ele
-        foi confirmado em outro turno que se cruza com este (RN21).
+        foi confirmado em outro turno que se cruza com este (RN21); `422 vaga_oculta` se a vaga foi
+        ocultada pela moderação da Equipe Frila — a candidatura segue pendente, e a escolha volta a
+        valer se a Equipe reexibir a vaga (0.2.23).
+
+        Só membro do estabelecimento escolhe (`403 sem_permissao`). Candidatura já escolhida responde
+        `409 candidatura_indisponivel`; vaga fechada pelas 24 horas (RN24), cancelada ou encerrada,
+        `409 vaga_encerrada`. O escolhido recebe o aviso `confirmacao`; quando a escolha ocupa a
+        última posição, as candidaturas ainda pendentes passam a `recusada`, com o aviso
+        `candidatura_recusada`.
       x-requisitos: [RF09, RF10, RF11, RN10, RN19, RN21, UC04]
       requestBody:
         required: true
@@ -1683,6 +1918,48 @@ paths:
           $ref: '#/components/responses/SemPermissao'
         '404':
           $ref: '#/components/responses/NaoEncontrado'
+
+  /rpc/avisar_a_caminho:
+    post:
+      tags: [Turno]
+      operationId: avisarACaminho
+      summary: Profissional avisa que está a caminho do turno
+      description: |
+        Ação "Estou a caminho" disparada pela notificação de 3 horas antes do início ou pelo botão
+        correspondente na tela Meu turno (US14, RF12). Não altera presença, taxa de comparecimento
+        nem substitui o check-in: é um sinal operacional visível pelo contratante no acompanhamento
+        do turno (`painel_estabelecimento`).
+
+        Só o profissional confirmado no turno pode chamar (`403 sem_permissao`). A janela permitida
+        vai de 3 horas antes do início previsto até 15 minutos depois do início; fora dessa janela,
+        a chamada é recusada com `422 a_caminho_fora_da_janela`.
+
+        Idempotente: chamar uma segunda vez não altera o instante já gravado e devolve o mesmo
+        registro com o `a_caminho_em` original.
+      x-requisitos: [RF12, US14]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [turno_id]
+              properties:
+                turno_id:
+                  $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Aviso registrado com sucesso ou retorno do registro já gravado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultadoACaminho'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
 
   /rpc/fazer_checkin:
     post:
@@ -1936,6 +2213,10 @@ paths:
 
         Conta anonimizada (RF25) devolve `nome: "Conta encerrada"`. O turno e a avaliação sobrevivem à
         exclusão porque pertencem também à contraparte; o nome, não.
+
+        Bloqueio (RF26): hoje o perfil continua visível entre partes bloqueadas. A decisão de produto
+        de 30/09 é escondê-lo; a mudança de comportamento entra numa versão futura deste contrato,
+        junto com o backend e o app.
       x-requisitos: [RF16, RN08]
       parameters:
         - name: id
@@ -1968,6 +2249,9 @@ paths:
         alertas que o agendador já disparou por notificação: vaga ainda vazia dentro da janela crítica
         (padrão de 3 horas antes do início, ajustável na publicação) e atraso de 15 minutos sem
         check-in. Não existe operador do Frila olhando esta tela (D01).
+
+        Cada posição no painel expõe `a_caminho_em` (US14, 0.2.25), permitindo acompanhar se o
+        profissional confirmado já sinalizou deslocamento.
       x-requisitos: [RF20, RF13, UC07]
       parameters:
         - $ref: '#/components/parameters/EstabelecimentoId'
@@ -2003,8 +2287,14 @@ paths:
       description: |
         Registra a denúncia e a envia à Equipe Frila, que responde por e-mail em até 5 dias úteis.
         Denúncia grave confirmada (assédio, fraude ou documento falso) leva à suspensão, com motivo
-        registrado e direito de contestar (RN13). Em risco imediato, o app mostra os atalhos para o 190
+        registrado e direito de contestar (RN13). Fraude e documento falso chegam pelo motivo `outro`,
+        com o relato, e a Equipe Frila apura (decisão de produto de 30/09). Em risco imediato, o app mostra os atalhos para o 190
         e o 180 sem esperar a resposta. Exigência da diretriz 1.2 da App Store.
+
+        Recusas: campo obrigatório ausente (`campo_obrigatorio`, com o nome do campo em `details`:
+        `alvo_tipo`, `alvo_id`, `motivo`, `relato` ou `chave`, RF26); valor recusado pela regra
+        (`campo_invalido`, com o campo em `details`: `alvo_tipo` fora do enum, `alvo_id` não UUID,
+        `motivo` fora do enum `MotivoDenuncia`, `relato` com menos de 10 caracteres ou `chave` não UUID).
       x-requisitos: [RF26, RN13, RN15, UC17]
       requestBody:
         required: true
@@ -2043,6 +2333,8 @@ paths:
           $ref: '#/components/responses/NaoAutenticado'
         '404':
           $ref: '#/components/responses/NaoEncontrado'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
 
   /rpc/bloquear:
     post:
@@ -2053,6 +2345,10 @@ paths:
         Imediato e automático, sem depender da Equipe Frila. Vale nos dois sentidos: as partes não
         voltam a se cruzar em notificação, lista ou candidatura. Quando uma delas é membro de
         estabelecimento, vale para as vagas do estabelecimento inteiro. Idempotente.
+
+        Recusas: campo obrigatório ausente (`campo_obrigatorio`, com o nome do campo em `details`:
+        `alvo_tipo` ou `alvo_id`, RF26); valor recusado pela regra (`campo_invalido`, com o campo em
+        `details`: `alvo_tipo` fora do enum, `alvo_id` não UUID ou tentativa de bloquear a si mesmo).
       x-requisitos: [RF26, UC17]
       requestBody:
         required: true
@@ -2164,6 +2460,8 @@ paths:
                 $ref: '#/components/schemas/Dispositivo'
         '401':
           $ref: '#/components/responses/NaoAutenticado'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
 
   /rpc/remover_dispositivo:
     post:
@@ -2523,6 +2821,13 @@ components:
                 message: contato_expirado
                 details: null
                 hint: null
+            sem_turno_cumprido:
+              summary: Profissional sem turno verificado prévio no estabelecimento
+              value:
+                code: sem_permissao
+                message: sem_permissao
+                details: sem_turno_cumprido
+                hint: null
     NaoEncontrado:
       description: Não existe, ou não é visível para quem pede.
       content:
@@ -2578,10 +2883,28 @@ components:
                 message: campo_obrigatorio
                 details: responsavel_local
                 hint: null
+            campo_invalido:
+              value:
+                code: campo_invalido
+                message: campo_invalido
+                details: relato
+                hint: null
             selecao_sem_antecedencia:
               value:
                 code: selecao_sem_antecedencia
                 message: selecao_sem_antecedencia
+                details: null
+                hint: null
+            vaga_oculta:
+              value:
+                code: vaga_oculta
+                message: vaga_oculta
+                details: null
+                hint: null
+            a_caminho_fora_da_janela:
+              value:
+                code: a_caminho_fora_da_janela
+                message: a_caminho_fora_da_janela
                 details: null
                 hint: null
     LimiteExcedido:
@@ -2876,9 +3199,30 @@ components:
           type: integer
           description: Teto de RN23; hoje, 30.
           example: 30
+    NovoEstabelecimento:
+      type: object
+      required: [nome, documento, tipo, endereco, regiao_administrativa, ponto]
+      properties:
+        nome:
+          type: string
+        documento:
+          type: string
+          pattern: '^([0-9]{11}|[0-9]{14})$'
+          description: CPF (11) ou CNPJ (14), só dígitos.
+        tipo:
+          $ref: '#/components/schemas/TipoEstabelecimento'
+        endereco:
+          type: string
+          description: Logradouro, número e complemento.
+        regiao_administrativa:
+          type: string
+          description: "Região Administrativa do Distrito Federal onde o estabelecimento fica (ex.: Plano Piloto, Águas Claras, Taguatinga)."
+          example: Plano Piloto
+        ponto:
+          $ref: '#/components/schemas/Coordenada'
     Estabelecimento:
       type: object
-      required: [id, nome, documento, tipo, endereco, ponto, papel]
+      required: [id, nome, documento, tipo, endereco, regiao_administrativa, ponto, papel]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -2890,6 +3234,10 @@ components:
           $ref: '#/components/schemas/TipoEstabelecimento'
         endereco:
           type: string
+        regiao_administrativa:
+          type: string
+          description: "Região Administrativa do Distrito Federal onde o estabelecimento fica (ex.: Plano Piloto, Águas Claras, Taguatinga)."
+          example: Plano Piloto
         ponto:
           $ref: '#/components/schemas/Coordenada'
         papel:
@@ -2987,6 +3335,7 @@ components:
         - inicio_em
         - fim_em
         - local
+        - regiao_administrativa
         - ponto
         - valor_centavos
         - posicoes
@@ -3009,6 +3358,10 @@ components:
         local:
           type: string
           description: Endereço. Vem preenchido com o do estabelecimento.
+        regiao_administrativa:
+          type: string
+          description: Região Administrativa do Distrito Federal onde o turno será executado. Vem preenchida com a do estabelecimento.
+          example: Plano Piloto
         ponto:
           $ref: '#/components/schemas/Coordenada'
         valor_centavos:
@@ -3065,7 +3418,7 @@ components:
           type: boolean
     VagaNaLista:
       type: object
-      required: [id, funcao, estabelecimento, inicio_em, fim_em, local, distancia_km, valor_centavos, posicoes_abertas, inclusos, modo]
+      required: [id, funcao, estabelecimento, inicio_em, fim_em, local, regiao_administrativa, distancia_km, valor_centavos, posicoes_abertas, inclusos, modo]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -3079,6 +3432,10 @@ components:
           $ref: '#/components/schemas/Instante'
         local:
           type: string
+        regiao_administrativa:
+          type: string
+          description: Região Administrativa do Distrito Federal onde o turno será executado.
+          example: Plano Piloto
         distancia_km:
           type: number
           minimum: 0
@@ -3093,7 +3450,7 @@ components:
           $ref: '#/components/schemas/ModoPreenchimento'
     Vaga:
       type: object
-      required: [id, estabelecimento, funcao, inicio_em, fim_em, local, ponto, valor_centavos, posicoes, posicoes_abertas, inclusos, responsavel_local, modo, estado, publicado_em]
+      required: [id, estabelecimento, funcao, inicio_em, fim_em, local, regiao_administrativa, ponto, valor_centavos, posicoes, posicoes_abertas, inclusos, responsavel_local, modo, estado, oculta, publicado_em]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -3107,6 +3464,10 @@ components:
           $ref: '#/components/schemas/Instante'
         local:
           type: string
+        regiao_administrativa:
+          type: string
+          description: Região Administrativa do Distrito Federal onde o turno será executado.
+          example: Plano Piloto
         ponto:
           $ref: '#/components/schemas/Coordenada'
         distancia_km:
@@ -3131,11 +3492,19 @@ components:
           $ref: '#/components/schemas/ModoPreenchimento'
         estado:
           $ref: '#/components/schemas/EstadoVaga'
+        oculta:
+          type: boolean
+          description: |
+            Verdadeiro quando a moderação da Equipe Frila ocultou a vaga (diretriz 1.2, 0.2.23). Só
+            chega verdadeiro a quem ocupa posição ou tem candidatura nela; o `estado` não muda.
         publicado_em:
           $ref: '#/components/schemas/Instante'
+    VagaDetalhe:
+      $ref: '#/components/schemas/Vaga'
+      description: Detalhe completo de uma vaga (mesmo schema de Vaga).
     VagaResumo:
       type: object
-      required: [id, funcao, local, inicio_em, fim_em, valor_centavos]
+      required: [id, funcao, local, regiao_administrativa, inicio_em, fim_em, valor_centavos]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -3143,6 +3512,10 @@ components:
           type: string
         local:
           type: string
+        regiao_administrativa:
+          type: string
+          description: Região Administrativa do Distrito Federal onde o turno será executado.
+          example: Plano Piloto
         inicio_em:
           $ref: '#/components/schemas/Instante'
         fim_em:
@@ -3257,9 +3630,18 @@ components:
             - type: integer
               minimum: 0
             - type: 'null'
+    ResultadoACaminho:
+      type: object
+      required: [turno_id, a_caminho_em]
+      description: Confirmação do registro de aviso "a caminho" pelo profissional do turno (US14).
+      properties:
+        turno_id:
+          $ref: '#/components/schemas/Uuid'
+        a_caminho_em:
+          $ref: '#/components/schemas/Instante'
     Turno:
       type: object
-      required: [id, posicao_id, vaga, contraparte, contato_visivel_ate, checkin_em, checkin_tipo, checkin_distancia_m, checkin_confirmado_em, checkout_em, checkout_distancia_m, verificacao, valor_acordado_centavos, pode_avaliar]
+      required: [id, posicao_id, vaga, contraparte, contato_visivel_ate, a_caminho_em, checkin_em, checkin_tipo, checkin_distancia_m, checkin_confirmado_em, checkout_em, checkout_distancia_m, verificacao, valor_acordado_centavos, pode_avaliar]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -3277,6 +3659,11 @@ components:
             tem como prever. É o mesmo instante que `Contato.visivel_ate` carrega; aparece aqui
             para que a tela do turno não precise pedir o contato só para descobrir se pode.
           $ref: '#/components/schemas/Instante'
+        a_caminho_em:
+          oneOf:
+            - $ref: '#/components/schemas/Instante'
+            - type: 'null'
+          description: Instante em que o profissional avisou que está a caminho do turno (US14). Nulo se ainda não avisou.
         checkin_em:
           oneOf:
             - $ref: '#/components/schemas/Instante'
@@ -3350,7 +3737,7 @@ components:
             $ref: '#/components/schemas/Uuid'
     VagaNoPainel:
       type: object
-      required: [vaga, modo, estado, alerta_vaga_vazia, candidatos_pendentes, posicoes]
+      required: [vaga, modo, estado, oculta, alerta_vaga_vazia, candidatos_pendentes, posicoes]
       properties:
         vaga:
           $ref: '#/components/schemas/VagaResumo'
@@ -3358,6 +3745,12 @@ components:
           $ref: '#/components/schemas/ModoPreenchimento'
         estado:
           $ref: '#/components/schemas/EstadoVaga'
+        oculta:
+          type: boolean
+          description: |
+            Verdadeiro quando a moderação da Equipe Frila ocultou a vaga (diretriz 1.2, 0.2.23): fora
+            da vitrine e do despacho, sem escolha de candidato e sem republicação, até a Equipe
+            reexibi-la. A tela mostra "oculta pela Equipe"; o `estado` continua o do ciclo de vida.
         alerta_vaga_vazia:
           type: boolean
           description: Há posição aberta dentro da janela crítica.
@@ -3370,7 +3763,7 @@ components:
             $ref: '#/components/schemas/PosicaoNoPainel'
     PosicaoNoPainel:
       type: object
-      required: [id, estado, profissional, turno_id, verificacao, em_atraso]
+      required: [id, estado, profissional, turno_id, verificacao, em_atraso, a_caminho_em]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -3391,6 +3784,13 @@ components:
         em_atraso:
           type: boolean
           description: Passou 15 minutos do início sem check-in (D06); o contratante pode esperar ou reabrir.
+        a_caminho_em:
+          oneOf:
+            - $ref: '#/components/schemas/Instante'
+            - type: 'null'
+          description: |
+            Instante em que o profissional avisou estar a caminho do turno (US14). Nulo se ainda não
+            avisou ou se a posição ainda não tem turno confirmado.
 
     # ── Confiança e direitos
 

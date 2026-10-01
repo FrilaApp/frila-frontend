@@ -18,6 +18,7 @@ struct MinhasVagasTests {
     private func estabelecimento() throws -> Estabelecimento {
         try Estabelecimento(
             id: estabelecimentoID, nome: "Bistrô", tipo: .foodService, endereco: "Rua das Flores, 10",
+            regiaoAdministrativa: "Plano Piloto",
             ponto: Coordenada(latitude: -15.78, longitude: -47.93)
         )
     }
@@ -34,9 +35,10 @@ struct MinhasVagasTests {
         let periodo = try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(duracao))
         let resumo = VagaResumo(
             id: UUID(uuidString: id)!, funcao: "Garçom", local: "Rua das Flores, 10",
+            regiaoAdministrativa: "Plano Piloto",
             periodo: periodo, valor: Dinheiro(centavos: 14_000)
         )
-        return VagaNoPainel(vaga: resumo, modo: .urgencia, estado: estado, alertaVagaVazia: alerta, candidatosPendentes: 0, posicoes: posicoes)
+        return VagaNoPainel(vaga: resumo, modo: .urgencia, estado: estado, oculta: false, alertaVagaVazia: alerta, candidatosPendentes: 0, posicoes: posicoes)
     }
 
     private func viewModel(_ vagas: [VagaNoPainel], nova: UUID? = nil) throws -> MinhasVagasViewModel {
@@ -83,9 +85,10 @@ struct MinhasVagasTests {
         let periodo = try Periodo(inicio: inicioEmUTC, fim: inicioEmUTC.addingTimeInterval(3_600))
         let resumo = VagaResumo(
             id: UUID(uuidString: "73000000-0000-0000-0000-000000000015")!, funcao: "Garçom",
-            local: "Rua das Flores, 10", periodo: periodo, valor: Dinheiro(centavos: 14_000)
+            local: "Rua das Flores, 10", regiaoAdministrativa: "Plano Piloto",
+            periodo: periodo, valor: Dinheiro(centavos: 14_000)
         )
-        let vaga = VagaNoPainel(vaga: resumo, modo: .urgencia, estado: .publicada, alertaVagaVazia: false, candidatosPendentes: 0, posicoes: [])
+        let vaga = VagaNoPainel(vaga: resumo, modo: .urgencia, estado: .publicada, oculta: false, alertaVagaVazia: false, candidatosPendentes: 0, posicoes: [])
         let painel = Painel(estabelecimentoID: estabelecimento.id, vagas: [vaga], checkinsPendentes: [])
         let vm = MinhasVagasViewModel(estabelecimento: estabelecimento, agora: { agoraEmUTC }) { painel }
 
@@ -164,6 +167,8 @@ struct MinhasVagasTests {
         let turnoID = try #require(posicao.turnoID)
         let contato = try await api.contatoDoTurno(id: turnoID)
 
+        #expect(painel.vagas.first?.oculta == false)
+        #expect(posicao.aCaminhoEm == nil)
         #expect(perfil.tipo == .profissional)
         #expect(perfil.nome == "Ana Cunha")
         #expect(perfil.reputacao.taxaComparecimento != nil)
@@ -182,6 +187,7 @@ struct MinhasVagasTests {
             funcaoID: funcao.id,
             periodo: periodo,
             local: "Rua das Flores, 10",
+            regiaoAdministrativa: "Plano Piloto",
             ponto: try Coordenada(latitude: -15.78, longitude: -47.93),
             valor: Dinheiro(centavos: 14_000),
             posicoes: 2,

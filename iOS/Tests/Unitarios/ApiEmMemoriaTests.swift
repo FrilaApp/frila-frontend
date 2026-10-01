@@ -22,8 +22,10 @@ struct ApiEmMemoriaTests {
 
         let ponto = try Coordenada(latitude: -15.8121, longitude: -47.8997)
         let casa = try await api.cadastrarEstabelecimento(CadastroEstabelecimento(
-            nome: "Casa Teste", documento: "11222333000181", tipo: .foodService, endereco: "SCS, Brasília - DF", ponto: ponto
+            nome: "Casa Teste", documento: "11222333000181", tipo: .foodService, endereco: "SCS, Brasília - DF",
+            regiaoAdministrativa: "Plano Piloto", ponto: ponto
         ))
+        #expect(casa.regiaoAdministrativa == "Plano Piloto")
         #expect(try await api.meusEstabelecimentos().contains { $0.id == casa.id && $0.papel == .administrador })
 
         let funcao = try #require(await api.funcoes().first)
@@ -31,7 +33,8 @@ struct ApiEmMemoriaTests {
         let publicada = try await api.publicarVaga(PublicacaoVaga(
             estabelecimentoID: casa.id, funcaoID: funcao.id,
             periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(14_400)),
-            local: casa.endereco, ponto: ponto, valor: Dinheiro(centavos: 15000), posicoes: 1,
+            local: casa.endereco, regiaoAdministrativa: casa.regiaoAdministrativa, ponto: ponto,
+            valor: Dinheiro(centavos: 15000), posicoes: 1,
             inclusos: Self.inclusos, responsavelLocal: "Marina", chave: UUID()
         ))
         #expect(try await api.vagasAbertas().contains { $0.id == publicada.vagaID })
@@ -90,7 +93,9 @@ struct ApiEmMemoriaTests {
     func sprint1Contratante() async throws {
         let profissional = ApiClienteEmMemoria()
         let ponto = try Coordenada(latitude: -15.8121, longitude: -47.8997)
-        let cadastro = CadastroEstabelecimento(nome: "Casa", documento: "11222333000181", tipo: .evento, endereco: "SCS", ponto: ponto)
+        let cadastro = CadastroEstabelecimento(
+            nome: "Casa", documento: "11222333000181", tipo: .evento, endereco: "SCS", regiaoAdministrativa: "Plano Piloto", ponto: ponto
+        )
         await #expect(throws: ErroDaApi(codigo: .perfilIncompativel)) { try await profissional.cadastrarEstabelecimento(cadastro) }
 
         let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
@@ -100,7 +105,9 @@ struct ApiEmMemoriaTests {
         }
         let existente = try #require(try await api.meusEstabelecimentos().first)
         await #expect(throws: ErroDaApi(codigo: .documentoJaCadastrado)) {
-            try await api.cadastrarEstabelecimento(CadastroEstabelecimento(nome: "Outra", documento: "12345678000190", tipo: .varejo, endereco: "SCS", ponto: ponto))
+            try await api.cadastrarEstabelecimento(CadastroEstabelecimento(
+                nome: "Outra", documento: "12345678000190", tipo: .varejo, endereco: "SCS", regiaoAdministrativa: "Plano Piloto", ponto: ponto
+            ))
         }
         let vaga = try #require(try await api.vagasAbertas().first)
         let inicio = Date.now.addingTimeInterval(259_200)
@@ -125,6 +132,10 @@ struct ApiEmMemoriaTests {
         }
     }
 
+    /// Antes das vagas de teste, que são de 01 e 02/10/2026: desde o contrato 0.2.19 a lista esconde
+    /// vaga que já começou, e sem relógio fixo estes testes passariam a depender do dia em que rodam.
+    private static let antesDasVagasDeTeste = RelogioFixo(agora: Date(timeIntervalSince1970: 1_790_000_000))
+
     private static func criarVagasDeTeste() throws -> [Vaga] {
         let base = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
         var calendario = Calendar(identifier: .gregorian)
@@ -138,7 +149,7 @@ struct ApiEmMemoriaTests {
             let ponto = try Coordenada(latitude: -15.8121 - Double(i) * 0.05, longitude: -47.8997)
             let vaga = Vaga(
                 id: UUID(), estabelecimento: base.estabelecimento, funcao: base.funcao, periodo: periodo,
-                local: base.local, ponto: ponto, distanciaKm: Double(i), valor: base.valor,
+                local: base.local, regiaoAdministrativa: base.regiaoAdministrativa, ponto: ponto, distanciaKm: Double(i), valor: base.valor,
                 posicoes: 1, posicoesAbertas: 1, inclusos: base.inclusos,
                 responsavelLocal: base.responsavelLocal, traje: base.traje,
                 participaRateio: base.participaRateio, observacoes: base.observacoes,
@@ -152,7 +163,7 @@ struct ApiEmMemoriaTests {
     @Test("vagasAbertas respeita o filtro de data no fuso de São Paulo")
     func vagasAbertasFiltroData() async throws {
         let vagas = try Self.criarVagasDeTeste()
-        let api = ApiClienteEmMemoria(vagas: vagas)
+        let api = ApiClienteEmMemoria(relogio: Self.antesDasVagasDeTeste, vagas: vagas)
 
         let dia1 = try await api.vagasAbertas(FiltroVagas(data: try DataCivil("2026-10-01")))
         #expect(dia1.count == 2)
@@ -172,7 +183,7 @@ struct ApiEmMemoriaTests {
     @Test("vagasAbertas respeita limite e deslocamento na paginação")
     func vagasAbertasPaginacao() async throws {
         let vagas = try Self.criarVagasDeTeste()
-        let api = ApiClienteEmMemoria(vagas: vagas)
+        let api = ApiClienteEmMemoria(relogio: Self.antesDasVagasDeTeste, vagas: vagas)
 
         let pagina1 = try await api.vagasAbertas(FiltroVagas(limite: 2, deslocamento: 0))
         #expect(pagina1.count == 2)
