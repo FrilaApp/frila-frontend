@@ -84,11 +84,13 @@ public extension LeitorDeLocalizacaoSimulado {
         }
     }
 
-    /// `nil` sem o argumento: quem compõe o app usa então o GPS de verdade.
+    #if DEBUG
+    /// `nil` sem o argumento: quem compõe o app usa então o GPS de verdade. Só em Debug (#96).
     static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> LeitorDeLocalizacaoSimulado? {
         guard let indice = argumentos.firstIndex(of: "-FRILA_LOCALIZACAO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]),
               let vaga = try? FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio() else { return nil }
         return LeitorDeLocalizacaoSimulado(cenario: cenario, pontoDaVaga: vaga.ponto)
     }
+    #endif
 }

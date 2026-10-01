@@ -1,3 +1,5 @@
+// O catálogo é ferramenta de desenvolvimento: fica fora do Release (#96).
+#if DEBUG
 import FrilaDominio
 import SwiftUI
 
@@ -28,12 +30,10 @@ public struct CatalogoDesignSystem: View {
                     secao("Mensagens") { AvisoFrila("Sua ação será enviada quando a conexão voltar."); EstadoOffline(); EstadoPendente("Check-in aguardando envio") }
                     secao("Avaliação") { RespostaSimNao(resposta: $resposta) }
                     secao("Estados") { EstadoVazio("Nenhuma vaga", mensagem: "Novas oportunidades aparecerão aqui."); EstadoErro("Verifique sua conexão.") {} }
-                    #if DEBUG
                     secao("Diagnóstico") {
                         Button("Forçar falha") { fatalError("Falha de teste do Crashlytics") }
                             .accessibilityIdentifier("forcar-falha-crashlytics")
                     }
-                    #endif
                     if let api {
                         ValidacaoClienteAPI(api: api, permitirSimulacaoDeConflito: permitirSimulacaoDeConflito)
                     }
@@ -59,7 +59,7 @@ public struct CatalogoDesignSystem: View {
     }
 
     private func secao<Conteudo: View>(_ titulo: LocalizedStringKey, @ViewBuilder conteudo: () -> Conteudo) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { Text(titulo).font(.title3.bold()); conteudo() }
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { Text(titulo, bundle: bundleApresentacao).font(.title3.bold()); conteudo() }
     }
 
     private static var vagaDeExemplo: VagaNaLista {
@@ -82,3 +82,4 @@ public struct CatalogoDesignSystem: View {
 
 #Preview("Tamanho padrão") { CatalogoDesignSystem() }
 #Preview("Acessibilidade") { CatalogoDesignSystem().environment(\.dynamicTypeSize, .accessibility3) }
+#endif
