@@ -155,11 +155,13 @@ struct OfflineTests {
         let local = try armazenamento()
         try await local.salvar(turnos: [try turno(fim: agora.addingTimeInterval(3_600))], em: agora)
         try await local.enfileirar(AcaoPendente(tipo: .checkout, turnoID: UUID(), instanteDoToque: agora, chave: UUID()))
+        DestinoGuardado.salvar(.profissional)
 
         await SaidaDaConta(api: ApiClienteEmMemoria(), armazenamento: local).sair(tokenFCM: nil)
 
         #expect(try await local.turnosValidos(em: agora).isEmpty)
         #expect(try await local.pendentes().isEmpty)
+        #expect(DestinoGuardado.obter() == nil)
     }
 
     @Test("Sessão encerrada sem a pessoa pedir também apaga o cache e a fila")
@@ -168,6 +170,7 @@ struct OfflineTests {
         let local = try armazenamento()
         try await local.salvar(turnos: [try turno(fim: agora.addingTimeInterval(3_600))], em: agora)
         try await local.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: UUID(), instanteDoToque: agora, chave: UUID(), resposta: true))
+        DestinoGuardado.salvar(.profissional)
 
         let (encerramentos, avisar) = AsyncStream<Void>.makeStream()
         let observador = ObservadorDeTeste(encerramentos)
@@ -179,6 +182,7 @@ struct OfflineTests {
 
         #expect(try await local.turnosValidos(em: agora).isEmpty)
         #expect(try await local.pendentes().isEmpty)
+        #expect(DestinoGuardado.obter() == nil)
     }
 }
 
