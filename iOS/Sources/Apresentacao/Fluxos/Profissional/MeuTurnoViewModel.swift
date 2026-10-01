@@ -9,14 +9,17 @@ public final class MeuTurnoViewModel {
     public private(set) var contatoExpirado: Bool
     public private(set) var responsavelLocal: String?
     public private(set) var carregandoContato: Bool = false
+    /// Check-in e check-out (#17). `nil` onde não há leitor de localização, como nas prévias.
+    public let presenca: PresencaDoTurnoViewModel?
 
     private let api: any ApiCliente
     private let relogio: any Relogio
 
-    public init(turno: Turno, api: any ApiCliente, relogio: any Relogio = RelogioDoSistema()) {
+    public init(turno: Turno, api: any ApiCliente, relogio: any Relogio = RelogioDoSistema(), presenca: PresencaDoTurnoViewModel? = nil) {
         self.turno = turno
         self.api = api
         self.relogio = relogio
+        self.presenca = presenca
 
         if let c = turno.contato {
             let visivel = c.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora)
@@ -59,6 +62,7 @@ public final class MeuTurnoViewModel {
     }
 
     public func carregar() async {
+        await presenca?.restaurarPendentes()
         if !turno.contatoVisivel(em: relogio.agora) {
             contato = nil
             contatoExpirado = true
@@ -101,6 +105,7 @@ public final class MeuTurnoViewModel {
         if responsavelLocal == nil {
             if let vagaDetalhe = try? await api.detalheDaVaga(id: turno.vaga.id) {
                 self.responsavelLocal = vagaDetalhe.responsavelLocal
+                presenca?.definir(pontoDaVaga: vagaDetalhe.ponto)
             }
         }
     }

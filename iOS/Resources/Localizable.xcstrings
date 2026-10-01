@@ -153,6 +153,16 @@
         }
       }
     },
+    "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço."
+          }
+        }
+      }
+    },
     "A outra parte só vê o seu número depois que o turno é confirmado.": {
       "localizations": {
         "pt-BR": {
@@ -203,6 +213,16 @@
         }
       }
     },
+    "Abrir Ajustes": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes"
+          }
+        }
+      }
+    },
     "Abre o texto da licença": {
       "localizations": {
         "pt-BR": {
@@ -239,6 +259,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Adicionar horário"
+          }
+        }
+      }
+    },
+    "Agora não": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agora não"
           }
         }
       }
@@ -509,6 +539,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chamaria de novo?"
+          }
+        }
+      }
+    },
+    "Check-in feito às %@, sem verificação.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in feito às %@, sem verificação."
+          }
+        }
+      }
+    },
+    "Check-in manual feito às %@. Aguardando confirmação do contratante.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in manual feito às %@. Aguardando confirmação do contratante."
+          }
+        }
+      }
+    },
+    "Check-in verificado às %@, a %lld m do endereço.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in verificado às %@, a %lld m do endereço."
+          }
+        }
+      }
+    },
+    "Check-in verificado às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in verificado às %@."
+          }
+        }
+      }
+    },
+    "Check-out registrado às %@, a %lld m do endereço.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-out registrado às %@, a %lld m do endereço."
+          }
+        }
+      }
+    },
+    "Check-out registrado às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-out registrado às %@."
           }
         }
       }
@@ -823,6 +913,16 @@
         }
       }
     },
+    "Enviando…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando…"
+          }
+        }
+      }
+    },
     "Escolha uma função.": {
       "localizations": {
         "pt-BR": {
@@ -969,6 +1069,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Evento"
+          }
+        }
+      }
+    },
+    "Fazer check-in": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fazer check-in"
+          }
+        }
+      }
+    },
+    "Fazer check-in manual": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fazer check-in manual"
+          }
+        }
+      }
+    },
+    "Fazer check-out": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fazer check-out"
           }
         }
       }
@@ -1179,6 +1309,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Início"
+          }
+        }
+      }
+    },
+    "Lendo sua localização…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo sua localização…"
           }
         }
       }
@@ -1423,6 +1563,16 @@
         }
       }
     },
+    "Não consegui pelo GPS": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não consegui pelo GPS"
+          }
+        }
+      }
+    },
     "Não encontramos o estabelecimento cadastrado.": {
       "localizations": {
         "pt-BR": {
@@ -1493,6 +1643,16 @@
         }
       }
     },
+    "Não foi possível carregar o endereço da vaga para medir a distância.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o endereço da vaga para medir a distância."
+          }
+        }
+      }
+    },
     "Não foi possível carregar os turnos.": {
       "localizations": {
         "pt-BR": {
@@ -1539,6 +1699,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível enviar a candidatura. Tente de novo."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar o registro. Tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar o registro. Tente de novo."
           }
         }
       }
@@ -1593,6 +1763,26 @@
         }
       }
     },
+    "O Frila está sem permissão para usar a localização. Você pode liberar nos Ajustes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Frila está sem permissão para usar a localização. Você pode liberar nos Ajustes."
+          }
+        }
+      }
+    },
+    "O Frila lê sua localização só quando você toca no botão, para medir a distância até o endereço da vaga. Só a distância é enviada: sua posição não sai do aparelho e nada é lido em segundo plano.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Frila lê sua localização só quando você toca no botão, para medir a distância até o endereço da vaga. Só a distância é enviada: sua posição não sai do aparelho e nada é lido em segundo plano."
+          }
+        }
+      }
+    },
     "Não selecionado": {
       "localizations": {
         "pt-BR": {
@@ -1609,6 +1799,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "O Frila não aceitou a candidatura para esta vaga."
+          }
+        }
+      }
+    },
+    "O GPS indica que você está a cerca de %lld m do endereço da vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O GPS indica que você está a cerca de %lld m do endereço da vaga."
+          }
+        }
+      }
+    },
+    "O GPS não respondeu em 10 segundos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O GPS não respondeu em 10 segundos."
           }
         }
       }
@@ -1669,6 +1879,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "O que está incluso"
+          }
+        }
+      }
+    },
+    "O registro só pode ser feito de 60 minutos antes do início até o fim previsto do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O registro só pode ser feito de 60 minutos antes do início até o fim previsto do turno."
+          }
+        }
+      }
+    },
+    "O relógio do aparelho parece adiantado. Ajuste a data e a hora e tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O relógio do aparelho parece adiantado. Ajuste a data e a hora e tente de novo."
+          }
+        }
+      }
+    },
+    "O sinal do GPS está fraco demais para confirmar que você está no endereço.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O sinal do GPS está fraco demais para confirmar que você está no endereço."
           }
         }
       }
@@ -1819,6 +2059,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Preencha este campo."
+          }
+        }
+      }
+    },
+    "Presença": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença"
           }
         }
       }
@@ -2023,6 +2273,16 @@
         }
       }
     },
+    "Registrar saída sem localização": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar saída sem localização"
+          }
+        }
+      }
+    },
     "Região Administrativa": {
       "localizations": {
         "pt-BR": {
@@ -2143,6 +2403,16 @@
         }
       }
     },
+    "Sem conexão, e não foi possível guardar o registro neste aparelho. Tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão, e não foi possível guardar o registro neste aparelho. Tente de novo."
+          }
+        }
+      }
+    },
     "Sem conexão. A candidatura não foi enviada; tente de novo quando a internet voltar.": {
       "localizations": {
         "pt-BR": {
@@ -2159,6 +2429,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem conexão. Mostrando os dados salvos neste aparelho."
+          }
+        }
+      }
+    },
+    "Sem conexão. O check-in das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. O check-in das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário."
+          }
+        }
+      }
+    },
+    "Sem conexão. O check-in manual das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário. Depois ele aguarda a confirmação do contratante.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. O check-in manual das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário. Depois ele aguarda a confirmação do contratante."
+          }
+        }
+      }
+    },
+    "Sem conexão. O check-out das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. O check-out das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário."
           }
         }
       }
@@ -2273,6 +2573,16 @@
         }
       }
     },
+    "Sua localização, só neste toque": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua localização, só neste toque"
+          }
+        }
+      }
+    },
     "Sua sessão expirou. Entre novamente para continuar.": {
       "localizations": {
         "pt-BR": {
@@ -2329,6 +2639,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tentar novamente"
+          }
+        }
+      }
+    },
+    "Tentar o GPS de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar o GPS de novo"
           }
         }
       }
@@ -2589,6 +2909,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você não pode se candidatar a esta vaga"
+          }
+        }
+      }
+    },
+    "Você pode fazer o check-in manual. Ele fica aguardando a confirmação do contratante.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode fazer o check-in manual. Ele fica aguardando a confirmação do contratante."
+          }
+        }
+      }
+    },
+    "Você pode registrar a saída sem a localização.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode registrar a saída sem a localização."
           }
         }
       }
