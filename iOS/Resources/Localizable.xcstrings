@@ -2192,6 +2192,296 @@
           }
         }
       }
+    },
+    "Minhas vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minhas vagas"
+          }
+        }
+      }
+    },
+    "Em alerta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em alerta"
+          }
+        }
+      }
+    },
+    "Próximas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximas"
+          }
+        }
+      }
+    },
+    "Encerradas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerradas"
+          }
+        }
+      }
+    },
+    "Suas vagas aparecem aqui": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas vagas aparecem aqui"
+          }
+        }
+      }
+    },
+    "Publique sua primeira vaga para acompanhar posições abertas, confirmações e alertas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publique sua primeira vaga para acompanhar posições abertas, confirmações e alertas."
+          }
+        }
+      }
+    },
+    "Não encontramos o estabelecimento cadastrado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não encontramos o estabelecimento cadastrado."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar suas vagas. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar suas vagas. Tente novamente."
+          }
+        }
+      }
+    },
+    "Atualizar vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar vagas"
+          }
+        }
+      }
+    },
+    "%d posições": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d posições"
+          }
+        }
+      }
+    },
+    "%d de %d confirmadas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d de %d confirmadas"
+          }
+        }
+      }
+    },
+    "Posição aberta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição aberta"
+          }
+        }
+      }
+    },
+    "Começa em %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Começa em %@"
+          }
+        }
+      }
+    },
+    "%d h %d min": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d h %d min"
+          }
+        }
+      }
+    },
+    "%d min": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min"
+          }
+        }
+      }
+    },
+    "%@ – %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ – %@"
+          }
+        }
+      }
+    },
+    "Menos de um minuto para começar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menos de um minuto para começar"
+          }
+        }
+      }
+    },
+    "Ver posições e confirmações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver posições e confirmações"
+          }
+        }
+      }
+    },
+    "Detalhe da vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalhe da vaga"
+          }
+        }
+      }
+    },
+    "Profissionais confirmados": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profissionais confirmados"
+          }
+        }
+      }
+    },
+    "Ver perfil público": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver perfil público"
+          }
+        }
+      }
+    },
+    "Perfil público": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil público"
+          }
+        }
+      }
+    },
+    "Comparecimento: %d%%": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparecimento: %d%%"
+          }
+        }
+      }
+    },
+    "Ver contato liberado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver contato liberado"
+          }
+        }
+      }
+    },
+    "O prazo para ver este contato terminou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O prazo para ver este contato terminou."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar o contato. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o contato. Tente novamente."
+          }
+        }
+      }
+    },
+    "Ligar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligar"
+          }
+        }
+      }
+    },
+    "WhatsApp": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp"
+          }
+        }
+      }
+    },
+    "%d de %d chamariam de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d de %d chamariam de novo"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
