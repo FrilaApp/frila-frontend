@@ -27,7 +27,7 @@ public struct TelaCadastro: View {
                             .foregroundStyle(FrilaCor.texto)
                             .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("Voltar")
+                    .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                     .accessibilityIdentifier("cadastro-voltar")
 
                     Text("Cadastro", bundle: bundleApresentacao)
@@ -112,8 +112,8 @@ public struct TelaCadastro: View {
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Tenho 18 anos ou mais")
-                    .accessibilityValue(viewModel.maiorDeIdade ? "Selecionado" : "Não selecionado")
+                    .accessibilityLabel(Text("Tenho 18 anos ou mais", bundle: bundleApresentacao))
+                    .accessibilityValue(Text(viewModel.maiorDeIdade ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                     .accessibilityAddTraits(viewModel.maiorDeIdade ? [.isSelected] : [])
                     .accessibilityIdentifier("cadastro-maior-de-idade")
 
@@ -134,8 +134,8 @@ public struct TelaCadastro: View {
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Li e aceito os Termos de uso e a Política de privacidade")
-                    .accessibilityValue(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado")
+                    .accessibilityLabel(Text("Li e aceito os Termos de uso e a Política de privacidade", bundle: bundleApresentacao))
+                    .accessibilityValue(Text(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                     .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected] : [])
                     .accessibilityIdentifier("cadastro-termos")
 

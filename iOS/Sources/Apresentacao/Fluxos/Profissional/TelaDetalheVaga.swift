@@ -70,9 +70,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: TextosDoProfissional.Detalhe.incluso).font(.footnote.weight(.semibold)).foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
-            Text(verbatim: "Refeição: \(TextosDoProfissional.simNao(vaga.inclusos.refeicao))")
-            Text(verbatim: "Transporte: \(TextosDoProfissional.simNao(vaga.inclusos.transporte))")
-            Text(verbatim: "Material próprio: \(TextosDoProfissional.simNao(vaga.inclusos.exigeMaterialProprio))")
+            Text("Refeição: \(TextosDoProfissional.simNao(vaga.inclusos.refeicao))", bundle: bundleApresentacao)
+            Text("Transporte: \(TextosDoProfissional.simNao(vaga.inclusos.transporte))", bundle: bundleApresentacao)
+            Text("Material próprio: \(TextosDoProfissional.simNao(vaga.inclusos.exigeMaterialProprio))", bundle: bundleApresentacao)
             if let traje = vaga.traje, !traje.isEmpty { Text(verbatim: "\(TextosDoProfissional.Detalhe.traje): \(traje)") }
             Text(verbatim: "\(TextosDoProfissional.Detalhe.quemRecebe): \(vaga.responsavelLocal)")
         }

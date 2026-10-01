@@ -231,7 +231,7 @@ public struct CartaoVaga: View {
             Text(verbatim: vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
             // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
-            Label("\(distancia) · \(vaga.local)", systemImage: "mappin.and.ellipse")
+            Label { Text(verbatim: "\(distancia) · \(vaga.local)") } icon: { Image(systemName: "mappin.and.ellipse") }
             if !inclusos.isEmpty { Label(inclusos, systemImage: "checkmark.circle") }
             SeloReputacao(vaga.estabelecimento.reputacao)
             Text("\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao).font(.caption)
