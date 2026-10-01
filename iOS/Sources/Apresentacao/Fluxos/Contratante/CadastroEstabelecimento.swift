@@ -191,24 +191,37 @@ public struct TelaCadastroEstabelecimento: View {
                     MapReader { proxy in
                         Map(position: $posicaoMapa) {
                             Annotation("", coordinate: point, anchor: .bottom) {
-                                Image(systemName: "mappin.and.ellipse").font(.title).foregroundStyle(FrilaCor.perigo)
+                                Image(systemName: "mappin.and.ellipse")
+                                    .font(.title)
+                                    .foregroundStyle(FrilaCor.perigo)
                                     .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
                                     .accessibilityIdentifier("marcador-mapa")
-                                    .accessibilityValue("\(point.latitude),\(point.longitude)")
+                                    .accessibilityValue(String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude))
                             }
                         }
+                        .accessibilityIdentifier("mapa-estabelecimento")
                         .coordinateSpace(.named("mapa"))
-                        .highPriorityGesture(DragGesture(coordinateSpace: .named("mapa"))
-                            .onChanged { valor in
-                                if let novaCoordenada = proxy.convert(valor.location, from: .named("mapa")) {
-                                    model.ponto = novaCoordenada
+                        .simultaneousGesture(
+                            DragGesture(coordinateSpace: .named("mapa"))
+                                .onChanged { valor in
+                                    guard let posMarcador = proxy.convert(point, to: .named("mapa")) else { return }
+                                    let dist = hypot(valor.startLocation.x - posMarcador.x, valor.startLocation.y - (posMarcador.y - 15))
+                                    if dist <= 30 {
+                                        if let novaCoordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                            model.ponto = novaCoordenada
+                                        }
+                                    }
                                 }
-                            }
-                            .onEnded { valor in
-                                if let novaCoordenada = proxy.convert(valor.location, from: .named("mapa")) {
-                                    model.ponto = novaCoordenada
+                                .onEnded { valor in
+                                    guard let posMarcador = proxy.convert(point, to: .named("mapa")) else { return }
+                                    let dist = hypot(valor.startLocation.x - posMarcador.x, valor.startLocation.y - (posMarcador.y - 15))
+                                    if dist <= 30 {
+                                        if let novaCoordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                            model.ponto = novaCoordenada
+                                        }
+                                    }
                                 }
-                            })
+                        )
                         .onAppear { centralizarMapa(em: point) }
                         .onChange(of: model.alvoDaCamera?.latitude) { _, _ in
                             if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
@@ -217,7 +230,8 @@ public struct TelaCadastroEstabelecimento: View {
                             if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
                         }
                     }
-                    .frame(height: 220).accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
+                    .frame(height: 220)
+                    .accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
                     Text(verbatim: TextosCadastro.dicaMapa).font(.caption)
                 }
                 campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
