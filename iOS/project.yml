@@ -89,6 +89,8 @@ targets:
         buildPhase: resources
       - path: Resources/Localizable.xcstrings
         buildPhase: resources
+      - path: Resources/Licencas.json
+        buildPhase: resources
     dependencies:
       - target: FrilaDominio
     settings:

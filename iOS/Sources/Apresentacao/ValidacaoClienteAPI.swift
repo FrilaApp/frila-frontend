@@ -13,19 +13,23 @@ public enum MensagemDoErroAPI {
         case .checkinPendente:
             String(localized: "Faça o check-in antes de continuar.")
         case .checkinJaConfirmado:
-            String(localized: "Este check-in já foi confirmado.")
+            String(localized: "Este check-in já foi confirmado.", bundle: bundleApresentacao)
         case .posicaoNaoCancelavel:
-            String(localized: "Esta posição não pode mais ser cancelada.")
+            String(localized: "Esta posição não pode mais ser cancelada.", bundle: bundleApresentacao)
         case .semRede:
-            String(localized: "Sem conexão. Tente novamente quando a internet voltar.")
+            String(localized: "Sem conexão. Tente novamente quando a internet voltar.", bundle: bundleApresentacao)
         case .naoAutenticado:
-            String(localized: "Sua sessão expirou. Entre novamente para continuar.")
+            String(localized: "Sua sessão expirou. Entre novamente para continuar.", bundle: bundleApresentacao)
         case .semPermissao, .perfilIncompativel:
-            String(localized: "Sua conta não pode realizar esta ação.")
+            String(localized: "Sua conta não pode realizar esta ação.", bundle: bundleApresentacao)
         case .limiteExcedido:
-            String(localized: "Você fez muitas tentativas. Aguarde um instante e tente novamente.")
+            String(localized: "Você fez muitas tentativas. Aguarde um instante e tente novamente.", bundle: bundleApresentacao)
+        case .menorDeIdade:
+            String(localized: "O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
+        case .contaExistente:
+            String(localized: "Esta conta já foi cadastrada.", bundle: bundleApresentacao)
         default:
-            String(localized: "Não foi possível concluir esta ação. Tente novamente.")
+            String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
         }
     }
 }
