@@ -7,11 +7,11 @@ public enum MensagemDoErroAPI {
     public static func texto(_ erro: ErroDaApi) -> String {
         switch erro.codigo {
         case .posicaoJaPreenchida:
-            String(localized: "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.")
+            String(localized: "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.", bundle: bundleApresentacao)
         case .vagaEncerrada:
-            String(localized: "Esta vaga não está mais disponível.")
+            String(localized: "Esta vaga não está mais disponível.", bundle: bundleApresentacao)
         case .checkinPendente:
-            String(localized: "Faça o check-in antes de continuar.")
+            String(localized: "Faça o check-in antes de continuar.", bundle: bundleApresentacao)
         case .checkinJaConfirmado:
             String(localized: "Este check-in já foi confirmado.", bundle: bundleApresentacao)
         case .posicaoNaoCancelavel:
@@ -24,6 +24,10 @@ public enum MensagemDoErroAPI {
             String(localized: "Sua conta não pode realizar esta ação.", bundle: bundleApresentacao)
         case .limiteExcedido:
             String(localized: "Você fez muitas tentativas. Aguarde um instante e tente novamente.", bundle: bundleApresentacao)
+        case .avaliacaoIndisponivel:
+            String(localized: "A avaliação só fica disponível após o término do turno e com presença confirmada.", bundle: bundleApresentacao)
+        case .avaliacaoJaRegistrada:
+            String(localized: "Esta avaliação já foi registrada.", bundle: bundleApresentacao)
         case .menorDeIdade:
             String(localized: "O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
         case .contaExistente:
