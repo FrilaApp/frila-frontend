@@ -21,6 +21,7 @@
     "inicio_em": "2026-10-09T21:00:00Z",
     "fim_em": "2026-10-10T01:00:00Z",
     "local": "CLS 405, Asa Sul, Brasília - DF",
+    "regiao_administrativa": "Plano Piloto",
     "distancia_km": 2.4,
     "valor_centavos": 12000,
     "posicoes_abertas": 2,

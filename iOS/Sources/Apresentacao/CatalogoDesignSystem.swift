@@ -63,7 +63,8 @@ public struct CatalogoDesignSystem: View {
             funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "Salão"),
             estabelecimento: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bistrô Ipê", reputacao: reputacao),
             periodo: periodo,
-            local: "Centro, São Paulo", distanciaKm: 2.4, valor: Dinheiro(centavos: 12000), posicoesAbertas: 2,
+            local: "CLS 405, Asa Sul, Brasília - DF", regiaoAdministrativa: "Plano Piloto", distanciaKm: 2.4,
+            valor: Dinheiro(centavos: 12000), posicoesAbertas: 2,
             inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false), modo: .urgencia
         )
     }

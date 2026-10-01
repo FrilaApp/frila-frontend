@@ -111,7 +111,9 @@ public final class CandidaturaViewModel {
         case .confirmada:
             .confirmada(turnoID: resposta.turnoID, contato: resposta.contato)
         case .pendente:
-            // Na v1.0 só existe o modo urgência: candidatura pendente não é resultado esperado.
+            // O backend aceita vaga de seleção desde o contrato 0.2.24, e a candidatura nela nasce
+            // pendente. O app ainda não publica nesse modo nem tem a tela de candidatura pendente
+            // (decisão de produto em aberto): até lá, o resultado segue como falha recuperável.
             .falha(ErroDaApi(codigo: .respostaInvalida, codigoOriginal: "candidatura_pendente"))
         }
     }

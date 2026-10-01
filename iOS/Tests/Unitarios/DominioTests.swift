@@ -24,7 +24,7 @@ struct DominioTests {
             estabelecimento: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "", reputacao: semHistorico),
             funcao: Funcao(id: UUID(), nome: "", categoria: ""),
             periodo: try Periodo(inicio: agora.addingTimeInterval(3_600), fim: agora.addingTimeInterval(7_200)),
-            local: "", ponto: ponto, valor: Dinheiro(centavos: 0), posicoes: 0, posicoesAbertas: 0,
+            local: "", regiaoAdministrativa: "", ponto: ponto, valor: Dinheiro(centavos: 0), posicoes: 0, posicoesAbertas: 0,
             inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
             responsavelLocal: "", modo: .selecao, estado: .publicada, publicadoEm: agora
         )

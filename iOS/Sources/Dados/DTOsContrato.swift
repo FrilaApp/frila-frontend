@@ -6,7 +6,7 @@ struct ErroDeConversao: Error, Equatable {
     let campo: String
 }
 
-/// Tipos do contrato 0.2.18 (`Contrato/openapi.yaml`), um para cada schema usado pelo app.
+/// Tipos do contrato 0.2.27 (`Contrato/openapi.yaml`), um para cada schema usado pelo app.
 enum ContratoAPI {
     /// Instantes em ISO-8601 com ou sem fração de segundo, com `Z` ou `+00:00`, como o Postgres
     /// devolve. O `.iso8601` da Foundation do iOS 17 não aceita fração de segundo.
@@ -238,19 +238,30 @@ enum ContratoAPI {
         let documento: String
         let tipo: TipoEstabelecimento
         let endereco: String
+        let regiaoAdministrativa: String
         let ponto: CoordenadaDTO
         let papel: PapelMembro
 
+        enum CodingKeys: String, CodingKey {
+            case id, nome, documento, tipo, endereco, ponto, papel
+            case regiaoAdministrativa = "regiao_administrativa"
+        }
+
         func dominio() throws -> Estabelecimento {
-            try Estabelecimento(id: id, nome: nome, documento: documento, tipo: tipo, endereco: endereco, ponto: ponto.dominio(), papel: papel)
+            try Estabelecimento(
+                id: id, nome: nome, documento: documento, tipo: tipo, endereco: endereco,
+                regiaoAdministrativa: regiaoAdministrativa, ponto: ponto.dominio(), papel: papel
+            )
         }
     }
 
+    /// `NovoEstabelecimento` do contrato: `regiao_administrativa` é obrigatória desde a 0.2.20.
     struct CadastroEstabelecimentoDTO: Encodable {
         let nome: String
         let documento: String
         let tipo: TipoEstabelecimento
         let endereco: String
+        let regiaoAdministrativa: String
         let ponto: CoordenadaDTO
 
         init(_ cadastro: CadastroEstabelecimento) {
@@ -258,7 +269,13 @@ enum ContratoAPI {
             documento = cadastro.documento
             tipo = cadastro.tipo
             endereco = cadastro.endereco
+            regiaoAdministrativa = cadastro.regiaoAdministrativa
             ponto = CoordenadaDTO(cadastro.ponto)
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case nome, documento, tipo, endereco, ponto
+            case regiaoAdministrativa = "regiao_administrativa"
         }
     }
 
@@ -299,6 +316,7 @@ enum ContratoAPI {
         let inicioEm: Date
         let fimEm: Date
         let local: String
+        let regiaoAdministrativa: String
         let ponto: CoordenadaDTO
         let distanciaKm: Double?
         let valorCentavos: Int
@@ -311,12 +329,14 @@ enum ContratoAPI {
         let observacoes: String?
         let modo: ModoPreenchimento
         let estado: EstadoVaga
+        let oculta: Bool
         let publicadoEm: Date
 
         enum CodingKeys: String, CodingKey {
-            case id, estabelecimento, funcao, local, ponto, posicoes, inclusos, traje, observacoes, modo, estado
+            case id, estabelecimento, funcao, local, ponto, posicoes, inclusos, traje, observacoes, modo, estado, oculta
             case inicioEm = "inicio_em"
             case fimEm = "fim_em"
+            case regiaoAdministrativa = "regiao_administrativa"
             case distanciaKm = "distancia_km"
             case valorCentavos = "valor_centavos"
             case posicoesAbertas = "posicoes_abertas"
@@ -332,6 +352,7 @@ enum ContratoAPI {
                 funcao: funcao.dominio(),
                 periodo: Periodo(inicio: inicioEm, fim: fimEm),
                 local: local,
+                regiaoAdministrativa: regiaoAdministrativa,
                 ponto: ponto.dominio(),
                 distanciaKm: distanciaKm,
                 valor: Dinheiro(centavos: valorCentavos),
@@ -344,6 +365,7 @@ enum ContratoAPI {
                 observacoes: observacoes,
                 modo: modo,
                 estado: estado,
+                oculta: oculta,
                 publicadoEm: publicadoEm
             )
         }
@@ -356,6 +378,7 @@ enum ContratoAPI {
         let inicioEm: Date
         let fimEm: Date
         let local: String
+        let regiaoAdministrativa: String
         let distanciaKm: Double
         let valorCentavos: Int
         let posicoesAbertas: Int
@@ -366,6 +389,7 @@ enum ContratoAPI {
             case id, funcao, estabelecimento, local, inclusos, modo
             case inicioEm = "inicio_em"
             case fimEm = "fim_em"
+            case regiaoAdministrativa = "regiao_administrativa"
             case distanciaKm = "distancia_km"
             case valorCentavos = "valor_centavos"
             case posicoesAbertas = "posicoes_abertas"
@@ -378,6 +402,7 @@ enum ContratoAPI {
                 estabelecimento: estabelecimento.dominio(),
                 periodo: Periodo(inicio: inicioEm, fim: fimEm),
                 local: local,
+                regiaoAdministrativa: regiaoAdministrativa,
                 distanciaKm: distanciaKm,
                 valor: Dinheiro(centavos: valorCentavos),
                 posicoesAbertas: posicoesAbertas,
@@ -391,19 +416,24 @@ enum ContratoAPI {
         let id: UUID
         let funcao: String
         let local: String
+        let regiaoAdministrativa: String
         let inicioEm: Date
         let fimEm: Date
         let valorCentavos: Int
 
         enum CodingKeys: String, CodingKey {
             case id, funcao, local
+            case regiaoAdministrativa = "regiao_administrativa"
             case inicioEm = "inicio_em"
             case fimEm = "fim_em"
             case valorCentavos = "valor_centavos"
         }
 
         func dominio() throws -> VagaResumo {
-            try VagaResumo(id: id, funcao: funcao, local: local, periodo: Periodo(inicio: inicioEm, fim: fimEm), valor: Dinheiro(centavos: valorCentavos))
+            try VagaResumo(
+                id: id, funcao: funcao, local: local, regiaoAdministrativa: regiaoAdministrativa,
+                periodo: Periodo(inicio: inicioEm, fim: fimEm), valor: Dinheiro(centavos: valorCentavos)
+            )
         }
     }
 
@@ -413,6 +443,7 @@ enum ContratoAPI {
         let inicioEm: String
         let fimEm: String
         let local: String
+        let regiaoAdministrativa: String
         let ponto: CoordenadaDTO
         let valorCentavos: Int
         let posicoes: Int
@@ -433,6 +464,7 @@ enum ContratoAPI {
             inicioEm = ContratoAPI.texto(publicacao.periodo.inicio)
             fimEm = ContratoAPI.texto(publicacao.periodo.fim)
             local = publicacao.local
+            regiaoAdministrativa = publicacao.regiaoAdministrativa
             ponto = CoordenadaDTO(publicacao.ponto)
             valorCentavos = publicacao.valor.centavos
             posicoes = publicacao.posicoes
@@ -454,6 +486,7 @@ enum ContratoAPI {
             case funcaoID = "funcao_id"
             case inicioEm = "inicio_em"
             case fimEm = "fim_em"
+            case regiaoAdministrativa = "regiao_administrativa"
             case valorCentavos = "valor_centavos"
             case incluiRefeicao = "inclui_refeicao"
             case incluiTransporte = "inclui_transporte"
@@ -561,6 +594,7 @@ enum ContratoAPI {
         let vaga: VagaResumoDTO
         let contraparte: PerfilPublicoDTO
         let contatoVisivelAte: Date
+        let aCaminhoEm: Date?
         let checkinEm: Date?
         let checkinTipo: TipoRegistro?
         let checkinDistanciaM: Int?
@@ -575,6 +609,7 @@ enum ContratoAPI {
             case id, vaga, contraparte, verificacao
             case posicaoID = "posicao_id"
             case contatoVisivelAte = "contato_visivel_ate"
+            case aCaminhoEm = "a_caminho_em"
             case checkinEm = "checkin_em"
             case checkinTipo = "checkin_tipo"
             case checkinDistanciaM = "checkin_distancia_m"
@@ -592,6 +627,7 @@ enum ContratoAPI {
                 vaga: vaga.dominio(),
                 contraparte: contraparte.dominio(),
                 contatoVisivelAte: contatoVisivelAte,
+                aCaminhoEm: aCaminhoEm,
                 checkin: checkinEm.map {
                     Presenca(instante: $0, tipo: checkinTipo, distanciaMetros: checkinDistanciaM, confirmadaEm: checkinConfirmadoEm)
                 },
@@ -601,6 +637,18 @@ enum ContratoAPI {
                 podeAvaliar: podeAvaliar
             )
         }
+    }
+
+    struct ResultadoACaminhoDTO: Decodable {
+        let turnoID: UUID
+        let aCaminhoEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case turnoID = "turno_id"
+            case aCaminhoEm = "a_caminho_em"
+        }
+
+        func dominio() -> ResultadoACaminho { ResultadoACaminho(turnoID: turnoID, aCaminhoEm: aCaminhoEm) }
     }
 
     struct RegistroDePresenca: Encodable {
@@ -672,15 +720,20 @@ enum ContratoAPI {
         let turnoID: UUID?
         let verificacao: Verificacao?
         let emAtraso: Bool
+        let aCaminhoEm: Date?
 
         enum CodingKeys: String, CodingKey {
             case id, estado, profissional, verificacao
             case turnoID = "turno_id"
             case emAtraso = "em_atraso"
+            case aCaminhoEm = "a_caminho_em"
         }
 
         func dominio() -> PosicaoNoPainel {
-            PosicaoNoPainel(id: id, estado: estado, profissional: profissional?.dominio(), turnoID: turnoID, verificacao: verificacao, emAtraso: emAtraso)
+            PosicaoNoPainel(
+                id: id, estado: estado, profissional: profissional?.dominio(), turnoID: turnoID, verificacao: verificacao,
+                emAtraso: emAtraso, aCaminhoEm: aCaminhoEm
+            )
         }
     }
 
@@ -688,12 +741,13 @@ enum ContratoAPI {
         let vaga: VagaResumoDTO
         let modo: ModoPreenchimento
         let estado: EstadoVaga
+        let oculta: Bool
         let alertaVagaVazia: Bool
         let candidatosPendentes: Int
         let posicoes: [PosicaoNoPainelDTO]
 
         enum CodingKeys: String, CodingKey {
-            case vaga, modo, estado, posicoes
+            case vaga, modo, estado, oculta, posicoes
             case alertaVagaVazia = "alerta_vaga_vazia"
             case candidatosPendentes = "candidatos_pendentes"
         }
@@ -703,6 +757,7 @@ enum ContratoAPI {
                 vaga: vaga.dominio(),
                 modo: modo,
                 estado: estado,
+                oculta: oculta,
                 alertaVagaVazia: alertaVagaVazia,
                 candidatosPendentes: candidatosPendentes,
                 posicoes: posicoes.map { $0.dominio() }

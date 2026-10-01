@@ -283,6 +283,8 @@ struct CatalogoStringsTests {
             "Abre o endereço no Apple Maps",
             "Abre a conversa no WhatsApp com mensagem pré-formatada",
             "Abre o detalhe do turno",
+            "Região Administrativa",
+            "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.",
         ]
 
         var faltantes: [String] = []
