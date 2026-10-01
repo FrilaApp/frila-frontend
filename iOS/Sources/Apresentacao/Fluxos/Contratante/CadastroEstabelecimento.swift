@@ -134,6 +134,10 @@ public enum RegraCampoCadastro: Equatable { case obrigatorio, invalido }
 public struct TelaCadastroEstabelecimento: View {
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
+    @State private var posicaoMarcador: CGPoint?
+    #if DEBUG
+    @State private var regiaoMapa: MKCoordinateRegion?
+    #endif
     private let api: any ApiCliente
     private let responsavelNome: String
     private let responsavelTelefone: String
@@ -189,39 +193,56 @@ public struct TelaCadastroEstabelecimento: View {
                 }
                 if let point = model.ponto {
                     MapReader { proxy in
-                        Map(position: $posicaoMapa) {
-                            Annotation("", coordinate: point, anchor: .bottom) {
+                        Map(position: $posicaoMapa) {}
+                        .accessibilityIdentifier("mapa-estabelecimento")
+                        #if DEBUG
+                        // Expõe a câmera aos testes para distinguir mover o ponto de mover o mapa.
+                        .accessibilityValue(regiaoMapa.map {
+                            String(format: "%.6f,%.6f,%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), $0.center.latitude, $0.center.longitude, $0.span.latitudeDelta, $0.span.longitudeDelta)
+                        } ?? "")
+                        #endif
+                        .onMapCameraChange(frequency: .continuous) { contexto in
+                            posicaoMarcador = proxy.convert(point, to: .named("mapa"))
+                            #if DEBUG
+                            regiaoMapa = contexto.region
+                            #endif
+                        }
+                        .overlay(alignment: .topLeading) {
+                            if let posicaoMarcador {
                                 Image(systemName: "mappin.and.ellipse")
                                     .font(.title)
                                     .foregroundStyle(FrilaCor.perigo)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
                                     .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
                                     .accessibilityIdentifier("marcador-mapa")
                                     .accessibilityValue(String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude))
+                                    .position(x: posicaoMarcador.x, y: posicaoMarcador.y - 15)
+                                    // Só a alça recebe este gesto; o mapa mantém pan e zoom fora dela.
+                                    .highPriorityGesture(
+                                        DragGesture(minimumDistance: 0, coordinateSpace: .named("mapa"))
+                                            .onChanged { valor in
+                                                if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                                    model.ponto = coordenada
+                                                    self.posicaoMarcador = valor.location
+                                                }
+                                            }
+                                            .onEnded { valor in
+                                                if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                                    model.ponto = coordenada
+                                                    self.posicaoMarcador = valor.location
+                                                }
+                                            }
+                                    )
                             }
                         }
-                        .accessibilityIdentifier("mapa-estabelecimento")
                         .coordinateSpace(.named("mapa"))
-                        .simultaneousGesture(
-                            DragGesture(coordinateSpace: .named("mapa"))
-                                .onChanged { valor in
-                                    guard let posMarcador = proxy.convert(point, to: .named("mapa")) else { return }
-                                    let dist = hypot(valor.startLocation.x - posMarcador.x, valor.startLocation.y - (posMarcador.y - 15))
-                                    if dist <= 30 {
-                                        if let novaCoordenada = proxy.convert(valor.location, from: .named("mapa")) {
-                                            model.ponto = novaCoordenada
-                                        }
-                                    }
-                                }
-                                .onEnded { valor in
-                                    guard let posMarcador = proxy.convert(point, to: .named("mapa")) else { return }
-                                    let dist = hypot(valor.startLocation.x - posMarcador.x, valor.startLocation.y - (posMarcador.y - 15))
-                                    if dist <= 30 {
-                                        if let novaCoordenada = proxy.convert(valor.location, from: .named("mapa")) {
-                                            model.ponto = novaCoordenada
-                                        }
-                                    }
-                                }
-                        )
+                        .onChange(of: model.ponto?.latitude) { _, _ in
+                            posicaoMarcador = proxy.convert(point, to: .named("mapa"))
+                        }
+                        .onChange(of: model.ponto?.longitude) { _, _ in
+                            posicaoMarcador = proxy.convert(point, to: .named("mapa"))
+                        }
                         .onAppear { centralizarMapa(em: point) }
                         .onChange(of: model.alvoDaCamera?.latitude) { _, _ in
                             if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }

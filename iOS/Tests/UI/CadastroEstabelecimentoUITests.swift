@@ -17,7 +17,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["O profissional recebe o valor integral"].exists)
     }
 
-    func testArrastarMarcadorMudaPontoParaDireitaECima() {
+    func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
         let app = XCUIApplication()
         app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
         app.launch()
@@ -32,8 +32,15 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             return
         }
 
+        let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
+        let cameraInicial = try XCTUnwrap(mapa.value as? String)
+        XCTAssertEqual(cameraInicial.split(separator: ",").count, 4, "O teste precisa ler o centro e a escala da câmera.")
+        XCTAssertGreaterThanOrEqual(marcador.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(marcador.frame.height, 44)
         let coordenadaInicial = marcador.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let coordenadaFinal = coordenadaInicial.withOffset(CGVector(dx: 60, dy: -40))
+        let coordenadaFinal = coordenadaInicial.withOffset(CGVector(dx: 120, dy: -80))
+        // XCUICoordinate acompanha o elemento; fixe o destino antes de ele se mover.
+        let pontoDeSoltura = coordenadaFinal.screenPoint
         coordenadaInicial.press(forDuration: 0.2, thenDragTo: coordenadaFinal)
 
         guard let valorFinal = marcador.value as? String,
@@ -42,11 +49,17 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             return
         }
 
+        // A ponta do símbolo é o ponto geográfico, 15 pt abaixo do centro da alça.
+        // A tolerância de 12 pt reprova o arrasto que parava no raio de 30 pt.
+        let pontaFinal = CGPoint(x: marcador.frame.midX, y: marcador.frame.midY + 15)
+        XCTAssertEqual(pontaFinal.x, pontoDeSoltura.x, accuracy: 12)
+        XCTAssertEqual(pontaFinal.y, pontoDeSoltura.y, accuracy: 12)
+        XCTAssertEqual(mapa.value as? String, cameraInicial, "A câmera deve ficar parada durante o arrasto do marcador.")
         XCTAssertGreaterThan(latFinal, latInicial, "Latitude deve aumentar ao arrastar para cima (Norte). Inicial: \(latInicial), Final: \(latFinal)")
         XCTAssertGreaterThan(lonFinal, lonInicial, "Longitude deve aumentar ao arrastar para a direita (Leste). Inicial: \(lonInicial), Final: \(lonFinal)")
     }
 
-    func testArrastarMapaLongeDoMarcadorNaoMudaPonto() {
+    func testArrastarMapaLongeDoMarcadorNaoMudaPonto() throws {
         let app = XCUIApplication()
         app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
         app.launch()
@@ -64,6 +77,8 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             return
         }
 
+        let cameraInicial = try XCTUnwrap(mapa.value as? String)
+        XCTAssertEqual(cameraInicial.split(separator: ",").count, 4, "O teste precisa ler o centro e a escala da câmera.")
         let pontoLongeInicio = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.15))
         let pontoLongeFim = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.35))
         pontoLongeInicio.press(forDuration: 0.1, thenDragTo: pontoLongeFim)
@@ -74,8 +89,19 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             return
         }
 
+        XCTAssertNotEqual(mapa.value as? String, cameraInicial, "Arrastar fora do marcador deve mover a câmera.")
         XCTAssertEqual(latFinal, latInicial, accuracy: 0.000001, "Latitude não deve mudar ao arrastar fora do marcador.")
         XCTAssertEqual(lonFinal, lonInicial, accuracy: 0.000001, "Longitude não deve mudar ao arrastar fora do marcador.")
+
+        let cameraAntesDoZoom = try XCTUnwrap(mapa.value as? String)
+        let componentesIniciais = cameraAntesDoZoom.split(separator: ",").compactMap { Double($0) }
+        guard componentesIniciais.count == 4 else { XCTFail("Câmera sem região antes do zoom."); return }
+        mapa.pinch(withScale: 2, velocity: 1)
+        let cameraDepoisDoZoom = try XCTUnwrap(mapa.value as? String)
+        let componentesFinais = cameraDepoisDoZoom.split(separator: ",").compactMap { Double($0) }
+        guard componentesFinais.count == 4 else { XCTFail("Câmera sem região depois do zoom."); return }
+        XCTAssertLessThan(componentesFinais[2], componentesIniciais[2], "A pinça deve aproximar o mapa.")
+        XCTAssertEqual(marcador.value as? String, valorFinal, "O zoom não deve mudar o ponto.")
     }
 
     private func extrairCoordenadas(_ valor: String) -> (Double, Double)? {
