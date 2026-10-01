@@ -18,6 +18,9 @@ public struct TelaMeuTurno: View {
                     SecaoDePresenca(viewModel: presenca)
                 }
                 cartaoContato
+                if viewModel.podeAvaliar {
+                    cartaoAvaliacao
+                }
             }
             .padding(FrilaEspaco.medio)
         }
@@ -102,4 +105,55 @@ public struct TelaMeuTurno: View {
         .cartaoFrila()
         .accessibilityIdentifier("contato-do-turno")
     }
+
+    private var cartaoAvaliacao: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+
+            if viewModel.jaAvaliado {
+                if let resposta = viewModel.respostaAvaliacao {
+                    Text(TextosDoProfissional.Avaliacao.statusResposta(resposta))
+                        .font(.body.weight(.semibold))
+                        .accessibilityIdentifier("texto-status-avaliacao")
+                } else {
+                    Text(TextosDoProfissional.Avaliacao.statusAvaliado)
+                        .font(.body.weight(.semibold))
+                        .accessibilityIdentifier("texto-status-avaliacao")
+                }
+
+                NavigationLink {
+                    TelaAvaliacao(viewModel: viewModel.criarAvaliacaoViewModel())
+                } label: {
+                    HStack {
+                        Image(systemName: "star.fill")
+                        Text(TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
+                    }
+                }
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .accessibilityIdentifier("botao-ver-avaliacao")
+            } else {
+                Text(TextosDoProfissional.Avaliacao.cartaoChamada)
+                    .font(.subheadline)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+
+                NavigationLink {
+                    TelaAvaliacao(viewModel: viewModel.criarAvaliacaoViewModel())
+                } label: {
+                    HStack {
+                        Image(systemName: "star.fill")
+                        Text(TextosDoProfissional.Avaliacao.botaoAvaliar)
+                    }
+                }
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .accessibilityIdentifier("botao-abrir-avaliacao")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityIdentifier("cartao-avaliacao-turno")
+    }
 }
+

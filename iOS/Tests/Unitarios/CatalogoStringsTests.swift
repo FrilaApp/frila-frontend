@@ -196,7 +196,31 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Perfil.buscar,
         ]
 
-        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDosTurnos + stringsDoPerfil + [
+        let stringsDaAvaliacao = [
+            TextosDoProfissional.Avaliacao.titulo,
+            TextosDoProfissional.Avaliacao.perguntaProfissional,
+            TextosDoProfissional.Avaliacao.perguntaContratante,
+            TextosDoProfissional.Avaliacao.explicacao,
+            TextosDoProfissional.Avaliacao.botaoEnviar,
+            TextosDoProfissional.Avaliacao.avaliadoSucesso,
+            TextosDoProfissional.Avaliacao.avaliadoOffline,
+            TextosDoProfissional.Avaliacao.respostaRegistrada,
+            TextosDoProfissional.Avaliacao.suaResposta,
+            TextosDoProfissional.Avaliacao.erroIndisponivel,
+            TextosDoProfissional.Avaliacao.erroJaRegistrada,
+            TextosDoProfissional.Avaliacao.erroSemRede,
+            TextosDoProfissional.Avaliacao.erroGenerico,
+            TextosDoProfissional.Avaliacao.erroSelecioneResposta,
+            TextosDoProfissional.Avaliacao.cartaoTitulo,
+            TextosDoProfissional.Avaliacao.cartaoChamada,
+            TextosDoProfissional.Avaliacao.botaoAvaliar,
+            TextosDoProfissional.Avaliacao.botaoVerAvaliacao,
+            TextosDoProfissional.Avaliacao.statusAvaliado,
+            TextosDoProfissional.Avaliacao.statusResposta(true),
+            TextosDoProfissional.Avaliacao.statusResposta(false),
+        ]
+
+        let todasConstantes = stringsDaLista + stringsDoDetalhe + stringsDaCandidatura + stringsDosTurnos + stringsDoPerfil + stringsDaAvaliacao + [
             TextosDoProfissional.simNao(true),
             TextosDoProfissional.simNao(false),
             "Sem histórico",
@@ -239,6 +263,8 @@ struct CatalogoStringsTests {
             .semPermissao,
             .perfilIncompativel,
             .limiteExcedido,
+            .avaliacaoIndisponivel,
+            .avaliacaoJaRegistrada,
             .menorDeIdade,
             .contaExistente,
             .desconhecido,

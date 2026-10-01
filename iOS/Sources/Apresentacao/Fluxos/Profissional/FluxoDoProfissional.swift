@@ -15,6 +15,7 @@ public enum RotaDoProfissional: Hashable, Sendable {
     case detalhe(vagaID: UUID)
     case resultado(vaga: Vaga, resultado: ResultadoDaCandidatura)
     case meuTurno(turno: Turno)
+    case avaliacao(turnoID: UUID)
 }
 
 /// Pilha de navegação do fluxo. É a entrada que a notificação do tipo vaga (S2 #8) vai usar:
@@ -36,6 +37,11 @@ public final class RoteadorDoProfissional {
 
     public func abrirMeusTurnos() {
         aba = .turnos
+    }
+
+    public func abrirAvaliacao(turnoID: UUID) {
+        aba = .turnos
+        caminho.append(.avaliacao(turnoID: turnoID))
     }
 
     public func voltarParaLista() {
@@ -119,6 +125,8 @@ public struct FluxoDoProfissional<Barra: View>: View {
                             TelaResultadoDaCandidatura(vaga: vaga, resultado: resultado, voltarParaLista: voltarParaLista)
                         case let .meuTurno(turno):
                             destinoDoMeuTurno(turno)
+                        case let .avaliacao(turnoID):
+                            TelaAvaliacao(turnoID: turnoID, api: api, fila: fila, relogio: relogio)
                         }
                     }
             }
@@ -212,7 +220,7 @@ private struct DestinoDoMeuTurno: View {
         let presenca = localizacao.map {
             PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
         }
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, relogio: relogio, presenca: presenca))
+        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, fila: fila, relogio: relogio, presenca: presenca))
     }
 
     var body: some View {

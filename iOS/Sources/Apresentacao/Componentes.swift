@@ -249,7 +249,12 @@ public struct CartaoVaga: View {
 
 public struct RespostaSimNao: View {
     @Binding private var resposta: Bool?
-    public init(resposta: Binding<Bool?>) { _resposta = resposta }
+    private let rotuloAcessibilidade: LocalizedStringKey
+
+    public init(resposta: Binding<Bool?>, rotuloAcessibilidade: LocalizedStringKey = "Chamaria de novo?") {
+        self._resposta = resposta
+        self.rotuloAcessibilidade = rotuloAcessibilidade
+    }
 
     public var body: some View {
         HStack(spacing: FrilaEspaco.pequeno) {
@@ -257,7 +262,7 @@ public struct RespostaSimNao: View {
             escolha("Não", valor: false, icone: "hand.thumbsdown.fill")
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Chamaria de novo?")
+        .accessibilityLabel(rotuloAcessibilidade)
     }
 
     private func escolha(_ titulo: LocalizedStringKey, valor: Bool, icone: String) -> some View {
