@@ -31,5 +31,6 @@ public struct SaidaDaConta: ContaRepositorio {
         // chamadas mantêm a regra certa se as portas passarem a ter implementações separadas.
         try? await (armazenamento as any CacheLocal).limpar()
         try? await (armazenamento as any FilaDeAcoes).limpar()
+        DestinoGuardado.limpar()
     }
 }

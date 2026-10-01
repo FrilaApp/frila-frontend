@@ -53,12 +53,32 @@
         }
       }
     },
+    "(61) 9 0000-0000": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(61) 9 0000-0000"
+          }
+        }
+      }
+    },
     "(dia seguinte)": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "(dia seguinte)"
+          }
+        }
+      }
+    },
+    "**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo."
           }
         }
       }
@@ -129,6 +149,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil."
+          }
+        }
+      }
+    },
+    "A outra parte só vê o seu número depois que o turno é confirmado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A outra parte só vê o seu número depois que o turno é confirmado."
           }
         }
       }
@@ -273,6 +303,16 @@
         }
       }
     },
+    "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade."
+          }
+        }
+      }
+    },
     "Após a confirmação, o telefone do responsável será mostrado ao profissional para combinar o turno.": {
       "localizations": {
         "pt-BR": {
@@ -413,6 +453,16 @@
         }
       }
     },
+    "Cadastro": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cadastro"
+          }
+        }
+      }
+    },
     "Café de teste": {
       "localizations": {
         "pt-BR": {
@@ -463,12 +513,42 @@
         }
       }
     },
+    "Como você quer ser chamado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como você quer ser chamado"
+          }
+        }
+      }
+    },
+    "Como você vai usar o Frila?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como você vai usar o Frila?"
+          }
+        }
+      }
+    },
     "Complete seu perfil com o ponto de partida para ver as vagas por distância.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Complete seu perfil com o ponto de partida para ver as vagas por distância."
+          }
+        }
+      }
+    },
+    "Configuração de funções e horários disponíveis para o profissional (Cartão #98).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configuração de funções e horários disponíveis para o profissional (Cartão #98)."
           }
         }
       }
@@ -563,6 +643,36 @@
         }
       }
     },
+    "Código expirado. Peça um novo código para continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código expirado. Peça um novo código para continuar."
+          }
+        }
+      }
+    },
+    "Código incorreto. Confira os números e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código incorreto. Confira os números e tente novamente."
+          }
+        }
+      }
+    },
+    "Data de nascimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data de nascimento"
+          }
+        }
+      }
+    },
     "Denunciar": {
       "localizations": {
         "pt-BR": {
@@ -579,6 +689,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dia da semana"
+          }
+        }
+      }
+    },
+    "Digite o código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite o código"
+          }
+        }
+      }
+    },
+    "Digite os 6 números do código.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite os 6 números do código."
           }
         }
       }
@@ -609,6 +739,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Domingo"
+          }
+        }
+      }
+    },
+    "E-mail": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail"
           }
         }
       }
@@ -649,6 +789,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta."
+          }
+        }
+      }
+    },
+    "Entrar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar"
+          }
+        }
+      }
+    },
+    "Enviamos um código de 6 dígitos para %@. Ele vale por pouco tempo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviamos um código de 6 dígitos para %@. Ele vale por pouco tempo."
           }
         }
       }
@@ -699,6 +859,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Essa vaga pede outra função"
+          }
+        }
+      }
+    },
+    "Esta conta já foi cadastrada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta conta já foi cadastrada."
           }
         }
       }
@@ -823,6 +993,16 @@
         }
       }
     },
+    "Frila": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frila"
+          }
+        }
+      }
+    },
     "Função": {
       "localizations": {
         "pt-BR": {
@@ -903,6 +1083,16 @@
         }
       }
     },
+    "Informe a data de nascimento no formato dd/mm/aaaa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe a data de nascimento no formato dd/mm/aaaa."
+          }
+        }
+      }
+    },
     "Informe de 1 a 200 vagas.": {
       "localizations": {
         "pt-BR": {
@@ -943,6 +1133,36 @@
         }
       }
     },
+    "Informe seu nome completo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe seu nome completo."
+          }
+        }
+      }
+    },
+    "Informe um e-mail válido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe um e-mail válido."
+          }
+        }
+      }
+    },
+    "Informe um telefone válido com DDD.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe um telefone válido com DDD."
+          }
+        }
+      }
+    },
     "Informe um valor maior que zero.": {
       "localizations": {
         "pt-BR": {
@@ -959,6 +1179,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Início"
+          }
+        }
+      }
+    },
+    "Início do contratante": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Início do contratante"
+          }
+        }
+      }
+    },
+    "Li e aceito os Termos de uso e a Política de privacidade": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Li e aceito os Termos de uso e a Política de privacidade"
+          }
+        }
+      }
+    },
+    "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)"
           }
         }
       }
@@ -1153,6 +1403,16 @@
         }
       }
     },
+    "Novo código enviado para seu e-mail.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novo código enviado para seu e-mail."
+          }
+        }
+      }
+    },
     "Não": {
       "localizations": {
         "pt-BR": {
@@ -1253,12 +1513,42 @@
         }
       }
     },
+    "Não foi possível confirmar o código. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível confirmar o código. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível criar sua conta. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível criar sua conta. Tente novamente."
+          }
+        }
+      }
+    },
     "Não foi possível enviar a candidatura. Tente de novo.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível enviar a candidatura. Tente de novo."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar o código. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar o código. Tente novamente."
           }
         }
       }
@@ -1283,6 +1573,16 @@
         }
       }
     },
+    "Não foi possível reenviar o código. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível reenviar o código. Tente novamente."
+          }
+        }
+      }
+    },
     "Não foi possível salvar o perfil.": {
       "localizations": {
         "pt-BR": {
@@ -1293,12 +1593,32 @@
         }
       }
     },
+    "Não selecionado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não selecionado"
+          }
+        }
+      }
+    },
     "O Frila não aceitou a candidatura para esta vaga.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "O Frila não aceitou a candidatura para esta vaga."
+          }
+        }
+      }
+    },
+    "O Frila é exclusivo para maiores de 18 anos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Frila é exclusivo para maiores de 18 anos."
           }
         }
       }
@@ -1403,12 +1723,42 @@
         }
       }
     },
+    "Painel do contratante para publicação e gestão de turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Painel do contratante para publicação e gestão de turnos."
+          }
+        }
+      }
+    },
     "Participa do rateio dos 10%": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Participa do rateio dos 10%"
+          }
+        }
+      }
+    },
+    "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar."
+          }
+        }
+      }
+    },
+    "Perfil de profissional: receba vagas perto de você e candidate-se sem formulário.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil de profissional: receba vagas perto de você e candidate-se sem formulário."
           }
         }
       }
@@ -1543,6 +1893,16 @@
         }
       }
     },
+    "Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta."
+          }
+        }
+      }
+    },
     "Quem recebe no local": {
       "localizations": {
         "pt-BR": {
@@ -1559,6 +1919,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quem recebe você"
+          }
+        }
+      }
+    },
+    "Quero contratar para o meu negócio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quero contratar para o meu negócio"
+          }
+        }
+      }
+    },
+    "Quero trabalhar em turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quero trabalhar em turnos"
           }
         }
       }
@@ -1589,6 +1969,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "R$ 0,00"
+          }
+        }
+      }
+    },
+    "Receber código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receber código"
+          }
+        }
+      }
+    },
+    "Reenviar código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar código"
+          }
+        }
+      }
+    },
+    "Reenviar código em %llds": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar código em %llds"
           }
         }
       }
@@ -1693,6 +2103,16 @@
         }
       }
     },
+    "Selecionado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecionado"
+          }
+        }
+      }
+    },
     "Selecione ao menos uma função.": {
       "localizations": {
         "pt-BR": {
@@ -1769,6 +2189,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem histórico"
+          }
+        }
+      }
+    },
+    "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail."
           }
         }
       }
@@ -1873,6 +2303,26 @@
         }
       }
     },
+    "Telefone com WhatsApp": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefone com WhatsApp"
+          }
+        }
+      }
+    },
+    "Tenho 18 anos ou mais": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tenho 18 anos ou mais"
+          }
+        }
+      }
+    },
     "Tentar novamente": {
       "localizations": {
         "pt-BR": {
@@ -1939,6 +2389,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Transporte: %@"
+          }
+        }
+      }
+    },
+    "Turnos avulsos no DF, perto de você.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turnos avulsos no DF, perto de você."
           }
         }
       }
@@ -2029,6 +2489,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Varejo"
+          }
+        }
+      }
+    },
+    "Vazio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vazio"
           }
         }
       }
@@ -2133,6 +2603,26 @@
         }
       }
     },
+    "Voltar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voltar"
+          }
+        }
+      }
+    },
+    "dd/mm/aaaa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dd/mm/aaaa"
+          }
+        }
+      }
+    },
     "filtro ativo": {
       "localizations": {
         "pt-BR": {
@@ -2193,12 +2683,22 @@
         }
       }
     },
-    "Minhas vagas": {
+    "voce@exemplo.com": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Minhas vagas"
+            "value": "voce@exemplo.com"
+          }
+        }
+      }
+    },
+    "É necessário aceitar os Termos de uso e a Política de privacidade para continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "É necessário aceitar os Termos de uso e a Política de privacidade para continuar."
           }
         }
       }
@@ -2249,16 +2749,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Publique sua primeira vaga para acompanhar posições abertas, confirmações e alertas."
-          }
-        }
-      }
-    },
-    "Não encontramos o estabelecimento cadastrado.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não encontramos o estabelecimento cadastrado."
           }
         }
       }

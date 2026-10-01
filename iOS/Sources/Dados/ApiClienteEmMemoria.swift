@@ -19,6 +19,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case vagaEncerrada = "vaga-encerrada"
         /// `candidatar` responde `422 inelegivel/perfil_suspenso` (conta suspensa, #105).
         case inelegivelSuspenso = "inelegivel-suspenso"
+        case codigoErrado = "codigo-errado"
+        case codigoExpirado = "codigo-expirado"
+        case menorDeIdade = "menor-de-idade"
+        case contaExistente = "conta-existente"
+        case semPerfilProfissional = "sem-perfil-profissional"
+        case entrada = "entrada"
+        case contratante = "contratante"
+        case perfilProfissionalComErroDeRede = "perfil-profissional-com-erro-de-rede"
         /// A vaga foi criada, mas a primeira resposta se perdeu. A repetição precisa reutilizar a chave.
         case respostaPerdidaPublicacao = "resposta-perdida-publicacao"
         /// A vaga foi criada, mas o gateway devolve uma resposta inválida na primeira tentativa.
@@ -49,6 +57,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var candidaturasPendentes: [UUID: UUID] = [:]
     /// Quantas vezes `candidatar` foi chamado: os testes de toque duplo leem isso.
     public private(set) var chamadasACandidatar = 0
+    public private(set) var chamadasAVerificarCodigo = 0
+    public private(set) var chamadasACriarConta = 0
     public private(set) var chamadasAPublicarVaga = 0
     public private(set) var chavesPublicacaoRecebidas: [UUID] = []
     public private(set) var publicacoesRecebidas: [PublicacaoVaga] = []
@@ -61,10 +71,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public init(
         cenario: Cenario = .sucesso,
         relogio: any Relogio = RelogioDoSistema(),
-        vagas: [Vaga]? = nil
+        vagas: [Vaga]? = nil,
+        sessaoAtivaInicial: Bool = false
     ) {
         self.cenario = cenario
         self.relogio = relogio
+        self.sessaoAtiva = sessaoAtivaInicial
         do {
             envelopes = try FixturesDoContrato.erros()
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
@@ -72,8 +84,30 @@ public actor ApiClienteEmMemoria: ApiCliente {
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
-            conta = cenario == .primeiroAcesso ? nil : usuario
-            perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
+            if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
+                conta = nil
+                perfilProfissional = nil
+            } else {
+                if cenario == .contratante {
+                    conta = Conta(
+                        id: usuario.id,
+                        perfil: .contratante,
+                        nome: usuario.nome,
+                        telefone: usuario.telefone,
+                        email: usuario.email,
+                        nascimento: usuario.nascimento,
+                        estado: usuario.estado
+                    )
+                    perfilProfissional = nil
+                } else {
+                    conta = usuario
+                    if cenario == .semPerfilProfissional {
+                        perfilProfissional = nil
+                    } else {
+                        perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
+                    }
+                }
+            }
             estabelecimentos = [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
             if let vagas {
                 self.vagas = vagas
@@ -106,11 +140,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> ApiClienteEmMemoria {
+        #if DEBUG
+        let semSessaoArgumento = argumentos.contains("-FRILA_ABRIR_CATALOGO") || argumentos.contains("-FRILA_ENTRADA")
+        #else
+        let semSessaoArgumento = false
+        #endif
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
-            return ApiClienteEmMemoria()
+            return ApiClienteEmMemoria(sessaoAtivaInicial: !semSessaoArgumento)
         }
-        return ApiClienteEmMemoria(cenario: cenario)
+        let cenariosSemSessao: Set<Cenario> = [.primeiroAcesso, .entrada, .menorDeIdade, .codigoErrado, .codigoExpirado]
+        let sessaoAtiva = !semSessaoArgumento && !cenariosSemSessao.contains(cenario)
+        if cenario == .semRede {
+            DestinoGuardado.salvar(.profissional)
+        } else if !sessaoAtiva {
+            DestinoGuardado.limpar()
+        }
+        return ApiClienteEmMemoria(cenario: cenario, sessaoAtivaInicial: sessaoAtiva)
     }
 
     // MARK: Entrada
@@ -118,7 +164,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func solicitarCodigo(email: String) async throws { try verificarRede() }
 
     public func verificarCodigo(email: String, codigo: String) async throws {
+        chamadasAVerificarCodigo += 1
+        await Task.yield()
         try verificarRede()
+        if cenario == .codigoErrado || codigo == "000000" {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "codigo_invalido")
+        }
+        if cenario == .codigoExpirado || codigo == "999999" {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "otp_expired")
+        }
         sessaoAtiva = true
     }
 
@@ -127,6 +181,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func entrarDemonstracao(email: String, codigo: String) async throws {
         try verificarRede()
         guard !codigo.isEmpty else { throw erro("nao_encontrado") }
+        if cenario == .codigoErrado || codigo == "000000" {
+            throw erro("nao_encontrado")
+        }
+        if cenario == .codigoExpirado || codigo == "999999" {
+            throw erro("nao_encontrado")
+        }
         sessaoAtiva = true
     }
 
@@ -139,8 +199,18 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
+        chamadasACriarConta += 1
+        await Task.yield()
         try verificarRede()
-        guard conta == nil else { throw erro("conta_existente") }
+        guard conta == nil && cenario != .contaExistente else { throw erro("conta_existente") }
+        if cenario == .menorDeIdade {
+            throw erro("menor_de_idade")
+        }
+        if let hoje = DataCivil.deSaoPaulo(relogio.agora),
+           let aniversario18 = try? DataCivil(ano: cadastro.nascimento.ano + 18, mes: cadastro.nascimento.mes, dia: cadastro.nascimento.dia),
+           aniversario18 > hoje {
+            throw erro("menor_de_idade")
+        }
         let nova = Conta(
             id: UUID(), perfil: cadastro.perfil, nome: cadastro.nome, telefone: cadastro.telefone,
             email: "voce@frila.app", nascimento: cadastro.nascimento, estado: .ativa
@@ -165,6 +235,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func meuPerfilProfissional() async throws -> PerfilProfissional {
         try verificarRede()
+        if cenario == .perfilProfissionalComErroDeRede {
+            throw ErroDaApi(codigo: .semRede)
+        }
         guard let perfilProfissional else { throw erro("nao_encontrado") }
         return perfilProfissional
     }
@@ -471,7 +544,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
-    public func sair(tokenFCM: String?) async { sessaoAtiva = false }
+
+    public func sair(tokenFCM: String?) async {
+        sessaoAtiva = false
+        DestinoGuardado.limpar()
+    }
 
     // MARK: Moderação
 
