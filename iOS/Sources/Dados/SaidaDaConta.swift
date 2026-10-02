@@ -6,15 +6,18 @@ import FrilaDominio
 /// entrar no mesmo iPhone. A exclusão de conta (S2) passa por aqui também.
 public struct SaidaDaConta: ContaRepositorio {
     private let limparAvaliacoes: @Sendable () -> Void
+    private let limparDestino: @Sendable () -> Void
     private let api: any ApiCliente
     private let armazenamento: (any CacheLocal & FilaDeAcoes)?
     private let aparelho: AparelhoDePush?
 
     public init(api: any ApiCliente, armazenamento: (any CacheLocal & FilaDeAcoes)?,
                 aparelho: AparelhoDePush? = nil,
-                limparAvaliacoes: @escaping @Sendable () -> Void = {}) {
+                limparAvaliacoes: @escaping @Sendable () -> Void = {},
+                limparDestino: @escaping @Sendable () -> Void = { DestinoGuardado.limpar() }) {
         self.api = api
         self.limparAvaliacoes = limparAvaliacoes
+        self.limparDestino = limparDestino
         self.armazenamento = armazenamento
         self.aparelho = aparelho
     }
@@ -75,6 +78,6 @@ public struct SaidaDaConta: ContaRepositorio {
             try? await (armazenamento as any CacheLocal).limpar()
             try? await (armazenamento as any FilaDeAcoes).limpar()
         }
-        DestinoGuardado.limpar()
+        limparDestino()
     }
 }
