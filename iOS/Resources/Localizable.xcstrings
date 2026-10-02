@@ -3053,16 +3053,6 @@
         }
       }
     },
-    "Você já avaliou este turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você já avaliou este turno."
-          }
-        }
-      }
-    },
     "Você já tem um turno nesse horário": {
       "localizations": {
         "pt-BR": {
