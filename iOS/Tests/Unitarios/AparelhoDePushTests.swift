@@ -476,6 +476,56 @@ struct AparelhoDePushTests {
         #expect(await aparelho.receber(token: Tokens.novo) == .semConta)
     }
 
+    @Test("Sem a permissão de notificação, o token sai do servidor e não volta enquanto ela não vier")
+    func semPermissao() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.registrar(para: contaID)
+
+        await aparelho.suspender()
+
+        #expect(api.chamadas.last == "remover \(Tokens.aparelho)")
+        #expect(await dono(Tokens.aparelho) == nil)
+        #expect(await aparelho.vinculo() == nil)
+        // O FCM troca o token com a conta dentro e sem permissão: nada é registrado.
+        #expect(await aparelho.receber(token: Tokens.novo) == .semConta)
+        #expect(await dono(Tokens.novo) == nil)
+
+        // A permissão veio: o registro volta, com um vínculo que começa agora.
+        relogio.avancar(120)
+        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        #expect(await dono(Tokens.novo) == contaID)
+    }
+
+    @Test("Sem permissão e sem vínculo não há o que tirar: nada vai ao servidor")
+    func semPermissaoESemVinculo() async throws {
+        let aparelho = aparelho()
+        await aparelho.receber(token: Tokens.aparelho)
+
+        await aparelho.suspender()
+
+        #expect(api.chamadas.isEmpty)
+    }
+
+    @Test("Sem permissão e sem rede, o vínculo fica até a remoção dar certo")
+    func semPermissaoESemRede() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.registrar(para: contaID)
+        let vinculo = await aparelho.vinculo()
+
+        api.semRede = true
+        await aparelho.suspender()
+        #expect(await aparelho.vinculo() == vinculo)
+
+        api.semRede = false
+        await aparelho.suspender()
+        #expect(await aparelho.vinculo() == nil)
+        #expect(await dono(Tokens.aparelho) == nil)
+    }
+
     @Test("Excluir a conta desfaz o vínculo do aparelho, e a exclusão recusada não desfaz")
     func exclusao() async throws {
         struct Porta: ExclusaoDeContaPorta {

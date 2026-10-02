@@ -28,6 +28,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case erroCriacaoPerfilProfissional = "erro-criacao-perfil-profissional"
         case entrada = "entrada"
         case contratante = "contratante"
+        /// Conta de contratante que ainda não cadastrou o estabelecimento: o fluxo começa no cadastro.
+        case contratanteSemEstabelecimento = "contratante-sem-estabelecimento"
         case perfilProfissionalComErroDeRede = "perfil-profissional-com-erro-de-rede"
         /// A vaga foi criada, mas a primeira resposta se perdeu. A repetição precisa reutilizar a chave.
         case respostaPerdidaPublicacao = "resposta-perdida-publicacao"
@@ -112,7 +114,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno {
+                if cenario == .contratante || cenario == .contratanteSemEstabelecimento || cenario == .checkinManualPendente || cenario == .atrasoNoTurno {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -142,7 +144,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     desde: relogio.agora.addingTimeInterval(-2 * 24 * 60 * 60), contestacao: nil
                 )
             }
-            estabelecimentos = conta == nil ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
+            estabelecimentos = conta == nil || cenario == .contratanteSemEstabelecimento ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
             if let vagas {
                 self.vagas = vagas
             } else {

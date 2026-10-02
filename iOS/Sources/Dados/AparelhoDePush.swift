@@ -65,6 +65,13 @@ public actor AparelhoDePush {
         }
     }
 
+    /// A conta está dentro, mas sem a permissão de notificação. O contrato pede que quem não
+    /// recebe notificação não fique registrado: para o despacho ela seria alcançável sem ser. O
+    /// token sai do servidor, se estava lá, e só volta com `registrar`, quando a permissão vier.
+    public func suspender() async {
+        await naVez { await $0.suspenderNaVez() }
+    }
+
     /// A sessão acabou sem a pessoa pedir (401, conta excluída). Não há mais sessão para tirar o
     /// token do servidor; o que dá para fazer aqui é o aparelho deixar de ser da conta.
     public func desvincular() async {
@@ -112,6 +119,14 @@ public actor AparelhoDePush {
             try? await api.removerDispositivo(tokenFCM: antigo)
         }
         return await registrarNaVez(para: contaAtiva)
+    }
+
+    private func suspenderNaVez() async {
+        contaAtiva = nil
+        guard let atual = guardado(), atual.vinculo != nil else { return }
+        // Se a remoção falhar, o vínculo fica: a próxima abertura sem permissão tenta de novo.
+        guard (try? await api.removerDispositivo(tokenFCM: atual.token)) != nil else { return }
+        guardar(AparelhoGuardado(token: atual.token, vinculo: nil))
     }
 
     private func soltar() {

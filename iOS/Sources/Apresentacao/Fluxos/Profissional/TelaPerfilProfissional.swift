@@ -6,20 +6,23 @@ import MapKit
 import SwiftUI
 
 public struct TelaPerfilProfissional: View {
-    @Bindable private var viewModel: PerfilProfissionalViewModel
+    // `@State`: o modelo vive com a tela. A tela de cima recria este valor a cada redesenho, e sem
+    // isso o formulário já carregado seria trocado por um modelo novo, vazio.
+    @State private var viewModel: PerfilProfissionalViewModel
     private let aoSalvar: () -> Void
     @State private var diaNovo: Int = 5 // Sexta-feira padrão
     @State private var inicioNovo: String = "18:00"
     @State private var fimNovo: String = "02:00"
     @State private var erroFormatoJanela: String?
+    @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     public init(viewModel: PerfilProfissionalViewModel, aoSalvar: @escaping () -> Void = {}) {
-        self.viewModel = viewModel
+        _viewModel = State(initialValue: viewModel)
         self.aoSalvar = aoSalvar
     }
 
     public init(api: any ApiCliente, modo: PerfilProfissionalViewModel.Modo = .criacao, aoSalvar: @escaping () -> Void = {}) {
-        self.viewModel = PerfilProfissionalViewModel(api: api, modo: modo)
+        _viewModel = State(initialValue: PerfilProfissionalViewModel(api: api, modo: modo))
         self.aoSalvar = aoSalvar
     }
 
@@ -71,6 +74,11 @@ public struct TelaPerfilProfissional: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
+        // Funções e horários salvos é o momento de explicar a notificação a quem trabalha (#8): é
+        // com eles que as vagas passam a chegar.
+        .onChange(of: viewModel.sucesso) { _, salvou in
+            if salvou { Task { await permissaoDePush?.oferecer() } }
+        }
         .accessibilityIdentifier("tela-perfil-profissional")
     }
 
