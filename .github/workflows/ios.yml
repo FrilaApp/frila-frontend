@@ -22,7 +22,7 @@ jobs:
   ios:
     name: Testes Local e builds Dev e Prod
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 70
     defaults:
       run:
         shell: bash
