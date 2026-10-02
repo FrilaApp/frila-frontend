@@ -56,4 +56,72 @@ struct PerfisDaContaTests {
         let reputacao = Reputacao(positivas: 1, total: 1, taxaComparecimento: 1, turnosConsiderados: 1, turnosRealizados: 1)
         #expect(SeloReputacao.descricaoComparecimento(reputacao) == "Compareceu a 1 de 1 turno")
     }
+
+    @Test("Constante oficial reúne os endereços de Termos de uso e Política de privacidade (#54)")
+    func constanteDeEnderecosOficiais() {
+        let padrao = EnderecosOficiais.padrao
+        #expect(padrao.termosDeUso.absoluteString == "https://frila.app/termos")
+        #expect(padrao.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+    }
+
+    @Test("Os dois links de termos e privacidade existem em Meu perfil e apontam para a constante (#54)")
+    func linksDeTermosEPrivacidadeEmMeuPerfil() {
+        let api = ApiClienteEmMemoria()
+        let tela = TelaMeuPerfilProfissional(api: api, sair: {})
+
+        #expect(tela.enderecos == EnderecosOficiais.padrao)
+        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
+        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+
+        let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
+        #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)
+        #expect(ajuda.enderecos.politicaDePrivacidade == EnderecosOficiais.padrao.politicaDePrivacidade)
+    }
+
+    @Test("Os dois links de termos e privacidade existem em Estabelecimento e apontam para a constante (#54)")
+    func linksDeTermosEPrivacidadeEmPerfilEstabelecimento() {
+        let api = ApiClienteEmMemoria()
+        let tela = TelaPerfilEstabelecimento(api: api, sair: {})
+
+        #expect(tela.enderecos == EnderecosOficiais.padrao)
+        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
+        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+
+        let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
+        #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)
+        #expect(ajuda.enderecos.politicaDePrivacidade == EnderecosOficiais.padrao.politicaDePrivacidade)
+    }
+
+    @Test("Texto de aceite do cadastro contém os endereços da constante EnderecosOficiais (#54)")
+    func cadastroContemEnderecosOficiais() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        let caminhoCadastro = raiz.appending(path: "Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift")
+        let codigoCadastro = try String(contentsOf: caminhoCadastro, encoding: .utf8)
+        let padrao = EnderecosOficiais.padrao
+        #expect(codigoCadastro.contains(padrao.termosDeUso.absoluteString), "TelaCadastro deve conter o endereço oficial de termos")
+        #expect(codigoCadastro.contains(padrao.politicaDePrivacidade.absoluteString), "TelaCadastro deve conter o endereço oficial de privacidade")
+
+        let caminhoCatalogo = raiz.appending(path: "Resources/Localizable.xcstrings")
+        let conteudoCatalogo = try String(contentsOf: caminhoCatalogo, encoding: .utf8)
+        #expect(conteudoCatalogo.contains(padrao.termosDeUso.absoluteString), "Localizable.xcstrings deve conter o endereço oficial de termos")
+        #expect(conteudoCatalogo.contains(padrao.politicaDePrivacidade.absoluteString), "Localizable.xcstrings deve conter o endereço oficial de privacidade")
+    }
+
+    @Test("TelaAjudaPerfil inicializa com endereços padrão e catálogo contém Licenças de terceiros (#178)")
+    func ajudaContemLicencasDeTerceiros() throws {
+        let ajuda = TelaAjudaPerfil()
+        #expect(ajuda.enderecos == EnderecosOficiais.padrao)
+
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let caminhoCatalogo = raiz.appending(path: "Resources/Localizable.xcstrings")
+        let conteudoCatalogo = try String(contentsOf: caminhoCatalogo, encoding: .utf8)
+        #expect(conteudoCatalogo.contains("Licenças de terceiros"), "Localizable.xcstrings deve conter Licenças de terceiros")
+    }
 }

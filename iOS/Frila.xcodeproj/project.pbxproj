@@ -128,6 +128,7 @@
 		ABE4178CEC067E14CACB2DE9 /* TextosDaPresenca.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287566AB9C576233024D229E /* TextosDaPresenca.swift */; };
 		ACC5F7862C02C11DA160451E /* ApiClienteEmMemoria.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B43084AE2BBE6031C888000 /* ApiClienteEmMemoria.swift */; };
 		B0A2F223F90194BF0E55C3EA /* perfil-publico.json in Resources */ = {isa = PBXBuildFile; fileRef = 2C6E29E69383AE68FCC59B8B /* perfil-publico.json */; };
+		B10F68A230DCC58491A14B4F /* EnderecosOficiais.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6350F07C15F2C061485D1893 /* EnderecosOficiais.swift */; };
 		B4240286AEADBCD34603FDA7 /* FluxoDoContratante.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF5B72F30D0CCEECEC364061 /* FluxoDoContratante.swift */; };
 		B4CC01BB1805BA468261C2AF /* TelaEntrada.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA800A26D965400E7DD27C89 /* TelaEntrada.swift */; };
 		B588E4E496730CE3ACB5EC44 /* Componentes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F1776455FF3BC99C2521A6 /* Componentes.swift */; };
@@ -394,6 +395,7 @@
 		613CDCB34E6B6DABD31BA8CF /* FluxoDoContratanteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoContratanteUITests.swift; sourceTree = "<group>"; };
 		6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidacaoClienteAPI.swift; sourceTree = "<group>"; };
 		619DFD6BAB27B15FAE110431 /* CandidaturaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidaturaTests.swift; sourceTree = "<group>"; };
+		6350F07C15F2C061485D1893 /* EnderecosOficiais.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnderecosOficiais.swift; sourceTree = "<group>"; };
 		6366C57497AD8122ECB069DE /* requisicao-bloquear.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-bloquear.json"; sourceTree = "<group>"; };
 		64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
 		65115E2F0782067BF1010B60 /* ErrosAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrosAPITests.swift; sourceTree = "<group>"; };
@@ -905,6 +907,7 @@
 				A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */,
 				22F1776455FF3BC99C2521A6 /* Componentes.swift */,
 				1686AA539A8DA1D54FF79C2D /* DesignTokens.swift */,
+				6350F07C15F2C061485D1893 /* EnderecosOficiais.swift */,
 				CA215437724E11E1540CB9C9 /* EstadosDeTela.swift */,
 				78AFCB78054D6FCF48C55B9E /* TelaLicencas.swift */,
 				6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */,
@@ -1391,6 +1394,7 @@
 				C0AF8B85A841AC750998C3E1 /* DesignTokens.swift in Sources */,
 				0111F3457DAC26425492C378 /* DestinoAposEntrada.swift in Sources */,
 				F90AF291394408AAFA3F5844 /* DetalheVagaViewModel.swift in Sources */,
+				B10F68A230DCC58491A14B4F /* EnderecosOficiais.swift in Sources */,
 				9F47535E4B4A035E7681523C /* EntradaViewModel.swift in Sources */,
 				F110162D220BD8C9C9635C1C /* EstadosDeTela.swift in Sources */,
 				84515F0AEC28BB9059E909CB /* ExclusaoDeContaViewModel.swift in Sources */,
