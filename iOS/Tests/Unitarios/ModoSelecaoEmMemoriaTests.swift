@@ -492,6 +492,62 @@ struct ModoSelecaoEmMemoriaTests {
         #expect(try await comCandidatura.retirarCandidatura(id: pendente.id).estado == .retirada)
     }
 
+    @Test("Cenário candidatura-escolhida: candidatura aceita, vaga preenchida e o turno em Meus turnos com o contato da casa")
+    func cenarioEscolhida() async throws {
+        let api = ApiClienteEmMemoria(cenario: .candidaturaEscolhida)
+        #expect(try await api.minhaConta().perfil == .profissional)
+        let minha = try #require(try await api.minhasCandidaturas().first)
+        #expect(minha.estado == .aceita)
+        #expect(try await api.detalheDaVaga(id: minha.vaga.id).estado == .preenchida)
+        #expect(try await api.vagasAbertas().isEmpty)
+
+        let turno = try #require(try await api.meusTurnos().first)
+        #expect(turno.id == UUID(uuidString: "84000000-0000-0000-0000-000000000001"))
+        #expect(turno.vaga.id == minha.vaga.id)
+        #expect(try await api.contatoDoTurno(id: turno.id).nome == turno.contraparte.nome)
+        // A escolhida não se retira, e candidatar-se de novo devolve o mesmo turno.
+        await #expect(throws: ErroDaApi(codigo: .candidaturaIndisponivel)) { try await api.retirarCandidatura(id: minha.id) }
+        #expect(try await api.candidatar(vagaID: minha.vaga.id).turnoID == turno.id)
+    }
+
+    @Test("Cenários candidatura-recusada e candidatura-expirada: sem turno, a vaga preenchida ou encerrada, e nada mais a retirar", arguments: [
+        (ApiClienteEmMemoria.Cenario.candidaturaRecusada, EstadoCandidatura.recusada, EstadoVaga.preenchida),
+        (.candidaturaExpirada, .expirada, .encerrada),
+    ])
+    func cenariosSemEscolha(cenario: ApiClienteEmMemoria.Cenario, estado: EstadoCandidatura, vaga: EstadoVaga) async throws {
+        let api = ApiClienteEmMemoria(cenario: cenario)
+        let minha = try #require(try await api.minhasCandidaturas().first)
+        #expect(minha.estado == estado)
+        #expect(try await api.minhasCandidaturas(estado: .pendente).isEmpty)
+        #expect(try await api.detalheDaVaga(id: minha.vaga.id).estado == vaga)
+        #expect(try await api.meusTurnos().isEmpty)
+        await #expect(throws: ErroDaApi(codigo: .candidaturaIndisponivel)) { try await api.retirarCandidatura(id: minha.id) }
+    }
+
+    @Test("Cenário retirar-sem-rede: a retirada não sai do aparelho, e a candidatura continua pendente")
+    func cenarioRetirarSemRede() async throws {
+        let api = ApiClienteEmMemoria(cenario: .retirarSemRede)
+        let minha = try #require(try await api.minhasCandidaturas(estado: .pendente).first)
+        await #expect(throws: ErroDaApi(codigo: .semRede)) { try await api.retirarCandidatura(id: minha.id) }
+        #expect(try await api.minhasCandidaturas().map(\.estado) == [.pendente])
+    }
+
+    @Test("Vaga ocultada abre, com oculta: true, para quem tem candidatura nela em qualquer estado, como no backend", arguments: [
+        ApiClienteEmMemoria.Cenario.candidaturaPendente, .candidaturaRecusada, .candidaturaExpirada,
+    ])
+    func vagaOcultaComCandidatura(cenario: ApiClienteEmMemoria.Cenario) async throws {
+        let api = ApiClienteEmMemoria(cenario: cenario)
+        let minha = try #require(try await api.minhasCandidaturas().first)
+        await api.moderar(vagaID: minha.vaga.id, oculta: true)
+
+        #expect(try await api.detalheDaVaga(id: minha.vaga.id).oculta)
+
+        // Quem nunca se candidatou continua ouvindo 404.
+        let semCandidatura = ApiClienteEmMemoria(cenario: .vagaEmSelecao)
+        await semCandidatura.moderar(vagaID: minha.vaga.id, oculta: true)
+        await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) { try await semCandidatura.detalheDaVaga(id: minha.vaga.id) }
+    }
+
     @Test("A base encaminhadora dos dublês de teste encaminha as quatro RPCs do modo seleção")
     func encaminhador() async throws {
         let base = ApiClienteEmMemoria(cenario: .selecaoComCandidatos)

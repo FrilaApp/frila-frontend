@@ -14,6 +14,9 @@ public enum MotivoInelegivel: Hashable, Sendable {
 /// O que a candidatura deu. Tudo vem do código do erro e dos `details`, nunca do texto da mensagem.
 public enum ResultadoDaCandidatura: Equatable, Sendable {
     case confirmada(turnoID: UUID?, contato: Contato?)
+    /// Vaga de seleção (contrato 0.2.24): a candidatura foi enviada e espera a escolha da casa. Não
+    /// há posição, turno nem contato; o id é o que `retirar_candidatura` pede.
+    case pendente(candidaturaID: UUID)
     /// `409 posicao_ja_preenchida`: alguém chegou antes (RN19). É resultado normal, não erro.
     case vagaPreenchida
     /// `409 vaga_encerrada`: a vaga foi cancelada, encerrada ou o início já passou.
@@ -49,6 +52,7 @@ extension ResultadoDaCandidatura: Hashable {
         case .naoEncontrada: hasher.combine(5)
         case let .falha(erro): hasher.combine(6); hasher.combine(erro.codigo); hasher.combine(erro.codigoOriginal); hasher.combine(erro.detalhes)
         case .outraEmAndamento: hasher.combine(7)
+        case let .pendente(candidaturaID): hasher.combine(8); hasher.combine(candidaturaID)
         }
     }
 }
@@ -65,18 +69,56 @@ public enum EstadoDaCandidatura: Equatable, Sendable {
 public final class CandidaturaViewModel {
     public let vaga: Vaga
     public private(set) var estado: EstadoDaCandidatura = .ocioso
+    /// A candidatura pendente da conta nesta vaga de seleção. `Vaga` não diz se quem chama já se
+    /// candidatou (lacuna do contrato): o view model cruza com `minhas_candidaturas` pelo id da vaga.
+    public private(set) var candidaturaPendente: UUID?
+    /// A conferência da candidatura pendente está em voo: até ela voltar, o botão espera.
+    public private(set) var conferindo = false
     private let enviar: @Sendable (UUID) async throws -> ResultadoCandidatura
+    private let minhasPendentes: (@Sendable () async throws -> [Candidatura])?
 
     public convenience init(vaga: Vaga, api: any ApiCliente) {
-        self.init(vaga: vaga, candidatar: { try await api.candidatar(vagaID: $0) })
+        self.init(
+            vaga: vaga,
+            candidatar: { try await api.candidatar(vagaID: $0) },
+            minhasPendentes: { try await api.minhasCandidaturas(estado: .pendente) }
+        )
     }
 
-    public init(vaga: Vaga, candidatar: @escaping @Sendable (UUID) async throws -> ResultadoCandidatura) {
+    public init(
+        vaga: Vaga,
+        candidatar: @escaping @Sendable (UUID) async throws -> ResultadoCandidatura,
+        minhasPendentes: (@Sendable () async throws -> [Candidatura])? = nil
+    ) {
         self.vaga = vaga
         self.enviar = candidatar
+        self.minhasPendentes = minhasPendentes
     }
 
     public var enviando: Bool { estado == .enviando }
+
+    /// Só a vaga de seleção tem candidatura pendente. Se a leitura falha, o botão volta: candidatar-se
+    /// de novo devolve a mesma candidatura pendente, sem criar outra (contrato 0.2.24).
+    public func conferirCandidatura() async {
+        guard vaga.modo == .selecao, let minhasPendentes, !conferindo else { return }
+        conferindo = true
+        defer { conferindo = false }
+        guard let pendentes = try? await minhasPendentes() else { return }
+        // Uma candidatura enviada ou retirada enquanto a leitura estava em voo vale mais do que ela.
+        guard estado == .ocioso, !retirouAgora else { return }
+        candidaturaPendente = pendentes.first { $0.vaga.id == vaga.id }?.id
+    }
+
+    /// A pessoa retirou a candidatura pendente: o detalhe volta a oferecer Candidatar-me.
+    public func candidaturaRetirada() {
+        guard !enviando else { return }
+        candidaturaPendente = nil
+        retirouAgora = true
+        estado = .ocioso
+    }
+
+    /// A retirada aconteceu nesta tela: a leitura que saiu antes dela não traz a candidatura de volta.
+    private var retirouAgora = false
 
     public func candidatar() async {
         // A troca para `enviando` acontece no MainActor antes do primeiro await: um segundo toque que
@@ -90,6 +132,10 @@ public final class CandidaturaViewModel {
             resultado = Self.mapear(erro)
         } catch {
             resultado = .falha(ErroDaApi(codigo: .desconhecido, codigoOriginal: String(reflecting: type(of: error))))
+        }
+        if case let .pendente(candidaturaID) = resultado {
+            candidaturaPendente = candidaturaID
+            retirouAgora = false
         }
         estado = .concluida(resultado)
     }
@@ -111,10 +157,7 @@ public final class CandidaturaViewModel {
         case .confirmada:
             .confirmada(turnoID: resposta.turnoID, contato: resposta.contato)
         case .pendente:
-            // O backend aceita vaga de seleção desde o contrato 0.2.24, e a candidatura nela nasce
-            // pendente. O app ainda não publica nesse modo nem tem a tela de candidatura pendente
-            // (decisão de produto em aberto): até lá, o resultado segue como falha recuperável.
-            .falha(ErroDaApi(codigo: .respostaInvalida, codigoOriginal: "candidatura_pendente"))
+            .pendente(candidaturaID: resposta.candidaturaID)
         }
     }
 

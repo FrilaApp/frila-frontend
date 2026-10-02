@@ -8,34 +8,54 @@ private typealias Textos = TextosDoProfissional.Candidatura
 
 /// Candidatar-me, no detalhe (#105). O botão fica desabilitado enquanto a chamada está em voo.
 /// Resultados com tela própria vão pelo roteador; não encontrada e falha ficam aqui, com nova tentativa.
+/// Na vaga de seleção em que a conta já tem candidatura pendente (#10), o lugar do botão é da
+/// candidatura enviada, com Retirar candidatura.
 public struct AreaDeCandidatura: View {
     @State private var viewModel: CandidaturaViewModel
+    /// A pessoa acabou de retirar a candidatura nesta tela: o botão volta, com o aviso.
+    @State private var retirouAgora = false
+    private let api: (any ApiCliente)?
     private let candidatar: (CandidaturaViewModel) async -> Void
 
     public init(vaga: Vaga, api: any ApiCliente, candidatar: @escaping (CandidaturaViewModel) async -> Void) {
         _viewModel = State(initialValue: CandidaturaViewModel(vaga: vaga, api: api))
+        self.api = api
         self.candidatar = candidatar
     }
 
     init(viewModel: CandidaturaViewModel, candidatar: @escaping (CandidaturaViewModel) async -> Void) {
         _viewModel = State(initialValue: viewModel)
+        self.api = nil
         self.candidatar = candidatar
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            BotaoPrimario(verbatim: TextosDoProfissional.Detalhe.candidatar, carregando: viewModel.enviando) {
-                Task { await candidatar(viewModel) }
-            }
-            .disabled(viewModel.enviando)
-            .accessibilityIdentifier("candidatar")
-            .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
+            if let candidaturaID = viewModel.candidaturaPendente {
+                CandidaturaEnviada(candidaturaID: candidaturaID, api: api, compacta: true) {
+                    viewModel.candidaturaRetirada()
+                    retirouAgora = true
+                }
+                .id(candidaturaID)
+            } else {
+                if retirouAgora, viewModel.estado == .ocioso {
+                    AvisoFrila(verbatim: TextosDaCandidaturaEmSelecao.retiradaNoDetalhe, tom: .informativo)
+                        .accessibilityIdentifier("candidatura-retirada")
+                }
+                BotaoPrimario(verbatim: TextosDoProfissional.Detalhe.candidatar, carregando: viewModel.enviando) {
+                    Task { await candidatar(viewModel) }
+                }
+                .disabled(viewModel.enviando || viewModel.conferindo)
+                .accessibilityIdentifier("candidatar")
+                .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
 
-            if case let .concluida(resultado) = viewModel.estado, let texto = Self.mensagemNoDetalhe(resultado) {
-                AvisoFrila(verbatim: texto, tom: resultado == .outraEmAndamento ? .alerta : .erro)
-                    .accessibilityIdentifier(resultado == .outraEmAndamento ? "candidatura-em-voo" : "candidatura-falha")
+                if case let .concluida(resultado) = viewModel.estado, let texto = Self.mensagemNoDetalhe(resultado) {
+                    AvisoFrila(verbatim: texto, tom: resultado == .outraEmAndamento ? .alerta : .erro)
+                        .accessibilityIdentifier(resultado == .outraEmAndamento ? "candidatura-em-voo" : "candidatura-falha")
+                }
             }
         }
+        .task { await viewModel.conferirCandidatura() }
         .onChange(of: viewModel.estado) { _, novo in
             guard case let .concluida(resultado) = novo else { return }
             if let texto = Self.mensagemNoDetalhe(resultado) {
@@ -60,11 +80,20 @@ public struct AreaDeCandidatura: View {
 public struct TelaResultadoDaCandidatura: View {
     private let vaga: Vaga
     private let resultado: ResultadoDaCandidatura
+    private let api: (any ApiCliente)?
+    private let verCandidaturas: (() -> Void)?
     private let voltarParaLista: () -> Void
 
-    public init(vaga: Vaga, resultado: ResultadoDaCandidatura, voltarParaLista: @escaping () -> Void) {
+    /// `api` e `verCandidaturas` servem à candidatura pendente da vaga de seleção (#10): a retirada
+    /// e o caminho para a aba em que ela fica.
+    public init(
+        vaga: Vaga, resultado: ResultadoDaCandidatura, api: (any ApiCliente)? = nil, verCandidaturas: (() -> Void)? = nil,
+        voltarParaLista: @escaping () -> Void
+    ) {
         self.vaga = vaga
         self.resultado = resultado
+        self.api = api
+        self.verCandidaturas = verCandidaturas
         self.voltarParaLista = voltarParaLista
     }
 
@@ -97,8 +126,21 @@ public struct TelaResultadoDaCandidatura: View {
         case let .confirmada(_, contato):
             TurnoConfirmado(vaga: vaga, contato: contato)
             voltar
+        case let .pendente(candidaturaID):
+            CandidaturaEnviada(candidaturaID: candidaturaID, api: api)
+            resumoDaVaga
+            if let verCandidaturas {
+                BotaoSecundario(verbatim: TextosDaCandidaturaEmSelecao.verCandidaturas, acao: verCandidaturas)
+                    .accessibilityIdentifier("ver-minhas-candidaturas")
+            }
+            voltar
         case .vagaPreenchida:
-            mensagem(Textos.preenchidaTitulo, Textos.preenchidaMensagem, id: "resultado-vaga-preenchida")
+            // O texto da urgência ("quem aceita primeiro") não vale para a vaga em que a casa escolhe.
+            mensagem(
+                Textos.preenchidaTitulo,
+                vaga.modo == .selecao ? TextosDaCandidaturaEmSelecao.preenchidaEmSelecao : Textos.preenchidaMensagem,
+                id: "resultado-vaga-preenchida"
+            )
             voltar
         case .vagaEncerrada:
             mensagem(Textos.encerradaTitulo, Textos.encerradaMensagem, id: "resultado-vaga-encerrada")
@@ -133,6 +175,18 @@ public struct TelaResultadoDaCandidatura: View {
             .accessibilityIdentifier("voltar-para-lista")
     }
 
+    /// A vaga a que a candidatura pendente se refere. Sem contato: ele só existe depois da escolha (RN10).
+    private var resumoDaVaga: some View {
+        let formatador = FormatadorFrila()
+        return VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)").font(.headline)
+            Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityElement(children: .combine)
+    }
+
     private func mensagem(_ titulo: String, _ texto: String, id: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: titulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
@@ -146,6 +200,7 @@ public struct TelaResultadoDaCandidatura: View {
     private var titulo: String {
         switch resultado {
         case .confirmada: Textos.confirmadoTitulo
+        case .pendente: TextosDaCandidaturaEmSelecao.enviadaTitulo
         case .vagaPreenchida: Textos.preenchidaTitulo
         case .vagaEncerrada: Textos.encerradaTitulo
         case .inelegivel(.turnoSobreposto): Textos.sobrepostoTitulo

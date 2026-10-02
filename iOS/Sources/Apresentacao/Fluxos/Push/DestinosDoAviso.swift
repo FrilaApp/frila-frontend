@@ -33,7 +33,9 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
     private enum Busca: Equatable {
         case pendente
         case achou(Turno)
-        case semTurno
+        /// Sem turno na vaga. `candidatura` é o estado da candidatura da conta nela, se houver: é o
+        /// que diz a quem foi recusado, ou esperava quando a seleção fechou, o que aconteceu (#10).
+        case semTurno(candidatura: EstadoCandidatura?)
     }
 
     @State private var detalhe: DetalheVagaViewModel
@@ -68,8 +70,8 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
                     .task { busca = await procurarTurno() }
             case let .achou(meuTurno):
                 turno(meuTurno)
-            case .semTurno:
-                TelaVagaIndisponivel(motivo: motivo, voltarParaLista: voltarParaLista)
+            case let .semTurno(candidatura):
+                TelaVagaIndisponivel(motivo: motivo, candidatura: candidatura, modo: modoDaVaga, voltarParaLista: voltarParaLista)
             }
         } else {
             TelaDetalheVaga(viewModel: detalhe) { vaga in
@@ -78,10 +80,19 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
         }
     }
 
-    /// Sem conseguir ler os turnos, vale o que o servidor disse da vaga.
+    private var modoDaVaga: ModoPreenchimento? {
+        if case let .carregado(vaga) = detalhe.estado { return vaga.modo }
+        return nil
+    }
+
+    /// Sem conseguir ler os turnos, vale o que o servidor disse da vaga. A candidatura vem antes: a
+    /// recusada e a expirada não têm turno, e assim um turno antigo da conta na mesma vaga (o
+    /// cancelado continua em `meus_turnos`) não toma o lugar da explicação.
     private func procurarTurno() async -> Busca {
+        let candidatura = try? await api.minhasCandidaturas().first { $0.vaga.id == detalhe.vagaID }?.estado
+        if candidatura == .recusada || candidatura == .expirada { return .semTurno(candidatura: candidatura) }
         guard let turnos = try? await repositorio.ler().turnos,
-              let meu = turnos.first(where: { $0.vaga.id == detalhe.vagaID }) else { return .semTurno }
+              let meu = turnos.first(where: { $0.vaga.id == detalhe.vagaID }) else { return .semTurno(candidatura: candidatura) }
         return .achou(meu)
     }
 }
@@ -90,7 +101,12 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
 /// lista. Os textos são os mesmos do resultado da candidatura.
 struct TelaVagaIndisponivel: View {
     private typealias Textos = TextosDoProfissional.Candidatura
+    private typealias TextosDaSelecao = TextosDaCandidaturaEmSelecao
     let motivo: IndisponibilidadeDaVaga
+    /// O estado da candidatura da conta nesta vaga, quando há uma: a recusada e a expirada têm
+    /// explicação própria (avisos `candidatura_recusada` e `selecao_encerrada`).
+    var candidatura: EstadoCandidatura?
+    var modo: ModoPreenchimento?
     let voltarParaLista: () -> Void
 
     var body: some View {
@@ -115,15 +131,22 @@ struct TelaVagaIndisponivel: View {
         .onAppear { AccessibilityNotification.Announcement(titulo).post() }
     }
 
-    private var titulo: String {
-        motivo == .preenchida ? Textos.preenchidaTitulo : Textos.encerradaTitulo
-    }
+    private var titulo: String { Self.textos(motivo: motivo, candidatura: candidatura, modo: modo).titulo }
+    private var mensagem: String { Self.textos(motivo: motivo, candidatura: candidatura, modo: modo).mensagem }
 
-    private var mensagem: String {
-        switch motivo {
-        case .preenchida: Textos.preenchidaMensagem
-        case .encerrada: Textos.encerradaMensagem
-        case .naoEncontrada: Textos.naoEncontrada
+    /// O que a tela diz. A candidatura recusada ou expirada da conta explica mais do que o estado
+    /// da vaga; sem ela, vale o estado que o servidor devolveu.
+    static func textos(
+        motivo: IndisponibilidadeDaVaga, candidatura: EstadoCandidatura?, modo: ModoPreenchimento?
+    ) -> (titulo: String, mensagem: String) {
+        switch (candidatura, motivo) {
+        case (.recusada, _): (TextosDaSelecao.recusadaTitulo, TextosDaSelecao.recusadaMensagem)
+        case (.expirada, _): (TextosDaSelecao.expiradaTitulo, TextosDaSelecao.expiradaMensagem)
+        // "Quem aceita primeiro" é da urgência: na seleção, quem preenche a vaga é a escolha da casa.
+        case (_, .preenchida):
+            (Textos.preenchidaTitulo, modo == .selecao ? TextosDaSelecao.preenchidaEmSelecao : Textos.preenchidaMensagem)
+        case (_, .encerrada): (Textos.encerradaTitulo, Textos.encerradaMensagem)
+        case (_, .naoEncontrada): (Textos.encerradaTitulo, Textos.naoEncontrada)
         }
     }
 }

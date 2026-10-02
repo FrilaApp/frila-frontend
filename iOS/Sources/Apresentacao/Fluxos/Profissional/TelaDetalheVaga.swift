@@ -93,7 +93,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .cartaoFrila()
             .accessibilityIdentifier("detalhe-reputacao")
 
-        AvisoFrila(verbatim: TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome), tom: .alerta)
+        AvisoFrila(verbatim: avisoRN10(vaga), tom: .alerta)
             .accessibilityIdentifier("aviso-rn10")
 
         if !dynamicTypeSize.isAccessibilitySize {
@@ -136,6 +136,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
     private func cabecalho(_ vaga: Vaga) -> String {
         guard let km = vaga.distanciaKm else { return "\(vaga.estabelecimento.nome) · \(vaga.local)" }
         return "\(vaga.estabelecimento.nome) · \(vaga.local) · a \(FormatadorFrila().distancia(km))"
+    }
+
+    /// Na vaga de seleção o contato só é mostrado se a casa escolher a candidatura (RN10).
+    private func avisoRN10(_ vaga: Vaga) -> String {
+        vaga.modo == .selecao
+            ? String(format: TextosDaCandidaturaEmSelecao.avisoRN10, vaga.estabelecimento.nome)
+            : TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome)
     }
 
     private func modoTitulo(_ modo: ModoPreenchimento) -> String {
