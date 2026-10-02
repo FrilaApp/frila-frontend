@@ -89,9 +89,11 @@ struct TurnoContrato0231Tests {
         lista[0]["avaliacao"] = NSNull()
         lista[0]["pode_avaliar"] = true
         let dados = try JSONSerialization.data(withJSONObject: lista)
-        let novo = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self, from: dados).first).dominio()
+        let dto = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self, from: dados).first)
         let reserva = ArmazenamentoAvaliacoesEmMemoria()
-        reserva.salvar(resposta: false, para: novo.id, contaID: contaID)
+        reserva.salvar(resposta: false, para: dto.id, contaID: contaID)
+        // A leitura nova é posterior à reserva antiga e, portanto, o nulo prevalece.
+        let novo = try dto.dominio()
         let vm = MeuTurnoViewModel(turno: novo, api: ApiClienteEmMemoria(), contaID: contaID,
                                   armazenamentoAvaliacoes: reserva, relogio: RelogioFixo(agora))
         #expect(!vm.jaAvaliado)
@@ -113,7 +115,7 @@ struct TurnoContrato0231Tests {
         #expect(vm.jaAvaliado)
         #expect(vm.respostaAvaliacao == false)
         var cache = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(antigo)) as? [String: Any])
-        for chave in ["estado", "avaliacao", "avaliacaoInformada", "cancelamento"] { cache.removeValue(forKey: chave) }
+        for chave in ["estado", "avaliacao", "avaliacaoInformada", "cancelamento", "avaliacaoLidaEm"] { cache.removeValue(forKey: chave) }
         let restaurado = try JSONDecoder().decode(Turno.self, from: JSONSerialization.data(withJSONObject: cache))
         #expect(restaurado.estado == nil && !restaurado.servidorInformaAvaliacao)
         let avaliado = try turno("turnos-avaliados")
@@ -121,6 +123,7 @@ struct TurnoContrato0231Tests {
         #expect(copia.avaliacao == avaliado.avaliacao)
         #expect(copia.estado == avaliado.estado)
         #expect(copia.servidorInformaAvaliacao)
+        #expect(copia.avaliacaoLidaEm == avaliado.avaliacaoLidaEm)
     }
 
     @Test("Sair limpa a reserva, e entrar de novo recupera a avaliação pelo servidor", arguments: [true, false])
@@ -150,6 +153,130 @@ struct TurnoContrato0231Tests {
         let novaAvaliacao = try #require(novaTela.criarAvaliacaoViewModel())
         await novaAvaliacao.carregar()
         #expect(novaAvaliacao.jaAvaliado && novaAvaliacao.resposta == resposta)
+    }
+
+    @Test("Reabrir o turno da lista anterior ao voto preserva a resposta aceita")
+    func reabrirListaAnteriorAoVoto() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        let conta = try await api.minhaConta()
+        let inicial = try #require(try await api.meusTurnos().first)
+        let reserva = ArmazenamentoAvaliacoesEmMemoria()
+        var atualizacoesDaLista = 0
+        let primeira = MeuTurnoViewModel(turno: inicial, api: api, contaID: conta.id, armazenamentoAvaliacoes: reserva,
+                                        aoAvaliar: { atualizacoesDaLista += 1 })
+        let form = try #require(primeira.criarAvaliacaoViewModel())
+        form.resposta = true
+        #expect(await form.salvar())
+        #expect(atualizacoesDaLista == 1)
+        let segunda = MeuTurnoViewModel(turno: inicial, api: api, contaID: conta.id, armazenamentoAvaliacoes: reserva)
+        #expect(segunda.jaAvaliado)
+        #expect(segunda.respostaAvaliacao == true)
+        let reaberto = try #require(segunda.criarAvaliacaoViewModel())
+        await reaberto.carregar()
+        #expect(reaberto.jaAvaliado && reaberto.resposta == true)
+        #expect(await reaberto.salvar() == false)
+        #expect(reserva.resposta(para: inicial.id, contaID: conta.id) == true)
+    }
+
+    @Test("Voto sem rede bloqueia o cartão atual e o reaberto, sem duplicar a fila")
+    func votoSemRede() async throws {
+        let api = ApiSemRedeAoAvaliar()
+        let conta = try await api.minhaConta()
+        let inicial = try #require(try await api.meusTurnos().first)
+        let reserva = ArmazenamentoAvaliacoesEmMemoria()
+        let fila = FilaDoContrato()
+        let primeira = MeuTurnoViewModel(turno: inicial, api: api, contaID: conta.id, fila: fila, armazenamentoAvaliacoes: reserva)
+        let form = try #require(primeira.criarAvaliacaoViewModel())
+        form.resposta = false
+        #expect(await form.salvar())
+        #expect(form.enfileiradoOffline)
+        #expect(primeira.jaAvaliado && primeira.respostaAvaliacao == false)
+        let segunda = MeuTurnoViewModel(turno: inicial, api: api, contaID: conta.id, fila: fila, armazenamentoAvaliacoes: reserva)
+        await segunda.carregar()
+        #expect(segunda.jaAvaliado && segunda.respostaAvaliacao == false)
+        let reaberto = try #require(segunda.criarAvaliacaoViewModel())
+        await reaberto.carregar()
+        #expect(reaberto.jaAvaliado && reaberto.resposta == false && reaberto.enfileiradoOffline)
+        #expect(await reaberto.salvar() == false)
+        #expect(try await fila.pendentes().count == 1)
+    }
+
+    @Test("Fila deste autor prevalece mesmo sobre uma leitura nula posterior ao voto")
+    func filaPrevaleceSobreNuloNovo() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        let conta = try await api.minhaConta()
+        let inicial = try #require(try await api.meusTurnos().first)
+        let reserva = ArmazenamentoAvaliacoesEmMemoria()
+        reserva.salvar(resposta: false, para: inicial.id, contaID: conta.id)
+        let fila = FilaDoContrato()
+        try await fila.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: inicial.id, contaID: conta.id,
+                                              instanteDoToque: Date(), chave: UUID(), resposta: false))
+        let novo = try #require(try await api.meusTurnos().first)
+        let vm = MeuTurnoViewModel(turno: novo, api: api, contaID: conta.id, fila: fila, armazenamentoAvaliacoes: reserva)
+        await vm.carregar()
+        #expect(vm.jaAvaliado && vm.respostaAvaliacao == false)
+        let form = try #require(vm.criarAvaliacaoViewModel())
+        await form.carregar()
+        #expect(form.jaAvaliado && form.resposta == false && form.enfileiradoOffline)
+        let outra = MeuTurnoViewModel(turno: novo, api: api, contaID: UUID(), fila: fila, armazenamentoAvaliacoes: reserva)
+        await outra.carregar()
+        #expect(!outra.jaAvaliado && outra.respostaAvaliacao == nil)
+    }
+
+    @Test("409 preserva a resposta conhecida e não grava a tentativa recusada")
+    func conflitoPreservaResposta() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        let conta = try await api.minhaConta()
+        let inicial = try #require(try await api.meusTurnos().first)
+        _ = try await api.avaliar(turnoID: inicial.id, resposta: true)
+        let reserva = ArmazenamentoAvaliacoesEmMemoria()
+        reserva.salvar(resposta: true, para: inicial.id, contaID: conta.id)
+        // Uma leitura posterior nula permite tentar de novo; o servidor recusa o segundo voto.
+        let dados = try JSONEncoder().encode(inicial)
+        var objeto = try #require(try JSONSerialization.jsonObject(with: dados) as? [String: Any])
+        objeto["avaliacaoLidaEm"] = Date().timeIntervalSinceReferenceDate
+        let novo = try JSONDecoder().decode(Turno.self, from: JSONSerialization.data(withJSONObject: objeto))
+        let form = AvaliacaoTurnoViewModel(turnoID: novo.id, contaID: conta.id, turno: novo, api: api, armazenamento: reserva)
+        #expect(!form.jaAvaliado)
+        form.resposta = false
+        #expect(await form.salvar() == false)
+        #expect(form.jaAvaliado && form.resposta == true)
+        #expect(reserva.resposta(para: novo.id, contaID: conta.id) == true)
+        #expect(form.mensagemDeErro == nil)
+        let reaberto = MeuTurnoViewModel(turno: novo, api: api, contaID: conta.id, armazenamentoAvaliacoes: reserva)
+        #expect(reaberto.jaAvaliado && reaberto.respostaAvaliacao == true)
+    }
+
+    @Test("Aviso carrega a avaliação do servidor sem depender da reserva do aparelho")
+    func avisoLeAvaliacaoDoServidor() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoAvaliado)
+        let conta = try await api.minhaConta()
+        let inicial = try #require(try await api.meusTurnos().first)
+        let form = AvaliacaoTurnoViewModel(turnoID: inicial.id, contaID: conta.id, api: api,
+                                          armazenamento: ArmazenamentoAvaliacoesEmMemoria(), repositorioTurnos: api)
+        await form.carregar()
+        #expect(form.turno?.id == inicial.id)
+        #expect(form.jaAvaliado && form.resposta == false)
+        form.resposta = true
+        #expect(await form.salvar() == false)
+        #expect(form.resposta == false)
+    }
+
+    @Test("Data da reserva persiste por conta e é removida ao sair")
+    func instanteDaReservaPersistido() throws {
+        let nome = "pr87-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: nome))
+        defer { defaults.removePersistentDomain(forName: nome) }
+        let id = UUID()
+        let antes = Date()
+        UserDefaultsArmazenamentoAvaliacoes(defaults: defaults).salvar(resposta: false, para: id, contaID: contaID)
+        let reaberto = UserDefaultsArmazenamentoAvaliacoes(defaults: defaults)
+        #expect(try #require(reaberto.registradaEm(para: id, contaID: contaID)) >= antes)
+        #expect(reaberto.resposta(para: id, contaID: contaID) == false)
+        #expect(reaberto.registradaEm(para: id, contaID: UUID()) == nil)
+        reaberto.limpar()
+        #expect(reaberto.registradaEm(para: id, contaID: contaID) == nil)
+        #expect(!reaberto.jaRegistrada(para: id, contaID: contaID))
     }
 
     @Test("Dublê mantém o turno cancelado na lista e não oferece avaliação")
@@ -269,4 +396,19 @@ private final class ApiDoTurnoCancelado: ApiClienteEncaminhador, @unchecked Send
         trava.withLock { quantidade += 1 }
         return try await super.contatoDoTurno(id: id)
     }
+}
+
+private final class ApiSemRedeAoAvaliar: ApiClienteEncaminhador, @unchecked Sendable {
+    init() { super.init(base: ApiClienteEmMemoria(cenario: .turnoEncerrado)) }
+    override func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
+        throw ErroDaApi(codigo: .semRede)
+    }
+}
+
+private actor FilaDoContrato: FilaDeAcoes {
+    private var itens: [AcaoPendente] = []
+    func enfileirar(_ acao: AcaoPendente) { itens.append(acao) }
+    func pendentes() -> [AcaoPendente] { itens }
+    func remover(id: UUID) { itens.removeAll { $0.id == id } }
+    func limpar() { itens.removeAll() }
 }

@@ -51,6 +51,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case vagaEncerradaContratante = "vaga-encerrada-contratante"
         /// Turno encerrado e verificado para avaliação de turno no fluxo natural (#22).
         case turnoEncerrado = "turno-encerrado"
+        /// A lista funciona, mas avaliar falha sem rede para exercitar a fila real.
+        case avaliacaoSemRede = "avaliacao-sem-rede"
         case turnoEncerradoVerificado = "turno-encerrado-verificado"
         case turnoCancelado = "turno-cancelado"
         case turnoCanceladoComFalta = "turno-cancelado-com-falta"
@@ -360,7 +362,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     }
                 }
             }
-            if (cenario == .turnoEncerrado || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado), let vaga = self.vagas.first {
+            if (cenario == .turnoEncerrado || cenario == .avaliacaoSemRede || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado), let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "22000000-0000-0000-0000-000000000002")!
                 let duracao: TimeInterval = 6 * 3600
@@ -961,7 +963,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
                 checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
                 valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
-                estado: estado, avaliacao: avaliacao, avaliacaoInformada: true, cancelamento: t.cancelamento
+                estado: estado, avaliacao: avaliacao, avaliacaoInformada: true, cancelamento: t.cancelamento,
+                avaliacaoLidaEm: Date()
             )
         }
     }
@@ -1072,6 +1075,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
         try verificarFalhaGeral()
+        if cenario == .avaliacaoSemRede { throw ErroDaApi(codigo: .semRede) }
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         guard avaliacoes[turnoID] == nil else { throw erro("avaliacao_ja_registrada") }
         let avaliacao = Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: relogio.agora)

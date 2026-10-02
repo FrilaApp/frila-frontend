@@ -737,7 +737,7 @@ enum ContratoAPI {
                 estado: estado,
                 avaliacao: avaliacao?.dominio(),
                 avaliacaoInformada: avaliacaoInformada,
-                cancelamento: cancelamento?.dominio()
+                cancelamento: cancelamento?.dominio(), avaliacaoLidaEm: Date()
             )
         }
     }

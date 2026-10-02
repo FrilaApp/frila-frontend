@@ -533,6 +533,8 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
     public let avaliacao: Avaliacao?
     /// `nil` preserva caches antigos. `true` distingue resposta nula de campo ausente.
     public let avaliacaoInformada: Bool?
+    /// Instante local da leitura da API; o cache conserva a data, sem renovar um nulo antigo.
+    public let avaliacaoLidaEm: Date?
     public let cancelamento: CancelamentoDoTurno?
     public var servidorInformaAvaliacao: Bool { avaliacaoInformada == true || avaliacao != nil }
     public var cancelado: Bool { estado == .cancelada }
@@ -556,7 +558,8 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         estado: EstadoPosicao? = nil,
         avaliacao: Avaliacao? = nil,
         avaliacaoInformada: Bool? = nil,
-        cancelamento: CancelamentoDoTurno? = nil
+        cancelamento: CancelamentoDoTurno? = nil,
+        avaliacaoLidaEm: Date? = nil
     ) {
         self.id = id
         self.posicaoID = posicaoID
@@ -574,6 +577,22 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         self.avaliacao = avaliacao
         self.avaliacaoInformada = avaliacaoInformada
         self.cancelamento = cancelamento
+        self.avaliacaoLidaEm = avaliacaoLidaEm
+    }
+
+    // A data da leitura é metadado do cache, não muda a identidade nem o conteúdo do turno.
+    public static func == (lhs: Turno, rhs: Turno) -> Bool {
+        lhs.id == rhs.id && lhs.posicaoID == rhs.posicaoID && lhs.vaga == rhs.vaga &&
+        lhs.contraparte == rhs.contraparte && lhs.contatoVisivelAte == rhs.contatoVisivelAte &&
+        lhs.aCaminhoEm == rhs.aCaminhoEm && lhs.checkin == rhs.checkin && lhs.checkout == rhs.checkout &&
+        lhs.verificacao == rhs.verificacao && lhs.valorAcordado == rhs.valorAcordado &&
+        lhs.podeAvaliar == rhs.podeAvaliar && lhs.contato == rhs.contato && lhs.estado == rhs.estado &&
+        lhs.avaliacao == rhs.avaliacao && lhs.avaliacaoInformada == rhs.avaliacaoInformada &&
+        lhs.cancelamento == rhs.cancelamento
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 
     public func contatoVisivel(em instante: Date) -> Bool { instante <= contatoVisivelAte }
@@ -584,7 +603,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
             estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada,
-            cancelamento: cancelamento
+            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm
         )
     }
 
@@ -594,7 +613,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
             estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada,
-            cancelamento: cancelamento
+            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm
         )
     }
 
@@ -604,7 +623,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: false, contato: contato,
             estado: estado, avaliacao: avaliacao, avaliacaoInformada: true,
-            cancelamento: cancelamento
+            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm
         )
     }
 

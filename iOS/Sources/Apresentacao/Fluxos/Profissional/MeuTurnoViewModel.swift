@@ -13,6 +13,8 @@ public final class MeuTurnoViewModel {
     public let presenca: PresencaDoTurnoViewModel?
 
     private var avaliacaoEnviada: Avaliacao?
+    private var respostaPendente: Bool?
+    private let aoAvaliar: (() -> Void)?
 
     public var cancelado: Bool { turno.cancelado }
     public var permiteAcoesDoTurno: Bool { !cancelado }
@@ -39,9 +41,11 @@ public final class MeuTurnoViewModel {
         fila: (any FilaDeAcoes)? = nil,
         armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         relogio: any Relogio = RelogioDoSistema(),
-        presenca: PresencaDoTurnoViewModel? = nil
+        presenca: PresencaDoTurnoViewModel? = nil,
+        aoAvaliar: (() -> Void)? = nil
     ) {
         self.turno = turno
+        self.aoAvaliar = aoAvaliar
         self.api = api
         self.contaID = contaID
         self.filaDeAcoes = fila
@@ -73,14 +77,15 @@ public final class MeuTurnoViewModel {
 
     public var respostaAvaliacao: Bool? {
         if let avaliacao = avaliacaoEnviada ?? turno.avaliacao { return avaliacao.resposta }
-        guard !turno.servidorInformaAvaliacao, let contaID else { return nil }
+        if let respostaPendente { return respostaPendente }
+        guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return nil }
         return armazenamentoAvaliacoes.resposta(para: turno.id, contaID: contaID)
     }
 
     public var jaAvaliado: Bool {
-        if avaliacaoEnviada != nil || turno.avaliacao != nil { return true }
-        guard !turno.servidorInformaAvaliacao, let contaID else { return false }
-        return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.podeAvaliar && podeAvaliar)
+        if avaliacaoEnviada != nil || turno.avaliacao != nil || respostaPendente != nil { return true }
+        guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return false }
+        return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.servidorInformaAvaliacao && !turno.podeAvaliar && podeAvaliar)
     }
 
     public func criarAvaliacaoViewModel() -> AvaliacaoTurnoViewModel? {
@@ -93,7 +98,11 @@ public final class MeuTurnoViewModel {
             fila: filaDeAcoes,
             armazenamento: armazenamentoAvaliacoes,
             relogio: relogio,
-            aoAvaliar: { [weak self] avaliacao in self?.avaliacaoEnviada = avaliacao }
+            aoAvaliar: { [weak self] avaliacao in
+                self?.avaliacaoEnviada = avaliacao
+                self?.aoAvaliar?()
+            },
+            aoEnfileirar: { [weak self] resposta in self?.respostaPendente = resposta }
         )
     }
 
@@ -128,6 +137,11 @@ public final class MeuTurnoViewModel {
 
     public func carregar() async {
         guard permiteAcoesDoTurno else { return }
+        if let contaID, turno.avaliacao == nil {
+            respostaPendente = try? await filaDeAcoes?.pendentes().first {
+                $0.tipo == .avaliacao && $0.turnoID == turno.id && $0.contaID == contaID
+            }?.resposta
+        }
         await presenca?.restaurarPendentes()
         if !turno.contatoVisivel(em: relogio.agora) {
             contato = nil
