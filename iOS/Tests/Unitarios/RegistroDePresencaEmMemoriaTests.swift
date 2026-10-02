@@ -102,4 +102,42 @@ struct RegistroDePresencaEmMemoriaTests {
         #expect(try await api.fazerCheckout(turnoID: turno, distanciaMetros: 10, registradoEm: antes) == saida)
         #expect(try await api.fazerCheckout(turnoID: turno, distanciaMetros: -5, registradoEm: .now.addingTimeInterval(3_600)) == saida)
     }
+
+    @Test("Check-in e check-out válidos deixam o turno verificado na lista de meus turnos")
+    func checkinECheckoutValidosDeixamTurnoVerificado() async throws {
+        let (api, turnoID) = try await turnoConfirmado()
+        let antesDoPonto = try #require(try await api.meusTurnos().first(where: { $0.id == turnoID }))
+        #expect(antesDoPonto.verificacao == .pendente)
+        #expect(antesDoPonto.checkin == nil)
+        #expect(antesDoPonto.checkout == nil)
+
+        _ = try await api.fazerCheckin(turnoID: turnoID, distanciaMetros: 120, registradoEm: antes)
+        let aposCheckin = try #require(try await api.meusTurnos().first(where: { $0.id == turnoID }))
+        #expect(aposCheckin.verificacao == .verificado)
+        #expect(aposCheckin.checkin?.tipo == .geolocalizado)
+        #expect(aposCheckin.checkin?.distanciaMetros == 120)
+        #expect(aposCheckin.checkout == nil)
+
+        _ = try await api.fazerCheckout(turnoID: turnoID, distanciaMetros: 150, registradoEm: depois)
+        let aposCheckout = try #require(try await api.meusTurnos().first(where: { $0.id == turnoID }))
+        #expect(aposCheckout.verificacao == .verificado)
+        #expect(aposCheckout.checkin?.distanciaMetros == 120)
+        #expect(aposCheckout.checkout?.distanciaMetros == 150)
+    }
+
+    @Test("Cenário de turno encerrado e verificado expõe turno pronto para avaliação")
+    func cenarioTurnoEncerradoVerificado() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        let turnos = try await api.meusTurnos()
+        let turno = try #require(turnos.first)
+        #expect(turno.id == UUID(uuidString: "22000000-0000-0000-0000-000000000001"))
+        #expect(turno.verificacao == .verificado)
+        #expect(turno.checkin != nil)
+        #expect(turno.checkout != nil)
+        #expect(turno.podeAvaliar == true)
+
+        let avaliacao = try await api.avaliar(turnoID: turno.id, resposta: true)
+        #expect(avaliacao.turnoID == turno.id)
+        #expect(avaliacao.resposta == true)
+    }
 }

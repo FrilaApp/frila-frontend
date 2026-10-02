@@ -394,7 +394,7 @@ struct TelaAjudaPerfil: View {
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
-        }.presentationDetents([.medium, .large])
+        }.presentationDetents([.large])
     }
 }
 
