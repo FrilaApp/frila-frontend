@@ -413,6 +413,8 @@ public struct TelaPublicarVaga: View {
                             Text(verbatim: TextosPublicarVaga.alertaSeisHoras).tag(360)
                         }
                         .pickerStyle(.menu)
+                        .accessibilityLabel(Text(verbatim: TextosPublicarVaga.alerta))
+                        .accessibilityIdentifier("alerta-vaga-picker")
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
                         .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
@@ -421,19 +423,37 @@ public struct TelaPublicarVaga: View {
                             Text(verbatim: TextosPublicarVaga.alertaTresHoras).tag(180)
                             Text(verbatim: TextosPublicarVaga.alertaDuasHoras).tag(120)
                             Text(verbatim: TextosPublicarVaga.alertaSeisHoras).tag(360)
-                        }.pickerStyle(.segmented)
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityLabel(Text(verbatim: TextosPublicarVaga.alerta))
+                        .accessibilityIdentifier("alerta-vaga-picker")
                     }
                 }.disabled(model.camposBloqueados)
                 Button { model.mostrandoMaisOpcoes.toggle() } label: {
-                    Text(verbatim: TextosPublicarVaga.maisOpcoes).underline().frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                }.buttonStyle(.plain).disabled(model.camposBloqueados)
+                    Text(verbatim: TextosPublicarVaga.maisOpcoes)
+                        .underline()
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(model.camposBloqueados)
+                .accessibilityIdentifier("mais-opcoes-botao")
                 if model.mostrandoMaisOpcoes {
                     campoOpcional(.traje, titulo: TextosPublicarVaga.traje) { CampoFrila(verbatim: TextosPublicarVaga.traje, texto: $model.traje) }
                     VStack(alignment: .leading, spacing: 4) {
                         seletorSimNao(TextosPublicarVaga.rateio, valor: Binding(get: { model.participaRateio ?? false }, set: { model.participaRateio = $0 }))
                         if let erro = model.erros[.rateio] { Text(verbatim: erro).font(.caption).foregroundStyle(FrilaCor.perigo) }
                     }.disabled(model.camposBloqueados)
-                    campoOpcional(.observacoes, titulo: TextosPublicarVaga.observacoes) { TextField(TextosPublicarVaga.observacoes, text: $model.observacoes, axis: .vertical).lineLimit(3...5).textFieldStyle(.roundedBorder) }
+                    campoOpcional(.observacoes, titulo: TextosPublicarVaga.observacoes) {
+                        TextField(TextosPublicarVaga.observacoes, text: $model.observacoes, axis: .vertical)
+                            .lineLimit(3...5)
+                            .textFieldStyle(.plain)
+                            .padding(FrilaEspaco.medio)
+                            .frame(minHeight: FrilaMetrica.alvoMinimo)
+                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+                            .accessibilityIdentifier("observacoes-vaga-campo")
+                    }
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     AvisoFrila(verbatim: TextosPublicarVaga.avisoRN10, tom: .informativo)
@@ -462,14 +482,29 @@ public struct TelaPublicarVaga: View {
     private var campoValor: some View {
         campo(.valor, titulo: TextosPublicarVaga.valor) {
             TextField(TextosPublicarVaga.valorExemplo, text: Binding(get: { Self.formatarCentavos(model.valorCentavos) }, set: { model.valorTexto = String($0.filter(\.isNumber)) }))
-                .keyboardType(.numberPad).textFieldStyle(.roundedBorder).accessibilityLabel(Text(verbatim: TextosPublicarVaga.valor))
+                .keyboardType(.numberPad)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, FrilaEspaco.medio)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.valor))
+                .accessibilityIdentifier("valor-vaga-campo")
             Text(verbatim: TextosPublicarVaga.valorAjuda).font(.caption).foregroundStyle(FrilaCor.sucesso)
         }
     }
 
     private var campoPosicoes: some View {
         campo(.posicoes, titulo: TextosPublicarVaga.posicoes) {
-            TextField(TextosPublicarVaga.posicoesExemplo, text: $model.posicoesTexto).keyboardType(.numberPad).textFieldStyle(.roundedBorder)
+            TextField(TextosPublicarVaga.posicoesExemplo, text: $model.posicoesTexto)
+                .keyboardType(.numberPad)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, FrilaEspaco.medio)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
+                .accessibilityIdentifier("posicoes-vaga-campo")
         }
     }
 
@@ -504,20 +539,23 @@ public struct TelaPublicarVaga: View {
 
     @ViewBuilder
     private func seletorSimNao(_ titulo: String, valor: Binding<Bool>) -> some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: titulo).font(.subheadline)
-                HStack(spacing: FrilaEspaco.pequeno) {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    Text(verbatim: titulo).font(.subheadline)
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        botoesSimNao(valor: valor)
+                    }
+                }
+            } else {
+                HStack {
+                    Text(verbatim: titulo).font(.subheadline)
+                    Spacer()
                     botoesSimNao(valor: valor)
                 }
             }
-        } else {
-            HStack {
-                Text(verbatim: titulo).font(.subheadline)
-                Spacer()
-                botoesSimNao(valor: valor)
-            }
         }
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
