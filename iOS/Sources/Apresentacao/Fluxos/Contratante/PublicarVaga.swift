@@ -399,19 +399,6 @@ public struct TelaPublicarVaga: View {
                     datePicker(TextosPublicarVaga.dataInicio, date: $model.inicio, field: .inicio)
                     datePicker(TextosPublicarVaga.dataFim, date: $model.fim, field: .fim)
                 }
-                campo(.modo, titulo: TextosPublicarVaga.modo) {
-                    Picker(TextosPublicarVaga.modo, selection: $model.modo) {
-                        Text(verbatim: TextosPublicarVaga.modoUrgencia).tag(ModoPreenchimento.urgencia)
-                        Text(verbatim: TextosPublicarVaga.modoSelecao).tag(ModoPreenchimento.selecao)
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.modo))
-                    .accessibilityIdentifier("modo-vaga-picker")
-                    Text(verbatim: model.modo == .selecao ? TextosPublicarVaga.modoSelecaoExplicacao : TextosPublicarVaga.modoUrgenciaExplicacao)
-                        .font(.caption)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .accessibilityIdentifier("modo-vaga-explicacao")
-                }
                 campo(.local, titulo: TextosPublicarVaga.endereco) {
                     CampoFrila(verbatim: TextosPublicarVaga.endereco, texto: $model.local)
                     Text(verbatim: TextosPublicarVaga.enderecoAjuda).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
@@ -441,6 +428,19 @@ public struct TelaPublicarVaga: View {
                     .disabled(model.camposBloqueados)
                 campo(.responsavel, titulo: TextosPublicarVaga.responsavel) {
                     CampoFrila(verbatim: TextosPublicarVaga.responsavel, texto: $model.responsavelLocal)
+                }
+                campo(.modo, titulo: TextosPublicarVaga.modo) {
+                    Picker(TextosPublicarVaga.modo, selection: $model.modo) {
+                        Text(verbatim: TextosPublicarVaga.modoUrgencia).tag(ModoPreenchimento.urgencia)
+                        Text(verbatim: TextosPublicarVaga.modoSelecao).tag(ModoPreenchimento.selecao)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.modo))
+                    .accessibilityIdentifier("modo-vaga-picker")
+                    Text(verbatim: model.modo == .selecao ? TextosPublicarVaga.modoSelecaoExplicacao : TextosPublicarVaga.modoUrgenciaExplicacao)
+                        .font(.caption)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("modo-vaga-explicacao")
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: TextosPublicarVaga.alerta).font(.headline)

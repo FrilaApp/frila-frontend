@@ -380,6 +380,34 @@ struct CandidatosDaVagaViewModelTests {
         #expect(try await cena.vagaNoPainel().posicoes.filter { $0.estado == .confirmada }.count == 1)
     }
 
+    @Test("Outra pessoa da casa escolhe o mesmo candidato um instante antes: o 409 é candidatura_indisponivel, e a tela relê e mostra que ele está confirmado")
+    func mesmoCandidatoEscolhidoPorOutraPessoa() async throws {
+        let cena = try await Cena.doCenario()
+        await cena.viewModel.carregar()
+        // A conferência da candidatura já aceita vem antes da vaga cheia: quem perde a corrida pelo
+        // mesmo candidato não ouve `posicao_ja_preenchida`.
+        _ = try await cena.base.escolherCandidato(candidaturaID: try cena.candidato("Carla Menezes").candidaturaID)
+
+        try await cena.escolher("Carla Menezes")
+
+        #expect(cena.viewModel.resultado == .confirmado(nome: "Carla Menezes", vagaPreenchida: true))
+        #expect(cena.viewModel.falha == nil)
+        #expect(cena.viewModel.candidatos.isEmpty)
+        #expect(cena.api.escolhasEnviadas == 1)
+    }
+
+    @Test("Nenhuma recusa da seleção usa o texto padrão do erro, que fala com quem procura vaga", arguments: [
+        FalhaDaEscolha.posicaoJaPreenchida, .candidaturaIndisponivel(nome: "Ana Cunha"), .selecaoEncerrada,
+        .turnoSobreposto(nome: "Ana Cunha"), .inelegivel(nome: "Ana Cunha"), .vagaOculta, .semConexao,
+    ])
+    func textosPropriosDaSelecao(falha: FalhaDaEscolha) {
+        let padrao = Set([CodigoErroAPI.posicaoJaPreenchida, .candidaturaIndisponivel, .vagaEncerrada, .inelegivel, .vagaOculta, .semRede, .desconhecido]
+            .map { MensagemDoErroAPI.texto(ErroDaApi(codigo: $0)) })
+        for desatualizada in [false, true] {
+            #expect(!padrao.contains(TextosDosCandidatos.falha(falha, desatualizada: desatualizada)))
+        }
+    }
+
     // MARK: Recusas do servidor
 
     @Test("Candidato que retirou a candidatura antes da escolha: a tela explica e a lista é relida sem ele")

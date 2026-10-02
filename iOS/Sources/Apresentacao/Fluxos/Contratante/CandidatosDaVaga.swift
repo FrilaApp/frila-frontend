@@ -95,7 +95,8 @@ public enum ResultadoDaEscolha: Equatable, Sendable {
 public enum FalhaDaEscolha: Equatable, Sendable {
     /// `409 posicao_ja_preenchida`: outra escolha ocupou a última posição antes (RN19).
     case posicaoJaPreenchida
-    /// `409 candidatura_indisponivel`: o candidato retirou a candidatura, ou ela expirou.
+    /// `409 candidatura_indisponivel`: o candidato retirou a candidatura, ou ela expirou. O mesmo
+    /// código vem quando ela já foi escolhida, e aí não é falha: o painel mostra o confirmado.
     case candidaturaIndisponivel(nome: String)
     /// `409 vaga_encerrada`: a seleção fechou (24 h antes do início), ou a vaga foi cancelada.
     case selecaoEncerrada
@@ -263,7 +264,8 @@ public final class CandidatosDaVagaViewModel {
             await reler()
             falha = .vagaOculta
         case (.candidaturaIndisponivel, _):
-            // Retirada ou expirada; ou já escolhida, quando esta é a segunda tentativa de uma escolha
+            // Retirada ou expirada; ou já escolhida: por outra pessoa da casa um instante antes (a
+            // conferência da já aceita vem antes da vaga cheia), ou por esta mesma tela, numa escolha
             // cuja resposta se perdeu. O painel diz qual das duas.
             if await confirmadoNoPainel(candidato) {
                 resultado = .confirmado(nome: nome, vagaPreenchida: vagaRelida?.estado == .preenchida)
