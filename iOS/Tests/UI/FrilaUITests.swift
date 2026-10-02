@@ -226,9 +226,9 @@ final class CandidaturaUITests: XCTestCase {
 
 @MainActor
 final class AutenticacaoUITests: XCTestCase {
-    func testFluxoCompletoPrimeiroAcessoAteFuncoesEHorarios() {
+    func testFluxoCompletoPrimeiroAcessoAteVagas() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso", "-FRILA_BUSCA_PERFIL_UI_TEST"]
         app.launch()
 
         let email = app.textFields["entrada-email"]
@@ -244,6 +244,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.buttons["codigo-entrar"].tap()
 
         XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        app.buttons["cadastro-perfil-profissional"].tap()
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
         nome.typeText("Novo Usuário")
@@ -261,7 +262,83 @@ final class AutenticacaoUITests: XCTestCase {
 
         app.buttons["cadastro-continuar"].tap()
 
-        XCTAssertTrue(app.descendants(matching: .any)["funcoes-e-horarios-provisoria"].waitForExistence(timeout: 10))
+        preencherPerfil(app)
+        app.buttons["botao-salvar-perfil"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch.waitForExistence(timeout: 10))
+    }
+
+    func testProfissionalSemPerfilPodeSairDaConta() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "sem-perfil-profissional"]
+        app.launch()
+
+        let sair = app.buttons["criacao-perfil-sair"]
+        XCTAssertTrue(sair.waitForExistence(timeout: 10))
+        guard sair.exists else { return }
+        sair.tap()
+        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["tela-perfil-profissional"].exists)
+    }
+
+    func testProfissionalSemPerfilCriaPerfilEAbreVagas() {
+        let app = abrirCriacaoPerfil("sem-perfil-profissional")
+        preencherPerfil(app)
+        app.buttons["botao-salvar-perfil"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
+    func testErroAoCriarPerfilPermiteRepetirEAbrirVagas() {
+        let app = abrirCriacaoPerfil("erro-criacao-perfil-profissional")
+        preencherPerfil(app)
+        app.buttons["botao-salvar-perfil"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
+        XCTAssertTrue(app.buttons["botao-salvar-perfil"].isEnabled)
+        app.buttons["botao-salvar-perfil"].tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
+    func testErroAoCriarPerfilPermiteSair() {
+        let app = abrirCriacaoPerfil("erro-criacao-perfil-profissional")
+        preencherPerfil(app)
+        app.buttons["botao-salvar-perfil"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
+        app.buttons["criacao-perfil-sair"].tap()
+        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+    }
+
+    private func abrirCriacaoPerfil(_ cenario: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_BUSCA_PERFIL_UI_TEST"]
+        app.launch()
+        return app
+    }
+
+    private func preencherPerfil(_ app: XCUIApplication) {
+        XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
+        let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(funcao.waitForExistence(timeout: 10))
+        funcao.tap()
+        let ponto = app.textFields["campo-ponto-base"]
+        ponto.tap()
+        ponto.typeText("Guará II")
+        app.buttons["botao-buscar-endereco"].tap()
+        let sugestao = app.buttons["sugestao-endereco-0"]
+        XCTAssertTrue(sugestao.waitForExistence(timeout: 10))
+        sugestao.tap()
+        rolarAte(app.buttons["botao-adicionar-janela"], app: app)
+        app.buttons["botao-adicionar-janela"].tap()
+        rolarAte(app.buttons["botao-salvar-perfil"], app: app)
+    }
+
+    private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        for _ in 0..<6 {
+            if elemento.isHittable { return }
+            app.swipeUp()
+        }
+        XCTAssertTrue(elemento.isHittable)
     }
 
     func testContaExistentePulaCadastroEAbreVagas() {

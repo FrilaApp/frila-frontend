@@ -5,6 +5,7 @@ public enum DestinoAposEntrada: Equatable, Sendable {
     case profissional
     case funcoesEHorarios
     case contratante
+    case contaSuspensa(SituacaoDaConta)
 }
 
 public enum DestinoDaConta: Equatable, Sendable {
@@ -12,13 +13,14 @@ public enum DestinoDaConta: Equatable, Sendable {
     case profissional
     case funcoesEHorarios
     case contratante
+    case contaSuspensa(SituacaoDaConta)
 
     public var tipoGuardavel: TipoDestinoConta? {
         switch self {
         case .profissional: return .profissional
         case .funcoesEHorarios: return .funcoesEHorarios
         case .contratante: return .contratante
-        case .cadastro: return nil
+        case .cadastro, .contaSuspensa: return nil
         }
     }
 
@@ -38,6 +40,11 @@ public enum DestinoDaConta: Equatable, Sendable {
             return .cadastro(email: emailParaCadastro)
         }
 
+        let situacao = try await api.situacaoDaConta()
+        if situacao.estado == .suspensa {
+            return .contaSuspensa(situacao)
+        }
+
         switch conta.perfil {
         case .profissional:
             do {
@@ -54,10 +61,17 @@ public enum DestinoDaConta: Equatable, Sendable {
     public static func avaliarComRecuperacaoOffline(api: any ApiCliente) async throws -> DestinoDaConta {
         do {
             let destino = try await avaliar(api: api)
-            if let tipo = destino.tipoGuardavel {
-                DestinoGuardado.salvar(tipo)
-            } else {
+            switch destino {
+            case .cadastro:
                 DestinoGuardado.limpar()
+            case .contaSuspensa:
+                // Não altera o destino guardado: sem rede na abertura futura,
+                // mantém o comportamento do destino guardado prévio (RF24, RN13).
+                break
+            default:
+                if let tipo = destino.tipoGuardavel {
+                    DestinoGuardado.salvar(tipo)
+                }
             }
             return destino
         } catch let erroApi as ErroDaApi where erroApi.codigo == .semRede {

@@ -24,6 +24,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case menorDeIdade = "menor-de-idade"
         case contaExistente = "conta-existente"
         case semPerfilProfissional = "sem-perfil-profissional"
+        /// Conta sem perfil: o primeiro envio falha sem rede, e a repetição cria o perfil.
+        case erroCriacaoPerfilProfissional = "erro-criacao-perfil-profissional"
         case entrada = "entrada"
         case contratante = "contratante"
         case perfilProfissionalComErroDeRede = "perfil-profissional-com-erro-de-rede"
@@ -41,6 +43,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case checkinManualPendente = "checkin-manual-pendente"
         /// Conta de contratante com um turno que começou há 20 minutos e ainda não teve check-in (#19).
         case atrasoNoTurno = "atraso-no-turno"
+        /// Configuração remota exige versão mínima superior à atual.
+        case atualizacaoObrigatoria = "atualizacao-obrigatoria"
     }
 
     private let cenario: Cenario
@@ -53,6 +57,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var sessaoAtiva = false
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
+    private var tentativasCriacaoPerfil = 0
     private var estabelecimentos: [Estabelecimento]
     private var vagas: [Vaga]
     private var turnos: [Turno] = []
@@ -120,7 +125,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     perfilProfissional = nil
                 } else {
                     conta = usuario
-                    if cenario == .semPerfilProfissional {
+                    if cenario == .semPerfilProfissional || cenario == .erroCriacaoPerfilProfissional {
                         perfilProfissional = nil
                     } else {
                         perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
@@ -259,6 +264,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
+        tentativasCriacaoPerfil += 1
+        if cenario == .erroCriacaoPerfilProfissional, tentativasCriacaoPerfil == 1 {
+            throw ErroDaApi(codigo: .semRede)
+        }
         try verificarFalhaGeral()
         let conta = try await minhaConta()
         guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
@@ -772,8 +781,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
         try verificarRede()
-        guard cenario == .contaSuspensa else { return configuracao }
-        return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        if cenario == .atualizacaoObrigatoria {
+            return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        }
+        return configuracao
     }
 
     /// Segue `registrar_dispositivo` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): o
@@ -974,3 +985,117 @@ public actor ApiClienteEmMemoria: ApiCliente {
         )
     }
 }
+
+// MARK: - Exclusão de Conta (Porta ExclusaoDeContaPorta)
+
+public enum CenarioExclusaoConta: Sendable, Equatable {
+    case padrao
+    case comTurnosCancelados(Int)
+    case administradorUnico
+    case semRede
+    case naoAutenticado
+}
+
+private actor ArmazenamentoCenarioExclusao {
+    static let compartilhado = ArmazenamentoCenarioExclusao()
+    private var cenarios: [ObjectIdentifier: CenarioExclusaoConta] = [:]
+
+    func definir(_ cenario: CenarioExclusaoConta, para cliente: ApiClienteEmMemoria) {
+        cenarios[ObjectIdentifier(cliente)] = cenario
+    }
+
+    func consumir(para cliente: ApiClienteEmMemoria) -> CenarioExclusaoConta {
+        cenarios.removeValue(forKey: ObjectIdentifier(cliente)) ?? .padrao
+    }
+
+    func limpar() {
+        cenarios.removeAll()
+    }
+}
+
+extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
+    public func configurarCenarioExclusao(_ cenario: CenarioExclusaoConta) async {
+        await ArmazenamentoCenarioExclusao.compartilhado.definir(cenario, para: self)
+    }
+
+    public func excluirConta() async throws -> ExclusaoDeConta {
+        let configurado = await ArmazenamentoCenarioExclusao.compartilhado.consumir(para: self)
+
+        let argumentos = ProcessInfo.processInfo.arguments
+        let cenarioEfetivo: CenarioExclusaoConta
+        if configurado != .padrao {
+            cenarioEfetivo = configurado
+        } else if argumentos.contains("-FRILA_EXCLUSAO_ADMIN_UNICO") {
+            cenarioEfetivo = .administradorUnico
+        } else if argumentos.contains("-FRILA_EXCLUSAO_SEM_REDE") {
+            cenarioEfetivo = .semRede
+        } else if argumentos.contains("-FRILA_EXCLUSAO_401") {
+            cenarioEfetivo = .naoAutenticado
+        } else if let idx = argumentos.firstIndex(of: "-FRILA_EXCLUSAO_TURNOS"), argumentos.indices.contains(idx + 1), let n = Int(argumentos[idx + 1]) {
+            cenarioEfetivo = .comTurnosCancelados(n)
+        } else {
+            cenarioEfetivo = .padrao
+        }
+
+        if cenarioEfetivo == .semRede || cenario == .semRede {
+            throw ErroDaApi(codigo: .semRede)
+        }
+        try verificarRede()
+
+        if cenarioEfetivo == .naoAutenticado {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "nao_autenticado")
+        }
+
+        if cenarioEfetivo == .administradorUnico {
+            throw ErroDaApi(codigo: .administradorUnico, codigoOriginal: "administrador_unico")
+        }
+
+        let cancelados: Int
+        switch cenarioEfetivo {
+        case let .comTurnosCancelados(quantidade):
+            cancelados = quantidade
+        default:
+            cancelados = turnos.count
+        }
+
+        turnos.removeAll()
+        conta = nil
+        perfilProfissional = nil
+        estabelecimentos = []
+        sessaoAtiva = false
+        DestinoGuardado.limpar()
+
+        let agora = relogio.agora
+        let dataLimite = DataCivil.deSaoPaulo(agora, somandoDias: 15) ?? (try! DataCivil("2026-10-16"))
+        return ExclusaoDeConta(
+            perfilRemovidoEm: agora,
+            dadosApagadosAte: dataLimite,
+            turnosCancelados: cancelados
+        )
+    }
+
+    // MARK: - Suporte a cenários de teste da suspensão (#41)
+
+    public func reativarConta() {
+        if let contaAtual = conta {
+            conta = Conta(
+                id: contaAtual.id,
+                perfil: contaAtual.perfil,
+                nome: contaAtual.nome,
+                telefone: contaAtual.telefone,
+                email: contaAtual.email,
+                nascimento: contaAtual.nascimento,
+                estado: .ativa
+            )
+        }
+        suspensao = nil
+    }
+
+    public func definirContestacaoExistente(protocolo: Protocolo? = nil) throws {
+        guard let atual = suspensao else { throw erro("sem_suspensao_ativa") }
+        let prot = try protocolo ?? novoProtocolo(.contestacao)
+        suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: prot)
+    }
+}
+
+
