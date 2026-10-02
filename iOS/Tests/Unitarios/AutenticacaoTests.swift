@@ -486,13 +486,12 @@ struct AutenticacaoTests {
 
 // MARK: - Dublê de teste para espionar criação de conta
 
-private final class ApiClienteEspiaoCadastro: ApiCliente, @unchecked Sendable {
-    private let base: ApiClienteEmMemoria
+private final class ApiClienteEspiaoCadastro: ApiClienteEncaminhador, @unchecked Sendable {
     private let lock = NSLock()
     private var _cadastrosRecebidos: [CadastroConta] = []
 
-    init(base: ApiClienteEmMemoria = ApiClienteEmMemoria(cenario: .primeiroAcesso)) {
-        self.base = base
+    override init(base: ApiClienteEmMemoria = ApiClienteEmMemoria(cenario: .primeiroAcesso)) {
+        super.init(base: base)
     }
 
     var chamadasACriarConta: Int {
@@ -503,38 +502,8 @@ private final class ApiClienteEspiaoCadastro: ApiCliente, @unchecked Sendable {
         lock.withLock { _cadastrosRecebidos.last }
     }
 
-    func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
+    override func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
         lock.withLock { _cadastrosRecebidos.append(cadastro) }
         return try await base.criarConta(cadastro)
     }
-
-    // Encaminhamentos padrão
-    func solicitarCodigo(email: String) async throws { try await base.solicitarCodigo(email: email) }
-    func verificarCodigo(email: String, codigo: String) async throws { try await base.verificarCodigo(email: email, codigo: codigo) }
-    func entrarDemonstracao(email: String, codigo: String) async throws { try await base.entrarDemonstracao(email: email, codigo: codigo) }
-    func possuiSessao() async -> Bool { await base.possuiSessao() }
-    func minhaConta() async throws -> Conta { try await base.minhaConta() }
-    func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional { try await base.criarPerfilProfissional(dados) }
-    func meuPerfilProfissional() async throws -> PerfilProfissional { try await base.meuPerfilProfissional() }
-    func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional { try await base.atualizarPerfilProfissional(alteracao) }
-    func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento { try await base.cadastrarEstabelecimento(cadastro) }
-    func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] { try await base.meusEstabelecimentos() }
-    func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel { try await base.painelEstabelecimento(id: id, periodo: periodo) }
-    func funcoes() async throws -> [Funcao] { try await base.funcoes() }
-    func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada { try await base.publicarVaga(publicacao) }
-    func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada { try await base.republicarVaga(id: id, periodo: periodo, chave: chave) }
-    func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] { try await base.vagasAbertas(filtro) }
-    func detalheDaVaga(id: UUID) async throws -> Vaga { try await base.detalheDaVaga(id: id) }
-    func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura { try await base.candidatar(vagaID: vagaID) }
-    func perfilPublico(id: UUID) async throws -> PerfilPublico { try await base.perfilPublico(id: id) }
-    func meusTurnos() async throws -> [Turno] { try await base.meusTurnos() }
-    func contatoDoTurno(id: UUID) async throws -> Contato { try await base.contatoDoTurno(id: id) }
-    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho { try await base.avisarACaminho(turnoID: turnoID) }
-    func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro { try await base.fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm) }
-    func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro { try await base.fazerCheckout(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm) }
-    func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao { try await base.avaliar(turnoID: turnoID, resposta: resposta) }
-    func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
-    func removerDispositivo(tokenFCM: String) async throws { try await base.removerDispositivo(tokenFCM: tokenFCM) }
-    func sair(tokenFCM: String?) async { await base.sair(tokenFCM: tokenFCM) }
 }
-

@@ -312,7 +312,10 @@ public struct RespostaSimNao: View {
         .buttonStyle(.plain)
         .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
         .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+        .accessibilityLabel(Text(titulo, bundle: bundleApresentacao))
+        .accessibilityValue(Text(resposta == valor ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
         .accessibilityAddTraits(resposta == valor ? .isSelected : [])
+        .accessibilityIdentifier(valor ? "resposta-sim" : "resposta-nao")
     }
 }
 

@@ -2,6 +2,9 @@
   "avaliacao.json": {
     "schema": "#/components/schemas/Avaliacao"
   },
+  "bloqueio.json": {
+    "schema": "#/components/schemas/Bloqueio"
+  },
   "candidatura-selecao.json": {
     "schema": "#/components/schemas/ResultadoCandidatura"
   },
@@ -38,6 +41,9 @@
   "perfil-publico.json": {
     "schema": "#/components/schemas/PerfilPublico"
   },
+  "protocolo.json": {
+    "schema": "#/components/schemas/Protocolo"
+  },
   "requisicao-atualizar-perfil-profissional.json": {
     "schema": "#/components/schemas/AlteracaoDoPerfilProfissional"
   },
@@ -47,8 +53,23 @@
   "requisicao-avisar-a-caminho.json": {
     "schema": "#/paths/~1rpc~1avisar_a_caminho/post/requestBody/content/application~1json/schema"
   },
+  "requisicao-bloquear.json": {
+    "schema": "#/paths/~1rpc~1bloquear/post/requestBody/content/application~1json/schema"
+  },
   "requisicao-cadastrar-estabelecimento.json": {
     "schema": "#/components/schemas/NovoEstabelecimento"
+  },
+  "requisicao-cancelar-posicao.json": {
+    "schema": "#/paths/~1rpc~1cancelar_posicao/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-cancelar-vaga.json": {
+    "schema": "#/paths/~1rpc~1cancelar_vaga/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-confirmar-checkin-manual.json": {
+    "schema": "#/paths/~1rpc~1confirmar_checkin_manual/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-contestar-suspensao.json": {
+    "schema": "#/paths/~1rpc~1contestar_suspensao/post/requestBody/content/application~1json/schema"
   },
   "requisicao-criar-conta.json": {
     "schema": "#/paths/~1rpc~1criar_conta/post/requestBody/content/application~1json/schema"
@@ -56,8 +77,14 @@
   "requisicao-criar-perfil-profissional.json": {
     "schema": "#/components/schemas/DadosDoPerfilProfissional"
   },
+  "requisicao-denunciar.json": {
+    "schema": "#/paths/~1rpc~1denunciar/post/requestBody/content/application~1json/schema"
+  },
   "requisicao-publicar-vaga.json": {
     "schema": "#/components/schemas/NovaVaga"
+  },
+  "requisicao-reabrir-por-atraso.json": {
+    "schema": "#/paths/~1rpc~1reabrir_por_atraso/post/requestBody/content/application~1json/schema"
   },
   "requisicao-registro-de-presenca.json": {
     "schema": "#/components/schemas/RegistroDePresenca"
@@ -65,8 +92,23 @@
   "resultado-a-caminho.json": {
     "schema": "#/components/schemas/ResultadoACaminho"
   },
+  "resultado-cancelamento.json": {
+    "schema": "#/components/schemas/ResultadoCancelamento"
+  },
+  "resultado-confirmacao-manual.json": {
+    "schema": "#/components/schemas/ResultadoRegistro"
+  },
+  "resultado-reabertura.json": {
+    "schema": "#/components/schemas/ResultadoCancelamento"
+  },
   "resultado-registro.json": {
     "schema": "#/components/schemas/ResultadoRegistro"
+  },
+  "situacao-da-conta-suspensa.json": {
+    "schema": "#/components/schemas/SituacaoDaConta"
+  },
+  "situacao-da-conta.json": {
+    "schema": "#/components/schemas/SituacaoDaConta"
   },
   "turnos.json": {
     "schema": "#/components/schemas/Turno",
@@ -74,6 +116,9 @@
   },
   "usuario.json": {
     "schema": "#/components/schemas/Usuario"
+  },
+  "vaga-cancelada.json": {
+    "schema": "#/paths/~1rpc~1cancelar_vaga/post/responses/200/content/application~1json/schema"
   },
   "vaga-oculta.json": {
     "schema": "#/components/schemas/Vaga"

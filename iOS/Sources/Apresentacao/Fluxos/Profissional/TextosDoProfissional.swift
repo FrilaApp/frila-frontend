@@ -156,7 +156,6 @@ enum TextosDoProfissional {
         public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)
         public static let avaliadoSucesso = String(localized: "Avaliação registrada com sucesso!", bundle: bundleApresentacao)
         public static let avaliadoOffline = String(localized: "Avaliação salva. Será enviada quando a internet voltar.", bundle: bundleApresentacao)
-        public static let respostaRegistrada = String(localized: "Você já avaliou este turno.", bundle: bundleApresentacao)
         public static let suaResposta = String(localized: "Sua resposta", bundle: bundleApresentacao)
         public static let erroIndisponivel = String(localized: "A avaliação só fica disponível após o término do turno e com presença confirmada.", bundle: bundleApresentacao)
         public static let erroJaRegistrada = String(localized: "Esta avaliação já foi registrada.", bundle: bundleApresentacao)
@@ -175,4 +174,3 @@ enum TextosDoProfissional {
         }
     }
 }
-

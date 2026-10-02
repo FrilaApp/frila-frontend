@@ -204,7 +204,6 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Avaliacao.botaoEnviar,
             TextosDoProfissional.Avaliacao.avaliadoSucesso,
             TextosDoProfissional.Avaliacao.avaliadoOffline,
-            TextosDoProfissional.Avaliacao.respostaRegistrada,
             TextosDoProfissional.Avaliacao.suaResposta,
             TextosDoProfissional.Avaliacao.erroIndisponivel,
             TextosDoProfissional.Avaliacao.erroJaRegistrada,
