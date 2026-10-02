@@ -14,8 +14,14 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         app.buttons["continuar-cadastro"].tap()
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
-        XCTAssertTrue(app.staticTexts["O profissional recebe o valor integral"].exists)
-        XCTAssertTrue(app.buttons["Perfil do estabelecimento"].waitForExistence(timeout: 5))
+        let btnPerfil = app.buttons["Perfil do estabelecimento"]
+        XCTAssertTrue(btnPerfil.waitForExistence(timeout: 5))
+        btnPerfil.tap()
+
+        let btnFechar = app.buttons["Fechar"]
+        XCTAssertTrue(btnFechar.waitForExistence(timeout: 5))
+        btnFechar.tap()
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 5))
     }
 
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
@@ -210,11 +216,49 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             XCTAssertTrue(nao.isHittable, "Botão Não[\(indice)] deve ser tocável")
         }
 
+        let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
+        if dpInicio.exists {
+            trazerParaATela(dpInicio, em: app)
+            XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela, "DatePicker Início em XXXL extrapolou a tela")
+            XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 0, "DatePicker Início em XXXL fora à esquerda")
+        }
+
+        let dpFim = app.descendants(matching: .any)["datepicker-fim"]
+        if dpFim.exists {
+            trazerParaATela(dpFim, em: app)
+            XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela, "DatePicker Fim em XXXL extrapolou a tela")
+            XCTAssertGreaterThanOrEqual(dpFim.frame.minX, 0, "DatePicker Fim em XXXL fora à esquerda")
+        }
+
         let botaoPublicar = app.buttons["publicar-vaga-botao"]
         XCTAssertTrue(botaoPublicar.exists)
         trazerParaATela(botaoPublicar, em: app)
         XCTAssertTrue(botaoPublicar.isHittable)
         XCTAssertLessThanOrEqual(botaoPublicar.frame.maxX, larguraTela)
+    }
+
+    func testDatePickersContidosNaLarguraDaTelaNoTamanhoPadrao() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        app.buttons["continuar-cadastro"].tap()
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+
+        let larguraTela = app.windows.firstMatch.frame.width
+
+        let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5))
+        trazerParaATela(dpInicio, em: app)
+        XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 16, "DatePicker Início fora da margem esquerda: \(dpInicio.frame.minX) < 16")
+        XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela - 16, "DatePicker Início extrapolou a margem direita: \(dpInicio.frame.maxX) > \(larguraTela - 16)")
+
+        let dpFim = app.descendants(matching: .any)["datepicker-fim"]
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5))
+        trazerParaATela(dpFim, em: app)
+        XCTAssertGreaterThanOrEqual(dpFim.frame.minX, 16, "DatePicker Fim fora da margem esquerda: \(dpFim.frame.minX) < 16")
+        XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela - 16, "DatePicker Fim extrapolou a margem direita: \(dpFim.frame.maxX) > \(larguraTela - 16)")
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {

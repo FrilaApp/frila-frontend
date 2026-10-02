@@ -325,6 +325,16 @@ public struct TelaPublicarVaga: View {
         .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
             NavigationStack {
                 TelaPerfilEstabelecimento(api: api, sair: sair)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button {
+                                mostrandoPerfilEstabelecimento = false
+                            } label: {
+                                Text("Fechar", bundle: bundleApresentacao)
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            }
+                        }
+                    }
             }
         }
         .task {
@@ -354,16 +364,9 @@ public struct TelaPublicarVaga: View {
                         ForEach(model.funcoes) { funcao in Text(verbatim: funcao.nome).tag(Optional(funcao.id)) }
                     }.pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading).padding().background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
                 }
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        datePicker(TextosPublicarVaga.dataInicio, date: $model.inicio, field: .inicio)
-                        datePicker(TextosPublicarVaga.dataFim, date: $model.fim, field: .fim)
-                    }
-                } else {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        datePicker(TextosPublicarVaga.dataInicio, date: $model.inicio, field: .inicio)
-                        datePicker(TextosPublicarVaga.dataFim, date: $model.fim, field: .fim)
-                    }
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    datePicker(TextosPublicarVaga.dataInicio, date: $model.inicio, field: .inicio)
+                    datePicker(TextosPublicarVaga.dataFim, date: $model.fim, field: .fim)
                 }
                 campo(.local, titulo: TextosPublicarVaga.endereco) {
                     CampoFrila(verbatim: TextosPublicarVaga.endereco, texto: $model.local)
@@ -489,6 +492,7 @@ public struct TelaPublicarVaga: View {
                 .datePickerStyle(.compact)
                 .minimumScaleFactor(0.7)
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                .accessibilityIdentifier("datepicker-\(field.rawValue)")
         }
     }
 
