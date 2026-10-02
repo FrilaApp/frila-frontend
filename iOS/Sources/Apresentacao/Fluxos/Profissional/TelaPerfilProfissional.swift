@@ -7,17 +7,20 @@ import SwiftUI
 
 public struct TelaPerfilProfissional: View {
     @Bindable private var viewModel: PerfilProfissionalViewModel
+    private let aoSalvar: () -> Void
     @State private var diaNovo: Int = 5 // Sexta-feira padrão
     @State private var inicioNovo: String = "18:00"
     @State private var fimNovo: String = "02:00"
     @State private var erroFormatoJanela: String?
 
-    public init(viewModel: PerfilProfissionalViewModel) {
+    public init(viewModel: PerfilProfissionalViewModel, aoSalvar: @escaping () -> Void = {}) {
         self.viewModel = viewModel
+        self.aoSalvar = aoSalvar
     }
 
-    public init(api: any ApiCliente, modo: PerfilProfissionalViewModel.Modo = .criacao) {
+    public init(api: any ApiCliente, modo: PerfilProfissionalViewModel.Modo = .criacao, aoSalvar: @escaping () -> Void = {}) {
         self.viewModel = PerfilProfissionalViewModel(api: api, modo: modo)
+        self.aoSalvar = aoSalvar
     }
 
     public var body: some View {
@@ -35,6 +38,13 @@ public struct TelaPerfilProfissional: View {
                     if let erro = viewModel.mensagemDeErro {
                         AvisoFrila(verbatim: erro, tom: .erro)
                             .accessibilityIdentifier("aviso-erro-perfil")
+
+                        if viewModel.funcoesDisponiveis.isEmpty {
+                            BotaoSecundario("Tentar novamente") {
+                                Task { await viewModel.carregar() }
+                            }
+                            .accessibilityIdentifier("perfil-tentar-carregar")
+                        }
                     }
 
                     if viewModel.sucesso {
@@ -48,7 +58,9 @@ public struct TelaPerfilProfissional: View {
                             : TextosDoProfissional.Perfil.salvarEdicao,
                         carregando: viewModel.salvando
                     ) {
-                        Task { await viewModel.salvar() }
+                        Task {
+                            if await viewModel.salvar() { aoSalvar() }
+                        }
                     }
                     .accessibilityIdentifier("botao-salvar-perfil")
                 }

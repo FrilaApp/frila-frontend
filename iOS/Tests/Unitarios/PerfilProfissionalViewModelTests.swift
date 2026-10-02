@@ -58,6 +58,66 @@ struct PerfilProfissionalViewModelTests {
         #expect(api.dadosPerfilCriado?.disponibilidades.count == 1)
     }
 
+    @Test("Criar o perfil da conta sem perfil libera o destino profissional (#97)")
+    func criacaoLiberaVagas() async throws {
+        let api = ApiClienteEmMemoria(cenario: .semPerfilProfissional)
+        #expect(try await DestinoDaConta.avaliar(api: api) == .funcoesEHorarios)
+        let vm = PerfilProfissionalViewModel(api: api)
+        await vm.carregar()
+        vm.alternarFuncao(try #require(vm.funcoesDisponiveis.first).id)
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.adicionarJanela(diaDaSemana: 5, inicio: try HoraDoDia("18:00"), fim: try HoraDoDia("02:00"))
+
+        #expect(await vm.salvar())
+        #expect(try await DestinoDaConta.avaliar(api: api) == .profissional)
+    }
+
+    @Test("Erro ao criar preserva formulário e permite nova tentativa (#97)",
+          arguments: [CodigoErroAPI.semRede, .perfilIncompativel])
+    func criacaoComErroPermiteTentarNovamente(codigo: CodigoErroAPI) async throws {
+        let api = criarDubleApi()
+        api.erroAoSalvar = ErroDaApi(codigo: codigo)
+        let vm = PerfilProfissionalViewModel(api: api)
+        await vm.carregar()
+        let funcaoID = try #require(vm.funcoesDisponiveis.first).id
+        let ponto = try Coordenada(latitude: -15.8, longitude: -47.9)
+        vm.alternarFuncao(funcaoID)
+        vm.definirPontoBase(ponto)
+
+        #expect(await vm.salvar() == false)
+        #expect(vm.modo == .criacao)
+        #expect(vm.perfilSalvo == nil)
+        #expect(vm.mensagemDeErro != nil)
+        #expect(!vm.salvando)
+        #expect(vm.funcoesSelecionadas == [funcaoID])
+        #expect(vm.pontoBase == ponto)
+
+        api.erroAoSalvar = nil
+        #expect(await vm.salvar())
+        #expect(vm.mensagemDeErro == nil)
+        #expect(api.chamadasCriarPerfil == 2)
+    }
+
+    @Test("Falha de rede no catálogo permite recarregar sem perder os dados (#97)")
+    func erroAoCarregarPermiteRepetir() async throws {
+        let api = criarDubleApi()
+        api.erroAoCarregar = ErroDaApi(codigo: .semRede)
+        let vm = PerfilProfissionalViewModel(api: api)
+        let ponto = try Coordenada(latitude: -15.8, longitude: -47.9)
+        vm.definirPontoBase(ponto)
+        await vm.carregar()
+        #expect(vm.mensagemDeErro != nil)
+        #expect(vm.funcoesDisponiveis.isEmpty)
+        #expect(!vm.carregando)
+        #expect(vm.modo == .criacao)
+
+        api.erroAoCarregar = nil
+        await vm.carregar()
+        #expect(vm.mensagemDeErro == nil)
+        #expect(vm.funcoesDisponiveis.count == 3)
+        #expect(vm.pontoBase == ponto)
+    }
+
     @Test("A janela 18:00–02:00 é aceita e exibida corretamente com dia seguinte (#98 C2)")
     func janelaAtravessandoMeiaNoite() throws {
         let api = criarDubleApi()
@@ -305,11 +365,13 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
     var dadosPerfilCriado: DadosPerfilProfissional?
     var alteracaoPerfilEnviada: AlteracaoPerfilProfissional?
     var erroAoSalvar: Error?
+    var erroAoCarregar: Error?
     var chamadasCriarPerfil: Int = 0
     var chamadasAtualizarPerfil: Int = 0
     var pausaAoCriarMs: UInt64 = 0
 
     func funcoes() async throws -> [Funcao] {
+        if let erroAoCarregar { throw erroAoCarregar }
         if let funcoesRetorno { return funcoesRetorno }
         return try await base.funcoes()
     }
