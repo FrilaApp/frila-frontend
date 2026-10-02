@@ -10,45 +10,53 @@ public enum EstadoTela<Conteudo: Sendable>: Sendable {
 }
 
 public struct EstadoVazio: View {
-    private let titulo: LocalizedStringKey
-    private let mensagem: LocalizedStringKey
-    public init(_ titulo: LocalizedStringKey, mensagem: LocalizedStringKey) { self.titulo = titulo; self.mensagem = mensagem }
-    public var body: some View { MensagemDeEstado(icone: "tray", titulo: titulo, mensagem: mensagem) }
+    private let titulo: Text
+    private let mensagem: Text
+
+    public init(_ titulo: LocalizedStringKey, mensagem: LocalizedStringKey) {
+        self.titulo = Text(titulo, bundle: bundleApresentacao)
+        self.mensagem = Text(mensagem, bundle: bundleApresentacao)
+    }
+
+    public init(verbatim titulo: String, mensagem: String) {
+        self.titulo = Text(verbatim: titulo)
+        self.mensagem = Text(verbatim: mensagem)
+    }
+
+    public var body: some View {
+        MensagemDeEstado(icone: "tray", titulo: titulo, mensagem: mensagem)
+    }
 }
 
 public struct EstadoCarregando: View {
     public init() {}
     public var body: some View {
-        VStack(spacing: FrilaEspaco.medio) { ProgressView(); Text("Carregando…").foregroundStyle(FrilaCor.textoSecundario) }
+        VStack(spacing: FrilaEspaco.medio) { ProgressView(); Text("Carregando…", bundle: bundleApresentacao).foregroundStyle(FrilaCor.textoSecundario) }
             .frame(maxWidth: .infinity, minHeight: 160)
             .accessibilityElement(children: .combine)
     }
 }
 
 public struct EstadoErro: View {
-    private let mensagem: LocalizedStringKey?
-    private let mensagemVerbatim: String?
+    private let mensagem: Text
     private let tentarNovamente: () -> Void
+
     public init(_ mensagem: LocalizedStringKey, tentarNovamente: @escaping () -> Void) {
-        self.mensagem = mensagem
-        self.mensagemVerbatim = nil
+        self.mensagem = Text(mensagem, bundle: bundleApresentacao)
         self.tentarNovamente = tentarNovamente
     }
+
     public init(verbatim mensagem: String, tentarNovamente: @escaping () -> Void) {
-        self.mensagem = nil
-        self.mensagemVerbatim = mensagem
+        self.mensagem = Text(verbatim: mensagem)
         self.tentarNovamente = tentarNovamente
     }
+
     public var body: some View {
         VStack(spacing: FrilaEspaco.medio) {
             VStack(spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "exclamationmark.triangle").font(.largeTitle).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
-                Text("Algo deu errado").font(.headline)
-                if let mensagem {
-                    Text(mensagem).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
-                } else if let mensagemVerbatim {
-                    Text(verbatim: mensagemVerbatim).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
-                }
+                Text("Algo deu errado", bundle: bundleApresentacao).font(.headline)
+                mensagem.font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, minHeight: 160)
             .accessibilityElement(children: .combine)
@@ -70,13 +78,14 @@ public struct EstadoPendente: View {
 
 private struct MensagemDeEstado: View {
     let icone: String
-    let titulo: LocalizedStringKey
-    let mensagem: LocalizedStringKey
+    let titulo: Text
+    let mensagem: Text
+
     var body: some View {
         VStack(spacing: FrilaEspaco.pequeno) {
             Image(systemName: icone).font(.largeTitle).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
-            Text(titulo).font(.headline)
-            Text(mensagem).font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+            titulo.font(.headline)
+            mensagem.font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, minHeight: 160)
         .accessibilityElement(children: .combine)

@@ -119,7 +119,7 @@ public struct TelaMeuPerfilProfissional: View {
                 else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let conta = model.conta, let perfil = model.perfil {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text(conta.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                        Text(verbatim: conta.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)
                         linha(TextosPerfilConta.telefone, conta.telefone)
                         linha(TextosPerfilConta.email, conta.email)
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
@@ -127,21 +127,43 @@ public struct TelaMeuPerfilProfissional: View {
                         linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao))
                     }.cartaoFrila()
                     NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
-                        Label(TextosPerfilConta.funcoesHorarios, systemImage: "calendar.badge.clock")
-                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                        Label {
+                            Text(verbatim: TextosPerfilConta.funcoesHorarios)
+                        } icon: {
+                            Image(systemName: "calendar.badge.clock")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }.accessibilityIdentifier("perfil-funcoes-horarios")
-                    Button { mostrarExplicacao = true } label: { Label(TextosPerfilConta.porQueRecebo, systemImage: "questionmark.circle") }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    Button { mostrarAjuda = true } label: { Label(TextosPerfilConta.ajuda, systemImage: "lifepreserver") }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    Button { mostrarExplicacao = true } label: {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.porQueRecebo)
+                        } icon: {
+                            Image(systemName: "questionmark.circle")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    Button { mostrarAjuda = true } label: {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.ajuda)
+                        } icon: {
+                            Image(systemName: "lifepreserver")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     placeholders
-                    Button(role: .destructive, action: sair) { Label(TextosPerfilConta.sair, systemImage: "rectangle.portrait.and.arrow.right") }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    Button(role: .destructive, action: sair) {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.sair)
+                        } icon: {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                 }
             }.padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(TextosPerfilConta.meuPerfil)
+        .navigationTitle(Text(verbatim: TextosPerfilConta.meuPerfil))
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.carregar() }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
@@ -149,24 +171,52 @@ public struct TelaMeuPerfilProfissional: View {
     }
 
     private func linha(_ titulo: String, _ valor: String) -> some View {
-        LabeledContent(titulo, value: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
+        LabeledContent {
+            Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
+        } label: {
+            Text(verbatim: titulo)
+        }
     }
 
     private var placeholders: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Button {} label: { Label(TextosPerfilConta.exportar, systemImage: "square.and.arrow.up") }
-                .disabled(true).accessibilityHint(TextosPerfilConta.todoExportacao)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-            Button {} label: { Label(TextosPerfilConta.excluir, systemImage: "person.crop.circle.badge.xmark") }
-                .disabled(true).accessibilityHint(TextosPerfilConta.todoExclusao)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            Button {} label: {
+                Label {
+                    Text(verbatim: TextosPerfilConta.exportar)
+                } icon: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+            .disabled(true).accessibilityHint(TextosPerfilConta.todoExportacao)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            Button {} label: {
+                Label {
+                    Text(verbatim: TextosPerfilConta.excluir)
+                } icon: {
+                    Image(systemName: "person.crop.circle.badge.xmark")
+                }
+            }
+            .disabled(true).accessibilityHint(TextosPerfilConta.todoExclusao)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
         }
     }
 
     private var explicacao: some View {
-        NavigationStack { ScrollView { Text(TextosPerfilConta.explicacaoVagas).frame(maxWidth: .infinity, alignment: .leading).padding() }
-            .navigationTitle(TextosPerfilConta.porQueRecebo).navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(TextosPerfilConta.fechar) { mostrarExplicacao = false }.frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo) } }
+        NavigationStack {
+            ScrollView {
+                Text(verbatim: TextosPerfilConta.explicacaoVagas).frame(maxWidth: .infinity, alignment: .leading).padding()
+            }
+            .navigationTitle(Text(verbatim: TextosPerfilConta.porQueRecebo)).navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        mostrarExplicacao = false
+                    } label: {
+                        Text(verbatim: TextosPerfilConta.fechar)
+                    }
+                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                }
+            }
         }.presentationDetents([.medium, .large])
     }
 }
@@ -185,24 +235,68 @@ public struct TelaPerfilEstabelecimento: View {
                 else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let estabelecimento = model.estabelecimento {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text(estabelecimento.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)
-                        if let tipo = estabelecimento.tipo { LabeledContent(TextosPerfilConta.tipo, value: tipo.descricaoPerfil) }
-                        LabeledContent(TextosPerfilConta.papel, value: estabelecimento.papel.descricaoPerfil)
+                        Text(verbatim: estabelecimento.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                        if let tipo = estabelecimento.tipo {
+                            LabeledContent {
+                                Text(verbatim: tipo.descricaoPerfil)
+                            } label: {
+                                Text(verbatim: TextosPerfilConta.tipo)
+                            }
+                        }
+                        LabeledContent {
+                            Text(verbatim: estabelecimento.papel.descricaoPerfil)
+                        } label: {
+                            Text(verbatim: TextosPerfilConta.papel)
+                        }
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                     }.cartaoFrila()
-                    Button { mostrarAjuda = true } label: { Label(TextosPerfilConta.ajuda, systemImage: "lifepreserver") }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    Button {} label: { Label(TextosPerfilConta.exportar, systemImage: "square.and.arrow.up") }
-                        .disabled(true).accessibilityHint(TextosPerfilConta.todoExportacao).frame(minHeight: FrilaMetrica.alvoMinimo)
-                    Button {} label: { Label(TextosPerfilConta.excluir, systemImage: "person.crop.circle.badge.xmark") }
-                        .disabled(true).accessibilityHint(TextosPerfilConta.todoExclusao).frame(minHeight: FrilaMetrica.alvoMinimo)
-                    Button(role: .destructive, action: sair) { Label(TextosPerfilConta.sair, systemImage: "rectangle.portrait.and.arrow.right") }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                } else { ContentUnavailableView(TextosPerfilConta.vazio, systemImage: "building.2") }
+                    Button { mostrarAjuda = true } label: {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.ajuda)
+                        } icon: {
+                            Image(systemName: "lifepreserver")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    Button {} label: {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.exportar)
+                        } icon: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                    .disabled(true).accessibilityHint(TextosPerfilConta.todoExportacao).frame(minHeight: FrilaMetrica.alvoMinimo)
+                    Button {} label: {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.excluir)
+                        } icon: {
+                            Image(systemName: "person.crop.circle.badge.xmark")
+                        }
+                    }
+                    .disabled(true).accessibilityHint(TextosPerfilConta.todoExclusao).frame(minHeight: FrilaMetrica.alvoMinimo)
+                    Button(role: .destructive, action: sair) {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.sair)
+                        } icon: {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                } else {
+                    ContentUnavailableView {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.vazio)
+                        } icon: {
+                            Image(systemName: "building.2")
+                        }
+                    }
+                }
             }.padding(FrilaEspaco.medio)
-        }.background(FrilaCor.fundo).navigationTitle(TextosPerfilConta.perfilEstabelecimento)
-            .navigationBarTitleDisplayMode(.inline).task { await model.carregar() }
-            .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil() }
+        }
+        .background(FrilaCor.fundo)
+        .navigationTitle(Text(verbatim: TextosPerfilConta.perfilEstabelecimento))
+        .navigationBarTitleDisplayMode(.inline).task { await model.carregar() }
+        .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil() }
     }
 }
 
@@ -212,13 +306,35 @@ private struct TelaAjudaPerfil: View {
         NavigationStack {
             List {
                 // TODO: inserir o endereço oficial de suporte quando o produto publicar o canal.
-                LabeledContent(TextosPerfilConta.suporte, value: TextosPerfilConta.suportePendente)
-                Text(TextosPerfilConta.prazoSuporte)
+                LabeledContent {
+                    Text(verbatim: TextosPerfilConta.suportePendente)
+                } label: {
+                    Text(verbatim: TextosPerfilConta.suporte)
+                }
+                Text(verbatim: TextosPerfilConta.prazoSuporte)
                 // TODO: ligar às páginas oficiais de termos e privacidade.
-                LabeledContent(TextosPerfilConta.termos, value: TextosPerfilConta.linkPendente)
-                LabeledContent(TextosPerfilConta.privacidade, value: TextosPerfilConta.linkPendente)
-            }.navigationTitle(TextosPerfilConta.ajuda).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button(TextosPerfilConta.fechar) { dismiss() }.frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo) } }
+                LabeledContent {
+                    Text(verbatim: TextosPerfilConta.linkPendente)
+                } label: {
+                    Text(verbatim: TextosPerfilConta.termos)
+                }
+                LabeledContent {
+                    Text(verbatim: TextosPerfilConta.linkPendente)
+                } label: {
+                    Text(verbatim: TextosPerfilConta.privacidade)
+                }
+            }
+            .navigationTitle(Text(verbatim: TextosPerfilConta.ajuda)).navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(verbatim: TextosPerfilConta.fechar)
+                    }
+                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                }
+            }
         }.presentationDetents([.medium, .large])
     }
 }

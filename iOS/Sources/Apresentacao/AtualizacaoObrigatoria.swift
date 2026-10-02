@@ -24,7 +24,7 @@ public final class AtualizacaoObrigatoriaViewModel {
         do {
             let configuracao = try await api.configuracaoDoApp()
             if Self.comparar(versaoAtual, com: configuracao.versaoMinima) == .orderedAscending {
-                estado = .bloqueado(mensagem: configuracao.mensagem ?? String(localized: "Atualize o Frila para continuar."), url: configuracao.urlDaLoja)
+                estado = .bloqueado(mensagem: configuracao.mensagem ?? String(localized: "Atualize o Frila para continuar.", bundle: bundleApresentacao), url: configuracao.urlDaLoja)
             } else {
                 estado = .liberado
             }
@@ -70,9 +70,9 @@ public struct PortaoDeAtualizacao<Conteudo: View>: View {
                 conteudo()
             case let .bloqueado(mensagem, url):
                 VStack(spacing: FrilaEspaco.grande) {
-                    Image(systemName: "arrow.down.app.fill").font(.system(size: 52)).foregroundStyle(FrilaCor.primaria).accessibilityHidden(true)
-                    Text("Atualização necessária").font(.title.bold()).multilineTextAlignment(.center)
-                    Text(mensagem).multilineTextAlignment(.center).foregroundStyle(FrilaCor.textoSecundario)
+                    Image(systemName: "arrow.down.app.fill").font(.largeTitle).foregroundStyle(FrilaCor.primaria).accessibilityHidden(true)
+                    Text("Atualização necessária", bundle: bundleApresentacao).font(.title.bold()).multilineTextAlignment(.center)
+                    Text(verbatim: mensagem).multilineTextAlignment(.center).foregroundStyle(FrilaCor.textoSecundario)
                     BotaoPrimario("Atualizar agora") { abrirURL(url) }
                 }
                 .padding(FrilaEspaco.grande)

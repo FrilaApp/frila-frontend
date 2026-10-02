@@ -197,9 +197,9 @@ public struct TelaCadastroEstabelecimento: View {
                         .accessibilityIdentifier("mapa-estabelecimento")
                         #if DEBUG
                         // Expõe a câmera aos testes para distinguir mover o ponto de mover o mapa.
-                        .accessibilityValue(regiaoMapa.map {
+                        .accessibilityValue(Text(verbatim: regiaoMapa.map {
                             String(format: "%.6f,%.6f,%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), $0.center.latitude, $0.center.longitude, $0.span.latitudeDelta, $0.span.longitudeDelta)
-                        } ?? "")
+                        } ?? ""))
                         #endif
                         .onMapCameraChange(frequency: .continuous) { contexto in
                             posicaoMarcador = proxy.convert(point, to: .named("mapa"))
@@ -218,7 +218,7 @@ public struct TelaCadastroEstabelecimento: View {
                                         .contentShape(Rectangle())
                                         .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
                                         .accessibilityIdentifier("marcador-mapa")
-                                        .accessibilityValue(String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude))
+                                        .accessibilityValue(Text(verbatim: String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude)))
                                         .position(x: posicaoMarcador.x, y: posicaoMarcador.y - 15)
                                         // Só a alça recebe este gesto; o mapa mantém pan e zoom fora dela.
                                         .highPriorityGesture(

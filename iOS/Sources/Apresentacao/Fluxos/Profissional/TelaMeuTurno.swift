@@ -25,37 +25,37 @@ public struct TelaMeuTurno: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(TextosDoProfissional.Turnos.tituloMeuTurno)
+        .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
         .accessibilityIdentifier("tela-meu-turno")
     }
 
     private var cabecalho: some View {
-        Text(TextosDoProfissional.Turnos.confirmadoTitulo)
+        Text(verbatim: TextosDoProfissional.Turnos.confirmadoTitulo)
             .font(.title2.bold())
             .accessibilityAddTraits(.isHeader)
     }
 
     private var cartaoTurno: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text("\(viewModel.turno.vaga.funcao) · \(viewModel.turno.contraparte.nome)")
+            Text(verbatim: "\(viewModel.turno.vaga.funcao) · \(viewModel.turno.contraparte.nome)")
                 .font(.headline)
-            Text("\(formatador.intervalo(viewModel.turno.vaga.periodo)) · \(formatador.dinheiro(viewModel.turno.valorAcordado))")
+            Text(verbatim: "\(formatador.intervalo(viewModel.turno.vaga.periodo)) · \(formatador.dinheiro(viewModel.turno.valorAcordado))")
                 .font(.subheadline)
 
             HStack(spacing: FrilaEspaco.minimo) {
-                Text(viewModel.turno.vaga.local)
+                Text(verbatim: viewModel.turno.vaga.local)
                 if let urlMapas = viewModel.urlMapas {
                     Link(destination: urlMapas) {
                         Image(systemName: "map")
                             .foregroundStyle(FrilaCor.primaria)
                     }
                     .accessibilityIdentifier("atalho-mapas")
-                    .accessibilityLabel(TextosDoProfissional.Turnos.verNoMapas)
+                    .accessibilityLabel(Text(verbatim: TextosDoProfissional.Turnos.verNoMapas))
                     .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
                 }
-                Text("· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
+                Text(verbatim: "· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
             }
             .font(.subheadline)
             .foregroundStyle(FrilaCor.textoSecundario)
@@ -67,18 +67,18 @@ public struct TelaMeuTurno: View {
 
     private var cartaoContato: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(TextosDoProfissional.Candidatura.contato.uppercased())
+            Text(verbatim: TextosDoProfissional.Candidatura.contato.uppercased())
                 .font(.caption.weight(.bold))
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
             if viewModel.contatoExpirado {
-                Text(TextosDoProfissional.Turnos.contatoEncerrado)
+                Text(verbatim: TextosDoProfissional.Turnos.contatoEncerrado)
                     .font(.subheadline)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("contato-expirado-aviso")
             } else if let contato = viewModel.contato {
-                Text("\(contato.nome) · \(contato.telefone)")
+                Text(verbatim: "\(contato.nome) · \(contato.telefone)")
                     .font(.body.weight(.semibold))
                     .accessibilityIdentifier("contato-telefone")
 
@@ -86,7 +86,7 @@ public struct TelaMeuTurno: View {
                     Link(destination: urlWhatsApp) {
                         HStack {
                             Image(systemName: "message.fill")
-                            Text(TextosDoProfissional.Candidatura.abrirWhatsApp)
+                            Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
                         }
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -94,7 +94,7 @@ public struct TelaMeuTurno: View {
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
                 }
 
-                Text(TextosDoProfissional.Turnos.lembretesEVisibilidade)
+                Text(verbatim: TextosDoProfissional.Turnos.lembretesEVisibilidade)
                     .font(.caption)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } else if viewModel.carregandoContato {
@@ -108,18 +108,18 @@ public struct TelaMeuTurno: View {
 
     private var cartaoAvaliacao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
+            Text(verbatim: TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
                 .font(.caption.weight(.bold))
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
             if viewModel.jaAvaliado {
                 if let resposta = viewModel.respostaAvaliacao {
-                    Text(TextosDoProfissional.Avaliacao.statusResposta(resposta))
+                    Text(verbatim: TextosDoProfissional.Avaliacao.statusResposta(resposta))
                         .font(.body.weight(.semibold))
                         .accessibilityIdentifier("texto-status-avaliacao")
                 } else {
-                    Text(TextosDoProfissional.Avaliacao.statusAvaliado)
+                    Text(verbatim: TextosDoProfissional.Avaliacao.statusAvaliado)
                         .font(.body.weight(.semibold))
                         .accessibilityIdentifier("texto-status-avaliacao")
                 }
@@ -129,13 +129,13 @@ public struct TelaMeuTurno: View {
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")
-                        Text(TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
+                        Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                     }
                 }
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("botao-ver-avaliacao")
             } else {
-                Text(TextosDoProfissional.Avaliacao.cartaoChamada)
+                Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
                     .font(.subheadline)
                     .foregroundStyle(FrilaCor.textoSecundario)
 
@@ -144,7 +144,7 @@ public struct TelaMeuTurno: View {
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")
-                        Text(TextosDoProfissional.Avaliacao.botaoAvaliar)
+                        Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                     }
                 }
                 .frame(minHeight: FrilaMetrica.alvoMinimo)

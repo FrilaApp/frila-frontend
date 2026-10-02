@@ -56,7 +56,7 @@ public struct TelaPerfilProfissional: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(TextosDoProfissional.Perfil.titulo)
+        .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
         .accessibilityIdentifier("tela-perfil-profissional")
@@ -65,7 +65,7 @@ public struct TelaPerfilProfissional: View {
     // MARK: - Subviews
 
     private var secaoCabecalho: some View {
-        Text(TextosDoProfissional.Perfil.cabecalho)
+        Text(verbatim: TextosDoProfissional.Perfil.cabecalho)
             .font(.title2.bold())
             .foregroundStyle(FrilaCor.texto)
             .accessibilityAddTraits(.isHeader)
@@ -73,7 +73,7 @@ public struct TelaPerfilProfissional: View {
 
     private var secaoFuncoes: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(TextosDoProfissional.Perfil.secaoFuncoes)
+            Text(verbatim: TextosDoProfissional.Perfil.secaoFuncoes)
                 .font(.headline)
                 .foregroundStyle(FrilaCor.texto)
 
@@ -97,7 +97,7 @@ public struct TelaPerfilProfissional: View {
 
     private var secaoPontoBase: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(TextosDoProfissional.Perfil.pontoBase)
+            Text(verbatim: TextosDoProfissional.Perfil.pontoBase)
                 .font(.headline)
                 .foregroundStyle(FrilaCor.texto)
 
@@ -115,11 +115,11 @@ public struct TelaPerfilProfissional: View {
                         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(TextosDoProfissional.Perfil.buscar)
+                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.buscar))
                 .accessibilityIdentifier("botao-buscar-endereco")
             }
 
-            Text(TextosDoProfissional.Perfil.dicaPontoBase)
+            Text(verbatim: TextosDoProfissional.Perfil.dicaPontoBase)
                 .font(.footnote)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
@@ -135,11 +135,11 @@ public struct TelaPerfilProfissional: View {
                             viewModel.selecionarSugestao(item)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(item.name ?? "")
+                                Text(verbatim: item.name ?? "")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(FrilaCor.texto)
                                 if let title = item.placemark.title {
-                                    Text(title)
+                                    Text(verbatim: title)
                                         .font(.caption)
                                         .foregroundStyle(FrilaCor.textoSecundario)
                                 }
@@ -159,10 +159,11 @@ public struct TelaPerfilProfissional: View {
             }
 
             if viewModel.pontoBase != nil {
-                Label(
-                    viewModel.descricaoPontoBase ?? TextosDoProfissional.Perfil.pontoBaseSalvo,
-                    systemImage: "mappin.circle.fill"
-                )
+                Label {
+                    Text(verbatim: viewModel.descricaoPontoBase ?? TextosDoProfissional.Perfil.pontoBaseSalvo)
+                } icon: {
+                    Image(systemName: "mappin.circle.fill")
+                }
                 .font(.caption.weight(.medium))
                 .foregroundStyle(FrilaCor.sucesso)
                 .accessibilityIdentifier("label-ponto-base-selecionado")
@@ -173,12 +174,12 @@ public struct TelaPerfilProfissional: View {
 
     private var secaoHorarios: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(TextosDoProfissional.Perfil.secaoHorarios)
+            Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios)
                 .font(.headline)
                 .foregroundStyle(FrilaCor.texto)
 
             if viewModel.disponibilidades.isEmpty {
-                Text(TextosDoProfissional.Perfil.nenhumHorario)
+                Text(verbatim: TextosDoProfissional.Perfil.nenhumHorario)
                     .font(.footnote)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } else {
@@ -186,11 +187,11 @@ public struct TelaPerfilProfissional: View {
                     ForEach(viewModel.disponibilidades, id: \.self) { janela in
                         let formatado = viewModel.formatarJanela(janela)
                         HStack {
-                            Text(formatado.dia)
+                            Text(verbatim: formatado.dia)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(FrilaCor.texto)
                             Spacer()
-                            Text(formatado.horario)
+                            Text(verbatim: formatado.horario)
                                 .font(.subheadline)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                             Button {
@@ -212,18 +213,20 @@ public struct TelaPerfilProfissional: View {
 
             // Bloco de Adicionar Horário
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text(TextosDoProfissional.Perfil.adicionarHorario)
+                Text(verbatim: TextosDoProfissional.Perfil.adicionarHorario)
                     .font(.subheadline.bold())
                     .foregroundStyle(FrilaCor.texto)
 
-                Picker(TextosDoProfissional.Perfil.diaSemana, selection: $diaNovo) {
-                    Text(TextosDoProfissional.Perfil.domingo).tag(0)
-                    Text(TextosDoProfissional.Perfil.segunda).tag(1)
-                    Text(TextosDoProfissional.Perfil.terca).tag(2)
-                    Text(TextosDoProfissional.Perfil.quarta).tag(3)
-                    Text(TextosDoProfissional.Perfil.quinta).tag(4)
-                    Text(TextosDoProfissional.Perfil.sexta).tag(5)
-                    Text(TextosDoProfissional.Perfil.sabado).tag(6)
+                Picker(selection: $diaNovo) {
+                    Text(verbatim: TextosDoProfissional.Perfil.domingo).tag(0)
+                    Text(verbatim: TextosDoProfissional.Perfil.segunda).tag(1)
+                    Text(verbatim: TextosDoProfissional.Perfil.terca).tag(2)
+                    Text(verbatim: TextosDoProfissional.Perfil.quarta).tag(3)
+                    Text(verbatim: TextosDoProfissional.Perfil.quinta).tag(4)
+                    Text(verbatim: TextosDoProfissional.Perfil.sexta).tag(5)
+                    Text(verbatim: TextosDoProfissional.Perfil.sabado).tag(6)
+                } label: {
+                    Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
                 }
                 .pickerStyle(.menu)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -237,7 +240,7 @@ public struct TelaPerfilProfissional: View {
                 }
 
                 if let erroFormato = erroFormatoJanela {
-                    Text(erroFormato)
+                    Text(verbatim: erroFormato)
                         .font(.caption)
                         .foregroundStyle(FrilaCor.perigo)
                 }
@@ -256,7 +259,7 @@ public struct TelaPerfilProfissional: View {
                         erroFormatoJanela = TextosDoProfissional.Perfil.erroHorarioInvalido
                     }
                 } label: {
-                    Text(TextosDoProfissional.Perfil.adicionar)
+                    Text(verbatim: TextosDoProfissional.Perfil.adicionar)
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, FrilaEspaco.medio)
                         .frame(minHeight: 36)

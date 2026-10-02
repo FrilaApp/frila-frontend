@@ -10,6 +10,8 @@ public struct CatalogoDesignSystem: View {
     @State private var codigo = ""
     @State private var filtro = true
     @State private var resposta: Bool?
+    private let tituloCatalogo = "Frila UI"
+    private let textoForcarFalha = "Forçar falha"
 
     public init(api: (any ApiCliente)? = nil, permitirSimulacaoDeConflito: Bool = false) {
         self.api = api
@@ -31,8 +33,10 @@ public struct CatalogoDesignSystem: View {
                     secao("Avaliação") { RespostaSimNao(resposta: $resposta) }
                     secao("Estados") { EstadoVazio("Nenhuma vaga", mensagem: "Novas oportunidades aparecerão aqui."); EstadoErro("Verifique sua conexão.") {} }
                     secao("Diagnóstico") {
-                        Button("Forçar falha") { fatalError("Falha de teste do Crashlytics") }
-                            .accessibilityIdentifier("forcar-falha-crashlytics")
+                        Button { fatalError("Falha de teste do Crashlytics") } label: {
+                            Text(verbatim: textoForcarFalha)
+                        }
+                        .accessibilityIdentifier("forcar-falha-crashlytics")
                     }
                     if let api {
                         ValidacaoClienteAPI(api: api, permitirSimulacaoDeConflito: permitirSimulacaoDeConflito)
@@ -54,7 +58,7 @@ public struct CatalogoDesignSystem: View {
                 .frame(maxWidth: .infinity)
             }
             .background(FrilaCor.fundo)
-            .navigationTitle("Frila UI")
+            .navigationTitle(Text(verbatim: tituloCatalogo))
         }
     }
 

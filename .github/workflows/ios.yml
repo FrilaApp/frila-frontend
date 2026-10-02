@@ -77,6 +77,11 @@ jobs:
             exit 1
           fi
 
+      - name: Conferir textos e tokens da Apresentação
+        run: |
+          Scripts/teste-conferir-textos.sh
+          Scripts/conferir-textos.sh
+
       - name: Gerar o projeto e conferir que está versionado
         run: |
           xcodegen generate

@@ -423,4 +423,57 @@ struct CatalogoStringsTests {
         #expect(oneValue == "%lld vaga aberta")
         #expect(otherValue == "%lld vagas abertas")
     }
+
+    @Test("Chave com variação de plural resolve singular e plural corretamente no bundle da Apresentação")
+    func pluralNoBundleApresentacao() {
+        let singular = String(localized: "\(1) vagas abertas", bundle: bundleApresentacao)
+        let plural = String(localized: "\(2) vagas abertas", bundle: bundleApresentacao)
+
+        #expect(singular == "1 vaga aberta")
+        #expect(plural == "2 vagas abertas")
+    }
+
+    @Test("Cartão de vaga formata variação de plural corretamente no singular e no plural")
+    func pluralNoCartaoVaga() {
+        let inicio = Date.now.addingTimeInterval(86_400)
+        guard let periodo = try? Periodo(inicio: inicio, fim: inicio.addingTimeInterval(14_400)) else {
+            Issue.record("Período de teste inválido")
+            return
+        }
+        let reputacao = Reputacao(positivas: 18, total: 20, taxaComparecimento: 0.95, turnosConsiderados: 20, turnosRealizados: 21)
+
+        let vagaUmaPosicao = VagaNaLista(
+            id: UUID(),
+            funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "Salão"),
+            estabelecimento: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bistrô Ipê", reputacao: reputacao),
+            periodo: periodo,
+            local: "CLS 405, Asa Sul, Brasília - DF",
+            regiaoAdministrativa: "Plano Piloto",
+            distanciaKm: 2.4,
+            valor: Dinheiro(centavos: 12000),
+            posicoesAbertas: 1,
+            inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false),
+            modo: .urgencia
+        )
+
+        let vagaDuasPosicoes = VagaNaLista(
+            id: UUID(),
+            funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "Salão"),
+            estabelecimento: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bistrô Ipê", reputacao: reputacao),
+            periodo: periodo,
+            local: "CLS 405, Asa Sul, Brasília - DF",
+            regiaoAdministrativa: "Plano Piloto",
+            distanciaKm: 2.4,
+            valor: Dinheiro(centavos: 12000),
+            posicoesAbertas: 2,
+            inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false),
+            modo: .urgencia
+        )
+
+        let cartao1 = CartaoVaga(vagaUmaPosicao)
+        let cartao2 = CartaoVaga(vagaDuasPosicoes)
+
+        #expect(cartao1.rotuloDeAcessibilidade.contains("1 vaga aberta"))
+        #expect(cartao2.rotuloDeAcessibilidade.contains("2 vagas abertas"))
+    }
 }

@@ -27,7 +27,7 @@ public struct TelaCadastro: View {
                             .foregroundStyle(FrilaCor.texto)
                             .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("Voltar")
+                    .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                     .accessibilityIdentifier("cadastro-voltar")
 
                     Text("Cadastro", bundle: bundleApresentacao)
@@ -60,7 +60,7 @@ public struct TelaCadastro: View {
 
                 // Aviso de perfil fixo na conta (RN25)
                 AvisoFrila(
-                    LocalizedStringKey("**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo."),
+                    "**O perfil fica fixo nesta conta.** Para usar o outro lado, crie outra conta, com outro e-mail. O telefone pode ser o mesmo.",
                     tom: .alerta
                 )
                 .accessibilityIdentifier("cadastro-aviso-fixo")
@@ -112,8 +112,8 @@ public struct TelaCadastro: View {
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Tenho 18 anos ou mais")
-                    .accessibilityValue(viewModel.maiorDeIdade ? "Selecionado" : "Não selecionado")
+                    .accessibilityLabel(Text("Tenho 18 anos ou mais", bundle: bundleApresentacao))
+                    .accessibilityValue(Text(viewModel.maiorDeIdade ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                     .accessibilityAddTraits(viewModel.maiorDeIdade ? [.isSelected] : [])
                     .accessibilityIdentifier("cadastro-maior-de-idade")
 
@@ -134,8 +134,8 @@ public struct TelaCadastro: View {
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Li e aceito os Termos de uso e a Política de privacidade")
-                    .accessibilityValue(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado")
+                    .accessibilityLabel(Text("Li e aceito os Termos de uso e a Política de privacidade", bundle: bundleApresentacao))
+                    .accessibilityValue(Text(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                     .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected] : [])
                     .accessibilityIdentifier("cadastro-termos")
 
@@ -179,11 +179,11 @@ public struct TelaCadastro: View {
             viewModel.perfil = perfil
         } label: {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(titulo)
+                Text(verbatim: titulo)
                     .font(.headline)
                     .foregroundStyle(FrilaCor.texto)
 
-                Text(descricao)
+                Text(verbatim: descricao)
                     .font(.footnote)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
@@ -197,8 +197,8 @@ public struct TelaCadastro: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(titulo)
-        .accessibilityValue(selecionado ? "Selecionado" : "Não selecionado")
+        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityValue(selecionado ? String(localized: "Selecionado", bundle: bundleApresentacao) : String(localized: "Não selecionado", bundle: bundleApresentacao))
         .accessibilityAddTraits(selecionado ? [.isSelected] : [])
         .accessibilityIdentifier(identificador)
     }

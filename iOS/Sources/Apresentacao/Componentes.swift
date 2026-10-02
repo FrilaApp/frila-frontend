@@ -7,7 +7,7 @@ public struct BotaoPrimario: View {
     private let acao: () -> Void
 
     public init(_ titulo: LocalizedStringKey, carregando: Bool = false, acao: @escaping () -> Void) {
-        self.titulo = Text(titulo)
+        self.titulo = Text(titulo, bundle: bundleApresentacao)
         self.carregando = carregando
         self.acao = acao
     }
@@ -33,22 +33,27 @@ public struct BotaoPrimario: View {
         .foregroundStyle(FrilaCor.sobrePrimaria)
         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
         .disabled(carregando)
-        .accessibilityValue(carregando ? Text("Carregando") : Text(""))
+        .accessibilityValue(carregando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
     }
 }
 
 public struct BotaoSecundario: View {
-    private let titulo: LocalizedStringKey
+    private let titulo: Text
     private let acao: () -> Void
 
     public init(_ titulo: LocalizedStringKey, acao: @escaping () -> Void) {
-        self.titulo = titulo
+        self.titulo = Text(titulo, bundle: bundleApresentacao)
+        self.acao = acao
+    }
+
+    public init(verbatim titulo: String, acao: @escaping () -> Void) {
+        self.titulo = Text(verbatim: titulo)
         self.acao = acao
     }
 
     public var body: some View {
         Button(action: acao) {
-            Text(titulo).font(.headline).multilineTextAlignment(.center)
+            titulo.font(.headline).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
                 .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
         }
@@ -63,7 +68,7 @@ public struct CampoFrila: View {
     @Binding private var texto: String
 
     public init(_ titulo: LocalizedStringKey, texto: Binding<String>) {
-        self.titulo = Text(titulo)
+        self.titulo = Text(titulo, bundle: bundleApresentacao)
         _texto = texto
     }
 
@@ -89,7 +94,9 @@ public struct CampoCodigo: View {
     public init(codigo: Binding<String>) { _codigo = codigo }
 
     public var body: some View {
-        TextField("Código de acesso", text: $codigo)
+        TextField(text: $codigo, prompt: Text("Código de acesso", bundle: bundleApresentacao)) {
+            Text("Código de acesso", bundle: bundleApresentacao)
+        }
             .keyboardType(.numberPad)
             .textContentType(.oneTimeCode)
             .font(.title2.monospacedDigit())
@@ -97,7 +104,7 @@ public struct CampoCodigo: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: 56)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .accessibilityHint("Digite os seis números enviados para seu e-mail")
+            .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
     }
 }
 
@@ -107,7 +114,7 @@ public struct FiltroPill: View {
     private let acao: () -> Void
 
     public init(_ titulo: LocalizedStringKey, selecionado: Bool, acao: @escaping () -> Void) {
-        self.titulo = Text(titulo)
+        self.titulo = Text(titulo, bundle: bundleApresentacao)
         self.selecionado = selecionado
         self.acao = acao
     }
@@ -221,10 +228,10 @@ public struct CartaoVaga: View {
                 HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
             }
-            Text(vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
             // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
-            Label("\(distancia) · \(vaga.local)", systemImage: "mappin.and.ellipse")
+            Label { Text(verbatim: "\(distancia) · \(vaga.local)") } icon: { Image(systemName: "mappin.and.ellipse") }
             if !inclusos.isEmpty { Label(inclusos, systemImage: "checkmark.circle") }
             SeloReputacao(vaga.estabelecimento.reputacao)
             Text("\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao).font(.caption)
@@ -236,12 +243,12 @@ public struct CartaoVaga: View {
         .accessibilityLabel(rotuloDeAcessibilidade)
     }
 
-    private var funcao: some View { Text(vaga.funcao.nome).font(.headline) }
-    private var valor: some View { Text(formatador.dinheiro(vaga.valor)).font(.headline).foregroundStyle(FrilaCor.primaria) }
+    private var funcao: some View { Text(verbatim: vaga.funcao.nome).font(.headline) }
+    private var valor: some View { Text(verbatim: formatador.dinheiro(vaga.valor)).font(.headline).foregroundStyle(FrilaCor.primaria) }
 
     public var rotuloDeAcessibilidade: String {
         var partes = [
-            String(localized: "Vaga de \(vaga.funcao.nome)"),
+            String(localized: "Vaga de \(vaga.funcao.nome)", bundle: bundleApresentacao),
             vaga.estabelecimento.nome,
             formatador.intervalo(vaga.periodo),
             formatador.dinheiro(vaga.valor),
@@ -263,19 +270,24 @@ public struct CartaoVaga: View {
 
     private var inclusos: String {
         var itens: [String] = []
-        if vaga.inclusos.refeicao { itens.append(String(localized: "Refeição")) }
-        if vaga.inclusos.transporte { itens.append(String(localized: "Transporte")) }
+        if vaga.inclusos.refeicao { itens.append(String(localized: "Refeição", bundle: bundleApresentacao)) }
+        if vaga.inclusos.transporte { itens.append(String(localized: "Transporte", bundle: bundleApresentacao)) }
         return itens.joined(separator: " · ")
     }
 }
 
 public struct RespostaSimNao: View {
     @Binding private var resposta: Bool?
-    private let rotuloAcessibilidade: LocalizedStringKey
+    private let rotuloAcessibilidade: Text
 
     public init(resposta: Binding<Bool?>, rotuloAcessibilidade: LocalizedStringKey = "Chamaria de novo?") {
         self._resposta = resposta
-        self.rotuloAcessibilidade = rotuloAcessibilidade
+        self.rotuloAcessibilidade = Text(rotuloAcessibilidade, bundle: bundleApresentacao)
+    }
+
+    public init(resposta: Binding<Bool?>, verbatim rotuloAcessibilidade: String) {
+        self._resposta = resposta
+        self.rotuloAcessibilidade = Text(verbatim: rotuloAcessibilidade)
     }
 
     public var body: some View {
@@ -289,8 +301,13 @@ public struct RespostaSimNao: View {
 
     private func escolha(_ titulo: LocalizedStringKey, valor: Bool, icone: String) -> some View {
         Button { resposta = valor } label: {
-            Label(titulo, systemImage: icone).frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            Label {
+                Text(titulo, bundle: bundleApresentacao)
+            } icon: {
+                Image(systemName: icone)
+            }
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
         }
         .buttonStyle(.plain)
         .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
@@ -300,14 +317,15 @@ public struct RespostaSimNao: View {
 }
 
 public struct FolhaFrila<Conteudo: View>: View {
-    private let titulo: LocalizedStringKey
+    private let titulo: Text
     @ViewBuilder private let conteudo: () -> Conteudo
-    public init(_ titulo: LocalizedStringKey, @ViewBuilder conteudo: @escaping () -> Conteudo) { self.titulo = titulo; self.conteudo = conteudo }
+    public init(_ titulo: LocalizedStringKey, @ViewBuilder conteudo: @escaping () -> Conteudo) { self.titulo = Text(titulo, bundle: bundleApresentacao); self.conteudo = conteudo }
+    public init(verbatim titulo: String, @ViewBuilder conteudo: @escaping () -> Conteudo) { self.titulo = Text(verbatim: titulo); self.conteudo = conteudo }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             Capsule().fill(FrilaCor.textoSecundario.opacity(0.4)).frame(width: 40, height: 5).frame(maxWidth: .infinity)
-            Text(titulo).font(.title2.bold())
+            titulo.font(.title2.bold())
             conteudo()
         }
         .padding(FrilaEspaco.grande)

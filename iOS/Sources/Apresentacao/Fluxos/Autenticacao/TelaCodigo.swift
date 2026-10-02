@@ -28,7 +28,7 @@ public struct TelaCodigo: View {
                             .foregroundStyle(FrilaCor.texto)
                             .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("Voltar")
+                    .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                     .accessibilityIdentifier("codigo-voltar")
 
                     Text("Entrar", bundle: bundleApresentacao)
@@ -52,7 +52,9 @@ public struct TelaCodigo: View {
                 VStack(spacing: FrilaEspaco.pequeno) {
                     ZStack {
                         // Campo invisível para captura de teclado e colagem
-                        TextField("Código de acesso", text: $viewModel.codigo)
+                        TextField(text: $viewModel.codigo, prompt: Text("Código de acesso", bundle: bundleApresentacao)) {
+                            Text("Código de acesso", bundle: bundleApresentacao)
+                        }
                             .keyboardType(.numberPad)
                             .textContentType(.oneTimeCode)
                             .focused($campoFocado)
@@ -63,7 +65,7 @@ public struct TelaCodigo: View {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             ForEach(0..<6, id: \.self) { indice in
                                 let caractere = caractereNoIndice(indice)
-                                Text(caractere)
+                                Text(verbatim: caractere)
                                     .font(.title.weight(.semibold).monospacedDigit())
                                     .foregroundStyle(FrilaCor.texto)
                                     .frame(maxWidth: .infinity, minHeight: 56)
@@ -83,9 +85,9 @@ public struct TelaCodigo: View {
                         }
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Código de acesso")
+                    .accessibilityLabel(Text("Código de acesso", bundle: bundleApresentacao))
                     .accessibilityValue(viewModel.textoAcessibilidadeCodigo)
-                    .accessibilityHint("Digite os seis números enviados para seu e-mail")
+                    .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
                     .accessibilityIdentifier("codigo-campo")
                 }
 

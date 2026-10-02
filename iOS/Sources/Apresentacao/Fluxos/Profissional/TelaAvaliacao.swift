@@ -38,14 +38,14 @@ public struct TelaAvaliacao: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(TextosDoProfissional.Avaliacao.titulo)
+        .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
         .accessibilityIdentifier("tela-avaliacao")
     }
 
     private var cabecalho: some View {
-        Text(viewModel.pergunta)
+        Text(verbatim: viewModel.pergunta)
             .font(.title2.bold())
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("pergunta-avaliacao")
@@ -54,7 +54,7 @@ public struct TelaAvaliacao: View {
     private var cartaoExplicacao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Label {
-                Text(TextosDoProfissional.Avaliacao.explicacao)
+                Text(verbatim: TextosDoProfissional.Avaliacao.explicacao)
                     .font(.subheadline)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } icon: {
@@ -72,7 +72,7 @@ public struct TelaAvaliacao: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             RespostaSimNao(
                 resposta: $viewModel.resposta,
-                rotuloAcessibilidade: LocalizedStringKey(viewModel.pergunta)
+                verbatim: viewModel.pergunta
             )
             .disabled(viewModel.jaAvaliado || viewModel.salvando)
         }

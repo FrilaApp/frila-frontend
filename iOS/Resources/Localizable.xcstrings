@@ -3792,6 +3792,26 @@
           }
         }
       }
+    },
+    "Validação do cliente": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validação do cliente"
+          }
+        }
+      }
+    },
+    "Use um e-mail de teste que a equipe controla. O endereço e o código não são registrados em logs.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use um e-mail de teste que a equipe controla. O endereço e o código não são registrados em logs."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
