@@ -1463,6 +1463,16 @@
         }
       }
     },
+    "Licenças de terceiros": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licenças de terceiros"
+          }
+        }
+      }
+    },
     "Logística": {
       "localizations": {
         "pt-BR": {
@@ -3049,16 +3059,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você fez muitas tentativas. Aguarde um instante e tente novamente."
-          }
-        }
-      }
-    },
-    "Você já avaliou este turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você já avaliou este turno."
           }
         }
       }

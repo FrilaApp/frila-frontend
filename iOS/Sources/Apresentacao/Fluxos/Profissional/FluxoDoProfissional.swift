@@ -41,7 +41,8 @@ public final class RoteadorDoProfissional {
     }
 
     public func abrirAvaliacao(turnoID: UUID) {
-        aba = .turnos
+        // A rota de avaliação pertence ao NavigationStack que usa `caminho`.
+        aba = .vagas
         caminho.append(.avaliacao(turnoID: turnoID))
     }
 
@@ -71,6 +72,8 @@ public final class RoteadorDoProfissional {
 
 /// Lista de vagas -> detalhe (#104) -> candidatura e resultado (#105), e aba Meus turnos (#109).
 public struct FluxoDoProfissional<Barra: View>: View {
+    @State private var contaID: UUID?
+    @State private var recuperandoIdentidade = false
     private let api: any ApiCliente
     private let repositorioTurnos: any TurnoRepositorio
     private let relogio: any Relogio
@@ -85,6 +88,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
 
     public init(
         api: any ApiCliente,
+        contaID: UUID? = nil,
         roteador: RoteadorDoProfissional,
         repositorioTurnos: (any TurnoRepositorio)? = nil,
         relogio: any Relogio = RelogioDoSistema(),
@@ -94,6 +98,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
         @ViewBuilder barra: @escaping () -> Barra
     ) {
         self.api = api
+        _contaID = State(initialValue: contaID)
         let repo = repositorioTurnos ?? api
         self.repositorioTurnos = repo
         self.relogio = relogio
@@ -140,7 +145,17 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .meuTurno(turno):
                             destinoDoMeuTurno(turno)
                         case let .avaliacao(turnoID):
-                            TelaAvaliacao(turnoID: turnoID, api: api, fila: fila, relogio: relogio)
+                            if let contaID {
+                                TelaAvaliacao(turnoID: turnoID, contaID: contaID, api: api, fila: fila, relogio: relogio)
+                            } else {
+                                EstadoErro(verbatim: TextosDoProfissional.Avaliacao.erroSemRede) {
+                                    Task { await recuperarIdentidade() }
+                                }
+                                .disabled(recuperandoIdentidade)
+                                .padding(FrilaEspaco.medio)
+                                .navigationTitle(TextosDoProfissional.Avaliacao.titulo)
+                                .accessibilityIdentifier("avaliacao-sem-conexao")
+                            }
                         }
                     }
             }
@@ -166,10 +181,17 @@ public struct FluxoDoProfissional<Barra: View>: View {
 }
 
 extension FluxoDoProfissional {
+    private func recuperarIdentidade() async {
+        guard !recuperandoIdentidade else { return }
+        recuperandoIdentidade = true
+        defer { recuperandoIdentidade = false }
+        contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
+    }
+
     /// O registro de presença aceito pelo servidor atualiza Meus turnos, que é de onde a tela reabre.
     private func destinoDoMeuTurno(_ turno: Turno) -> some View {
         let turnos = turnosViewModel
-        return DestinoDoMeuTurno(turno: turno, api: api, relogio: relogio, localizacao: localizacao, fila: fila) {
+        return DestinoDoMeuTurno(turno: turno, api: api, contaID: contaID, relogio: relogio, localizacao: localizacao, fila: fila) {
             Task { await turnos.atualizar() }
         }
     }
@@ -189,6 +211,7 @@ extension FluxoDoProfissional {
 extension FluxoDoProfissional where Barra == EmptyView {
     public init(
         api: any ApiCliente,
+        contaID: UUID? = nil,
         roteador: RoteadorDoProfissional,
         repositorioTurnos: (any TurnoRepositorio)? = nil,
         relogio: any Relogio = RelogioDoSistema(),
@@ -196,7 +219,7 @@ extension FluxoDoProfissional where Barra == EmptyView {
         fila: (any FilaDeAcoes)? = nil,
         sair: @escaping () -> Void = {}
     ) {
-        self.init(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, relogio: relogio, localizacao: localizacao, fila: fila, sair: sair) { EmptyView() }
+        self.init(api: api, contaID: contaID, roteador: roteador, repositorioTurnos: repositorioTurnos, relogio: relogio, localizacao: localizacao, fila: fila, sair: sair) { EmptyView() }
     }
 }
 
@@ -226,6 +249,7 @@ private struct DestinoDoMeuTurno: View {
     init(
         turno: Turno,
         api: any ApiCliente,
+        contaID: UUID?,
         relogio: any Relogio,
         localizacao: (any LeitorDeLocalizacao)?,
         fila: (any FilaDeAcoes)?,
@@ -235,7 +259,7 @@ private struct DestinoDoMeuTurno: View {
         let presenca = localizacao.map {
             PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
         }
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, fila: fila, relogio: relogio, presenca: presenca))
+        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca))
     }
 
     var body: some View {

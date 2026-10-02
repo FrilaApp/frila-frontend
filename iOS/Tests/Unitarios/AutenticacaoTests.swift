@@ -168,6 +168,31 @@ struct AutenticacaoTests {
         let destino = await vm.criarConta()
         #expect(destino == nil)
         #expect(vm.erro == "É necessário aceitar os Termos de uso e a Política de privacidade para continuar.")
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
+    }
+
+    @Test("CadastroViewModel bloqueia submissão quando maiorDeIdade é falso e não chama a API")
+    func maiorDeIdadeFalsoBloqueiaSubmissaoENaoChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let vm = CadastroViewModel(api: api, email: "novo@frila.app")
+
+        vm.nome = "Maria Oliveira"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = false
+        vm.aceitouTermos = true
+
+        #expect(!vm.formularioPreenchido)
+        let destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
     }
 
     @Test("CadastroViewModel recusa menor de idade no cliente e não chama a API")
@@ -186,6 +211,10 @@ struct AutenticacaoTests {
         let destino = await vm.criarConta()
         #expect(destino == nil)
         #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
     }
 
     @Test("CadastroViewModel trata erro 422 menor_de_idade da API")
@@ -258,6 +287,28 @@ struct AutenticacaoTests {
         let conta = try await api.minhaConta()
         #expect(conta.nome == "Carlos Gerente")
         #expect(conta.perfil == .contratante)
+    }
+
+    @Test("CadastroViewModel envia o aceite com a versão dos termos para a API")
+    func cadastroEnviaVersaoDosTermos() async throws {
+        let spy = ApiClienteEspiaoCadastro()
+        let vm = CadastroViewModel(api: spy, email: "novo@frila.app")
+
+        vm.perfil = .profissional
+        vm.nome = "Beatriz Souza"
+        vm.telefone = "(61) 98888-7777"
+        vm.nascimentoTexto = "12/04/1998"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        #expect(vm.formularioPreenchido)
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+
+        #expect(spy.chamadasACriarConta == 1)
+        let cadastro = try #require(spy.ultimoCadastroRecebido)
+        #expect(cadastro.versaoTermos == "2026-09-22")
+        #expect(!cadastro.versaoTermos.isEmpty)
     }
 
     // MARK: - DestinoDaConta
@@ -430,5 +481,29 @@ struct AutenticacaoTests {
         #expect(try await local.turnosValidos(em: instante).isEmpty)
         #expect(try await local.funcoes().isEmpty)
         #expect(try await local.pendentes().isEmpty)
+    }
+}
+
+// MARK: - Dublê de teste para espionar criação de conta
+
+private final class ApiClienteEspiaoCadastro: ApiClienteEncaminhador, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _cadastrosRecebidos: [CadastroConta] = []
+
+    override init(base: ApiClienteEmMemoria = ApiClienteEmMemoria(cenario: .primeiroAcesso)) {
+        super.init(base: base)
+    }
+
+    var chamadasACriarConta: Int {
+        lock.withLock { _cadastrosRecebidos.count }
+    }
+
+    var ultimoCadastroRecebido: CadastroConta? {
+        lock.withLock { _cadastrosRecebidos.last }
+    }
+
+    override func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
+        lock.withLock { _cadastrosRecebidos.append(cadastro) }
+        return try await base.criarConta(cadastro)
     }
 }

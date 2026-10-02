@@ -10,6 +10,7 @@ public struct TelaAvaliacao: View {
 
     public init(
         turnoID: UUID,
+        contaID: UUID,
         turno: Turno? = nil,
         api: any ApiCliente,
         fila: (any FilaDeAcoes)? = nil,
@@ -18,6 +19,7 @@ public struct TelaAvaliacao: View {
     ) {
         self.init(viewModel: AvaliacaoTurnoViewModel(
             turnoID: turnoID,
+            contaID: contaID,
             turno: turno,
             api: api,
             fila: fila,
@@ -30,8 +32,8 @@ public struct TelaAvaliacao: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                 cabecalho
-                cartaoExplicacao
                 areaDeEscolha
+                cartaoExplicacao
                 avisosDeEstado
                 botaoDeAcao
             }
@@ -82,7 +84,7 @@ public struct TelaAvaliacao: View {
     private var avisosDeEstado: some View {
         if viewModel.jaAvaliado && !viewModel.sucesso {
             AvisoFrila(
-                verbatim: TextosDoProfissional.Avaliacao.respostaRegistrada,
+                verbatim: TextosDoProfissional.Avaliacao.erroJaRegistrada,
                 tom: .informativo
             )
             .accessibilityIdentifier("aviso-ja-avaliado")

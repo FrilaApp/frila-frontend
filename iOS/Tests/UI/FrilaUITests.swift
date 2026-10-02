@@ -367,4 +367,124 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
     }
+
+    func testCadastroDesabilitaBotaoSemMaioridadeOuSemTermos() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("novo@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        let nome = app.textFields["cadastro-nome"]
+        nome.tap()
+        nome.typeText("Novo Usuário")
+
+        let telefone = app.textFields["cadastro-telefone"]
+        telefone.tap()
+        telefone.typeText("61988887777")
+
+        let nascimento = app.textFields["cadastro-nascimento"]
+        nascimento.tap()
+        nascimento.typeText("15/05/1995")
+
+        let btnContinuar = app.buttons["cadastro-continuar"]
+        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve estar desabilitado sem maioridade e sem termos")
+
+        // Marca apenas maioridade
+        app.buttons["cadastro-maior-de-idade"].tap()
+        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem aceite dos termos")
+
+        // Desmarca maioridade e marca apenas termos
+        app.buttons["cadastro-maior-de-idade"].tap()
+        app.buttons["cadastro-termos"].tap()
+        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem confirmação de maioridade")
+
+        // Marca ambos
+        app.buttons["cadastro-maior-de-idade"].tap()
+        XCTAssertTrue(btnContinuar.isEnabled, "Botão deve habilitar com formulário completo, maioridade e termos")
+    }
+}
+
+/// Validação de interface das telas de perfil (#54).
+@MainActor
+final class PerfilUITests: XCTestCase {
+    func testMeuPerfilAbreAjudaComLinksDeTermosEPrivacidade() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        botaoPerfil.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+
+        let botaoAjuda = app.buttons["perfil-ajuda"]
+        if !botaoAjuda.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        botaoAjuda.tap()
+
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+
+        let linkTermos = app.descendants(matching: .any)["perfil-termos"]
+        let linkPrivacidade = app.descendants(matching: .any)["perfil-privacidade"]
+
+        XCTAssertTrue(linkTermos.waitForExistence(timeout: 5), "perfil-termos deve existir na tela de ajuda")
+        XCTAssertTrue(linkPrivacidade.waitForExistence(timeout: 5), "perfil-privacidade deve existir na tela de ajuda")
+        XCTAssertTrue(linkTermos.isHittable)
+        XCTAssertTrue(linkPrivacidade.isHittable)
+        XCTAssertTrue(app.links["perfil-termos"].exists || linkTermos.elementType == .link || linkTermos.elementType == .button, "deve ser um link")
+        XCTAssertTrue(app.links["perfil-privacidade"].exists || linkPrivacidade.elementType == .link || linkPrivacidade.elementType == .button, "deve ser um link")
+
+        let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+    }
+
+    func testMeuPerfilAjudaAbreLicencasDeTerceirosComPacoteConhecido() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        botaoPerfil.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+
+        let botaoAjuda = app.buttons["perfil-ajuda"]
+        if !botaoAjuda.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        botaoAjuda.tap()
+
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+
+        let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+        XCTAssertTrue(botaoLicencas.isHittable)
+        botaoLicencas.tap()
+
+        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: 5))
+
+        let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
+        XCTAssertTrue(pacote.waitForExistence(timeout: 5), "a lista deve exibir pelo menos um pacote conhecido")
+    }
 }

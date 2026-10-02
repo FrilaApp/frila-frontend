@@ -5,11 +5,14 @@ import FrilaDominio
 /// (RN10) e a fila guarda ações da conta que saiu: nada disso pode sobrar para a próxima conta que
 /// entrar no mesmo iPhone. A exclusão de conta (S2) passa por aqui também.
 public struct SaidaDaConta: ContaRepositorio {
+    private let limparAvaliacoes: @Sendable () -> Void
     private let api: any ApiCliente
     private let armazenamento: (any CacheLocal & FilaDeAcoes)?
 
-    public init(api: any ApiCliente, armazenamento: (any CacheLocal & FilaDeAcoes)?) {
+    public init(api: any ApiCliente, armazenamento: (any CacheLocal & FilaDeAcoes)?,
+                limparAvaliacoes: @escaping @Sendable () -> Void = {}) {
         self.api = api
+        self.limparAvaliacoes = limparAvaliacoes
         self.armazenamento = armazenamento
     }
 
@@ -27,6 +30,7 @@ public struct SaidaDaConta: ContaRepositorio {
     }
 
     private func apagarDadosLocais() async {
+        limparAvaliacoes()
         if let armazenamento {
             // `ArmazenamentoSwiftData.limpar` apaga turnos, funções, sessão e fila de uma vez; as duas
             // chamadas mantêm a regra certa se as portas passarem a ter implementações separadas.
