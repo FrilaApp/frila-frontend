@@ -158,6 +158,18 @@ Limites conhecidos:
 - o painel não traz a hora do check-in nem o motivo de uma posição cancelada, então a tela não mostra nenhum dos dois;
 - Minhas vagas e o acompanhamento leem o mesmo painel em duas chamadas.
 
+## Modo seleção do contratante (#10, visual provisório)
+
+O contrato é o 0.2.24. A casa publica em seleção, vê os candidatos e escolhe; o lado do profissional vem em outro PR.
+
+- **Publicar em seleção.** `TelaPublicarVaga` tem o seletor "Como preencher a vaga" (Urgência ou Seleção), que abre em Urgência. No modo seleção, o início precisa estar a **mais** de 24 horas: com 24 horas ou menos, o formulário recusa no campo do início, sem chamar a API. O relógio que vale é o do servidor, então o `422 selecao_sem_antecedencia` também aponta o início e destrava o formulário. O servidor que ainda recusa o modo (`422 campo_invalido`, `modo`, até o contrato 0.2.23) recebe mensagem própria no seletor.
+- **Candidatos.** No detalhe da vaga em seleção, em Minhas vagas, a seção "Candidatos" (`SecaoDeCandidatos`, `CandidatosDaVagaViewModel`, em `CandidatosDaVaga.swift`) lista quem espera a escolha, por ordem de chegada, com nome, funções e a reputação com o denominador (`SeloReputacao`); "Ver perfil público" abre o mesmo perfil das posições confirmadas. Estados: carregando, vazia, erro e sem conexão. O cartão da vaga na lista diz "Modo seleção" e quantos candidatos esperam.
+- **Escolher.** O botão pede confirmação num alerta, que avisa quando é a última posição. Depois da escolha, a tela relê os candidatos e o painel: o confirmado sai da lista de candidatos e aparece em "Posições", com o contato. `candidatos_da_vaga` só lista pendentes; quem foi confirmado vem do painel.
+- **A escolha não é idempotente e não entra na fila offline.** O contrato responde `409 candidatura_indisponivel` a quem escolhe de novo a candidatura já escolhida, e não devolve o mesmo turno. Sem rede (`sem_rede`, a chamada não sai do aparelho) é só mensagem e tentar de novo. Quando a resposta não diz se a escolha valeu (queda no meio da chamada, ou o 409 da segunda tentativa), o view model relê o painel e decide pelo que o servidor mostra: profissional confirmado na vaga é escolha que valeu.
+- **Recusas.** `409 posicao_ja_preenchida` (outra pessoa da casa ocupou a última posição, RN19) explica e recarrega; `409 vaga_encerrada`, `422 inelegivel` (`turno_sobreposto` e os demais motivos) e `422 vaga_oculta` têm texto próprio. A mensagem só diz "Atualizamos a lista" quando a releitura deu certo.
+- **O que o painel diz da seleção** (`SituacaoDaSelecao`): aberta, oculta pela Equipe (candidatos visíveis, sem escolher), concluída, fechada sem escolha (vaga `encerrada` sem ninguém confirmado, RN24) ou encerrada. Nada disso é decidido pelo relógio do aparelho. A posição que o fechamento cancelou aparece como "Posição fechada sem escolha".
+- **Limite.** A lista de candidatos é relida ao abrir o detalhe, pelo botão "Atualizar candidatos", depois de cada escolha e quando o painel relido traz outra contagem de pendentes. Não há atualização em tempo real.
+
 ## Cenários simulados
 
 **Check-in e check-out no dublê.** O `ApiClienteEmMemoria` segue o `fazer_checkin` vigente do backend (`20260925233000_notificacao_para_qualquer_conta.sql`) e o `fazer_checkout` (`20260925000000_checkin_e_checkout.sql`):
@@ -185,7 +197,7 @@ Também aqui o dublê não é equivalente ao backend:
 - **Moderação.** Ocultar e reexibir são da Equipe Frila, fora da API. No dublê existe `moderar(vagaID:oculta:)`, fora da porta `ApiCliente`, para os testes.
 
 **Modo seleção no dublê (#10, contrato 0.2.24).** O `ApiClienteEmMemoria` segue `escolher_candidato`, `candidatos_da_vaga`, `retirar_candidatura`, `minhas_candidaturas` e o fechamento automático do backend (`20260929234100_modo_selecao.sql`), na ordem das recusas deles:
-- `candidatosDaVaga`: só os pendentes, por ordem de chegada, com o perfil público e a reputação; vaga que não existe é `404`. O painel conta os mesmos em `candidatos_pendentes`.
+- `candidatosDaVaga`: só os pendentes, por ordem de chegada, com o perfil público e a reputação; vaga que não existe é `404`. O painel os conta em `candidatos_pendentes`, menos o candidato que a casa bloqueou: como no backend, `candidatos_da_vaga` continua a listá-lo, e o contador do painel não. A posição aberta tem o mesmo id a cada leitura do painel, e a escolha confirma numa delas.
 - `escolherCandidato`: candidatura que não existe é `403 sem_permissao`; a já escolhida, `409 candidatura_indisponivel`; vaga ocultada, `422 vaga_oculta`; vaga cheia, `409 posicao_ja_preenchida`; fechada pelas 24 horas, cancelada ou encerrada, `409 vaga_encerrada`; candidatura retirada, recusada ou expirada, `409 candidatura_indisponivel`. A escolha cria o turno e devolve o contato do profissional; a que ocupa a última posição enche a vaga e passa os pendentes a `recusada`.
 - **Escolher não é idempotente**, como no contrato: escolher de novo a mesma candidatura é `409 candidatura_indisponivel`, e não o mesmo turno. Por isso a escolha não entra na fila offline.
 - `retirarCandidatura`: a pendente passa a `retirada`; retirar de novo devolve a mesma; escolhida, recusada ou expirada é `409 candidatura_indisponivel`; a que não é da conta, `404`. Candidatar-se de novo reativa a retirada, com a hora nova.

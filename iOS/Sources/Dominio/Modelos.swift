@@ -310,7 +310,8 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         if valor.centavos < 1 { erros.append(.valorInvalido) }
         if !(1...200).contains(posicoes) { erros.append(.quantidadeDePosicoesInvalida) }
         if periodo.inicio <= agora { erros.append(.horarioNoPassado) }
-        if modo == .selecao, periodo.inicio.timeIntervalSince(agora) < 24 * 60 * 60 {
+        // Como o servidor: o início tem de estar a mais de 24 h; com 24 h exatas é recusa (RN24).
+        if modo == .selecao, periodo.inicio.timeIntervalSince(agora) <= 24 * 60 * 60 {
             erros.append(.selecaoSemAntecedencia)
         }
         return erros

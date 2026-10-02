@@ -73,7 +73,7 @@ struct PublicarVagaTests {
         case .valor: vm.valorTexto = "0"
         case .posicoes: vm.posicoesTexto = "0"
         case .responsavel: vm.responsavelLocal = ""
-        case .inclusos, .traje, .rateio, .observacoes: break
+        case .inclusos, .traje, .rateio, .observacoes, .modo: break
         }
         #expect(!vm.validar())
         #expect(vm.erros[campo] != nil)
