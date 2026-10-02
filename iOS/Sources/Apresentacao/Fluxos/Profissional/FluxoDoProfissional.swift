@@ -97,6 +97,8 @@ public struct FluxoDoProfissional<Barra: View>: View {
     @State private var turnosViewModel: MeusTurnosViewModel
     @State private var candidaturasViewModel: MinhasCandidaturasViewModel
     @State private var caminhoTurnos: [Turno] = []
+    /// A pilha da aba Candidaturas: a vaga aberta por ela fica nela, e o voltar cai na lista.
+    @State private var caminhoCandidaturas: [Candidatura] = []
     private let barra: () -> Barra
     private let sair: () -> Void
 
@@ -204,8 +206,18 @@ public struct FluxoDoProfissional<Barra: View>: View {
             }
             .tag(AbaDoProfissional.turnos)
 
-            NavigationStack {
+            NavigationStack(path: $caminhoCandidaturas) {
                 TelaMinhasCandidaturas(viewModel: candidaturasViewModel, abrir: abrirCandidatura)
+                    .navigationDestination(for: Candidatura.self) { candidatura in
+                        // A mesma tela do aviso (detalhe com a candidatura enviada, ou a explicação
+                        // de por que a vaga não está mais disponível), mas nesta pilha: quem veio
+                        // da aba Candidaturas volta para ela.
+                        DestinoDaVagaDoAviso(
+                            vagaID: candidatura.vaga.id, api: api, repositorio: repositorioTurnos,
+                            candidatar: candidatarPelaAbaCandidaturas, voltarParaLista: { caminhoCandidaturas = [] },
+                            rotuloDoVoltar: TextosDaCandidaturaEmSelecao.verCandidaturas
+                        ) { destinoDoMeuTurno($0) }
+                    }
             }
             .tabItem {
                 Label(TextosDaCandidaturaEmSelecao.titulo, systemImage: "paperplane")
@@ -213,6 +225,12 @@ public struct FluxoDoProfissional<Barra: View>: View {
             .tag(AbaDoProfissional.candidaturas)
         }
         .onChange(of: roteador.avisosAbertos) { atualizarListas() }
+        .onChange(of: caminhoCandidaturas) { _, caminho in
+            // De volta à lista: a candidatura retirada no detalhe aparece como retirada.
+            guard caminho.isEmpty else { return }
+            let candidaturas = candidaturasViewModel
+            Task { await candidaturas.atualizar() }
+        }
         .onChange(of: roteador.aba) { _, aba in
             // A candidatura enviada ou retirada em Vagas aparece na aba assim que a pessoa chega nela.
             guard aba == .candidaturas else { return }
@@ -255,10 +273,25 @@ extension FluxoDoProfissional {
         }
     }
 
-    /// A candidatura confirmada virou turno, e ele está em Meus turnos. As outras levam à vaga: o
-    /// detalhe com a candidatura enviada, ou a tela que diz por que a vaga não está mais disponível.
+    /// A candidatura confirmada virou turno, e ele está em Meus turnos. As outras abrem a vaga
+    /// dentro da própria aba: o detalhe com a candidatura enviada, ou a tela que diz por que a
+    /// vaga não está mais disponível. O caminho do toque no push (`roteador.abrir`) não passa aqui.
     private func abrirCandidatura(_ candidatura: Candidatura) {
-        roteador.abrir(candidatura.estado == .aceita ? .meusTurnos : .vaga(candidatura.vaga.id))
+        if candidatura.estado == .aceita {
+            roteador.abrirMeusTurnos()
+        } else {
+            caminhoCandidaturas = [candidatura]
+        }
+    }
+
+    /// Candidatar-se de novo pela aba Candidaturas (a retirada cuja vaga ainda está aberta). O
+    /// resultado com tela própria abre na pilha de Vagas: a aba acompanha, e esta pilha volta ao
+    /// início, para "Ver minhas candidaturas" cair na lista.
+    private func candidatarPelaAbaCandidaturas(_ viewModel: CandidaturaViewModel) async {
+        await roteador.candidatar(viewModel: viewModel)
+        guard case let .concluida(resultado) = viewModel.estado, resultado.abreTelaPropria else { return }
+        caminhoCandidaturas = []
+        roteador.aba = .vagas
     }
 }
 

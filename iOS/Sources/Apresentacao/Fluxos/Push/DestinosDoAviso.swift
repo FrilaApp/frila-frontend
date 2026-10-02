@@ -63,14 +63,18 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
     private let repositorio: any TurnoRepositorio
     private let candidatar: (CandidaturaViewModel) async -> Void
     private let voltarParaLista: () -> Void
+    private let rotuloDoVoltar: String?
     private let turno: (Turno) -> Conteudo
 
+    /// `voltarParaLista` leva de volta à lista de onde a pessoa veio. No toque no push é a lista
+    /// de vagas; quem abre a vaga pela aba Candidaturas volta para ela, e passa o rótulo do botão.
     init(
         vagaID: UUID,
         api: any ApiCliente,
         repositorio: any TurnoRepositorio,
         candidatar: @escaping (CandidaturaViewModel) async -> Void,
         voltarParaLista: @escaping () -> Void,
+        rotuloDoVoltar: String? = nil,
         @ViewBuilder turno: @escaping (Turno) -> Conteudo
     ) {
         _detalhe = State(initialValue: DetalheVagaViewModel(vagaID: vagaID, api: api))
@@ -78,6 +82,7 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
         self.repositorio = repositorio
         self.candidatar = candidatar
         self.voltarParaLista = voltarParaLista
+        self.rotuloDoVoltar = rotuloDoVoltar
         self.turno = turno
     }
 
@@ -92,7 +97,7 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
             case let .semTurno(candidatura):
                 TelaVagaIndisponivel(
                     motivo: motivo, candidatura: candidatura, modo: vaga?.modo, vagaCancelada: vaga?.estado == .cancelada,
-                    voltarParaLista: voltarParaLista
+                    rotuloDoVoltar: rotuloDoVoltar, voltarParaLista: voltarParaLista
                 )
             }
         } else {
@@ -121,6 +126,8 @@ struct TelaVagaIndisponivel: View {
     /// A casa cancelou a vaga. `IndisponibilidadeDaVaga` junta a cancelada e a encerrada; para
     /// quem tinha candidatura nela, a tela diz qual das duas foi.
     var vagaCancelada = false
+    /// O rótulo do botão de volta, quando a lista de onde a pessoa veio não é a de vagas.
+    var rotuloDoVoltar: String?
     let voltarParaLista: () -> Void
 
     var body: some View {
@@ -134,12 +141,13 @@ struct TelaVagaIndisponivel: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("vaga-indisponivel")
 
-                BotaoSecundario(verbatim: Textos.voltarParaLista, acao: voltarParaLista)
+                BotaoSecundario(verbatim: rotuloDoVoltar ?? Textos.voltarParaLista, acao: voltarParaLista)
                     .accessibilityIdentifier("voltar-para-lista")
             }
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
+        // O título do que aconteceu está no corpo: a barra leva só "Vaga", em linha, sem repeti-lo.
         .navigationTitle(Text(verbatim: TextosDoProfissional.Detalhe.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { AccessibilityNotification.Announcement(titulo).post() }

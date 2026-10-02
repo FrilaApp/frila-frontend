@@ -95,9 +95,10 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(pendente.waitForExistence(timeout: 5))
         XCTAssertTrue(pendente.label.contains("Aguardando a escolha do estabelecimento"), pendente.label)
 
-        // O toque leva à vaga: no lugar de Candidatar-me, a candidatura enviada com a retirada.
+        // O toque leva à vaga, sem sair da aba: no lugar de Candidatar-me, a candidatura enviada com a retirada.
         pendente.tap()
         XCTAssertTrue(elemento("tela-detalhe-vaga", em: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(aba.isSelected, "a vaga aberta pela aba Candidaturas fica nela")
         XCTAssertTrue(elemento("candidatura-enviada", em: app).waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["candidatar"].exists)
 
@@ -108,9 +109,14 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(elemento("candidatura-retirada", em: app).exists)
         XCTAssertFalse(app.buttons["retirar-candidatura"].exists)
 
-        aba.tap()
+        // O voltar da barra cai na lista de candidaturas, já com a retirada.
+        app.navigationBars.buttons["Candidaturas"].tap()
+        XCTAssertTrue(elemento("tela-minhas-candidaturas", em: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(aba.isSelected)
         XCTAssertTrue(pendente.waitForExistence(timeout: 10))
-        XCTAssertTrue(pendente.label.contains("Candidatura retirada"), pendente.label)
+        let retirada = NSPredicate(format: "label CONTAINS 'Candidatura retirada'")
+        expectation(for: retirada, evaluatedWith: pendente)
+        waitForExpectations(timeout: 10)
     }
 
     func testRetirarSemConexaoAvisaENaoTiraOBotao() {
@@ -162,7 +168,12 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(indisponivel.label.contains("A vaga foi preenchida, e a sua candidatura não foi escolhida."), indisponivel.label)
         XCTAssertFalse(app.buttons["candidatar"].exists)
         XCTAssertFalse(app.buttons["retirar-candidatura"].exists)
+        // O título do que aconteceu fica só no corpo: a barra diz "Vaga".
+        XCTAssertTrue(app.navigationBars["Vaga"].exists)
+        XCTAssertFalse(app.navigationBars["O estabelecimento escolheu outra pessoa"].exists)
 
+        // Pelo push, o voltar cai na lista de vagas.
+        XCTAssertEqual(app.buttons["voltar-para-lista"].label, "Ver outras vagas perto de você")
         app.buttons["voltar-para-lista"].tap()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
@@ -178,14 +189,26 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(indisponivel.label.contains("A vaga fechou sem que a sua candidatura fosse escolhida."), indisponivel.label)
         XCTAssertFalse(app.buttons["candidatar"].exists)
 
-        // A aba Candidaturas guarda o desfecho, e o toque nela leva à mesma explicação.
+        // A aba Candidaturas guarda o desfecho, e o toque nela leva à mesma explicação, sem sair da aba.
         app.buttons["voltar-para-lista"].tap()
-        app.tabBars.buttons["Candidaturas"].tap()
+        let aba = app.tabBars.buttons["Candidaturas"]
+        aba.tap()
         let expirada = app.buttons["candidatura-\(candidaturaID)"]
         XCTAssertTrue(expirada.waitForExistence(timeout: 10))
         XCTAssertTrue(expirada.label.contains("A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida"), expirada.label)
         expirada.tap()
         XCTAssertTrue(indisponivel.waitForExistence(timeout: 10))
+        XCTAssertTrue(indisponivel.label.contains("A seleção desta vaga foi encerrada"), indisponivel.label)
+        XCTAssertTrue(aba.isSelected, "quem veio da aba Candidaturas continua nela")
+
+        // Quem veio da aba Candidaturas volta para ela, pelo botão da tela ou pelo voltar da barra.
+        let voltar = app.buttons["voltar-para-lista"]
+        XCTAssertEqual(voltar.label, "Ver minhas candidaturas")
+        XCTAssertTrue(app.navigationBars.buttons["Candidaturas"].exists)
+        voltar.tap()
+        XCTAssertTrue(elemento("tela-minhas-candidaturas", em: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(aba.isSelected)
+        XCTAssertTrue(expirada.waitForExistence(timeout: 5))
     }
 
     // MARK: Acessibilidade
