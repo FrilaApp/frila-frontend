@@ -255,7 +255,8 @@ private final class ApiDoAparelho: ApiClienteEncaminhador, @unchecked Sendable {
         set { trava.withLock { _portao = newValue } }
     }
 
-    private func anotar(_ chamada: String) { trava.withLock { _chamadas.append(chamada) } }
+    func anotar(_ chamada: String) { trava.withLock { _chamadas.append(chamada) } }
+    func esquecerChamadas() { trava.withLock { _chamadas = [] } }
     private func exigirRede() throws { if semRede { throw ErroDaApi(codigo: .semRede) } }
 
     override func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
@@ -278,6 +279,25 @@ private final class ApiDoAparelho: ApiClienteEncaminhador, @unchecked Sendable {
         anotar("sair \(tokenFCM ?? "sem token")")
         if let tokenFCM, !semRede { try? await base.removerDispositivo(tokenFCM: tokenFCM) }
     }
+}
+
+/// O canal do push anotando, na mesma lista do servidor, a ordem do que pede ao sistema.
+private struct CanalAnotado: CanalDePush {
+    private let api: ApiDoAparelho
+    private let aoAtivar: @Sendable () async -> Void
+
+    init(_ api: ApiDoAparelho, aoAtivar: @escaping @Sendable () async -> Void = {}) {
+        self.api = api
+        self.aoAtivar = aoAtivar
+    }
+
+    func ativar() async {
+        api.anotar("canal: ativar")
+        await aoAtivar()
+    }
+    func limparEntregues() async { api.anotar("canal: limpar") }
+    func suspenderEntrega() async { api.anotar("canal: suspender") }
+    func descartarEntregues(antesDe instante: Date) async { api.anotar("canal: descartar") }
 }
 
 private final class RelogioAjustavel: Relogio, @unchecked Sendable {
@@ -309,8 +329,8 @@ struct AparelhoDePushTests {
 
     /// O destino guardado é global (`UserDefaults.standard`): estes testes não o limpam, para não
     /// atropelar os que dependem dele e rodam em paralelo.
-    private func saida(_ aparelho: AparelhoDePush) -> SaidaDaConta {
-        SaidaDaConta(api: api, armazenamento: nil, aparelho: aparelho, limparDestino: {})
+    private func saida(_ aparelho: AparelhoDePush, canal: (any CanalDePush)? = nil) -> SaidaDaConta {
+        SaidaDaConta(api: api, armazenamento: nil, aparelho: aparelho, canal: canal, limparDestino: {})
     }
 
     private func conta() async throws -> UUID { try await api.minhaConta().id }
@@ -373,16 +393,17 @@ struct AparelhoDePushTests {
     @Test("Sair da conta manda o token guardado, e não nil: o aparelho sai do servidor antes de a sessão acabar")
     func saida() async throws {
         let aparelho = aparelho()
+        let contaID = try await conta()
         await aparelho.receber(token: Tokens.aparelho)
-        await aparelho.registrar(para: try await conta())
+        await aparelho.registrar(para: contaID)
 
         await saida(aparelho).sair()
 
         #expect(api.chamadas.last == "sair \(Tokens.aparelho)")
         #expect(await dono(Tokens.aparelho) == nil)
         #expect(await aparelho.vinculo() == nil)
-        // O token é do aparelho: fica guardado para a próxima conta que entrar.
-        #expect(guardado.ler() == AparelhoGuardado(token: Tokens.aparelho, vinculo: nil))
+        // O token é do aparelho: fica guardado para a próxima conta que entrar, com a conta de quem saiu.
+        #expect(guardado.ler() == AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: contaID))
     }
 
     @Test("Troca de conta no mesmo iPhone: quem entra vira a dona do token, com um vínculo que começa na entrada")
@@ -415,7 +436,9 @@ struct AparelhoDePushTests {
         #expect(await aparelho.vinculo() == antigo)
 
         api.semRede = false
-        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        // Troca de conta: o vínculo de quem entra só vale depois da carência.
+        let desde = relogio.agora.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta)
+        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: desde)))
     }
 
     @Test("Sair sem rede não segura a saída: o aparelho deixa de ser da conta aqui, e a próxima entrada toma o token")
@@ -432,6 +455,117 @@ struct AparelhoDePushTests {
         #expect(await aparelho.vinculo() == nil)
         // Limite conhecido: sem rede, o servidor continua com o token até outra conta entrar.
         #expect(await dono(Tokens.aparelho) == contaID)
+    }
+
+    // MARK: A entrega do sistema na saída e na entrada seguinte (revisão do #70)
+
+    @Test("Sair sem rede suspende a entrega no aparelho antes de falar com o servidor, e limpa a central")
+    func saidaSemRedeSuspendeAEntrega() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        let canal = CanalAnotado(api)
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.ligar(para: contaID, canal: canal)
+        api.esquecerChamadas()
+
+        api.semRede = true
+        await saida(aparelho, canal: canal).sair()
+
+        // A suspensão vem antes da rede, que pode demorar ou falhar, e de novo depois dela.
+        #expect(api.chamadas == ["canal: suspender", "sair \(Tokens.aparelho)", "canal: suspender", "canal: limpar"])
+        // O servidor ainda acha que o aparelho é da conta: a tentativa de remoção não confirma nada.
+        #expect(await dono(Tokens.aparelho) == contaID)
+        #expect(guardado.ler() == AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: contaID))
+    }
+
+    @Test("Sessão encerrada sem a pessoa pedir também suspende a entrega e limpa a central")
+    func encerramentoSuspendeAEntrega() async throws {
+        let aparelho = aparelho()
+        let canal = CanalAnotado(api)
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.ligar(para: try await conta(), canal: canal)
+        api.esquecerChamadas()
+
+        await saida(aparelho, canal: canal).acompanharEncerramentos(de: ObservadorDeUmEncerramento())
+
+        #expect(api.chamadas == ["canal: suspender", "canal: limpar"])
+        #expect(await aparelho.vinculo() == nil)
+    }
+
+    @Test("Depois de uma saída, quem entra só volta a receber do sistema quando o servidor confirma o token para ela")
+    func reativacaoDepoisDoServidor() async throws {
+        // A conta anterior saiu sem rede: o servidor ainda acha que o aparelho é dela.
+        await api.base.registrarDispositivo(tokenFCM: Tokens.aparelho, deOutraConta: outraConta)
+        guardado.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: outraConta))
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        let canal = CanalAnotado(api)
+
+        api.semRede = true
+        #expect(await aparelho.ligar(para: contaID, canal: canal) == .falhou(ErroDaApi(codigo: .semRede)))
+        // O servidor não confirmou: o token ainda é de quem saiu, e o sistema continua sem entregar.
+        #expect(api.chamadas == ["registrar \(Tokens.aparelho)"])
+        #expect(await dono(Tokens.aparelho) == outraConta)
+
+        api.semRede = false
+        api.esquecerChamadas()
+        let vinculo = VinculoDoAparelho(contaID: contaID, desde: relogio.agora.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta))
+        #expect(await aparelho.ligar(para: contaID, canal: canal) == .registrado(vinculo))
+        #expect(api.chamadas == ["registrar \(Tokens.aparelho)", "canal: ativar"])
+        #expect(await dono(Tokens.aparelho) == contaID)
+    }
+
+    @Test("O aparelho que já é da conta pede o registro ao sistema a cada abertura, mesmo sem rede")
+    func aberturaDaMesmaConta() async throws {
+        let contaID = try await conta()
+        let vinculo = VinculoDoAparelho(contaID: contaID, desde: relogio.agora)
+        guardado.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: vinculo))
+        let canal = CanalAnotado(api)
+
+        api.semRede = true
+        #expect(await aparelho().ligar(para: contaID, canal: canal) == .falhou(ErroDaApi(codigo: .semRede)))
+
+        #expect(api.chamadas == ["canal: ativar", "registrar \(Tokens.aparelho)"])
+    }
+
+    @Test("Na primeira entrada ainda não há token: ativar é o que o traz, e ele é registrado para quem entrou")
+    func primeiraEntrada() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        let canal = CanalAnotado(api) { await aparelho.receber(token: Tokens.aparelho) }
+
+        #expect(await aparelho.ligar(para: contaID, canal: canal) == .semToken)
+
+        #expect(api.chamadas == ["canal: ativar", "registrar \(Tokens.aparelho)"])
+        // Sem conta anterior não há carência.
+        #expect(await aparelho.vinculo() == VinculoDoAparelho(contaID: contaID, desde: relogio.agora))
+    }
+
+    @Test("Troca de conta depois de uma saída: o vínculo de quem entra só vale depois da carência")
+    func carenciaNaTrocaDeConta() async throws {
+        guardado.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: VinculoDoAparelho(contaID: outraConta, desde: relogio.agora)))
+        let aparelho = aparelho()
+        await saida(aparelho).sair()
+        #expect(guardado.ler() == AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: outraConta))
+        relogio.avancar(600)
+
+        let contaID = try await conta()
+        let desde = relogio.agora.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta)
+        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: desde)))
+        // Com o vínculo novo, a conta anterior não precisa mais ficar guardada.
+        #expect(guardado.ler()?.contaAnterior == nil)
+    }
+
+    @Test("A mesma conta que sai e volta não tem carência: o aviso a caminho era dela")
+    func mesmaContaVoltaSemCarencia() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.registrar(para: contaID)
+        await saida(aparelho).sair()
+        relogio.avancar(600)
+
+        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
     }
 
     @Test("Token trocado pelo FCM com alguém dentro: o antigo sai, o novo entra e o vínculo continua")
@@ -605,5 +739,14 @@ struct ArmazenamentoDoAparelhoNoKeychainTests {
         armazenamento.guardar(AparelhoGuardado(token: Tokens.novo, vinculo: vinculo))
 
         #expect(armazenamento.ler() == AparelhoGuardado(token: Tokens.novo, vinculo: vinculo))
+
+        armazenamento.guardar(AparelhoGuardado(token: Tokens.novo, vinculo: nil, contaAnterior: outraConta))
+        #expect(armazenamento.ler() == AparelhoGuardado(token: Tokens.novo, vinculo: nil, contaAnterior: outraConta))
+    }
+
+    @Test("O guardado de antes da conta anterior existir continua legível")
+    func formatoAntigo() throws {
+        let antigo = Data(#"{"token":"token-fcm-de-exemplo-0001"}"#.utf8)
+        #expect(try JSONDecoder().decode(AparelhoGuardado.self, from: antigo) == AparelhoGuardado(token: Tokens.aparelho))
     }
 }

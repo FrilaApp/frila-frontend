@@ -48,13 +48,15 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUser
     // MARK: UNUserNotificationCenterDelegate
 
     /// App aberto: a notificação aparece como aparece fora dele, com faixa e som, e o toque nela
-    /// cai no método de baixo. O aviso que não é da conta que está na tela não é mostrado.
+    /// cai no método de baixo. Só é mostrado o aviso que o toque abriria para a conta que está na
+    /// tela; o resto (outra conta, outro perfil, antes do vínculo, sem `tipo`) não aparece.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler(navegacao.push.eDaContaAtiva(entregueEm: notification.date) ? [.banner, .list, .sound] : [])
+        let mostrar = navegacao.push.apresenta(payload: notification.request.content.userInfo, entregueEm: notification.date)
+        completionHandler(mostrar ? [.banner, .list, .sound] : [])
     }
 
     /// O toque na notificação, com o app aberto, em segundo plano ou fechado. Só o toque de abrir

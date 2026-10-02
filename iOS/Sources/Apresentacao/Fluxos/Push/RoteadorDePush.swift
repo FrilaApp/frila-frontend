@@ -98,7 +98,7 @@ public enum DecisaoDoPush: Equatable, Sendable {
 /// **Push de outra conta.** O payload não diz para quem é o aviso (RN15), então a conferência usa o
 /// que o aparelho sabe: a conta à qual ele está entregue no servidor e desde quando
 /// (`VinculoDoAparelho`). O aviso entregue antes disso era de quem estava aqui antes, e não abre
-/// nada. Depois disso, o perfil ainda precisa ser o do aviso, e a tela de destino lê os dados com a
+/// nada; na troca de conta, "antes disso" inclui a carência depois da confirmação do servidor. Depois disso, o perfil ainda precisa ser o do aviso, e a tela de destino lê os dados com a
 /// sessão de quem está no aparelho: o turno ou a vaga de outra conta dá "não encontrado".
 @MainActor @Observable
 public final class RoteadorDePush {
@@ -140,12 +140,13 @@ public final class RoteadorDePush {
         }
     }
 
-    /// Se uma notificação entregue em `entregueEm` é da conta que está na tela, pelo que o aparelho
-    /// sabe: há sessão, o aparelho está entregue a ela e a entrega veio depois disso. Com o app
-    /// aberto, só a notificação que passa aqui é mostrada.
-    public func eDaContaAtiva(entregueEm: Date) -> Bool {
+    /// Com o app aberto, só é mostrada a notificação que o toque abriria: há sessão, o aparelho
+    /// está entregue a ela, a entrega veio depois disso e o aviso tem destino no perfil da conta.
+    /// O aviso sem `tipo`, de outro perfil ou de antes do vínculo não ganha faixa nem som.
+    public func apresenta(payload: [AnyHashable: Any], entregueEm: Date) -> Bool {
         guard case let .ativa(conta) = sessao else { return false }
-        return Self.vinculoVale(conta, entregueEm: entregueEm)
+        if case .abrir = Self.decidir(payload: Self.campos(payload), entregueEm: entregueEm, conta: conta) { return true }
+        return false
     }
 
     /// A conta que está no aparelho ficou conhecida, ou o vínculo dela mudou. O toque que esperava

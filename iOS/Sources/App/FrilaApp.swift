@@ -256,8 +256,9 @@ private struct EntradaDoApp: View {
             guard let contaID, let permissao = permissaoDePush.estado else { return }
             await informarContaAoPush(contaID)
             if permissao == .concedida {
-                await canal.ativar()
-                await aparelho.registrar(para: contaID)
+                // Quem entra depois de uma saída só volta a receber do sistema quando o servidor
+                // confirma o token para ela: a ordem está em `AparelhoDePush.ligar`.
+                await aparelho.ligar(para: contaID, canal: canal)
             } else {
                 await aparelho.suspender()
             }
@@ -265,12 +266,14 @@ private struct EntradaDoApp: View {
             #if DEBUG
             if !Task.isCancelled { aplicarPushDosArgumentos() }
             #endif
+            await descartarAvisosDeAntesDoVinculo()
         }
         // O token do FCM chega depois da entrada, e o registro dele termina fora da tarefa acima: o
         // roteador do push fica sabendo do vínculo novo por aqui.
         .task {
             for await _ in await aparelho.mudancasDoVinculo() {
                 if let contaID { await informarContaAoPush(contaID) }
+                Task { await descartarAvisosDeAntesDoVinculo() }
             }
         }
         // Suspensão e reativação não têm tela própria no payload: a conta é reavaliada, e é a
@@ -290,6 +293,7 @@ private struct EntradaDoApp: View {
             for await _ in observador.encerramentos() {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
                 await aparelho.desvincular()
+                await canal.suspenderEntrega()
                 await canal.limparEntregues()
                 roteadorDePush.semSessao()
                 contaID = nil
@@ -312,7 +316,7 @@ private struct EntradaDoApp: View {
                 UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
             })
         )
-        let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho,
+        let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho, canal: canal,
                                 limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() })
         let observador = api as? any ObservadorDeSessao
         await withTaskGroup(of: Void.self) { grupo in
@@ -403,6 +407,17 @@ private struct EntradaDoApp: View {
         case .funcoesEHorarios, .cadastro, .contaSuspensa: .nenhum
         }
         roteadorDePush.contaAtiva(ContaNoAparelho(contaID: contaID, fluxo: fluxo, vinculo: vinculo))
+    }
+
+    /// O que foi entregue antes de o aparelho ser da conta que está na tela não é dela: sai da
+    /// central. Na troca de conta o vínculo só vale depois da carência, e o que chegar nela sai
+    /// quando ela acaba.
+    private func descartarAvisosDeAntesDoVinculo() async {
+        guard !Task.isCancelled, let desde = await aparelho.vinculo()?.desde else { return }
+        await canal.descartarEntregues(antesDe: desde)
+        let espera = desde.timeIntervalSinceNow
+        guard espera > 0, (try? await Task.sleep(for: .seconds(espera))) != nil else { return }
+        if await aparelho.vinculo()?.desde == desde { await canal.descartarEntregues(antesDe: desde) }
     }
 
     private func aplicarDestinoManual(_ destino: DestinoAposEntrada) {
@@ -610,11 +625,10 @@ private struct EntradaDoApp: View {
         roteadorDePush.semSessao()
         contaID = nil
         destinoAtual = nil
-        await SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho,
+        // A saída suspende a entrega do sistema neste aparelho, antes e depois de falar com o
+        // servidor, e tira da central o que a conta recebeu, para quem pegar o aparelho depois (RN15).
+        await SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho, canal: canal,
                                 limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair()
-        // O que a conta que saiu recebeu não fica na central de notificações para quem pegar o
-        // aparelho depois (RN15).
-        await canal.limparEntregues()
         roteador.voltarParaLista()
         destinoAtual = nil
         await avaliarSessao()
