@@ -52,6 +52,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Turno encerrado e verificado para avaliação de turno no fluxo natural (#22).
         case turnoEncerrado = "turno-encerrado"
         case turnoEncerradoVerificado = "turno-encerrado-verificado"
+        case exportarSemRede = "exportar-sem-rede"
+        case exportarErroServidor = "exportar-erro-servidor"
     }
 
     private let cenario: Cenario
@@ -928,11 +930,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
             throw erroExportarMeusDados
         }
 
-        let argumentos = ProcessInfo.processInfo.arguments
-        if argumentos.contains("-FRILA_EXPORTAR_SEM_REDE") {
+        if cenario == .exportarSemRede {
             throw ErroDaApi(codigo: .semRede)
         }
-        if argumentos.contains("-FRILA_EXPORTAR_ERRO_SERVIDOR") {
+        if cenario == .exportarErroServidor {
             throw ErroDaApi(codigo: .desconhecido)
         }
 

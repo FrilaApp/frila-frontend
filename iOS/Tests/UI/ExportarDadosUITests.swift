@@ -62,6 +62,42 @@ final class ExportarDadosUITests: XCTestCase {
         anexar(app, "perfil-estabelecimento-folha-compartilhamento")
     }
 
+    func testExportarMeusDadosSemRedeMostraAvisoDeErro() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "exportar-sem-rede"]
+        app.launch()
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Botão de abrir perfil deve estar visível")
+        botaoPerfil.tap()
+
+        let botaoExportar = app.buttons["perfil-exportar-dados"]
+        XCTAssertTrue(botaoExportar.waitForExistence(timeout: 5), "Botão exportar dados deve existir no perfil")
+        botaoExportar.tap()
+
+        let avisoErro = app.descendants(matching: .any)["aviso-erro-exportar-dados"]
+        XCTAssertTrue(avisoErro.waitForExistence(timeout: 5), "Aviso de erro deve aparecer quando não há rede")
+        anexar(app, "perfil-profissional-exportar-sem-rede")
+    }
+
+    func testExportarMeusDadosErroServidorMostraAvisoDeErro() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "exportar-erro-servidor"]
+        app.launch()
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Botão de abrir perfil deve estar visível")
+        botaoPerfil.tap()
+
+        let botaoExportar = app.buttons["perfil-exportar-dados"]
+        XCTAssertTrue(botaoExportar.waitForExistence(timeout: 5), "Botão exportar dados deve existir no perfil")
+        botaoExportar.tap()
+
+        let avisoErro = app.descendants(matching: .any)["aviso-erro-exportar-dados"]
+        XCTAssertTrue(avisoErro.waitForExistence(timeout: 5), "Aviso de erro deve aparecer quando o servidor falha")
+        anexar(app, "perfil-profissional-exportar-erro-servidor")
+    }
+
     private func anexar(_ app: XCUIApplication, _ nome: String) {
         let anexo = XCTAttachment(screenshot: app.screenshot())
         anexo.name = nome

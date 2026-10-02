@@ -139,4 +139,87 @@ struct ExportarDadosViewModelTests {
         #expect(vm.arquivoParaCompartilhar == nil)
         #expect(!vm.mostrarFolhaCompartilhamento)
     }
+
+    @Test("Cancelamento de atividade não apaga o arquivo temporário; fechar a folha apaga")
+    func cancelarAtividadeNaoApagaArquivoFecharFolhaApaga() async throws {
+        let duble = DubleApiExportar()
+        let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorioTeste) }
+
+        let vm = ExportarDadosViewModel(api: duble, diretorioTemporario: diretorioTeste)
+        await vm.exportarDados()
+
+        let url = try #require(vm.arquivoParaCompartilhar)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+
+        // Usuário cancelou atividade (completed == false): arquivo permanece
+        vm.atividadeCompartilhamentoConcluida(concluida: false)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+        #expect(vm.arquivoParaCompartilhar != nil)
+        #expect(vm.mostrarFolhaCompartilhamento)
+
+        // Usuário fechou a folha (onDismiss): arquivo é apagado
+        vm.folhaCompartilhamentoFechada()
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+        #expect(vm.arquivoParaCompartilhar == nil)
+        #expect(!vm.mostrarFolhaCompartilhamento)
+    }
+
+    @Test("Atividade concluída com sucesso apaga o arquivo temporário")
+    func atividadeConcluidaComSucessoApagaArquivo() async throws {
+        let duble = DubleApiExportar()
+        let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorioTeste) }
+
+        let vm = ExportarDadosViewModel(api: duble, diretorioTemporario: diretorioTeste)
+        await vm.exportarDados()
+
+        let url = try #require(vm.arquivoParaCompartilhar)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+
+        // Usuário concluiu atividade com sucesso (completed == true)
+        vm.atividadeCompartilhamentoConcluida(concluida: true)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+        #expect(vm.arquivoParaCompartilhar == nil)
+        #expect(!vm.mostrarFolhaCompartilhamento)
+    }
+
+    @Test("Sobras no temporário: criação do view model e início da exportação limpam arquivos residuais frila-meus-dados-*.json")
+    func limpaArquivosTemporariosResiduais() async throws {
+        let duble = DubleApiExportar()
+        let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorioTeste) }
+
+        // Cria arquivos residuais de sessão anterior que foi encerrada abruptamente
+        let arquivoSobra1 = diretorioTeste.appendingPathComponent("frila-meus-dados-2026-10-01.json")
+        let arquivoSobra2 = diretorioTeste.appendingPathComponent("frila-meus-dados-2026-09-30.json")
+        let arquivoOutro = diretorioTeste.appendingPathComponent("outro-arquivo.json")
+        try Data("sobra1".utf8).write(to: arquivoSobra1)
+        try Data("sobra2".utf8).write(to: arquivoSobra2)
+        try Data("manter".utf8).write(to: arquivoOutro)
+
+        #expect(FileManager.default.fileExists(atPath: arquivoSobra1.path))
+        #expect(FileManager.default.fileExists(atPath: arquivoSobra2.path))
+        #expect(FileManager.default.fileExists(atPath: arquivoOutro.path))
+
+        // 1. Ao instanciar o ViewModel, resíduos frila-meus-dados-*.json devem ser limpos, mantendo outros
+        let vm = ExportarDadosViewModel(api: duble, diretorioTemporario: diretorioTeste)
+        #expect(!FileManager.default.fileExists(atPath: arquivoSobra1.path))
+        #expect(!FileManager.default.fileExists(atPath: arquivoSobra2.path))
+        #expect(FileManager.default.fileExists(atPath: arquivoOutro.path))
+
+        // 2. Se surgir um resíduo antes de iniciar uma exportação, o início da exportação também o remove
+        let arquivoSobra3 = diretorioTeste.appendingPathComponent("frila-meus-dados-residual.json")
+        try Data("sobra3".utf8).write(to: arquivoSobra3)
+        #expect(FileManager.default.fileExists(atPath: arquivoSobra3.path))
+
+        await vm.exportarDados()
+        #expect(!FileManager.default.fileExists(atPath: arquivoSobra3.path))
+        #expect(FileManager.default.fileExists(atPath: arquivoOutro.path))
+
+        vm.folhaCompartilhamentoFechada()
+    }
 }
