@@ -168,6 +168,31 @@ struct AutenticacaoTests {
         let destino = await vm.criarConta()
         #expect(destino == nil)
         #expect(vm.erro == "É necessário aceitar os Termos de uso e a Política de privacidade para continuar.")
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
+    }
+
+    @Test("CadastroViewModel bloqueia submissão quando maiorDeIdade é falso e não chama a API")
+    func maiorDeIdadeFalsoBloqueiaSubmissaoENaoChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let vm = CadastroViewModel(api: api, email: "novo@frila.app")
+
+        vm.nome = "Maria Oliveira"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = false
+        vm.aceitouTermos = true
+
+        #expect(!vm.formularioPreenchido)
+        let destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
     }
 
     @Test("CadastroViewModel recusa menor de idade no cliente e não chama a API")
@@ -186,6 +211,10 @@ struct AutenticacaoTests {
         let destino = await vm.criarConta()
         #expect(destino == nil)
         #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
     }
 
     @Test("CadastroViewModel trata erro 422 menor_de_idade da API")
@@ -258,6 +287,28 @@ struct AutenticacaoTests {
         let conta = try await api.minhaConta()
         #expect(conta.nome == "Carlos Gerente")
         #expect(conta.perfil == .contratante)
+    }
+
+    @Test("CadastroViewModel envia o aceite com a versão dos termos para a API")
+    func cadastroEnviaVersaoDosTermos() async throws {
+        let spy = ApiClienteEspiaoCadastro()
+        let vm = CadastroViewModel(api: spy, email: "novo@frila.app")
+
+        vm.perfil = .profissional
+        vm.nome = "Beatriz Souza"
+        vm.telefone = "(61) 98888-7777"
+        vm.nascimentoTexto = "12/04/1998"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        #expect(vm.formularioPreenchido)
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+
+        #expect(spy.chamadasACriarConta == 1)
+        let cadastro = try #require(spy.ultimoCadastroRecebido)
+        #expect(cadastro.versaoTermos == "2026-09-22")
+        #expect(!cadastro.versaoTermos.isEmpty)
     }
 
     // MARK: - DestinoDaConta
@@ -432,3 +483,58 @@ struct AutenticacaoTests {
         #expect(try await local.pendentes().isEmpty)
     }
 }
+
+// MARK: - Dublê de teste para espionar criação de conta
+
+private final class ApiClienteEspiaoCadastro: ApiCliente, @unchecked Sendable {
+    private let base: ApiClienteEmMemoria
+    private let lock = NSLock()
+    private var _cadastrosRecebidos: [CadastroConta] = []
+
+    init(base: ApiClienteEmMemoria = ApiClienteEmMemoria(cenario: .primeiroAcesso)) {
+        self.base = base
+    }
+
+    var chamadasACriarConta: Int {
+        lock.withLock { _cadastrosRecebidos.count }
+    }
+
+    var ultimoCadastroRecebido: CadastroConta? {
+        lock.withLock { _cadastrosRecebidos.last }
+    }
+
+    func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
+        lock.withLock { _cadastrosRecebidos.append(cadastro) }
+        return try await base.criarConta(cadastro)
+    }
+
+    // Encaminhamentos padrão
+    func solicitarCodigo(email: String) async throws { try await base.solicitarCodigo(email: email) }
+    func verificarCodigo(email: String, codigo: String) async throws { try await base.verificarCodigo(email: email, codigo: codigo) }
+    func entrarDemonstracao(email: String, codigo: String) async throws { try await base.entrarDemonstracao(email: email, codigo: codigo) }
+    func possuiSessao() async -> Bool { await base.possuiSessao() }
+    func minhaConta() async throws -> Conta { try await base.minhaConta() }
+    func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional { try await base.criarPerfilProfissional(dados) }
+    func meuPerfilProfissional() async throws -> PerfilProfissional { try await base.meuPerfilProfissional() }
+    func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional { try await base.atualizarPerfilProfissional(alteracao) }
+    func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento { try await base.cadastrarEstabelecimento(cadastro) }
+    func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] { try await base.meusEstabelecimentos() }
+    func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel { try await base.painelEstabelecimento(id: id, periodo: periodo) }
+    func funcoes() async throws -> [Funcao] { try await base.funcoes() }
+    func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada { try await base.publicarVaga(publicacao) }
+    func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada { try await base.republicarVaga(id: id, periodo: periodo, chave: chave) }
+    func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] { try await base.vagasAbertas(filtro) }
+    func detalheDaVaga(id: UUID) async throws -> Vaga { try await base.detalheDaVaga(id: id) }
+    func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura { try await base.candidatar(vagaID: vagaID) }
+    func perfilPublico(id: UUID) async throws -> PerfilPublico { try await base.perfilPublico(id: id) }
+    func meusTurnos() async throws -> [Turno] { try await base.meusTurnos() }
+    func contatoDoTurno(id: UUID) async throws -> Contato { try await base.contatoDoTurno(id: id) }
+    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho { try await base.avisarACaminho(turnoID: turnoID) }
+    func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro { try await base.fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm) }
+    func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro { try await base.fazerCheckout(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm) }
+    func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao { try await base.avaliar(turnoID: turnoID, resposta: resposta) }
+    func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
+    func removerDispositivo(tokenFCM: String) async throws { try await base.removerDispositivo(tokenFCM: tokenFCM) }
+    func sair(tokenFCM: String?) async { await base.sair(tokenFCM: tokenFCM) }
+}
+
