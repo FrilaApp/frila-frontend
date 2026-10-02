@@ -64,6 +64,12 @@ final class PermissaoDePushUITests: XCTestCase {
 
         XCTAssertTrue(explicar.waitForExistence(timeout: 5))
         XCTAssertTrue(explicar.isHittable)
+
+        // O aviso fixo reabre a explicação na mesma sessão:
+        explicar.tap()
+        XCTAssertTrue(app.buttons["notificacoes-agora-nao"].waitForExistence(timeout: 5))
+        app.buttons["notificacoes-agora-nao"].tap()
+        XCTAssertTrue(explicar.waitForExistence(timeout: 5))
     }
 
     func testRecusarOPedidoDoSistemaLevaAoAvisoDosAjustes() {

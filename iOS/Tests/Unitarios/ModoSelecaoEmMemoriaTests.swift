@@ -96,6 +96,37 @@ struct ModoSelecaoEmMemoriaTests {
         #expect(try await cena.api.perfilPublico(id: Cena.carla.id) == Cena.carla)
     }
 
+    @Test("O candidato que a casa bloqueou continua na lista, mas sai da conta do painel, como no backend")
+    func candidatoBloqueado() async throws {
+        let api = ApiClienteEmMemoria(cenario: .selecaoComCandidatos)
+        let casa = try #require(try await api.meusEstabelecimentos().first)
+        let vaga = try #require(try await api.vagasAbertas().first)
+        let periodo = try Periodo(inicio: Date().addingTimeInterval(-hora), fim: Date().addingTimeInterval(240 * hora))
+        let candidatos = try await api.candidatosDaVaga(id: vaga.id)
+        #expect(try await api.painelEstabelecimento(id: casa.id, periodo: periodo).vagas.first?.candidatosPendentes == 4)
+
+        _ = try await api.bloquear(Alvo(candidatos[1].profissional))
+
+        // `candidatos_da_vaga` não filtra bloqueio; `candidatos_pendentes` do painel filtra.
+        #expect(try await api.candidatosDaVaga(id: vaga.id) == candidatos)
+        #expect(try await api.painelEstabelecimento(id: casa.id, periodo: periodo).vagas.first?.candidatosPendentes == 3)
+    }
+
+    @Test("A posição aberta tem o mesmo id a cada leitura do painel, e a escolha confirma numa delas")
+    func idDaPosicaoEstavel() async throws {
+        let cena = try await Cena.montar(posicoes: 2)
+        let abertas = try await cena.vagaNoPainel().posicoes.filter { $0.estado == .aberta }.map(\.id)
+        #expect(abertas.count == 2)
+        #expect(try await cena.vagaNoPainel().posicoes.map(\.id) == abertas)
+
+        let confirmacao = try await cena.api.escolherCandidato(candidaturaID: cena.candidaturas[0])
+
+        #expect(abertas.contains(confirmacao.posicaoID))
+        let depois = try await cena.vagaNoPainel().posicoes
+        #expect(Set(depois.map(\.id)) == Set(abertas))
+        #expect(depois.first { $0.estado == .confirmada }?.id == confirmacao.posicaoID)
+    }
+
     @Test("Vaga que não existe é 404, e a seleção não expõe os candidatos da conta em minhas candidaturas")
     func candidatosDeVagaQueNaoExiste() async throws {
         let cena = try await Cena.montar()
@@ -167,8 +198,11 @@ struct ModoSelecaoEmMemoriaTests {
 
     // MARK: Critério 4 — duas escolhas para a última posição
 
-    @Test("Duas escolhas ao mesmo tempo para a última posição confirmam só uma; a outra ouve posicao_ja_preenchida")
-    func duasEscolhasSimultaneas() async throws {
+    /// A corrida em si é garantia do backend (a trava da vaga em `escolher_candidato`), provada lá.
+    /// O dublê é um `actor` e atende uma escolha depois da outra: o que este teste prova é a
+    /// resposta que quem chega em segundo recebe, qualquer que seja a ordem.
+    @Test("Duas escolhas para a última posição, em qualquer ordem, confirmam só uma; a que chega depois ouve posicao_ja_preenchida")
+    func duasEscolhasParaAUltimaPosicao() async throws {
         let cena = try await Cena.montar()
         let api = cena.api
         let (primeira, segunda) = (cena.candidaturas[0], cena.candidaturas[1])

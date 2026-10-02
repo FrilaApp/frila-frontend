@@ -136,6 +136,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Posições novas que um cancelamento ou uma reabertura abriu, por vaga: o painel as mostra com
     /// o id que a chamada devolveu, e a próxima candidatura ocupa a primeira.
     private var posicoesReabertas: [UUID: [UUID]] = [:]
+    /// Ids das posições abertas que nenhum cancelamento abriu, por vaga. O painel os mostra, e a
+    /// candidatura ou a escolha ocupa um deles: como no backend, a posição confirmada é uma que o
+    /// painel já mostrava como aberta, e o id não muda de uma leitura para a outra.
+    private var posicoesAbertasDoPainel: [UUID: [UUID]] = [:]
     /// O que `reabrir_por_atraso` devolveu por posição: reenviar devolve o mesmo.
     private var reaberturasPorAtraso: [UUID: ResultadoCancelamento] = [:]
     private var denunciasPorChave: [UUID: Protocolo] = [:]
@@ -523,12 +527,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let fechadas = (posicoesFechadas[vaga.id] ?? []).map { id in
                     PosicaoNoPainel(id: id, estado: .cancelada, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false)
                 }
-                let reabertas = posicoesReabertas[vaga.id] ?? []
-                let abertas = (0..<vaga.posicoesAbertas).map { indice in
-                    PosicaoNoPainel(
-                        id: indice < reabertas.count ? reabertas[indice] : UUID(), estado: .aberta, profissional: nil, turnoID: nil,
-                        verificacao: nil, emAtraso: false
-                    )
+                let abertas = idsDasPosicoesAbertas(vaga).map { id in
+                    PosicaoNoPainel(id: id, estado: .aberta, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false)
                 }
                 // `alerta_vaga_vazia` do backend: vaga publicada, com posição aberta, dentro da janela
                 // crítica e antes do início. A janela do dublê é a padrão, de 3 horas.
@@ -536,7 +536,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     && vaga.periodo.inicio.timeIntervalSince(agora) <= 3 * 60 * 60
                 return VagaNoPainel(
                     vaga: vaga.resumo, modo: vaga.modo, estado: vaga.estado, oculta: vaga.oculta, alertaVagaVazia: vazia,
-                    candidatosPendentes: candidaturas.count { $0.vagaID == vaga.id && $0.estado == .pendente },
+                    // Como `candidatos_pendentes` do backend: o candidato que a casa bloqueou não entra
+                    // na conta, embora `candidatos_da_vaga` continue a listá-lo.
+                    candidatosPendentes: candidaturas.count {
+                        $0.vagaID == vaga.id && $0.estado == .pendente && bloqueios[Alvo($0.profissional)] == nil
+                    },
                     posicoes: confirmadas + canceladas + fechadas + abertas
                 )
             },
@@ -715,9 +719,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let visivelAte = vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
         let contato = Contato(nome: vaga.estabelecimento.nome, telefone: contatoDeExemplo.telefone, whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: visivelAte)
         // A posição que um cancelamento reabriu é ocupada com o id que o painel já mostrava.
-        var reabertas = posicoesReabertas[vagaID] ?? []
-        let posicaoID = reabertas.isEmpty ? UUID() : reabertas.removeFirst()
-        posicoesReabertas[vagaID] = reabertas
+        let posicaoID = ocuparPosicaoAberta(vagaID)
         let turno = Turno(
             id: UUID(), posicaoID: posicaoID, vaga: vaga.resumo, contraparte: vaga.estabelecimento, contatoVisivelAte: visivelAte,
             verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false
@@ -1052,6 +1054,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             confirmadas += 1
         }
         posicoesReabertas[id] = nil
+        posicoesAbertasDoPainel[id] = nil
         expirarPendentes(da: id)
         vagas[indice] = Self.copia(vaga, posicoesAbertas: 0, estado: .cancelada)
         return VagaCancelada(vagaID: id, estado: .cancelada, posicoesCanceladas: vaga.posicoesAbertas + confirmadas)
@@ -1260,9 +1263,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
             guard vaga.modo == .selecao, vaga.estado == .publicada,
                   vaga.periodo.inicio.addingTimeInterval(-Self.antecedenciaDaSelecao) <= agora else { continue }
             expirarPendentes(da: vaga.id)
-            let reabertas = posicoesReabertas[vaga.id] ?? []
-            posicoesFechadas[vaga.id, default: []] += (0..<vaga.posicoesAbertas).map { $0 < reabertas.count ? reabertas[$0] : UUID() }
+            posicoesFechadas[vaga.id, default: []] += idsDasPosicoesAbertas(vaga)
             posicoesReabertas[vaga.id] = nil
+            posicoesAbertasDoPainel[vaga.id] = nil
             let escolhida = turnos.contains { $0.vaga.id == vaga.id }
             vagas[indice] = Self.copia(vaga, posicoesAbertas: 0, estado: escolhida ? .preenchida : .encerrada)
             fechadas += 1
@@ -1283,9 +1286,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             nome: escolhida.profissional.nome, telefone: contatoDeExemplo.telefone, whatsappURL: contatoDeExemplo.whatsappURL,
             visivelAte: visivelAte
         )
-        var reabertas = posicoesReabertas[vaga.id] ?? []
-        let posicaoID = reabertas.isEmpty ? UUID() : reabertas.removeFirst()
-        posicoesReabertas[vaga.id] = reabertas
+        let posicaoID = ocuparPosicaoAberta(vaga.id)
         let turno = Turno(
             id: UUID(), posicaoID: posicaoID, vaga: vaga.resumo,
             contraparte: escolhida.daConta ? vaga.estabelecimento : escolhida.profissional, contatoVisivelAte: visivelAte,
@@ -1310,6 +1311,33 @@ public actor ApiClienteEmMemoria: ApiCliente {
             }
         }
         return ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turno.id, contato: contatoDoProfissional)
+    }
+
+    /// As posições abertas da vaga, primeiro as que um cancelamento abriu. Gera e guarda os ids
+    /// que faltam, para o painel mostrar os mesmos a cada leitura.
+    private func idsDasPosicoesAbertas(_ vaga: Vaga) -> [UUID] {
+        let reabertas = posicoesReabertas[vaga.id] ?? []
+        var outras = posicoesAbertasDoPainel[vaga.id] ?? []
+        let faltam = max(0, vaga.posicoesAbertas - reabertas.count)
+        if outras.count > faltam { outras.removeLast(outras.count - faltam) }
+        while outras.count < faltam { outras.append(UUID()) }
+        posicoesAbertasDoPainel[vaga.id] = outras
+        return Array((reabertas + outras).prefix(vaga.posicoesAbertas))
+    }
+
+    /// Ocupa uma posição aberta da vaga: a reaberta primeiro, depois a que o painel já mostrava.
+    private func ocuparPosicaoAberta(_ vagaID: UUID) -> UUID {
+        if var reabertas = posicoesReabertas[vagaID], !reabertas.isEmpty {
+            let id = reabertas.removeFirst()
+            posicoesReabertas[vagaID] = reabertas
+            return id
+        }
+        if var outras = posicoesAbertasDoPainel[vagaID], !outras.isEmpty {
+            let id = outras.removeFirst()
+            posicoesAbertasDoPainel[vagaID] = outras
+            return id
+        }
+        return UUID()
     }
 
     /// O gatilho `vaga_fechada_expira_candidaturas` do backend: vaga cancelada ou encerrada expira
