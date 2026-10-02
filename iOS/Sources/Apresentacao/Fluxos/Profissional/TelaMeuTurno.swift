@@ -14,10 +14,12 @@ public struct TelaMeuTurno: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoTurno
-                if let presenca = viewModel.presenca {
-                    SecaoDePresenca(viewModel: presenca)
+                if viewModel.permiteAcoesDoTurno {
+                    if let presenca = viewModel.presenca {
+                        SecaoDePresenca(viewModel: presenca)
+                    }
+                    cartaoContato
                 }
-                cartaoContato
                 if viewModel.podeAvaliar {
                     cartaoAvaliacao
                 }
@@ -32,8 +34,9 @@ public struct TelaMeuTurno: View {
     }
 
     private var cabecalho: some View {
-        Text(verbatim: TextosDoProfissional.Turnos.confirmadoTitulo)
+        Text(verbatim: viewModel.cancelado ? TextosDoProfissional.Turnos.canceladoTitulo : TextosDoProfissional.Turnos.confirmadoTitulo)
             .font(.title2.bold())
+            .accessibilityIdentifier("estado-do-turno")
             .accessibilityAddTraits(.isHeader)
     }
 

@@ -467,6 +467,14 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
     public let verificacao: Verificacao
     public let valorAcordado: Dinheiro
     public let podeAvaliar: Bool
+    /// Ausente no servidor anterior à 0.2.31; não presume confirmação.
+    public let estado: EstadoPosicao?
+    /// Avaliação deste lado do turno, nunca o voto recebido da contraparte.
+    public let avaliacao: Avaliacao?
+    /// `nil` preserva caches antigos. `true` distingue resposta nula de campo ausente.
+    public let avaliacaoInformada: Bool?
+    public var servidorInformaAvaliacao: Bool { avaliacaoInformada == true || avaliacao != nil }
+    public var cancelado: Bool { estado == .cancelada }
     /// O contrato não traz o contato em `meus_turnos`: o app o anexa depois de `contato_do_turno`
     /// ou da candidatura, e o esconde depois de `contatoVisivelAte` mesmo sem rede (RN10).
     public let contato: Contato?
@@ -483,7 +491,10 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         verificacao: Verificacao,
         valorAcordado: Dinheiro,
         podeAvaliar: Bool,
-        contato: Contato? = nil
+        contato: Contato? = nil,
+        estado: EstadoPosicao? = nil,
+        avaliacao: Avaliacao? = nil,
+        avaliacaoInformada: Bool? = nil
     ) {
         self.id = id
         self.posicaoID = posicaoID
@@ -497,6 +508,9 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         self.valorAcordado = valorAcordado
         self.podeAvaliar = podeAvaliar
         self.contato = contato
+        self.estado = estado
+        self.avaliacao = avaliacao
+        self.avaliacaoInformada = avaliacaoInformada
     }
 
     public func contatoVisivel(em instante: Date) -> Bool { instante <= contatoVisivelAte }
@@ -505,7 +519,8 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         Turno(
             id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
-            valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato
+            valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
+            estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada
         )
     }
 
@@ -513,9 +528,20 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         Turno(
             id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
-            valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato
+            valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
+            estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada
         )
     }
+
+    public func com(avaliacao: Avaliacao) -> Turno {
+        Turno(
+            id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
+            aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
+            valorAcordado: valorAcordado, podeAvaliar: false, contato: contato,
+            estado: estado, avaliacao: avaliacao, avaliacaoInformada: true
+        )
+    }
+
 }
 
 public struct ResultadoRegistro: Codable, Hashable, Sendable {

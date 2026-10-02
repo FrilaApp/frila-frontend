@@ -87,6 +87,7 @@ enum TextosDoProfissional {
     enum Turnos {
         static let tituloMeusTurnos = String(localized: "Meus turnos", bundle: bundleApresentacao)
         static let tituloMeuTurno = String(localized: "Meu turno", bundle: bundleApresentacao)
+        static let canceladoTitulo = String(localized: "Turno cancelado", bundle: bundleApresentacao)
         static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
         static let avisoCache = String(localized: "Modo offline: exibindo dados salvos anteriormente.", bundle: bundleApresentacao)
         static let vazioTitulo = String(localized: "Nenhum turno confirmado", bundle: bundleApresentacao)

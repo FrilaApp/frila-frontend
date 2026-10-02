@@ -12,6 +12,11 @@ public final class MeuTurnoViewModel {
     /// Check-in e check-out (#17). `nil` onde não há leitor de localização, como nas prévias.
     public let presenca: PresencaDoTurnoViewModel?
 
+    private var avaliacaoEnviada: Avaliacao?
+
+    public var cancelado: Bool { turno.cancelado }
+    public var permiteAcoesDoTurno: Bool { !cancelado }
+
     private let contaID: UUID?
     private let api: any ApiCliente
     private let filaDeAcoes: (any FilaDeAcoes)?
@@ -33,9 +38,12 @@ public final class MeuTurnoViewModel {
         self.filaDeAcoes = fila
         self.armazenamentoAvaliacoes = armazenamentoAvaliacoes
         self.relogio = relogio
-        self.presenca = presenca
+        self.presenca = turno.cancelado ? nil : presenca
 
-        if let c = turno.contato {
+        if turno.cancelado {
+            self.contato = nil
+            self.contatoExpirado = false
+        } else if let c = turno.contato {
             let visivel = c.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora)
             self.contato = visivel ? c : nil
             self.contatoExpirado = !visivel
@@ -48,32 +56,35 @@ public final class MeuTurnoViewModel {
 
     public var podeAvaliar: Bool {
         // Critério 1: a avaliação só aparece depois do fim previsto e com presença verificada (RN07).
-        guard contaID != nil else { return false }
+        guard permiteAcoesDoTurno, contaID != nil else { return false }
         guard turno.verificacao == .verificado else { return false }
         guard turno.vaga.periodo.fim <= relogio.agora else { return false }
-        return true
+        return !turno.servidorInformaAvaliacao || turno.podeAvaliar || jaAvaliado
     }
 
     public var respostaAvaliacao: Bool? {
-        guard let contaID else { return nil }
+        if let avaliacao = avaliacaoEnviada ?? turno.avaliacao { return avaliacao.resposta }
+        guard !turno.servidorInformaAvaliacao, let contaID else { return nil }
         return armazenamentoAvaliacoes.resposta(para: turno.id, contaID: contaID)
     }
 
     public var jaAvaliado: Bool {
-        guard let contaID else { return false }
+        if avaliacaoEnviada != nil || turno.avaliacao != nil { return true }
+        guard !turno.servidorInformaAvaliacao, let contaID else { return false }
         return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.podeAvaliar && podeAvaliar)
     }
 
     public func criarAvaliacaoViewModel() -> AvaliacaoTurnoViewModel? {
-        guard let contaID else { return nil }
+        guard permiteAcoesDoTurno, let contaID else { return nil }
         return AvaliacaoTurnoViewModel(
             turnoID: turno.id,
             contaID: contaID,
-            turno: turno,
+            turno: avaliacaoEnviada.map { turno.com(avaliacao: $0) } ?? turno,
             api: api,
             fila: filaDeAcoes,
             armazenamento: armazenamentoAvaliacoes,
-            relogio: relogio
+            relogio: relogio,
+            aoAvaliar: { [weak self] avaliacao in self?.avaliacaoEnviada = avaliacao }
         )
     }
 
@@ -88,7 +99,7 @@ public final class MeuTurnoViewModel {
     }
 
     public var urlWhatsApp: URL? {
-        guard let contato = contato, !contatoExpirado else { return nil }
+        guard permiteAcoesDoTurno, let contato = contato, !contatoExpirado else { return nil }
         let formatador = FormatadorFrila()
         let dataFormatada = formatador.intervalo(turno.vaga.periodo)
         let mensagem = String(
@@ -107,6 +118,7 @@ public final class MeuTurnoViewModel {
     }
 
     public func carregar() async {
+        guard permiteAcoesDoTurno else { return }
         await presenca?.restaurarPendentes()
         if !turno.contatoVisivel(em: relogio.agora) {
             contato = nil

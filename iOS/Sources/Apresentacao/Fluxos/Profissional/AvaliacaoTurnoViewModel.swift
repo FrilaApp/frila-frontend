@@ -110,6 +110,7 @@ public final class AvaliacaoTurnoViewModel {
     private let fila: (any FilaDeAcoes)?
     private let armazenamento: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
+    private let aoAvaliar: ((Avaliacao) -> Void)?
 
     public init(
         turnoID: UUID,
@@ -119,7 +120,8 @@ public final class AvaliacaoTurnoViewModel {
         fila: (any FilaDeAcoes)? = nil,
         armazenamento: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         relogio: any Relogio = RelogioDoSistema(),
-        pergunta: String? = nil
+        pergunta: String? = nil,
+        aoAvaliar: ((Avaliacao) -> Void)? = nil
     ) {
         self.turnoID = turnoID
         self.contaID = contaID
@@ -128,9 +130,15 @@ public final class AvaliacaoTurnoViewModel {
         self.fila = fila
         self.armazenamento = armazenamento
         self.relogio = relogio
+        self.aoAvaliar = aoAvaliar
         self.pergunta = pergunta ?? TextosDoProfissional.Avaliacao.perguntaProfissional
 
-        if let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
+        if let avaliacao = turno?.avaliacao {
+            self.respostaAtual = avaliacao.resposta
+            self.jaAvaliado = true
+        } else if turno?.servidorInformaAvaliacao == true {
+            self.jaAvaliado = false
+        } else if let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
             self.respostaAtual = gravada
             self.jaAvaliado = true
         } else if armazenamento.jaRegistrada(para: turnoID, contaID: contaID) || turno?.podeAvaliar == false {
@@ -141,10 +149,18 @@ public final class AvaliacaoTurnoViewModel {
     }
 
     public func carregar() async {
+        if let avaliacao = turno?.avaliacao {
+            respostaAtual = avaliacao.resposta
+            jaAvaliado = true
+            enfileiradoOffline = false
+            mensagemDeSucesso = nil
+            return
+        }
         // A consulta ocorre também com resposta local: pendente não é confirmação do servidor.
         let pendentes = try? await fila?.pendentes()
         enfileiradoOffline = false
-        if armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
+        if turno?.servidorInformaAvaliacao != true,
+           armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
            armazenamento.resposta(para: turnoID, contaID: contaID) == nil {
             // Um 409 no reenvio não pode ser sobrescrito pela resposta recusada da fila.
             respostaAtual = nil
@@ -158,7 +174,8 @@ public final class AvaliacaoTurnoViewModel {
             enfileiradoOffline = true
             mensagemDeSucesso = TextosDoProfissional.Avaliacao.avaliadoOffline
             armazenamento.salvar(resposta: respostaPendente, para: turnoID, contaID: contaID)
-        } else if let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
+        } else if (turno?.servidorInformaAvaliacao != true || sucesso),
+                  let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
             respostaAtual = gravada
             jaAvaliado = true
             mensagemDeSucesso = nil
@@ -178,7 +195,7 @@ public final class AvaliacaoTurnoViewModel {
 
         // Validação local quando o turno é conhecido (RN07)
         if let turno {
-            if turno.verificacao != .verificado || turno.vaga.periodo.fim > relogio.agora {
+            if turno.cancelado || turno.verificacao != .verificado || turno.vaga.periodo.fim > relogio.agora {
                 mensagemDeErro = TextosDoProfissional.Avaliacao.erroIndisponivel
                 return false
             }
@@ -190,6 +207,7 @@ public final class AvaliacaoTurnoViewModel {
         do {
             let avaliacao = try await api.avaliar(turnoID: turnoID, resposta: resposta)
             respostaAtual = avaliacao.resposta
+            aoAvaliar?(avaliacao)
             armazenamento.salvar(resposta: avaliacao.resposta, para: turnoID, contaID: contaID)
             jaAvaliado = true
             sucesso = true
