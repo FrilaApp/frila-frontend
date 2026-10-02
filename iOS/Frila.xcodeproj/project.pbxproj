@@ -35,6 +35,7 @@
 		2C4D82FDF4B16F6D548C4DF3 /* estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = 2EC2B26F76F1FC28F118D8CE /* estabelecimento.json */; };
 		2E1DEAEFC1C73FBEBAECC5D7 /* requisicao-criar-conta.json in Resources */ = {isa = PBXBuildFile; fileRef = D91DD797B126C62FB438B586 /* requisicao-criar-conta.json */; };
 		2FBBA4B48E7A5C0E8B23F907 /* contato.json in Resources */ = {isa = PBXBuildFile; fileRef = 29504B7FC04EF6A2AFB6A7BF /* contato.json */; };
+		321E82B710AAD581ED41AD44 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */; };
 		323E59B84BDAA751E9A9E952 /* ApiEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FA10275A7C93ECAB311691 /* ApiEmMemoriaTests.swift */; };
 		334ADE6C5153BEA84D7DFC6D /* LicencasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74743E2CE1FC42EB7853C2E2 /* LicencasTests.swift */; };
 		3A96BB6BFA60AB9E3FA036D5 /* ContratoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60A4C3E1C9933DE5E17492B /* ContratoTests.swift */; };
@@ -69,6 +70,7 @@
 		60969818C532D7F87CE785B2 /* TurnosComCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F45CA229E7E687ADCF92F0 /* TurnosComCache.swift */; };
 		68BFBF4CB55A1D6E926782C2 /* resultado-registro.json in Resources */ = {isa = PBXBuildFile; fileRef = FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */; };
 		6B43F18F972E1E61FBD82F88 /* FormatadorFrila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA32088E555C10CC772D882 /* FormatadorFrila.swift */; };
+		6DA49CC0E9B9D381DD4CCE47 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */; };
 		7099E790EA08059ECD1D5185 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
 		723AD6D9A4B4D48C1F93D6C0 /* requisicao-cadastrar-estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */; };
 		73699023A012E6D9CFBF817F /* TelaCadastro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B70FF4F64AE47220B634F0D /* TelaCadastro.swift */; };
@@ -110,6 +112,7 @@
 		B588E4E496730CE3ACB5EC44 /* Componentes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F1776455FF3BC99C2521A6 /* Componentes.swift */; };
 		B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */; };
 		B906E4209BD1D93DB0B779BB /* MinhasVagasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BC71CEBE7E0A40C16103D7 /* MinhasVagasTests.swift */; };
+		BBD16F46A602CF70F678B61F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */; };
 		BC666D2F2289C759B8281816 /* TelaPerfilProfissional.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB237A09146D796AEECF89A8 /* TelaPerfilProfissional.swift */; };
 		BF09B64CFB31CAFCB89111DD /* MinhasVagasUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5325BEB3484730A85B852BD0 /* MinhasVagasUITests.swift */; };
 		C0AF8B85A841AC750998C3E1 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1686AA539A8DA1D54FF79C2D /* DesignTokens.swift */; };
@@ -153,6 +156,7 @@
 		F1E48D07BFFCE63A89177C63 /* TelasDaCandidatura.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC0F814A146893314847DA73 /* TelasDaCandidatura.swift */; };
 		F3C64A189570D51222056804 /* requisicao-avaliar.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DA362D29BF0C32C2F429D63 /* requisicao-avaliar.json */; };
 		F3F3CB939344D874A07406A7 /* AtualizacaoObrigatoria.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661B8589A9BDD4069E39ED1B /* AtualizacaoObrigatoria.swift */; };
+		F4479DE57D14D2528722908B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */; };
 		F5D102C7834CA15748EA7FAC /* requisicao-registro-de-presenca.json in Resources */ = {isa = PBXBuildFile; fileRef = 7CAFE3AA3880C8095536F296 /* requisicao-registro-de-presenca.json */; };
 		F5D92E0206CD993BE82E16FF /* TelaVagas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B1E0B7BCBF0643AE734888F /* TelaVagas.swift */; };
 		F90AF291394408AAFA3F5844 /* DetalheVagaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E1ABDC7050A3310FB160AE /* DetalheVagaViewModel.swift */; };
@@ -431,6 +435,7 @@
 		E3FA4D697A25E8C15E7BEB18 /* PublicarVagaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicarVagaTests.swift; sourceTree = "<group>"; };
 		E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaApresentacao.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5FC77D164D16038AC062373 /* TelaCodigo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaCodigo.swift; sourceTree = "<group>"; };
+		E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		EC7474CFC038B7830A07C624 /* Frila.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Frila.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED4681E82BFB78ADC11F0C80 /* LeitorDeLocalizacaoDoSistema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeitorDeLocalizacaoDoSistema.swift; sourceTree = "<group>"; };
 		F0FDB3EB718F49E2C016581D /* CodigoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodigoViewModel.swift; sourceTree = "<group>"; };
@@ -559,6 +564,7 @@
 			isa = PBXGroup;
 			children = (
 				AA6EE08FB0AE6E7AD17A6FBA /* Fixtures */,
+				9EC354D9270BE4B83547CA2A /* Frameworks */,
 				3E170CF5FEBE4A60D1A81D2C /* App.xcassets */,
 				1DF6818CE9FACD139F1FF24D /* DesignSystem.xcassets */,
 				11ACF6312B2CF11BD386390B /* InfoPlist.xcstrings */,
@@ -660,6 +666,14 @@
 				B1F45CA229E7E687ADCF92F0 /* TurnosComCache.swift */,
 			);
 			path = Dados;
+			sourceTree = "<group>";
+		};
+		9EC354D9270BE4B83547CA2A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */,
+			);
+			path = Frameworks;
 			sourceTree = "<group>";
 		};
 		A68628EE67E0CE7BABD4D8FC /* Contratante */ = {
@@ -891,6 +905,7 @@
 			buildConfigurationList = 4833F34DB19BF83C1DD4764E /* Build configuration list for PBXNativeTarget "FrilaDominio" */;
 			buildPhases = (
 				3370CEEAC1DEB5F3C4A7E14E /* Sources */,
+				902809335B5F01A791AE8572 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -908,6 +923,7 @@
 			buildConfigurationList = 06E038DDB0CD3861A539AE4F /* Build configuration list for PBXNativeTarget "FrilaInfraestrutura" */;
 			buildPhases = (
 				28640693D07806C883133ED5 /* Sources */,
+				6BA29E47A01E0619AD3B01AC /* Resources */,
 				5686FB0EE91045C732928699 /* Frameworks */,
 			);
 			buildRules = (
@@ -1015,6 +1031,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F4479DE57D14D2528722908B /* PrivacyInfo.xcprivacy in Resources */,
 				3D8F1742AC594DBFBDB54B0E /* avaliacao.json in Resources */,
 				19FA10674F65BBE62E7C8607 /* candidatura-selecao.json in Resources */,
 				C82912B4B046CB299F74C45F /* candidatura-urgencia.json in Resources */,
@@ -1048,6 +1065,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6BA29E47A01E0619AD3B01AC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBD16F46A602CF70F678B61F /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		902809335B5F01A791AE8572 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				321E82B710AAD581ED41AD44 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BFFAAC581EACB7A2539D8163 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1065,6 +1098,7 @@
 				5496527AF7AB8E8961BC461E /* DesignSystem.xcassets in Resources */,
 				25FBEC6CBC689835B6872D99 /* Licencas.json in Resources */,
 				95F55C7ED119121193117E89 /* Localizable.xcstrings in Resources */,
+				6DA49CC0E9B9D381DD4CCE47 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1417,7 +1451,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
@@ -1619,7 +1653,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
@@ -1970,7 +2004,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
@@ -2252,7 +2286,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;

@@ -47,7 +47,7 @@ o SDK ou incluir outro produto Firebase.
 ## App Privacy e manifesto
 
 `Resources/PrivacyInfo.xcprivacy` declara, para finalidade **App Functionality**, sem
-rastreamento e sem vínculo à pessoa:
+rastreamento e sem vínculo à pessoa, o que vem do Crashlytics:
 
 - **Crash Data**: pilhas e estado de falhas.
 - **Device ID**: identificadores aleatórios de instalação do Crashlytics/Firebase.
@@ -56,3 +56,10 @@ rastreamento e sem vínculo à pessoa:
 No App Store Connect, registrar esses mesmos três tipos em *App Privacy* como coletados, não
 vinculados à identidade, sem uso para tracking e com a finalidade *App Functionality*. Reavaliar
 essa declaração antes de adicionar Analytics, logs/breadcrumbs ou chaves customizadas.
+
+O mesmo manifesto declara os dados da conta, estes vinculados à pessoa e também só para *App
+Functionality* (#96): nome, e-mail, telefone, endereço do estabelecimento, ponto escolhido no mapa
+(*Precise Location*), identificador da conta, conteúdo escrito pela pessoa (observações da vaga e
+avaliações) e outros dados (data de nascimento e CPF ou CNPJ). O *App Privacy* do App Store
+Connect precisa repetir essa lista. O uso de `UserDefaults` vai com o motivo `CA92.1`, no
+manifesto do app e no de cada framework (`Resources/Frameworks/PrivacyInfo.xcprivacy`).

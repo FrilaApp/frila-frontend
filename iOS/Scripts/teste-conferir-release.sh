@@ -24,6 +24,8 @@ novo_app_bom() {
   plutil -create xml1 "$plist"
   plutil -insert CFBundleExecutable -string Frila "$plist"
   plutil -insert ITSAppUsesNonExemptEncryption -bool NO "$plist"
+  plutil -insert NSLocationWhenInUseUsageDescription -string 'localização em uso' "$plist"
+  plutil -insert NSLocationTemporaryUsageDescriptionDictionary -json '{"CheckIn": "precisão no check-in"}' "$plist"
   plutil -insert UIDeviceFamily -array "$plist"
   plutil -insert UIDeviceFamily.0 -integer 1 "$plist"
   : > "$app/PrivacyInfo.xcprivacy"
@@ -104,6 +106,22 @@ app="$(novo_app_bom rastreamento)"
 plutil -insert NSUserTrackingUsageDescription -string 'rastreamento' "$app/Info.plist"
 esperar_reprovacao "rastreamento" "NSUserTrackingUsageDescription" "$app"
 
+app="$(novo_app_bom sem-localizacao-em-uso)"
+plutil -remove NSLocationWhenInUseUsageDescription "$app/Info.plist"
+esperar_reprovacao "texto de localização em uso ausente" "NSLocationWhenInUseUsageDescription" "$app"
+
+app="$(novo_app_bom localizacao-em-uso-vazia)"
+plutil -replace NSLocationWhenInUseUsageDescription -string '' "$app/Info.plist"
+esperar_reprovacao "texto de localização em uso vazio" "NSLocationWhenInUseUsageDescription" "$app"
+
+app="$(novo_app_bom sem-precisao-temporaria)"
+plutil -remove NSLocationTemporaryUsageDescriptionDictionary "$app/Info.plist"
+esperar_reprovacao "precisão temporária ausente" "NSLocationTemporaryUsageDescriptionDictionary" "$app"
+
+app="$(novo_app_bom precisao-temporaria-vazia)"
+plutil -replace NSLocationTemporaryUsageDescriptionDictionary -json '{}' "$app/Info.plist"
+esperar_reprovacao "precisão temporária sem motivo" "NSLocationTemporaryUsageDescriptionDictionary" "$app"
+
 app="$(novo_app_bom ipad)"
 plutil -insert UIDeviceFamily.1 -integer 2 "$app/Info.plist"
 esperar_reprovacao "iPad em UIDeviceFamily" "UIDeviceFamily deve conter somente [1]" "$app"
@@ -112,7 +130,7 @@ app="$(novo_app_bom sem-privacidade)"
 rm "$app/PrivacyInfo.xcprivacy"
 esperar_reprovacao "manifesto de privacidade ausente" "PrivacyInfo.xcprivacy" "$app"
 
-for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_CADASTRO_UI_TEST' '-FRILA_ENTRADA' '-FRILA_VAGA_ID' 'forcar-falha-crashlytics'; do
+for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_ABRIR_MINHAS_VAGAS' '-FRILA_CADASTRO_UI_TEST' '-FRILA_ENTRADA' '-FRILA_LOCALIZACAO' '-FRILA_VAGA_ID' 'forcar-falha-crashlytics'; do
   app="$(novo_app_bom "gancho-$RANDOM")"
   printf '\n%s\n' "$gancho" >> "$app/Frila"
   esperar_reprovacao "gancho no executável: $gancho" "$gancho" "$app"
@@ -124,11 +142,17 @@ printf 'binario com -FRILA_SCENARIO\n' > "$app/Frameworks/Teste.framework/Teste"
 chmod +x "$app/Frameworks/Teste.framework/Teste"
 esperar_reprovacao "gancho em framework embutido" "-FRILA_SCENARIO" "$app"
 
-for simbolo in pelosArgumentos CatalogoDesignSystem TelaLicencas; do
+for simbolo in pelosArgumentos CatalogoDesignSystem; do
   app="$(novo_app_bom "simbolo-$RANDOM")"
   printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
     xcrun clang -x c -o "$app/Frila" -
   esperar_reprovacao "símbolo no executável: $simbolo" "$simbolo" "$app"
 done
+
+# A tela de licenças é de produto (#178): o símbolo dela no Release não reprova.
+app="$(novo_app_bom simbolo-de-produto)"
+printf 'int TelaLicencas(void) { return 0; }\nint main(void) { return TelaLicencas(); }\n' |
+  xcrun clang -x c -o "$app/Frila" -
+esperar_aprovacao "$app"
 
 echo "OK: autoteste de conferir-release.sh passou"
