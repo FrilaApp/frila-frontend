@@ -87,6 +87,14 @@ private struct Cena {
 
 private typealias Textos = TextosDaCandidaturaEmSelecao
 
+/// Conta as leituras que um view model manda.
+private final class Contador: @unchecked Sendable {
+    private let trava = NSLock()
+    private var _total = 0
+    var total: Int { trava.withLock { _total } }
+    func proxima() -> Int { trava.withLock { _total += 1; return _total } }
+}
+
 @MainActor
 @Suite("Candidatura em vaga de seleção: enviada, retirada e a aba Candidaturas (#10)")
 struct CandidaturaEmSelecaoTests {
@@ -263,7 +271,7 @@ struct CandidaturaEmSelecaoTests {
     @Test("Candidatura que já teve resposta não se retira: o 409 vira a explicação do que aconteceu, e o botão some", arguments: [
         (ApiClienteEmMemoria.Cenario.candidaturaEscolhida, EstadoCandidatura.aceita, "A sua candidatura foi escolhida, e não dá mais para retirá-la. O turno está em Meus turnos."),
         (.candidaturaRecusada, .recusada, "O estabelecimento escolheu outra pessoa. Não há mais candidatura para retirar."),
-        (.candidaturaExpirada, .expirada, "A seleção desta vaga foi encerrada. Não há mais candidatura para retirar."),
+        (.candidaturaExpirada, .expirada, "A vaga foi encerrada ou cancelada. Não há mais candidatura para retirar."),
     ])
     func candidaturaJaRespondida(cenario: ApiClienteEmMemoria.Cenario, estado: EstadoCandidatura, texto: String) async throws {
         let cena = try await Cena(cenario)
@@ -347,7 +355,7 @@ struct CandidaturaEmSelecaoTests {
     @Test("O desfecho de cada candidatura aparece na aba: confirmada, recusada ou seleção encerrada", arguments: [
         (ApiClienteEmMemoria.Cenario.candidaturaEscolhida, EstadoCandidatura.aceita, "Confirmada: o turno está em Meus turnos"),
         (.candidaturaRecusada, .recusada, "O estabelecimento escolheu outra pessoa"),
-        (.candidaturaExpirada, .expirada, "A seleção foi encerrada sem que a sua candidatura fosse escolhida"),
+        (.candidaturaExpirada, .expirada, "A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida"),
     ])
     func desfechoNaLista(cenario: ApiClienteEmMemoria.Cenario, estado: EstadoCandidatura, texto: String) async throws {
         let cena = try await Cena(cenario)
@@ -400,6 +408,82 @@ struct CandidaturaEmSelecaoTests {
         #expect(vm.candidaturas.count == 1 && !vm.desatualizada)
     }
 
+    @Test("Leitura cancelada com a tela saindo não prende a aba em carregando: volta ao início, e a próxima abertura carrega")
+    func leituraCancelada() async throws {
+        let base = ApiClienteEmMemoria(cenario: .candidaturaPendente)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let contador = Contador()
+        let vm = MinhasCandidaturasViewModel(buscar: {
+            if contador.proxima() == 1 {
+                // A primeira leitura é a que a tela cancela: a rede responde com o cancelamento.
+                avisarChegada.yield()
+                for await _ in liberar { break }
+                throw CancellationError()
+            }
+            return try await base.minhasCandidaturas()
+        })
+
+        let leitura = Task { await vm.carregar() }
+        for await _ in chegou { break }
+        #expect(vm.estado == .carregando)
+        leitura.cancel()
+        sinal.yield()
+        await leitura.value
+
+        #expect(vm.estado == .ociosa)
+        await vm.carregar()
+        #expect(vm.candidaturas.count == 1)
+    }
+
+    @Test("Na primeira abertura a aba lê uma vez só, mesmo com a tela carregando e a troca de aba pedindo a releitura ao mesmo tempo")
+    func leituraUnicaNaPrimeiraAbertura() async throws {
+        let cena = try await Cena(.candidaturaPendente)
+        let vm = cena.lista()
+
+        // Antes da primeira leitura, a releitura não lê: quem carrega é a tela.
+        await vm.atualizar()
+        #expect(vm.estado == .ociosa && cena.api.leiturasDeCandidaturas == 0)
+
+        async let daTela: Void = vm.carregar()
+        async let daTrocaDeAba: Void = vm.atualizar()
+        async let outraDaTela: Void = vm.carregar()
+        _ = await (daTela, daTrocaDeAba, outraDaTela)
+
+        #expect(vm.candidaturas.count == 1)
+        #expect(cena.api.leiturasDeCandidaturas == 1)
+    }
+
+    @Test("Releitura pedida com outra em voo não abre uma segunda chamada ao mesmo tempo, mas a lista é lida de novo quando a primeira volta")
+    func releituraComOutraEmVoo() async throws {
+        let base = ApiClienteEmMemoria(cenario: .candidaturaPendente)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let contador = Contador()
+        let vm = MinhasCandidaturasViewModel(buscar: {
+            let leitura = contador.proxima()
+            // A segunda leitura sai antes da retirada e só volta depois dela, com a lista velha.
+            let lista = try await base.minhasCandidaturas()
+            if leitura == 2 {
+                avisarChegada.yield()
+                for await _ in liberar { break }
+            }
+            return lista
+        })
+        await vm.carregar()
+
+        let primeira = Task { await vm.atualizar() }
+        for await _ in chegou { break }
+        _ = try await base.retirarCandidatura(id: Cena.candidaturaID)
+        await vm.atualizar()
+        #expect(contador.total == 2, "com uma leitura em voo, a outra não sai ao mesmo tempo")
+        sinal.yield()
+        await primeira.value
+
+        #expect(contador.total == 3)
+        #expect(vm.pendentes.isEmpty && vm.anteriores.map(\.estado) == [.retirada])
+    }
+
     // MARK: O que a pessoa vê quando a vaga não está mais disponível
 
     @Test("Vaga indisponível: a candidatura recusada ou expirada explica o que houve; sem ela, vale o estado da vaga")
@@ -419,7 +503,17 @@ struct CandidaturaEmSelecaoTests {
         let urgenciaCheia = TelaVagaIndisponivel.textos(motivo: .preenchida, candidatura: nil, modo: .urgencia)
         #expect(urgenciaCheia.mensagem == TextosDoProfissional.Candidatura.preenchidaMensagem)
 
-        // A retirada não muda o que a tela diz da vaga.
+        // A candidatura que esperava também expira quando a casa cancela a vaga: a tela diz que foi isso.
+        let cancelada = TelaVagaIndisponivel.textos(motivo: .encerrada, candidatura: .expirada, modo: .selecao, vagaCancelada: true)
+        #expect(cancelada.titulo == "O estabelecimento cancelou esta vaga")
+        #expect(cancelada.mensagem == "A sua candidatura foi encerrada junto com a vaga.")
+        // A recusada continua recusada, e sem candidatura a vaga cancelada lê o texto de sempre.
+        #expect(TelaVagaIndisponivel.textos(motivo: .encerrada, candidatura: .recusada, modo: .selecao, vagaCancelada: true).titulo == recusada.titulo)
+        #expect(TelaVagaIndisponivel.textos(motivo: .encerrada, candidatura: nil, modo: .selecao, vagaCancelada: true).mensagem == TextosDoProfissional.Candidatura.encerradaMensagem)
+
+        // A retirada não muda o que a tela diz da vaga, e a tela não diz que foi a pessoa: o servidor
+        // também passa a `retirada` a candidatura da casa que foi suspensa ou excluída.
+        #expect(Textos.estado(.retirada) == "Candidatura retirada")
         let retirada = TelaVagaIndisponivel.textos(motivo: .encerrada, candidatura: .retirada, modo: .selecao)
         #expect(retirada.titulo == TextosDoProfissional.Candidatura.encerradaTitulo)
         #expect(retirada.mensagem == TextosDoProfissional.Candidatura.encerradaMensagem)
@@ -427,29 +521,51 @@ struct CandidaturaEmSelecaoTests {
         #expect(semVaga.mensagem == TextosDoProfissional.Candidatura.naoEncontrada)
     }
 
-    // MARK: Toque no push
+    // MARK: Vaga indisponível: candidatura antes do turno
 
-    @Test("O toque nos avisos da seleção abre a tela certa de quem trabalha, com o payload que o servidor manda", arguments: [
-        // `confirmacao`, para quem foi escolhido: o turno.
-        ("confirmacao", ["turno_id": "84000000-0000-0000-0000-000000000001", "vaga_id": "40000000-0000-0000-0000-000000000001"],
-         [RotaDoProfissional.turnoDoAviso(turnoID: UUID(uuidString: "84000000-0000-0000-0000-000000000001")!)]),
-        // `candidatura_recusada` e `selecao_encerrada` só trazem a vaga.
-        ("candidatura_recusada", ["vaga_id": "40000000-0000-0000-0000-000000000001"], [.vagaDoAviso(vagaID: Cena.vagaID)]),
-        ("selecao_encerrada", ["vaga_id": "40000000-0000-0000-0000-000000000001"], [.vagaDoAviso(vagaID: Cena.vagaID)]),
-    ] as [(String, [String: String], [RotaDoProfissional])])
-    func toqueNoPush(tipo: String, payload: [String: String], caminho: [RotaDoProfissional]) {
-        let profissional = RoteadorDoProfissional()
-        let roteador = RoteadorDePush(profissional: profissional, contratante: RoteadorDoContratante())
-        let contaID = UUID()
-        let desde = Date(timeIntervalSince1970: 1_790_000_000)
-        roteador.contaAtiva(ContaNoAparelho(contaID: contaID, fluxo: .profissional, vinculo: VinculoDoAparelho(contaID: contaID, desde: desde)))
-        profissional.aba = .candidaturas
+    @Test("A candidatura recusada ou expirada vem antes do turno: um turno antigo da conta na mesma vaga não toma o lugar da explicação", arguments: [
+        EstadoCandidatura.recusada, .expirada,
+    ])
+    func candidaturaAntesDoTurno(estado: EstadoCandidatura) async throws {
+        // O turno cancelado continua em `meus_turnos`: aqui, um turno da conta na mesma vaga.
+        let turno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let candidatura = Candidatura(id: Cena.candidaturaID, vaga: turno.vaga, estado: estado, criadaEm: .now)
 
-        roteador.tocar(payload: payload.merging(["tipo": tipo]) { a, _ in a }, entregueEm: desde.addingTimeInterval(60))
+        let busca = BuscaDaVagaDoAviso.decidir(vagaID: turno.vaga.id, candidaturas: [candidatura], turnos: [turno])
 
-        #expect(profissional.aba == .vagas)
-        #expect(profissional.caminho == caminho)
-        #expect(profissional.avisosAbertos == 1)
+        #expect(busca == .semTurno(candidatura: estado))
+    }
+
+    @Test("Com candidatura aceita, pendente ou retirada, sem candidatura ou sem conseguir lê-las, o turno da conta na vaga é o destino", arguments: [
+        EstadoCandidatura.aceita, .pendente, .retirada, nil,
+    ])
+    func turnoDaConta(estado: EstadoCandidatura?) async throws {
+        let turno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let candidaturas = estado.map { [Candidatura(id: Cena.candidaturaID, vaga: turno.vaga, estado: $0, criadaEm: .now)] }
+
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: turno.vaga.id, candidaturas: candidaturas, turnos: [turno]) == .achou(turno))
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: turno.vaga.id, candidaturas: [], turnos: [turno]) == .achou(turno))
+        // Sem turno, ou sem conseguir ler os turnos, a tela fica com o que sabe da candidatura.
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: turno.vaga.id, candidaturas: candidaturas, turnos: []) == .semTurno(candidatura: estado))
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: turno.vaga.id, candidaturas: candidaturas, turnos: nil) == .semTurno(candidatura: estado))
+        // A candidatura e o turno de outra vaga não entram na decisão.
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: UUID(), candidaturas: candidaturas, turnos: [turno]) == .semTurno(candidatura: nil))
+    }
+
+    @Test("A busca lê as candidaturas e os turnos da conta: escolhida abre o turno; recusada e expirada, a explicação; leitura que falha não vira explicação errada")
+    func buscaNaApi() async throws {
+        let escolhida = try await Cena(.candidaturaEscolhida)
+        let turno = try #require(try await escolhida.base.meusTurnos().first)
+        #expect(await BuscaDaVagaDoAviso.procurar(vagaID: Cena.vagaID, api: escolhida.api, repositorio: escolhida.api) == .achou(turno))
+
+        let recusada = try await Cena(.candidaturaRecusada)
+        #expect(await BuscaDaVagaDoAviso.procurar(vagaID: Cena.vagaID, api: recusada.api, repositorio: recusada.api) == .semTurno(candidatura: .recusada))
+        let expirada = try await Cena(.candidaturaExpirada)
+        #expect(await BuscaDaVagaDoAviso.procurar(vagaID: Cena.vagaID, api: expirada.api, repositorio: expirada.api) == .semTurno(candidatura: .expirada))
+
+        // Sem ler as candidaturas, a tela não inventa desfecho: fica com o estado da vaga.
+        recusada.api.falhaNasCandidaturas = ErroDaApi(codigo: .semRede)
+        #expect(await BuscaDaVagaDoAviso.procurar(vagaID: Cena.vagaID, api: recusada.api, repositorio: recusada.api) == .semTurno(candidatura: nil))
     }
 
     @Test("Ver minhas candidaturas leva à aba, com a pilha de Vagas limpa")

@@ -14,6 +14,8 @@ public struct AreaDeCandidatura: View {
     @State private var viewModel: CandidaturaViewModel
     /// A pessoa acabou de retirar a candidatura nesta tela: o botão volta, com o aviso.
     @State private var retirouAgora = false
+    /// Presente quando a área está presa ao rodapé do detalhe: o aviso vai para a rolagem.
+    @Environment(AvisosDoDetalhe.self) private var quadro: AvisosDoDetalhe?
     private let api: (any ApiCliente)?
     private let candidatar: (CandidaturaViewModel) async -> Void
 
@@ -38,9 +40,9 @@ public struct AreaDeCandidatura: View {
                 }
                 .id(candidaturaID)
             } else {
-                if retirouAgora, viewModel.estado == .ocioso {
-                    AvisoFrila(verbatim: TextosDaCandidaturaEmSelecao.retiradaNoDetalhe, tom: .informativo)
-                        .accessibilityIdentifier("candidatura-retirada")
+                // A retirada vem antes do botão, e a falha depois dele, como já era.
+                if quadro == nil, let aviso, aviso.id == Self.idDaRetirada {
+                    AvisoFrila(verbatim: aviso.texto, tom: aviso.tom).accessibilityIdentifier(aviso.id)
                 }
                 BotaoPrimario(verbatim: TextosDoProfissional.Detalhe.candidatar, carregando: viewModel.enviando) {
                     Task { await candidatar(viewModel) }
@@ -49,19 +51,36 @@ public struct AreaDeCandidatura: View {
                 .accessibilityIdentifier("candidatar")
                 .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
 
-                if case let .concluida(resultado) = viewModel.estado, let texto = Self.mensagemNoDetalhe(resultado) {
-                    AvisoFrila(verbatim: texto, tom: resultado == .outraEmAndamento ? .alerta : .erro)
-                        .accessibilityIdentifier(resultado == .outraEmAndamento ? "candidatura-em-voo" : "candidatura-falha")
+                if quadro == nil, let aviso, aviso.id != Self.idDaRetirada {
+                    AvisoFrila(verbatim: aviso.texto, tom: aviso.tom).accessibilityIdentifier(aviso.id)
                 }
             }
         }
         .task { await viewModel.conferirCandidatura() }
+        .onChange(of: aviso, initial: true) { _, novo in quadro?.publicar(novo, de: Self.donoDosAvisos) }
+        .onDisappear { quadro?.publicar(nil, de: Self.donoDosAvisos) }
         .onChange(of: viewModel.estado) { _, novo in
             guard case let .concluida(resultado) = novo else { return }
             if let texto = Self.mensagemNoDetalhe(resultado) {
                 AccessibilityNotification.Announcement(texto).post()
             }
         }
+    }
+
+    private static let idDaRetirada = "candidatura-retirada"
+    private static let donoDosAvisos = "candidatar"
+
+    /// O aviso que acompanha o botão: a falha da candidatura, ou a retirada que acabou de acontecer.
+    private var aviso: AvisosDoDetalhe.Aviso? {
+        guard viewModel.candidaturaPendente == nil else { return nil }
+        if case let .concluida(resultado) = viewModel.estado, let texto = Self.mensagemNoDetalhe(resultado) {
+            let emVoo = resultado == .outraEmAndamento
+            return .init(id: emVoo ? "candidatura-em-voo" : "candidatura-falha", texto: texto, tom: emVoo ? .alerta : .erro)
+        }
+        if retirouAgora, viewModel.estado == .ocioso {
+            return .init(id: Self.idDaRetirada, texto: TextosDaCandidaturaEmSelecao.retiradaNoDetalhe, tom: .informativo)
+        }
+        return nil
     }
 
     /// Resultados que ficam no detalhe, como aviso. Os outros têm tela própria.

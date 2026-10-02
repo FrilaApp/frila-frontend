@@ -193,22 +193,12 @@
         }
       }
     },
-    "A seleção desta vaga foi encerrada. Não há mais candidatura para retirar.": {
+    "A sua candidatura foi encerrada junto com a vaga.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A seleção desta vaga foi encerrada. Não há mais candidatura para retirar."
-          }
-        }
-      }
-    },
-    "A seleção foi encerrada sem que a sua candidatura fosse escolhida": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A seleção foi encerrada sem que a sua candidatura fosse escolhida"
+            "value": "A sua candidatura foi encerrada junto com a vaga."
           }
         }
       }
@@ -229,6 +219,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "A vaga fechou sem que a sua candidatura fosse escolhida."
+          }
+        }
+      }
+    },
+    "A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida"
+          }
+        }
+      }
+    },
+    "A vaga foi encerrada ou cancelada. Não há mais candidatura para retirar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga foi encerrada ou cancelada. Não há mais candidatura para retirar."
           }
         }
       }
@@ -1233,6 +1243,16 @@
         }
       }
     },
+    "O estabelecimento cancelou esta vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento cancelou esta vaga"
+          }
+        }
+      }
+    },
     "O estabelecimento escolhe entre os candidatos, até 24 horas antes do início do turno. O Frila avisa você quando houver resposta.": {
       "localizations": {
         "pt-BR": {
@@ -1369,16 +1389,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você não concorre mais a esta vaga."
-          }
-        }
-      }
-    },
-    "Você retirou a candidatura": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você retirou a candidatura"
           }
         }
       }

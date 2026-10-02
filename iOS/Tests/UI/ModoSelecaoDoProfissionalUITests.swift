@@ -80,7 +80,7 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(elemento("tela-minhas-candidaturas", em: app).waitForExistence(timeout: 10))
         let retiradaNaLista = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'candidatura-'")).firstMatch
         XCTAssertTrue(retiradaNaLista.waitForExistence(timeout: 10))
-        XCTAssertTrue(retiradaNaLista.label.contains("Você retirou a candidatura"), retiradaNaLista.label)
+        XCTAssertTrue(retiradaNaLista.label.contains("Candidatura retirada"), retiradaNaLista.label)
         XCTAssertFalse(app.staticTexts["Aguardando resposta"].exists)
     }
 
@@ -110,7 +110,7 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
 
         aba.tap()
         XCTAssertTrue(pendente.waitForExistence(timeout: 10))
-        XCTAssertTrue(pendente.label.contains("Você retirou a candidatura"), pendente.label)
+        XCTAssertTrue(pendente.label.contains("Candidatura retirada"), pendente.label)
     }
 
     func testRetirarSemConexaoAvisaENaoTiraOBotao() {
@@ -183,7 +183,7 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         app.tabBars.buttons["Candidaturas"].tap()
         let expirada = app.buttons["candidatura-\(candidaturaID)"]
         XCTAssertTrue(expirada.waitForExistence(timeout: 10))
-        XCTAssertTrue(expirada.label.contains("A seleção foi encerrada sem que a sua candidatura fosse escolhida"), expirada.label)
+        XCTAssertTrue(expirada.label.contains("A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida"), expirada.label)
         expirada.tap()
         XCTAssertTrue(indisponivel.waitForExistence(timeout: 10))
     }
@@ -220,5 +220,42 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(pergunta.buttons["Retirar"].isHittable)
         pergunta.buttons["Cancelar"].tap()
         XCTAssertTrue(retirar.waitForExistence(timeout: 5))
+
+        // Retirada: o aviso aparece inteiro na rolagem, e o rodapé fica só com Candidatar-me, sem
+        // tomar a tela da vaga.
+        self.retirar(em: app, responder: "Retirar")
+        let candidatar = app.buttons["candidatar"]
+        XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
+        let aviso = elemento("candidatura-retirada", em: app)
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        conferirAvisoNaRolagem(aviso, acimaDe: candidatar, em: app)
+        XCTAssertTrue(aviso.label.contains("você pode se candidatar de novo"), aviso.label)
+        XCTAssertTrue(candidatar.isHittable)
+    }
+
+    func testRetirarSemConexaoNoMaiorTamanhoDeLetraMostraOAvisoInteiroENaoEscondeAVaga() {
+        let app = abrir("retirar-sem-rede", extras: ["-FRILA_PUSH", "vaga", "-FRILA_PUSH_ID", vagaID, "-UIPreferredContentSizeCategoryName", Self.ax5])
+        let enviada = elemento("candidatura-enviada", em: app)
+        XCTAssertTrue(enviada.waitForExistence(timeout: 15))
+
+        retirar(em: app, responder: "Retirar")
+
+        let falha = elemento("retirada-falha", em: app)
+        XCTAssertTrue(falha.waitForExistence(timeout: 10))
+        XCTAssertTrue(falha.label.contains("tente de novo quando a internet voltar"), falha.label)
+        conferirAvisoNaRolagem(falha, acimaDe: enviada, em: app)
+        XCTAssertTrue(app.buttons["retirar-candidatura"].isHittable, "a retirada continua ao alcance para tentar de novo")
+    }
+
+    /// No maior tamanho de letra o aviso fica na rolagem do detalhe, e não no rodapé: começa
+    /// abaixo da barra de navegação, com o início à vista, e o rodapé deixa pelo menos metade da
+    /// tela para a vaga.
+    private func conferirAvisoNaRolagem(_ aviso: XCUIElement, acimaDe rodape: XCUIElement, em app: XCUIApplication) {
+        let janela = app.windows.firstMatch.frame
+        let barra = app.navigationBars.firstMatch.frame.maxY
+        XCTAssertGreaterThanOrEqual(aviso.frame.minY, barra - 1, "o aviso começou escondido atrás da barra de navegação")
+        XCTAssertLessThan(aviso.frame.minY, rodape.frame.minY, "o aviso ficou atrás do rodapé")
+        XCTAssertLessThanOrEqual(aviso.frame.maxX, janela.width, "o aviso passou da largura da tela")
+        XCTAssertGreaterThanOrEqual(rodape.frame.minY, janela.height / 2, "o rodapé tomou mais da metade da tela")
     }
 }

@@ -27,19 +27,38 @@ public enum IndisponibilidadeDaVaga: Equatable, Sendable {
     }
 }
 
+/// O que a vaga indisponível de um aviso mostra a quem tocou: o turno da conta nela, ou a
+/// explicação de por que não dá mais para pegá-la.
+enum BuscaDaVagaDoAviso: Equatable {
+    case pendente
+    case achou(Turno)
+    /// Sem turno na vaga. `candidatura` é o estado da candidatura da conta nela, se houver: é o
+    /// que diz a quem foi recusado, ou esperava quando a seleção fechou, o que aconteceu (#10).
+    case semTurno(candidatura: EstadoCandidatura?)
+
+    /// A decisão, com o que foi lido; `nil` é leitura que falhou. A candidatura vem antes do
+    /// turno: a recusada e a expirada não têm turno, e assim um turno antigo da conta na mesma
+    /// vaga (o cancelado continua em `meus_turnos`) não toma o lugar da explicação. Sem conseguir
+    /// ler os turnos, vale o que o servidor disse da vaga.
+    static func decidir(vagaID: UUID, candidaturas: [Candidatura]?, turnos: [Turno]?) -> BuscaDaVagaDoAviso {
+        let candidatura = candidaturas?.first { $0.vaga.id == vagaID }?.estado
+        if candidatura == .recusada || candidatura == .expirada { return .semTurno(candidatura: candidatura) }
+        guard let meu = turnos?.first(where: { $0.vaga.id == vagaID }) else { return .semTurno(candidatura: candidatura) }
+        return .achou(meu)
+    }
+
+    static func procurar(vagaID: UUID, api: any ApiCliente, repositorio: any TurnoRepositorio) async -> BuscaDaVagaDoAviso {
+        let candidaturas = try? await api.minhasCandidaturas()
+        let turnos = try? await repositorio.ler().turnos
+        return decidir(vagaID: vagaID, candidaturas: candidaturas, turnos: turnos)
+    }
+}
+
 /// A vaga de um aviso (#8). Se ainda dá para pegar, é o detalhe de sempre. Se não dá, é a tela de
 /// vaga indisponível, a não ser que a vaga já seja de quem tocou: aí o destino é o turno dela.
 struct DestinoDaVagaDoAviso<Conteudo: View>: View {
-    private enum Busca: Equatable {
-        case pendente
-        case achou(Turno)
-        /// Sem turno na vaga. `candidatura` é o estado da candidatura da conta nela, se houver: é o
-        /// que diz a quem foi recusado, ou esperava quando a seleção fechou, o que aconteceu (#10).
-        case semTurno(candidatura: EstadoCandidatura?)
-    }
-
     @State private var detalhe: DetalheVagaViewModel
-    @State private var busca = Busca.pendente
+    @State private var busca = BuscaDaVagaDoAviso.pendente
     private let api: any ApiCliente
     private let repositorio: any TurnoRepositorio
     private let candidatar: (CandidaturaViewModel) async -> Void
@@ -67,11 +86,14 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
             switch busca {
             case .pendente:
                 EstadoCarregando()
-                    .task { busca = await procurarTurno() }
+                    .task { busca = await BuscaDaVagaDoAviso.procurar(vagaID: detalhe.vagaID, api: api, repositorio: repositorio) }
             case let .achou(meuTurno):
                 turno(meuTurno)
             case let .semTurno(candidatura):
-                TelaVagaIndisponivel(motivo: motivo, candidatura: candidatura, modo: modoDaVaga, voltarParaLista: voltarParaLista)
+                TelaVagaIndisponivel(
+                    motivo: motivo, candidatura: candidatura, modo: vaga?.modo, vagaCancelada: vaga?.estado == .cancelada,
+                    voltarParaLista: voltarParaLista
+                )
             }
         } else {
             TelaDetalheVaga(viewModel: detalhe) { vaga in
@@ -80,20 +102,9 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
         }
     }
 
-    private var modoDaVaga: ModoPreenchimento? {
-        if case let .carregado(vaga) = detalhe.estado { return vaga.modo }
+    private var vaga: Vaga? {
+        if case let .carregado(vaga) = detalhe.estado { return vaga }
         return nil
-    }
-
-    /// Sem conseguir ler os turnos, vale o que o servidor disse da vaga. A candidatura vem antes: a
-    /// recusada e a expirada não têm turno, e assim um turno antigo da conta na mesma vaga (o
-    /// cancelado continua em `meus_turnos`) não toma o lugar da explicação.
-    private func procurarTurno() async -> Busca {
-        let candidatura = try? await api.minhasCandidaturas().first { $0.vaga.id == detalhe.vagaID }?.estado
-        if candidatura == .recusada || candidatura == .expirada { return .semTurno(candidatura: candidatura) }
-        guard let turnos = try? await repositorio.ler().turnos,
-              let meu = turnos.first(where: { $0.vaga.id == detalhe.vagaID }) else { return .semTurno(candidatura: candidatura) }
-        return .achou(meu)
     }
 }
 
@@ -107,6 +118,9 @@ struct TelaVagaIndisponivel: View {
     /// explicação própria (avisos `candidatura_recusada` e `selecao_encerrada`).
     var candidatura: EstadoCandidatura?
     var modo: ModoPreenchimento?
+    /// A casa cancelou a vaga. `IndisponibilidadeDaVaga` junta a cancelada e a encerrada; para
+    /// quem tinha candidatura nela, a tela diz qual das duas foi.
+    var vagaCancelada = false
     let voltarParaLista: () -> Void
 
     var body: some View {
@@ -131,16 +145,22 @@ struct TelaVagaIndisponivel: View {
         .onAppear { AccessibilityNotification.Announcement(titulo).post() }
     }
 
-    private var titulo: String { Self.textos(motivo: motivo, candidatura: candidatura, modo: modo).titulo }
-    private var mensagem: String { Self.textos(motivo: motivo, candidatura: candidatura, modo: modo).mensagem }
+    private var textos: (titulo: String, mensagem: String) {
+        Self.textos(motivo: motivo, candidatura: candidatura, modo: modo, vagaCancelada: vagaCancelada)
+    }
+    private var titulo: String { textos.titulo }
+    private var mensagem: String { textos.mensagem }
 
     /// O que a tela diz. A candidatura recusada ou expirada da conta explica mais do que o estado
     /// da vaga; sem ela, vale o estado que o servidor devolveu.
     static func textos(
-        motivo: IndisponibilidadeDaVaga, candidatura: EstadoCandidatura?, modo: ModoPreenchimento?
+        motivo: IndisponibilidadeDaVaga, candidatura: EstadoCandidatura?, modo: ModoPreenchimento?, vagaCancelada: Bool = false
     ) -> (titulo: String, mensagem: String) {
         switch (candidatura, motivo) {
         case (.recusada, _): (TextosDaSelecao.recusadaTitulo, TextosDaSelecao.recusadaMensagem)
+        // A candidatura que esperava também expira quando a casa cancela a vaga: aí a seleção não
+        // "foi encerrada", e a tela diz o que houve.
+        case (.expirada, _) where vagaCancelada: (TextosDaSelecao.canceladaTitulo, TextosDaSelecao.canceladaMensagem)
         case (.expirada, _): (TextosDaSelecao.expiradaTitulo, TextosDaSelecao.expiradaMensagem)
         // "Quem aceita primeiro" é da urgência: na seleção, quem preenche a vaga é a escolha da casa.
         case (_, .preenchida):

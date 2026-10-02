@@ -26,7 +26,7 @@ enum TextosDaCandidaturaEmSelecao {
     static let retiradaNaoEncontrada = String(localized: "Não encontramos esta candidatura nesta conta.", bundle: bundleApresentacao)
     static let jaEscolhida = String(localized: "A sua candidatura foi escolhida, e não dá mais para retirá-la. O turno está em Meus turnos.", bundle: bundleApresentacao)
     static let jaRecusada = String(localized: "O estabelecimento escolheu outra pessoa. Não há mais candidatura para retirar.", bundle: bundleApresentacao)
-    static let jaExpirada = String(localized: "A seleção desta vaga foi encerrada. Não há mais candidatura para retirar.", bundle: bundleApresentacao)
+    static let jaExpirada = String(localized: "A vaga foi encerrada ou cancelada. Não há mais candidatura para retirar.", bundle: bundleApresentacao)
     static let jaRespondida = String(localized: "Esta candidatura já teve resposta e não pode mais ser retirada. Veja a situação em Candidaturas.", bundle: bundleApresentacao)
     static let verCandidaturas = String(localized: "Ver minhas candidaturas", bundle: bundleApresentacao)
 
@@ -43,14 +43,20 @@ enum TextosDaCandidaturaEmSelecao {
     static let estadoPendente = String(localized: "Aguardando a escolha do estabelecimento", bundle: bundleApresentacao)
     static let estadoAceita = String(localized: "Confirmada: o turno está em Meus turnos", bundle: bundleApresentacao)
     static let estadoRecusada = String(localized: "O estabelecimento escolheu outra pessoa", bundle: bundleApresentacao)
-    static let estadoRetirada = String(localized: "Você retirou a candidatura", bundle: bundleApresentacao)
-    static let estadoExpirada = String(localized: "A seleção foi encerrada sem que a sua candidatura fosse escolhida", bundle: bundleApresentacao)
+    /// Neutro de propósito: o servidor também passa a `retirada` a candidatura pendente da casa
+    /// que foi suspensa ou excluída, e aí não foi a pessoa que a retirou.
+    static let estadoRetirada = String(localized: "Candidatura retirada", bundle: bundleApresentacao)
+    /// `expirada` é a seleção que fechou sozinha e também a vaga que a casa cancelou; `VagaResumo`
+    /// não traz o estado da vaga, e a aba não tem como dizer qual das duas.
+    static let estadoExpirada = String(localized: "A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida", bundle: bundleApresentacao)
 
     // Vaga indisponível, para quem tinha candidatura nela (avisos `candidatura_recusada` e `selecao_encerrada`)
     static let recusadaTitulo = String(localized: "O estabelecimento escolheu outra pessoa", bundle: bundleApresentacao)
     static let recusadaMensagem = String(localized: "A vaga foi preenchida, e a sua candidatura não foi escolhida.", bundle: bundleApresentacao)
     static let expiradaTitulo = String(localized: "A seleção desta vaga foi encerrada", bundle: bundleApresentacao)
     static let expiradaMensagem = String(localized: "A vaga fechou sem que a sua candidatura fosse escolhida.", bundle: bundleApresentacao)
+    static let canceladaTitulo = String(localized: "O estabelecimento cancelou esta vaga", bundle: bundleApresentacao)
+    static let canceladaMensagem = String(localized: "A sua candidatura foi encerrada junto com a vaga.", bundle: bundleApresentacao)
     static let preenchidaEmSelecao = String(localized: "O estabelecimento já escolheu quem vai trabalhar nesta vaga.", bundle: bundleApresentacao)
 
     static func estado(_ estado: EstadoCandidatura) -> String {
@@ -186,6 +192,8 @@ public final class RetirarCandidaturaViewModel {
 /// Sem `api` (prévias), mostra só a situação.
 struct CandidaturaEnviada: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Presente quando a candidatura está presa ao rodapé do detalhe: a falha vai para a rolagem.
+    @Environment(AvisosDoDetalhe.self) private var quadro: AvisosDoDetalhe?
     @State private var viewModel: RetirarCandidaturaViewModel?
     private let compacta: Bool
     private let aoRetirar: () -> Void
@@ -211,11 +219,13 @@ struct CandidaturaEnviada: View {
             if viewModel?.estado == .retirada {
                 situacao(Textos.retiradaTitulo, [Textos.retiradaMensagem], id: "candidatura-retirada")
             } else {
-                situacao(Textos.enviadaTitulo, explicacao, id: "candidatura-enviada")
+                // Depois do 409 a candidatura já teve resposta: a tela não diz mais "enviada".
+                if viewModel?.estado != .indisponivel {
+                    situacao(Textos.enviadaTitulo, explicacao, id: "candidatura-enviada")
+                }
                 if let viewModel {
-                    if let falha = viewModel.falha {
-                        AvisoFrila(verbatim: Textos.falha(falha), tom: falha == .semConexao ? .alerta : .erro)
-                            .accessibilityIdentifier("retirada-falha")
+                    if quadro == nil, let aviso = avisoDaFalha {
+                        AvisoFrila(verbatim: aviso.texto, tom: aviso.tom).accessibilityIdentifier(aviso.id)
                     }
                     if viewModel.estado != .indisponivel {
                         BotaoSecundario(verbatim: Textos.retirar) { viewModel.pedirRetirada() }
@@ -236,6 +246,15 @@ struct CandidaturaEnviada: View {
         .onChange(of: viewModel?.falha) { _, nova in
             if let nova { AccessibilityNotification.Announcement(Textos.falha(nova)).post() }
         }
+        .onChange(of: avisoDaFalha, initial: true) { _, novo in quadro?.publicar(novo, de: Self.donoDosAvisos) }
+        .onDisappear { quadro?.publicar(nil, de: Self.donoDosAvisos) }
+    }
+
+    private static let donoDosAvisos = "retirar"
+
+    private var avisoDaFalha: AvisosDoDetalhe.Aviso? {
+        guard let falha = viewModel?.falha, viewModel?.estado != .retirada else { return nil }
+        return .init(id: "retirada-falha", texto: Textos.falha(falha), tom: falha == .semConexao ? .alerta : .erro)
     }
 
     private var explicacao: [String] {
@@ -314,31 +333,58 @@ public final class MinhasCandidaturasViewModel {
     /// As que já tiveram desfecho: confirmada, recusada, retirada ou expirada.
     public var anteriores: [Candidatura] { candidaturas.filter { $0.estado != .pendente } }
 
+    /// Uma leitura por vez. O pedido que chega com outra em voo não abre uma segunda chamada.
+    private var lendo = false
+    /// Uma releitura foi pedida com outra em voo: a que está em voo pode ter saído antes da
+    /// mudança que motivou o pedido, então a lista é lida de novo quando ela voltar.
+    private var releituraPedida = false
+
+    /// A primeira leitura, e a nova tentativa depois de uma falha. Com uma leitura já em voo não
+    /// faz nada: ela traz o que há.
     public func carregar() async {
-        if case .carregando = estado { return }
-        if case .carregadas = estado {} else { estado = .carregando }
+        guard !lendo else { return }
         await ler()
     }
 
     /// Releitura com a lista na tela: se falha, a lista fica e a tela avisa que pode estar velha.
+    /// Antes da primeira leitura não lê: quem carrega é a tela, quando aparece.
     public func atualizar() async {
-        guard estado != .carregando else { return }
-        await ler()
+        switch estado {
+        case .ociosa, .carregando:
+            return
+        case .carregadas, .semConexao, .falha:
+            guard !lendo else {
+                releituraPedida = true
+                return
+            }
+            await ler()
+        }
     }
 
     private func ler() async {
-        do {
-            estado = .carregadas(try await buscar())
-            desatualizada = false
-        } catch {
-            // A tela cancela a leitura quando sai: não é falha.
-            guard !Task.isCancelled else { return }
-            if case .carregadas = estado {
-                desatualizada = true
-            } else {
-                estado = (error as? ErroDaApi)?.codigo == .semRede ? .semConexao : .falha
+        lendo = true
+        defer { lendo = false }
+        repeat {
+            releituraPedida = false
+            if case .carregadas = estado {} else { estado = .carregando }
+            do {
+                estado = .carregadas(try await buscar())
+                desatualizada = false
+            } catch {
+                if Task.isCancelled {
+                    // A tela cancela a leitura quando sai: não é falha. O estado não pode ficar em
+                    // "carregando", ou nenhuma leitura sairia mais: volta ao início, e a tela
+                    // carrega de novo quando reaparecer.
+                    if estado == .carregando { estado = .ociosa }
+                    return
+                }
+                if case .carregadas = estado {
+                    desatualizada = true
+                } else {
+                    estado = (error as? ErroDaApi)?.codigo == .semRede ? .semConexao : .falha
+                }
             }
-        }
+        } while releituraPedida && !Task.isCancelled
     }
 }
 
