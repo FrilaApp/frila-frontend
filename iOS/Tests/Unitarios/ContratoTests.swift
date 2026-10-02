@@ -36,7 +36,8 @@ struct ContratoTests {
         #expect(cancelado["avaliacao"] is NSNull)
         let avaliado = try primeiro("turnos-avaliados")
         #expect(avaliado["estado"] as? String == "cumprida")
-        #expect(avaliado["avaliacao"] as? NSDictionary == Self.fixture("avaliacao"))
+        let avaliacaoEsperada = try Self.fixture("avaliacao")
+        #expect(avaliado["avaliacao"] as? NSDictionary == avaliacaoEsperada)
         #expect(avaliado["pode_avaliar"] as? Bool == false)
     }
 
