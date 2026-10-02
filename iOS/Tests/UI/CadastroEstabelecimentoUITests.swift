@@ -101,7 +101,51 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let componentesFinais = cameraDepoisDoZoom.split(separator: ",").compactMap { Double($0) }
         guard componentesFinais.count == 4 else { XCTFail("Câmera sem região depois do zoom."); return }
         XCTAssertLessThan(componentesFinais[2], componentesIniciais[2], "A pinça deve aproximar o mapa.")
+        // O zoom pode tirar o ponto do quadro; reabra a região antes de ler o marcador.
+        mapa.pinch(withScale: 0.5, velocity: -1)
+        XCTAssertTrue(marcador.waitForExistence(timeout: 5))
         XCTAssertEqual(marcador.value as? String, valorFinal, "O zoom não deve mudar o ponto.")
+    }
+
+    func testToqueNoMarcadorNaoMudaPonto() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
+        app.launch()
+
+        let marcador = app.descendants(matching: .any)["marcador-mapa"]
+        XCTAssertTrue(marcador.waitForExistence(timeout: 10))
+        let pontoInicial = try XCTUnwrap(marcador.value as? String)
+        marcador.tap()
+        XCTAssertEqual(marcador.value as? String, pontoInicial, "Tocar sem arrastar deve preservar o ponto do check-in.")
+    }
+
+    func testMarcadorForaDoMapaNaoFicaTocavelSobreOFormulario() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
+        app.launch()
+
+        let marcador = app.descendants(matching: .any)["marcador-mapa"]
+        XCTAssertTrue(marcador.waitForExistence(timeout: 10))
+        let pontoInicial = try XCTUnwrap(marcador.value as? String)
+        let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
+        let cameraInicial = try XCTUnwrap(mapa.value as? String)
+        let inicio = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.8))
+        let fim = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.15))
+        inicio.press(forDuration: 0.1, thenDragTo: fim)
+
+        XCTAssertNotEqual(mapa.value as? String, cameraInicial, "O gesto precisa mover o mapa até o ponto sair do quadro.")
+        XCTAssertFalse(marcador.exists, "O marcador deve desaparecer quando o ponto sai do quadro do mapa.")
+        XCTAssertFalse(marcador.exists && marcador.isHittable, "O marcador fora do mapa não pode interceptar os campos do formulário.")
+        let captura = XCTAttachment(screenshot: app.screenshot())
+        captura.name = "marcador-fora-do-mapa"
+        captura.lifetime = .keepAlways
+        add(captura)
+
+        // Reponha o mapa para conferir que esconder o marcador não alterou o ponto.
+        fim.press(forDuration: 0.1, thenDragTo: inicio)
+        XCTAssertTrue(marcador.waitForExistence(timeout: 5))
+        XCTAssertTrue(marcador.isHittable)
+        XCTAssertEqual(marcador.value as? String, pontoInicial)
     }
 
     private func extrairCoordenadas(_ valor: String) -> (Double, Double)? {

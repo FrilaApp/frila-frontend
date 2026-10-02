@@ -208,34 +208,40 @@ public struct TelaCadastroEstabelecimento: View {
                             #endif
                         }
                         .overlay(alignment: .topLeading) {
-                            if let posicaoMarcador {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .font(.title)
-                                    .foregroundStyle(FrilaCor.perigo)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
-                                    .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
-                                    .accessibilityIdentifier("marcador-mapa")
-                                    .accessibilityValue(String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude))
-                                    .position(x: posicaoMarcador.x, y: posicaoMarcador.y - 15)
-                                    // Só a alça recebe este gesto; o mapa mantém pan e zoom fora dela.
-                                    .highPriorityGesture(
-                                        DragGesture(minimumDistance: 0, coordinateSpace: .named("mapa"))
-                                            .onChanged { valor in
-                                                if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
-                                                    model.ponto = coordenada
-                                                    self.posicaoMarcador = valor.location
+                            GeometryReader { geometria in
+                                if let posicaoMarcador,
+                                   CGRect(origin: .zero, size: geometria.size).contains(posicaoMarcador) {
+                                    Image(systemName: "mappin.and.ellipse")
+                                        .font(.title)
+                                        .foregroundStyle(FrilaCor.perigo)
+                                        .frame(width: 44, height: 44)
+                                        .contentShape(Rectangle())
+                                        .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
+                                        .accessibilityIdentifier("marcador-mapa")
+                                        .accessibilityValue(String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude))
+                                        .position(x: posicaoMarcador.x, y: posicaoMarcador.y - 15)
+                                        // Só a alça recebe este gesto; o mapa mantém pan e zoom fora dela.
+                                        .highPriorityGesture(
+                                            DragGesture(minimumDistance: 10, coordinateSpace: .named("mapa"))
+                                                .onChanged { valor in
+                                                    if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                                        model.ponto = coordenada
+                                                        self.posicaoMarcador = valor.location
+                                                    }
                                                 }
-                                            }
-                                            .onEnded { valor in
-                                                if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
-                                                    model.ponto = coordenada
-                                                    self.posicaoMarcador = valor.location
+                                                .onEnded { valor in
+                                                    if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                                        model.ponto = coordenada
+                                                        self.posicaoMarcador = valor.location
+                                                    }
                                                 }
-                                            }
-                                    )
+                                        )
+                                }
                             }
                         }
+                        // O recorte limita o desenho, e a forma limita os toques ao quadro do mapa.
+                        .clipped()
+                        .contentShape(Rectangle())
                         .coordinateSpace(.named("mapa"))
                         .onChange(of: model.ponto?.latitude) { _, _ in
                             posicaoMarcador = proxy.convert(point, to: .named("mapa"))
