@@ -37,6 +37,7 @@ private enum TextosMinhasVagas {
     static let ligar = String(localized: "Ligar", bundle: bundleMinhasVagas)
     static let whatsApp = String(localized: "WhatsApp", bundle: bundleMinhasVagas)
     static let periodo = String(localized: "%@ – %@", bundle: bundleMinhasVagas)
+    static let republicar = String(localized: "Publicar de novo", bundle: bundleMinhasVagas)
 }
 
 private func textoPeriodo(_ periodo: Periodo) -> String {
@@ -227,6 +228,7 @@ public struct TelaMinhasVagas: View {
     @State private var viewModel: MinhasVagasViewModel
     @State private var acompanhamento: AcompanhamentoViewModel
     @State private var roteador: RoteadorDoContratante
+    @State private var vagaParaRepublicar: VagaNoPainel?
     private let api: any ApiCliente
     private let formatador = FormatadorFrila()
 
@@ -284,10 +286,27 @@ public struct TelaMinhasVagas: View {
                                         .font(.title3.bold())
                                         .accessibilityAddTraits(.isHeader)
                                     ForEach(itens, id: \.vaga.id) { vaga in
-                                        NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) { cartao(vaga, secao: secao) }
-                                            .buttonStyle(.plain)
-                                            .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
-                                            .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
+                                        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                                            NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) { cartao(vaga, secao: secao) }
+                                                .buttonStyle(.plain)
+                                                .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
+                                                .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
+                                            if secao == .encerradas {
+                                                Button {
+                                                    vagaParaRepublicar = vaga
+                                                } label: {
+                                                    HStack(spacing: FrilaEspaco.pequeno) {
+                                                        Image(systemName: "arrow.clockwise")
+                                                        Text(verbatim: TextosMinhasVagas.republicar)
+                                                    }
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                                                }
+                                                .buttonStyle(.borderedProminent)
+                                                .tint(FrilaCor.primaria)
+                                                .accessibilityIdentifier("republicar-vaga-\(vaga.vaga.id)")
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -307,6 +326,19 @@ public struct TelaMinhasVagas: View {
                 case let .turno(turnoID):
                     TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID)
                 }
+            }
+        }
+        .sheet(item: $vagaParaRepublicar) { vaga in
+            NavigationStack {
+                TelaRepublicarVaga(
+                    viewModel: RepublicarVagaViewModel(
+                        vagaOriginal: vaga,
+                        api: api,
+                        aoConcluir: { _ in
+                            await carregar()
+                        }
+                    )
+                )
             }
         }
         .modifier(ConfirmacaoDeReabertura(viewModel: acompanhamento))
@@ -409,6 +441,7 @@ private struct TelaDetalheVagaContratante: View {
     @State private var carregandoContato: Set<UUID> = []
     @State private var errosContato: [UUID: String] = [:]
     @State private var perfilSelecionado: PerfilPublico?
+    @State private var vagaParaRepublicar: VagaNoPainel?
     private let formatador = FormatadorFrila()
 
     var body: some View {
@@ -425,6 +458,22 @@ private struct TelaDetalheVagaContratante: View {
                 .padding(FrilaEspaco.medio)
                 .cartaoFrila()
 
+                if vaga.estado == .encerrada || vaga.estado == .cancelada || vaga.vaga.periodo.fim <= Date() {
+                    Button {
+                        vagaParaRepublicar = vaga
+                    } label: {
+                        HStack(spacing: FrilaEspaco.pequeno) {
+                            Image(systemName: "arrow.clockwise")
+                            Text(verbatim: TextosMinhasVagas.republicar)
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(FrilaCor.primaria)
+                    .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
+                }
+
                 Text(verbatim: TextosMinhasVagas.posicoes).font(.title2.bold()).accessibilityAddTraits(.isHeader)
                 ForEach(vaga.posicoes) { posicao in
                     cartaoPosicao(posicao)
@@ -433,6 +482,16 @@ private struct TelaDetalheVagaContratante: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
+        .sheet(item: $vagaParaRepublicar) { vaga in
+            NavigationStack {
+                TelaRepublicarVaga(
+                    viewModel: RepublicarVagaViewModel(
+                        vagaOriginal: vaga,
+                        api: api
+                    )
+                )
+            }
+        }
         .navigationTitle(TextosMinhasVagas.detalheTitulo)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $perfilSelecionado) { perfil in

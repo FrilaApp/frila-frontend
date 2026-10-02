@@ -45,6 +45,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case atrasoNoTurno = "atraso-no-turno"
         /// Configuração remota exige versão mínima superior à atual.
         case atualizacaoObrigatoria = "atualizacao-obrigatoria"
+        /// Painel com uma vaga encerrada para testar o fluxo de republicação (#147).
+        case vagaEncerradaContratante = "vaga-encerrada-contratante"
     }
 
     private let cenario: Cenario
@@ -112,7 +114,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .vagaEncerradaContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -151,9 +153,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .alertaVagaVazia: 2 * 60 * 60
                 case .checkinManualPendente: -10 * 60
                 case .atrasoNoTurno: -20 * 60
+                case .vagaEncerradaContratante: -10 * 60 * 60
                 default: 24 * 60 * 60
                 }
-                self.vagas = [try Self.noFuturo(vaga, agora: relogio.agora, inicioEm: ateInicio)]
+                let baseVaga = cenario == .vagaEncerradaContratante ? Self.copia(vaga, estado: .encerrada) : vaga
+                self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio { self.vagas = [] }
             if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno, let vaga = self.vagas.first {
