@@ -38,6 +38,19 @@ struct RegistroDePresencaEmMemoriaTests {
         #expect(registro.distanciaMetros == nil)
     }
 
+    @Test("Check-out a 150 m registra a saída com a distância")
+    func checkoutPerto() async throws {
+        let (api, turno) = try await turnoConfirmado()
+        _ = try await api.fazerCheckin(turnoID: turno, distanciaMetros: 150, registradoEm: antes)
+
+        let saida = try await api.fazerCheckout(turnoID: turno, distanciaMetros: 150, registradoEm: depois)
+
+        #expect(saida.tipo == .geolocalizado)
+        #expect(saida.verificacao == .verificado)
+        #expect(saida.distanciaMetros == 150)
+        #expect(saida.registradoEm == depois)
+    }
+
     @Test("Check-out a 350 m é aceito e mantém tipo e verificação do check-in",
           arguments: [(150, TipoRegistro.geolocalizado, Verificacao.verificado), (350, .manual, .pendente)])
     func checkoutLongeMantemOCheckin(distanciaDoCheckin: Int, tipo: TipoRegistro, verificacao: Verificacao) async throws {

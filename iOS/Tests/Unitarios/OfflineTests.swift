@@ -137,6 +137,35 @@ struct OfflineTests {
         #expect(gravado.registradoEm == toque)
     }
 
+    @Test("Check-out feito sem rede sai quando a conexão volta, com o instante do toque")
+    func checkoutFilaSaiAoReconectar() async throws {
+        let api = ApiClienteEmMemoria()
+        try await api.entrarDemonstracao(email: "revisao@frila.app", codigo: "codigo-da-revisao")
+        let vaga = try #require(try await api.vagasAbertas().first)
+        let turnoID = try #require(try await api.candidatar(vagaID: vaga.id).turnoID)
+        let antes = Date(timeIntervalSince1970: (Date.now.timeIntervalSince1970 - 3_600).rounded(.down))
+        _ = try await api.fazerCheckin(turnoID: turnoID, distanciaMetros: 150, registradoEm: antes)
+
+        let fila = try armazenamento()
+        // A fila guarda o instante em ISO-8601, em segundos inteiros: é a precisão que vai ao servidor.
+        let toque = Date(timeIntervalSince1970: (Date.now.timeIntervalSince1970 - 1_800).rounded(.down))
+        try await fila.enfileirar(AcaoPendente(tipo: .checkout, turnoID: turnoID, instanteDoToque: toque, chave: UUID(), distanciaMetros: 150))
+
+        let monitor = MonitorDeTeste()
+        let reenvio = ReenvioAoReconectar(monitor: monitor, sincronizador: SincronizadorAcoes(fila: fila, api: api))
+        let acompanhamento = Task { await reenvio.acompanhar() }
+        monitor.continuacao.yield(false)
+        monitor.continuacao.yield(true)
+        monitor.continuacao.finish()
+        await acompanhamento.value
+
+        #expect(try await fila.pendentes().isEmpty)
+        // O dublê é idempotente pelo turno: repetir devolve o registro gravado, com o instante enviado.
+        let gravado = try await api.fazerCheckout(turnoID: turnoID, distanciaMetros: 150, registradoEm: .now)
+        #expect(gravado.registradoEm == toque)
+        #expect(gravado.distanciaMetros == 150)
+    }
+
     @Test("A fila só sai na passagem para conectado, não a cada aviso de conexão")
     func soNaPassagemParaConectado() async {
         let monitor = MonitorDeTeste()

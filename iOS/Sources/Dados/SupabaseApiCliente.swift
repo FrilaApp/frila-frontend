@@ -232,6 +232,55 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return valor.dominio()
     }
 
+    // MARK: Turno do contratante
+
+    public func confirmarCheckinManual(turnoID: UUID) async throws -> ResultadoRegistro {
+        let resposta: ContratoAPI.ResultadoRegistroDTO = try await rpc("confirmar_checkin_manual", params: ContratoAPI.ID("turno_id", turnoID))
+        return resposta.dominio()
+    }
+
+    public func reabrirPorAtraso(posicaoID: UUID) async throws -> ResultadoCancelamento {
+        let resposta: ContratoAPI.ResultadoCancelamentoDTO = try await rpc("reabrir_por_atraso", params: ContratoAPI.ID("posicao_id", posicaoID))
+        return resposta.dominio()
+    }
+
+    // MARK: Cancelamento
+
+    public func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento {
+        let resposta: ContratoAPI.ResultadoCancelamentoDTO = try await rpc(
+            "cancelar_posicao",
+            params: ContratoAPI.CancelarPosicao(posicaoID: id, motivo: motivo)
+        )
+        return resposta.dominio()
+    }
+
+    public func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada {
+        let resposta: ContratoAPI.VagaCanceladaDTO = try await rpc("cancelar_vaga", params: ContratoAPI.CancelarVaga(vagaID: id, motivo: motivo))
+        return resposta.dominio()
+    }
+
+    // MARK: Confiança e direitos
+
+    public func denunciar(_ denuncia: Denuncia) async throws -> Protocolo {
+        let resposta: ContratoAPI.ProtocoloDTO = try await rpc("denunciar", params: ContratoAPI.Denunciar(denuncia))
+        return try converter { try resposta.dominio() }
+    }
+
+    public func bloquear(_ alvo: Alvo) async throws -> Bloqueio {
+        let resposta: ContratoAPI.BloqueioDTO = try await rpc("bloquear", params: ContratoAPI.Bloquear(alvo))
+        return resposta.dominio()
+    }
+
+    public func situacaoDaConta() async throws -> SituacaoDaConta {
+        let resposta: ContratoAPI.SituacaoDaContaDTO = try await rpc("situacao_da_conta")
+        return try converter { try resposta.dominio() }
+    }
+
+    public func contestarSuspensao(relato: String) async throws -> Protocolo {
+        let resposta: ContratoAPI.ProtocoloDTO = try await rpc("contestar_suspensao", params: ContratoAPI.ContestarSuspensao(relato: relato))
+        return try converter { try resposta.dominio() }
+    }
+
     // MARK: Aplicativo e dispositivo
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {

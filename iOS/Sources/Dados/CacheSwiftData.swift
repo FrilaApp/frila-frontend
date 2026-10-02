@@ -156,6 +156,11 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
     }
 
     public func enfileirar(_ acao: AcaoPendente) throws {
+        // A fila também protege dois modelos da mesma tela: mantém a primeira resposta por autor/turno.
+        if acao.tipo == .avaliacao, let contaID = acao.contaID,
+           try pendentes().contains(where: { $0.tipo == .avaliacao && $0.contaID == contaID && $0.turnoID == acao.turnoID }) {
+            return
+        }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let id = acao.id

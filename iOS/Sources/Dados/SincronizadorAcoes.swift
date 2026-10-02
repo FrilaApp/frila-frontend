@@ -3,11 +3,14 @@ import FrilaDominio
 
 public actor SincronizadorAcoes {
     private let fila: any FilaDeAcoes
+    private let avaliacaoJaRegistrada: @Sendable (AcaoPendente) -> Void
     private let api: any ApiCliente
 
-    public init(fila: any FilaDeAcoes, api: any ApiCliente) {
+    public init(fila: any FilaDeAcoes, api: any ApiCliente,
+                avaliacaoJaRegistrada: @escaping @Sendable (AcaoPendente) -> Void = { _ in }) {
         self.fila = fila
         self.api = api
+        self.avaliacaoJaRegistrada = avaliacaoJaRegistrada
     }
 
     public func sincronizar() async {
@@ -32,7 +35,9 @@ public actor SincronizadorAcoes {
                         registradoEm: acao.instanteDoToque
                     )
                 case .avaliacao:
-                    guard let turnoID = acao.turnoID, let resposta = acao.resposta else { continue }
+                    guard let turnoID = acao.turnoID, let resposta = acao.resposta,
+                          let contaID = acao.contaID else { continue }
+                    if try await api.minhaConta().id != contaID { continue }
                     _ = try await api.avaliar(turnoID: turnoID, resposta: resposta)
                 case .publicacaoVaga:
                     guard let publicacao = acao.publicacao else { continue }
@@ -41,6 +46,10 @@ public actor SincronizadorAcoes {
                 try await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where erro.codigo == .semRede {
                 return
+            } catch let erro as ErroDaApi where acao.tipo == .avaliacao && erro.codigo == .avaliacaoJaRegistrada {
+                // A resposta da fila foi recusada: não pode continuar aparecendo como resposta dada.
+                avaliacaoJaRegistrada(acao)
+                try? await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where acao.tipo == .publicacaoVaga && erro.codigo.recusaDefinitivaDePublicacao {
                 // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
                 try? await fila.remover(id: acao.id)

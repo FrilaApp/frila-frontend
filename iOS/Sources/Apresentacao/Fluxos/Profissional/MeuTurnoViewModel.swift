@@ -12,6 +12,7 @@ public final class MeuTurnoViewModel {
     /// Check-in e check-out (#17). `nil` onde não há leitor de localização, como nas prévias.
     public let presenca: PresencaDoTurnoViewModel?
 
+    private let contaID: UUID?
     private let api: any ApiCliente
     private let filaDeAcoes: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
@@ -20,6 +21,7 @@ public final class MeuTurnoViewModel {
     public init(
         turno: Turno,
         api: any ApiCliente,
+        contaID: UUID? = nil,
         fila: (any FilaDeAcoes)? = nil,
         armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         relogio: any Relogio = RelogioDoSistema(),
@@ -27,6 +29,7 @@ public final class MeuTurnoViewModel {
     ) {
         self.turno = turno
         self.api = api
+        self.contaID = contaID
         self.filaDeAcoes = fila
         self.armazenamentoAvaliacoes = armazenamentoAvaliacoes
         self.relogio = relogio
@@ -45,22 +48,27 @@ public final class MeuTurnoViewModel {
 
     public var podeAvaliar: Bool {
         // Critério 1: a avaliação só aparece depois do fim previsto e com presença verificada (RN07).
+        guard contaID != nil else { return false }
         guard turno.verificacao == .verificado else { return false }
         guard turno.vaga.periodo.fim <= relogio.agora else { return false }
         return true
     }
 
     public var respostaAvaliacao: Bool? {
-        armazenamentoAvaliacoes.resposta(para: turno.id)
+        guard let contaID else { return nil }
+        return armazenamentoAvaliacoes.resposta(para: turno.id, contaID: contaID)
     }
 
     public var jaAvaliado: Bool {
-        respostaAvaliacao != nil || (!turno.podeAvaliar && podeAvaliar)
+        guard let contaID else { return false }
+        return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.podeAvaliar && podeAvaliar)
     }
 
-    public func criarAvaliacaoViewModel() -> AvaliacaoTurnoViewModel {
-        AvaliacaoTurnoViewModel(
+    public func criarAvaliacaoViewModel() -> AvaliacaoTurnoViewModel? {
+        guard let contaID else { return nil }
+        return AvaliacaoTurnoViewModel(
             turnoID: turno.id,
+            contaID: contaID,
             turno: turno,
             api: api,
             fila: filaDeAcoes,

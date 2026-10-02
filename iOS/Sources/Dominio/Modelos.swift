@@ -557,6 +557,38 @@ public struct Avaliacao: Codable, Hashable, Sendable {
     }
 }
 
+/// Resposta de `cancelar_posicao` e de `reabrir_por_atraso`. A posição cancelada não volta a ficar
+/// aberta: quando a vaga reabre, é uma posição nova, e é ela que `novaPosicaoID` traz (RN12).
+public struct ResultadoCancelamento: Codable, Hashable, Sendable {
+    public let posicaoID: UUID
+    /// Conta como falta do profissional: cancelamento dele a menos de 24 h do início, ou reabertura
+    /// por atraso.
+    public let falta: Bool
+    /// Falso quando o turno ficou descoberto, sem posição nova para preencher.
+    public let reaberta: Bool
+    public let novaPosicaoID: UUID?
+
+    public init(posicaoID: UUID, falta: Bool, reaberta: Bool, novaPosicaoID: UUID?) {
+        self.posicaoID = posicaoID
+        self.falta = falta
+        self.reaberta = reaberta
+        self.novaPosicaoID = novaPosicaoID
+    }
+}
+
+/// Resposta de `cancelar_vaga`: a vaga inteira cancelada, com as posições abertas e as confirmadas.
+public struct VagaCancelada: Codable, Hashable, Sendable {
+    public let vagaID: UUID
+    public let estado: EstadoVaga
+    public let posicoesCanceladas: Int
+
+    public init(vagaID: UUID, estado: EstadoVaga, posicoesCanceladas: Int) {
+        self.vagaID = vagaID
+        self.estado = estado
+        self.posicoesCanceladas = posicoesCanceladas
+    }
+}
+
 public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let estado: EstadoPosicao
@@ -615,5 +647,91 @@ public struct Painel: Codable, Hashable, Sendable {
         self.estabelecimentoID = estabelecimentoID
         self.vagas = vagas
         self.checkinsPendentes = checkinsPendentes
+    }
+}
+
+// MARK: Confiança e direitos
+
+public enum MotivoDenuncia: String, Codable, CaseIterable, Sendable {
+    case assedio
+    case discriminacao
+    case riscoSeguranca = "risco_seguranca"
+    /// Fraude e documento falso chegam por aqui, com o relato (decisão de produto de 30/09).
+    case outro
+}
+
+/// Quem a denúncia ou o bloqueio aponta: o par `alvo_tipo` + `alvo_id` do contrato. São o `tipo` e
+/// o `id` do `PerfilPublico` que já está na tela; o servidor resolve a conta a partir deles, e o
+/// app nunca vê o id de conta da outra parte (RN10).
+public struct Alvo: Codable, Hashable, Sendable {
+    public let tipo: TipoPerfilPublico
+    public let id: UUID
+
+    public init(tipo: TipoPerfilPublico, id: UUID) {
+        self.tipo = tipo
+        self.id = id
+    }
+
+    public init(_ perfil: PerfilPublico) {
+        self.init(tipo: perfil.tipo, id: perfil.id)
+    }
+}
+
+public enum TipoDeProtocolo: String, Codable, Sendable {
+    case denuncia
+    case contestacao
+    case revisaoDespacho = "revisao_despacho"
+}
+
+/// Registro de algo que a Equipe Frila responde por e-mail em até 5 dias úteis.
+public struct Protocolo: Codable, Hashable, Sendable {
+    public let ocorrenciaID: UUID
+    public let tipo: TipoDeProtocolo
+    public let criadaEm: Date
+    public let prazoRespostaAte: DataCivil
+
+    public init(ocorrenciaID: UUID, tipo: TipoDeProtocolo, criadaEm: Date, prazoRespostaAte: DataCivil) {
+        self.ocorrenciaID = ocorrenciaID
+        self.tipo = tipo
+        self.criadaEm = criadaEm
+        self.prazoRespostaAte = prazoRespostaAte
+    }
+}
+
+/// Bloqueio em vigor. Vale nos dois sentidos e, para membro de estabelecimento, na casa inteira (RF26).
+public struct Bloqueio: Codable, Hashable, Sendable {
+    public let alvo: Alvo
+    public let criadoEm: Date
+
+    public init(alvo: Alvo, criadoEm: Date) {
+        self.alvo = alvo
+        self.criadoEm = criadoEm
+    }
+}
+
+public struct Suspensao: Codable, Hashable, Sendable {
+    public let motivo: String
+    public let desde: Date
+    /// A contestação em análise, se houver. Nula não garante que dá para contestar: o servidor
+    /// recusa com `contestacao_ja_aberta` se já houve contestação desta suspensão, mesmo resolvida,
+    /// e a contestação resolvida não aparece aqui.
+    public let contestacao: Protocolo?
+
+    public init(motivo: String, desde: Date, contestacao: Protocolo?) {
+        self.motivo = motivo
+        self.desde = desde
+        self.contestacao = contestacao
+    }
+}
+
+/// O que o titular vê da própria conta: o estado e, quando suspensa, o motivo, a data e a
+/// contestação em andamento (RF24, RN13).
+public struct SituacaoDaConta: Codable, Hashable, Sendable {
+    public let estado: EstadoConta
+    public let suspensao: Suspensao?
+
+    public init(estado: EstadoConta, suspensao: Suspensao?) {
+        self.estado = estado
+        self.suspensao = suspensao
     }
 }
