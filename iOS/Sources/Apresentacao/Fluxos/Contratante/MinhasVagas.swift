@@ -230,16 +230,23 @@ public struct TelaMinhasVagas: View {
     @State private var roteador: RoteadorDoContratante
     @State private var vagaParaRepublicar: VagaNoPainel?
     private let api: any ApiCliente
+    private let fila: (any FilaDeAcoes)?
     private let formatador = FormatadorFrila()
 
     /// O roteador vem de fora quando um aviso do push precisa abrir a vaga ou o turno (#8).
-    public init(viewModel: MinhasVagasViewModel, api: any ApiCliente, roteador: RoteadorDoContratante? = nil) {
+    public init(
+        viewModel: MinhasVagasViewModel,
+        api: any ApiCliente,
+        fila: (any FilaDeAcoes)? = nil,
+        roteador: RoteadorDoContratante? = nil
+    ) {
         _viewModel = State(initialValue: viewModel)
         _acompanhamento = State(initialValue: AcompanhamentoViewModel(
             api: api, estabelecimentoID: viewModel.estabelecimentoID, aoMudar: { await viewModel.carregar() }
         ))
         _roteador = State(initialValue: roteador ?? RoteadorDoContratante())
         self.api = api
+        self.fila = fila
     }
 
     public var body: some View {
@@ -324,7 +331,7 @@ public struct TelaMinhasVagas: View {
             .navigationDestination(for: RotaDoContratante.self) { rota in
                 switch rota {
                 case let .vaga(vagaID):
-                    DestinoDaVagaDoContratante(viewModel: viewModel, acompanhamento: acompanhamento, vagaID: vagaID, api: api)
+                    DestinoDaVagaDoContratante(viewModel: viewModel, acompanhamento: acompanhamento, vagaID: vagaID, api: api, fila: fila)
                 case let .turno(turnoID):
                     TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID)
                 }
@@ -336,6 +343,7 @@ public struct TelaMinhasVagas: View {
                     viewModel: RepublicarVagaViewModel(
                         vagaOriginal: vaga,
                         api: api,
+                        fila: fila,
                         aoConcluir: { _ in
                             await carregar()
                         }
@@ -406,10 +414,20 @@ private struct DestinoDaVagaDoContratante: View {
     let acompanhamento: AcompanhamentoViewModel
     let vagaID: UUID
     let api: any ApiCliente
+    let fila: (any FilaDeAcoes)?
 
     var body: some View {
         if let vaga = acompanhamento.vaga(id: vagaID) ?? viewModel.vagas.first(where: { $0.vaga.id == vagaID }) {
-            TelaDetalheVagaContratante(vaga: vaga, api: api, confirmado: viewModel.confirmadas(vaga))
+            TelaDetalheVagaContratante(
+                vaga: vaga,
+                api: api,
+                fila: fila,
+                confirmado: viewModel.confirmadas(vaga),
+                aoRepublicar: {
+                    await viewModel.carregar()
+                    await acompanhamento.carregar()
+                }
+            )
         } else if acompanhamento.falhouAoCarregar {
             // Sem leitura que tenha dado certo, não dá para dizer que a vaga não existe.
             VStack(spacing: FrilaEspaco.medio) {
@@ -438,7 +456,9 @@ private struct DestinoDaVagaDoContratante: View {
 private struct TelaDetalheVagaContratante: View {
     let vaga: VagaNoPainel
     let api: any ApiCliente
+    let fila: (any FilaDeAcoes)?
     let confirmado: Int
+    var aoRepublicar: (@Sendable () async -> Void)? = nil
     @State private var contatos: [UUID: Contato] = [:]
     @State private var carregandoContato: Set<UUID> = []
     @State private var errosContato: [UUID: String] = [:]
@@ -489,7 +509,11 @@ private struct TelaDetalheVagaContratante: View {
                 TelaRepublicarVaga(
                     viewModel: RepublicarVagaViewModel(
                         vagaOriginal: vaga,
-                        api: api
+                        api: api,
+                        fila: fila,
+                        aoConcluir: { _ in
+                            await aoRepublicar?()
+                        }
                     )
                 )
             }

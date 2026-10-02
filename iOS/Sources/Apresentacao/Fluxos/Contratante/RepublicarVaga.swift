@@ -54,6 +54,8 @@ public final class RepublicarVagaViewModel {
     public private(set) var erros: [CampoRepublicarVaga: String] = [:]
     public private(set) var chave: UUID?
     public private(set) var camposBloqueados = false
+    public private(set) var republicacaoPendente: RepublicacaoVaga?
+    public private(set) var acaoPendente: AcaoPendente?
 
     private let republicarAPI: @Sendable (UUID, Periodo, UUID) async throws -> VagaPublicada
     private let fila: (any FilaDeAcoes)?
@@ -96,6 +98,25 @@ public final class RepublicarVagaViewModel {
         self.republicarAPI = republicar
     }
 
+    public func restaurarTentativaPendente() async {
+        guard let fila else { return }
+        do {
+            let pendentes = try await fila.pendentes()
+            if let acao = pendentes.first(where: {
+                $0.tipo == .republicacaoVaga && $0.republicacao?.vagaID == vagaOriginal.vaga.id
+            }), let rep = acao.republicacao {
+                self.acaoPendente = acao
+                self.republicacaoPendente = rep
+                self.chave = acao.chave
+                self.inicio = rep.periodo.inicio
+                self.fim = rep.periodo.fim
+                self.camposBloqueados = true
+            }
+        } catch {
+            // Falha ao ler a fila mantém os valores padrão
+        }
+    }
+
     public func validar() -> Bool {
         erros = [:]
         let instanteAtual = agora()
@@ -128,52 +149,59 @@ public final class RepublicarVagaViewModel {
     public func republicar() async {
         guard !enviando else { return }
 
-        // Validação local apenas se não estiver reenviando após falha de rede com campos bloqueados
-        if !camposBloqueados {
+        // Se ainda não temos uma tentativa congelada, validamos e congelamos
+        if republicacaoPendente == nil {
             guard validar() else { return }
+            guard let periodo = try? Periodo(inicio: inicio, fim: fim) else {
+                erros[.fim] = TextosRepublicarVaga.horarioInvalido
+                return
+            }
+            let chaveEnvio = self.chave ?? UUID()
+            self.chave = chaveEnvio
+            let rep = RepublicacaoVaga(vagaID: vagaOriginal.vaga.id, periodo: periodo)
+            let acao = AcaoPendente(
+                tipo: .republicacaoVaga,
+                instanteDoToque: agora(),
+                chave: chaveEnvio,
+                republicacao: rep
+            )
+            self.republicacaoPendente = rep
+            self.acaoPendente = acao
         }
 
-        guard let periodo = try? Periodo(inicio: inicio, fim: fim) else {
-            erros[.fim] = TextosRepublicarVaga.horarioInvalido
-            return
-        }
-
-        let chaveEnvio = self.chave ?? UUID()
-        self.chave = chaveEnvio
+        guard let acao = acaoPendente, let rep = republicacaoPendente else { return }
 
         enviando = true
         mensagemErro = nil
         defer { enviando = false }
 
-        let acaoPendente = AcaoPendente(
-            tipo: .publicacaoVaga,
-            instanteDoToque: agora(),
-            chave: chaveEnvio
-        )
-
         if let fila {
             do {
-                try await fila.enfileirar(acaoPendente)
+                try await fila.enfileirar(acao)
             } catch {
                 // Falha ao registrar na fila não impede o envio direto
             }
         }
 
         do {
-            let vagaPublicada = try await republicarAPI(vagaOriginal.vaga.id, periodo, chaveEnvio)
+            let vagaPublicada = try await republicarAPI(rep.vagaID, rep.periodo, acao.chave)
             resultado = vagaPublicada
             camposBloqueados = false
             if let fila {
-                try? await fila.remover(id: acaoPendente.id)
+                try? await fila.remover(id: acao.id)
             }
+            republicacaoPendente = nil
+            acaoPendente = nil
             await aoConcluir?(vagaPublicada)
         } catch let erro as ErroDaApi {
             tratarErro(erro)
             if erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta {
                 camposBloqueados = false
                 if let fila {
-                    try? await fila.remover(id: acaoPendente.id)
+                    try? await fila.remover(id: acao.id)
                 }
+                republicacaoPendente = nil
+                acaoPendente = nil
             } else {
                 // Erro transitório ou sem rede: campos travados para reenvio idempotente
                 camposBloqueados = true
@@ -249,6 +277,9 @@ public struct TelaRepublicarVaga: View {
                 fechar()
             }
         }
+        .task {
+            await viewModel.restaurarTentativaPendente()
+        }
         .accessibilityIdentifier("tela-republicar-vaga")
     }
 
@@ -288,12 +319,10 @@ public struct TelaRepublicarVaga: View {
             }
 
             HStack {
-                Text(verbatim: String(format: TextosRepublicarVaga.posicoesFormat, viewModel.vagaOriginal.posicoes.count))
-                    .font(.caption.weight(.semibold))
-                Spacer()
                 Text(verbatim: viewModel.vagaOriginal.modo == .selecao ? TextosRepublicarVaga.modoSelecao : TextosRepublicarVaga.modoUrgencia)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(FrilaCor.primaria)
+                Spacer()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -315,7 +344,7 @@ public struct TelaRepublicarVaga: View {
                     selection: $viewModel.inicio,
                     displayedComponents: [.date, .hourAndMinute]
                 )
-                .disabled(viewModel.camposBloqueados)
+                .disabled(viewModel.camposBloqueados || viewModel.enviando)
                 .accessibilityIdentifier("campo-inicio-republicacao")
 
                 if let erroInicio = viewModel.erros[.inicio] {
@@ -332,7 +361,7 @@ public struct TelaRepublicarVaga: View {
                     selection: $viewModel.fim,
                     displayedComponents: [.date, .hourAndMinute]
                 )
-                .disabled(viewModel.camposBloqueados)
+                .disabled(viewModel.camposBloqueados || viewModel.enviando)
                 .accessibilityIdentifier("campo-fim-republicacao")
 
                 if let erroFim = viewModel.erros[.fim] {

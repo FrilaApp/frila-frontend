@@ -196,6 +196,7 @@ private struct EntradaDoApp: View {
                 TelaMinhasVagas(
                     viewModel: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento),
                     api: api,
+                    fila: armazenamento,
                     roteador: roteadorDoContratante
                 )
                 .task { aplicarAvisoDosArgumentos() }

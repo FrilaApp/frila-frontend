@@ -357,4 +357,230 @@ struct RepublicarVagaViewModelTests {
         let chamadas = await espiao.chamadas
         #expect(chamadas == 1)
     }
+
+    @Test("68-B1: Fila injetada persiste operação completa antes do envio e sucesso remove sem deixar órfãos")
+    @MainActor
+    func filaPersistePayloadEChaveERemoveSemOrfaos() async throws {
+        let vaga = try criarVagaNoPainel()
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let fila = FilaEspia()
+        let espiao = EspiaoRepublicacao()
+
+        let vm = RepublicarVagaViewModel(
+            vagaOriginal: vaga,
+            fila: fila,
+            agora: { @Sendable in base },
+            republicar: { id, periodo, chave in
+                await espiao.gravar(id: id, periodo: periodo, chave: chave)
+                let chamadas = await espiao.chamadas
+                if chamadas == 1 {
+                    throw ErroDaApi(codigo: .semRede)
+                }
+                return VagaPublicada(vagaID: UUID(), posicoes: [UUID()])
+            }
+        )
+
+        vm.inicio = base.addingTimeInterval(3 * 3600)
+        vm.fim = base.addingTimeInterval(7 * 3600)
+
+        // Primeira tentativa: sem rede
+        await vm.republicar()
+
+        #expect(vm.camposBloqueados)
+        let pendentes1 = await fila.pendentes()
+        #expect(pendentes1.count == 1)
+        let acao1 = pendentes1[0]
+        #expect(acao1.tipo == .republicacaoVaga)
+        #expect(acao1.republicacao != nil)
+        #expect(acao1.republicacao?.vagaID == vaga.vaga.id)
+        #expect(acao1.republicacao?.periodo.inicio == vm.inicio)
+        #expect(acao1.republicacao?.periodo.fim == vm.fim)
+        #expect(acao1.chave == vm.chave)
+
+        // Segunda tentativa: sucesso
+        await vm.republicar()
+
+        #expect(vm.resultado != nil)
+        #expect(!vm.camposBloqueados)
+        let pendentes2 = await fila.pendentes()
+        #expect(pendentes2.isEmpty)
+        let removidas = await fila.removidas
+        #expect(removidas == [acao1.id])
+    }
+
+    @Test("68-B1: Recuperação de tentativa pendente ao reabrir a folha restaura período, chave e bloqueio")
+    @MainActor
+    func recuperarTentativaAposReabertura() async throws {
+        let vaga = try criarVagaNoPainel()
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let fila = FilaEspia()
+        let chavePendente = UUID()
+        let inicioPendente = base.addingTimeInterval(5 * 3600)
+        let fimPendente = base.addingTimeInterval(9 * 3600)
+        let periodoPendente = try Periodo(inicio: inicioPendente, fim: fimPendente)
+        let repPendente = RepublicacaoVaga(vagaID: vaga.vaga.id, periodo: periodoPendente)
+        let acaoPendente = AcaoPendente(
+            tipo: .republicacaoVaga,
+            instanteDoToque: base,
+            chave: chavePendente,
+            republicacao: repPendente
+        )
+        await fila.enfileirar(acaoPendente)
+
+        let espiao = EspiaoRepublicacao()
+        let vm = RepublicarVagaViewModel(
+            vagaOriginal: vaga,
+            fila: fila,
+            agora: { @Sendable in base },
+            republicar: { id, periodo, chave in
+                await espiao.gravar(id: id, periodo: periodo, chave: chave)
+                return VagaPublicada(vagaID: UUID(), posicoes: [UUID()])
+            }
+        )
+
+        // Simula abertura da tela com restauração
+        await vm.restaurarTentativaPendente()
+
+        #expect(vm.camposBloqueados)
+        #expect(vm.chave == chavePendente)
+        #expect(vm.inicio == inicioPendente)
+        #expect(vm.fim == fimPendente)
+        #expect(vm.republicacaoPendente == repPendente)
+
+        // Envia tentativa recuperada
+        await vm.republicar()
+
+        #expect(vm.resultado != nil)
+        let chamadas = await espiao.chamadas
+        #expect(chamadas == 1)
+        let chaves = await espiao.chaves
+        #expect(chaves == [chavePendente])
+        let pendentes = await fila.pendentes()
+        #expect(pendentes.isEmpty)
+    }
+
+    @Test("68-B2: Alteração de data durante o envio é bloqueada e não afeta o reenvio idempotente")
+    @MainActor
+    func alteracaoDuranteEnvioNaoMudaPeriodoDoReenvio() async throws {
+        let vaga = try criarVagaNoPainel()
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let servidorLento = ServidorLentoEspiao()
+
+        let vm = RepublicarVagaViewModel(
+            vagaOriginal: vaga,
+            agora: { @Sendable in base },
+            republicar: { _, periodo, chave in
+                try await servidorLento.executar(periodo: periodo, chave: chave)
+            }
+        )
+
+        let inicioOriginal = base.addingTimeInterval(3 * 3600)
+        let fimOriginal = base.addingTimeInterval(7 * 3600)
+        vm.inicio = inicioOriginal
+        vm.fim = fimOriginal
+
+        // Inicia envio
+        let envio = Task { await vm.republicar() }
+        while !(await servidorLento.esperando) { await Task.yield() }
+
+        #expect(vm.enviando)
+        // Mesmo que campos sofram mutação em memória enquanto enviando:
+        vm.inicio = base.addingTimeInterval(24 * 3600)
+        vm.fim = base.addingTimeInterval(28 * 3600)
+
+        // Libera falha de rede
+        await servidorLento.liberar(erro: ErroDaApi(codigo: .semRede))
+        await envio.value
+
+        #expect(vm.camposBloqueados)
+
+        // Tenta novamente
+        await vm.republicar()
+
+        let periodosRecebidos = await servidorLento.periodos
+        let chavesRecebidas = await servidorLento.chaves
+
+        #expect(periodosRecebidos.count == 2)
+        #expect(chavesRecebidas.count == 2)
+        // Ambas as chamadas devem ter o período original congelado e a mesma chave!
+        #expect(periodosRecebidos[0] == periodosRecebidos[1])
+        #expect(periodosRecebidos[0].inicio == inicioOriginal)
+        #expect(periodosRecebidos[0].fim == fimOriginal)
+        #expect(chavesRecebidas[0] == chavesRecebidas[1])
+    }
+
+    @Test("SincronizadorAcoes envia republicação pendente com a mesma chave e remove da fila")
+    func sincronizadorRepublicaVaga() async throws {
+        let api = ApiClienteEmMemoria(cenario: .vagaEncerradaContratante)
+        let fila = FilaEspia()
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let vagaID = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
+        let periodo = try Periodo(inicio: base.addingTimeInterval(3 * 3600), fim: base.addingTimeInterval(7 * 3600))
+        let chave = UUID()
+
+        let acao = AcaoPendente(
+            tipo: .republicacaoVaga,
+            instanteDoToque: base,
+            chave: chave,
+            republicacao: RepublicacaoVaga(vagaID: vagaID, periodo: periodo)
+        )
+        await fila.enfileirar(acao)
+
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+
+        let pendentes = await fila.pendentes()
+        #expect(pendentes.isEmpty)
+    }
+}
+
+private actor FilaEspia: FilaDeAcoes {
+    var acoes: [AcaoPendente] = []
+    var enfileiradas: [AcaoPendente] = []
+    var removidas: [UUID] = []
+
+    func enfileirar(_ acao: AcaoPendente) {
+        enfileiradas.append(acao)
+        if let idx = acoes.firstIndex(where: { $0.id == acao.id }) {
+            acoes[idx] = acao
+        } else {
+            acoes.append(acao)
+        }
+    }
+    func pendentes() -> [AcaoPendente] { acoes }
+    func remover(id: UUID) {
+        removidas.append(id)
+        acoes.removeAll { $0.id == id }
+    }
+    func limpar() { acoes = [] }
+}
+
+private actor ServidorLentoEspiao {
+    var periodos: [Periodo] = []
+    var chaves: [UUID] = []
+    var esperando = false
+    private var continuacao: CheckedContinuation<Void, Never>?
+    private var erroParaLancar: Error?
+
+    func executar(periodo: Periodo, chave: UUID) async throws -> VagaPublicada {
+        periodos.append(periodo)
+        chaves.append(chave)
+        if chaves.count == 1 {
+            esperando = true
+            await withCheckedContinuation { cont in
+                self.continuacao = cont
+            }
+            if let erro = erroParaLancar {
+                throw erro
+            }
+        }
+        return VagaPublicada(vagaID: UUID(), posicoes: [UUID()])
+    }
+
+    func liberar(erro: Error? = nil) {
+        self.erroParaLancar = erro
+        esperando = false
+        continuacao?.resume()
+        continuacao = nil
+    }
 }
