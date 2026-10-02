@@ -50,12 +50,18 @@ o SDK ou incluir outro produto Firebase.
 rastreamento e sem vínculo à pessoa, o que vem do Crashlytics:
 
 - **Crash Data**: pilhas e estado de falhas.
-- **Device ID**: identificadores aleatórios de instalação do Crashlytics/Firebase.
 - **Other Diagnostic Data**: versão do app, aparelho e sistema operacional usados no diagnóstico.
 
-No App Store Connect, registrar esses mesmos três tipos em *App Privacy* como coletados, não
+No App Store Connect, registrar esses dois tipos em *App Privacy* como coletados, não
 vinculados à identidade, sem uso para tracking e com a finalidade *App Functionality*. Reavaliar
 essa declaração antes de adicionar Analytics, logs/breadcrumbs ou chaves customizadas.
+
+O **Device ID** é declarado **vinculado à pessoa**, também só para *App Functionality* e sem
+tracking. Ele cobre o identificador de instalação do Crashlytics/Firebase, que o app não associa a
+ninguém, e o token de push (#8), que o app registra no servidor para a conta
+(`registrar_dispositivo`) e guarda no aparelho junto com ela. Como o tipo é um só no manifesto e no
+rótulo, vale a declaração mais forte. No *App Privacy* do App Store Connect, o Device ID passa de
+"não vinculado" para "vinculado à identidade"; o que muda no rótulo está em [Push](Push.md).
 
 O mesmo manifesto declara os dados da conta, estes vinculados à pessoa e também só para *App
 Functionality* (#96): nome, e-mail, telefone, endereço do estabelecimento, ponto escolhido no mapa
