@@ -1,0 +1,13 @@
+{
+  "estado": "suspensa",
+  "suspensao": {
+    "motivo": "Denúncia grave confirmada pela Equipe Frila",
+    "desde": "2026-10-12T14:00:00Z",
+    "contestacao": {
+      "ocorrencia_id": "a0000000-0000-0000-0000-000000000002",
+      "tipo": "contestacao",
+      "criada_em": "2026-10-12T18:30:00Z",
+      "prazo_resposta_ate": "2026-10-19"
+    }
+  }
+}

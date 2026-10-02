@@ -358,8 +358,7 @@ struct PerfilProfissionalViewModelTests {
 // MARK: - Dublê de testes
 
 @MainActor
-private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
-    private let base = ApiClienteEmMemoria()
+private final class ApiClienteDuble: ApiClienteEncaminhador, @unchecked Sendable {
     var funcoesRetorno: [Funcao]?
     var perfilRetorno: PerfilProfissional?
     var dadosPerfilCriado: DadosPerfilProfissional?
@@ -370,18 +369,18 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
     var chamadasAtualizarPerfil: Int = 0
     var pausaAoCriarMs: UInt64 = 0
 
-    func funcoes() async throws -> [Funcao] {
+    override func funcoes() async throws -> [Funcao] {
         if let erroAoCarregar { throw erroAoCarregar }
         if let funcoesRetorno { return funcoesRetorno }
         return try await base.funcoes()
     }
 
-    func meuPerfilProfissional() async throws -> PerfilProfissional {
+    override func meuPerfilProfissional() async throws -> PerfilProfissional {
         if let perfilRetorno { return perfilRetorno }
         return try await base.meuPerfilProfissional()
     }
 
-    func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
+    override func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
         chamadasCriarPerfil += 1
         if pausaAoCriarMs > 0 {
             try? await Task.sleep(nanoseconds: pausaAoCriarMs * 1_000_000)
@@ -406,7 +405,7 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
         return perfil
     }
 
-    func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional {
+    override func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional {
         chamadasAtualizarPerfil += 1
         if let erroAoSalvar { throw erroAoSalvar }
         alteracaoPerfilEnviada = alteracao
@@ -435,29 +434,4 @@ private final class ApiClienteDuble: ApiCliente, @unchecked Sendable {
         return perfil
     }
 
-    // Delegação para base
-    func solicitarCodigo(email: String) async throws { try await base.solicitarCodigo(email: email) }
-    func verificarCodigo(email: String, codigo: String) async throws { try await base.verificarCodigo(email: email, codigo: codigo) }
-    func entrarDemonstracao(email: String, codigo: String) async throws { try await base.entrarDemonstracao(email: email, codigo: codigo) }
-    func possuiSessao() async -> Bool { await base.possuiSessao() }
-    func minhaConta() async throws -> Conta { try await base.minhaConta() }
-    func criarConta(_ cadastro: CadastroConta) async throws -> Conta { try await base.criarConta(cadastro) }
-    func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento { try await base.cadastrarEstabelecimento(cadastro) }
-    func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] { try await base.meusEstabelecimentos() }
-    func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel { try await base.painelEstabelecimento(id: id, periodo: periodo) }
-    func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada { try await base.publicarVaga(publicacao) }
-    func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada { try await base.republicarVaga(id: id, periodo: periodo, chave: chave) }
-    func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] { try await base.vagasAbertas(filtro) }
-    func detalheDaVaga(id: UUID) async throws -> Vaga { try await base.detalheDaVaga(id: id) }
-    func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura { try await base.candidatar(vagaID: vagaID) }
-    func perfilPublico(id: UUID) async throws -> PerfilPublico { try await base.perfilPublico(id: id) }
-    func meusTurnos() async throws -> [Turno] { try await base.meusTurnos() }
-    func contatoDoTurno(id: UUID) async throws -> Contato { try await base.contatoDoTurno(id: id) }
-    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho { try await base.avisarACaminho(turnoID: turnoID) }
-    func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro { try await base.fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm) }
-    func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro { try await base.fazerCheckout(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm) }
-    func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao { try await base.avaliar(turnoID: turnoID, resposta: resposta) }
-    func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
-    func removerDispositivo(tokenFCM: String) async throws { try await base.removerDispositivo(tokenFCM: tokenFCM) }
-    func sair(tokenFCM: String?) async { await base.sair(tokenFCM: tokenFCM) }
 }
