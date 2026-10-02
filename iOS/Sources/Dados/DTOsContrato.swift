@@ -644,6 +644,21 @@ enum ContratoAPI {
         let estado: EstadoCandidatura?
     }
 
+    struct CancelamentoDoTurnoDTO: Decodable {
+        let causa: CausaDoCancelamento
+        let falta: Bool
+        let canceladaEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case causa, falta
+            case canceladaEm = "cancelada_em"
+        }
+
+        func dominio() -> CancelamentoDoTurno {
+            CancelamentoDoTurno(causa: causa, falta: falta, canceladaEm: canceladaEm)
+        }
+    }
+
     struct TurnoDTO: Decodable {
         let id: UUID
         let posicaoID: UUID
@@ -663,9 +678,10 @@ enum ContratoAPI {
         let estado: EstadoPosicao?
         let avaliacao: AvaliacaoDTO?
         let avaliacaoInformada: Bool
+        let cancelamento: CancelamentoDoTurnoDTO?
 
         enum CodingKeys: String, CodingKey {
-            case id, vaga, contraparte, verificacao, estado, avaliacao
+            case id, vaga, contraparte, verificacao, estado, avaliacao, cancelamento
             case posicaoID = "posicao_id"
             case contatoVisivelAte = "contato_visivel_ate"
             case aCaminhoEm = "a_caminho_em"
@@ -700,6 +716,7 @@ enum ContratoAPI {
             estado = try container.decodeIfPresent(String.self, forKey: .estado).flatMap(EstadoPosicao.init(rawValue:))
             avaliacaoInformada = container.contains(.avaliacao)
             avaliacao = try container.decodeIfPresent(AvaliacaoDTO.self, forKey: .avaliacao)
+            cancelamento = try container.decodeIfPresent(CancelamentoDoTurnoDTO.self, forKey: .cancelamento)
         }
 
         func dominio() throws -> Turno {
@@ -719,7 +736,8 @@ enum ContratoAPI {
                 podeAvaliar: podeAvaliar,
                 estado: estado,
                 avaliacao: avaliacao?.dominio(),
-                avaliacaoInformada: avaliacaoInformada
+                avaliacaoInformada: avaliacaoInformada,
+                cancelamento: cancelamento?.dominio()
             )
         }
     }

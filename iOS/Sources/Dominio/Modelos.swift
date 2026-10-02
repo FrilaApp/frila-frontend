@@ -499,6 +499,30 @@ public struct Presenca: Codable, Hashable, Sendable {
     }
 }
 
+public enum CausaDoCancelamento: String, Codable, Sendable {
+    case profissional, estabelecimento, outro
+    case reaberturaPorAtraso = "reabertura_por_atraso"
+    case noShowSemCheckin = "no_show_sem_checkin"
+
+    public init(from decoder: Decoder) throws {
+        let valor = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: valor) ?? .outro
+    }
+}
+
+/// Registro que as duas partes leem na 0.2.32. Não contém o motivo privado do painel.
+public struct CancelamentoDoTurno: Codable, Hashable, Sendable {
+    public let causa: CausaDoCancelamento
+    public let falta: Bool
+    public let canceladaEm: Date
+
+    public init(causa: CausaDoCancelamento, falta: Bool, canceladaEm: Date) {
+        self.causa = causa
+        self.falta = falta
+        self.canceladaEm = canceladaEm
+    }
+}
+
 public struct Turno: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let posicaoID: UUID
@@ -519,6 +543,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
     public let avaliacao: Avaliacao?
     /// `nil` preserva caches antigos. `true` distingue resposta nula de campo ausente.
     public let avaliacaoInformada: Bool?
+    public let cancelamento: CancelamentoDoTurno?
     public var servidorInformaAvaliacao: Bool { avaliacaoInformada == true || avaliacao != nil }
     public var cancelado: Bool { estado == .cancelada }
     /// O contrato não traz o contato em `meus_turnos`: o app o anexa depois de `contato_do_turno`
@@ -540,7 +565,8 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         contato: Contato? = nil,
         estado: EstadoPosicao? = nil,
         avaliacao: Avaliacao? = nil,
-        avaliacaoInformada: Bool? = nil
+        avaliacaoInformada: Bool? = nil,
+        cancelamento: CancelamentoDoTurno? = nil
     ) {
         self.id = id
         self.posicaoID = posicaoID
@@ -557,6 +583,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         self.estado = estado
         self.avaliacao = avaliacao
         self.avaliacaoInformada = avaliacaoInformada
+        self.cancelamento = cancelamento
     }
 
     public func contatoVisivel(em instante: Date) -> Bool { instante <= contatoVisivelAte }
@@ -566,7 +593,8 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
-            estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada
+            estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada,
+            cancelamento: cancelamento
         )
     }
 
@@ -575,7 +603,8 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
-            estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada
+            estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada,
+            cancelamento: cancelamento
         )
     }
 
@@ -584,7 +613,8 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             id: id, posicaoID: posicaoID, vaga: vaga, contraparte: contraparte, contatoVisivelAte: contatoVisivelAte,
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: false, contato: contato,
-            estado: estado, avaliacao: avaliacao, avaliacaoInformada: true
+            estado: estado, avaliacao: avaliacao, avaliacaoInformada: true,
+            cancelamento: cancelamento
         )
     }
 

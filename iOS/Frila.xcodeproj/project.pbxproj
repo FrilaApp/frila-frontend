@@ -105,6 +105,7 @@
 		661B8653B9251A43869A3823 /* CanalDePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403BE76B115BBEECD1338CAA /* CanalDePush.swift */; };
 		66AEE4DC7A8EE1EC35C5BF36 /* PermissaoDePushSimulada.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996C6EF27DB5F5D66A15500C /* PermissaoDePushSimulada.swift */; };
 		67C8A2DA65D4BB8201138F69 /* AcessibilidadeDoContratanteUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9805305E79A260570B45DC /* AcessibilidadeDoContratanteUITests.swift */; };
+		67D1BD0614726771BFB6A6EB /* turnos-com-falta.json in Resources */ = {isa = PBXBuildFile; fileRef = 01EFF7A0B4047CAA4EB64C43 /* turnos-com-falta.json */; };
 		68501EF4E0C6F79B60917356 /* RpcsDaSprint2EmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A8EAF4481B7F234FFA38CF /* RpcsDaSprint2EmMemoriaTests.swift */; };
 		68A064D97D40E4EE22E52829 /* ExportarDadosUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE27623A38C03A8D626521E3 /* ExportarDadosUITests.swift */; };
 		68BFBF4CB55A1D6E926782C2 /* resultado-registro.json in Resources */ = {isa = PBXBuildFile; fileRef = FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */; };
@@ -120,6 +121,7 @@
 		723AD6D9A4B4D48C1F93D6C0 /* requisicao-cadastrar-estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */; };
 		73699023A012E6D9CFBF817F /* TelaCadastro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B70FF4F64AE47220B634F0D /* TelaCadastro.swift */; };
 		743D7C3616BAE8750263E4AF /* ApiClienteEncaminhador.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154D610830BCEC80267BE4B7 /* ApiClienteEncaminhador.swift */; };
+		7444F43AFABA19E94628CCCB /* turnos-com-cancelamento.json in Resources */ = {isa = PBXBuildFile; fileRef = 7085EADEFF185A74267E6D2C /* turnos-com-cancelamento.json */; };
 		749A50A9689BCA6CA96C6C86 /* LeitorDeLocalizacaoSimulado.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCF8C477F96387DC7EE8A64 /* LeitorDeLocalizacaoSimulado.swift */; };
 		74DF5189A9B8BA7D3D972F43 /* RoteadorDoContratante.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A068E519C2ED7C91F547AA /* RoteadorDoContratante.swift */; };
 		7793593D652D4B53A86072A4 /* AcessibilidadeDoProfissionalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF29CC4667387305BCA22ACE /* AcessibilidadeDoProfissionalUITests.swift */; };
@@ -391,6 +393,7 @@
 
 /* Begin PBXFileReference section */
 		008AD101A25C35626FACD894 /* ExclusaoDeContaPorta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaPorta.swift; sourceTree = "<group>"; };
+		01EFF7A0B4047CAA4EB64C43 /* turnos-com-falta.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "turnos-com-falta.json"; sourceTree = "<group>"; };
 		026BCBC5E9C1298BCCF168F8 /* CandidaturaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidaturaViewModel.swift; sourceTree = "<group>"; };
 		0275932BB983938342E8FC6A /* FeedVagasViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedVagasViewModel.swift; sourceTree = "<group>"; };
 		03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcessibilidadeDoCatalogoUITests.swift; sourceTree = "<group>"; };
@@ -488,6 +491,7 @@
 		6AF804E187557DE8EDC4A0AD /* RepublicarVagaViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepublicarVagaViewModelTests.swift; sourceTree = "<group>"; };
 		6B1E0B7BCBF0643AE734888F /* TelaVagas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaVagas.swift; sourceTree = "<group>"; };
 		6D9F9F5FFE6A5D9DACA0D53D /* PerfilProfissionalViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfilProfissionalViewModel.swift; sourceTree = "<group>"; };
+		7085EADEFF185A74267E6D2C /* turnos-com-cancelamento.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "turnos-com-cancelamento.json"; sourceTree = "<group>"; };
 		708C6DD218962FB12049B0A5 /* configuracao-do-app.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "configuracao-do-app.json"; sourceTree = "<group>"; };
 		728FBA1A7EABDE751ECCAF2F /* ListaDeVagasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListaDeVagasTests.swift; sourceTree = "<group>"; };
 		73537BBAEE93EF4D74DA73DC /* AparelhoDePush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AparelhoDePush.swift; sourceTree = "<group>"; };
@@ -1000,6 +1004,8 @@
 				2BBB4D99F27A58031C976121 /* situacao-da-conta.json */,
 				F3E717D60C57B1A225EE38D5 /* turnos-avaliados.json */,
 				84253EA012AE3A5173C12A05 /* turnos-cancelados.json */,
+				7085EADEFF185A74267E6D2C /* turnos-com-cancelamento.json */,
+				01EFF7A0B4047CAA4EB64C43 /* turnos-com-falta.json */,
 				120490C59760F033206A2EDD /* turnos.json */,
 				6044BB78E5ED8913EC72A112 /* usuario.json */,
 				06D9D43515118FB42F5E885D /* vaga-cancelada.json */,
@@ -1392,6 +1398,8 @@
 				F2FF3D966E5F648603D2A5B0 /* situacao-da-conta.json in Resources */,
 				1FA3C15C7CCD6DEFDE5179A7 /* turnos-avaliados.json in Resources */,
 				19FF42DB29F2FC02527EB807 /* turnos-cancelados.json in Resources */,
+				7444F43AFABA19E94628CCCB /* turnos-com-cancelamento.json in Resources */,
+				67D1BD0614726771BFB6A6EB /* turnos-com-falta.json in Resources */,
 				9E1C5FBFE68947D014E1FDA5 /* turnos.json in Resources */,
 				90A64B886BA2372172581C39 /* usuario.json in Resources */,
 				2F595BDA9881BE132ED02AD0 /* vaga-cancelada.json in Resources */,

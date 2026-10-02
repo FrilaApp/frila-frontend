@@ -53,6 +53,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case turnoEncerrado = "turno-encerrado"
         case turnoEncerradoVerificado = "turno-encerrado-verificado"
         case turnoCancelado = "turno-cancelado"
+        case turnoCanceladoComFalta = "turno-cancelado-com-falta"
+        case turnoCanceladoSemDetalhes = "turno-cancelado-sem-detalhes"
+        case turnoCanceladoOutro = "turno-cancelado-outro"
         case turnoAvaliado = "turno-avaliado"
         /// Conta de contratante com uma vaga de seleção de uma posição e quatro candidatos pendentes (#10).
         case selecaoComCandidatos = "selecao-com-candidatos"
@@ -73,6 +76,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         var daSelecao: Bool { selecaoDoContratante || self == .vagaEmSelecao || self == .candidaturaPendente }
+        var deTurnoCancelado: Bool {
+            self == .turnoCancelado || self == .turnoCanceladoComFalta || self == .turnoCanceladoSemDetalhes || self == .turnoCanceladoOutro
+        }
     }
 
     /// Uma candidatura como o backend a guarda: de quem é, em que vaga e em que estado.
@@ -269,7 +275,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     )]
                 }
             }
-            if (cenario == .turnoEncerrado || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario == .turnoCancelado), let vaga = self.vagas.first {
+            if (cenario == .turnoEncerrado || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado), let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "22000000-0000-0000-0000-000000000002")!
                 let duracao: TimeInterval = 6 * 3600
@@ -333,12 +339,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     distanciaMetros: 50
                 )
             }
-            if cenario == .turnoCancelado {
+            if cenario.deTurnoCancelado {
+                let causa: CausaDoCancelamento = cenario == .turnoCanceladoComFalta ? .reaberturaPorAtraso : (cenario == .turnoCanceladoOutro ? .outro : .profissional)
+                let cancelamento: CancelamentoDoTurno? = cenario == .turnoCanceladoSemDetalhes ? nil :
+                    CancelamentoDoTurno(causa: causa, falta: cenario == .turnoCanceladoComFalta, canceladaEm: relogio.agora)
                 turnosCancelados = turnos.map { t in
                     Turno(id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
                           contatoVisivelAte: t.contatoVisivelAte, checkin: t.checkin, checkout: t.checkout,
                           verificacao: t.verificacao, valorAcordado: t.valorAcordado, podeAvaliar: false,
-                          estado: .cancelada, avaliacaoInformada: true)
+                          estado: .cancelada, avaliacaoInformada: true, cancelamento: cancelamento)
                 }
                 turnos = []
                 contatos = [:]
@@ -836,7 +845,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
                 checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
                 valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
-                estado: estado, avaliacao: avaliacao, avaliacaoInformada: true
+                estado: estado, avaliacao: avaliacao, avaliacaoInformada: true, cancelamento: t.cancelamento
             )
         }
     }
@@ -940,7 +949,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             valorAcordado: t.valorAcordado,
             podeAvaliar: podeAvaliar,
             contato: t.contato,
-            estado: t.estado, avaliacao: t.avaliacao, avaliacaoInformada: t.avaliacaoInformada
+            estado: t.estado, avaliacao: t.avaliacao, avaliacaoInformada: t.avaliacaoInformada,
+            cancelamento: t.cancelamento
         )
     }
 
@@ -1000,7 +1010,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard agora >= turno.vaga.periodo.inicio.addingTimeInterval(Self.toleranciaDeAtraso) else {
             throw erro("reabertura_antes_da_tolerancia")
         }
-        let resultado = cancelarTurno(em: indice, falta: true, reabrir: agora < turno.vaga.periodo.fim.addingTimeInterval(-60 * 60))
+        let resultado = cancelarTurno(em: indice, falta: true, reabrir: agora < turno.vaga.periodo.fim.addingTimeInterval(-60 * 60), causa: .reaberturaPorAtraso)
         reaberturasPorAtraso[posicaoID] = resultado
         return resultado
     }
@@ -1024,7 +1034,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let inicio = turnos[indice].vaga.periodo.inicio
         let peloProfissional = conta?.perfil == .profissional
         return cancelarTurno(
-            em: indice, falta: peloProfissional && inicio.timeIntervalSince(agora) < 24 * 60 * 60, reabrir: inicio > agora
+            em: indice, falta: peloProfissional && inicio.timeIntervalSince(agora) < 24 * 60 * 60, reabrir: inicio > agora,
+            causa: peloProfissional ? .profissional : .estabelecimento
         )
     }
 
@@ -1041,7 +1052,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard vaga.estado != .cancelada, vaga.estado != .encerrada else { throw erro("vaga_encerrada") }
         var confirmadas = 0
         while let turno = turnos.firstIndex(where: { $0.vaga.id == id }) {
-            _ = cancelarTurno(em: turno, falta: false, reabrir: false)
+            _ = cancelarTurno(em: turno, falta: false, reabrir: false, causa: .estabelecimento)
             confirmadas += 1
         }
         posicoesReabertas[id] = nil
@@ -1338,7 +1349,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// O que `privado.cancelar_uma_posicao` faz: a posição cancelada guarda de quem era, e a vaga,
     /// quando reabre, ganha uma posição nova e volta a `publicada`.
-    private func cancelarTurno(em indice: Int, falta: Bool, reabrir: Bool) -> ResultadoCancelamento {
+    private func cancelarTurno(em indice: Int, falta: Bool, reabrir: Bool, causa: CausaDoCancelamento) -> ResultadoCancelamento {
         let turno = turnos.remove(at: indice)
         // A presença que ainda esperava prova fica `nao_verificado`.
         let verificacao = checkins[turno.id]?.verificacao ?? turno.verificacao
@@ -1347,7 +1358,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             contatoVisivelAte: turno.contatoVisivelAte, aCaminhoEm: turno.aCaminhoEm, checkin: turno.checkin,
             checkout: turno.checkout, verificacao: verificacao == .pendente ? .naoVerificado : verificacao,
             valorAcordado: turno.valorAcordado, podeAvaliar: false,
-            estado: .cancelada, avaliacao: avaliacoes[turno.id], avaliacaoInformada: true
+            estado: .cancelada, avaliacao: avaliacoes[turno.id], avaliacaoInformada: true,
+            cancelamento: CancelamentoDoTurno(causa: causa, falta: falta, canceladaEm: relogio.agora)
         ))
         contatos[turno.id] = nil
         var nova: UUID?
@@ -1590,5 +1602,4 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
         suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: prot)
     }
 }
-
 

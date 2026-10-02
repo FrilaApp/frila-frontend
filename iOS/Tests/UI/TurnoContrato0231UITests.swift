@@ -25,12 +25,49 @@ final class TurnoContrato0231UITests: XCTestCase {
         cartao.tap()
         XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
+        let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
+        XCTAssertTrue(cancelamento.exists)
+        XCTAssertTrue(cancelamento.label.contains("Você cancelou este turno."))
+        XCTAssertTrue(cancelamento.label.contains("Este cancelamento não contou como falta."))
         for id in ["presenca-do-turno", "contato-do-turno", "cartao-avaliacao-turno"] {
             XCTAssertFalse(app.descendants(matching: .any)[id].exists)
         }
         for id in ["avisar-a-caminho", "fazer-checkin", "fazer-checkout", "botao-whatsapp", "Avaliar turno", "Ver avaliação"] {
             XCTAssertFalse(app.buttons[id].exists)
         }
+    }
+
+    func testCancelamentoComFaltaMostraCausaEConsequencia() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado-com-falta"]
+        app.launch()
+        abrirTurno(app)
+        let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.label.contains("O estabelecimento reabriu a posição por atraso."))
+        XCTAssertTrue(cancelamento.label.contains("Este cancelamento contou como falta."))
+        XCTAssertFalse(app.buttons["Avaliar turno"].exists)
+    }
+
+    func testCancelamentoAnteriorMostraSoCancelado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado-sem-detalhes"]
+        app.launch()
+        abrirTurno(app)
+        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
+        XCTAssertFalse(app.descendants(matching: .any)["cancelamento-do-turno"].exists)
+        XCTAssertFalse(app.buttons["Avaliar turno"].exists)
+    }
+
+    func testOutraCausaTemTextoNeutro() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado-outro"]
+        app.launch()
+        abrirTurno(app)
+        let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.label.contains("Cancelamento registrado."))
+        XCTAssertTrue(cancelamento.label.contains("Este cancelamento não contou como falta."))
     }
 
     func testAvaliacaoDoServidorMostraRespostaSemOferecerNovoEnvio() {

@@ -14,6 +14,9 @@ public struct TelaMeuTurno: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoTurno
+                if viewModel.cancelamento != nil {
+                    cartaoCancelamento
+                }
                 if viewModel.permiteAcoesDoTurno {
                     if let presenca = viewModel.presenca {
                         SecaoDePresenca(viewModel: presenca)
@@ -66,6 +69,26 @@ public struct TelaMeuTurno: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
+    }
+
+    private var cartaoCancelamento: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosDoProfissional.Turnos.cancelamentoTitulo)
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            if let causa = viewModel.causaDoCancelamento {
+                Text(verbatim: causa)
+                    .font(.body)
+            }
+            if let falta = viewModel.faltaNoCancelamento {
+                Text(verbatim: falta)
+                    .font(.subheadline)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("cancelamento-do-turno")
     }
 
     private var cartaoContato: some View {
@@ -163,4 +186,3 @@ public struct TelaMeuTurno: View {
         .accessibilityIdentifier("cartao-avaliacao-turno")
     }
 }
-

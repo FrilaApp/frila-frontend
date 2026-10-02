@@ -4,7 +4,7 @@ import Foundation
 import FrilaDominio
 import Testing
 
-@Suite("Turno no contrato 0.2.31")
+@Suite("Turno no contrato 0.2.32")
 @MainActor
 struct TurnoContrato0231Tests {
     private let contaID = UUID()
@@ -113,7 +113,7 @@ struct TurnoContrato0231Tests {
         #expect(vm.jaAvaliado)
         #expect(vm.respostaAvaliacao == false)
         var cache = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(antigo)) as? [String: Any])
-        for chave in ["estado", "avaliacao", "avaliacaoInformada"] { cache.removeValue(forKey: chave) }
+        for chave in ["estado", "avaliacao", "avaliacaoInformada", "cancelamento"] { cache.removeValue(forKey: chave) }
         let restaurado = try JSONDecoder().decode(Turno.self, from: JSONSerialization.data(withJSONObject: cache))
         #expect(restaurado.estado == nil && !restaurado.servidorInformaAvaliacao)
         let avaliado = try turno("turnos-avaliados")
@@ -159,6 +159,78 @@ struct TurnoContrato0231Tests {
         #expect(cancelado.estado == .cancelada)
         #expect(!cancelado.podeAvaliar)
         #expect(cancelado.avaliacao == nil && cancelado.servidorInformaAvaliacao)
+        #expect(cancelado.cancelamento?.causa == .profissional)
+        #expect(cancelado.cancelamento?.falta == false)
+    }
+
+    @Test("Cancelamento informa causa, falta e data e sobrevive ao cache", arguments: ["turnos-com-cancelamento", "turnos-com-falta"])
+    func cancelamentoInformado(fixture: String) throws {
+        let lido = try turno(fixture)
+        let registro = try #require(lido.cancelamento)
+        let comFalta = fixture == "turnos-com-falta"
+        #expect(registro.causa == (comFalta ? .reaberturaPorAtraso : .estabelecimento))
+        #expect(registro.falta == comFalta)
+        #expect(registro.canceladaEm == ContratoAPI.instante("2026-10-09T19:40:00Z"))
+        let copia = try JSONDecoder().decode(Turno.self, from: JSONEncoder().encode(lido.com(contato: nil).com(aCaminhoEm: nil)))
+        #expect(copia.cancelamento == registro)
+        let vm = MeuTurnoViewModel(turno: copia, api: ApiClienteEmMemoria(), contaID: contaID)
+        #expect(vm.causaDoCancelamento == (comFalta ? "O estabelecimento reabriu a posição por atraso." : "O estabelecimento cancelou este turno."))
+        #expect(vm.faltaNoCancelamento == (comFalta ? "Este cancelamento contou como falta." : "Este cancelamento não contou como falta."))
+        #expect(!vm.permiteAcoesDoTurno)
+    }
+
+    @Test("Cancelamento ausente ou nulo não afirma causa nem falta", arguments: [false, true])
+    func cancelamentoAnterior(nulo: Bool) throws {
+        var lista = try #require(try JSONSerialization.jsonObject(with: FixturesDoContrato.dados("turnos-cancelados")) as? [[String: Any]])
+        if nulo { lista[0]["cancelamento"] = NSNull() }
+        let lido = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self, from: JSONSerialization.data(withJSONObject: lista)).first).dominio()
+        let vm = MeuTurnoViewModel(turno: lido, api: ApiClienteEmMemoria(), contaID: contaID)
+        #expect(vm.cancelado)
+        #expect(vm.cancelamento == nil)
+        #expect(vm.causaDoCancelamento == nil && vm.faltaNoCancelamento == nil)
+    }
+
+    @Test("Causa desconhecida vira outro sem texto privado nem inferência sobre a conta")
+    func cancelamentoDesconhecido() throws {
+        var lista = try #require(try JSONSerialization.jsonObject(with: FixturesDoContrato.dados("turnos-com-cancelamento")) as? [[String: Any]])
+        var registro = try #require(lista[0]["cancelamento"] as? [String: Any])
+        registro["causa"] = "causa_futura"
+        registro["falta"] = true
+        registro["motivo"] = "Texto privado que não deve chegar à apresentação."
+        lista[0]["cancelamento"] = registro
+        let lido = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self, from: JSONSerialization.data(withJSONObject: lista)).first).dominio()
+        #expect(lido.cancelamento?.causa == .outro)
+        let vm = MeuTurnoViewModel(turno: lido, api: ApiClienteEmMemoria(), contaID: contaID)
+        #expect(vm.causaDoCancelamento == "Cancelamento registrado.")
+        #expect(vm.faltaNoCancelamento == "Este cancelamento contou como falta.")
+        let cache = String(decoding: try JSONEncoder().encode(lido), as: UTF8.self)
+        #expect(!cache.contains("motivo") && !cache.contains("Texto privado"))
+    }
+
+    @Test("Fim sem check-in explica o cancelamento e a falta sem afirmar desistência")
+    func cancelamentoSemCheckin() throws {
+        var lista = try #require(try JSONSerialization.jsonObject(with: FixturesDoContrato.dados("turnos-com-falta")) as? [[String: Any]])
+        var registro = try #require(lista[0]["cancelamento"] as? [String: Any])
+        registro["causa"] = "no_show_sem_checkin"
+        lista[0]["cancelamento"] = registro
+        let lido = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self, from: JSONSerialization.data(withJSONObject: lista)).first).dominio()
+        #expect(lido.cancelamento?.causa == .noShowSemCheckin)
+        let vm = MeuTurnoViewModel(turno: lido, api: ApiClienteEmMemoria(), contaID: contaID)
+        #expect(vm.causaDoCancelamento == "O turno terminou sem check-in.")
+        #expect(vm.faltaNoCancelamento == "Este cancelamento contou como falta.")
+        #expect(!vm.podeAvaliar)
+    }
+
+    @Test("Dublê registra a causa da desistência sem devolver o motivo")
+    func dubleDesistencia() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        let inicial = try #require(try await api.meusTurnos().first)
+        _ = try await api.cancelarPosicao(id: inicial.posicaoID, motivo: "Motivo privado da desistência")
+        let lido = try #require(try await api.meusTurnos().first)
+        #expect(lido.cancelado)
+        #expect(lido.cancelamento?.causa == .profissional)
+        #expect(lido.cancelamento?.falta == true)
+        #expect(lido.cancelamento?.canceladaEm != nil)
     }
 
 }

@@ -16,6 +16,15 @@ public final class MeuTurnoViewModel {
 
     public var cancelado: Bool { turno.cancelado }
     public var permiteAcoesDoTurno: Bool { !cancelado }
+    public var cancelamento: CancelamentoDoTurno? { cancelado ? turno.cancelamento : nil }
+    public var causaDoCancelamento: String? {
+        cancelamento.map { TextosDoProfissional.Turnos.causaDoCancelamento($0.causa) }
+    }
+    public var faltaNoCancelamento: String? {
+        cancelamento.map {
+            $0.falta ? TextosDoProfissional.Turnos.cancelamentoComFalta : TextosDoProfissional.Turnos.cancelamentoSemFalta
+        }
+    }
 
     private let contaID: UUID?
     private let api: any ApiCliente

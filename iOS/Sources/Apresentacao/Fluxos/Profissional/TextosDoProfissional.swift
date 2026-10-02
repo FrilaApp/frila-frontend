@@ -88,6 +88,24 @@ enum TextosDoProfissional {
         static let tituloMeusTurnos = String(localized: "Meus turnos", bundle: bundleApresentacao)
         static let tituloMeuTurno = String(localized: "Meu turno", bundle: bundleApresentacao)
         static let canceladoTitulo = String(localized: "Turno cancelado", bundle: bundleApresentacao)
+        static let cancelamentoTitulo = String(localized: "Cancelamento", bundle: bundleApresentacao)
+        static let cancelamentoComFalta = String(localized: "Este cancelamento contou como falta.", bundle: bundleApresentacao)
+        static let cancelamentoSemFalta = String(localized: "Este cancelamento não contou como falta.", bundle: bundleApresentacao)
+
+        static func causaDoCancelamento(_ causa: CausaDoCancelamento) -> String {
+            switch causa {
+            case .profissional:
+                String(localized: "Você cancelou este turno.", bundle: bundleApresentacao)
+            case .estabelecimento:
+                String(localized: "O estabelecimento cancelou este turno.", bundle: bundleApresentacao)
+            case .reaberturaPorAtraso:
+                String(localized: "O estabelecimento reabriu a posição por atraso.", bundle: bundleApresentacao)
+            case .noShowSemCheckin:
+                String(localized: "O turno terminou sem check-in.", bundle: bundleApresentacao)
+            case .outro:
+                String(localized: "Cancelamento registrado.", bundle: bundleApresentacao)
+            }
+        }
         static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
         static let avisoCache = String(localized: "Modo offline: exibindo dados salvos anteriormente.", bundle: bundleApresentacao)
         static let vazioTitulo = String(localized: "Nenhum turno confirmado", bundle: bundleApresentacao)
