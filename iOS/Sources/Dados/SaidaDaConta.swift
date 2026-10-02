@@ -10,9 +10,10 @@ public struct SaidaDaConta: ContaRepositorio {
     private let api: any ApiCliente
     private let armazenamento: (any CacheLocal & FilaDeAcoes)?
     private let aparelho: AparelhoDePush?
+    private let canal: (any CanalDePush)?
 
     public init(api: any ApiCliente, armazenamento: (any CacheLocal & FilaDeAcoes)?,
-                aparelho: AparelhoDePush? = nil,
+                aparelho: AparelhoDePush? = nil, canal: (any CanalDePush)? = nil,
                 limparAvaliacoes: @escaping @Sendable () -> Void = {},
                 limparDestino: @escaping @Sendable () -> Void = { DestinoGuardado.limpar() }) {
         self.api = api
@@ -20,11 +21,15 @@ public struct SaidaDaConta: ContaRepositorio {
         self.limparDestino = limparDestino
         self.armazenamento = armazenamento
         self.aparelho = aparelho
+        self.canal = canal
     }
 
     /// A saída que o app usa: o token de push guardado neste aparelho sai do servidor antes de a
     /// sessão acabar (#162), para o iPhone não continuar recebendo o push de quem saiu (RN15).
+    /// A remoção no servidor pode falhar (sem rede) e não segura a saída; por isso a entrega é
+    /// suspensa no próprio aparelho antes, e a saída não depende de o servidor ter confirmado.
     public func sair() async {
+        await canal?.suspenderEntrega()
         guard let aparelho else { return await sair(tokenFCM: nil) }
         let api = api
         await aparelho.encerrar { tokenFCM in await api.sair(tokenFCM: tokenFCM) }
@@ -72,6 +77,10 @@ public struct SaidaDaConta: ContaRepositorio {
         // excluída já teve os aparelhos removidos por lá, e a outra só deixa de ser a dona na
         // próxima entrada neste aparelho. Aqui o aparelho deixa de ser dela.
         await aparelho?.desvincular()
+        // De novo aqui, depois do servidor: um registro que estava em voo na saída pode ter
+        // reativado a entrega. O que a conta recebeu não fica na central para quem pegar o aparelho.
+        await canal?.suspenderEntrega()
+        await canal?.limparEntregues()
         if let armazenamento {
             // `ArmazenamentoSwiftData.limpar` apaga turnos, funções, sessão e fila de uma vez; as duas
             // chamadas mantêm a regra certa se as portas passarem a ter implementações separadas.
