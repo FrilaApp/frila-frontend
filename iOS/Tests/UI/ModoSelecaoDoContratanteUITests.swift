@@ -23,9 +23,17 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let app = abrir(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", cenario] + extras)
         let vaga = app.buttons["vaga-contratante-\(vagaID)"]
         XCTAssertTrue(vaga.waitForExistence(timeout: 15))
-        vaga.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10))
+        abrirDetalhe(de: vaga, em: app)
         return app
+    }
+
+    /// Toca no cartão e espera o detalhe abrir. Com a máquina sob carga, o toque pode cair no meio
+    /// de uma atualização da lista e se perder: se o detalhe não abriu, toca de novo, uma vez.
+    private func abrirDetalhe(de cartao: XCUIElement, em app: XCUIApplication) {
+        let detalhe = app.descendants(matching: .any)["detalhe-vaga-contratante"]
+        cartao.tap()
+        if !detalhe.waitForExistence(timeout: 10), cartao.exists, cartao.isHittable { cartao.tap() }
+        XCTAssertTrue(detalhe.waitForExistence(timeout: 10), "o detalhe da vaga não abriu")
     }
 
     /// Rola até o elemento ficar longe da barra de navegação e da borda de baixo, para o toque não
@@ -58,7 +66,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(cartao.label.contains("Modo seleção"), cartao.label)
         XCTAssertTrue(cartao.label.contains("4 candidatos aguardando sua escolha"), cartao.label)
         XCTAssertTrue(cartao.label.contains("0 de 1 confirmadas"), cartao.label)
-        cartao.tap()
+        abrirDetalhe(de: cartao, em: app)
 
         // Quatro candidatos, cada um com a reputação e o denominador; sem histórico diz que não há.
         XCTAssertTrue(app.descendants(matching: .any)["candidatos-da-vaga"].waitForExistence(timeout: 10))

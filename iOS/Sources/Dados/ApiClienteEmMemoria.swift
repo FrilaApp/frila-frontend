@@ -1082,6 +1082,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             _ = cancelarTurno(em: turno, falta: false, reabrir: false)
             confirmadas += 1
         }
+        // Como no backend, as posições abertas passam a `cancelada` e continuam no painel.
+        posicoesFechadas[id, default: []] += idsDasPosicoesAbertas(vaga)
         posicoesReabertas[id] = nil
         posicoesAbertasDoPainel[id] = nil
         expirarPendentes(da: id)

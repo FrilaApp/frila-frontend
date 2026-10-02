@@ -611,8 +611,9 @@ private struct TelaDetalheVagaContratante: View {
                 Text(verbatim: nome).font(.headline)
                 Text(verbatim: TextosDoAcompanhamento.cancelada).foregroundStyle(FrilaCor.textoSecundario)
             } else if posicao.estado == .cancelada, vaga.modo == .selecao {
-                // A seleção fechou 24 h antes do início com esta posição ainda aberta (RN24).
-                Text(verbatim: TextosDosCandidatos.posicaoFechada).font(.headline)
+                // A seleção fechou 24 h antes do início com esta posição ainda aberta (RN24), ou a
+                // casa cancelou a vaga: o texto diz qual das duas.
+                Text(verbatim: TextosDosCandidatos.posicaoCancelada(vaga: vaga.estado)).font(.headline)
             } else {
                 Text(verbatim: TextosMinhasVagas.encerradas).font(.headline)
             }
