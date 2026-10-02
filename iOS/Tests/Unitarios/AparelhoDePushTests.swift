@@ -568,6 +568,85 @@ struct AparelhoDePushTests {
         #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
     }
 
+    // MARK: A sessão que acaba com o pedido ao sistema em voo, e o descarte da central
+
+    @Test("Sessão encerrada enquanto a entrega era reativada depois do registro: a entrega é suspensa de novo")
+    func encerramentoDuranteAReativacao() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        await aparelho.receber(token: Tokens.aparelho)
+        // O 401 chega entre a conferência da conta e o registro no sistema.
+        let canal = CanalAnotado(api) { await aparelho.desvincular() }
+
+        #expect(await aparelho.ligar(para: contaID, canal: canal) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+
+        #expect(api.chamadas == ["registrar \(Tokens.aparelho)", "canal: ativar", "canal: suspender"])
+        #expect(await aparelho.vinculo() == nil)
+    }
+
+    @Test("Sessão encerrada enquanto o aparelho que já era da conta pedia o registro ao sistema: a entrega é suspensa de novo")
+    func encerramentoDuranteAAbertura() async throws {
+        let contaID = try await conta()
+        guardado.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        let aparelho = aparelho()
+        let canal = CanalAnotado(api) { await aparelho.desvincular() }
+
+        await aparelho.ligar(para: contaID, canal: canal)
+
+        #expect(Array(api.chamadas.prefix(2)) == ["canal: ativar", "canal: suspender"])
+    }
+
+    @Test("Na carência, o que chegou antes do vínculo sai da central na hora e de novo quando ela acaba")
+    func descarteNaCarencia() async throws {
+        guardado.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: outraConta))
+        let aparelho = aparelho()
+        await aparelho.registrar(para: try await conta())
+        api.esquecerChamadas()
+        let anotador = api
+
+        await aparelho.descartarAvisosDeAntesDoVinculo(canal: CanalAnotado(api)) { espera in
+            anotador.anotar("esperar \(Int(espera))")
+            return true
+        }
+
+        let carencia = Int(VinculoDoAparelho.carenciaNaTrocaDeConta)
+        #expect(api.chamadas == ["canal: descartar", "esperar \(carencia)", "canal: descartar"])
+    }
+
+    @Test("Quem saiu durante a carência, ou a espera cancelada, não descarta de novo; sem carência não há espera")
+    func descarteSemSegundaVez() async throws {
+        let contaID = try await conta()
+        guardado.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: outraConta))
+        let aparelho = aparelho()
+        let canal = CanalAnotado(api)
+        let anotador = api
+
+        // Sem vínculo não há o que descartar.
+        await aparelho.descartarAvisosDeAntesDoVinculo(canal: canal) { _ in true }
+        #expect(api.chamadas.isEmpty)
+
+        await aparelho.registrar(para: contaID)
+        api.esquecerChamadas()
+        await aparelho.descartarAvisosDeAntesDoVinculo(canal: canal) { _ in false }
+        #expect(api.chamadas == ["canal: descartar"])
+
+        api.esquecerChamadas()
+        await aparelho.descartarAvisosDeAntesDoVinculo(canal: canal) { _ in
+            await aparelho.desvincular()
+            return true
+        }
+        #expect(api.chamadas == ["canal: descartar"])
+
+        // A mesma conta volta sem carência, e o vínculo já vale: um descarte só, sem espera.
+        await aparelho.registrar(para: contaID)
+        api.esquecerChamadas()
+        await aparelho.descartarAvisosDeAntesDoVinculo(canal: canal) { _ in
+            anotador.anotar("esperar")
+            return true
+        }
+        #expect(api.chamadas == ["canal: descartar"])
+    }
+
     @Test("Token trocado pelo FCM com alguém dentro: o antigo sai, o novo entra e o vínculo continua")
     func tokenTrocado() async throws {
         let aparelho = aparelho()

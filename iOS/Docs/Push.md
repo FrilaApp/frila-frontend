@@ -28,8 +28,11 @@ quem ele pertence no servidor:
   com um registro em voo espera o registro terminar e só então tira o token.
 - **Sair sem rede.** A remoção no servidor falha e não segura a saída: o token continua lá até a
   próxima entrada neste aparelho ou a limpeza dos 60 dias sem atualização. Por isso a saída não
-  conta com o servidor: ela chama `unregisterForRemoteNotifications`, que é do próprio aparelho, e
-  o sistema para de entregar push a este app, mesmo com ele fechado. A entrega só volta com
+  conta com o servidor: ela chama `unregisterForRemoteNotifications`, que a Apple indica para
+  quando alguém sai de uma conta associada a push
+  ([documentação](https://developer.apple.com/documentation/uikit/uiapplication/unregisterforremotenotifications()),
+  lida em 02/10/2026). Inferência: a página não diz se o método faz efeito sem rede nem se ele
+  continua valendo com o app fechado; quem prova são os passos 8 a 10 do roteiro. A entrega só volta com
   `registerForRemoteNotifications`, que o app chama em dois casos: o aparelho já é da conta que
   está nele, ou `registrar_dispositivo` acabou de confirmar o token para quem entrou. Se o registro
   falhar na entrada, o aparelho fica sem receber até a abertura seguinte dar certo.
@@ -173,12 +176,15 @@ sai da central de notificações (na abertura, a cada mudança do vínculo e ao 
 
 - **App em segundo plano ou fechado, durante a carência.** Quem mostra a notificação é o sistema,
   sem consultar o app: o aviso da conta anterior entregue logo depois da troca aparece na tela
-  bloqueada até o app voltar ao primeiro plano ou a carência acabar, quando ele sai da central.
+  bloqueada até o app voltar ao primeiro plano ou, com o app ainda em execução, a carência
+  acabar, quando ele sai da central. O app suspenso pelo sistema não executa esse descarte.
 - **Depois da carência.** O aviso da conta anterior que o APNs entregar mais de 60 s depois da
   confirmação passa pela regra 2. Ele ainda esbarra nas regras 3 e 4. Inferência: os 60 s não vêm
   de medição da latência do FCM e do APNs; cobrem a entrega que já estava a caminho.
 - **O custo da carência.** O aviso de quem entrou, entregue nos primeiros 60 s depois de uma troca
   de conta, é tratado como da conta anterior: não aparece com o app aberto e não abre no toque.
+  Ele também **sai da central** no descarte: quem entra perde os próprios avisos desse primeiro
+  minuto, e só os vê pelas telas do app.
 
 Só um identificador opaco do destinatário no payload fecha essa janela, com o app conferindo o
 aviso antes de mostrar e de abrir. Isso é mudança de contrato (frila-docs, frila-backend e este

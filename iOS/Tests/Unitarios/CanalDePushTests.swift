@@ -1,6 +1,7 @@
 import Foundation
 import FrilaDominio
 @testable import FrilaInfraestrutura
+import os
 import Testing
 
 private actor TokensRecebidos {
@@ -35,19 +36,39 @@ struct CanalDePushSemFirebaseTests {
 
     @Test("Suspender a entrega desregistra o app no sistema, e sem Firebase ativar não o registra de volta")
     func suspenderEntrega() async {
-        let pedidos = TokensRecebidos()
+        // Anotados na hora, sem tarefa: um `registrar` que viesse depois do `desregistrar` apareceria.
+        let pedidos = OSAllocatedUnfairLock(initialState: [String]())
         let sistema = CanalDePushDoAparelho.RegistroNoSistema(
-            registrar: { Task { await pedidos.anotar("registrar") } },
-            desregistrar: { Task { await pedidos.anotar("desregistrar") } }
+            registrar: { pedidos.withLock { $0.append("registrar") } },
+            desregistrar: { pedidos.withLock { $0.append("desregistrar") } }
         )
         let canal = CanalDePushDoAparelho(sistema: sistema) { _ in }
 
         await canal.suspenderEntrega()
         await canal.ativar()
-        // Os pedidos são anotados numa tarefa: dá a vez para ela rodar.
-        for _ in 0..<100 where await pedidos.tokens.isEmpty { await Task.yield() }
 
-        #expect(await pedidos.tokens == ["desregistrar"])
+        #expect(pedidos.withLock { $0 } == ["desregistrar"])
+    }
+
+    @Test("O descarte tira da central só o que foi entregue antes do instante: o aviso do próprio instante fica")
+    func descartarEntregues() async {
+        let instante = Date(timeIntervalSince1970: 1_790_000_000)
+        let removidos = OSAllocatedUnfairLock(initialState: [[String]]())
+        let central = CanalDePushDoAparelho.CentralDoSistema(
+            entregues: {
+                [(identificador: "antes", data: instante.addingTimeInterval(-1)),
+                 (identificador: "no-instante", data: instante),
+                 (identificador: "depois", data: instante.addingTimeInterval(1))]
+            },
+            remover: { identificadores in removidos.withLock { $0.append(identificadores) } }
+        )
+        let canal = CanalDePushDoAparelho(central: central) { _ in }
+
+        await canal.descartarEntregues(antesDe: instante)
+        // Sem nada anterior, a central não é tocada.
+        await canal.descartarEntregues(antesDe: instante.addingTimeInterval(-1))
+
+        #expect(removidos.withLock { $0 } == [["antes"]])
     }
 }
 

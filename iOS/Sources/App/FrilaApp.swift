@@ -417,11 +417,8 @@ private struct EntradaDoApp: View {
     /// central. Na troca de conta o vínculo só vale depois da carência, e o que chegar nela sai
     /// quando ela acaba.
     private func descartarAvisosDeAntesDoVinculo() async {
-        guard !Task.isCancelled, let desde = await aparelho.vinculo()?.desde else { return }
-        await canal.descartarEntregues(antesDe: desde)
-        let espera = desde.timeIntervalSinceNow
-        guard espera > 0, (try? await Task.sleep(for: .seconds(espera))) != nil else { return }
-        if await aparelho.vinculo()?.desde == desde { await canal.descartarEntregues(antesDe: desde) }
+        guard !Task.isCancelled else { return }
+        await aparelho.descartarAvisosDeAntesDoVinculo(canal: canal)
     }
 
     private func aplicarDestinoManual(_ destino: DestinoAposEntrada) {

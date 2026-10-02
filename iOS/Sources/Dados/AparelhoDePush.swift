@@ -71,18 +71,40 @@ public actor AparelhoDePush {
     @discardableResult
     public func ligar(para contaID: UUID, canal: any CanalDePush) async -> Registro {
         let jaEraDela = vinculo()?.contaID == contaID
-        if jaEraDela { await canal.ativar() }
+        if jaEraDela {
+            await canal.ativar()
+            // A sessão pode acabar (401) enquanto o pedido ao sistema está em voo, e o registro
+            // cairia depois da suspensão de quem saiu: sem o vínculo, a entrega é suspensa de novo.
+            if vinculo()?.contaID != contaID { await canal.suspenderEntrega() }
+        }
         let registro = await registrar(para: contaID)
         guard !jaEraDela else { return registro }
         switch registro {
         case .registrado, .semToken:
             // Sem token ainda não há nada no servidor para este aparelho: ativar é o que o traz.
             // Quem saiu enquanto o registro estava em voo não reativa a entrega.
-            if contaAtiva == contaID { await canal.ativar() }
+            if contaAtiva == contaID {
+                await canal.ativar()
+                if contaAtiva != contaID { await canal.suspenderEntrega() }
+            }
         case .semConta, .falhou:
             break
         }
         return registro
+    }
+
+    /// O que foi entregue antes de o aparelho ser da conta que está nele não é dela: sai da
+    /// central. Na troca de conta o vínculo só vale depois da carência, e o que chegar nela sai
+    /// quando ela acaba, se o vínculo ainda for o mesmo. `esperar` devolve falso se foi cancelada.
+    public func descartarAvisosDeAntesDoVinculo(
+        canal: any CanalDePush,
+        esperar: @Sendable (TimeInterval) async -> Bool = { (try? await Task.sleep(for: .seconds($0))) != nil }
+    ) async {
+        guard let desde = vinculo()?.desde else { return }
+        await canal.descartarEntregues(antesDe: desde)
+        let espera = desde.timeIntervalSince(relogio.agora)
+        guard espera > 0, await esperar(espera) else { return }
+        if vinculo()?.desde == desde { await canal.descartarEntregues(antesDe: desde) }
     }
 
     /// O FCM entregou o token, na abertura ou porque trocou. Com alguém dentro, o token novo é

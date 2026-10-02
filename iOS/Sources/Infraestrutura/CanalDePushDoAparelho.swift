@@ -27,16 +27,42 @@ public final class CanalDePushDoAparelho: NSObject, CanalDePush, MessagingDelega
         )
     }
 
+    /// A central de notificações do sistema, no que o descarte usa. Os testes trocam por um dublê.
+    public struct CentralDoSistema: Sendable {
+        public typealias Entregue = (identificador: String, data: Date)
+
+        public var entregues: @Sendable () async -> [Entregue]
+        public var remover: @Sendable ([String]) -> Void
+
+        public init(entregues: @escaping @Sendable () async -> [Entregue], remover: @escaping @Sendable ([String]) -> Void) {
+            self.entregues = entregues
+            self.remover = remover
+        }
+
+        public static let doAparelho = CentralDoSistema(
+            entregues: {
+                await withCheckedContinuation { continuacao in
+                    UNUserNotificationCenter.current().getDeliveredNotifications { entregues in
+                        continuacao.resume(returning: entregues.map { (identificador: $0.request.identifier, data: $0.date) })
+                    }
+                }
+            },
+            remover: { UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: $0) }
+        )
+    }
+
     private let tokenSimulado: String?
     private let sistema: RegistroNoSistema
+    private let central: CentralDoSistema
     private let aoReceberToken: @Sendable (String) async -> Void
     private let ligadoAoFirebase = OSAllocatedUnfairLock(initialState: false)
 
     /// `aoReceberToken` recebe o token do FCM na abertura e a cada troca. O token nunca vai para log.
-    public init(tokenSimulado: String? = nil, sistema: RegistroNoSistema = .doAparelho,
+    public init(tokenSimulado: String? = nil, sistema: RegistroNoSistema = .doAparelho, central: CentralDoSistema = .doAparelho,
                 aoReceberToken: @escaping @Sendable (String) async -> Void) {
         self.tokenSimulado = tokenSimulado
         self.sistema = sistema
+        self.central = central
         self.aoReceberToken = aoReceberToken
     }
 
@@ -57,21 +83,22 @@ public final class CanalDePushDoAparelho: NSObject, CanalDePush, MessagingDelega
         central.removeAllPendingNotificationRequests()
     }
 
-    /// `unregisterForRemoteNotifications` é do próprio aparelho e não precisa de rede: o sistema
-    /// para de entregar push remoto a este app até o próximo `registerForRemoteNotifications`, que
-    /// só o `ativar()` chama. Vale com o app fechado e depois de reiniciar o iPhone.
+    /// A saída não depende do servidor do Frila: o pedido é ao sistema. A Apple indica
+    /// `unregisterForRemoteNotifications` para quando alguém sai de uma conta associada a push, e
+    /// diz que o app volta a se registrar com `registerForRemoteNotifications`, que aqui só o
+    /// `ativar()` chama
+    /// (developer.apple.com/documentation/uikit/uiapplication/unregisterforremotenotifications(),
+    /// lida em 02/10/2026). Inferência: a página não diz se o método faz efeito sem rede, nem se o
+    /// efeito continua com o app fechado ou depois de reiniciar o iPhone; quem prova é o roteiro
+    /// no aparelho (Docs/Push.md, passos 8 a 10).
     public func suspenderEntrega() async {
         await MainActor.run { sistema.desregistrar() }
     }
 
+    /// O aviso entregue no próprio instante já é da conta do vínculo, como no `RoteadorDePush`.
     public func descartarEntregues(antesDe instante: Date) async {
-        let central = UNUserNotificationCenter.current()
-        let antigas: [String] = await withCheckedContinuation { continuacao in
-            central.getDeliveredNotifications { entregues in
-                continuacao.resume(returning: entregues.filter { $0.date < instante }.map(\.request.identifier))
-            }
-        }
-        if !antigas.isEmpty { central.removeDeliveredNotifications(withIdentifiers: antigas) }
+        let antigas = await central.entregues().filter { $0.data < instante }.map(\.identificador)
+        if !antigas.isEmpty { central.remover(antigas) }
     }
 
     /// O token do APNs, do `didRegisterForRemoteNotificationsWithDeviceToken`. O proxy do Firebase
