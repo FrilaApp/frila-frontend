@@ -2,6 +2,9 @@ import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
 import FrilaInfraestrutura
+#if DEBUG
+import MapKit
+#endif
 import OSLog
 import SwiftData
 import SwiftUI
@@ -255,13 +258,30 @@ private struct EntradaDoApp: View {
             case .profissional:
                 fluxoProfissionalView
             case .funcoesEHorarios:
-                TelaFuncoesEHorariosProvisoria()
+                let contaDoCadastro = contaID
+                CriacaoDoPerfilProfissional(api: api, sair: acaoDeSair) {
+                    // Uma resposta atrasada não reabre Vagas depois de sair ou trocar de conta.
+                    guard destinoAtual == .funcoesEHorarios, contaID == contaDoCadastro else { return }
+                    aplicarDestinoIdentificado(.profissional)
+                }
             case .contratante:
                 fluxoContratanteView
             case let .cadastro(email):
                 FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
                     aplicarDestinoManual(destino)
                 }
+            case let .contaSuspensa(situacao):
+                TelaContaSuspensa(
+                    viewModel: ContaSuspensaViewModel(
+                        situacao: situacao,
+                        api: api,
+                        aoReativar: {
+                            Task { await avaliarSessao() }
+                        },
+                        sair: acaoDeSair
+                    ),
+                    api: api
+                )
             }
         } else {
             FluxoDeEntrada(api: api) { destino in
@@ -298,6 +318,8 @@ private struct EntradaDoApp: View {
         case .contratante:
             DestinoGuardado.salvar(.contratante)
             destinoAtual = .contratante
+        case let .contaSuspensa(situacao):
+            destinoAtual = .contaSuspensa(situacao)
         }
     }
 
@@ -441,6 +463,46 @@ private struct EntradaDoApp: View {
         roteador.voltarParaLista()
         destinoAtual = nil
         await avaliarSessao()
+    }
+}
+
+/// O cadastro mantém seu modelo enquanto há erro e usa a mesma saída dos demais fluxos.
+private struct CriacaoDoPerfilProfissional: View {
+    @State private var viewModel: PerfilProfissionalViewModel
+    let sair: () -> Void
+    let aoConcluir: () -> Void
+
+    init(api: any ApiCliente, sair: @escaping () -> Void, aoConcluir: @escaping () -> Void) {
+        self.sair = sair
+        self.aoConcluir = aoConcluir
+        #if DEBUG
+        if api is ApiClienteEmMemoria,
+           ProcessInfo.processInfo.arguments.contains("-FRILA_BUSCA_PERFIL_UI_TEST") {
+            // Só a busca externa é simulada: cadastro, seleção e envio usam o fluxo de produto.
+            _viewModel = State(initialValue: PerfilProfissionalViewModel(api: api, buscarPontoBase: { _ in
+                let item = MKMapItem(placemark: MKPlacemark(coordinate:
+                    CLLocationCoordinate2D(latitude: -15.8267, longitude: -47.9218)))
+                item.name = "Guará II"
+                return [item]
+            }))
+            return
+        }
+        #endif
+        _viewModel = State(initialValue: PerfilProfissionalViewModel(api: api, modo: .criacao))
+    }
+
+    var body: some View {
+        NavigationStack {
+            TelaPerfilProfissional(viewModel: viewModel, aoSalvar: aoConcluir)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: sair) {
+                            Text("Sair", bundle: bundleApresentacao)
+                        }
+                        .accessibilityIdentifier("criacao-perfil-sair")
+                    }
+                }
+        }
     }
 }
 

@@ -363,6 +363,34 @@ struct AutenticacaoTests {
         }
     }
 
+    @Test("DestinoDaConta: conta suspensa vai para .contaSuspensa (RF24, RN13)")
+    func destinoContaSuspensa() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        let destino = try await DestinoDaConta.avaliar(api: api)
+        guard case let .contaSuspensa(situacao) = destino else {
+            Issue.record("Deveria ser .contaSuspensa")
+            return
+        }
+        #expect(situacao.estado == .suspensa)
+        #expect(situacao.suspensao?.motivo == "Denúncia grave confirmada pela Equipe Frila")
+    }
+
+    @Test("DestinoDaConta: conta reativada volta às telas normais na próxima abertura (Critério 3)")
+    func destinoContaReativadaVoltaAoPerfil() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        await api.reativarConta()
+        let destino = try await DestinoDaConta.avaliar(api: api)
+        #expect(destino == .profissional)
+    }
+
+    @Test("DestinoDaConta: sem rede na abertura mantém destino guardado prévio (Critério 5)")
+    func destinoSemRedeComContaSuspensaMantemDestinoGuardado() async throws {
+        DestinoGuardado.salvar(.profissional)
+        let api = ApiClienteEmMemoria(cenario: .semRede)
+        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+        #expect(destino == .profissional)
+    }
+
     @Test("DemonstracaoContas aceita apenas os e-mails oficiais de revisão")
     func demonstracaoContasFiltro() {
         #expect(DemonstracaoContas.ehEmailDeDemonstracao("revisao-profissional@frila.app"))
@@ -507,3 +535,4 @@ private final class ApiClienteEspiaoCadastro: ApiClienteEncaminhador, @unchecked
         return try await base.criarConta(cadastro)
     }
 }
+

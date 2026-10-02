@@ -123,6 +123,8 @@ public final class CodigoViewModel {
             case .contratante:
                 DestinoGuardado.salvar(.contratante)
                 return .destino(.contratante)
+            case let .contaSuspensa(situacao):
+                return .destino(.contaSuspensa(situacao))
             }
         } catch let erroApi as ErroDaApi {
             erro = MensagemDoErroAPI.texto(erroApi)
