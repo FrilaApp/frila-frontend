@@ -947,6 +947,7 @@ public enum CenarioExclusaoConta: Sendable, Equatable {
     case comTurnosCancelados(Int)
     case administradorUnico
     case semRede
+    case naoAutenticado
 }
 
 private actor ArmazenamentoCenarioExclusao {
@@ -982,6 +983,8 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
             cenarioEfetivo = .administradorUnico
         } else if argumentos.contains("-FRILA_EXCLUSAO_SEM_REDE") {
             cenarioEfetivo = .semRede
+        } else if argumentos.contains("-FRILA_EXCLUSAO_401") {
+            cenarioEfetivo = .naoAutenticado
         } else if let idx = argumentos.firstIndex(of: "-FRILA_EXCLUSAO_TURNOS"), argumentos.indices.contains(idx + 1), let n = Int(argumentos[idx + 1]) {
             cenarioEfetivo = .comTurnosCancelados(n)
         } else {
@@ -992,6 +995,10 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
             throw ErroDaApi(codigo: .semRede)
         }
         try verificarRede()
+
+        if cenarioEfetivo == .naoAutenticado {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "nao_autenticado")
+        }
 
         if cenarioEfetivo == .administradorUnico {
             throw ErroDaApi(codigo: .administradorUnico, codigoOriginal: "administrador_unico")

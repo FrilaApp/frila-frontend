@@ -115,6 +115,59 @@ struct LimpezaAposExclusaoTests {
         #expect(try await !local.pendentes().isEmpty)
     }
 
+    @Test("Cuidado crítico: Erro 401 nao_autenticado NÃO limpa cache, fila nem sessão")
+    func erro401NaoAutenticadoNaoLimpaAparelho() async throws {
+        let local = try criarArmazenamentoLocal()
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+        _ = try await popularDadosLocais(no: local, instante: instante)
+
+        let api = ApiClienteEmMemoria()
+        await api.configurarCenarioExclusao(.naoAutenticado)
+        let saida = SaidaDaConta(api: api, armazenamento: local)
+
+        do {
+            _ = try await saida.excluir()
+            Issue.record("Deveria ter lançado erro de nao_autenticado")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .naoAutenticado)
+        }
+
+        // Com 401, nada pode ser apagado se a exclusão falhou na porta
+        #expect(DestinoGuardado.obter() == .profissional)
+        #expect(try await local.sessao() != nil)
+        #expect(try await !local.turnosValidos(em: instante).isEmpty)
+        #expect(try await !local.pendentes().isEmpty)
+        #expect(try await !local.funcoes().isEmpty)
+    }
+
+    @Test("Cuidado crítico: Chamada direta com porta lançando 401 NÃO limpa cache nem fila")
+    func portaCom401NaoLimpaAparelho() async throws {
+        struct Porta401: ExclusaoDeContaPorta {
+            func excluirConta() async throws -> ExclusaoDeConta {
+                throw ErroDaApi(codigo: .naoAutenticado)
+            }
+        }
+
+        let local = try criarArmazenamentoLocal()
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+        _ = try await popularDadosLocais(no: local, instante: instante)
+
+        let api = ApiClienteEmMemoria()
+        let saida = SaidaDaConta(api: api, armazenamento: local)
+
+        do {
+            _ = try await saida.excluir(porta: Porta401())
+            Issue.record("Deveria ter lançado erro de nao_autenticado")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .naoAutenticado)
+        }
+
+        #expect(DestinoGuardado.obter() == .profissional)
+        #expect(try await local.sessao() != nil)
+        #expect(try await !local.turnosValidos(em: instante).isEmpty)
+        #expect(try await !local.pendentes().isEmpty)
+    }
+
     @Test("Dublê em memória: após exclusão, minhaConta responde como primeiro acesso (Critério 3)")
     func reentradaAposExclusaoComecaCadastroDoZero() async throws {
         let api = ApiClienteEmMemoria()
