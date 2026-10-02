@@ -20,6 +20,7 @@
 		1108F21B4C8976E326E3F7D4 /* RegrasDeVagaEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */; };
 		13680E76BFF8E766208AFAC1 /* PerfisDaContaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B09E8CED7013DCD7D059CD /* PerfisDaContaTests.swift */; };
 		15C4569424D4AC09D70E599C /* PresencaDoTurnoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */; };
+		1639A058B20DD8B17EDF2A16 /* TextosContaSuspensa.swift in Sources */ = {isa = PBXBuildFile; fileRef = A077A7E7B2FAF88619408270 /* TextosContaSuspensa.swift */; };
 		17C8BD0EFAFBA194A1550EF9 /* PublicarVagaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FA4D697A25E8C15E7BEB18 /* PublicarVagaTests.swift */; };
 		186B53163EBF88F360526F20 /* requisicao-contestar-suspensao.json in Resources */ = {isa = PBXBuildFile; fileRef = EFFA5C9E0B97FFBEB3C9B9EF /* requisicao-contestar-suspensao.json */; };
 		19C118B2A416731E092F1170 /* ErrosAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65115E2F0782067BF1010B60 /* ErrosAPITests.swift */; };
@@ -40,6 +41,7 @@
 		2B6C89E16D9BE842F42B51CF /* requisicao-cancelar-posicao.json in Resources */ = {isa = PBXBuildFile; fileRef = 89D42C2C9B594238CB01FB57 /* requisicao-cancelar-posicao.json */; };
 		2C4D82FDF4B16F6D548C4DF3 /* estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = 2EC2B26F76F1FC28F118D8CE /* estabelecimento.json */; };
 		2E1DEAEFC1C73FBEBAECC5D7 /* requisicao-criar-conta.json in Resources */ = {isa = PBXBuildFile; fileRef = D91DD797B126C62FB438B586 /* requisicao-criar-conta.json */; };
+		2EB932248AE6C2668644A198 /* TelaContaSuspensa.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14E1BE6632C784043FFB7D9 /* TelaContaSuspensa.swift */; };
 		2F595BDA9881BE132ED02AD0 /* vaga-cancelada.json in Resources */ = {isa = PBXBuildFile; fileRef = 06D9D43515118FB42F5E885D /* vaga-cancelada.json */; };
 		2FBBA4B48E7A5C0E8B23F907 /* contato.json in Resources */ = {isa = PBXBuildFile; fileRef = 29504B7FC04EF6A2AFB6A7BF /* contato.json */; };
 		321E82B710AAD581ED41AD44 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */; };
@@ -143,6 +145,7 @@
 		C3734E3C04BDA7AC6938C773 /* PerfisDaConta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35975B4158EBD9A24A5955A9 /* PerfisDaConta.swift */; };
 		C3FAF7EE83D38585EA4F6E84 /* ExclusaoDeContaDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2185475DA6A9B6D3BC1DF77C /* ExclusaoDeContaDTO.swift */; };
 		C4028BAA32FBB5CC060372F7 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+		C4CC93F533D8DF49C28109BB /* ContaSuspensaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F59B2943A73448CDDA272C7 /* ContaSuspensaViewModel.swift */; };
 		C5E15790C6756E23DBDE2ADE /* TelaExclusaoDeConta.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06B0718A61612A3762B8DF8 /* TelaExclusaoDeConta.swift */; };
 		C769C51050DDEA889B5ECAD7 /* PresencaDoTurnoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9941A6E64CF5A4D933D14AA /* PresencaDoTurnoViewModel.swift */; };
 		C82912B4B046CB299F74C45F /* candidatura-urgencia.json in Resources */ = {isa = PBXBuildFile; fileRef = 9788C78E942BB63868424B9E /* candidatura-urgencia.json */; };
@@ -180,6 +183,7 @@
 		E976A2598057EF2E2120A535 /* painel.json in Resources */ = {isa = PBXBuildFile; fileRef = D6A706F45132A8275DE67124 /* painel.json */; };
 		EAFF252A76C551A331AC6E3F /* MeuTurnoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 870A1907071ED48C93D50201 /* MeuTurnoViewModelTests.swift */; };
 		EB109A72EAD656B68AE13C04 /* ObjetosDeValor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900A311A3730D37606A75AEC /* ObjetosDeValor.swift */; };
+		EEBC54DAC4325A51BC4876CE /* ContaSuspensaViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CEA388853F828BB913DBBB /* ContaSuspensaViewModelTests.swift */; };
 		F110162D220BD8C9C9635C1C /* EstadosDeTela.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA215437724E11E1540CB9C9 /* EstadosDeTela.swift */; };
 		F1E48D07BFFCE63A89177C63 /* TelasDaCandidatura.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC0F814A146893314847DA73 /* TelasDaCandidatura.swift */; };
 		F2FF3D966E5F648603D2A5B0 /* situacao-da-conta.json in Resources */ = {isa = PBXBuildFile; fileRef = 2BBB4D99F27A58031C976121 /* situacao-da-conta.json */; };
@@ -383,6 +387,7 @@
 		5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoKeychain.swift; sourceTree = "<group>"; };
 		5D42F9162784D51FF8118379 /* requisicao-denunciar.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-denunciar.json"; sourceTree = "<group>"; };
 		5DA57DD792D852D30F068536 /* ContratoDaSprint2Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContratoDaSprint2Tests.swift; sourceTree = "<group>"; };
+		5F59B2943A73448CDDA272C7 /* ContaSuspensaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContaSuspensaViewModel.swift; sourceTree = "<group>"; };
 		60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodificadorErroAPI.swift; sourceTree = "<group>"; };
 		6044BB78E5ED8913EC72A112 /* usuario.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = usuario.json; sourceTree = "<group>"; };
 		613CDCB34E6B6DABD31BA8CF /* FluxoDoContratanteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoContratanteUITests.swift; sourceTree = "<group>"; };
@@ -427,8 +432,10 @@
 		9B70FF4F64AE47220B634F0D /* TelaCadastro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaCadastro.swift; sourceTree = "<group>"; };
 		9B8082857D66D392FED756ED /* SecaoDePresenca.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecaoDePresenca.swift; sourceTree = "<group>"; };
 		9E31499F2DC2276C58FAFE97 /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
+		A077A7E7B2FAF88619408270 /* TextosContaSuspensa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextosContaSuspensa.swift; sourceTree = "<group>"; };
 		A086191DC3C779885EE287F4 /* meus-estabelecimentos.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "meus-estabelecimentos.json"; sourceTree = "<group>"; };
 		A102BE37E5812AE84F4F8649 /* vaga.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = vaga.json; sourceTree = "<group>"; };
+		A1CEA388853F828BB913DBBB /* ContaSuspensaViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContaSuspensaViewModelTests.swift; sourceTree = "<group>"; };
 		A1D58F4A56A6A72BE697DB48 /* SaidaDaConta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaidaDaConta.swift; sourceTree = "<group>"; };
 		A3E6257414B3A5DD6EA2CC29 /* vaga-publicada.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vaga-publicada.json"; sourceTree = "<group>"; };
 		A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrilaApp.swift; sourceTree = "<group>"; };
@@ -459,6 +466,7 @@
 		C003E3313087A6450355751E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C02E7BA06C93D2B4592EA95E /* ExclusaoDeContaDubleComplementarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaDubleComplementarTests.swift; sourceTree = "<group>"; };
 		C126662B38B9393EBBCEC099 /* AvaliacaoTurnoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvaliacaoTurnoViewModelTests.swift; sourceTree = "<group>"; };
+		C14E1BE6632C784043FFB7D9 /* TelaContaSuspensa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaContaSuspensa.swift; sourceTree = "<group>"; };
 		C151AE8A0A7E4F2BD4E95427 /* resultado-cancelamento.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-cancelamento.json"; sourceTree = "<group>"; };
 		C3E3E785E20103996C9DA2CE /* AvaliacaoTurnoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvaliacaoTurnoViewModel.swift; sourceTree = "<group>"; };
 		C5968D41D64341107B2ACE77 /* funcoes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = funcoes.json; sourceTree = "<group>"; };
@@ -596,8 +604,11 @@
 		1FBC3E72FA7598E098743BE7 /* Conta */ = {
 			isa = PBXGroup;
 			children = (
+				5F59B2943A73448CDDA272C7 /* ContaSuspensaViewModel.swift */,
 				DA3EC7375F1B4972AECBCF11 /* ExclusaoDeContaViewModel.swift */,
+				C14E1BE6632C784043FFB7D9 /* TelaContaSuspensa.swift */,
 				D06B0718A61612A3762B8DF8 /* TelaExclusaoDeConta.swift */,
+				A077A7E7B2FAF88619408270 /* TextosContaSuspensa.swift */,
 				65C5713E522E982DE438A74B /* TextosExclusaoDeConta.swift */,
 			);
 			path = Conta;
@@ -669,6 +680,7 @@
 				619DFD6BAB27B15FAE110431 /* CandidaturaTests.swift */,
 				102179ABA9DFAF4F06714C32 /* CatalogoStringsTests.swift */,
 				B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */,
+				A1CEA388853F828BB913DBBB /* ContaSuspensaViewModelTests.swift */,
 				5DA57DD792D852D30F068536 /* ContratoDaSprint2Tests.swift */,
 				B60A4C3E1C9933DE5E17492B /* ContratoTests.swift */,
 				90A4AC403161D71F18466D6A /* DominioTests.swift */,
@@ -1368,6 +1380,7 @@
 				077BD891F4BBE33EEA05F2F3 /* CatalogoDesignSystem.swift in Sources */,
 				CA8BCC7F91C36EB7280B3D9A /* CodigoViewModel.swift in Sources */,
 				B588E4E496730CE3ACB5EC44 /* Componentes.swift in Sources */,
+				C4CC93F533D8DF49C28109BB /* ContaSuspensaViewModel.swift in Sources */,
 				C0AF8B85A841AC750998C3E1 /* DesignTokens.swift in Sources */,
 				0111F3457DAC26425492C378 /* DestinoAposEntrada.swift in Sources */,
 				F90AF291394408AAFA3F5844 /* DetalheVagaViewModel.swift in Sources */,
@@ -1389,6 +1402,7 @@
 				3D473D40380DD3AE89567DCE /* TelaAvaliacao.swift in Sources */,
 				73699023A012E6D9CFBF817F /* TelaCadastro.swift in Sources */,
 				5D0F0F64CA928A5F55C92E39 /* TelaCodigo.swift in Sources */,
+				2EB932248AE6C2668644A198 /* TelaContaSuspensa.swift in Sources */,
 				D04946F3A08DE62AEAAF5E59 /* TelaDetalheVaga.swift in Sources */,
 				B4CC01BB1805BA468261C2AF /* TelaEntrada.swift in Sources */,
 				C5E15790C6756E23DBDE2ADE /* TelaExclusaoDeConta.swift in Sources */,
@@ -1399,6 +1413,7 @@
 				749938B074A87764142A0458 /* TelaProvisoriaDestino.swift in Sources */,
 				F5D92E0206CD993BE82E16FF /* TelaVagas.swift in Sources */,
 				F1E48D07BFFCE63A89177C63 /* TelasDaCandidatura.swift in Sources */,
+				1639A058B20DD8B17EDF2A16 /* TextosContaSuspensa.swift in Sources */,
 				ABE4178CEC067E14CACB2DE9 /* TextosDaPresenca.swift in Sources */,
 				980217CB8A6C6A639F99B767 /* TextosDoProfissional.swift in Sources */,
 				DC62CA4C0A046147A18BB16B /* TextosExclusaoDeConta.swift in Sources */,
@@ -1433,6 +1448,7 @@
 				D5D374210279E2CD1D8DDF4E /* CandidaturaTests.swift in Sources */,
 				DC7952E125C99359F1083E72 /* CatalogoStringsTests.swift in Sources */,
 				8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */,
+				EEBC54DAC4325A51BC4876CE /* ContaSuspensaViewModelTests.swift in Sources */,
 				929D2C77F807B70B2B6D695E /* ContratoDaSprint2Tests.swift in Sources */,
 				3A96BB6BFA60AB9E3FA036D5 /* ContratoTests.swift in Sources */,
 				0614982DC6AABA151649D361 /* DominioTests.swift in Sources */,

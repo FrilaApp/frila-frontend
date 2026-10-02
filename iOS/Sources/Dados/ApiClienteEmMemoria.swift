@@ -1006,5 +1006,29 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
             turnosCancelados: cancelados
         )
     }
+
+    // MARK: - Suporte a cenários de teste da suspensão (#41)
+
+    public func reativarConta() {
+        if let contaAtual = conta {
+            conta = Conta(
+                id: contaAtual.id,
+                perfil: contaAtual.perfil,
+                nome: contaAtual.nome,
+                telefone: contaAtual.telefone,
+                email: contaAtual.email,
+                nascimento: contaAtual.nascimento,
+                estado: .ativa
+            )
+        }
+        suspensao = nil
+    }
+
+    public func definirContestacaoExistente(protocolo: Protocolo? = nil) throws {
+        guard let atual = suspensao else { throw erro("sem_suspensao_ativa") }
+        let prot = try protocolo ?? novoProtocolo(.contestacao)
+        suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: prot)
+    }
 }
+
 
