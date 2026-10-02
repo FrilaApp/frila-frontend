@@ -175,4 +175,28 @@ app="$(novo_app_bom sem-aps)"
 printf 'binario release limpo\n' > "$app/Frila"
 esperar_reprovacao "aps-environment ausente" "não declara aps-environment" "$app"
 
+# No build assinado vale o que está na assinatura, e não o declarado: só production passa, com ou
+# sem get-task-allow (a assinatura de desenvolvimento não abranda a regra).
+assinar_com() {
+  local app="$1" aps="$2" get_task_allow="$3"
+  printf 'int main(void) { return 0; }\n' | compilar_com_entitlements "$app/Frila"
+  plutil -insert CFBundleIdentifier -string com.frila.org.app.teste "$app/Info.plist"
+  printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n\t<key>aps-environment</key>\n\t<string>%s</string>\n\t<key>get-task-allow</key>\n\t<%s/>\n</dict>\n</plist>\n' \
+    "$aps" "$get_task_allow" > "$TMPDIR_TESTE/assinatura.plist"
+  codesign --force --sign - --entitlements "$TMPDIR_TESTE/assinatura.plist" "$app" 2>/dev/null
+}
+
+for get_task_allow in true false; do
+  app="$(novo_app_bom "assinado-production-$get_task_allow")"
+  assinar_com "$app" production "$get_task_allow"
+  esperar_aprovacao "$app"
+
+  for aps in development valor-invalido; do
+    app="$(novo_app_bom "assinado-$aps-$get_task_allow")"
+    assinar_com "$app" "$aps" "$get_task_allow"
+    esperar_reprovacao "assinatura com aps-environment $aps e get-task-allow $get_task_allow" \
+      "aps-environment deve ser production no Release (encontrado: $aps" "$app"
+  done
+done
+
 echo "OK: autoteste de conferir-release.sh passou"
