@@ -228,4 +228,64 @@ struct ContaSuspensaViewModelTests {
         #expect(vm.emAnalise)
         #expect(!vm.podeContestar)
     }
+
+    @Test("Cenário 8: Abrir e cancelar formulário de contestação limpa mensagemErro")
+    func abrirECancelarLimpaMensagemErro() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        let vm = ContaSuspensaViewModel(api: api)
+        await vm.carregar()
+
+        vm.abrirFormularioContestacao()
+        vm.relato = "curto"
+        await vm.enviarContestacao()
+        #expect(vm.mensagemErro != nil)
+
+        vm.cancelarFormularioContestacao()
+        #expect(vm.mensagemErro == nil)
+        #expect(!vm.mostrarFormularioContestacao)
+
+        vm.abrirFormularioContestacao()
+        #expect(vm.mensagemErro == nil)
+        #expect(vm.mostrarFormularioContestacao)
+    }
+
+    @Test("Cenário 9: Relato com espaços nas pontas mas >= 10 caracteres limpos é válido e envia")
+    func relatoComEspacosValidoEnvia() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        let vm = ContaSuspensaViewModel(api: api)
+        await vm.carregar()
+
+        vm.abrirFormularioContestacao()
+        vm.relato = "   Dez chars!   "
+        #expect(vm.relatoValido)
+
+        await vm.enviarContestacao()
+
+        #expect(vm.protocolo != nil)
+        #expect(vm.mensagemErro == nil)
+        #expect(!vm.mostrarFormularioContestacao)
+    }
+
+    @Test("Cenário 10: Erro customizado não-API ao contestar resulta em erroGenerico")
+    func erroDesconhecidoMostraGenerico() async throws {
+        struct ErroCustomizado: Error {}
+        let vm = ContaSuspensaViewModel(
+            situacao: SituacaoDaConta(
+                estado: .suspensa,
+                suspensao: Suspensao(motivo: "Suspenso", desde: Date(), contestacao: nil)
+            ),
+            obterSituacao: {
+                SituacaoDaConta(estado: .suspensa, suspensao: Suspensao(motivo: "Suspenso", desde: Date(), contestacao: nil))
+            },
+            enviarContestacaoAcao: { _ in throw ErroCustomizado() }
+        )
+
+        vm.abrirFormularioContestacao()
+        vm.relato = "Relato válido com mais de dez caracteres"
+        await vm.enviarContestacao()
+
+        #expect(vm.mensagemErro == TextosContaSuspensa.erroGenerico)
+        #expect(vm.protocolo == nil)
+    }
 }
+

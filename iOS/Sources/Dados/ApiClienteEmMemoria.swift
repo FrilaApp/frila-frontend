@@ -41,6 +41,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case checkinManualPendente = "checkin-manual-pendente"
         /// Conta de contratante com um turno que começou há 20 minutos e ainda não teve check-in (#19).
         case atrasoNoTurno = "atraso-no-turno"
+        /// Configuração remota exige versão mínima superior à atual.
+        case atualizacaoObrigatoria = "atualizacao-obrigatoria"
     }
 
     private let cenario: Cenario
@@ -763,8 +765,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
         try verificarRede()
-        guard cenario == .contaSuspensa else { return configuracao }
-        return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        if cenario == .atualizacaoObrigatoria {
+            return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        }
+        return configuracao
     }
 
     public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }

@@ -119,6 +119,7 @@
 		A15D453F5D108FB3392D7188 /* situacao-da-conta-suspensa.json in Resources */ = {isa = PBXBuildFile; fileRef = 1E7FC2C8F77C8DAC2C6C923F /* situacao-da-conta-suspensa.json */; };
 		A1ECBBA8CA338766CB1A8896 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A2CB4DC11D29F54B1BFB5A17 /* FrilaApresentacao.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; };
+		A2E8477D5DA584C478A295CB /* ContaSuspensaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B92F5406A0FB5B038F00A50E /* ContaSuspensaUITests.swift */; };
 		A30FE1B8F3EFE836737091E6 /* Localizacao.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8F86FAC86C784EFE6D461E2 /* Localizacao.swift */; };
 		A4AB220969DBCDDE4AF6A6F3 /* ExclusaoDeContaViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB907629D17A01D860FE12A /* ExclusaoDeContaViewModelTests.swift */; };
 		A815E2BE571BE753487E920E /* Modelos.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B3CEC4D7490ABD615F9262 /* Modelos.swift */; };
@@ -460,6 +461,7 @@
 		B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbienteTests.swift; sourceTree = "<group>"; };
 		B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CadastroEstabelecimentoUITests.swift; sourceTree = "<group>"; };
 		B846214E1DADC0F62827675D /* Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = "<group>"; };
+		B92F5406A0FB5B038F00A50E /* ContaSuspensaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContaSuspensaUITests.swift; sourceTree = "<group>"; };
 		B99AE90CD8E3B6D44461C678 /* CadastroEstabelecimentoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CadastroEstabelecimentoTests.swift; sourceTree = "<group>"; };
 		BDCD65257F314605356F4842 /* SegurancaDoCodigoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegurancaDoCodigoTests.swift; sourceTree = "<group>"; };
 		BE0AC842DF3BE306F3FF7A4F /* FluxoDoProfissional.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoProfissional.swift; sourceTree = "<group>"; };
@@ -659,6 +661,7 @@
 			children = (
 				03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */,
 				B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */,
+				B92F5406A0FB5B038F00A50E /* ContaSuspensaUITests.swift */,
 				44760C9078A3626B77CA5EF0 /* ExclusaoDeContaUITests.swift */,
 				613CDCB34E6B6DABD31BA8CF /* FluxoDoContratanteUITests.swift */,
 				AB83B16D703D1E773D101730 /* FrilaUITests.swift */,
@@ -1427,6 +1430,7 @@
 			files = (
 				5BE18DD27D48523970902937 /* AcessibilidadeDoCatalogoUITests.swift in Sources */,
 				B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */,
+				A2E8477D5DA584C478A295CB /* ContaSuspensaUITests.swift in Sources */,
 				E1BFE2C26E3F9990368319CA /* ExclusaoDeContaUITests.swift in Sources */,
 				0D8AB750BF2FBDB50796C21B /* FluxoDoContratanteUITests.swift in Sources */,
 				CA9ECE0B149FACE77CA6BF3A /* FrilaUITests.swift in Sources */,

@@ -222,6 +222,18 @@ private struct EntradaDoApp: View {
                 FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
                     aplicarDestinoManual(destino)
                 }
+            case let .contaSuspensa(situacao):
+                TelaContaSuspensa(
+                    viewModel: ContaSuspensaViewModel(
+                        situacao: situacao,
+                        api: api,
+                        aoReativar: {
+                            Task { await avaliarSessao() }
+                        },
+                        sair: acaoDeSair
+                    ),
+                    api: api
+                )
             }
         } else {
             FluxoDeEntrada(api: api) { destino in
@@ -241,6 +253,8 @@ private struct EntradaDoApp: View {
         case .contratante:
             DestinoGuardado.salvar(.contratante)
             destinoAtual = .contratante
+        case let .contaSuspensa(situacao):
+            destinoAtual = .contaSuspensa(situacao)
         }
     }
 
