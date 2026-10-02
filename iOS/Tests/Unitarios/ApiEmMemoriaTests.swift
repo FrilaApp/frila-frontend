@@ -221,4 +221,33 @@ struct ApiEmMemoriaTests {
             try await api.vagasAbertas(FiltroVagas(deslocamento: -1))
         }
     }
+
+    @Test("exportarMeusDados gera JSON no cenário padrão e respeita cenários de erro do dublê")
+    func exportarMeusDadosCenarios() async throws {
+        let apiSucesso = ApiClienteEmMemoria(cenario: .sucesso)
+        let dados = try await apiSucesso.exportarMeusDados()
+        #expect(!dados.isEmpty)
+        let texto = try #require(String(data: dados, encoding: .utf8))
+        #expect(texto.contains("gerado_em"))
+        #expect(texto.contains("conta"))
+        #expect(await apiSucesso.chamadasAExportarMeusDados == 1)
+
+        // Com erro configurado via definirErroExportarMeusDados
+        await apiSucesso.definirErroExportarMeusDados(ErroDaApi(codigo: .desconhecido))
+        await #expect(throws: ErroDaApi(codigo: .desconhecido)) {
+            try await apiSucesso.exportarMeusDados()
+        }
+
+        // Cenário exportarSemRede
+        let apiSemRede = ApiClienteEmMemoria(cenario: .exportarSemRede)
+        await #expect(throws: ErroDaApi(codigo: .semRede)) {
+            try await apiSemRede.exportarMeusDados()
+        }
+
+        // Cenário exportarErroServidor
+        let apiErroServidor = ApiClienteEmMemoria(cenario: .exportarErroServidor)
+        await #expect(throws: ErroDaApi(codigo: .desconhecido)) {
+            try await apiErroServidor.exportarMeusDados()
+        }
+    }
 }

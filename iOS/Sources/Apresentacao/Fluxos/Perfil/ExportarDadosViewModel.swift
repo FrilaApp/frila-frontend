@@ -31,10 +31,6 @@ public final class ExportarDadosViewModel {
         estado == .carregando
     }
 
-    public var carregando: Bool {
-        estaCarregando
-    }
-
     public var itemCompartilhamento: ItemCompartilhamento? {
         guard let arquivoParaCompartilhar else { return nil }
         return ItemCompartilhamento(url: arquivoParaCompartilhar)
@@ -59,6 +55,7 @@ public final class ExportarDadosViewModel {
 
     public func exportarDados() async {
         guard !estaCarregando else { return }
+        limparArquivosTemporariosAntigos()
         estado = .carregando
 
         do {
@@ -78,8 +75,9 @@ public final class ExportarDadosViewModel {
         }
     }
 
-    public func exportar() async {
-        await exportarDados()
+    public func atividadeCompartilhamentoConcluida(concluida: Bool) {
+        guard concluida else { return }
+        folhaCompartilhamentoFechada()
     }
 
     public func folhaCompartilhamentoFechada() {
@@ -90,8 +88,15 @@ public final class ExportarDadosViewModel {
         mostrarFolhaCompartilhamento = false
     }
 
-    public func aoFecharFolha() {
-        folhaCompartilhamentoFechada()
+    private func limparArquivosTemporariosAntigos() {
+        guard let itens = try? FileManager.default.contentsOfDirectory(at: diretorioTemporario, includingPropertiesForKeys: nil) else {
+            return
+        }
+        for item in itens {
+            if item.lastPathComponent.hasPrefix("frila-meus-dados-") && item.pathExtension == "json" {
+                try? FileManager.default.removeItem(at: item)
+            }
+        }
     }
 
     private func gravarArquivoTemporario(dados: Data) throws -> URL {
