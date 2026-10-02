@@ -289,9 +289,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
+        let resposta: ContratoAPI.DispositivoDTO = try await rpc(
+            "registrar_dispositivo",
+            params: ContratoAPI.RegistrarDispositivo(tokenFCM: tokenFCM)
+        )
+        return resposta.dominio()
+    }
+
     public func removerDispositivo(tokenFCM: String) async throws {
-        struct Params: Encodable { let token_fcm: String }
-        let _: ContratoAPI.RemocaoDTO = try await rpc("remover_dispositivo", params: Params(token_fcm: tokenFCM))
+        let _: ContratoAPI.RemocaoDTO = try await rpc("remover_dispositivo", params: ContratoAPI.RemoverDispositivo(tokenFCM: tokenFCM))
     }
 
     public func sair(tokenFCM: String?) async {

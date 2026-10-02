@@ -32,7 +32,7 @@ struct FrilaApp: App {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
             let api = try Self.cliente(para: ambiente)
-            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api))
+            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api), Self.aparelhoDePush(para: api))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
@@ -42,9 +42,9 @@ struct FrilaApp: App {
     var body: some Scene {
         WindowGroup {
             switch inicializacao {
-            case let .pronta(api, localizacao):
+            case let .pronta(api, localizacao, aparelho):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao)
+                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao, aparelho: aparelho)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -77,10 +77,18 @@ struct FrilaApp: App {
         #endif
         return LeitorDeLocalizacaoDoSistema()
     }
+
+    /// Um por app: o token de push e a conta a que o aparelho está entregue (#162). Com o dublê em
+    /// memória o guardado também fica em memória; com Supabase, no Keychain.
+    private static func aparelhoDePush(para api: any ApiCliente) -> AparelhoDePush {
+        let armazenamento: any ArmazenamentoDoAparelho = api is ApiClienteEmMemoria
+            ? ArmazenamentoDoAparelhoEmMemoria() : ArmazenamentoDoAparelhoNoKeychain()
+        return AparelhoDePush(api: api, armazenamento: armazenamento)
+    }
 }
 
 private enum Inicializacao {
-    case pronta(any ApiCliente, any LeitorDeLocalizacao)
+    case pronta(any ApiCliente, any LeitorDeLocalizacao, AparelhoDePush)
     case configuracaoInvalida(ErroDeConfiguracao)
 }
 
@@ -93,6 +101,7 @@ private struct EntradaDoApp: View {
     let api: any ApiCliente
     let armazenamento: ArmazenamentoSwiftData?
     let localizacao: any LeitorDeLocalizacao
+    let aparelho: AparelhoDePush
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
@@ -106,8 +115,9 @@ private struct EntradaDoApp: View {
     @State private var rotaInicialAplicada = false
     #endif
 
-    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao) {
+    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao, aparelho: AparelhoDePush) {
         self.api = api
+        self.aparelho = aparelho
         #if DEBUG
         // Reproduz a instalação anterior ao cache de sessão, somente com o dublê Local.
         let armazenamento: ArmazenamentoSwiftData? = if api is ApiClienteEmMemoria,
@@ -165,6 +175,11 @@ private struct EntradaDoApp: View {
             #endif
         }
         .task { await avaliarSessao() }
+        // O token de push passa a ser da conta que está no aparelho, a cada abertura com sessão e a
+        // cada entrada (#162). Sem token, ainda não há o que registrar.
+        .task(id: contaID) {
+            if let contaID { await aparelho.registrar(para: contaID) }
+        }
         // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
         .onChange(of: fase) { _, nova in
@@ -174,6 +189,7 @@ private struct EntradaDoApp: View {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
+                await aparelho.desvincular()
                 contaID = nil
                 roteador.voltarParaLista()
                 destinoAtual = nil
@@ -194,7 +210,7 @@ private struct EntradaDoApp: View {
                 UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
             })
         )
-        let saida = SaidaDaConta(api: api, armazenamento: armazenamento,
+        let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho,
                                 limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() })
         let observador = api as? any ObservadorDeSessao
         await withTaskGroup(of: Void.self) { grupo in
@@ -420,8 +436,8 @@ private struct EntradaDoApp: View {
     private func sairDaConta() async {
         contaID = nil
         destinoAtual = nil
-        await SaidaDaConta(api: api, armazenamento: armazenamento,
-                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair(tokenFCM: nil)
+        await SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho,
+                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair()
         roteador.voltarParaLista()
         destinoAtual = nil
         await avaliarSessao()

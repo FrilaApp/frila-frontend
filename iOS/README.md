@@ -45,7 +45,7 @@ export FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64=...   # base64 do plist
 Scripts/inject-firebase-config.sh dev                   # ou prod, ou all
 ```
 
-O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources/Firebase/<Dev|Prod>/`, ignorado pelo Git. A fase `Select Firebase configuration` copia para o bundle só o plist do ambiente ativo. O SDK de push (FCM) entra no Sprint 2.
+O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources/Firebase/<Dev|Prod>/`, ignorado pelo Git. A fase `Select Firebase configuration` copia para o bundle só o plist do ambiente ativo. O push está em [Push](Docs/Push.md): o ciclo de vida do token já existe; o SDK do FCM entra com o #8.
 
 ## Segredos e arquivos externos
 
