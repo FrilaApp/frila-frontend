@@ -160,7 +160,8 @@ Como o payload não diz o destinatário, a conferência usa o que o aparelho sab
    quem entra só começa 60 s depois da confirmação do servidor
    (`VinculoDoAparelho.carenciaNaTrocaDeConta`): o aviso mandado à conta anterior que ainda estava
    a caminho chega nesse intervalo. A mesma conta que sai e volta, e a primeira entrada no
-   aparelho, não têm carência.
+   aparelho, não têm carência. O esquema Local também não: o dublê não tem servidor nem aviso a
+   caminho, e as contas dele se revezam no mesmo simulador.
 3. **Perfil.** O tipo precisa ter destino no perfil da conta: aviso da casa não abre para quem trabalha.
 4. **Dados.** A tela de destino lê tudo com a sessão de quem está no aparelho. O turno ou a vaga de
    outra conta não vem na leitura.

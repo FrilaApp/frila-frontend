@@ -21,6 +21,7 @@ public actor AparelhoDePush {
     private let api: any ApiCliente
     private let armazenamento: any ArmazenamentoDoAparelho
     private let relogio: any Relogio
+    private let carenciaNaTrocaDeConta: TimeInterval
     /// A mesma fila FIFO da sessão do cliente, em outra instância: um `actor` sozinho é reentrante
     /// em cada `await`.
     private let fila = FilaDeSessao()
@@ -31,10 +32,12 @@ public actor AparelhoDePush {
     private var contaAtiva: UUID?
     private var observadores: [UUID: AsyncStream<VinculoDoAparelho?>.Continuation] = [:]
 
-    public init(api: any ApiCliente, armazenamento: any ArmazenamentoDoAparelho, relogio: any Relogio = RelogioDoSistema()) {
+    public init(api: any ApiCliente, armazenamento: any ArmazenamentoDoAparelho, relogio: any Relogio = RelogioDoSistema(),
+                carenciaNaTrocaDeConta: TimeInterval = VinculoDoAparelho.carenciaNaTrocaDeConta) {
         self.api = api
         self.armazenamento = armazenamento
         self.relogio = relogio
+        self.carenciaNaTrocaDeConta = carenciaNaTrocaDeConta
     }
 
     /// A conta a que o aparelho está entregue, ou nada: sem entrada, sem token ou sem a confirmação
@@ -140,7 +143,7 @@ public actor AparelhoDePush {
     /// mandado a ela pode chegar logo depois da troca, e o vínculo novo só vale depois da carência.
     private func carencia(de atual: AparelhoGuardado, para contaID: UUID) -> TimeInterval {
         guard let anterior = atual.vinculo?.contaID ?? atual.contaAnterior, anterior != contaID else { return 0 }
-        return VinculoDoAparelho.carenciaNaTrocaDeConta
+        return carenciaNaTrocaDeConta
     }
 
     private func receberNaVez(token: String) async -> Registro {
