@@ -599,12 +599,16 @@ extension XCUIElement {
     /// Com o teclado recém-aberto, `typeText` devolve antes de o teclado entregar todas as teclas
     /// ao campo. O toque seguinte chegava com o e-mail pela metade: a Entrada respondia
     /// "Informe um e-mail válido." e a tela do código nunca abria.
-    func digitarEEsperar(_ texto: String, file: StaticString = #filePath, line: UInt = #line) {
+    func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = 15, file: StaticString = #filePath, line: UInt = #line) {
         typeText(texto)
-        let completo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", texto), object: self)
+        let valorEsperado = esperado ?? (texto.hasSuffix("\n") ? String(texto.dropLast()) : texto)
+        let completo = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@ OR value CONTAINS %@", valorEsperado, valorEsperado),
+            object: self
+        )
         XCTAssertEqual(
-            XCTWaiter.wait(for: [completo], timeout: 10), .completed,
-            "O campo deveria mostrar \"\(texto)\" depois da digitação", file: file, line: line
+            XCTWaiter.wait(for: [completo], timeout: timeout), .completed,
+            "O campo deveria mostrar \"\(valorEsperado)\" depois da digitação", file: file, line: line
         )
     }
 }

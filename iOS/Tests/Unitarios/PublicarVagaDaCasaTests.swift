@@ -28,10 +28,20 @@ struct MeuEstabelecimentoEmMemoriaTests {
         #expect(casa.documento.isEmpty)
     }
 
+    @Test("Conta de profissional recebe sem_permissao (403), pois não é membro de estabelecimento")
+    func profissional() async throws {
+        #expect(await recusa(ApiClienteEmMemoria(cenario: .sucesso), id: casaID) == .semPermissao)
+    }
+
     @Test("A casa de outra conta e o id que não existe respondem sem_permissao, iguais")
     func naoMembro() async throws {
         #expect(await recusa(ApiClienteEmMemoria(cenario: .contratante), id: UUID()) == .semPermissao)
-        #expect(await recusa(ApiClienteEmMemoria(cenario: .contratanteSemEstabelecimento), id: casaID) == .semPermissao)
+        let api = ApiClienteEmMemoria(cenario: .contratanteSemEstabelecimento)
+        _ = try await api.cadastrarEstabelecimento(CadastroEstabelecimento(
+            nome: "Novo Bar", documento: "12345678901", tipo: .foodService, endereco: "Rua 1",
+            regiaoAdministrativa: "Plano Piloto", ponto: try Coordenada(latitude: -15.78, longitude: -47.93)
+        ))
+        #expect(await recusa(api, id: casaID) == .semPermissao)
     }
 
     @Test("Sem rede, a leitura falha como falta de rede")
@@ -270,7 +280,35 @@ struct PublicacaoDaCasaViewModelTests {
 
         #expect(modelo.estado == .erro(mensagem: MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido))))
     }
+
+    @Test("O formulário da casa lida oferece modo seleção e urgência")
+    func ofereceModoSelecao() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contratante)
+        let modelo = PublicacaoDaCasaViewModel(api: api, estabelecimentoID: casaID)
+        await modelo.carregar()
+
+        guard case let .pronta(estabelecimento, _) = modelo.estado else {
+            Issue.record("devia estar pronta com o estabelecimento lido")
+            return
+        }
+
+        let vm = PublicarVagaViewModel(estabelecimento: estabelecimento, fila: FilaSimples()) { _ in
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+        #expect(vm.modo == .urgencia)
+        vm.modo = .selecao
+        #expect(vm.modo == .selecao)
+    }
 }
+
+private actor FilaSimples: FilaDeAcoes {
+    func enfileirar(_ acao: AcaoPendente) {}
+    func pendentes() -> [AcaoPendente] { [] }
+    func remover(id: UUID) {}
+    func limpar() {}
+}
+
+
 
 private final class Trava: @unchecked Sendable {
     private let trava = NSLock()

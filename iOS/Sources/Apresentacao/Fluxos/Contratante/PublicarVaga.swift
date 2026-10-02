@@ -352,12 +352,14 @@ public struct TelaPublicarVaga: View {
                             .accessibilityIdentifier("cancelar-publicacao")
                         }
                     }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { mostrandoPerfilEstabelecimento = true } label: {
-                            Image(systemName: "building.2.crop.circle")
-                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    if aoCancelar == nil {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { mostrandoPerfilEstabelecimento = true } label: {
+                                Image(systemName: "building.2.crop.circle")
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            }
+                            .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
                         }
-                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
                     }
                 }
         }

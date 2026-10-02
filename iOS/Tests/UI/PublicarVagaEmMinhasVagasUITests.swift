@@ -4,9 +4,9 @@ import XCTest
 /// segunda vaga sem passar pelo cadastro. No dublê, pelo fluxo de produto.
 @MainActor
 final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
-    private func abrir(_ outros: [String] = []) -> XCUIApplication {
+    private func abrir(_ outros: [String] = [], cenario: String = "contratante") -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "contratante"] + outros
+        app.launchArguments = ["-FRILA_SCENARIO", cenario] + outros
         app.launch()
         return app
     }
@@ -26,10 +26,10 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         // cobriria o campo de baixo.
         let responsavel = app.textFields["Quem recebe no local"]
         responsavel.tap()
-        responsavel.typeText("Marina\n")
+        responsavel.digitarEEsperar("Marina")
         let valor = app.textFields["Valor por posição"]
         valor.tap()
-        valor.typeText("18000")
+        valor.digitarEEsperar("18000", esperado: "180,00")
         app.swipeUp()
         app.buttons["publicar-vaga-botao"].tap()
     }
@@ -79,4 +79,66 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Ative as notificações"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Confirmação de quem vai trabalhar"].exists)
     }
+
+    func testPublicarPorMinhasVagasOfereceModoSelecao() {
+        let app = abrir()
+
+        XCTAssertTrue(app.buttons["publicar-vaga-entrada"].waitForExistence(timeout: 15))
+        app.buttons["publicar-vaga-entrada"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+
+        let modo = app.segmentedControls["modo-vaga-picker"]
+        rolarAte(modo, em: app)
+        XCTAssertTrue(modo.exists, "o formulário de publicação por Minhas vagas oferece o seletor de modo")
+        XCTAssertTrue(modo.buttons["Urgência"].isSelected)
+        XCTAssertTrue(modo.buttons["Seleção"].exists)
+
+        let explicacao = app.staticTexts["modo-vaga-explicacao"]
+        XCTAssertEqual(explicacao.label, "O primeiro profissional que aceitar é confirmado na hora.")
+
+        modo.buttons["Seleção"].tap()
+        XCTAssertTrue(modo.buttons["Seleção"].isSelected)
+        XCTAssertTrue(explicacao.label.contains("O início precisa estar a mais de 24 horas"), explicacao.label)
+    }
+
+    func testErroAoLerEstabelecimentoMostraMensagemEVoltarReencontraLista() {
+        let app = abrir(cenario: "erro-ao-ler-meu-estabelecimento")
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        XCTAssertTrue(entrada.waitForExistence(timeout: 5))
+        entrada.tap()
+
+        let telaErro = app.descendants(matching: .any)["publicar-vaga-erro"]
+        XCTAssertTrue(telaErro.waitForExistence(timeout: 10), "ao falhar a leitura de meu_estabelecimento, a tela de erro é exibida")
+        XCTAssertTrue(app.staticTexts["Não foi possível concluir esta ação. Tente novamente."].exists)
+
+        let voltar = app.buttons["voltar-para-minhas-vagas"]
+        XCTAssertTrue(voltar.waitForExistence(timeout: 5))
+        voltar.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["publicar-vaga-entrada"].exists)
+    }
+
+    private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {
+        let janela = app.windows.firstMatch.frame
+        for _ in 0..<tentativas {
+            guard elemento.exists else {
+                app.swipeUp(velocity: .slow)
+                continue
+            }
+            let quadro = elemento.frame
+            if elemento.isHittable, quadro.minY >= 120, quadro.maxY <= janela.height - 60 { return }
+            if quadro.minY < 120 {
+                app.swipeDown(velocity: .slow)
+            } else {
+                app.swipeUp(velocity: .slow)
+            }
+        }
+    }
 }
+

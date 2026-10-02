@@ -146,7 +146,7 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 
 O contratante que já tem estabelecimento publica pelas Minhas vagas: o botão "Publicar vaga" fica sempre à vista, no alto da lista.
 
-- **De onde vêm o endereço e o ponto.** `PublicacaoDaCasaViewModel` lê `meu_estabelecimento` (contrato 0.2.29, ainda proposta) e o telefone da conta, e abre o mesmo `TelaPublicarVaga` do primeiro acesso. `meus_estabelecimentos` não traz endereço, região nem ponto, e `publicar_vaga` exige os três.
+- **De onde vêm o endereço e o ponto.** `PublicacaoDaCasaViewModel` lê `meu_estabelecimento` (aprovada em 02/10/2026; depende do cartão #250 no backend) e o telefone da conta, e abre o mesmo `TelaPublicarVaga` do primeiro acesso. `meus_estabelecimentos` não traz endereço, região nem ponto, e `publicar_vaga` exige os três.
 - **A publicação toma o lugar da lista**, como no primeiro acesso, em vez de abrir uma folha por cima. Publicada a vaga, a lista volta e é relida. "Cancelar" volta sem publicar.
 - **Explicação da notificação (#8).** Continua aparecendo depois de publicar, para quem o sistema ainda não perguntou.
 - **Sem rede.** A publicação em si segue como antes: fila, campos travados e "Tentar novamente". A leitura do cadastro da casa precisa de rede na primeira vez; depois fica guardada enquanto o app estiver aberto.
@@ -277,7 +277,7 @@ Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contr
 - **0.2.25, "Estou a caminho".** `avisar_a_caminho` está na porta `ApiCliente`, no cliente Supabase e no dublê, e `a_caminho_em` é lido em `Turno` e em `PosicaoNoPainel`. O botão em Meu turno não existe: a funcionalidade é da v1.1, por decisão de produto.
 - **0.2.26 e 0.2.27, nada para o cliente.** O `422` de `registrar_dispositivo` é de operação que o app ainda não chama, e a 0.2.27 só alinha textos.
 - **0.2.28, bloqueio esconde o perfil público.** `perfil_publico` responde `404 nao_encontrado` entre partes bloqueadas. Nenhum schema muda, e nenhuma tela foi tocada nesta sincronização.
-- **0.2.29, `meu_estabelecimento` (proposta, ainda fora do `main` do frila-docs).** A leitura do cadastro da casa para quem é membro. Está na porta `ApiCliente`, no cliente Supabase e no dublê, e é dela que Publicar vaga em Minhas vagas tira o endereço, a região e o ponto: `meus_estabelecimentos` não os traz. Enquanto a proposta não entrar, o espelho está à frente do contrato publicado.
+- **0.2.29, `meu_estabelecimento` (aprovada em 02/10/2026; depende do cartão #250 no backend).** A leitura do cadastro da casa para quem é membro. Está na porta `ApiCliente`, no cliente Supabase e no dublê, e é dela que Publicar vaga em Minhas vagas tira o endereço, a região e o ponto: `meus_estabelecimentos` não os traz.
 
 O `Codable` dos modelos de domínio é o formato do cache do aparelho, e não o da API. Um turno guardado antes da 0.2.20 não tem a região da vaga e continua legível, com a região vazia, até a próxima leitura com rede.
 

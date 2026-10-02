@@ -66,6 +66,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case candidaturaPendente = "candidatura-pendente"
         case exportarSemRede = "exportar-sem-rede"
         case exportarErroServidor = "exportar-erro-servidor"
+        /// Falha ao ler meu_estabelecimento (simula 404 do backend ou erro do servidor ao buscar o cadastro da casa).
+        case erroAoLerMeuEstabelecimento = "erro-ao-ler-meu-estabelecimento"
 
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
@@ -170,7 +172,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario.selecaoDoContratante {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario.selecaoDoContratante || cenario == .erroAoLerMeuEstabelecimento {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -484,6 +486,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func meuEstabelecimento(id: UUID) async throws -> Estabelecimento {
         try verificarFalhaGeral()
+        if cenario == .erroAoLerMeuEstabelecimento {
+            throw ErroDaApi(codigo: .desconhecido, codigoOriginal: "PGRST202")
+        }
+        // O contrato 0.2.29 manda 403 sem_permissao para conta de profissional.
+        guard conta?.perfil == .contratante else { throw erro("sem_permissao") }
         // Como no backend: o id que não existe responde igual ao da casa de outra conta.
         guard let estabelecimento = estabelecimentos.first(where: { $0.id == id }) else { throw erro("sem_permissao") }
         // Como no contrato 0.2.29: MeuEstabelecimento não devolve documento.

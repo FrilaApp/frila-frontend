@@ -85,7 +85,12 @@ public struct DestinoDePublicarVaga: View {
         Group {
             switch modelo.estado {
             case .carregando:
-                EstadoCarregando()
+                VStack(spacing: FrilaEspaco.medio) {
+                    EstadoCarregando()
+                    BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
+                        .accessibilityIdentifier("voltar-para-minhas-vagas")
+                }
+                .padding(FrilaEspaco.medio)
             case let .pronta(estabelecimento, telefone):
                 TelaPublicarVaga(
                     api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
@@ -94,11 +99,11 @@ public struct DestinoDePublicarVaga: View {
             case let .erro(mensagem):
                 VStack(spacing: FrilaEspaco.medio) {
                     EstadoErro(verbatim: mensagem) { Task { await modelo.carregar() } }
+                        .accessibilityIdentifier("publicar-vaga-erro")
                     BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
                         .accessibilityIdentifier("voltar-para-minhas-vagas")
                 }
                 .padding(FrilaEspaco.medio)
-                .accessibilityIdentifier("publicar-vaga-erro")
             }
         }
         .task { await modelo.carregar() }
