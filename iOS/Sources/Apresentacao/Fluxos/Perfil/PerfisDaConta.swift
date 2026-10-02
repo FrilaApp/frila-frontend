@@ -29,7 +29,7 @@ private enum TextosPerfilConta {
     static let naoInformado = String(localized: "—", bundle: bundleApresentacao)
     static let todoExportacao = String(localized: "Recurso em desenvolvimento", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
-    static let suportePendente = String(localized: "Endereço de suporte pendente", bundle: bundleApresentacao)
+    static let dicaSuporte = String(localized: "Abre o e-mail para enviar mensagem ao suporte", bundle: bundleApresentacao)
     static let linkPendente = String(localized: "Link pendente", bundle: bundleApresentacao)
 }
 
@@ -324,13 +324,42 @@ struct TelaAjudaPerfil: View {
     var body: some View {
         NavigationStack {
             List {
-                // TODO: inserir o endereço oficial de suporte quando o produto publicar o canal.
-                LabeledContent {
-                    Text(verbatim: TextosPerfilConta.suportePendente)
-                } label: {
-                    Text(verbatim: TextosPerfilConta.suporte)
+                Section {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        if let url = enderecos.urlSuporte {
+                            Link(destination: url) {
+                                HStack {
+                                    Text(verbatim: TextosPerfilConta.suporte)
+                                        .foregroundStyle(FrilaCor.texto)
+                                    Spacer()
+                                    Image(systemName: "envelope")
+                                        .font(.footnote)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                }
+                                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel(Text(verbatim: TextosPerfilConta.suporte))
+                            .accessibilityHint(Text(verbatim: TextosPerfilConta.dicaSuporte))
+                            .accessibilityAddTraits(.isLink)
+                            .accessibilityIdentifier("perfil-suporte")
+                        } else {
+                            Text(verbatim: TextosPerfilConta.suporte)
+                                .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                                .accessibilityIdentifier("perfil-suporte")
+                        }
+
+                        Text(verbatim: enderecos.emailSuporte)
+                            .font(.footnote)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier("perfil-suporte-email")
+
+                        Text(verbatim: TextosPerfilConta.prazoSuporte)
+                            .font(.footnote)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
                 }
-                Text(verbatim: TextosPerfilConta.prazoSuporte)
 
                 Link(destination: enderecos.termosDeUso) {
                     HStack {

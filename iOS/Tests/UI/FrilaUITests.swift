@@ -545,6 +545,13 @@ final class PerfilUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
 
+        let suporte = app.descendants(matching: .any)["perfil-suporte"]
+        XCTAssertTrue(suporte.waitForExistence(timeout: 5), "perfil-suporte deve existir na tela de ajuda")
+
+        let emailSuporte = app.descendants(matching: .any)["perfil-suporte-email"]
+        XCTAssertTrue(emailSuporte.waitForExistence(timeout: 5), "perfil-suporte-email deve existir na tela de ajuda")
+        XCTAssertTrue(emailSuporte.label.contains("suportefrila@gmail.com"), "o endereço de suporte deve ser visível")
+
         let linkTermos = app.descendants(matching: .any)["perfil-termos"]
         let linkPrivacidade = app.descendants(matching: .any)["perfil-privacidade"]
 
