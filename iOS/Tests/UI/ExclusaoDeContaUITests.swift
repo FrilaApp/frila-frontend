@@ -80,7 +80,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertTrue(telaExclusao.waitForExistence(timeout: 5), "Deve chegar à tela de exclusão de conta")
     }
 
-    func testContratanteComTurnosFuturosVisualizaTurnosCanceladosNaExclusao() {
+    func testContratanteComTurnosFuturosVisualizaVinculosEListaIncompletaNaExclusao() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "painel-contratante"]
         app.launch()
@@ -99,10 +99,12 @@ final class ExclusaoDeContaUITests: XCTestCase {
         let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
         XCTAssertTrue(telaExclusao.waitForExistence(timeout: 5), "Deve chegar à tela de exclusão de conta")
 
-        // 4. Verifica que o turno futuro confirmado do estabelecimento é listado para cancelamento
+        // 4. Verifica que o turno futuro confirmado do estabelecimento é listado como vínculo
         let itemTurno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(itemTurno.waitForExistence(timeout: 5), "Turno futuro do contratante deve ser exibido")
         XCTAssertFalse(app.staticTexts["texto-sem-turnos-futuros"].exists)
+        XCTAssertTrue(app.staticTexts["Turnos futuros vinculados à conta"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-lista-turnos-exclusao"].exists)
     }
 
     func testContratanteSemEstabelecimentoTemAcessoAExclusaoDeConta() {

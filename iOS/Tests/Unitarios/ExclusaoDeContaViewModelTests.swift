@@ -160,19 +160,21 @@ struct ExclusaoDeContaViewModelTests {
         #expect(vm.mensagemErro == nil)
     }
 
-    @Test("Listagem e filtro de turnos futuros a serem cancelados")
+    @Test("Lista futura exclui passado, turno em andamento e início atual")
     func listagemDeTurnosFuturos() async throws {
         let agora = Date(timeIntervalSince1970: 1_700_000_000)
         let relogio = RelogioFixo(agora: agora)
 
         let turnoPassado = criarTurnoDeTeste(inicioEmHoras: -10, duracaoHoras: 2) // Fim antes de agora
+        let turnoEmAndamento = criarTurnoDeTeste(inicioEmHoras: -1)
+        let turnoIniciandoAgora = criarTurnoDeTeste(inicioEmHoras: 0)
         let turnoFuturo1 = criarTurnoDeTeste(inicioEmHoras: 2, duracaoHoras: 4)  // Fim depois de agora
         let turnoFuturo2 = criarTurnoDeTeste(inicioEmHoras: 24, duracaoHoras: 6) // Mais no futuro
 
         let porta = DublePortaExclusao()
         let vm = ExclusaoDeContaViewModel(
             executarExclusao: { try await porta.excluirConta() },
-            buscarTurnos: { [turnoPassado, turnoFuturo2, turnoFuturo1] },
+            buscarTurnos: { [turnoPassado, turnoEmAndamento, turnoIniciandoAgora, turnoFuturo2, turnoFuturo1] },
             relogio: relogio
         )
 
@@ -183,13 +185,15 @@ struct ExclusaoDeContaViewModelTests {
         #expect(vm.turnosFuturos[1].id == turnoFuturo2.id)
     }
 
-    @Test("Contratante com turnos futuros carrega turnos a serem cancelados dos seus estabelecimentos")
+    @Test("Contratante com turnos futuros carrega vínculos e informa lista incompleta")
     func contratanteComTurnosFuturosCarregaDoPainel() async throws {
         let api = ApiClienteEmMemoria(cenario: .painelContratante)
         let vm = ExclusaoDeContaViewModel(api: api)
 
         await vm.carregar()
 
+        #expect(vm.avisoListaTurnos == TextosExclusaoDeConta.listaLimitada)
+        #expect(!vm.listaTurnosIndisponivel)
         #expect(!vm.turnosFuturos.isEmpty)
         let turno = try #require(vm.turnosFuturos.first)
         #expect(turno.id == UUID(uuidString: "82000000-0000-0000-0000-000000000001"))
@@ -205,6 +209,74 @@ struct ExclusaoDeContaViewModelTests {
         await vm.carregar()
 
         #expect(vm.turnosFuturos.isEmpty)
+        #expect(!vm.listaTurnosIndisponivel)
+        #expect(vm.avisoListaTurnos == nil)
         #expect(vm.mensagemErro == nil)
+    }
+
+    @Test("Falha no segundo estabelecimento sinaliza consulta indisponível")
+    func falhaEmParteDosEstabelecimentos() async {
+        let api = ApiTurnosComSegundaCasaIndisponivel(base: ApiClienteEmMemoria(cenario: .painelContratante))
+        let porta = DublePortaExclusao()
+        let vm = ExclusaoDeContaViewModel(api: api, executarExclusao: { try await porta.excluirConta() })
+        await vm.carregar()
+        #expect(vm.listaTurnosIndisponivel)
+        #expect(vm.avisoListaTurnos == TextosExclusaoDeConta.listaIndisponivel)
+        vm.confirmouConsequencias = true
+        await vm.confirmarExclusao()
+        #expect(porta.chamadasExcluir == 1)
+    }
+
+    @Test("Falha na consulta sinaliza indisponibilidade e não impede a exclusão")
+    func erroDeLeituraNaoImpedeExclusao() async {
+        let porta = DublePortaExclusao()
+        let vm = ExclusaoDeContaViewModel(porta: porta, buscarTurnos: { throw ErroDaApi(codigo: .semRede) })
+        await vm.carregar()
+        #expect(vm.listaTurnosIndisponivel)
+        #expect(vm.avisoListaTurnos == TextosExclusaoDeConta.listaIndisponivel)
+        vm.confirmouConsequencias = true
+        await vm.confirmarExclusao()
+        #expect(porta.chamadasExcluir == 1)
+        #expect(vm.exclusaoConcluida)
+    }
+
+    @Test("Falha após leitura preserva turnos com aviso; recuperação limpa aviso")
+    func erroPreservaListaERecuperacaoLimpaAviso() async {
+        let turno = criarTurnoDeTeste(inicioEmHoras: 2)
+        let consulta = ConsultaTurnosControlada(turnos: [turno])
+        let vm = ExclusaoDeContaViewModel(porta: DublePortaExclusao(), buscarTurnos: { try await consulta.ler() },
+                                         relogio: RelogioFixo(agora: Date(timeIntervalSince1970: 1_700_000_000)))
+        await vm.carregar()
+        await consulta.falhar(true)
+        await vm.carregar()
+        #expect(vm.turnosFuturos.map(\.id) == [turno.id])
+        #expect(vm.listaTurnosIndisponivel)
+        await consulta.falhar(false)
+        await vm.carregar()
+        #expect(!vm.listaTurnosIndisponivel)
+        #expect(vm.avisoListaTurnos == nil)
+    }
+}
+
+private actor ConsultaTurnosControlada {
+    let turnos: [Turno]
+    var comErro = false
+    init(turnos: [Turno]) { self.turnos = turnos }
+    func falhar(_ valor: Bool) { comErro = valor }
+    func ler() throws -> [Turno] {
+        if comErro { throw ErroDaApi(codigo: .semRede) }
+        return turnos
+    }
+}
+
+private final class ApiTurnosComSegundaCasaIndisponivel: ApiClienteEncaminhador, @unchecked Sendable {
+    private let segundaCasaID = UUID()
+    override func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] {
+        let casas = try await base.meusEstabelecimentos()
+        return casas + [EstabelecimentoDaConta(id: segundaCasaID, nome: "Segunda casa", papel: .administrador)]
+    }
+    override func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
+        if id == segundaCasaID { throw ErroDaApi(codigo: .semRede) }
+        return try await base.painelEstabelecimento(id: id, periodo: periodo)
     }
 }

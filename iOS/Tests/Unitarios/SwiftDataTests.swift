@@ -6,6 +6,29 @@ import Testing
 
 @Suite("Cache e fila SwiftData")
 struct SwiftDataTests {
+    @Test("Republicação sobrevive à reabertura do banco com ID, origem, chave e período")
+    func republicacaoPendenteNoDisco() async throws {
+        let diretorio = FileManager.default.temporaryDirectory.appending(path: "frila-republicacao-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let esquema = Schema([TurnoPersistido.self, FuncaoPersistida.self, SessaoPersistida.self, AcaoPendentePersistida.self])
+        let configuracao = ModelConfiguration("FilaRepublicacaoTeste", schema: esquema, url: diretorio.appending(path: "Fila.store"))
+        var container: ModelContainer? = try ModelContainer(for: esquema, configurations: [configuracao])
+        var fila: ArmazenamentoSwiftData? = ArmazenamentoSwiftData(modelContainer: container!)
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let periodo = try Periodo(inicio: base.addingTimeInterval(10800), fim: base.addingTimeInterval(25200))
+        let acao = AcaoPendente(tipo: .republicacaoVaga, instanteDoToque: base, chave: UUID(),
+                                republicacao: RepublicacaoVaga(vagaID: UUID(), periodo: periodo))
+        try await fila!.enfileirar(acao)
+        try await fila!.enfileirar(acao)
+        fila = nil
+        container = nil
+        let reaberta = ArmazenamentoSwiftData(modelContainer: try ModelContainer(for: esquema, configurations: [configuracao]))
+        #expect(try await reaberta.pendentes() == [acao])
+        try await reaberta.remover(id: acao.id)
+        #expect(try await reaberta.pendentes().isEmpty)
+    }
+
     @Test("Fila mantém instante do toque e chave idempotente")
     func fila() async throws {
         let armazenamento = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
