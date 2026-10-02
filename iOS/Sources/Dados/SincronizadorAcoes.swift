@@ -42,6 +42,13 @@ public actor SincronizadorAcoes {
                 case .publicacaoVaga:
                     guard let publicacao = acao.publicacao else { continue }
                     _ = try await api.publicarVaga(publicacao)
+                case .republicacaoVaga:
+                    guard let republicacao = acao.republicacao else { continue }
+                    _ = try await api.republicarVaga(
+                        id: republicacao.vagaID,
+                        periodo: republicacao.periodo,
+                        chave: acao.chave
+                    )
                 }
                 try await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where erro.codigo == .semRede {
@@ -51,6 +58,9 @@ public actor SincronizadorAcoes {
                 avaliacaoJaRegistrada(acao)
                 try? await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where acao.tipo == .publicacaoVaga && erro.codigo.recusaDefinitivaDePublicacao {
+                // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
+                try? await fila.remover(id: acao.id)
+            } catch let erro as ErroDaApi where acao.tipo == .republicacaoVaga && (erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta) {
                 // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
                 try? await fila.remover(id: acao.id)
             } catch {

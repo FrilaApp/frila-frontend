@@ -414,15 +414,22 @@ struct AutenticacaoTests {
 
     @Test("CodigoViewModel: chamadas simultâneas a confirmarCodigo disparam a API apenas uma vez")
     func confirmarCodigoReentrada() async throws {
-        let api = ApiClienteEmMemoria(cenario: .sucesso)
+        let api = ApiDubleReentradaCodigo()
         let vm = CodigoViewModel(api: api, email: "teste@frila.app")
         vm.codigo = "123456"
 
-        async let primeira = vm.confirmarCodigo()
-        async let segunda = vm.confirmarCodigo()
-        _ = await (primeira, segunda)
+        let primeira = Task { await vm.confirmarCodigo() }
+        await api.esperarEntrada()
 
-        let chamadas = await api.chamadasAVerificarCodigo
+        #expect(vm.carregando)
+        let segunda = await vm.confirmarCodigo()
+        #expect(segunda == nil)
+
+        api.liberar()
+        let destinoPrimeira = await primeira.value
+
+        #expect(destinoPrimeira != nil)
+        let chamadas = await api.base.chamadasAVerificarCodigo
         #expect(chamadas == 1)
     }
 
@@ -533,6 +540,52 @@ private final class ApiClienteEspiaoCadastro: ApiClienteEncaminhador, @unchecked
     override func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
         lock.withLock { _cadastrosRecebidos.append(cadastro) }
         return try await base.criarConta(cadastro)
+    }
+}
+
+// MARK: - Dublê para teste determinístico de reentrada do código
+
+private final class ApiDubleReentradaCodigo: ApiClienteEncaminhador, @unchecked Sendable {
+    private let lock = NSLock()
+    private var emVooContinuation: CheckedContinuation<Void, Never>?
+    private var liberarContinuation: CheckedContinuation<Void, Never>?
+    private var entrou = false
+
+    override init(base: ApiClienteEmMemoria = ApiClienteEmMemoria(cenario: .sucesso)) {
+        super.init(base: base)
+    }
+
+    func esperarEntrada() async {
+        let jaEntrou: Bool = lock.withLock { entrou }
+        if jaEntrou { return }
+        await withCheckedContinuation { cont in
+            lock.withLock {
+                if entrou {
+                    cont.resume()
+                } else {
+                    emVooContinuation = cont
+                }
+            }
+        }
+    }
+
+    func liberar() {
+        lock.withLock {
+            liberarContinuation?.resume()
+            liberarContinuation = nil
+        }
+    }
+
+    override func verificarCodigo(email: String, codigo: String) async throws {
+        try await super.verificarCodigo(email: email, codigo: codigo)
+        await withCheckedContinuation { cont in
+            lock.withLock {
+                entrou = true
+                emVooContinuation?.resume()
+                emVooContinuation = nil
+                liberarContinuation = cont
+            }
+        }
     }
 }
 

@@ -19,7 +19,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         XCTAssertEqual(email.label, "E-mail")
         email.tap()
-        email.typeText("novo@frila.app")
+        email.digitarEEsperar("novo@frila.app")
         app.buttons["entrada-receber-codigo"].tap()
 
         // 2. TelaCodigo: campo de codigo

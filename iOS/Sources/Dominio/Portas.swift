@@ -289,6 +289,8 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// houve contestação desta suspensão, em análise ou resolvida, é `contestacaoJaAberta`: a tela
     /// trata esse erro mesmo quando `Suspensao.contestacao` veio nula.
     func contestarSuspensao(relato: String) async throws -> Protocolo
+    /// Portabilidade da LGPD (cartão #219, US25, RF25): devolve o JSON dos dados pessoais no corpo da resposta.
+    func exportarMeusDados() async throws -> Data
 
     // Aplicativo e dispositivo
     func configuracaoDoApp() async throws -> ConfiguracaoApp

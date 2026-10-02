@@ -36,6 +36,46 @@ final class LicencasUITests: XCTestCase {
         anexar(app, "licencas-detalhe")
     }
 
+    func testMeuPerfilAjudaAbreLicencasEmAlturaInteira() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        botaoPerfil.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+
+        let botaoAjuda = app.buttons["perfil-ajuda"]
+        if !botaoAjuda.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        botaoAjuda.tap()
+
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+
+        let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoLicencas.isHittable)
+        botaoLicencas.tap()
+
+        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: 5))
+
+        let navBar = app.navigationBars["Licenças de código aberto"]
+        let janela = app.windows.firstMatch
+        // Em .large (altura inteira), o topo da barra de navegação fica próximo ao topo da tela (y < janela.frame.height * 0.25).
+        // Em .medium (meia tela), a barra ficaria perto da metade (y >= janela.frame.height * 0.4).
+        XCTAssertLessThan(navBar.frame.minY, janela.frame.height * 0.25, "A folha de licenças deve abrir em altura inteira (.large)")
+
+        let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
+        XCTAssertTrue(pacote.waitForExistence(timeout: 5))
+        anexar(app, "licencas-folha-altura-inteira")
+    }
+
     /// A interface é provisória: a captura fica no resultado do teste para quem for revisar.
     private func anexar(_ app: XCUIApplication, _ nome: String) {
         let anexo = XCTAttachment(screenshot: app.screenshot())

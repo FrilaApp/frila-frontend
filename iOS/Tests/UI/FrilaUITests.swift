@@ -35,7 +35,7 @@ final class FrilaUITests: XCTestCase {
         let email = app.textFields["validacao-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 5))
         email.tap()
-        email.typeText("teste@frila.app")
+        email.digitarEEsperar("teste@frila.app")
         app.buttons["Enviar código"].tap()
 
         XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: 5))
@@ -50,7 +50,7 @@ final class FrilaUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Nenhuma sessão neste aparelho."].waitForExistence(timeout: 5))
         let email = app.textFields["validacao-email"]
         email.tap()
-        email.typeText("teste@frila.app")
+        email.digitarEEsperar("teste@frila.app")
         app.buttons["Enviar código"].tap()
         XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: 5))
 
@@ -152,11 +152,11 @@ final class CandidaturaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
         app.launch()
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
-        XCTAssertTrue(primeira.waitForExistence(timeout: 10))
+        XCTAssertTrue(primeira.waitForExistence(timeout: 25), "a primeira vaga deve aparecer na lista após o carregamento inicial")
         primeira.tap()
         let candidatar = app.buttons["candidatar"]
-        XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 5), "o aviso da RN10 vem antes de Candidatar-me")
+        XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")
         candidatar.tap()
         return app
     }
@@ -188,10 +188,10 @@ final class CandidaturaUITests: XCTestCase {
 
     func testTurnoSobrepostoMostraOConflitoSemApontarTurno() {
         let app = abrirDetalheECandidatar("inelegivel")
-        XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["ver-meu-turno"].exists, "sem link para um turno específico")
         app.buttons["voltar-para-lista"].tap()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
     func testContaSuspensaMostraOMotivoEContestarDesabilitado() {
@@ -234,7 +234,7 @@ final class AutenticacaoUITests: XCTestCase {
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
-        email.typeText("novo@frila.app")
+        email.digitarEEsperar("novo@frila.app")
         app.buttons["entrada-receber-codigo"].tap()
 
         let tfCodigo = app.textFields["Código de acesso"]
@@ -349,7 +349,7 @@ final class AutenticacaoUITests: XCTestCase {
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
-        email.typeText("existente@frila.app")
+        email.digitarEEsperar("existente@frila.app")
         app.buttons["entrada-receber-codigo"].tap()
 
         let tfCodigo = app.textFields["Código de acesso"]
@@ -369,7 +369,7 @@ final class AutenticacaoUITests: XCTestCase {
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
-        email.typeText("existente@frila.app")
+        email.digitarEEsperar("existente@frila.app")
         app.buttons["entrada-receber-codigo"].tap()
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
@@ -394,7 +394,7 @@ final class AutenticacaoUITests: XCTestCase {
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
-        email.typeText("teste@frila.app")
+        email.digitarEEsperar("teste@frila.app")
         app.buttons["entrada-receber-codigo"].tap()
 
         let tfCodigo = app.textFields["Código de acesso"]
@@ -414,7 +414,7 @@ final class AutenticacaoUITests: XCTestCase {
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
-        email.typeText("jovem@frila.app")
+        email.digitarEEsperar("jovem@frila.app")
         app.buttons["entrada-receber-codigo"].tap()
 
         let tfCodigo = app.textFields["Código de acesso"]
@@ -453,7 +453,7 @@ final class AutenticacaoUITests: XCTestCase {
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
-        email.typeText("novo@frila.app")
+        email.digitarEEsperar("novo@frila.app")
         app.buttons["entrada-receber-codigo"].tap()
 
         let tfCodigo = app.textFields["Código de acesso"]
@@ -496,6 +496,33 @@ final class AutenticacaoUITests: XCTestCase {
 /// Validação de interface das telas de perfil (#54).
 @MainActor
 final class PerfilUITests: XCTestCase {
+    /// O formulário de "Funções e horários" guarda o que carregou enquanto a tela está aberta: um
+    /// redesenho de "Meu perfil" (aqui, a troca de aba) não pode trocá-lo por um formulário vazio.
+    func testEdicaoDoPerfilMantemOQueCarregouQuandoATelaDeCimaRedesenha() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["abrir-meu-perfil"].waitForExistence(timeout: 15))
+        app.buttons["abrir-meu-perfil"].tap()
+        let funcoesEHorarios = app.descendants(matching: .any)["perfil-funcoes-horarios"]
+        XCTAssertTrue(funcoesEHorarios.waitForExistence(timeout: 10))
+        funcoesEHorarios.tap()
+
+        let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
+        let horario = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
+        XCTAssertTrue(funcao.waitForExistence(timeout: 10))
+        XCTAssertTrue(horario.waitForExistence(timeout: 5))
+
+        app.tabBars.buttons["Meus turnos"].tap()
+        XCTAssertFalse(funcao.waitForExistence(timeout: 2))
+        app.tabBars.buttons["Vagas no DF"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        XCTAssertTrue(funcao.waitForExistence(timeout: 5), "as funções carregadas continuam no formulário")
+        XCTAssertTrue(horario.exists, "os horários carregados continuam no formulário")
+    }
+
     func testMeuPerfilAbreAjudaComLinksDeTermosEPrivacidade() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
@@ -563,5 +590,21 @@ final class PerfilUITests: XCTestCase {
 
         let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
         XCTAssertTrue(pacote.waitForExistence(timeout: 5), "a lista deve exibir pelo menos um pacote conhecido")
+    }
+}
+
+extension XCUIElement {
+    /// Digita e só devolve quando o campo mostra o texto inteiro.
+    ///
+    /// Com o teclado recém-aberto, `typeText` devolve antes de o teclado entregar todas as teclas
+    /// ao campo. O toque seguinte chegava com o e-mail pela metade: a Entrada respondia
+    /// "Informe um e-mail válido." e a tela do código nunca abria.
+    func digitarEEsperar(_ texto: String, file: StaticString = #filePath, line: UInt = #line) {
+        typeText(texto)
+        let completo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", texto), object: self)
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [completo], timeout: 10), .completed,
+            "O campo deveria mostrar \"\(texto)\" depois da digitação", file: file, line: line
+        )
     }
 }

@@ -58,6 +58,7 @@ public struct FluxoDoContratante: View {
     private let roteador: RoteadorDoContratante?
     @State private var model: FluxoDoContratanteViewModel
     @State private var mostrandoPerfilEstabelecimento = false
+    @State private var mostrandoExclusaoDeConta = false
 
     /// O roteador é a entrada dos avisos da casa (`checkin_manual_pendente`, `atraso_15min` e
     /// `vaga_vazia`), que o push (#8) vai usar.
@@ -84,6 +85,16 @@ public struct FluxoDoContratante: View {
                     .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
                     .accessibilityIdentifier("abrir-perfil-estabelecimento")
                 }
+                if case .cadastro = model.estado {
+                    Button(role: .destructive) {
+                        mostrandoExclusaoDeConta = true
+                    } label: {
+                        Text("Excluir conta", bundle: bundleApresentacao)
+                            .foregroundStyle(FrilaCor.perigo)
+                    }
+                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityIdentifier("contratante-sem-estabelecimento-excluir-conta")
+                }
                 Button(action: sair) { Text("Sair", bundle: bundleApresentacao) }
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("sair-fluxo-contratante")
@@ -104,6 +115,26 @@ public struct FluxoDoContratante: View {
                     ToolbarItem(placement: .topBarLeading) {
                         Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
                             mostrandoPerfilEstabelecimento = false
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $mostrandoExclusaoDeConta) {
+            NavigationStack {
+                TelaExclusaoDeConta(
+                    viewModel: ExclusaoDeContaViewModel(
+                        api: api,
+                        aoConcluir: {
+                            mostrandoExclusaoDeConta = false
+                            sair()
+                        }
+                    )
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
+                            mostrandoExclusaoDeConta = false
                         }
                     }
                 }
@@ -177,7 +208,7 @@ private struct DestinoDasVagasDoContratante: View {
             )
         } else {
             // Sem o banco local não há fila para a publicação: a entrada não aparece.
-            TelaMinhasVagas(viewModel: model, api: api, roteador: roteador,
+            TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador,
                             publicarVaga: fila == nil ? nil : { publicando = true })
         }
     }

@@ -182,4 +182,29 @@ struct ExclusaoDeContaViewModelTests {
         #expect(vm.turnosFuturos[0].id == turnoFuturo1.id)
         #expect(vm.turnosFuturos[1].id == turnoFuturo2.id)
     }
+
+    @Test("Contratante com turnos futuros carrega turnos a serem cancelados dos seus estabelecimentos")
+    func contratanteComTurnosFuturosCarregaDoPainel() async throws {
+        let api = ApiClienteEmMemoria(cenario: .painelContratante)
+        let vm = ExclusaoDeContaViewModel(api: api)
+
+        await vm.carregar()
+
+        #expect(!vm.turnosFuturos.isEmpty)
+        let turno = try #require(vm.turnosFuturos.first)
+        #expect(turno.id == UUID(uuidString: "82000000-0000-0000-0000-000000000001"))
+        #expect(turno.posicaoID == UUID(uuidString: "82000000-0000-0000-0000-000000000002"))
+        #expect(!turno.vaga.funcao.isEmpty)
+    }
+
+    @Test("Contratante sem estabelecimento retorna lista vazia de turnos futuros sem falhar")
+    func contratanteSemEstabelecimentoRetornaTurnosVazios() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contratanteSemEstabelecimento)
+        let vm = ExclusaoDeContaViewModel(api: api)
+
+        await vm.carregar()
+
+        #expect(vm.turnosFuturos.isEmpty)
+        #expect(vm.mensagemErro == nil)
+    }
 }

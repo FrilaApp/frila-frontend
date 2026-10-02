@@ -21,6 +21,7 @@ public actor AparelhoDePush {
     private let api: any ApiCliente
     private let armazenamento: any ArmazenamentoDoAparelho
     private let relogio: any Relogio
+    private let carenciaNaTrocaDeConta: TimeInterval
     /// A mesma fila FIFO da sessão do cliente, em outra instância: um `actor` sozinho é reentrante
     /// em cada `await`.
     private let fila = FilaDeSessao()
@@ -29,11 +30,14 @@ public actor AparelhoDePush {
     /// A conta com sessão neste aparelho, só em memória: é para ela que um token que chegue ou
     /// troque depois da entrada é registrado.
     private var contaAtiva: UUID?
+    private var observadores: [UUID: AsyncStream<VinculoDoAparelho?>.Continuation] = [:]
 
-    public init(api: any ApiCliente, armazenamento: any ArmazenamentoDoAparelho, relogio: any Relogio = RelogioDoSistema()) {
+    public init(api: any ApiCliente, armazenamento: any ArmazenamentoDoAparelho, relogio: any Relogio = RelogioDoSistema(),
+                carenciaNaTrocaDeConta: TimeInterval = VinculoDoAparelho.carenciaNaTrocaDeConta) {
         self.api = api
         self.armazenamento = armazenamento
         self.relogio = relogio
+        self.carenciaNaTrocaDeConta = carenciaNaTrocaDeConta
     }
 
     /// A conta a que o aparelho está entregue, ou nada: sem entrada, sem token ou sem a confirmação
@@ -42,11 +46,65 @@ public actor AparelhoDePush {
         guardado()?.vinculo
     }
 
+    /// O vínculo a cada mudança: o token do FCM chega depois da entrada, e o registro dele termina
+    /// sem ninguém esperando. Quem confere de quem é um aviso acompanha por aqui.
+    /// Quem pede já está inscrito quando recebe o fluxo: a mudança seguinte não se perde.
+    public func mudancasDoVinculo() -> AsyncStream<VinculoDoAparelho?> {
+        let (fluxo, continuacao) = AsyncStream.makeStream(of: VinculoDoAparelho?.self)
+        let id = UUID()
+        observadores[id] = continuacao
+        continuacao.onTermination = { [weak self] _ in Task { await self?.esquecer(id) } }
+        return fluxo
+    }
+
     /// A cada abertura com sessão e a cada entrada (contrato: "chamar a cada abertura do app").
     /// O registro repetido da mesma conta mantém o `desde`; o de outra conta começa um vínculo novo.
     @discardableResult
     public func registrar(para contaID: UUID) async -> Registro {
         await naVez { await $0.registrarNaVez(para: contaID) } ?? .falhou(ErroDaApi(codigo: .desconhecido))
+    }
+
+    /// O registro e a entrega do sistema, na ordem que não expõe a conta anterior. O aparelho que
+    /// já é da conta pede o registro ao sistema a cada abertura, como a Apple recomenda. O que
+    /// ainda não é (entrada depois de uma saída, que suspendeu a entrega) só volta a receber
+    /// depois de o servidor confirmar que o token é de quem entrou: até lá ele pode ser de quem saiu.
+    @discardableResult
+    public func ligar(para contaID: UUID, canal: any CanalDePush) async -> Registro {
+        let jaEraDela = vinculo()?.contaID == contaID
+        if jaEraDela {
+            await canal.ativar()
+            // A sessão pode acabar (401) enquanto o pedido ao sistema está em voo, e o registro
+            // cairia depois da suspensão de quem saiu: sem o vínculo, a entrega é suspensa de novo.
+            if vinculo()?.contaID != contaID { await canal.suspenderEntrega() }
+        }
+        let registro = await registrar(para: contaID)
+        guard !jaEraDela else { return registro }
+        switch registro {
+        case .registrado, .semToken:
+            // Sem token ainda não há nada no servidor para este aparelho: ativar é o que o traz.
+            // Quem saiu enquanto o registro estava em voo não reativa a entrega.
+            if contaAtiva == contaID {
+                await canal.ativar()
+                if contaAtiva != contaID { await canal.suspenderEntrega() }
+            }
+        case .semConta, .falhou:
+            break
+        }
+        return registro
+    }
+
+    /// O que foi entregue antes de o aparelho ser da conta que está nele não é dela: sai da
+    /// central. Na troca de conta o vínculo só vale depois da carência, e o que chegar nela sai
+    /// quando ela acaba, se o vínculo ainda for o mesmo. `esperar` devolve falso se foi cancelada.
+    public func descartarAvisosDeAntesDoVinculo(
+        canal: any CanalDePush,
+        esperar: @Sendable (TimeInterval) async -> Bool = { (try? await Task.sleep(for: .seconds($0))) != nil }
+    ) async {
+        guard let desde = vinculo()?.desde else { return }
+        await canal.descartarEntregues(antesDe: desde)
+        let espera = desde.timeIntervalSince(relogio.agora)
+        guard espera > 0, await esperar(espera) else { return }
+        if vinculo()?.desde == desde { await canal.descartarEntregues(antesDe: desde) }
     }
 
     /// O FCM entregou o token, na abertura ou porque trocou. Com alguém dentro, o token novo é
@@ -97,17 +155,24 @@ public actor AparelhoDePush {
         let vinculo = if let anterior = atual.vinculo, anterior.contaID == contaID {
             anterior
         } else {
-            VinculoDoAparelho(contaID: contaID, desde: relogio.agora)
+            VinculoDoAparelho(contaID: contaID, desde: relogio.agora.addingTimeInterval(carencia(de: atual, para: contaID)))
         }
         guardar(AparelhoGuardado(token: atual.token, vinculo: vinculo))
         return .registrado(vinculo)
+    }
+
+    /// O aparelho era de outra conta (com vínculo ainda guardado, ou desfeito na saída): o aviso
+    /// mandado a ela pode chegar logo depois da troca, e o vínculo novo só vale depois da carência.
+    private func carencia(de atual: AparelhoGuardado, para contaID: UUID) -> TimeInterval {
+        guard let anterior = atual.vinculo?.contaID ?? atual.contaAnterior, anterior != contaID else { return 0 }
+        return carenciaNaTrocaDeConta
     }
 
     private func receberNaVez(token: String) async -> Registro {
         let anterior = guardado()
         if anterior?.token != token {
             // O vínculo é do aparelho com a conta, e não do token: a troca de token não o desfaz.
-            guardar(AparelhoGuardado(token: token, vinculo: anterior?.vinculo))
+            guardar(AparelhoGuardado(token: token, vinculo: anterior?.vinculo, contaAnterior: anterior?.contaAnterior))
         }
         guard let contaAtiva else { return .semConta }
         if let anterior, anterior.token == token, let vinculo = anterior.vinculo, vinculo.contaID == contaAtiva {
@@ -126,13 +191,13 @@ public actor AparelhoDePush {
         guard let atual = guardado(), atual.vinculo != nil else { return }
         // Se a remoção falhar, o vínculo fica: a próxima abertura sem permissão tenta de novo.
         guard (try? await api.removerDispositivo(tokenFCM: atual.token)) != nil else { return }
-        guardar(AparelhoGuardado(token: atual.token, vinculo: nil))
+        guardar(AparelhoGuardado(token: atual.token, vinculo: nil, contaAnterior: atual.vinculo?.contaID))
     }
 
     private func soltar() {
         contaAtiva = nil
-        guard let atual = guardado(), atual.vinculo != nil else { return }
-        guardar(AparelhoGuardado(token: atual.token, vinculo: nil))
+        guard let atual = guardado(), let vinculo = atual.vinculo else { return }
+        guardar(AparelhoGuardado(token: atual.token, vinculo: nil, contaAnterior: vinculo.contaID))
     }
 
     private func guardado() -> AparelhoGuardado? {
@@ -144,13 +209,19 @@ public actor AparelhoDePush {
     }
 
     private func guardar(_ novo: AparelhoGuardado) {
+        let mudou = guardado()?.vinculo != novo.vinculo
         aparelho = novo
         carregado = true
         armazenamento.guardar(novo)
+        if mudou { observadores.values.forEach { $0.yield(novo.vinculo) } }
+    }
+
+    private func esquecer(_ id: UUID) {
+        observadores[id] = nil
     }
 }
 
-/// O guardado só em memória: testes, prévias e o esquema Local, que não toca o Keychain.
+/// O guardado só em memória, para os testes e as prévias.
 public final class ArmazenamentoDoAparelhoEmMemoria: ArmazenamentoDoAparelho, @unchecked Sendable {
     private let trava = NSLock()
     private var aparelho: AparelhoGuardado?

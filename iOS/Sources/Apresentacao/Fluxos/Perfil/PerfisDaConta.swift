@@ -27,8 +27,7 @@ private enum TextosPerfilConta {
     static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
     static let papel = String(localized: "Seu acesso", bundle: bundleApresentacao)
     static let naoInformado = String(localized: "—", bundle: bundleApresentacao)
-    static let horariosCadastrados = String(localized: "%lld horários cadastrados", bundle: bundleApresentacao)
-    static let todoExportacao = String(localized: "Disponível no cartão #219", bundle: bundleApresentacao)
+    static let todoExportacao = String(localized: "Recurso em desenvolvimento", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
     static let suportePendente = String(localized: "Endereço de suporte pendente", bundle: bundleApresentacao)
     static let linkPendente = String(localized: "Link pendente", bundle: bundleApresentacao)
@@ -102,6 +101,7 @@ public final class PerfilEstabelecimentoViewModel {
 
 public struct TelaMeuPerfilProfissional: View {
     @State private var model: MeuPerfilProfissionalViewModel
+    @State private var exportarModel: ExportarDadosViewModel
     private let api: any ApiCliente
     private let sair: () -> Void
     public let enderecos: EnderecosOficiais
@@ -113,6 +113,7 @@ public struct TelaMeuPerfilProfissional: View {
         self.enderecos = enderecos
         self.sair = sair
         _model = State(initialValue: MeuPerfilProfissionalViewModel(api: api))
+        _exportarModel = State(initialValue: ExportarDadosViewModel(api: api))
     }
 
     public var body: some View {
@@ -184,13 +185,7 @@ public struct TelaMeuPerfilProfissional: View {
 
     private var placeholders: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Button {} label: {
-                Label {
-                    Text(verbatim: TextosPerfilConta.exportar)
-                } icon: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-            }
+            ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
             NavigationLink {
                 TelaExclusaoDeConta(
                     viewModel: ExclusaoDeContaViewModel(
@@ -232,6 +227,7 @@ public struct TelaMeuPerfilProfissional: View {
 
 public struct TelaPerfilEstabelecimento: View {
     @State private var model: PerfilEstabelecimentoViewModel
+    @State private var exportarModel: ExportarDadosViewModel
     private let api: any ApiCliente
     private let sair: () -> Void
     public let enderecos: EnderecosOficiais
@@ -241,6 +237,7 @@ public struct TelaPerfilEstabelecimento: View {
         self.sair = sair
         self.enderecos = enderecos
         _model = State(initialValue: PerfilEstabelecimentoViewModel(api: api))
+        _exportarModel = State(initialValue: ExportarDadosViewModel(api: api))
     }
     public var body: some View {
         ScrollView {
@@ -273,14 +270,7 @@ public struct TelaPerfilEstabelecimento: View {
                     }
                     .accessibilityIdentifier("perfil-ajuda")
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    Button {} label: {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.exportar)
-                        } icon: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                    .disabled(true).accessibilityHint(TextosPerfilConta.todoExportacao).frame(minHeight: FrilaMetrica.alvoMinimo)
+                    ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
                     NavigationLink {
                         TelaExclusaoDeConta(
                             viewModel: ExclusaoDeContaViewModel(
@@ -395,7 +385,7 @@ struct TelaAjudaPerfil: View {
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
-        }.presentationDetents([.medium, .large])
+        }.presentationDetents([.large])
     }
 }
 
