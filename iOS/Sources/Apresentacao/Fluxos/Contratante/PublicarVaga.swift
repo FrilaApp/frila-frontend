@@ -52,6 +52,12 @@ private enum TextosPublicarVaga {
     static let falhaFila = String(localized: "Não foi possível guardar a publicação neste aparelho.", bundle: bundlePublicarVaga)
     static let verificandoPendente = String(localized: "Verificando publicação pendente…", bundle: bundlePublicarVaga)
     static let pendenteDescricao = String(localized: "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga.", bundle: bundlePublicarVaga)
+    static let modo = String(localized: "Como preencher a vaga", bundle: bundlePublicarVaga)
+    static let modoUrgencia = String(localized: "Urgência", bundle: bundlePublicarVaga)
+    static let modoSelecao = String(localized: "Seleção", bundle: bundlePublicarVaga)
+    static let modoUrgenciaExplicacao = String(localized: "O primeiro profissional que aceitar é confirmado na hora.", bundle: bundlePublicarVaga)
+    static let modoSelecaoExplicacao = String(localized: "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.", bundle: bundlePublicarVaga)
+    static let modoIndisponivel = String(localized: "O modo seleção ainda não está disponível. Publique no modo urgência.", bundle: bundlePublicarVaga)
 }
 
 public enum CampoPublicacaoVaga: String, CaseIterable, Sendable {
@@ -68,6 +74,7 @@ public enum CampoPublicacaoVaga: String, CaseIterable, Sendable {
     case traje
     case rateio
     case observacoes
+    case modo
 }
 
 @MainActor @Observable
@@ -85,6 +92,8 @@ public final class PublicarVagaViewModel {
     public var materialProprio = false
     public var responsavelLocal = ""
     public var alertaAntecedenciaMinutos = 180
+    /// Urgência confirma o primeiro que aceitar; seleção deixa a casa escolher entre os candidatos (RN24).
+    public var modo = ModoPreenchimento.urgencia
     public var traje = ""
     public var participaRateio: Bool? = false
     public var observacoes = ""
@@ -183,6 +192,11 @@ public final class PublicarVagaViewModel {
         if estabelecimento == nil { erros[.estabelecimento] = TextosPublicarVaga.estabelecimentoCampo }
         if !funcoes.contains(where: { $0.id == funcaoID }) { erros[.funcao] = TextosPublicarVaga.funcaoCampo }
         if inicio <= agora() { erros[.inicio] = TextosPublicarVaga.horarioCampo }
+        // RN24: a vaga de seleção fecha 24 h antes do início; com 24 h ou menos ela nasceria fechada,
+        // e o servidor a recusa. O relógio que vale é o dele: esta conferência só poupa a viagem.
+        else if modo == .selecao, inicio <= agora().addingTimeInterval(Self.antecedenciaDaSelecao) {
+            erros[.inicio] = TextosRepublicarVaga.selecaoSemAntecedencia
+        }
         if fim <= inicio { erros[.fim] = TextosPublicarVaga.horarioCampo }
         if local.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { erros[.local] = TextosPublicarVaga.localCampo }
         if estabelecimento?.ponto.latitude.isFinite != true || estabelecimento?.ponto.longitude.isFinite != true {
@@ -217,7 +231,7 @@ public final class PublicarVagaViewModel {
                 traje: traje.trimmingCharacters(in: .whitespacesAndNewlines).nilSeVazio,
                 participaRateio: participaRateio,
                 observacoes: observacoes.trimmingCharacters(in: .whitespacesAndNewlines).nilSeVazio,
-                modo: .urgencia,
+                modo: modo,
                 alertaAntecedenciaMinutos: alertaAntecedenciaMinutos,
                 chave: UUID()
             )
@@ -251,8 +265,18 @@ public final class PublicarVagaViewModel {
         }
     }
 
+    private static let antecedenciaDaSelecao: TimeInterval = 24 * 60 * 60
+
     private func tratar(_ erro: ErroDaApi) {
-        if erro.codigo == .campoObrigatorio || erro.codigo == .campoInvalido {
+        if erro.codigo == .selecaoSemAntecedencia {
+            // O servidor conta as 24 horas pelo relógio dele, que pode não ser o do aparelho.
+            erros[.inicio] = TextosRepublicarVaga.selecaoSemAntecedencia
+            mensagemErro = TextosRepublicarVaga.selecaoSemAntecedencia
+        } else if erro.codigo == .campoInvalido, erro.detalhes == "modo" {
+            // Até o contrato 0.2.23 o servidor recusava o modo seleção assim.
+            erros[.modo] = TextosPublicarVaga.modoIndisponivel
+            mensagemErro = TextosPublicarVaga.modoIndisponivel
+        } else if erro.codigo == .campoObrigatorio || erro.codigo == .campoInvalido {
             if let campo = Self.campo(erro.detalhes) {
                 erros[campo] = erro.codigo == .campoObrigatorio ? TextosPublicarVaga.campoObrigatorio : TextosPublicarVaga.campoInvalido
             } else {
@@ -281,6 +305,7 @@ public final class PublicarVagaViewModel {
         case "traje": .traje
         case "participa_rateio": .rateio
         case "observacoes": .observacoes
+        case "modo": .modo
         default: nil
         }
     }
@@ -403,6 +428,19 @@ public struct TelaPublicarVaga: View {
                     .disabled(model.camposBloqueados)
                 campo(.responsavel, titulo: TextosPublicarVaga.responsavel) {
                     CampoFrila(verbatim: TextosPublicarVaga.responsavel, texto: $model.responsavelLocal)
+                }
+                campo(.modo, titulo: TextosPublicarVaga.modo) {
+                    Picker(TextosPublicarVaga.modo, selection: $model.modo) {
+                        Text(verbatim: TextosPublicarVaga.modoUrgencia).tag(ModoPreenchimento.urgencia)
+                        Text(verbatim: TextosPublicarVaga.modoSelecao).tag(ModoPreenchimento.selecao)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.modo))
+                    .accessibilityIdentifier("modo-vaga-picker")
+                    Text(verbatim: model.modo == .selecao ? TextosPublicarVaga.modoSelecaoExplicacao : TextosPublicarVaga.modoUrgenciaExplicacao)
+                        .font(.caption)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("modo-vaga-explicacao")
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: TextosPublicarVaga.alerta).font(.headline)
