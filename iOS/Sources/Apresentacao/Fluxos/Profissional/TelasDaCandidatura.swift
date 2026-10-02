@@ -186,13 +186,17 @@ private struct TurnoConfirmado: View {
                 Text(verbatim: "\(contato.nome) · \(contato.telefone)").font(.body.weight(.semibold))
                 Link(destination: contato.whatsappURL) {
                     Text(verbatim: Textos.abrirWhatsApp)
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
                 }
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("contato-do-turno")
+
                 Text(verbatim: Textos.contatoLiberado).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()
-            .accessibilityIdentifier("contato-do-turno")
         }
     }
 }

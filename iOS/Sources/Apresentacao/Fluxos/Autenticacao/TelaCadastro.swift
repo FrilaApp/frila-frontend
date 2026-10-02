@@ -2,6 +2,7 @@ import FrilaDominio
 import SwiftUI
 
 public struct TelaCadastro: View {
+    @Environment(\.openURL) private var openURL
     @Bindable var viewModel: CadastroViewModel
     var aoVoltar: () -> Void
     var aoConcluir: (DestinoAposEntrada) -> Void
@@ -110,8 +111,10 @@ public struct TelaCadastro: View {
                             .font(.title3)
                             .foregroundStyle(viewModel.maiorDeIdade ? FrilaCor.primaria : FrilaCor.textoSecundario)
                             .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                     .accessibilityLabel(Text("Tenho 18 anos ou mais", bundle: bundleApresentacao))
                     .accessibilityValue(Text(viewModel.maiorDeIdade ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                     .accessibilityAddTraits(viewModel.maiorDeIdade ? [.isSelected] : [])
@@ -120,6 +123,7 @@ public struct TelaCadastro: View {
                     Text("Tenho 18 anos ou mais", bundle: bundleApresentacao)
                         .font(.subheadline)
                         .foregroundStyle(FrilaCor.texto)
+                        .accessibilityHidden(true)
                         .onTapGesture { viewModel.maiorDeIdade.toggle() }
                 }
 
@@ -132,17 +136,26 @@ public struct TelaCadastro: View {
                             .font(.title3)
                             .foregroundStyle(viewModel.aceitouTermos ? FrilaCor.primaria : FrilaCor.textoSecundario)
                             .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                     .accessibilityLabel(Text("Li e aceito os Termos de uso e a Política de privacidade", bundle: bundleApresentacao))
                     .accessibilityValue(Text(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                     .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected] : [])
+                    .accessibilityAction(named: Text("Termos de uso", bundle: bundleApresentacao)) {
+                        if let url = URL(string: "https://frila.app/termos") { openURL(url) }
+                    }
+                    .accessibilityAction(named: Text("Política de privacidade", bundle: bundleApresentacao)) {
+                        if let url = URL(string: "https://frila.app/privacidade") { openURL(url) }
+                    }
                     .accessibilityIdentifier("cadastro-termos")
 
                     Text("Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)", bundle: bundleApresentacao)
                         .font(.subheadline)
                         .foregroundStyle(FrilaCor.texto)
                         .padding(.top, 10)
+                        .accessibilityHidden(true)
                 }
 
                 if let erro = viewModel.erro {

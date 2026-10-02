@@ -35,6 +35,7 @@ public struct TelaEntrada: View {
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .accessibilityLabel(Text("E-mail", bundle: bundleApresentacao))
                         .accessibilityIdentifier("entrada-email")
 
                     Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
