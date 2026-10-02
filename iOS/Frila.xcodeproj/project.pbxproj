@@ -90,11 +90,13 @@
 		743D7C3616BAE8750263E4AF /* ApiClienteEncaminhador.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154D610830BCEC80267BE4B7 /* ApiClienteEncaminhador.swift */; };
 		749938B074A87764142A0458 /* TelaProvisoriaDestino.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87225F8AF2D750649044D7BA /* TelaProvisoriaDestino.swift */; };
 		749A50A9689BCA6CA96C6C86 /* LeitorDeLocalizacaoSimulado.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCF8C477F96387DC7EE8A64 /* LeitorDeLocalizacaoSimulado.swift */; };
+		7793593D652D4B53A86072A4 /* AcessibilidadeDoProfissionalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF29CC4667387305BCA22ACE /* AcessibilidadeDoProfissionalUITests.swift */; };
 		781446FFC40FD90A510DA4E8 /* vaga-publicada.json in Resources */ = {isa = PBXBuildFile; fileRef = A3E6257414B3A5DD6EA2CC29 /* vaga-publicada.json */; };
 		7E2C15CB3F6ED4112A9BA8F7 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 96B5D777149B06DDCF07C3B7 /* FirebaseCrashlytics */; };
 		82C31672FDB4638A40A940BA /* requisicao-confirmar-checkin-manual.json in Resources */ = {isa = PBXBuildFile; fileRef = EEC48633CBE124BC737FDC13 /* requisicao-confirmar-checkin-manual.json */; };
 		82F3D63694FF304FDB047AF2 /* FrilaDados.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; };
 		84515F0AEC28BB9059E909CB /* ExclusaoDeContaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA3EC7375F1B4972AECBCF11 /* ExclusaoDeContaViewModel.swift */; };
+		84E6FEBA6AC10A66F4E0B34E /* WhatsAppDoTurnoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F1444D39FB4D5811C1B586 /* WhatsAppDoTurnoTests.swift */; };
 		8B35F60187B1175A52D97063 /* ValidacaoClienteAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */; };
 		8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */; };
 		8C97FE7579D3C683369CFAD8 /* requisicao-publicar-vaga.json in Resources */ = {isa = PBXBuildFile; fileRef = AC0715D51EC624FFD2754B4B /* requisicao-publicar-vaga.json */; };
@@ -120,6 +122,7 @@
 		A15D453F5D108FB3392D7188 /* situacao-da-conta-suspensa.json in Resources */ = {isa = PBXBuildFile; fileRef = 1E7FC2C8F77C8DAC2C6C923F /* situacao-da-conta-suspensa.json */; };
 		A1ECBBA8CA338766CB1A8896 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A2CB4DC11D29F54B1BFB5A17 /* FrilaApresentacao.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; };
+		A304C31D035E5BA346F454B0 /* ModoAviaoMeuTurnoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB4FDD061007C401AF3724C /* ModoAviaoMeuTurnoTests.swift */; };
 		A30FE1B8F3EFE836737091E6 /* Localizacao.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8F86FAC86C784EFE6D461E2 /* Localizacao.swift */; };
 		A4AB220969DBCDDE4AF6A6F3 /* ExclusaoDeContaViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB907629D17A01D860FE12A /* ExclusaoDeContaViewModelTests.swift */; };
 		A815E2BE571BE753487E920E /* Modelos.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B3CEC4D7490ABD615F9262 /* Modelos.swift */; };
@@ -380,6 +383,7 @@
 		4DE21D78F07B1461627E524E /* TelemetriaCrashlytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetriaCrashlytics.swift; sourceTree = "<group>"; };
 		4FEEDEB6A20B30B0C7F37E43 /* RegistroDePresencaEmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistroDePresencaEmMemoriaTests.swift; sourceTree = "<group>"; };
 		5088E944B112BA4E2853E179 /* requisicao-cancelar-vaga.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-cancelar-vaga.json"; sourceTree = "<group>"; };
+		50F1444D39FB4D5811C1B586 /* WhatsAppDoTurnoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsAppDoTurnoTests.swift; sourceTree = "<group>"; };
 		51BACCBA4385723A7D64E8EE /* FluxoDeEntrada.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDeEntrada.swift; sourceTree = "<group>"; };
 		5268253D3E9962AAF683E3E3 /* requisicao-atualizar-perfil-profissional.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-atualizar-perfil-profissional.json"; sourceTree = "<group>"; };
 		5325BEB3484730A85B852BD0 /* MinhasVagasUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinhasVagasUITests.swift; sourceTree = "<group>"; };
@@ -390,6 +394,7 @@
 		5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoKeychain.swift; sourceTree = "<group>"; };
 		5D42F9162784D51FF8118379 /* requisicao-denunciar.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-denunciar.json"; sourceTree = "<group>"; };
 		5DA57DD792D852D30F068536 /* ContratoDaSprint2Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContratoDaSprint2Tests.swift; sourceTree = "<group>"; };
+		5FB4FDD061007C401AF3724C /* ModoAviaoMeuTurnoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModoAviaoMeuTurnoTests.swift; sourceTree = "<group>"; };
 		60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodificadorErroAPI.swift; sourceTree = "<group>"; };
 		6044BB78E5ED8913EC72A112 /* usuario.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = usuario.json; sourceTree = "<group>"; };
 		613CDCB34E6B6DABD31BA8CF /* FluxoDoContratanteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoContratanteUITests.swift; sourceTree = "<group>"; };
@@ -503,6 +508,7 @@
 		EC7474CFC038B7830A07C624 /* Frila.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Frila.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED4681E82BFB78ADC11F0C80 /* LeitorDeLocalizacaoDoSistema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeitorDeLocalizacaoDoSistema.swift; sourceTree = "<group>"; };
 		EEC48633CBE124BC737FDC13 /* requisicao-confirmar-checkin-manual.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-confirmar-checkin-manual.json"; sourceTree = "<group>"; };
+		EF29CC4667387305BCA22ACE /* AcessibilidadeDoProfissionalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcessibilidadeDoProfissionalUITests.swift; sourceTree = "<group>"; };
 		EF5B72F30D0CCEECEC364061 /* FluxoDoContratante.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoContratante.swift; sourceTree = "<group>"; };
 		EFFA5C9E0B97FFBEB3C9B9EF /* requisicao-contestar-suspensao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-contestar-suspensao.json"; sourceTree = "<group>"; };
 		F0FDB3EB718F49E2C016581D /* CodigoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodigoViewModel.swift; sourceTree = "<group>"; };
@@ -657,6 +663,7 @@
 			isa = PBXGroup;
 			children = (
 				03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */,
+				EF29CC4667387305BCA22ACE /* AcessibilidadeDoProfissionalUITests.swift */,
 				161BA9431373940CB8118510 /* AvaliacaoUITests.swift */,
 				B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */,
 				44760C9078A3626B77CA5EF0 /* ExclusaoDeContaUITests.swift */,
@@ -696,6 +703,7 @@
 				728FBA1A7EABDE751ECCAF2F /* ListaDeVagasTests.swift */,
 				870A1907071ED48C93D50201 /* MeuTurnoViewModelTests.swift */,
 				87BC71CEBE7E0A40C16103D7 /* MinhasVagasTests.swift */,
+				5FB4FDD061007C401AF3724C /* ModoAviaoMeuTurnoTests.swift */,
 				7C82E02114780C98AC98BD1A /* OfflineTests.swift */,
 				CB0DAB39F53C66FB25CB0D05 /* PerfilProfissionalViewModelTests.swift */,
 				22B09E8CED7013DCD7D059CD /* PerfisDaContaTests.swift */,
@@ -708,6 +716,7 @@
 				BDCD65257F314605356F4842 /* SegurancaDoCodigoTests.swift */,
 				B41B867B134F94D5FFF24940 /* SupabaseApiClienteTests.swift */,
 				C5AB836C22721632CB647259 /* SwiftDataTests.swift */,
+				50F1444D39FB4D5811C1B586 /* WhatsAppDoTurnoTests.swift */,
 			);
 			path = Unitarios;
 			sourceTree = "<group>";
@@ -1436,6 +1445,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5BE18DD27D48523970902937 /* AcessibilidadeDoCatalogoUITests.swift in Sources */,
+				7793593D652D4B53A86072A4 /* AcessibilidadeDoProfissionalUITests.swift in Sources */,
 				32BEF1B83849B420385B3F14 /* AvaliacaoUITests.swift in Sources */,
 				B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */,
 				E1BFE2C26E3F9990368319CA /* ExclusaoDeContaUITests.swift in Sources */,
@@ -1475,6 +1485,7 @@
 				3E6F76B1865D42856796698F /* ListaDeVagasTests.swift in Sources */,
 				EAFF252A76C551A331AC6E3F /* MeuTurnoViewModelTests.swift in Sources */,
 				B906E4209BD1D93DB0B779BB /* MinhasVagasTests.swift in Sources */,
+				A304C31D035E5BA346F454B0 /* ModoAviaoMeuTurnoTests.swift in Sources */,
 				9A60DAFA91838AF4F9001278 /* OfflineTests.swift in Sources */,
 				5C81BB40519F54C56BB074EB /* PerfilProfissionalViewModelTests.swift in Sources */,
 				13680E76BFF8E766208AFAC1 /* PerfisDaContaTests.swift in Sources */,
@@ -1487,6 +1498,7 @@
 				FB7A719CB5DC43A1229C05B9 /* SegurancaDoCodigoTests.swift in Sources */,
 				4EA5E1C133FBD6A347F74651 /* SupabaseApiClienteTests.swift in Sources */,
 				DA7A8C61156468C3F8E0E12E /* SwiftDataTests.swift in Sources */,
+				84E6FEBA6AC10A66F4E0B34E /* WhatsAppDoTurnoTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
