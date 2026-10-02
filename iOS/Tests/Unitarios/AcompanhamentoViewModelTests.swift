@@ -726,6 +726,52 @@ struct RoteadorDoContratanteTests {
     func avisoQueNaoAbre(tipo: String, payload: [String: String]) {
         #expect(AvisoDoContratante(tipo: tipo, payload: payload) == nil)
     }
+
+    @Test("Posição cancelada com campos da 0.2.31 mantém estado e mapeia textos de causa e falta")
+    func cancelamentoComCampos0231() async throws {
+        let cancelamento = CancelamentoDaPosicao(
+            causa: .profissional,
+            falta: true,
+            motivo: "Imprevisto de saúde",
+            canceladaEm: agoraDoTeste
+        )
+        let posicao = PosicaoNoPainel(
+            id: PainelDeTeste.posicaoID,
+            estado: .cancelada,
+            profissional: nil,
+            turnoID: PainelDeTeste.turnoID,
+            verificacao: .naoVerificado,
+            emAtraso: false,
+            cancelamento: cancelamento
+        )
+        let painel = Painel(
+            estabelecimentoID: PainelDeTeste.casa,
+            vagas: [try PainelDeTeste.vaga(posicoes: [posicao])],
+            checkinsPendentes: []
+        )
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: { painel }, confirmar: { _ in PainelDeTeste.confirmado }, reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+
+        let turno = try #require(viewModel.turno(turnoID: PainelDeTeste.turnoID))
+        #expect(viewModel.chegada(turno) == .cancelada)
+        #expect(turno.posicao.cancelamento?.motivo == "Imprevisto de saúde")
+        #expect(turno.posicao.cancelamento?.falta == true)
+
+        #expect(TextosDoAcompanhamento.textoDaCausa(.profissional) == "Cancelado pelo profissional.")
+        #expect(TextosDoAcompanhamento.textoDaCausa(.estabelecimento) == "Cancelado pelo estabelecimento.")
+        #expect(TextosDoAcompanhamento.textoDaCausa(.reaberturaPorAtraso) == "Reabertura por atraso.")
+        #expect(TextosDoAcompanhamento.textoDaCausa(.noShowSemCheckin) == "Turno encerrado sem check-in.")
+        #expect(TextosDoAcompanhamento.textoDaCausa(.outro) == "Cancelamento administrativo.")
+
+        #expect(TextosDoAcompanhamento.textoDaFalta(true) == "Contou como falta para o profissional.")
+        #expect(TextosDoAcompanhamento.textoDaFalta(false) == "Não contou como falta.")
+
+        #expect(TextosDoAcompanhamento.detalheDoCheckin(em: "20:00", tipo: .geolocalizado) == "Check-in no local às 20:00.")
+        #expect(TextosDoAcompanhamento.detalheDoCheckin(em: "20:00", tipo: .manual) == "Check-in manual às 20:00.")
+        #expect(TextosDoAcompanhamento.detalheDoCheckin(em: "20:00", tipo: nil) == "Check-in às 20:00.")
+    }
 }
 
 @Suite("Textos do acompanhamento no catálogo (#19)")

@@ -203,7 +203,7 @@ public final class AcompanhamentoViewModel {
         do {
             let registro = try await confirmar(turnoID)
             geracao += 1
-            aplicar(verificacao: registro.verificacao, aoTurno: turnoID)
+            aplicar(verificacao: registro.verificacao, aoTurno: turnoID, confirmadoEm: registro.registradoEm)
             resultado = .presencaConfirmada
             await aoMudar()
         } catch let erro as ErroDaApi where erro.codigo == .checkinJaConfirmado || erro.codigo == .checkinPendente {
@@ -275,13 +275,15 @@ public final class AcompanhamentoViewModel {
         await lerPainel(registrandoFalha: true)
     }
 
-    private func aplicar(verificacao: Verificacao, aoTurno turnoID: UUID) {
+    private func aplicar(verificacao: Verificacao, aoTurno turnoID: UUID, confirmadoEm: Date? = nil) {
         guard let atual = painel else { return }
         painel = Painel(
             estabelecimentoID: atual.estabelecimentoID,
             vagas: atual.vagas.map { vaga in
                 Self.copia(vaga, posicoes: vaga.posicoes.map { posicao in
-                    posicao.turnoID == turnoID ? Self.copia(posicao, verificacao: verificacao) : posicao
+                    posicao.turnoID == turnoID
+                        ? Self.copia(posicao, verificacao: verificacao, checkinConfirmadoEm: confirmadoEm ?? posicao.checkinConfirmadoEm)
+                        : posicao
                 })
             },
             checkinsPendentes: atual.checkinsPendentes.filter { $0 != turnoID }
@@ -295,7 +297,19 @@ public final class AcompanhamentoViewModel {
             vagas: atual.vagas.map { vaga in
                 guard vaga.posicoes.contains(where: { $0.id == cancelamento.posicaoID }) else { return vaga }
                 var posicoes = vaga.posicoes.map { posicao in
-                    posicao.id == cancelamento.posicaoID ? Self.copia(posicao, estado: .cancelada, emAtraso: false) : posicao
+                    posicao.id == cancelamento.posicaoID
+                        ? Self.copia(
+                            posicao,
+                            estado: .cancelada,
+                            emAtraso: false,
+                            cancelamento: CancelamentoDaPosicao(
+                                causa: .reaberturaPorAtraso,
+                                falta: cancelamento.falta,
+                                motivo: nil,
+                                canceladaEm: Date()
+                            )
+                        )
+                        : posicao
                 }
                 if let nova = cancelamento.novaPosicaoID {
                     posicoes.append(PosicaoNoPainel(id: nova, estado: .aberta, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false))
@@ -314,11 +328,27 @@ public final class AcompanhamentoViewModel {
     }
 
     private static func copia(
-        _ posicao: PosicaoNoPainel, estado: EstadoPosicao? = nil, verificacao: Verificacao? = nil, emAtraso: Bool? = nil
+        _ posicao: PosicaoNoPainel,
+        estado: EstadoPosicao? = nil,
+        verificacao: Verificacao? = nil,
+        emAtraso: Bool? = nil,
+        checkinEm: Date? = nil,
+        checkinTipo: TipoRegistro? = nil,
+        checkinConfirmadoEm: Date? = nil,
+        cancelamento: CancelamentoDaPosicao? = nil
     ) -> PosicaoNoPainel {
         PosicaoNoPainel(
-            id: posicao.id, estado: estado ?? posicao.estado, profissional: posicao.profissional, turnoID: posicao.turnoID,
-            verificacao: verificacao ?? posicao.verificacao, emAtraso: emAtraso ?? posicao.emAtraso, aCaminhoEm: posicao.aCaminhoEm
+            id: posicao.id,
+            estado: estado ?? posicao.estado,
+            profissional: posicao.profissional,
+            turnoID: posicao.turnoID,
+            verificacao: verificacao ?? posicao.verificacao,
+            emAtraso: emAtraso ?? posicao.emAtraso,
+            aCaminhoEm: posicao.aCaminhoEm,
+            checkinEm: checkinEm ?? posicao.checkinEm,
+            checkinTipo: checkinTipo ?? posicao.checkinTipo,
+            checkinConfirmadoEm: checkinConfirmadoEm ?? posicao.checkinConfirmadoEm,
+            cancelamento: cancelamento ?? posicao.cancelamento
         )
     }
 }

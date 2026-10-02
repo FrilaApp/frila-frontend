@@ -115,6 +115,51 @@ struct ContratoTests {
         #expect(configuracao.versaoMinima == "0.1.0")
     }
 
+    @Test("Painel decodifica com e sem campos de checkin e cancelamento (contrato 0.2.31)")
+    func painelCheckinECancelamento() throws {
+        // 1. Fixture legado (servidor anterior à 0.2.31)
+        let painelLegado = try FixturesDoContrato.carregar("painel", como: ContratoAPI.PainelDTO.self).dominio()
+        let posicoesLegado = try #require(painelLegado.vagas.first?.posicoes)
+        #expect(posicoesLegado[0].checkinEm == nil)
+        #expect(posicoesLegado[0].checkinTipo == nil)
+        #expect(posicoesLegado[0].checkinConfirmadoEm == nil)
+        #expect(posicoesLegado[0].cancelamento == nil)
+
+        // 2. Fixture com presença
+        let painelPresenca = try FixturesDoContrato.carregar("painel-com-presenca", como: ContratoAPI.PainelDTO.self).dominio()
+        let posicoesPresenca = try #require(painelPresenca.vagas.first?.posicoes)
+        #expect(posicoesPresenca[0].checkinEm != nil)
+        #expect(posicoesPresenca[0].checkinTipo == .geolocalizado)
+        #expect(posicoesPresenca[0].checkinConfirmadoEm == nil)
+        #expect(posicoesPresenca[0].cancelamento == nil)
+
+        // 3. Fixture com cancelamento
+        let painelCancelamento = try FixturesDoContrato.carregar("painel-com-cancelamento", como: ContratoAPI.PainelDTO.self).dominio()
+        let posicoesCancelamento = try #require(painelCancelamento.vagas.first?.posicoes)
+        let cancelada = posicoesCancelamento[0]
+        #expect(cancelada.estado == .cancelada)
+        #expect(cancelada.checkinEm != nil)
+        #expect(cancelada.checkinTipo == .geolocalizado)
+        let detCancelamento = try #require(cancelada.cancelamento)
+        #expect(detCancelamento.causa == .profissional)
+        #expect(detCancelamento.falta == false)
+        #expect(detCancelamento.motivo == "Não poderei comparecer.")
+
+        // 4. Causa desconhecida decodifica como .outro sem derrubar o app
+        let jsonCausaDesconhecida = """
+        {
+            "causa": "mudanca_futura_do_backend",
+            "falta": true,
+            "motivo": null,
+            "cancelada_em": "2026-10-08T18:00:00Z"
+        }
+        """
+        let decodificado = try ContratoAPI.decodificador().decode(ContratoAPI.CancelamentoDaPosicaoDTO.self, from: Data(jsonCausaDesconhecida.utf8))
+        #expect(decodificado.causa == .outro)
+        #expect(decodificado.dominio().causa == .outro)
+        #expect(decodificado.falta == true)
+    }
+
     @Test("Todo erro de erros.json tem código conhecido pelo app")
     func erros() throws {
         let envelopes = try FixturesDoContrato.carregar("erros", como: [EnvelopeErroAPI].self)
