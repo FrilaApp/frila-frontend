@@ -7,6 +7,7 @@ import SwiftUI
 /// Detalhe da vaga (#104). Nunca mostra telefone nem documento: o contrato não os devolve aqui, e o
 /// contato só aparece depois da confirmação (RN10). O aviso da RN10 vem antes de Candidatar-me.
 public struct TelaDetalheVaga<Acao: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var viewModel: DetalheVagaViewModel
     private let acao: (Vaga) -> Acao
 
@@ -36,11 +37,18 @@ public struct TelaDetalheVaga<Acao: View>: View {
             }
             .padding(FrilaEspaco.medio)
         }
+        .accessibilityIdentifier("tela-detalhe-vaga")
+        .safeAreaInset(edge: .bottom) {
+            if dynamicTypeSize.isAccessibilitySize, case let .carregado(vaga) = viewModel.estado {
+                acao(vaga)
+                    .padding(FrilaEspaco.medio)
+                    .background(FrilaCor.fundo)
+            }
+        }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Detalhe.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
-        .accessibilityIdentifier("tela-detalhe-vaga")
     }
 
     @ViewBuilder
@@ -88,12 +96,31 @@ public struct TelaDetalheVaga<Acao: View>: View {
         AvisoFrila(verbatim: TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome), tom: .alerta)
             .accessibilityIdentifier("aviso-rn10")
 
-        acao(vaga)
+        if !dynamicTypeSize.isAccessibilitySize {
+            acao(vaga)
+        }
 
         // Reservado para o Sprint 2 (Denunciar e Bloquear): ocupa o espaço e fica desabilitado.
         HStack(spacing: FrilaEspaco.grande) {
-            Button { } label: { Text(verbatim: TextosDoProfissional.Detalhe.denunciar) }.disabled(true)
-            Button { } label: { Text(verbatim: TextosDoProfissional.Detalhe.bloquear) }.disabled(true)
+            Button { } label: {
+                Text(verbatim: TextosDoProfissional.Detalhe.denunciar)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .accessibilityIdentifier("denunciar")
+            .disabled(true)
+
+            Button { } label: {
+                Text(verbatim: TextosDoProfissional.Detalhe.bloquear)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .accessibilityIdentifier("bloquear")
+            .disabled(true)
         }
         .frame(minHeight: FrilaMetrica.alvoMinimo)
     }

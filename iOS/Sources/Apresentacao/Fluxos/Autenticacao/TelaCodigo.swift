@@ -77,8 +77,10 @@ public struct TelaCodigo: View {
                                                 lineWidth: indice == viewModel.codigo.count ? 2 : 1
                                             )
                                     )
+                                    .accessibilityHidden(true)
                             }
                         }
+                        .accessibilityHidden(true)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             campoFocado = true
