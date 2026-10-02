@@ -152,6 +152,7 @@
 		DC7952E125C99359F1083E72 /* CatalogoStringsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102179ABA9DFAF4F06714C32 /* CatalogoStringsTests.swift */; };
 		DE5FCC0BA755A874B4961CD6 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
 		E056CF423891762CD4D6EDC3 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+		E1BFE2C26E3F9990368319CA /* ExclusaoDeContaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44760C9078A3626B77CA5EF0 /* ExclusaoDeContaUITests.swift */; };
 		E37C08338359D5E72F19001B /* FrilaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */; };
 		E37DB90D849C9E50F0887241 /* requisicao-criar-perfil-profissional.json in Resources */ = {isa = PBXBuildFile; fileRef = 9511BF28366F443CB8C40462 /* requisicao-criar-perfil-profissional.json */; };
 		E5B7819F1F793D2F32BEE292 /* vaga.json in Resources */ = {isa = PBXBuildFile; fileRef = A102BE37E5812AE84F4F8649 /* vaga.json */; };
@@ -342,6 +343,7 @@
 		3E170CF5FEBE4A60D1A81D2C /* App.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = App.xcassets; sourceTree = "<group>"; };
 		3E5678016DBD1843154B5992 /* candidatura-selecao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "candidatura-selecao.json"; sourceTree = "<group>"; };
 		3F7D2A82477B3B29CAF6CFC3 /* vagas-abertas.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vagas-abertas.json"; sourceTree = "<group>"; };
+		44760C9078A3626B77CA5EF0 /* ExclusaoDeContaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaUITests.swift; sourceTree = "<group>"; };
 		44EEFDC3ABA747665D22A07F /* MonitorDeConexaoDoSistema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorDeConexaoDoSistema.swift; sourceTree = "<group>"; };
 		44FCBC781830AFDC791F353D /* FrilaDados.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaDados.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A4761B77D354376319394B1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -610,6 +612,7 @@
 			children = (
 				03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */,
 				B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */,
+				44760C9078A3626B77CA5EF0 /* ExclusaoDeContaUITests.swift */,
 				613CDCB34E6B6DABD31BA8CF /* FluxoDoContratanteUITests.swift */,
 				AB83B16D703D1E773D101730 /* FrilaUITests.swift */,
 				FF3F12B6E43F278AFB1E8734 /* LicencasUITests.swift */,
@@ -1340,6 +1343,7 @@
 			files = (
 				5BE18DD27D48523970902937 /* AcessibilidadeDoCatalogoUITests.swift in Sources */,
 				B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */,
+				E1BFE2C26E3F9990368319CA /* ExclusaoDeContaUITests.swift in Sources */,
 				0D8AB750BF2FBDB50796C21B /* FluxoDoContratanteUITests.swift in Sources */,
 				CA9ECE0B149FACE77CA6BF3A /* FrilaUITests.swift in Sources */,
 				D826F3B8F254FE1DBB90CE33 /* LicencasUITests.swift in Sources */,
