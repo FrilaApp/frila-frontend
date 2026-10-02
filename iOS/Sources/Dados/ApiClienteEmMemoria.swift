@@ -647,12 +647,12 @@ private actor ArmazenamentoCenarioExclusao {
         cenarios[ObjectIdentifier(cliente)] = cenario
     }
 
-    func obter(para cliente: ApiClienteEmMemoria) -> CenarioExclusaoConta {
-        cenarios[ObjectIdentifier(cliente)] ?? .padrao
+    func consumir(para cliente: ApiClienteEmMemoria) -> CenarioExclusaoConta {
+        cenarios.removeValue(forKey: ObjectIdentifier(cliente)) ?? .padrao
     }
 
-    func remover(para cliente: ApiClienteEmMemoria) {
-        cenarios.removeValue(forKey: ObjectIdentifier(cliente))
+    func limpar() {
+        cenarios.removeAll()
     }
 }
 
@@ -662,7 +662,7 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
     }
 
     public func excluirConta() async throws -> ExclusaoDeConta {
-        let configurado = await ArmazenamentoCenarioExclusao.compartilhado.obter(para: self)
+        let configurado = await ArmazenamentoCenarioExclusao.compartilhado.consumir(para: self)
 
         let argumentos = ProcessInfo.processInfo.arguments
         let cenarioEfetivo: CenarioExclusaoConta
