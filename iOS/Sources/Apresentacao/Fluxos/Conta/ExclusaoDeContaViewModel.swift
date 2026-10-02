@@ -13,14 +13,14 @@ public final class ExclusaoDeContaViewModel {
 
     private let executarExclusao: @Sendable () async throws -> ExclusaoDeConta
     private let buscarTurnos: (@Sendable () async throws -> [Turno])?
-    private let aoConcluir: @MainActor () -> Void
+    private let aoConcluir: () -> Void
     private let relogio: any Relogio
 
     public init(
         executarExclusao: @escaping @Sendable () async throws -> ExclusaoDeConta,
         buscarTurnos: (@Sendable () async throws -> [Turno])? = nil,
         relogio: any Relogio = RelogioDoSistema(),
-        aoConcluir: @escaping @MainActor () -> Void = {}
+        aoConcluir: @escaping () -> Void = {}
     ) {
         self.executarExclusao = executarExclusao
         self.buscarTurnos = buscarTurnos
@@ -32,7 +32,7 @@ public final class ExclusaoDeContaViewModel {
         porta: any ExclusaoDeContaPorta,
         buscarTurnos: (@Sendable () async throws -> [Turno])? = nil,
         relogio: any Relogio = RelogioDoSistema(),
-        aoConcluir: @escaping @MainActor () -> Void = {}
+        aoConcluir: @escaping () -> Void = {}
     ) {
         self.init(
             executarExclusao: { try await porta.excluirConta() },
@@ -46,7 +46,7 @@ public final class ExclusaoDeContaViewModel {
         api: any ApiCliente,
         executarExclusao: (@Sendable () async throws -> ExclusaoDeConta)? = nil,
         relogio: any Relogio = RelogioDoSistema(),
-        aoConcluir: @escaping @MainActor () -> Void = {}
+        aoConcluir: @escaping () -> Void = {}
     ) {
         let acao: @Sendable () async throws -> ExclusaoDeConta
         if let executarExclusao {
