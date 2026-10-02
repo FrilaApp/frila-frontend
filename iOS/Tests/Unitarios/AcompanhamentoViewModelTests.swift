@@ -763,7 +763,7 @@ struct RoteadorDoContratanteTests {
         #expect(TextosDoAcompanhamento.textoDaCausa(.estabelecimento) == "Cancelado pelo estabelecimento.")
         #expect(TextosDoAcompanhamento.textoDaCausa(.reaberturaPorAtraso) == "Reabertura por atraso.")
         #expect(TextosDoAcompanhamento.textoDaCausa(.noShowSemCheckin) == "Turno encerrado sem check-in.")
-        #expect(TextosDoAcompanhamento.textoDaCausa(.outro) == "Cancelamento administrativo.")
+        #expect(TextosDoAcompanhamento.textoDaCausa(.outro) == "Posição cancelada.")
 
         #expect(TextosDoAcompanhamento.textoDaFalta(true) == "Contou como falta para o profissional.")
         #expect(TextosDoAcompanhamento.textoDaFalta(false) == "Não contou como falta.")

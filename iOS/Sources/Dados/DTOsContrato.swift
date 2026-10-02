@@ -855,6 +855,25 @@ enum ContratoAPI {
             case checkinConfirmadoEm = "checkin_confirmado_em"
         }
 
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            estado = try container.decode(EstadoPosicao.self, forKey: .estado)
+            profissional = try container.decodeIfPresent(PerfilPublicoDTO.self, forKey: .profissional)
+            turnoID = try container.decodeIfPresent(UUID.self, forKey: .turnoID)
+            verificacao = try container.decodeIfPresent(Verificacao.self, forKey: .verificacao)
+            emAtraso = try container.decode(Bool.self, forKey: .emAtraso)
+            aCaminhoEm = try container.decodeIfPresent(Date.self, forKey: .aCaminhoEm)
+            checkinEm = try container.decodeIfPresent(Date.self, forKey: .checkinEm)
+            if let tipoRaw = try container.decodeIfPresent(String.self, forKey: .checkinTipo) {
+                checkinTipo = TipoRegistro(rawValue: tipoRaw)
+            } else {
+                checkinTipo = nil
+            }
+            checkinConfirmadoEm = try container.decodeIfPresent(Date.self, forKey: .checkinConfirmadoEm)
+            cancelamento = try container.decodeIfPresent(CancelamentoDaPosicaoDTO.self, forKey: .cancelamento)
+        }
+
         func dominio() -> PosicaoNoPainel {
             PosicaoNoPainel(
                 id: id, estado: estado, profissional: profissional?.dominio(), turnoID: turnoID, verificacao: verificacao,

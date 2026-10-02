@@ -4823,12 +4823,12 @@
         }
       }
     },
-    "Cancelamento administrativo.": {
+    "Posição cancelada.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cancelamento administrativo."
+            "value": "Posição cancelada."
           }
         }
       }

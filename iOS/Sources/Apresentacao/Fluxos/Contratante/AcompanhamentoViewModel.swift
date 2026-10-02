@@ -203,7 +203,7 @@ public final class AcompanhamentoViewModel {
         do {
             let registro = try await confirmar(turnoID)
             geracao += 1
-            aplicar(verificacao: registro.verificacao, aoTurno: turnoID, confirmadoEm: registro.registradoEm)
+            aplicar(verificacao: registro.verificacao, aoTurno: turnoID)
             resultado = .presencaConfirmada
             await aoMudar()
         } catch let erro as ErroDaApi where erro.codigo == .checkinJaConfirmado || erro.codigo == .checkinPendente {
@@ -275,15 +275,13 @@ public final class AcompanhamentoViewModel {
         await lerPainel(registrandoFalha: true)
     }
 
-    private func aplicar(verificacao: Verificacao, aoTurno turnoID: UUID, confirmadoEm: Date? = nil) {
+    private func aplicar(verificacao: Verificacao, aoTurno turnoID: UUID) {
         guard let atual = painel else { return }
         painel = Painel(
             estabelecimentoID: atual.estabelecimentoID,
             vagas: atual.vagas.map { vaga in
                 Self.copia(vaga, posicoes: vaga.posicoes.map { posicao in
-                    posicao.turnoID == turnoID
-                        ? Self.copia(posicao, verificacao: verificacao, checkinConfirmadoEm: confirmadoEm ?? posicao.checkinConfirmadoEm)
-                        : posicao
+                    posicao.turnoID == turnoID ? Self.copia(posicao, verificacao: verificacao) : posicao
                 })
             },
             checkinsPendentes: atual.checkinsPendentes.filter { $0 != turnoID }
@@ -297,19 +295,7 @@ public final class AcompanhamentoViewModel {
             vagas: atual.vagas.map { vaga in
                 guard vaga.posicoes.contains(where: { $0.id == cancelamento.posicaoID }) else { return vaga }
                 var posicoes = vaga.posicoes.map { posicao in
-                    posicao.id == cancelamento.posicaoID
-                        ? Self.copia(
-                            posicao,
-                            estado: .cancelada,
-                            emAtraso: false,
-                            cancelamento: CancelamentoDaPosicao(
-                                causa: .reaberturaPorAtraso,
-                                falta: cancelamento.falta,
-                                motivo: nil,
-                                canceladaEm: Date()
-                            )
-                        )
-                        : posicao
+                    posicao.id == cancelamento.posicaoID ? Self.copia(posicao, estado: .cancelada, emAtraso: false) : posicao
                 }
                 if let nova = cancelamento.novaPosicaoID {
                     posicoes.append(PosicaoNoPainel(id: nova, estado: .aberta, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false))

@@ -158,6 +158,21 @@ struct ContratoTests {
         #expect(decodificado.causa == .outro)
         #expect(decodificado.dominio().causa == .outro)
         #expect(decodificado.falta == true)
+
+        // 5. checkin_tipo com valor desconhecido não derruba o painel inteiro e vira nil
+        let dadosPresenca = try FixturesDoContrato.dados("painel-com-presenca")
+        let textoPresenca = try #require(String(data: dadosPresenca, encoding: .utf8))
+        let textoComTipoDesconhecido = textoPresenca.replacingOccurrences(
+            of: "\"checkin_tipo\": \"geolocalizado\"",
+            with: "\"checkin_tipo\": \"tipo_futuro_desconhecido\""
+        )
+        let painelComTipoDesconhecido = try ContratoAPI.decodificador().decode(
+            ContratoAPI.PainelDTO.self,
+            from: Data(textoComTipoDesconhecido.utf8)
+        ).dominio()
+        let posicoesDesconhecido = try #require(painelComTipoDesconhecido.vagas.first?.posicoes)
+        #expect(posicoesDesconhecido[0].checkinEm != nil)
+        #expect(posicoesDesconhecido[0].checkinTipo == nil)
     }
 
     @Test("Todo erro de erros.json tem código conhecido pelo app")

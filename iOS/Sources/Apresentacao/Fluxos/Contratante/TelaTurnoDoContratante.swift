@@ -44,7 +44,7 @@ enum TextosDoAcompanhamento {
     static let causaEstabelecimento = String(localized: "Cancelado pelo estabelecimento.", bundle: bundleApresentacao)
     static let causaReaberturaPorAtraso = String(localized: "Reabertura por atraso.", bundle: bundleApresentacao)
     static let causaNoShowSemCheckin = String(localized: "Turno encerrado sem check-in.", bundle: bundleApresentacao)
-    static let causaOutro = String(localized: "Cancelamento administrativo.", bundle: bundleApresentacao)
+    static let causaOutro = String(localized: "Posição cancelada.", bundle: bundleApresentacao)
     static let contouFalta = String(localized: "Contou como falta para o profissional.", bundle: bundleApresentacao)
     static let naoContouFalta = String(localized: "Não contou como falta.", bundle: bundleApresentacao)
     static let motivoCancelamento = String(localized: "Motivo: %@", bundle: bundleApresentacao)
