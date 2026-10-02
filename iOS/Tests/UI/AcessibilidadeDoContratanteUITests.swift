@@ -205,16 +205,22 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
                 continue
             }
             let quadro = elemento.frame
-            let visivel = elemento.isHittable
-                && quadro.minY >= margemSuperior
-                && quadro.maxY <= (janela.height - margemInferior)
-            if visivel { break }
-
-            if quadro.maxY > (janela.height - margemInferior) || !elemento.isHittable {
-                app.swipeUp(velocity: .slow)
-            } else if quadro.minY < margemSuperior {
+            let direcao = direcaoParaTrazerParaATela(
+                quadro: quadro,
+                alturaJanela: janela.height,
+                margemSuperior: margemSuperior,
+                margemInferior: margemInferior,
+                isHittable: elemento.isHittable
+            )
+            switch direcao {
+            case .nenhuma:
+                break
+            case .rolarParaBaixo:
                 app.swipeDown(velocity: .slow)
+            case .rolarParaCima:
+                app.swipeUp(velocity: .slow)
             }
+            if direcao == .nenhuma { break }
         }
     }
 }
