@@ -111,6 +111,7 @@
 		8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */; };
 		8C97FE7579D3C683369CFAD8 /* requisicao-publicar-vaga.json in Resources */ = {isa = PBXBuildFile; fileRef = AC0715D51EC624FFD2754B4B /* requisicao-publicar-vaga.json */; };
 		8D44DCBE863B3BEAF899FF5C /* FrilaApresentacao.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		8EC5655DD26C667C6AF16FE2 /* PushUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDA6D4EC89C2AE57C274C19 /* PushUITests.swift */; };
 		8F7FE646562C55065F0A0B19 /* CandidaturaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 026BCBC5E9C1298BCCF168F8 /* CandidaturaViewModel.swift */; };
 		90A64B886BA2372172581C39 /* usuario.json in Resources */ = {isa = PBXBuildFile; fileRef = 6044BB78E5ED8913EC72A112 /* usuario.json */; };
 		90E9EEA32A1708C210661BBC /* TelaMeusTurnos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08EC317A71AA356424C42CD7 /* TelaMeusTurnos.swift */; };
@@ -347,6 +348,7 @@
 		06D9D43515118FB42F5E885D /* vaga-cancelada.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vaga-cancelada.json"; sourceTree = "<group>"; };
 		08EC317A71AA356424C42CD7 /* TelaMeusTurnos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaMeusTurnos.swift; sourceTree = "<group>"; };
 		0BBD26CA01BE17B1F08AC8AC /* avaliacao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = avaliacao.json; sourceTree = "<group>"; };
+		0CDA6D4EC89C2AE57C274C19 /* PushUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushUITests.swift; sourceTree = "<group>"; };
 		0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbiente.swift; sourceTree = "<group>"; };
 		0F1AAB76FBC70F896F4BEE7F /* EncerramentoDeSessaoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncerramentoDeSessaoTests.swift; sourceTree = "<group>"; };
 		102179ABA9DFAF4F06714C32 /* CatalogoStringsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogoStringsTests.swift; sourceTree = "<group>"; };
@@ -678,6 +680,7 @@
 				FF3F12B6E43F278AFB1E8734 /* LicencasUITests.swift */,
 				5325BEB3484730A85B852BD0 /* MinhasVagasUITests.swift */,
 				878558C7106428386D470E6E /* PresencaUITests.swift */,
+				0CDA6D4EC89C2AE57C274C19 /* PushUITests.swift */,
 				20A03A1715A02A29FB3465B7 /* TurnoDoContratanteUITests.swift */,
 			);
 			path = UI;
@@ -1485,6 +1488,7 @@
 				D826F3B8F254FE1DBB90CE33 /* LicencasUITests.swift in Sources */,
 				BF09B64CFB31CAFCB89111DD /* MinhasVagasUITests.swift in Sources */,
 				D4CB34405F38C50079591B69 /* PresencaUITests.swift in Sources */,
+				8EC5655DD26C667C6AF16FE2 /* PushUITests.swift in Sources */,
 				277D9343E565B05DF92A4E8F /* TurnoDoContratanteUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
