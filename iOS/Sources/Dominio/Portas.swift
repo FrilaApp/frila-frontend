@@ -267,18 +267,23 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 
     // Cancelamento
     /// Qualquer das partes, com motivo de pelo menos 3 caracteres (RN12). O motivo vai para a tela
-    /// da outra parte.
+    /// da outra parte. Reenviar depois de uma queda de rede não devolve o mesmo resultado: a posição
+    /// já cancelada responde `posicaoNaoCancelavel`, que no reenvio quer dizer "já cancelada".
     func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento
     /// Só o contratante: cancela as posições abertas e as confirmadas, sem falta para ninguém.
+    /// No reenvio, a vaga já cancelada responde `vagaEncerrada`.
     func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada
 
     // Confiança e direitos
     func denunciar(_ denuncia: Denuncia) async throws -> Protocolo
-    /// Imediato e idempotente: bloquear de novo devolve o bloqueio que já existe.
+    /// Imediato e idempotente: bloquear de novo devolve o bloqueio que já existe. O alvo é sempre
+    /// do outro perfil (profissional bloqueia estabelecimento, e contratante, profissional); alvo do
+    /// mesmo perfil é `campoInvalido`, com `alvo_tipo` no detalhe.
     func bloquear(_ alvo: Alvo) async throws -> Bloqueio
     func situacaoDaConta() async throws -> SituacaoDaConta
-    /// Relato de pelo menos 10 caracteres. Sem suspensão em vigor é `semSuspensaoAtiva`; com
-    /// contestação já em análise, `contestacaoJaAberta`.
+    /// Relato de pelo menos 10 caracteres. Sem suspensão em vigor é `semSuspensaoAtiva`. Se já
+    /// houve contestação desta suspensão, em análise ou resolvida, é `contestacaoJaAberta`: a tela
+    /// trata esse erro mesmo quando `Suspensao.contestacao` veio nula.
     func contestarSuspensao(relato: String) async throws -> Protocolo
 
     // Aplicativo e dispositivo

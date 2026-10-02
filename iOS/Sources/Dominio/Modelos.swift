@@ -712,7 +712,9 @@ public struct Bloqueio: Codable, Hashable, Sendable {
 public struct Suspensao: Codable, Hashable, Sendable {
     public let motivo: String
     public let desde: Date
-    /// A contestação em análise, se houver. Com ela aberta, contestar de novo é `contestacao_ja_aberta`.
+    /// A contestação em análise, se houver. Nula não garante que dá para contestar: o servidor
+    /// recusa com `contestacao_ja_aberta` se já houve contestação desta suspensão, mesmo resolvida,
+    /// e a contestação resolvida não aparece aqui.
     public let contestacao: Protocolo?
 
     public init(motivo: String, desde: Date, contestacao: Protocolo?) {

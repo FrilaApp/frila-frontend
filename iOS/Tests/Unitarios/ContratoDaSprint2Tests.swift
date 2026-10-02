@@ -255,6 +255,28 @@ private final class RecusasDaSprint2: URLProtocol {
     override func stopLoading() {}
 }
 
+/// Respostas que o contrato não promete assim, mas que o cliente precisa atravessar sem cair: valor
+/// de enum que o app não conhece, e a recusa com `details` que só o backend documenta.
+private final class CasosDeBordaDaSprint2: URLProtocol {
+    static let respostas: [String: (status: Int, corpo: String)] = [
+        "denunciar": (200, #"{"ocorrencia_id":"a0000000-0000-0000-0000-000000000001","tipo":"elogio","criada_em":"2026-10-10T01:20:00Z","prazo_resposta_ate":"2026-10-16"}"#),
+        "situacao_da_conta": (200, #"{"estado":"banida","suspensao":null}"#),
+        "reabrir_por_atraso": (409, #"{"code":"posicao_nao_cancelavel","message":"posicao_nao_cancelavel","details":"checkin_registrado","hint":null}"#),
+    ]
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let resposta = Self.respostas[request.url?.lastPathComponent ?? ""] else {
+            return responder(self, status: 500, corpo: Data("{}".utf8))
+        }
+        responder(self, status: resposta.status, corpo: Data(resposta.corpo.utf8))
+    }
+
+    override func stopLoading() {}
+}
+
 @Suite("Cliente Supabase: as RPCs da Sprint 2 contra respostas HTTP do contrato")
 struct SupabaseDaSprint2Tests {
     private func cliente(_ protocolo: URLProtocol.Type) throws -> SupabaseApiCliente {
@@ -322,6 +344,21 @@ struct SupabaseDaSprint2Tests {
         let protocolo = try await cliente(BackendDaSprint2.self).contestarSuspensao(relato: Esperado.relatoDaContestacao)
         #expect(protocolo.ocorrenciaID == IDs.denuncia)
         #expect(try BackendDaSprint2.recebido(em: "contestar_suspensao") == ContratoTests.fixture("requisicao-contestar-suspensao"))
+    }
+
+    @Test("Tipo de protocolo ou estado de conta que o app não conhece vira resposta_invalida, nunca queda")
+    func enumDesconhecido() async throws {
+        let api = try cliente(CasosDeBordaDaSprint2.self)
+        await #expect(throws: ErroDaApi(codigo: .respostaInvalida)) { _ = try await api.denunciar(Esperado.denuncia) }
+        await #expect(throws: ErroDaApi(codigo: .respostaInvalida)) { _ = try await api.situacaoDaConta() }
+    }
+
+    @Test("reabrir_por_atraso com check-in feito chega como posicao_nao_cancelavel, com checkin_registrado no detalhe")
+    func reabrirComCheckinFeito() async throws {
+        let api = try cliente(CasosDeBordaDaSprint2.self)
+        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel, detalhes: "checkin_registrado")) {
+            _ = try await api.reabrirPorAtraso(posicaoID: IDs.posicao)
+        }
     }
 
     @Test("A recusa de cada RPC chega tipada, com o código e o detalhe do envelope", arguments: [

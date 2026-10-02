@@ -73,8 +73,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
-    /// Turnos cuja posição foi cancelada: saem de `meusTurnos` e continuam no painel, como posição
-    /// `cancelada`. A posição cancelada não volta a ficar aberta (RN12).
+    /// Turnos cuja posição foi cancelada. Continuam em `meusTurnos`, como no backend, que não
+    /// filtra pelo estado da posição, e no painel, como posição `cancelada`. A posição cancelada
+    /// não volta a ficar aberta (RN12).
     private var turnosCancelados: [Turno] = []
     /// Posições novas que um cancelamento ou uma reabertura abriu, por vaga: o painel as mostra com
     /// o id que a chamada devolveu, e a próxima candidatura ocupa a primeira.
@@ -334,12 +335,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
                         emAtraso: atrasada && registro == nil && turno.checkin == nil, aCaminhoEm: turno.aCaminhoEm
                     )
                 }
-                // A presença que ainda esperava prova fica `nao_verificado` quando a posição é cancelada.
                 let canceladas = turnosCancelados.filter { $0.vaga.id == vaga.id }.map { turno in
-                    let verificacao = checkins[turno.id]?.verificacao ?? turno.verificacao
-                    return PosicaoNoPainel(
+                    PosicaoNoPainel(
                         id: turno.posicaoID, estado: .cancelada, profissional: perfilPublicoDeExemplo, turnoID: turno.id,
-                        verificacao: verificacao == .pendente ? .naoVerificado : verificacao, emAtraso: false, aCaminhoEm: turno.aCaminhoEm
+                        verificacao: turno.verificacao, emAtraso: false, aCaminhoEm: turno.aCaminhoEm
                     )
                 }
                 let reabertas = posicoesReabertas[vaga.id] ?? []
@@ -534,9 +533,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     // MARK: Turno
 
+    /// Como `meus_turnos` do backend, traz também os turnos de posição cancelada. O `Turno` do
+    /// contrato não tem estado: o que os distingue é só a verificação, que deixa de ser `pendente`.
     public func meusTurnos() async throws -> [Turno] {
         try verificarFalhaGeral()
-        return turnos
+        return turnos + turnosCancelados
     }
 
     public func contatoDoTurno(id: UUID) async throws -> Contato {
@@ -728,10 +729,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Segue `bloquear` do backend (`20260929100000_denunciar_e_bloquear.sql`): alvo que não existe é
     /// `404`, e bloquear de novo devolve o bloqueio que já existe. A partir daí as vagas da casa
     /// bloqueada saem da lista, e detalhe, candidatura e contato respondem `404`. O `perfil_publico`
-    /// continua respondendo, como no contrato 0.2.27. Não modelados: o `422 campo_invalido` de alvo
-    /// do mesmo perfil de quem bloqueia e o bloqueio de si mesmo, pela conta única do dublê.
+    /// continua respondendo, como no contrato 0.2.27. O alvo é do outro perfil: conta de profissional
+    /// bloqueia estabelecimento, e conta de contratante, profissional; o contrário é `422
+    /// campo_invalido`, com `alvo_tipo`, conferido antes de procurar o alvo.
     public func bloquear(_ alvo: Alvo) async throws -> Bloqueio {
         try verificarFalhaGeral()
+        guard let perfil = conta?.perfil, (perfil == .profissional) == (alvo.tipo == .estabelecimento) else {
+            throw erro("campo_invalido", detalhes: "alvo_tipo")
+        }
         guard existe(alvo) else { throw erro("nao_encontrado") }
         if let gravado = bloqueios[alvo] { return gravado }
         let bloqueio = Bloqueio(alvo: alvo, criadoEm: relogio.agora)
@@ -749,7 +754,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// Segue `contestar_suspensao` do backend (`20261001100000_suspensao_da_conta.sql`), na ordem
     /// dele: sem suspensão é `422 sem_suspensao_ativa`; relato em branco, `422 campo_obrigatorio`; com
-    /// menos de 10 caracteres, `422 campo_invalido`; contestação já aberta, `409 contestacao_ja_aberta`.
+    /// menos de 10 caracteres, `422 campo_invalido`; contestação já feita, `409 contestacao_ja_aberta`.
+    /// No backend o 409 vale também para a contestação já resolvida, que `situacao_da_conta` não
+    /// mostra; o dublê não resolve contestação, então nele as duas leituras coincidem.
     public func contestarSuspensao(relato: String) async throws -> Protocolo {
         try verificarRede()
         guard conta != nil else { throw erro("nao_autenticado") }
@@ -799,7 +806,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// quando reabre, ganha uma posição nova e volta a `publicada`.
     private func cancelarTurno(em indice: Int, falta: Bool, reabrir: Bool) -> ResultadoCancelamento {
         let turno = turnos.remove(at: indice)
-        turnosCancelados.append(turno)
+        // A presença que ainda esperava prova fica `nao_verificado`.
+        let verificacao = checkins[turno.id]?.verificacao ?? turno.verificacao
+        turnosCancelados.append(Turno(
+            id: turno.id, posicaoID: turno.posicaoID, vaga: turno.vaga, contraparte: turno.contraparte,
+            contatoVisivelAte: turno.contatoVisivelAte, aCaminhoEm: turno.aCaminhoEm, checkin: turno.checkin,
+            checkout: turno.checkout, verificacao: verificacao == .pendente ? .naoVerificado : verificacao,
+            valorAcordado: turno.valorAcordado, podeAvaliar: turno.podeAvaliar
+        ))
         contatos[turno.id] = nil
         var nova: UUID?
         if reabrir, let daVaga = vagas.firstIndex(where: { $0.id == turno.vaga.id }) {
@@ -937,6 +951,7 @@ public enum CenarioExclusaoConta: Sendable, Equatable {
     case comTurnosCancelados(Int)
     case administradorUnico
     case semRede
+    case naoAutenticado
 }
 
 private actor ArmazenamentoCenarioExclusao {
@@ -972,6 +987,8 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
             cenarioEfetivo = .administradorUnico
         } else if argumentos.contains("-FRILA_EXCLUSAO_SEM_REDE") {
             cenarioEfetivo = .semRede
+        } else if argumentos.contains("-FRILA_EXCLUSAO_401") {
+            cenarioEfetivo = .naoAutenticado
         } else if let idx = argumentos.firstIndex(of: "-FRILA_EXCLUSAO_TURNOS"), argumentos.indices.contains(idx + 1), let n = Int(argumentos[idx + 1]) {
             cenarioEfetivo = .comTurnosCancelados(n)
         } else {
@@ -982,6 +999,10 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
             throw ErroDaApi(codigo: .semRede)
         }
         try verificarRede()
+
+        if cenarioEfetivo == .naoAutenticado {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "nao_autenticado")
+        }
 
         if cenarioEfetivo == .administradorUnico {
             throw ErroDaApi(codigo: .administradorUnico, codigoOriginal: "administrador_unico")

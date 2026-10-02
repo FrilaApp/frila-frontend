@@ -68,6 +68,8 @@ xcodebuild build -project Frila.xcodeproj -scheme Frila-Prod -destination 'gener
 
 A CI roda a mesma sequência; ver [Integração contínua](Docs/CI.md).
 
+Dublê de teste que conforma a `ApiCliente` herda de `ApiClienteEncaminhador` (`Tests/Unitarios/Suporte/`), que encaminha tudo para um `ApiClienteEmMemoria`, e sobrescreve só o que quer espiar ou trocar. Operação nova na porta ganha o encaminhamento lá, uma vez, e nenhum dublê quebra.
+
 ### Validação manual do cliente da API (#53)
 
 Em builds Debug, o catálogo traz a seção **Validação do cliente**. A entrada é só por código de seis dígitos, como o contrato define em `/otp`: o modelo de e-mail do Supabase leva `{{ .Token }}`, sem link. O app não registra esquema de URL nem trata retorno de autenticação.
@@ -170,13 +172,15 @@ Também aqui o dublê não é equivalente ao backend:
 **RPCs da Sprint 2 no dublê (#19, #20, #39 e #41).** O `ApiClienteEmMemoria` segue as funções do backend, na ordem das recusas delas:
 - `confirmarCheckinManual` (`20260926060100_exigir_conta_ativa_escrita.sql`): sem check-in é `409 checkin_pendente`; check-in geolocalizado, `409 checkin_ja_confirmado`; repetir devolve o registro confirmado. O turno sai de `checkins_pendentes` do painel, e a posição passa a `verificado`.
 - `reabrirPorAtraso` (`20260928220000_alerta_de_atraso_e_reabrir_por_atraso.sql`): antes dos 15 minutos é `422 reabertura_antes_da_tolerancia`; com check-in, `409 posicao_nao_cancelavel` com `checkin_registrado`; a menos de 1 hora do fim marca a falta sem abrir posição; repetir devolve o mesmo resultado. O painel marca `em_atraso` dos 15 minutos do início até o fim, só sem check-in.
-- `cancelarPosicao` e `cancelarVaga` (`20260925020000_cancelamentos.sql`): motivo com menos de 3 caracteres é `422 campo_obrigatorio`; posição que não está confirmada, `409 posicao_nao_cancelavel`; vaga já cancelada, `409 vaga_encerrada`. A posição cancelada continua no painel como `cancelada`, e a reabertura cria uma posição nova.
-- `denunciar` e `bloquear` (`20260929100000_denunciar_e_bloquear.sql`): a chave da denúncia decide antes de qualquer validação; o prazo é o quinto dia útil no dia de São Paulo, sem feriados; bloquear de novo devolve o mesmo bloqueio. Com a casa bloqueada, as vagas dela saem da lista, e detalhe, candidatura e contato respondem `404`.
-- `situacaoDaConta` e `contestarSuspensao` (`20261001100000_suspensao_da_conta.sql`): só o cenário `conta-suspensa` tem suspensão, e nele essas duas respondem enquanto as outras operações recusam com `conta_suspensa`.
+- `cancelarPosicao` (`20260926060100_exigir_conta_ativa_escrita.sql`) e `cancelarVaga` (`20260925020000_cancelamentos.sql`): motivo com menos de 3 caracteres é `422 campo_obrigatorio`; posição que não está confirmada, `409 posicao_nao_cancelavel`; vaga já cancelada, `409 vaga_encerrada`. Reenviar não devolve o mesmo resultado: responde esses mesmos 409, que no reenvio querem dizer "já cancelado". A posição cancelada continua no painel como `cancelada`, e a reabertura cria uma posição nova.
+- **O turno cancelado continua em `meusTurnos`**, como em `meus_turnos` do backend (`20260924220000_meus_turnos.sql`), que não filtra pelo estado da posição. O `Turno` do contrato não tem estado: a única marca é a verificação, que passa de `pendente` a `nao_verificado`. A decisão de contrato (estado no `Turno`, ou filtro em `meus_turnos`) está em aberto.
+- `denunciar` e `bloquear` (`20260929100000_denunciar_e_bloquear.sql`): a chave da denúncia decide antes de qualquer validação; o prazo é o quinto dia útil no dia de São Paulo, sem feriados; bloquear de novo devolve o mesmo bloqueio; bloquear alvo do mesmo perfil da conta é `422 campo_invalido`, com `alvo_tipo`. Com a casa bloqueada, as vagas dela saem da lista, e detalhe, candidatura e contato respondem `404`.
+- `situacaoDaConta` e `contestarSuspensao` (`20261001100000_suspensao_da_conta.sql`): só o cenário `conta-suspensa` tem suspensão, e nele essas duas respondem enquanto as outras operações recusam com `conta_suspensa`. No backend, `409 contestacao_ja_aberta` vale também para a contestação já resolvida, que `situacao_da_conta` não mostra: a tela trata o 409 mesmo com `contestacao` nula. O dublê não resolve contestação.
 
 O que o dublê não modela nessas operações:
-- **Uma conta só.** Ele não distingue quem chama: não recusa o profissional que confirma o próprio check-in (`403`), a conta de profissional em `cancelar_vaga` e `reabrir_por_atraso` (`422 perfil_incompativel`), nem denunciar ou bloquear a si mesmo. Em `cancelarPosicao`, o perfil da conta decide o lado: profissional leva falta a menos de 24 horas; contratante não gera falta.
-- **Filtro de termos.** O motivo e o relato não passam pelo filtro da diretriz 1.2 (`422 campo_invalido`).
+- **Uma conta só.** Ele não distingue quem chama: não recusa o profissional que confirma o próprio check-in (`403`), a conta de profissional em `cancelar_vaga` e `reabrir_por_atraso` (`422 perfil_incompativel`), nem a denúncia de si mesmo. Em `cancelarPosicao`, o perfil da conta decide o lado: profissional leva falta a menos de 24 horas; contratante não gera falta.
+- **Filtro de termos.** No backend, o motivo dos cancelamentos e o relato da contestação passam pelo filtro da diretriz 1.2 (`422 campo_invalido`); o relato da denúncia não passa. O dublê não tem o filtro.
+- **Posições abertas de vaga cancelada.** No backend elas viram `cancelada` e continuam no painel. No dublê, `cancelarVaga` conta as abertas na resposta, mas o painel mostra só as que tinham profissional.
 - **Tolerância do substituto.** O backend conta os 15 minutos do início ou da confirmação, o que for mais tarde; o dublê conta do início.
 - **Alerta de vaga vazia.** A janela é a padrão, de 3 horas; o `alerta_antecedencia_min` da publicação não é guardado.
 

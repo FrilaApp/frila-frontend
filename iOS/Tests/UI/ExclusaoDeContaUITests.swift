@@ -59,4 +59,25 @@ final class ExclusaoDeContaUITests: XCTestCase {
         capturaEntrada.lifetime = .keepAlways
         add(capturaEntrada)
     }
+
+    func testContratanteComEstabelecimentoChegaAExclusaoDeConta() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
+        app.launch()
+
+        // 1. O app abre no fluxo do contratante e apresenta o botão de perfil do estabelecimento
+        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Contratante existente deve ver o botão de perfil")
+        botaoPerfil.tap()
+
+        // 2. Na tela de perfil do estabelecimento, aciona "Excluir conta"
+        let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
+        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: 5), "Botão de excluir conta do estabelecimento deve estar visível")
+        botaoExcluir.tap()
+
+        // 3. Chega à tela de exclusão de conta
+        let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
+        XCTAssertTrue(telaExclusao.waitForExistence(timeout: 5), "Deve chegar à tela de exclusão de conta")
+    }
 }
+
