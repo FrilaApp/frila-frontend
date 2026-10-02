@@ -48,6 +48,12 @@ enum TextosDosCandidatos {
     static let cartaoFechadaSemEscolha = String(localized: "fechou sem escolha", bundle: bundleApresentacao)
     static let cartaoEncerrada = String(localized: "seleção encerrada", bundle: bundleApresentacao)
 
+    /// A posição cancelada sem profissional, em vaga de seleção. Só é "fechada sem escolha" a que o
+    /// fechamento das 24 h cancelou (RN24); a da vaga que a casa cancelou é posição cancelada.
+    static func posicaoCancelada(vaga estado: EstadoVaga) -> String {
+        estado == .cancelada ? TextosDoAcompanhamento.cancelada : posicaoFechada
+    }
+
     static func pendentes(_ quantidade: Int) -> String {
         switch quantidade {
         case 0: semCandidatos
@@ -382,13 +388,20 @@ struct SecaoDeCandidatos: View {
         .modifier(ConfirmacaoDaEscolha(viewModel: viewModel, ultimaPosicao: vaga.posicoes.count { $0.estado == .aberta } == 1))
     }
 
+    /// A recusa `vaga_oculta` faz a tela reler o painel, e a vaga relida já mostra o aviso de vaga
+    /// oculta, com o mesmo texto: aí a falha não aparece, para a tela não dizer a mesma coisa duas
+    /// vezes. Se a releitura falhou, a situação não mudou, e a falha é o único aviso.
+    static func mostraFalha(_ falha: FalhaDaEscolha, situacao: SituacaoDaSelecao) -> Bool {
+        !(falha == .vagaOculta && situacao == .oculta)
+    }
+
     /// O que a última escolha deu. Fica acima da lista, que muda de tamanho com a releitura.
     @ViewBuilder private var avisos: some View {
         if let resultado = viewModel.resultado {
             AvisoFrila(verbatim: TextosDosCandidatos.resultado(resultado), tom: .informativo)
                 .accessibilityIdentifier("resultado-da-escolha")
         }
-        if let falha = viewModel.falha {
+        if let falha = viewModel.falha, Self.mostraFalha(falha, situacao: situacao) {
             AvisoFrila(verbatim: TextosDosCandidatos.falha(falha, desatualizada: viewModel.desatualizada), tom: falha == .semConexao ? .alerta : .erro)
                 .accessibilityIdentifier("falha-da-escolha")
         }

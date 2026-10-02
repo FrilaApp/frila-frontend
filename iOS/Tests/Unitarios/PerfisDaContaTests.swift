@@ -62,6 +62,17 @@ struct PerfisDaContaTests {
         let padrao = EnderecosOficiais.padrao
         #expect(padrao.termosDeUso.absoluteString == "https://frila.app/termos")
         #expect(padrao.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+        #expect(padrao.emailSuporte == "suportefrila@gmail.com")
+        #expect(padrao.urlSuporte?.absoluteString == "mailto:suportefrila@gmail.com")
+        #expect(padrao.urlSuporte?.scheme == "mailto")
+
+        let personalizado = EnderecosOficiais(
+            termosDeUso: URL(string: "https://exemplo.com/termos")!,
+            politicaDePrivacidade: URL(string: "https://exemplo.com/privacidade")!,
+            emailSuporte: "ajuda@frila.app"
+        )
+        #expect(personalizado.emailSuporte == "ajuda@frila.app")
+        #expect(personalizado.urlSuporte?.absoluteString == "mailto:ajuda@frila.app")
     }
 
     @Test("Os dois links de termos e privacidade existem em Meu perfil e apontam para a constante (#54)")
@@ -76,6 +87,7 @@ struct PerfisDaContaTests {
         let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
         #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)
         #expect(ajuda.enderecos.politicaDePrivacidade == EnderecosOficiais.padrao.politicaDePrivacidade)
+        #expect(ajuda.enderecos.emailSuporte == "suportefrila@gmail.com")
     }
 
     @Test("Os dois links de termos e privacidade existem em Estabelecimento e apontam para a constante (#54)")
@@ -90,6 +102,7 @@ struct PerfisDaContaTests {
         let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
         #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)
         #expect(ajuda.enderecos.politicaDePrivacidade == EnderecosOficiais.padrao.politicaDePrivacidade)
+        #expect(ajuda.enderecos.emailSuporte == "suportefrila@gmail.com")
     }
 
     @Test("Texto de aceite do cadastro contém os endereços da constante EnderecosOficiais (#54)")
