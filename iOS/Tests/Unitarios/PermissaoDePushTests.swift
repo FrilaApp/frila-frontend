@@ -64,8 +64,60 @@ struct PermissaoDePushModeloTests {
         #expect(!modelo.explicacaoVisivel)
         #expect(permissao.pedidos == 0)
         #expect(modelo.estado == .naoPedida)
+        // Na mesma sessão, não volta a aparecer sozinha:
         await modelo.oferecer()
+        #expect(!modelo.explicacaoVisivel)
+        // Mas pelo aviso fixo ela pode ser reaberta:
+        await modelo.reabrir()
         #expect(modelo.explicacaoVisivel)
+    }
+
+    @Test("A explicação aparece no máximo uma vez por sessão: duas publicações mostram uma vez, o aviso fixo reabre e nova sessão mostra de novo (#8)")
+    func explicacaoNoMaximoUmaVezPorSessao() async {
+        let permissao = PermissaoDePushSimulada(estado: .naoPedida)
+        let sessao1 = PermissaoDePushModelo(permissao: permissao)
+
+        // Primeira publicação / momento certo na sessão: mostra a explicação
+        await sessao1.oferecer()
+        #expect(sessao1.explicacaoVisivel)
+        #expect(sessao1.jaMostradaNaSessao)
+
+        // Usuário adia com "Agora não" ou dispensa
+        sessao1.agoraNao()
+        #expect(!sessao1.explicacaoVisivel)
+
+        // Segunda publicação na mesma sessão: não mostra a explicação de novo
+        await sessao1.oferecer()
+        #expect(!sessao1.explicacaoVisivel)
+
+        // O aviso fixo reabre a explicação quando a pessoa quiser
+        await sessao1.reabrir()
+        #expect(sessao1.explicacaoVisivel)
+
+        sessao1.agoraNao()
+        #expect(!sessao1.explicacaoVisivel)
+
+        // Nova sessão do app (uma nova abertura recria o modelo em memória): mostra de novo
+        let sessao2 = PermissaoDePushModelo(permissao: permissao)
+        #expect(!sessao2.jaMostradaNaSessao)
+        await sessao2.oferecer()
+        #expect(sessao2.explicacaoVisivel)
+    }
+
+    @Test("Se a explicação for aberta pelo aviso fixo primeiro, o momento certo não a mostra de novo na sessão")
+    func avisoFixoPrimeiroMarcaSessao() async {
+        let permissao = PermissaoDePushSimulada(estado: .naoPedida)
+        let modelo = PermissaoDePushModelo(permissao: permissao)
+
+        await modelo.reabrir()
+        #expect(modelo.explicacaoVisivel)
+        #expect(modelo.jaMostradaNaSessao)
+
+        modelo.agoraNao()
+        #expect(!modelo.explicacaoVisivel)
+
+        await modelo.oferecer()
+        #expect(!modelo.explicacaoVisivel)
     }
 
     @Test("Voltar dos Ajustes com a permissão mudada atualiza o estado, nos dois sentidos")
