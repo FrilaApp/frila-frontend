@@ -86,7 +86,8 @@ public struct FluxoDoContratante: View {
         case let .cadastro(conta):
             if let fila {
                 TelaCadastroEstabelecimento(api: api, fila: fila, responsavelNome: conta.nome,
-                                           responsavelTelefone: conta.telefone, sair: sair)
+                                           responsavelTelefone: conta.telefone, sair: sair,
+                                           aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
             } else {
                 erro(MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido)))
             }

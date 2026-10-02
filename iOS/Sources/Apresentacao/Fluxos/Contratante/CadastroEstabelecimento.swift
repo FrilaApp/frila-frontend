@@ -106,6 +106,7 @@ public final class CadastroEstabelecimentoViewModel {
             case .documentoJaCadastrado: erro = .documentoDuplicado
             case .campoObrigatorio: erro = .campo(Self.campo(api.detalhes), .obrigatorio)
             case .campoInvalido: erro = .campo(Self.campo(api.detalhes), .invalido)
+            case .semRede: erro = .semRede
             default: erro = .falha
             }
         } catch { erro = .falha }
@@ -123,11 +124,20 @@ public final class CadastroEstabelecimentoViewModel {
         }
         return saida
     }
+
+    public func mensagem(_ erro: ErroDeCadastroEstabelecimento) -> String {
+        switch erro {
+        case .documentoDuplicado: TextosCadastro.documentoDuplicado
+        case .falha: TextosCadastro.falha
+        case .campo: TextosCadastro.confiraCampo
+        case .semRede: MensagemDoErroAPI.texto(ErroDaApi(codigo: .semRede))
+        }
+    }
 }
 
 public enum CampoCadastro: Equatable { case nome, documento, tipo, endereco, regiaoAdministrativa }
 public enum ErroDeCadastroEstabelecimento: Equatable {
-    case documentoDuplicado, campo(CampoCadastro, RegraCampoCadastro), falha
+    case documentoDuplicado, campo(CampoCadastro, RegraCampoCadastro), falha, semRede
 }
 public enum RegraCampoCadastro: Equatable { case obrigatorio, invalido }
 
@@ -143,8 +153,9 @@ public struct TelaCadastroEstabelecimento: View {
     private let responsavelTelefone: String
     private let fila: any FilaDeAcoes
     private let sair: () -> Void
+    private let aoPublicarPrimeiraVaga: () -> Void
 
-    public init(api: any ApiCliente, fila: any FilaDeAcoes, responsavelNome: String, responsavelTelefone: String, sair: @escaping () -> Void = {}) {
+    public init(api: any ApiCliente, fila: any FilaDeAcoes, responsavelNome: String, responsavelTelefone: String, sair: @escaping () -> Void = {}, aoPublicarPrimeiraVaga: @escaping () -> Void = {}) {
         let model = CadastroEstabelecimentoViewModel(api: api)
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST") {
@@ -161,11 +172,12 @@ public struct TelaCadastroEstabelecimento: View {
         self.responsavelTelefone = responsavelTelefone
         self.fila = fila
         self.sair = sair
+        self.aoPublicarPrimeiraVaga = aoPublicarPrimeiraVaga
     }
 
     public var body: some View {
         if model.concluido, let estabelecimento = model.estabelecimentoCriado {
-            TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone, sair: sair)
+            TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone, sair: sair, aoPublicar: aoPublicarPrimeiraVaga)
         } else {
             NavigationStack { formulario }
         }
@@ -195,6 +207,7 @@ public struct TelaCadastroEstabelecimento: View {
                     MapReader { proxy in
                         Map(position: $posicaoMapa) {}
                         .accessibilityIdentifier("mapa-estabelecimento")
+                        .accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
                         #if DEBUG
                         // Expõe a câmera aos testes para distinguir mover o ponto de mover o mapa.
                         .accessibilityValue(Text(verbatim: regiaoMapa.map {
@@ -258,7 +271,6 @@ public struct TelaCadastroEstabelecimento: View {
                         }
                     }
                     .frame(height: 220)
-                    .accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
                     Text(verbatim: TextosCadastro.dicaMapa).font(.caption)
                 }
                 campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
@@ -288,7 +300,7 @@ public struct TelaCadastroEstabelecimento: View {
     }
 
     private func mensagem(_ erro: ErroDeCadastroEstabelecimento) -> String {
-        switch erro { case .documentoDuplicado: TextosCadastro.documentoDuplicado; case .falha: TextosCadastro.falha; case .campo: TextosCadastro.confiraCampo }
+        model.mensagem(erro)
     }
     private func erroCampo(_ regra: RegraCampoCadastro) -> String { regra == .obrigatorio ? TextosCadastro.campoObrigatorio : TextosCadastro.campoInvalido }
     private func tipoNome(_ tipo: TipoEstabelecimento) -> String {
