@@ -6,6 +6,7 @@ import SwiftUI
 
 /// Lista de vagas abertas do DF (#104). Tocar num cartão empilha o detalhe.
 public struct TelaVagas: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var viewModel: FeedVagasViewModel
     private let abrir: (UUID) -> Void
 
@@ -30,37 +31,57 @@ public struct TelaVagas: View {
     }
 
     private var filtros: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                Menu {
-                    Button { selecionar { await $0.selecionar(funcao: nil) } } label: { Text(verbatim: TextosDoProfissional.Lista.qualquerFuncao) }
-                    ForEach(viewModel.funcoes) { funcao in
-                        Button { selecionar { await $0.selecionar(funcao: funcao.id) } } label: { Text(verbatim: funcao.nome) }
-                    }
-                } label: {
-                    PilulaDeFiltro(titulo: nomeDaFuncao, ativo: viewModel.funcaoID != nil)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    filtroFuncao
+                    filtroData
+                    filtroDistancia
                 }
-                .accessibilityIdentifier("filtro-funcao")
-
-                Menu {
-                    ForEach(FiltroDeData.allCases, id: \.self) { opcao in
-                        Button { selecionar { await $0.selecionar(data: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        filtroFuncao
+                        filtroData
+                        filtroDistancia
                     }
-                } label: {
-                    PilulaDeFiltro(titulo: Self.titulo(viewModel.data), ativo: viewModel.data != .qualquer)
                 }
-                .accessibilityIdentifier("filtro-data")
-
-                Menu {
-                    ForEach(FiltroDeDistancia.opcoes, id: \.self) { opcao in
-                        Button { selecionar { await $0.selecionar(distancia: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
-                    }
-                } label: {
-                    PilulaDeFiltro(titulo: Self.titulo(viewModel.distancia), ativo: viewModel.distancia != .qualquer)
-                }
-                .accessibilityIdentifier("filtro-distancia")
             }
         }
+    }
+
+    private var filtroFuncao: some View {
+        Menu {
+            Button { selecionar { await $0.selecionar(funcao: nil) } } label: { Text(verbatim: TextosDoProfissional.Lista.qualquerFuncao) }
+            ForEach(viewModel.funcoes) { funcao in
+                Button { selecionar { await $0.selecionar(funcao: funcao.id) } } label: { Text(verbatim: funcao.nome) }
+            }
+        } label: {
+            PilulaDeFiltro(titulo: nomeDaFuncao, ativo: viewModel.funcaoID != nil)
+        }
+        .accessibilityIdentifier("filtro-funcao")
+    }
+
+    private var filtroData: some View {
+        Menu {
+            ForEach(FiltroDeData.allCases, id: \.self) { opcao in
+                Button { selecionar { await $0.selecionar(data: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
+            }
+        } label: {
+            PilulaDeFiltro(titulo: Self.titulo(viewModel.data), ativo: viewModel.data != .qualquer)
+        }
+        .accessibilityIdentifier("filtro-data")
+    }
+
+    private var filtroDistancia: some View {
+        Menu {
+            ForEach(FiltroDeDistancia.opcoes, id: \.self) { opcao in
+                Button { selecionar { await $0.selecionar(distancia: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
+            }
+        } label: {
+            PilulaDeFiltro(titulo: Self.titulo(viewModel.distancia), ativo: viewModel.distancia != .qualquer)
+        }
+        .accessibilityIdentifier("filtro-distancia")
     }
 
     @ViewBuilder
@@ -77,6 +98,7 @@ public struct TelaVagas: View {
                 ForEach(vagas) { vaga in
                     Button { abrir(vaga.id) } label: { CartaoVaga(vaga) }
                         .buttonStyle(.plain)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .accessibilityIdentifier("vaga-\(vaga.id.uuidString)")
                         .accessibilityHint(Text("Abre o detalhe da vaga", bundle: bundleApresentacao))
                         .task { if vaga.id == vagas.last?.id { await viewModel.carregarMais() } }
@@ -134,11 +156,13 @@ private struct PilulaDeFiltro: View {
         HStack(spacing: FrilaEspaco.minimo) {
             if ativo { Image(systemName: "checkmark").accessibilityHidden(true) }
             Text(verbatim: titulo)
+                .lineLimit(1)
             Image(systemName: "chevron.down").font(.caption).accessibilityHidden(true)
         }
         .font(.subheadline.weight(.semibold))
         .padding(.horizontal, FrilaEspaco.medio)
         .frame(minHeight: FrilaMetrica.alvoMinimo)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .background(ativo ? FrilaCor.primaria.opacity(0.12) : FrilaCor.superficie, in: Capsule())
         .overlay(Capsule().stroke(ativo ? FrilaCor.primaria : FrilaCor.textoSecundario, lineWidth: 1))
         .foregroundStyle(FrilaCor.texto)
