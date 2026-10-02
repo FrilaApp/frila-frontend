@@ -143,13 +143,16 @@ tabela abaixo foi conferida nas migrações do frila-backend (`develop`, 6d96d88
 | `cancelamento` | a outra parte | `posicao_id`, `vaga_id`, `reaberta`; para o candidato de vaga recolhida, só `vaga_id` e `reaberta` | Meus turnos; sem `posicao_id`, vaga indisponível | a vaga |
 | `avaliacao_disponivel` | os dois | `turno_id` | a avaliação do turno | o turno |
 | `suspensao`, `reativacao` | a conta | nenhum | reavalia a conta | reavalia a conta |
-| `candidatura_recusada` | profissional | `vaga_id` | vaga indisponível | nada |
-| `selecao_encerrada` | os dois | `vaga_id` | vaga indisponível | a vaga |
+| `candidatura_recusada` | profissional | `vaga_id` | vaga indisponível: o estabelecimento escolheu outra pessoa | nada |
+| `selecao_encerrada` | os dois | `vaga_id` | vaga indisponível: a seleção foi encerrada | a vaga |
 
 - **Vaga indisponível.** A vaga de um aviso que não aceita mais candidatura (preenchida, cancelada,
   encerrada, com o início já passado ou `404`) abre a tela própria, com a volta para a lista. Quem
   decide é o servidor (`estado` e `posicoes_abertas`), nunca o relógio do aparelho. Se a vaga já é
   de quem tocou, o destino é o turno dela.
+- **Avisos da seleção (#10).** `candidatura_recusada` e `selecao_encerrada` só trazem a vaga. A
+  tela de vaga indisponível lê a candidatura da conta naquela vaga (`minhas_candidaturas`): a
+  `recusada` e a `expirada` têm explicação própria; sem essa leitura, vale o estado da vaga.
 - **Turno pelo id.** O aviso só traz o `turno_id`: a tela procura o turno entre os da conta. O que
   não está lá vira "Não encontramos este turno", e falha de leitura não vira "não encontrado".
 - **Suspensão e reativação** não têm tela no payload: o app reavalia a conta, e a situação dela

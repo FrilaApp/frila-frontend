@@ -64,6 +64,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case vagaEmSelecao = "vaga-em-selecao"
         /// Conta de profissional que já tem candidatura pendente na vaga de seleção da lista.
         case candidaturaPendente = "candidatura-pendente"
+        /// Como `candidaturaPendente`, mas a retirada não sai do aparelho: `retirar_candidatura` é sem rede.
+        case retirarSemRede = "retirar-sem-rede"
+        /// Conta de profissional que a casa escolheu na vaga de seleção: candidatura `aceita`, vaga
+        /// `preenchida` e o turno em Meus turnos, com o contato da casa (critério 1 do #10).
+        case candidaturaEscolhida = "candidatura-escolhida"
+        /// Conta de profissional que não foi escolhida: a casa encheu a vaga com outra pessoa, e a
+        /// candidatura ficou `recusada`, sem turno (critério 1 do #10).
+        case candidaturaRecusada = "candidatura-recusada"
+        /// Conta de profissional cuja candidatura esperava quando a seleção fechou sozinha, 24 h
+        /// antes do início: candidatura `expirada` e vaga `encerrada` (critério 2 do #10).
+        case candidaturaExpirada = "candidatura-expirada"
         case exportarSemRede = "exportar-sem-rede"
         case exportarErroServidor = "exportar-erro-servidor"
         /// Painel com check-in já confirmado (contrato 0.2.31).
@@ -78,7 +89,19 @@ public actor ApiClienteEmMemoria: ApiCliente {
             self == .selecaoComCandidatos || self == .escolhaPerdeCorrida || self == .selecaoEncerradaSemEscolha
         }
 
-        var daSelecao: Bool { selecaoDoContratante || self == .vagaEmSelecao || self == .candidaturaPendente }
+        /// Os cenários do modo seleção em que a conta é de profissional e já tem candidatura na vaga,
+        /// com o estado em que ela começa.
+        var candidaturaDaConta: EstadoCandidatura? {
+            switch self {
+            case .candidaturaPendente, .retirarSemRede: .pendente
+            case .candidaturaEscolhida: .aceita
+            case .candidaturaRecusada: .recusada
+            case .candidaturaExpirada: .expirada
+            default: nil
+            }
+        }
+
+        var daSelecao: Bool { selecaoDoContratante || self == .vagaEmSelecao || candidaturaDaConta != nil }
     }
 
     /// Uma candidatura como o backend a guarda: de quem é, em que vaga e em que estado.
@@ -221,8 +244,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
-                case .selecaoEncerradaSemEscolha: 20 * 60 * 60
-                case .selecaoComCandidatos, .escolhaPerdeCorrida, .vagaEmSelecao, .candidaturaPendente: 72 * 60 * 60
+                case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
+                case .selecaoComCandidatos, .escolhaPerdeCorrida, .vagaEmSelecao, .candidaturaPendente, .retirarSemRede,
+                     .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
                 default: 24 * 60 * 60
                 }
                 let baseVaga = cenario == .vagaEncerradaContratante ? Self.copia(vaga, estado: .encerrada) : vaga
@@ -294,12 +318,35 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     posicoesFechadas[selecao.id] = [UUID(uuidString: "83000000-0000-0000-0000-000000000001")!]
                     self.vagas[0] = Self.copia(selecao, posicoesAbertas: 0, estado: .encerrada)
                 }
-                if cenario == .candidaturaPendente {
+                if let estado = cenario.candidaturaDaConta {
                     let pendente = try FixturesDoContrato.carregar("candidatura-selecao", como: ContratoAPI.CandidaturaDTO.self).dominio()
                     candidaturas = [CandidaturaGuardada(
                         id: pendente.candidaturaID, vagaID: selecao.id, profissional: perfilPublicoDeExemplo, daConta: true,
-                        estado: .pendente, criadaEm: agora.addingTimeInterval(-60 * 60)
+                        estado: estado, criadaEm: agora.addingTimeInterval(-60 * 60)
                     )]
+                    switch estado {
+                    case .aceita:
+                        // O que `escolher_candidato` deixa para quem foi escolhido: o turno, com o
+                        // contato da casa liberado (RN10), e a vaga cheia.
+                        let turnoID = UUID(uuidString: "84000000-0000-0000-0000-000000000001")!
+                        let visivelAte = selecao.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
+                        turnos = [Turno(
+                            id: turnoID, posicaoID: UUID(uuidString: "84000000-0000-0000-0000-000000000002")!, vaga: selecao.resumo,
+                            contraparte: selecao.estabelecimento, contatoVisivelAte: visivelAte,
+                            verificacao: .pendente, valorAcordado: selecao.valor, podeAvaliar: false
+                        )]
+                        contatos[turnoID] = Contato(
+                            nome: selecao.estabelecimento.nome, telefone: contatoDeExemplo.telefone,
+                            whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: visivelAte
+                        )
+                        self.vagas[0] = Self.copia(selecao, posicoesAbertas: 0, estado: .preenchida)
+                    case .recusada:
+                        self.vagas[0] = Self.copia(selecao, posicoesAbertas: 0, estado: .preenchida)
+                    case .expirada:
+                        self.vagas[0] = Self.copia(selecao, posicoesAbertas: 0, estado: .encerrada)
+                    case .pendente, .retirada:
+                        break
+                    }
                 }
             }
             if (cenario == .turnoEncerrado || cenario == .turnoEncerradoVerificado), let vaga = self.vagas.first {
@@ -703,7 +750,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard let vaga = vagas.first(where: { $0.id == id }), !bloqueada(vaga) else { throw erro("nao_encontrado") }
         // Contrato 0.2.23: a vaga ocultada só abre, com `oculta: true`, para quem ocupa posição ou tem
         // candidatura nela; para os demais é o mesmo 404 da vaga escondida por bloqueio.
-        if vaga.oculta, !turnos.contains(where: { $0.vaga.id == id }), candidaturaDaConta(na: id)?.estado != .pendente {
+        if vaga.oculta, !turnos.contains(where: { $0.vaga.id == id }), candidaturaDaConta(na: id) == nil {
             throw erro("nao_encontrado")
         }
         // Contrato 0.2.19: depois do início o detalhe continua respondendo, com o estado real e sem
@@ -849,6 +896,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func retirarCandidatura(id: UUID) async throws -> Candidatura {
         chamadasARetirarCandidatura += 1
         try verificarFalhaGeral()
+        if cenario == .retirarSemRede { throw ErroDaApi(codigo: .semRede) }
         guard let indice = candidaturas.firstIndex(where: { $0.id == id && $0.daConta }),
               let vaga = vagas.first(where: { $0.id == candidaturas[indice].vagaID }) else { throw erro("nao_encontrado") }
         switch candidaturas[indice].estado {
@@ -1105,6 +1153,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             _ = cancelarTurno(em: turno, falta: false, reabrir: false, causa: .estabelecimento, motivo: motivo)
             confirmadas += 1
         }
+        // Como no backend, as posições abertas passam a `cancelada` e continuam no painel.
+        posicoesFechadas[id, default: []] += idsDasPosicoesAbertas(vaga)
         posicoesReabertas[id] = nil
         posicoesAbertasDoPainel[id] = nil
         expirarPendentes(da: id)

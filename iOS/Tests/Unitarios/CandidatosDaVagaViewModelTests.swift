@@ -503,6 +503,34 @@ struct CandidatosDaVagaViewModelTests {
         #expect(!SituacaoDaSelecao.concluida.listaCandidatos && !SituacaoDaSelecao.fechadaSemEscolha.listaCandidatos)
     }
 
+    @Test("Vaga ocultada durante a escolha: com o painel relido, o aviso da vaga oculta aparece uma vez só")
+    func vagaOcultaSemAvisoRepetido() {
+        // O painel relido já diz que a vaga está oculta, com o mesmo texto da recusa.
+        #expect(!SecaoDeCandidatos.mostraFalha(.vagaOculta, situacao: .oculta))
+        #expect(TextosDosCandidatos.falha(.vagaOculta, desatualizada: false) == TextosDosCandidatos.vagaOculta)
+        // Se a releitura falhou, a situação continua aberta, e a recusa é o único aviso.
+        #expect(SecaoDeCandidatos.mostraFalha(.vagaOculta, situacao: .aberta))
+        // As outras recusas aparecem em qualquer situação.
+        #expect(SecaoDeCandidatos.mostraFalha(.posicaoJaPreenchida, situacao: .oculta))
+        #expect(SecaoDeCandidatos.mostraFalha(.semConexao, situacao: .oculta))
+    }
+
+    @Test("Posição cancelada sem profissional: fechada sem escolha quando a seleção fechou sozinha, cancelada quando a casa cancelou a vaga")
+    func posicaoCanceladaEmSelecao() async throws {
+        #expect(TextosDosCandidatos.posicaoCancelada(vaga: .encerrada) == "Posição fechada sem escolha")
+        #expect(TextosDosCandidatos.posicaoCancelada(vaga: .preenchida) == "Posição fechada sem escolha")
+        #expect(TextosDosCandidatos.posicaoCancelada(vaga: .cancelada) == "Esta posição foi cancelada.")
+
+        // A casa cancela a vaga de seleção: a posição aberta continua no painel, como cancelada.
+        let cena = try await Cena.doCenario()
+        _ = try await cena.base.cancelarVaga(id: cena.vagaID, motivo: "O evento foi desmarcado.")
+        let vaga = try await cena.vagaNoPainel()
+        #expect(vaga.estado == .cancelada)
+        #expect(vaga.posicoes.map(\.estado) == [.cancelada])
+        #expect(vaga.posicoes.allSatisfy { $0.profissional == nil })
+        #expect(SituacaoDaSelecao(vaga) == .encerrada)
+    }
+
     @Test("O cartão de Minhas vagas diz quantos candidatos esperam a escolha, e como a seleção terminou")
     func rotuloDoCartao() throws {
         #expect(RotuloDaSelecao.detalhe(try vaga(estado: .publicada, pendentes: 0, posicoes: [.aberta])) == "nenhum candidato ainda")

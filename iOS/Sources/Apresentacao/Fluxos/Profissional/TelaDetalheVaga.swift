@@ -2,14 +2,48 @@
 // substitui por ora a alta fidelidade do profissional (#15).
 
 import FrilaDominio
+import Observation
 import SwiftUI
+
+/// Os avisos da área de ação do detalhe (candidatura que falhou, candidatura retirada). Nos
+/// tamanhos de acessibilidade a área de ação fica presa ao rodapé, sem rolagem: um aviso longo
+/// ali é cortado e esconde a vaga. Por isso, nesses tamanhos, quem está no rodapé publica o aviso
+/// aqui, e o detalhe o mostra dentro da rolagem; o rodapé fica só com os botões.
+@MainActor @Observable
+final class AvisosDoDetalhe {
+    struct Aviso: Identifiable, Equatable {
+        /// É também o identificador de acessibilidade do aviso.
+        let id: String
+        let texto: String
+        let tom: AvisoFrila.Tom
+    }
+
+    private(set) var avisos: [Aviso] = []
+    @ObservationIgnored private var donos: [String] = []
+
+    /// Cada dono tem no máximo um aviso; `nil` tira o dele.
+    func publicar(_ aviso: Aviso?, de dono: String) {
+        var novos = avisos
+        if let indice = donos.firstIndex(of: dono) {
+            novos.remove(at: indice)
+            donos.remove(at: indice)
+        }
+        if let aviso {
+            novos.append(aviso)
+            donos.append(dono)
+        }
+        if novos != avisos { avisos = novos }
+    }
+}
 
 /// Detalhe da vaga (#104). Nunca mostra telefone nem documento: o contrato não os devolve aqui, e o
 /// contato só aparece depois da confirmação (RN10). O aviso da RN10 vem antes de Candidatar-me.
 public struct TelaDetalheVaga<Acao: View>: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var viewModel: DetalheVagaViewModel
+    @State private var avisosDaAcao = AvisosDoDetalhe()
     private let acao: (Vaga) -> Acao
+    private static var idDosAvisos: String { "avisos-da-acao" }
 
     /// `acao` monta a área de Candidatar-me (#105); sem ela, o detalhe mostra só a vaga.
     public init(viewModel: DetalheVagaViewModel, @ViewBuilder acao: @escaping (Vaga) -> Acao) {
@@ -18,6 +52,17 @@ public struct TelaDetalheVaga<Acao: View>: View {
     }
 
     public var body: some View {
+        ScrollViewReader { rolagem in
+            corpo
+                // O aviso novo entra na rolagem, que pode estar em outro ponto: a tela vai até ele.
+                .onChange(of: avisosDaAcao.avisos) { _, avisos in
+                    guard !avisos.isEmpty else { return }
+                    withAnimation { rolagem.scrollTo(Self.idDosAvisos, anchor: .top) }
+                }
+        }
+    }
+
+    private var corpo: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 switch viewModel.estado {
@@ -41,6 +86,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .safeAreaInset(edge: .bottom) {
             if dynamicTypeSize.isAccessibilitySize, case let .carregado(vaga) = viewModel.estado {
                 acao(vaga)
+                    .environment(avisosDaAcao)
                     .padding(FrilaEspaco.medio)
                     .background(FrilaCor.fundo)
             }
@@ -93,11 +139,20 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .cartaoFrila()
             .accessibilityIdentifier("detalhe-reputacao")
 
-        AvisoFrila(verbatim: TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome), tom: .alerta)
+        AvisoFrila(verbatim: avisoRN10(vaga), tom: .alerta)
             .accessibilityIdentifier("aviso-rn10")
 
         if !dynamicTypeSize.isAccessibilitySize {
             acao(vaga)
+        } else if !avisosDaAcao.avisos.isEmpty {
+            // Os avisos de quem está no rodapé: aqui cabem inteiros, e a vaga continua legível.
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                ForEach(avisosDaAcao.avisos) { aviso in
+                    AvisoFrila(verbatim: aviso.texto, tom: aviso.tom)
+                        .accessibilityIdentifier(aviso.id)
+                }
+            }
+            .id(Self.idDosAvisos)
         }
 
         // Reservado para o Sprint 2 (Denunciar e Bloquear): ocupa o espaço e fica desabilitado.
@@ -136,6 +191,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
     private func cabecalho(_ vaga: Vaga) -> String {
         guard let km = vaga.distanciaKm else { return "\(vaga.estabelecimento.nome) · \(vaga.local)" }
         return "\(vaga.estabelecimento.nome) · \(vaga.local) · a \(FormatadorFrila().distancia(km))"
+    }
+
+    /// Na vaga de seleção o contato só é mostrado se a casa escolher a candidatura (RN10).
+    private func avisoRN10(_ vaga: Vaga) -> String {
+        vaga.modo == .selecao
+            ? String(format: TextosDaCandidaturaEmSelecao.avisoRN10, vaga.estabelecimento.nome)
+            : TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome)
     }
 
     private func modoTitulo(_ modo: ModoPreenchimento) -> String {
