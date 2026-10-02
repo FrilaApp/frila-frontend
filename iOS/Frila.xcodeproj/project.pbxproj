@@ -26,12 +26,14 @@
 		186B53163EBF88F360526F20 /* requisicao-contestar-suspensao.json in Resources */ = {isa = PBXBuildFile; fileRef = EFFA5C9E0B97FFBEB3C9B9EF /* requisicao-contestar-suspensao.json */; };
 		19C118B2A416731E092F1170 /* ErrosAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65115E2F0782067BF1010B60 /* ErrosAPITests.swift */; };
 		19FA10674F65BBE62E7C8607 /* candidatura-selecao.json in Resources */ = {isa = PBXBuildFile; fileRef = 3E5678016DBD1843154B5992 /* candidatura-selecao.json */; };
+		19FF42DB29F2FC02527EB807 /* turnos-cancelados.json in Resources */ = {isa = PBXBuildFile; fileRef = 84253EA012AE3A5173C12A05 /* turnos-cancelados.json */; };
 		1A7F7AE00312AFC8A0B5CD80 /* ExclusaoDeContaPorta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 008AD101A25C35626FACD894 /* ExclusaoDeContaPorta.swift */; };
 		1AE714B5E6EE57FBEBA5ABF6 /* requisicao-reabrir-por-atraso.json in Resources */ = {isa = PBXBuildFile; fileRef = D34CBF6639524469C9B729EC /* requisicao-reabrir-por-atraso.json */; };
 		1AF9BDFEDA0B987C8192DED9 /* resultado-confirmacao-manual.json in Resources */ = {isa = PBXBuildFile; fileRef = 81B067ECACBCF4F32C6678AA /* resultado-confirmacao-manual.json */; };
 		1BB09E829170A787969EA8A4 /* PermissaoDePushDoSistema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20D789C620FE3A1368A62E41 /* PermissaoDePushDoSistema.swift */; };
 		1BFAB3F95F669A94FE53BEB8 /* AtualizacaoObrigatoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */; };
 		1E3223E19CDBD48728CB1F55 /* PerfilProfissionalViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D9F9F5FFE6A5D9DACA0D53D /* PerfilProfissionalViewModel.swift */; };
+		1FA3C15C7CCD6DEFDE5179A7 /* turnos-avaliados.json in Resources */ = {isa = PBXBuildFile; fileRef = F3E717D60C57B1A225EE38D5 /* turnos-avaliados.json */; };
 		1FF1265CD5E2DE83DBFF35C9 /* RegistroDePresencaEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FEEDEB6A20B30B0C7F37E43 /* RegistroDePresencaEmMemoriaTests.swift */; };
 		205790D3FA68B86A8A8FC0B5 /* configuracao-do-app.json in Resources */ = {isa = PBXBuildFile; fileRef = 708C6DD218962FB12049B0A5 /* configuracao-do-app.json */; };
 		20A0B281B62D08359C3F8504 /* erros.json in Resources */ = {isa = PBXBuildFile; fileRef = 662F4DEFDF9C9599205723B5 /* erros.json */; };
@@ -43,6 +45,7 @@
 		2AAD5698C016915832263163 /* FluxoDoProfissional.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE0AC842DF3BE306F3FF7A4F /* FluxoDoProfissional.swift */; };
 		2B3125D98F9CE8C14E6FBD89 /* DiaDeSaoPaulo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 822693D3DCCCEAD31BD7BBA1 /* DiaDeSaoPaulo.swift */; };
 		2B6C89E16D9BE842F42B51CF /* requisicao-cancelar-posicao.json in Resources */ = {isa = PBXBuildFile; fileRef = 89D42C2C9B594238CB01FB57 /* requisicao-cancelar-posicao.json */; };
+		2BAAF574684B4A09C30B07C6 /* painel-com-cancelamento.json in Resources */ = {isa = PBXBuildFile; fileRef = F9EAF9836B7F7238D24691AC /* painel-com-cancelamento.json */; };
 		2C4D82FDF4B16F6D548C4DF3 /* estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = 2EC2B26F76F1FC28F118D8CE /* estabelecimento.json */; };
 		2E1DEAEFC1C73FBEBAECC5D7 /* requisicao-criar-conta.json in Resources */ = {isa = PBXBuildFile; fileRef = D91DD797B126C62FB438B586 /* requisicao-criar-conta.json */; };
 		2EB932248AE6C2668644A198 /* TelaContaSuspensa.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14E1BE6632C784043FFB7D9 /* TelaContaSuspensa.swift */; };
@@ -62,6 +65,7 @@
 		3D8F1742AC594DBFBDB54B0E /* avaliacao.json in Resources */ = {isa = PBXBuildFile; fileRef = 0BBD26CA01BE17B1F08AC8AC /* avaliacao.json */; };
 		3DA89878D3C352FE23F473BD /* DestinosDoAviso.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFE42464071774A9DEF8CB6 /* DestinosDoAviso.swift */; };
 		3E6F76B1865D42856796698F /* ListaDeVagasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 728FBA1A7EABDE751ECCAF2F /* ListaDeVagasTests.swift */; };
+		3E8ED5244547013FBDE6FDAF /* painel-com-presenca.json in Resources */ = {isa = PBXBuildFile; fileRef = 2EF7BFE14D1F2A5B6C81E354 /* painel-com-presenca.json */; };
 		3E9B84D2B1FD1F658236B97F /* ExportarDadosViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F4D5D2CE7568DDBD218E8EE /* ExportarDadosViewModel.swift */; };
 		3F90B968051E5A395EAE3F03 /* FluxoDeEntrada.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BACCBA4385723A7D64E8EE /* FluxoDeEntrada.swift */; };
 		45025836682D6D56DD0D6DC7 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -412,6 +416,7 @@
 		2BBB4D99F27A58031C976121 /* situacao-da-conta.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "situacao-da-conta.json"; sourceTree = "<group>"; };
 		2C6E29E69383AE68FCC59B8B /* perfil-publico.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "perfil-publico.json"; sourceTree = "<group>"; };
 		2EC2B26F76F1FC28F118D8CE /* estabelecimento.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = estabelecimento.json; sourceTree = "<group>"; };
+		2EF7BFE14D1F2A5B6C81E354 /* painel-com-presenca.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "painel-com-presenca.json"; sourceTree = "<group>"; };
 		330A7012F96AEC9C169084D2 /* Frila.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Frila.entitlements; sourceTree = "<group>"; };
 		34CFCC58D9DFCC6F7EE4C4A6 /* FluxoDoContratanteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoContratanteTests.swift; sourceTree = "<group>"; };
 		35975B4158EBD9A24A5955A9 /* PerfisDaConta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfisDaConta.swift; sourceTree = "<group>"; };
@@ -483,6 +488,7 @@
 		7ECDEFE5393FB5C98BA698CD /* Beta.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Beta.xcconfig; sourceTree = "<group>"; };
 		81B067ECACBCF4F32C6678AA /* resultado-confirmacao-manual.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-confirmacao-manual.json"; sourceTree = "<group>"; };
 		822693D3DCCCEAD31BD7BBA1 /* DiaDeSaoPaulo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaDeSaoPaulo.swift; sourceTree = "<group>"; };
+		84253EA012AE3A5173C12A05 /* turnos-cancelados.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "turnos-cancelados.json"; sourceTree = "<group>"; };
 		870A1907071ED48C93D50201 /* MeuTurnoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeuTurnoViewModelTests.swift; sourceTree = "<group>"; };
 		878558C7106428386D470E6E /* PresencaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresencaUITests.swift; sourceTree = "<group>"; };
 		87BC71CEBE7E0A40C16103D7 /* MinhasVagasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinhasVagasTests.swift; sourceTree = "<group>"; };
@@ -599,7 +605,9 @@
 		EFFA5C9E0B97FFBEB3C9B9EF /* requisicao-contestar-suspensao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-contestar-suspensao.json"; sourceTree = "<group>"; };
 		F0FDB3EB718F49E2C016581D /* CodigoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodigoViewModel.swift; sourceTree = "<group>"; };
 		F1A91ED2D7A356D4C070F6E8 /* vaga-oculta.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vaga-oculta.json"; sourceTree = "<group>"; };
+		F3E717D60C57B1A225EE38D5 /* turnos-avaliados.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "turnos-avaliados.json"; sourceTree = "<group>"; };
 		F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresencaDoTurnoViewModelTests.swift; sourceTree = "<group>"; };
+		F9EAF9836B7F7238D24691AC /* painel-com-cancelamento.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "painel-com-cancelamento.json"; sourceTree = "<group>"; };
 		FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-registro.json"; sourceTree = "<group>"; };
 		FB5CDEDA2FFFE72679339F75 /* dispositivo.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dispositivo.json; sourceTree = "<group>"; };
 		FCB907629D17A01D860FE12A /* ExclusaoDeContaViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaViewModelTests.swift; sourceTree = "<group>"; };
@@ -930,6 +938,8 @@
 				AA69DB5A0CD077F679777AF0 /* fixture-schemas.json */,
 				C5968D41D64341107B2ACE77 /* funcoes.json */,
 				A086191DC3C779885EE287F4 /* meus-estabelecimentos.json */,
+				F9EAF9836B7F7238D24691AC /* painel-com-cancelamento.json */,
+				2EF7BFE14D1F2A5B6C81E354 /* painel-com-presenca.json */,
 				D6A706F45132A8275DE67124 /* painel.json */,
 				1DA156FA6E68AD723D3D9273 /* perfil-profissional.json */,
 				2C6E29E69383AE68FCC59B8B /* perfil-publico.json */,
@@ -958,6 +968,8 @@
 				FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */,
 				1E7FC2C8F77C8DAC2C6C923F /* situacao-da-conta-suspensa.json */,
 				2BBB4D99F27A58031C976121 /* situacao-da-conta.json */,
+				F3E717D60C57B1A225EE38D5 /* turnos-avaliados.json */,
+				84253EA012AE3A5173C12A05 /* turnos-cancelados.json */,
 				120490C59760F033206A2EDD /* turnos.json */,
 				6044BB78E5ED8913EC72A112 /* usuario.json */,
 				06D9D43515118FB42F5E885D /* vaga-cancelada.json */,
@@ -1312,6 +1324,8 @@
 				4C4E48140184A895EEC8377F /* fixture-schemas.json in Resources */,
 				9855C4FA7E2932FC37785F72 /* funcoes.json in Resources */,
 				4B688DCF0EC15B06B423AB97 /* meus-estabelecimentos.json in Resources */,
+				2BAAF574684B4A09C30B07C6 /* painel-com-cancelamento.json in Resources */,
+				3E8ED5244547013FBDE6FDAF /* painel-com-presenca.json in Resources */,
 				E976A2598057EF2E2120A535 /* painel.json in Resources */,
 				56C609734CF4023034809075 /* perfil-profissional.json in Resources */,
 				B0A2F223F90194BF0E55C3EA /* perfil-publico.json in Resources */,
@@ -1340,6 +1354,8 @@
 				68BFBF4CB55A1D6E926782C2 /* resultado-registro.json in Resources */,
 				A15D453F5D108FB3392D7188 /* situacao-da-conta-suspensa.json in Resources */,
 				F2FF3D966E5F648603D2A5B0 /* situacao-da-conta.json in Resources */,
+				1FA3C15C7CCD6DEFDE5179A7 /* turnos-avaliados.json in Resources */,
+				19FF42DB29F2FC02527EB807 /* turnos-cancelados.json in Resources */,
 				9E1C5FBFE68947D014E1FDA5 /* turnos.json in Resources */,
 				90A64B886BA2372172581C39 /* usuario.json in Resources */,
 				2F595BDA9881BE132ED02AD0 /* vaga-cancelada.json in Resources */,

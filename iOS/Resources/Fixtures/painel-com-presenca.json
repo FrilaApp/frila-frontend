@@ -1,0 +1,64 @@
+{
+  "estabelecimento_id": "30000000-0000-0000-0000-000000000001",
+  "vagas": [
+    {
+      "vaga": {
+        "id": "40000000-0000-0000-0000-000000000001",
+        "funcao": "Garçom",
+        "local": "CLS 405, Asa Sul, Brasília - DF",
+        "regiao_administrativa": "Plano Piloto",
+        "inicio_em": "2026-10-09T21:00:00Z",
+        "fim_em": "2026-10-10T01:00:00Z",
+        "valor_centavos": 12000
+      },
+      "modo": "urgencia",
+      "estado": "publicada",
+      "oculta": false,
+      "alerta_vaga_vazia": false,
+      "candidatos_pendentes": 0,
+      "posicoes": [
+        {
+          "id": "50000000-0000-0000-0000-000000000001",
+          "estado": "confirmada",
+          "profissional": {
+            "id": "80000000-0000-0000-0000-000000000001",
+            "tipo": "profissional",
+            "nome": "Ana Cunha",
+            "funcoes": [
+              "Garçom"
+            ],
+            "reputacao": {
+              "positivas": 7,
+              "total": 7,
+              "taxa_comparecimento": 1.0,
+              "turnos_considerados": 7,
+              "turnos_realizados": 7
+            }
+          },
+          "turno_id": "60000000-0000-0000-0000-000000000001",
+          "verificacao": "verificado",
+          "em_atraso": false,
+          "a_caminho_em": "2026-10-09T19:40:12Z",
+          "checkin_em": "2026-10-09T20:52:31.204+00:00",
+          "checkin_tipo": "geolocalizado",
+          "checkin_confirmado_em": null,
+          "cancelamento": null
+        },
+        {
+          "id": "50000000-0000-0000-0000-000000000002",
+          "estado": "aberta",
+          "profissional": null,
+          "turno_id": null,
+          "verificacao": null,
+          "em_atraso": false,
+          "a_caminho_em": null,
+          "checkin_em": null,
+          "checkin_tipo": null,
+          "checkin_confirmado_em": null,
+          "cancelamento": null
+        }
+      ]
+    }
+  ],
+  "checkins_pendentes": []
+}
