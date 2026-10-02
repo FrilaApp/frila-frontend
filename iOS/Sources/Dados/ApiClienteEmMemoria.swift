@@ -37,6 +37,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case painelContratante = "painel-contratante"
         /// Painel sem vagas para conferir a orientação do primeiro acesso do contratante.
         case painelVazio = "painel-vazio"
+        /// Conta de contratante com um turno em andamento cujo check-in manual espera a confirmação (#19).
+        case checkinManualPendente = "checkin-manual-pendente"
+        /// Conta de contratante com um turno que começou há 20 minutos e ainda não teve check-in (#19).
+        case atrasoNoTurno = "atraso-no-turno"
     }
 
     private let cenario: Cenario
@@ -67,6 +71,18 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
+    /// Turnos cuja posição foi cancelada: saem de `meusTurnos` e continuam no painel, como posição
+    /// `cancelada`. A posição cancelada não volta a ficar aberta (RN12).
+    private var turnosCancelados: [Turno] = []
+    /// Posições novas que um cancelamento ou uma reabertura abriu, por vaga: o painel as mostra com
+    /// o id que a chamada devolveu, e a próxima candidatura ocupa a primeira.
+    private var posicoesReabertas: [UUID: [UUID]] = [:]
+    /// O que `reabrir_por_atraso` devolveu por posição: reenviar devolve o mesmo.
+    private var reaberturasPorAtraso: [UUID: ResultadoCancelamento] = [:]
+    private var denunciasPorChave: [UUID: Protocolo] = [:]
+    private var bloqueios: [Alvo: Bloqueio] = [:]
+    /// Só no cenário `contaSuspensa`.
+    private var suspensao: Suspensao?
 
     public init(
         cenario: Cenario = .sucesso,
@@ -88,7 +104,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -108,16 +124,31 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     }
                 }
             }
+            if cenario == .contaSuspensa, let ativa = conta {
+                conta = Conta(
+                    id: ativa.id, perfil: ativa.perfil, nome: ativa.nome, telefone: ativa.telefone, email: ativa.email,
+                    nascimento: ativa.nascimento, estado: .suspensa
+                )
+                suspensao = Suspensao(
+                    motivo: "Denúncia grave confirmada pela Equipe Frila",
+                    desde: relogio.agora.addingTimeInterval(-2 * 24 * 60 * 60), contestacao: nil
+                )
+            }
             estabelecimentos = conta == nil ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
             if let vagas {
                 self.vagas = vagas
             } else {
                 let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
-                let ateInicio: TimeInterval = cenario == .alertaVagaVazia ? 2 * 60 * 60 : 24 * 60 * 60
+                let ateInicio: TimeInterval = switch cenario {
+                case .alertaVagaVazia: 2 * 60 * 60
+                case .checkinManualPendente: -10 * 60
+                case .atrasoNoTurno: -20 * 60
+                default: 24 * 60 * 60
+                }
                 self.vagas = [try Self.noFuturo(vaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio { self.vagas = [] }
-            if cenario == .painelContratante, let vaga = self.vagas.first {
+            if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno, let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "82000000-0000-0000-0000-000000000002")!
                 let contato = Contato(
@@ -129,9 +160,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 turnos = [Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: .verificado, valorAcordado: vaga.valor, podeAvaliar: false
+                    verificacao: cenario == .painelContratante ? .verificado : .pendente, valorAcordado: vaga.valor, podeAvaliar: false
                 )]
                 contatos[turnoID] = contato
+                if cenario == .checkinManualPendente {
+                    checkins[turnoID] = ResultadoRegistro(
+                        turnoID: turnoID, tipo: .manual, verificacao: .pendente,
+                        registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
+                    )
+                }
                 self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
             }
         } catch {
@@ -285,22 +322,47 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return Painel(
             estabelecimentoID: id,
             vagas: daCasa.map { vaga in
+                // `em_atraso` do backend: confirmada, sem check-in, dos 15 minutos do início até o fim (D06).
+                let atrasada = agora >= vaga.periodo.inicio.addingTimeInterval(Self.toleranciaDeAtraso) && agora < vaga.periodo.fim
                 let confirmadas = turnos.filter { $0.vaga.id == vaga.id }.map { turno in
-                    PosicaoNoPainel(
+                    let registro = checkins[turno.id]
+                    return PosicaoNoPainel(
                         id: turno.posicaoID, estado: .confirmada, profissional: perfilPublicoDeExemplo, turnoID: turno.id,
-                        verificacao: turno.verificacao, emAtraso: false, aCaminhoEm: turno.aCaminhoEm
+                        verificacao: registro?.verificacao ?? turno.verificacao,
+                        emAtraso: atrasada && registro == nil && turno.checkin == nil, aCaminhoEm: turno.aCaminhoEm
                     )
                 }
-                let abertas = (0..<vaga.posicoesAbertas).map { _ in
-                    PosicaoNoPainel(id: UUID(), estado: .aberta, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false)
+                // A presença que ainda esperava prova fica `nao_verificado` quando a posição é cancelada.
+                let canceladas = turnosCancelados.filter { $0.vaga.id == vaga.id }.map { turno in
+                    let verificacao = checkins[turno.id]?.verificacao ?? turno.verificacao
+                    return PosicaoNoPainel(
+                        id: turno.posicaoID, estado: .cancelada, profissional: perfilPublicoDeExemplo, turnoID: turno.id,
+                        verificacao: verificacao == .pendente ? .naoVerificado : verificacao, emAtraso: false, aCaminhoEm: turno.aCaminhoEm
+                    )
                 }
-                let vazia = vaga.posicoesAbertas == vaga.posicoes && vaga.periodo.inicio.timeIntervalSince(agora) < 3 * 60 * 60
+                let reabertas = posicoesReabertas[vaga.id] ?? []
+                let abertas = (0..<vaga.posicoesAbertas).map { indice in
+                    PosicaoNoPainel(
+                        id: indice < reabertas.count ? reabertas[indice] : UUID(), estado: .aberta, profissional: nil, turnoID: nil,
+                        verificacao: nil, emAtraso: false
+                    )
+                }
+                // `alerta_vaga_vazia` do backend: vaga publicada, com posição aberta, dentro da janela
+                // crítica e antes do início. A janela do dublê é a padrão, de 3 horas.
+                let vazia = vaga.estado == .publicada && vaga.posicoesAbertas > 0 && agora < vaga.periodo.inicio
+                    && vaga.periodo.inicio.timeIntervalSince(agora) <= 3 * 60 * 60
                 return VagaNoPainel(
                     vaga: vaga.resumo, modo: vaga.modo, estado: vaga.estado, oculta: vaga.oculta, alertaVagaVazia: vazia,
-                    candidatosPendentes: candidaturasPendentes[vaga.id] == nil ? 0 : 1, posicoes: confirmadas + abertas
+                    candidatosPendentes: candidaturasPendentes[vaga.id] == nil ? 0 : 1, posicoes: confirmadas + canceladas + abertas
                 )
             },
-            checkinsPendentes: []
+            // Check-in manual que ninguém da casa confirmou ainda, do mais antigo para o mais novo.
+            checkinsPendentes: turnos
+                .filter { turno in daCasa.contains { $0.id == turno.vaga.id } }
+                .compactMap { checkins[$0.id] }
+                .filter { $0.tipo == .manual && $0.verificacao == .pendente }
+                .sorted { $0.registradoEm < $1.registradoEm }
+                .map(\.turnoID)
         )
     }
 
@@ -375,6 +437,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             .filter { vaga in
                 // Fora da vitrine: a vaga ocultada pela moderação (contrato 0.2.23) e a que já começou (0.2.19).
                 guard vaga.estado == .publicada, !vaga.oculta, vaga.periodo.inicio > agora else { return false }
+                // RF26: as partes de um bloqueio não se cruzam em lista, detalhe nem candidatura.
+                guard !bloqueada(vaga) else { return false }
                 if let funcaoID = filtro.funcaoID, vaga.funcao.id != funcaoID { return false }
                 if let data = filtro.data, DataCivil.deSaoPaulo(vaga.periodo.inicio) != data { return false }
                 return true
@@ -402,7 +466,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func detalheDaVaga(id: UUID) async throws -> Vaga {
         try verificarFalhaGeral()
-        guard let vaga = vagas.first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
+        guard let vaga = vagas.first(where: { $0.id == id }), !bloqueada(vaga) else { throw erro("nao_encontrado") }
         // Contrato 0.2.23: a vaga ocultada só abre, com `oculta: true`, para quem ocupa posição ou tem
         // candidatura nela; para os demais é o mesmo 404 da vaga escondida por bloqueio.
         if vaga.oculta, !turnos.contains(where: { $0.vaga.id == id }), candidaturasPendentes[id] == nil {
@@ -424,12 +488,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
         // Contrato 0.2.23: candidatura nova em vaga ocultada responde 404, como a escondida por bloqueio.
-        guard !vaga.oculta else { throw erro("nao_encontrado") }
+        guard !vaga.oculta, !bloqueada(vaga) else { throw erro("nao_encontrado") }
+        // A vaga cancelada não existe mais para quem chega: `vaga_encerrada`, e não "alguém chegou antes".
+        guard vaga.estado != .cancelada, vaga.estado != .encerrada else { throw erro("vaga_encerrada") }
         // Chegar depois da última posição é o funcionamento normal do modo urgência (RN19).
         guard vaga.estado != .preenchida, vaga.posicoesAbertas > 0 else { throw erro("posicao_ja_preenchida") }
         guard vaga.estado == .publicada else { throw erro("vaga_encerrada") }
-        // Contrato 0.2.19: início já passado é vaga encerrada. A exceção é a posição reaberta por
-        // atraso, que o dublê não tem (a porta não traz `reabrir_por_atraso`).
+        // Contrato 0.2.19: início já passado é vaga encerrada. A exceção do backend, a posição
+        // reaberta por atraso, que aceita candidatura até 1 h antes do fim, o dublê não modela.
         let agora = relogio.agora
         guard vaga.periodo.inicio > agora else { throw erro("vaga_encerrada") }
         // Contrato 0.2.24: na vaga de seleção a candidatura fica pendente, sem posição, turno nem
@@ -443,8 +509,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
         let visivelAte = vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
         let contato = Contato(nome: vaga.estabelecimento.nome, telefone: contatoDeExemplo.telefone, whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: visivelAte)
+        // A posição que um cancelamento reabriu é ocupada com o id que o painel já mostrava.
+        var reabertas = posicoesReabertas[vagaID] ?? []
+        let posicaoID = reabertas.isEmpty ? UUID() : reabertas.removeFirst()
+        posicoesReabertas[vagaID] = reabertas
         let turno = Turno(
-            id: UUID(), posicaoID: UUID(), vaga: vaga.resumo, contraparte: vaga.estabelecimento, contatoVisivelAte: visivelAte,
+            id: UUID(), posicaoID: posicaoID, vaga: vaga.resumo, contraparte: vaga.estabelecimento, contatoVisivelAte: visivelAte,
             verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false
         )
         turnos.append(turno)
@@ -470,6 +540,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func contatoDoTurno(id: UUID) async throws -> Contato {
         try verificarFalhaGeral()
         guard let turno = turnos.first(where: { $0.id == id }), let contato = contatos[id] else { throw erro("nao_encontrado") }
+        // Contrato 0.2.9: com bloqueio entre as partes, o contato responde 404.
+        guard bloqueios[Alvo(turno.contraparte)] == nil else { throw erro("nao_encontrado") }
         guard turno.contatoVisivel(em: relogio.agora) else { throw erro("contato_expirado") }
         return contato
     }
@@ -511,9 +583,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// Segue `fazer_checkout` do backend (`20260925000000_checkin_e_checkout.sql`): sem check-in é
     /// `409 checkin_pendente`; a distância não tem teto e é gravada como veio; repetir devolve o
-    /// registro gravado. Tipo e verificação vêm do check-in gravado no dublê; no backend a
-    /// verificação é a atual do turno, que o `confirmar_checkin_manual` muda (operação que a
-    /// porta `ApiCliente` e o dublê não têm).
+    /// registro gravado. Tipo e verificação vêm do check-in gravado no dublê, que o
+    /// `confirmarCheckinManual` atualiza, como a verificação atual do turno no backend.
     public func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try verificarFalhaGeral()
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
@@ -532,6 +603,160 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarFalhaGeral()
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         return Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: relogio.agora)
+    }
+
+    // MARK: Turno do contratante
+
+    /// Segue `confirmar_checkin_manual` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`):
+    /// turno que não existe é `404`; sem check-in, `409 checkin_pendente`; check-in geolocalizado,
+    /// `409 checkin_ja_confirmado`; o manual já confirmado volta como está. O `403` de quem não é
+    /// membro da casa (inclusive o profissional do turno) não é modelado: o dublê simula uma conta só.
+    public func confirmarCheckinManual(turnoID: UUID) async throws -> ResultadoRegistro {
+        try verificarFalhaGeral()
+        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+        guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }
+        guard checkin.tipo == .manual else { throw erro("checkin_ja_confirmado") }
+        guard checkin.verificacao != .verificado else { return checkin }
+        let confirmado = ResultadoRegistro(
+            turnoID: turnoID, tipo: checkin.tipo, verificacao: .verificado,
+            registradoEm: checkin.registradoEm, distanciaMetros: checkin.distanciaMetros
+        )
+        checkins[turnoID] = confirmado
+        // O check-out já gravado passa a responder com a verificação atual do turno.
+        if let checkout = checkouts[turnoID] {
+            checkouts[turnoID] = ResultadoRegistro(
+                turnoID: turnoID, tipo: checkout.tipo, verificacao: .verificado,
+                registradoEm: checkout.registradoEm, distanciaMetros: checkout.distanciaMetros
+            )
+        }
+        return confirmado
+    }
+
+    /// Segue `reabrir_por_atraso` do backend (`20260928220000_alerta_de_atraso_e_reabrir_por_atraso.sql`):
+    /// posição que não existe ou de outra casa é `403 sem_permissao`; reenviar devolve o mesmo
+    /// resultado; posição que não está confirmada é `409 posicao_nao_cancelavel`, e com check-in o
+    /// mesmo código traz `checkin_registrado`; antes dos 15 minutos, `422
+    /// reabertura_antes_da_tolerancia`; a menos de 1 h do fim, marca a falta e não abre posição.
+    /// Diferença declarada: o backend conta os 15 minutos do início ou da confirmação, o que for
+    /// mais tarde; o dublê não guarda a hora da confirmação e conta do início.
+    public func reabrirPorAtraso(posicaoID: UUID) async throws -> ResultadoCancelamento {
+        try verificarFalhaGeral()
+        if let gravado = reaberturasPorAtraso[posicaoID] { return gravado }
+        guard let indice = turnos.firstIndex(where: { $0.posicaoID == posicaoID }) else {
+            throw erro(conhecidaSemTurno(posicaoID) ? "posicao_nao_cancelavel" : "sem_permissao")
+        }
+        let turno = turnos[indice]
+        guard checkins[turno.id] == nil, turno.checkin == nil else { throw erro("posicao_nao_cancelavel", detalhes: "checkin_registrado") }
+        let agora = relogio.agora
+        guard agora >= turno.vaga.periodo.inicio.addingTimeInterval(Self.toleranciaDeAtraso) else {
+            throw erro("reabertura_antes_da_tolerancia")
+        }
+        let resultado = cancelarTurno(em: indice, falta: true, reabrir: agora < turno.vaga.periodo.fim.addingTimeInterval(-60 * 60))
+        reaberturasPorAtraso[posicaoID] = resultado
+        return resultado
+    }
+
+    // MARK: Cancelamento
+
+    /// Segue `cancelar_posicao` do backend (`20260926060100_exigir_conta_ativa_escrita.sql` e
+    /// `privado.cancelar_uma_posicao`): motivo com menos de 3 caracteres é `422 campo_obrigatorio`;
+    /// posição que não existe, `404`; a que não está confirmada, `409 posicao_nao_cancelavel`; antes
+    /// do início a vaga ganha uma posição nova, depois dele o turno fica descoberto. Quem cancela é
+    /// a conta do dublê: com perfil de profissional é o profissional da posição, e a menos de 24 h
+    /// do início leva falta; com perfil de contratante é a casa, sem falta. O filtro de termos da
+    /// diretriz 1.2 (`422 campo_invalido`, `motivo`) não é modelado.
+    public func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento {
+        try verificarFalhaGeral()
+        try validarMotivo(motivo)
+        guard let indice = turnos.firstIndex(where: { $0.posicaoID == id }) else {
+            throw erro(conhecidaSemTurno(id) ? "posicao_nao_cancelavel" : "nao_encontrado")
+        }
+        let agora = relogio.agora
+        let inicio = turnos[indice].vaga.periodo.inicio
+        let peloProfissional = conta?.perfil == .profissional
+        return cancelarTurno(
+            em: indice, falta: peloProfissional && inicio.timeIntervalSince(agora) < 24 * 60 * 60, reabrir: inicio > agora
+        )
+    }
+
+    /// Segue `cancelar_vaga` do backend (`20260925020000_cancelamentos.sql`): vaga que não existe
+    /// ou de outra casa é `404`; a já cancelada ou encerrada, `409 vaga_encerrada`; as posições
+    /// confirmadas caem sem falta e sem reabertura, e as abertas, junto. O `422 perfil_incompativel`
+    /// da conta de profissional não é modelado: o dublê não cobra RN25 fora dos cadastros.
+    public func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada {
+        try verificarFalhaGeral()
+        try validarMotivo(motivo)
+        guard let indice = vagas.firstIndex(where: { $0.id == id }),
+              estabelecimentos.contains(where: { $0.id == vagas[indice].estabelecimento.id }) else { throw erro("nao_encontrado") }
+        let vaga = vagas[indice]
+        guard vaga.estado != .cancelada, vaga.estado != .encerrada else { throw erro("vaga_encerrada") }
+        var confirmadas = 0
+        while let turno = turnos.firstIndex(where: { $0.vaga.id == id }) {
+            _ = cancelarTurno(em: turno, falta: false, reabrir: false)
+            confirmadas += 1
+        }
+        posicoesReabertas[id] = nil
+        candidaturasPendentes[id] = nil
+        vagas[indice] = Self.copia(vaga, posicoesAbertas: 0, estado: .cancelada)
+        return VagaCancelada(vagaID: id, estado: .cancelada, posicoesCanceladas: vaga.posicoesAbertas + confirmadas)
+    }
+
+    // MARK: Confiança e direitos
+
+    /// Segue `denunciar` do backend (`20260929100000_denunciar_e_bloquear.sql`): a chave decide antes
+    /// de qualquer validação, e reenviar devolve o mesmo protocolo; relato em branco é `422
+    /// campo_obrigatorio`, e com menos de 10 caracteres, `422 campo_invalido`; alvo que não existe e
+    /// turno que não é das duas partes são `404`. Denunciar a si mesmo (`422 campo_invalido`,
+    /// `alvo_id`) não é modelado: a conta única do dublê é também o profissional e a casa de exemplo.
+    public func denunciar(_ denuncia: Denuncia) async throws -> Protocolo {
+        try verificarFalhaGeral()
+        if let gravado = denunciasPorChave[denuncia.chave] { return gravado }
+        try validarRelato(denuncia.relato)
+        guard existe(denuncia.alvo) else { throw erro("nao_encontrado") }
+        if let turnoID = denuncia.turnoID {
+            guard let turno = (turnos + turnosCancelados).first(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+            let casa = vagas.first { $0.id == turno.vaga.id }?.estabelecimento.id
+            guard [turno.contraparte.id, perfilPublicoDeExemplo.id, casa].contains(denuncia.alvo.id) else { throw erro("nao_encontrado") }
+        }
+        let protocolo = try novoProtocolo(.denuncia)
+        denunciasPorChave[denuncia.chave] = protocolo
+        return protocolo
+    }
+
+    /// Segue `bloquear` do backend (`20260929100000_denunciar_e_bloquear.sql`): alvo que não existe é
+    /// `404`, e bloquear de novo devolve o bloqueio que já existe. A partir daí as vagas da casa
+    /// bloqueada saem da lista, e detalhe, candidatura e contato respondem `404`. O `perfil_publico`
+    /// continua respondendo, como no contrato 0.2.27. Não modelados: o `422 campo_invalido` de alvo
+    /// do mesmo perfil de quem bloqueia e o bloqueio de si mesmo, pela conta única do dublê.
+    public func bloquear(_ alvo: Alvo) async throws -> Bloqueio {
+        try verificarFalhaGeral()
+        guard existe(alvo) else { throw erro("nao_encontrado") }
+        if let gravado = bloqueios[alvo] { return gravado }
+        let bloqueio = Bloqueio(alvo: alvo, criadoEm: relogio.agora)
+        bloqueios[alvo] = bloqueio
+        return bloqueio
+    }
+
+    /// Segue `situacao_da_conta` do backend (`20261001100000_suspensao_da_conta.sql`): responde
+    /// também para a conta suspensa, que as outras operações recusam; sem conta é `401`.
+    public func situacaoDaConta() async throws -> SituacaoDaConta {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        return SituacaoDaConta(estado: conta.estado, suspensao: suspensao)
+    }
+
+    /// Segue `contestar_suspensao` do backend (`20261001100000_suspensao_da_conta.sql`), na ordem
+    /// dele: sem suspensão é `422 sem_suspensao_ativa`; relato em branco, `422 campo_obrigatorio`; com
+    /// menos de 10 caracteres, `422 campo_invalido`; contestação já aberta, `409 contestacao_ja_aberta`.
+    public func contestarSuspensao(relato: String) async throws -> Protocolo {
+        try verificarRede()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        guard let atual = suspensao else { throw erro("sem_suspensao_ativa") }
+        try validarRelato(relato)
+        guard atual.contestacao == nil else { throw erro("contestacao_ja_aberta") }
+        let protocolo = try novoProtocolo(.contestacao)
+        suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: protocolo)
+        return protocolo
     }
 
     // MARK: Aplicativo e dispositivo
@@ -562,6 +787,77 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// RN24: a vaga de seleção fecha 24 horas antes do início.
     private static let antecedenciaDaSelecao: TimeInterval = 24 * 60 * 60
+
+    /// D06: aos 15 minutos do início sem check-in a posição está em atraso e pode ser reaberta.
+    private static let toleranciaDeAtraso: TimeInterval = 15 * 60
+
+    /// O que `privado.cancelar_uma_posicao` faz: a posição cancelada guarda de quem era, e a vaga,
+    /// quando reabre, ganha uma posição nova e volta a `publicada`.
+    private func cancelarTurno(em indice: Int, falta: Bool, reabrir: Bool) -> ResultadoCancelamento {
+        let turno = turnos.remove(at: indice)
+        turnosCancelados.append(turno)
+        contatos[turno.id] = nil
+        var nova: UUID?
+        if reabrir, let daVaga = vagas.firstIndex(where: { $0.id == turno.vaga.id }) {
+            let vaga = vagas[daVaga]
+            let id = UUID()
+            nova = id
+            posicoesReabertas[vaga.id, default: []].append(id)
+            vagas[daVaga] = Self.copia(
+                vaga, posicoesAbertas: vaga.posicoesAbertas + 1, estado: vaga.estado == .preenchida ? .publicada : vaga.estado
+            )
+        }
+        return ResultadoCancelamento(posicaoID: turno.posicaoID, falta: falta, reaberta: nova != nil, novaPosicaoID: nova)
+    }
+
+    /// Posição que o dublê conhece e que não tem turno confirmado: já cancelada, ou aberta por uma reabertura.
+    private func conhecidaSemTurno(_ posicaoID: UUID) -> Bool {
+        turnosCancelados.contains { $0.posicaoID == posicaoID } || posicoesReabertas.values.contains { $0.contains(posicaoID) }
+    }
+
+    private func validarMotivo(_ motivo: String) throws {
+        guard motivo.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 else { throw erro("campo_obrigatorio", detalhes: "motivo") }
+    }
+
+    private func validarRelato(_ relato: String) throws {
+        let limpo = relato.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !limpo.isEmpty else { throw erro("campo_obrigatorio", detalhes: "relato") }
+        guard limpo.count >= 10 else { throw erro("campo_invalido", detalhes: "relato") }
+    }
+
+    /// O profissional de exemplo, que o painel mostra nas posições, ou uma casa que o dublê conhece.
+    private func existe(_ alvo: Alvo) -> Bool {
+        switch alvo.tipo {
+        case .profissional: alvo.id == perfilPublicoDeExemplo.id
+        case .estabelecimento: estabelecimentos.contains { $0.id == alvo.id } || vagas.contains { $0.estabelecimento.id == alvo.id }
+        }
+    }
+
+    private func bloqueada(_ vaga: Vaga) -> Bool {
+        bloqueios[Alvo(vaga.estabelecimento)] != nil
+    }
+
+    private func novoProtocolo(_ tipo: TipoDeProtocolo) throws -> Protocolo {
+        let agora = relogio.agora
+        guard let prazo = Self.prazoDeResposta(agora) else { throw ErroDaApi(codigo: .respostaInvalida) }
+        return Protocolo(ocorrenciaID: UUID(), tipo: tipo, criadaEm: agora, prazoRespostaAte: prazo)
+    }
+
+    /// `privado.prazo_de_resposta` do backend: o quinto dia útil (segunda a sexta) contado do dia
+    /// seguinte ao registro, no dia de São Paulo, sem calendário de feriados.
+    private static func prazoDeResposta(_ instante: Date) -> DataCivil? {
+        var calendario = Calendar(identifier: .gregorian)
+        guard let fuso = TimeZone(identifier: "America/Sao_Paulo") else { return nil }
+        calendario.timeZone = fuso
+        var uteis = 0
+        for dias in 1...14 {
+            guard let dia = calendario.date(byAdding: .day, value: dias, to: instante) else { return nil }
+            if calendario.isDateInWeekend(dia) { continue }
+            uteis += 1
+            if uteis == 5 { return DataCivil.deSaoPaulo(dia) }
+        }
+        return nil
+    }
 
     /// O que os dois registros validam depois da idempotência, na ordem do backend
     /// (`privado.exigir_janela`). Diferenças declaradas: o backend tolera até 2 minutos no futuro

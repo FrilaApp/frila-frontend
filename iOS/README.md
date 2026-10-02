@@ -153,7 +153,7 @@ O dublê não é equivalente ao backend:
 - **Futuro.** O backend tolera até 2 minutos no futuro; o dublê recusa qualquer instante no futuro.
 - **Janela do turno.** O backend recusa com `fora_da_janela` o que cair fora de início − 60 min até o fim. O dublê não confere essa janela, então aceita registros que o backend recusaria.
 - **Conta de demonstração.** A exceção de janela dela não é modelada.
-- **Verificação.** No check-out e nas repetições, tipo e verificação vêm do check-in gravado no dublê. No backend a verificação é a atual do turno, que o `confirmar_checkin_manual` muda; essa operação não existe na porta `ApiCliente` nem no dublê. O `meusTurnos` do dublê também não reflete a verificação.
+- **Verificação.** No check-out e nas repetições, tipo e verificação vêm do check-in gravado no dublê, que o `confirmarCheckinManual` atualiza. O painel lê a verificação desse registro; o `meusTurnos` do dublê não reflete o check-in nem a verificação.
 
 **Vagas no dublê (contrato 0.2.19 a 0.2.25).** O `ApiClienteEmMemoria` segue as recusas de `candidatar` na ordem do backend (`20260929234100_modo_selecao.sql`):
 - a vaga que já começou sai da lista, responde `409 vaga_encerrada` em `candidatar` e continua abrindo no detalhe, com `posicoes_abertas = 0`;
@@ -162,13 +162,25 @@ O dublê não é equivalente ao backend:
 - `avisar_a_caminho` vale de 3 horas antes até 15 minutos depois do início, e repetir devolve o primeiro aviso.
 
 Também aqui o dublê não é equivalente ao backend:
-- **Posição reaberta por atraso.** A porta não tem `reabrir_por_atraso`: no dublê, a vaga que começou nunca volta a aceitar candidatura.
+- **Posição reaberta por atraso.** No backend ela aceita candidatura depois do início, até 1 hora antes do fim. No dublê, `reabrirPorAtraso` abre a posição nova e o painel a mostra, mas a vaga que começou não volta a aceitar candidatura.
 - **Reenvio de `candidatar`.** O backend devolve o mesmo turno a quem já está confirmado. O dublê simula uma conta só, e cada chamada é uma candidatura nova, inclusive na vaga ocultada, que responde `404`. Só a candidatura pendente da seleção é devolvida igual.
 - **Moderação.** Ocultar e reexibir são da Equipe Frila, fora da API. No dublê existe `moderar(vagaID:oculta:)`, fora da porta `ApiCliente`, para os testes.
 - **Modo seleção.** Não há `escolher_candidato` nem o fechamento automático das 24 horas: a candidatura fica pendente, e a vaga, publicada.
 
+**RPCs da Sprint 2 no dublê (#19, #20, #39 e #41).** O `ApiClienteEmMemoria` segue as funções do backend, na ordem das recusas delas:
+- `confirmarCheckinManual` (`20260926060100_exigir_conta_ativa_escrita.sql`): sem check-in é `409 checkin_pendente`; check-in geolocalizado, `409 checkin_ja_confirmado`; repetir devolve o registro confirmado. O turno sai de `checkins_pendentes` do painel, e a posição passa a `verificado`.
+- `reabrirPorAtraso` (`20260928220000_alerta_de_atraso_e_reabrir_por_atraso.sql`): antes dos 15 minutos é `422 reabertura_antes_da_tolerancia`; com check-in, `409 posicao_nao_cancelavel` com `checkin_registrado`; a menos de 1 hora do fim marca a falta sem abrir posição; repetir devolve o mesmo resultado. O painel marca `em_atraso` dos 15 minutos do início até o fim, só sem check-in.
+- `cancelarPosicao` e `cancelarVaga` (`20260925020000_cancelamentos.sql`): motivo com menos de 3 caracteres é `422 campo_obrigatorio`; posição que não está confirmada, `409 posicao_nao_cancelavel`; vaga já cancelada, `409 vaga_encerrada`. A posição cancelada continua no painel como `cancelada`, e a reabertura cria uma posição nova.
+- `denunciar` e `bloquear` (`20260929100000_denunciar_e_bloquear.sql`): a chave da denúncia decide antes de qualquer validação; o prazo é o quinto dia útil no dia de São Paulo, sem feriados; bloquear de novo devolve o mesmo bloqueio. Com a casa bloqueada, as vagas dela saem da lista, e detalhe, candidatura e contato respondem `404`.
+- `situacaoDaConta` e `contestarSuspensao` (`20261001100000_suspensao_da_conta.sql`): só o cenário `conta-suspensa` tem suspensão, e nele essas duas respondem enquanto as outras operações recusam com `conta_suspensa`.
 
-No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede` ou `conta-suspensa`. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações do Sprint 1.
+O que o dublê não modela nessas operações:
+- **Uma conta só.** Ele não distingue quem chama: não recusa o profissional que confirma o próprio check-in (`403`), a conta de profissional em `cancelar_vaga` e `reabrir_por_atraso` (`422 perfil_incompativel`), nem denunciar ou bloquear a si mesmo. Em `cancelarPosicao`, o perfil da conta decide o lado: profissional leva falta a menos de 24 horas; contratante não gera falta.
+- **Filtro de termos.** O motivo e o relato não passam pelo filtro da diretriz 1.2 (`422 campo_invalido`).
+- **Tolerância do substituto.** O backend conta os 15 minutos do início ou da confirmação, o que for mais tarde; o dublê conta do início.
+- **Alerta de vaga vazia.** A janela é a padrão, de 3 horas; o `alerta_antecedencia_min` da publicação não é guardado.
+
+No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede`, `conta-suspensa`, `contratante`, `checkin-manual-pendente` ou `atraso-no-turno`. Os dois últimos entram com conta de contratante: um turno em andamento com check-in manual esperando confirmação, e um turno que começou há 20 minutos sem check-in. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações que o app usa até a Sprint 2.
 
 ## Licenças de terceiros (#178)
 

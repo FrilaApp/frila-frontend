@@ -704,6 +704,53 @@ enum ContratoAPI {
         func dominio() -> Avaliacao { Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: criadaEm) }
     }
 
+    // MARK: Cancelamento e reabertura
+
+    struct CancelarPosicao: Encodable {
+        let posicaoID: UUID
+        let motivo: String
+        enum CodingKeys: String, CodingKey { case posicaoID = "posicao_id"; case motivo }
+    }
+
+    struct CancelarVaga: Encodable {
+        let vagaID: UUID
+        let motivo: String
+        enum CodingKeys: String, CodingKey { case vagaID = "vaga_id"; case motivo }
+    }
+
+    struct ResultadoCancelamentoDTO: Decodable {
+        let posicaoID: UUID
+        let falta: Bool
+        let reaberta: Bool
+        let novaPosicaoID: UUID?
+
+        enum CodingKeys: String, CodingKey {
+            case falta, reaberta
+            case posicaoID = "posicao_id"
+            case novaPosicaoID = "nova_posicao_id"
+        }
+
+        func dominio() -> ResultadoCancelamento {
+            ResultadoCancelamento(posicaoID: posicaoID, falta: falta, reaberta: reaberta, novaPosicaoID: novaPosicaoID)
+        }
+    }
+
+    struct VagaCanceladaDTO: Decodable {
+        let vagaID: UUID
+        let estado: EstadoVaga
+        let posicoesCanceladas: Int
+
+        enum CodingKeys: String, CodingKey {
+            case estado
+            case vagaID = "vaga_id"
+            case posicoesCanceladas = "posicoes_canceladas"
+        }
+
+        func dominio() -> VagaCancelada {
+            VagaCancelada(vagaID: vagaID, estado: estado, posicoesCanceladas: posicoesCanceladas)
+        }
+    }
+
     // MARK: Painel do estabelecimento
 
     struct PainelParametros: Encodable {
@@ -778,6 +825,106 @@ enum ContratoAPI {
 
         func dominio() throws -> Painel {
             try Painel(estabelecimentoID: estabelecimentoID, vagas: vagas.map { try $0.dominio() }, checkinsPendentes: checkinsPendentes)
+        }
+    }
+
+    // MARK: Confiança e direitos
+
+    struct Denunciar: Encodable {
+        let alvoTipo: TipoPerfilPublico
+        let alvoID: UUID
+        let turnoID: UUID?
+        let motivo: MotivoDenuncia
+        let relato: String
+        let chave: UUID
+
+        init(_ denuncia: Denuncia) {
+            alvoTipo = denuncia.alvo.tipo
+            alvoID = denuncia.alvo.id
+            turnoID = denuncia.turnoID
+            motivo = denuncia.motivo
+            relato = denuncia.relato
+            chave = denuncia.chave
+        }
+
+        // `turno_id` é opcional no contrato: sem turno, o campo não vai.
+        enum CodingKeys: String, CodingKey {
+            case motivo, relato, chave
+            case alvoTipo = "alvo_tipo"
+            case alvoID = "alvo_id"
+            case turnoID = "turno_id"
+        }
+    }
+
+    struct Bloquear: Encodable {
+        let alvoTipo: TipoPerfilPublico
+        let alvoID: UUID
+
+        init(_ alvo: Alvo) {
+            alvoTipo = alvo.tipo
+            alvoID = alvo.id
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case alvoTipo = "alvo_tipo"
+            case alvoID = "alvo_id"
+        }
+    }
+
+    struct ContestarSuspensao: Encodable {
+        let relato: String
+    }
+
+    struct ProtocoloDTO: Decodable {
+        let ocorrenciaID: UUID
+        let tipo: TipoDeProtocolo
+        let criadaEm: Date
+        let prazoRespostaAte: String
+
+        enum CodingKeys: String, CodingKey {
+            case tipo
+            case ocorrenciaID = "ocorrencia_id"
+            case criadaEm = "criada_em"
+            case prazoRespostaAte = "prazo_resposta_ate"
+        }
+
+        func dominio() throws -> Protocolo {
+            guard let prazo = try? DataCivil(prazoRespostaAte) else { throw ErroDeConversao(campo: "prazo_resposta_ate") }
+            return Protocolo(ocorrenciaID: ocorrenciaID, tipo: tipo, criadaEm: criadaEm, prazoRespostaAte: prazo)
+        }
+    }
+
+    struct BloqueioDTO: Decodable {
+        let alvoTipo: TipoPerfilPublico
+        let alvoID: UUID
+        let criadoEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case alvoTipo = "alvo_tipo"
+            case alvoID = "alvo_id"
+            case criadoEm = "criado_em"
+        }
+
+        func dominio() -> Bloqueio {
+            Bloqueio(alvo: Alvo(tipo: alvoTipo, id: alvoID), criadoEm: criadoEm)
+        }
+    }
+
+    struct SituacaoDaContaDTO: Decodable {
+        struct SuspensaoDTO: Decodable {
+            let motivo: String
+            let desde: Date
+            let contestacao: ProtocoloDTO?
+        }
+
+        let estado: EstadoConta
+        let suspensao: SuspensaoDTO?
+
+        func dominio() throws -> SituacaoDaConta {
+            try SituacaoDaConta(
+                estado: estado,
+                suspensao: suspensao.map { Suspensao(motivo: $0.motivo, desde: $0.desde, contestacao: try $0.contestacao?.dominio()) }
+            )
         }
     }
 

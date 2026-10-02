@@ -175,6 +175,25 @@ public struct ResultadoCandidatura: Codable, Equatable, Sendable {
     }
 }
 
+public struct Denuncia: Codable, Equatable, Sendable {
+    public let alvo: Alvo
+    /// O turno em que aconteceu, quando a denúncia sai da tela de um turno.
+    public let turnoID: UUID?
+    public let motivo: MotivoDenuncia
+    /// Pelo menos 10 caracteres.
+    public let relato: String
+    /// Gerada pelo app: reenviar com a mesma chave devolve o mesmo protocolo.
+    public let chave: UUID
+
+    public init(alvo: Alvo, turnoID: UUID? = nil, motivo: MotivoDenuncia, relato: String, chave: UUID) {
+        self.alvo = alvo
+        self.turnoID = turnoID
+        self.motivo = motivo
+        self.relato = relato
+        self.chave = chave
+    }
+}
+
 public struct ConfiguracaoApp: Codable, Equatable, Sendable {
     public let versaoMinima: String
     public let versaoRecomendada: String
@@ -189,7 +208,6 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
     }
 }
 
-/// As operações do contrato que o app usa até o Sprint 1, mais check-in, check-out e avaliação.
 /// Avisa quando a sessão deste aparelho foi encerrada: saída, ou um 401 que prova autenticação
 /// inválida (token vencido ou recusado, ou conta encerrada, contrato 0.2.18). O aviso não prova
 /// que o armazenamento apagou a sessão; quem precisa saber confere de novo.
@@ -197,6 +215,7 @@ public protocol ObservadorDeSessao: Sendable {
     func encerramentos() -> AsyncStream<Void>
 }
 
+/// As operações do contrato que o app usa até a Sprint 2.
 public protocol ApiCliente: TurnoRepositorio, Sendable {
     // Entrada
     func solicitarCodigo(email: String) async throws
@@ -236,6 +255,31 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro
     func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro
     func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao
+
+    // Turno do contratante
+    /// Um toque de quem opera a casa: só então o check-in manual conta como presença (RN22).
+    /// Reenviar devolve o registro já confirmado. Sem check-in é `checkinPendente`; check-in
+    /// geolocalizado, que já nasceu verificado, é `checkinJaConfirmado`.
+    func confirmarCheckinManual(turnoID: UUID) async throws -> ResultadoRegistro
+    /// Declara que o profissional não veio: marca falta e abre uma posição nova (D06). Antes dos
+    /// 15 minutos do início é `reaberturaAntesDaTolerancia`; com check-in feito, `posicaoNaoCancelavel`.
+    func reabrirPorAtraso(posicaoID: UUID) async throws -> ResultadoCancelamento
+
+    // Cancelamento
+    /// Qualquer das partes, com motivo de pelo menos 3 caracteres (RN12). O motivo vai para a tela
+    /// da outra parte.
+    func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento
+    /// Só o contratante: cancela as posições abertas e as confirmadas, sem falta para ninguém.
+    func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada
+
+    // Confiança e direitos
+    func denunciar(_ denuncia: Denuncia) async throws -> Protocolo
+    /// Imediato e idempotente: bloquear de novo devolve o bloqueio que já existe.
+    func bloquear(_ alvo: Alvo) async throws -> Bloqueio
+    func situacaoDaConta() async throws -> SituacaoDaConta
+    /// Relato de pelo menos 10 caracteres. Sem suspensão em vigor é `semSuspensaoAtiva`; com
+    /// contestação já em análise, `contestacaoJaAberta`.
+    func contestarSuspensao(relato: String) async throws -> Protocolo
 
     // Aplicativo e dispositivo
     func configuracaoDoApp() async throws -> ConfiguracaoApp

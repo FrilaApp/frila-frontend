@@ -88,6 +88,14 @@ private final class ApiClienteAvaliacaoDuble: ApiCliente, @unchecked Sendable {
     func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try await base.fazerCheckout(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
+    func confirmarCheckinManual(turnoID: UUID) async throws -> ResultadoRegistro { try await base.confirmarCheckinManual(turnoID: turnoID) }
+    func reabrirPorAtraso(posicaoID: UUID) async throws -> ResultadoCancelamento { try await base.reabrirPorAtraso(posicaoID: posicaoID) }
+    func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento { try await base.cancelarPosicao(id: id, motivo: motivo) }
+    func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada { try await base.cancelarVaga(id: id, motivo: motivo) }
+    func denunciar(_ denuncia: Denuncia) async throws -> Protocolo { try await base.denunciar(denuncia) }
+    func bloquear(_ alvo: Alvo) async throws -> Bloqueio { try await base.bloquear(alvo) }
+    func situacaoDaConta() async throws -> SituacaoDaConta { try await base.situacaoDaConta() }
+    func contestarSuspensao(relato: String) async throws -> Protocolo { try await base.contestarSuspensao(relato: relato) }
     func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
     func removerDispositivo(tokenFCM: String) async throws { try await base.removerDispositivo(tokenFCM: tokenFCM) }
     func sair(tokenFCM: String?) async { await base.sair(tokenFCM: tokenFCM) }
