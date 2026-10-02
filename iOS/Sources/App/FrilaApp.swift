@@ -38,6 +38,11 @@ struct FrilaApp: App {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
             let api = try Self.cliente(para: ambiente)
+            #if DEBUG
+            if api is ApiClienteEmMemoria {
+                UserDefaultsArmazenamentoAvaliacoes().limpar()
+            }
+            #endif
             let aparelho = Self.aparelhoDePush(para: api)
             inicializacao = .pronta(Dependencias(
                 api: api, localizacao: Self.leitorDeLocalizacao(para: api), aparelho: aparelho,
@@ -224,6 +229,7 @@ private struct EntradaDoApp: View {
                 TelaMinhasVagas(
                     viewModel: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento),
                     api: api,
+                    fila: armazenamento,
                     roteador: roteadorDoContratante
                 )
                 .task { aplicarAvisoDosArgumentos() }
@@ -562,7 +568,7 @@ private struct EntradaDoApp: View {
         roteadorDePush.tocar(payload: payload, entregueEm: entregueEm)
     }
 
-    private static func turnoIDDosArgumentos() -> UUID? {
+    fileprivate static func turnoIDDosArgumentos() -> UUID? {
         let argumentos = ProcessInfo.processInfo.arguments
         guard let indice = argumentos.firstIndex(of: "-FRILA_AVALIACAO_TURNO_ID"), argumentos.indices.contains(indice + 1) else { return nil }
         return UUID(uuidString: argumentos[indice + 1])
@@ -715,7 +721,7 @@ private struct DestinoDaAvaliacaoParaTeste: View {
 
     init(api: any ApiCliente) {
         let contaID = UUID(uuidString: "10000000-0000-0000-0000-000000000001")!
-        let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
+        let turnoID = EntradaDoApp.turnoIDDosArgumentos() ?? UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
         let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
         if ProcessInfo.processInfo.arguments.contains("-FRILA_AVALIACAO_SALVA_UI_TEST") {
             armazenamento.salvar(resposta: false, para: turnoID, contaID: contaID)

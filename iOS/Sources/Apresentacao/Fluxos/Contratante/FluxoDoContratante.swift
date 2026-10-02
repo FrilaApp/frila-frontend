@@ -157,7 +157,7 @@ public struct FluxoDoContratante: View {
                 erro(MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido)))
             }
         case let .vagas(estabelecimento):
-            DestinoDasVagasDoContratante(api: api, estabelecimento: estabelecimento, roteador: roteador)
+            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador)
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -173,16 +173,18 @@ public struct FluxoDoContratante: View {
 
 private struct DestinoDasVagasDoContratante: View {
     private let api: any ApiCliente
+    private let fila: (any FilaDeAcoes)?
     private let roteador: RoteadorDoContratante?
     @State private var model: MinhasVagasViewModel
 
-    init(api: any ApiCliente, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?) {
+    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?) {
         self.api = api
+        self.fila = fila
         self.roteador = roteador
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
     }
 
     var body: some View {
-        TelaMinhasVagas(viewModel: model, api: api, roteador: roteador)
+        TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador)
     }
 }
