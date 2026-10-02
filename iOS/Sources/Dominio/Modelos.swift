@@ -310,7 +310,8 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         if valor.centavos < 1 { erros.append(.valorInvalido) }
         if !(1...200).contains(posicoes) { erros.append(.quantidadeDePosicoesInvalida) }
         if periodo.inicio <= agora { erros.append(.horarioNoPassado) }
-        if modo == .selecao, periodo.inicio.timeIntervalSince(agora) < 24 * 60 * 60 {
+        // Como o servidor: o início tem de estar a mais de 24 h; com 24 h exatas é recusa (RN24).
+        if modo == .selecao, periodo.inicio.timeIntervalSince(agora) <= 24 * 60 * 60 {
             erros.append(.selecaoSemAntecedencia)
         }
         return erros
@@ -499,17 +500,6 @@ public struct Presenca: Codable, Hashable, Sendable {
     }
 }
 
-public enum CausaDoCancelamento: String, Codable, Sendable {
-    case profissional, estabelecimento, outro
-    case reaberturaPorAtraso = "reabertura_por_atraso"
-    case noShowSemCheckin = "no_show_sem_checkin"
-
-    public init(from decoder: Decoder) throws {
-        let valor = try decoder.singleValueContainer().decode(String.self)
-        self = Self(rawValue: valor) ?? .outro
-    }
-}
-
 /// Registro que as duas partes leem na 0.2.32. Não contém o motivo privado do painel.
 public struct CancelamentoDoTurno: Codable, Hashable, Sendable {
     public let causa: CausaDoCancelamento
@@ -691,6 +681,34 @@ public struct VagaCancelada: Codable, Hashable, Sendable {
     }
 }
 
+public enum CausaDoCancelamento: String, Codable, Hashable, Sendable {
+    case profissional
+    case estabelecimento
+    case reaberturaPorAtraso = "reabertura_por_atraso"
+    case noShowSemCheckin = "no_show_sem_checkin"
+    case outro
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = CausaDoCancelamento(rawValue: rawValue) ?? .outro
+    }
+}
+
+public struct CancelamentoDaPosicao: Codable, Hashable, Sendable {
+    public let causa: CausaDoCancelamento
+    public let falta: Bool
+    public let motivo: String?
+    public let canceladaEm: Date
+
+    public init(causa: CausaDoCancelamento, falta: Bool, motivo: String?, canceladaEm: Date) {
+        self.causa = causa
+        self.falta = falta
+        self.motivo = motivo
+        self.canceladaEm = canceladaEm
+    }
+}
+
 public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let estado: EstadoPosicao
@@ -700,10 +718,19 @@ public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
     public let emAtraso: Bool
     /// Nulo enquanto o profissional não avisou, ou se a posição ainda não tem turno (contrato 0.2.25).
     public let aCaminhoEm: Date?
+    /// Hora do toque no check-in (contrato 0.2.31). Opcional: o servidor anterior à 0.2.31 não manda.
+    public let checkinEm: Date?
+    /// Tipo do check-in (contrato 0.2.31). Opcional.
+    public let checkinTipo: TipoRegistro?
+    /// Quando o contratante confirmou o check-in manual (contrato 0.2.31). Opcional.
+    public let checkinConfirmadoEm: Date?
+    /// Por que a posição foi cancelada (contrato 0.2.31, RN12). Opcional.
+    public let cancelamento: CancelamentoDaPosicao?
 
     public init(
         id: UUID, estado: EstadoPosicao, profissional: PerfilPublico?, turnoID: UUID?, verificacao: Verificacao?,
-        emAtraso: Bool, aCaminhoEm: Date? = nil
+        emAtraso: Bool, aCaminhoEm: Date? = nil, checkinEm: Date? = nil, checkinTipo: TipoRegistro? = nil,
+        checkinConfirmadoEm: Date? = nil, cancelamento: CancelamentoDaPosicao? = nil
     ) {
         self.id = id
         self.estado = estado
@@ -712,6 +739,10 @@ public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
         self.verificacao = verificacao
         self.emAtraso = emAtraso
         self.aCaminhoEm = aCaminhoEm
+        self.checkinEm = checkinEm
+        self.checkinTipo = checkinTipo
+        self.checkinConfirmadoEm = checkinConfirmadoEm
+        self.cancelamento = cancelamento
     }
 }
 

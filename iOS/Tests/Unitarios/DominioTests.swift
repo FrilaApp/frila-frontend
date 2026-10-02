@@ -31,6 +31,29 @@ struct DominioTests {
         #expect(Set(vaga.validar(agora: agora)) == Set(ErroValidacaoVaga.allCases.filter { $0 != .horarioNoPassado }))
     }
 
+    @Test("Seleção exige início a mais de 24 horas: com 24 horas exatas a validação local recusa, como o servidor", arguments: [
+        (23.0, true), (24.0, true), (24.01, false),
+    ])
+    func selecaoSemAntecedencia(horas: Double, recusa: Bool) throws {
+        let agora = Date(timeIntervalSince1970: 1_700_000_000)
+        let inicio = agora.addingTimeInterval(horas * 3_600)
+        let reputacao = Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+        func vaga(_ modo: ModoPreenchimento) throws -> Vaga {
+            Vaga(
+                id: UUID(),
+                estabelecimento: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bar do Zé", reputacao: reputacao),
+                funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "Salão"),
+                periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(3_600)),
+                local: "CLS 405", regiaoAdministrativa: "Plano Piloto", ponto: try Coordenada(latitude: -15.8121, longitude: -47.8997),
+                valor: Dinheiro(centavos: 12_000), posicoes: 1, posicoesAbertas: 1,
+                inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
+                responsavelLocal: "Marina", modo: modo, estado: .publicada, publicadoEm: agora
+            )
+        }
+        #expect(try vaga(.selecao).validar(agora: agora) == (recusa ? [.selecaoSemAntecedencia] : []))
+        #expect(try vaga(.urgencia).validar(agora: agora).isEmpty)
+    }
+
     @Test("Distância usa coordenadas sem importar CoreLocation")
     func distancia() throws {
         let se = try Coordenada(latitude: -23.5505, longitude: -46.6333)

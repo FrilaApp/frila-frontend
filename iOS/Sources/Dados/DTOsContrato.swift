@@ -863,6 +863,22 @@ enum ContratoAPI {
         enum CodingKeys: String, CodingKey { case estabelecimentoID = "estabelecimento_id"; case de, ate }
     }
 
+    struct CancelamentoDaPosicaoDTO: Decodable {
+        let causa: CausaDoCancelamento
+        let falta: Bool
+        let motivo: String?
+        let canceladaEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case causa, falta, motivo
+            case canceladaEm = "cancelada_em"
+        }
+
+        func dominio() -> CancelamentoDaPosicao {
+            CancelamentoDaPosicao(causa: causa, falta: falta, motivo: motivo, canceladaEm: canceladaEm)
+        }
+    }
+
     struct PosicaoNoPainelDTO: Decodable {
         let id: UUID
         let estado: EstadoPosicao
@@ -871,18 +887,46 @@ enum ContratoAPI {
         let verificacao: Verificacao?
         let emAtraso: Bool
         let aCaminhoEm: Date?
+        let checkinEm: Date?
+        let checkinTipo: TipoRegistro?
+        let checkinConfirmadoEm: Date?
+        let cancelamento: CancelamentoDaPosicaoDTO?
 
         enum CodingKeys: String, CodingKey {
-            case id, estado, profissional, verificacao
+            case id, estado, profissional, verificacao, cancelamento
             case turnoID = "turno_id"
             case emAtraso = "em_atraso"
             case aCaminhoEm = "a_caminho_em"
+            case checkinEm = "checkin_em"
+            case checkinTipo = "checkin_tipo"
+            case checkinConfirmadoEm = "checkin_confirmado_em"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            estado = try container.decode(EstadoPosicao.self, forKey: .estado)
+            profissional = try container.decodeIfPresent(PerfilPublicoDTO.self, forKey: .profissional)
+            turnoID = try container.decodeIfPresent(UUID.self, forKey: .turnoID)
+            verificacao = try container.decodeIfPresent(Verificacao.self, forKey: .verificacao)
+            emAtraso = try container.decode(Bool.self, forKey: .emAtraso)
+            aCaminhoEm = try container.decodeIfPresent(Date.self, forKey: .aCaminhoEm)
+            checkinEm = try container.decodeIfPresent(Date.self, forKey: .checkinEm)
+            if let tipoRaw = try container.decodeIfPresent(String.self, forKey: .checkinTipo) {
+                checkinTipo = TipoRegistro(rawValue: tipoRaw)
+            } else {
+                checkinTipo = nil
+            }
+            checkinConfirmadoEm = try container.decodeIfPresent(Date.self, forKey: .checkinConfirmadoEm)
+            cancelamento = try container.decodeIfPresent(CancelamentoDaPosicaoDTO.self, forKey: .cancelamento)
         }
 
         func dominio() -> PosicaoNoPainel {
             PosicaoNoPainel(
                 id: id, estado: estado, profissional: profissional?.dominio(), turnoID: turnoID, verificacao: verificacao,
-                emAtraso: emAtraso, aCaminhoEm: aCaminhoEm
+                emAtraso: emAtraso, aCaminhoEm: aCaminhoEm,
+                checkinEm: checkinEm, checkinTipo: checkinTipo, checkinConfirmadoEm: checkinConfirmadoEm,
+                cancelamento: cancelamento?.dominio()
             )
         }
     }
