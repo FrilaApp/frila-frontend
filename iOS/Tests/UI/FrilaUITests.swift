@@ -367,4 +367,51 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
     }
+
+    func testCadastroDesabilitaBotaoSemMaioridadeOuSemTermos() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("novo@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        let nome = app.textFields["cadastro-nome"]
+        nome.tap()
+        nome.typeText("Novo Usuário")
+
+        let telefone = app.textFields["cadastro-telefone"]
+        telefone.tap()
+        telefone.typeText("61988887777")
+
+        let nascimento = app.textFields["cadastro-nascimento"]
+        nascimento.tap()
+        nascimento.typeText("15/05/1995")
+
+        let btnContinuar = app.buttons["cadastro-continuar"]
+        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve estar desabilitado sem maioridade e sem termos")
+
+        // Marca apenas maioridade
+        app.buttons["cadastro-maior-de-idade"].tap()
+        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem aceite dos termos")
+
+        // Desmarca maioridade e marca apenas termos
+        app.buttons["cadastro-maior-de-idade"].tap()
+        app.buttons["cadastro-termos"].tap()
+        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem confirmação de maioridade")
+
+        // Marca ambos
+        app.buttons["cadastro-maior-de-idade"].tap()
+        XCTAssertTrue(btnContinuar.isEnabled, "Botão deve habilitar com formulário completo, maioridade e termos")
+    }
 }
