@@ -3,6 +3,7 @@ import Foundation
 @testable import FrilaDados
 @testable import FrilaDominio
 import Testing
+import SwiftData
 
 private actor EspiaoRepublicacao {
     private(set) var chamadas = 0
@@ -509,29 +510,133 @@ struct RepublicarVagaViewModelTests {
         #expect(chavesRecebidas[0] == chavesRecebidas[1])
     }
 
-    @Test("SincronizadorAcoes envia republicação pendente com a mesma chave e remove da fila")
-    func sincronizadorRepublicaVaga() async throws {
-        let api = ApiClienteEmMemoria(cenario: .vagaEncerradaContratante)
-        let fila = FilaEspia()
-        let base = Date(timeIntervalSince1970: 1_800_000_000)
-        let vagaID = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
-        let periodo = try Periodo(inicio: base.addingTimeInterval(3 * 3600), fim: base.addingTimeInterval(7 * 3600))
-        let chave = UUID()
-
-        let acao = AcaoPendente(
-            tipo: .republicacaoVaga,
-            instanteDoToque: base,
-            chave: chave,
-            republicacao: RepublicacaoVaga(vagaID: vagaID, periodo: periodo)
-        )
-        await fila.enfileirar(acao)
-
-        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
-        await sincronizador.sincronizar()
-
-        let pendentes = await fila.pendentes()
-        #expect(pendentes.isEmpty)
+    private func origem(api: any ApiCliente, base: Date) async throws -> VagaNoPainel {
+        let estabelecimento = try #require(await api.meusEstabelecimentos().first)
+        let periodo = try Periodo(inicio: base.addingTimeInterval(-86400), fim: base.addingTimeInterval(86400))
+        let painel = try await api.painelEstabelecimento(id: estabelecimento.id, periodo: periodo)
+        return try #require(painel.vagas.first)
     }
+
+    @Test("Sincronizador comprova publicação, período e chave; fila vazia não basta")
+    func sincronizadorRepublicaVaga() async throws {
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let api = ApiRepublicacaoRegistrada(base: ApiClienteEmMemoria(
+            cenario: .vagaEncerradaContratante, relogio: RelogioRepublicacao(agora: base)))
+        let vaga = try await origem(api: api, base: base)
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let periodo = try Periodo(inicio: base.addingTimeInterval(3 * 3600), fim: base.addingTimeInterval(7 * 3600))
+        let acao = AcaoPendente(tipo: .republicacaoVaga, instanteDoToque: base, chave: UUID(),
+                                republicacao: RepublicacaoVaga(vagaID: vaga.id, periodo: periodo))
+        try await fila.enfileirar(acao)
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(try await fila.pendentes().isEmpty)
+        #expect(await api.registro.recebidas == [RepublicacaoRecebida(id: vaga.id, periodo: periodo, chave: acao.chave)])
+        let publicada = try #require(await api.registro.publicadas.first)
+        let detalhe = try await api.detalheDaVaga(id: publicada.vagaID)
+        #expect(detalhe.periodo == periodo)
+        #expect(detalhe.id != vaga.id)
+        #expect(try await api.republicarVaga(id: vaga.id, periodo: periodo, chave: acao.chave) == publicada)
+    }
+
+    @Test("Resposta perdida: fechar e reabrir conserva fila real, chave, período e única vaga")
+    @MainActor
+    func respostaPerdidaComFilaRealEReabertura() async throws {
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let api = ApiRepublicacaoRegistrada(base: ApiClienteEmMemoria(
+            cenario: .vagaEncerradaContratante, relogio: RelogioRepublicacao(agora: base)), perderPrimeiraResposta: true)
+        let vaga = try await origem(api: api, base: base)
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let fila = ArmazenamentoSwiftData(modelContainer: container)
+        var primeiraFolha: RepublicarVagaViewModel? = RepublicarVagaViewModel(
+            vagaOriginal: vaga, api: api, fila: fila, agora: { base })
+        #expect(primeiraFolha?.textoAoFechar == TextosRepublicarVaga.cancelar)
+        await primeiraFolha?.republicar()
+        #expect(primeiraFolha?.resultado == nil)
+        #expect(primeiraFolha?.textoAoFechar == TextosRepublicarVaga.fechar)
+        let guardada = try #require(await fila.pendentes().first)
+        let publicada = try #require(await api.registro.publicadas.first)
+        #expect(try await api.detalheDaVaga(id: publicada.vagaID).periodo == guardada.republicacao?.periodo)
+        primeiraFolha = nil // Fechar dispensa a folha sem remover a ação.
+        #expect(try await fila.pendentes() == [guardada])
+        let filaReaberta = ArmazenamentoSwiftData(modelContainer: container)
+        let segundaFolha = RepublicarVagaViewModel(vagaOriginal: vaga, api: api, fila: filaReaberta, agora: { base })
+        await segundaFolha.restaurarTentativaPendente()
+        #expect(segundaFolha.chave == guardada.chave)
+        #expect(segundaFolha.acaoPendente?.id == guardada.id)
+        #expect(segundaFolha.republicacaoPendente == guardada.republicacao)
+        #expect(segundaFolha.textoAoFechar == TextosRepublicarVaga.fechar)
+        await segundaFolha.republicar()
+        #expect(segundaFolha.resultado == publicada)
+        #expect(try await filaReaberta.pendentes().isEmpty)
+        let recebidas = await api.registro.recebidas
+        #expect(recebidas.count == 2)
+        #expect(recebidas[0] == recebidas[1])
+        let estabelecimento = try #require(await api.meusEstabelecimentos().first)
+        let painel = try await api.painelEstabelecimento(id: estabelecimento.id, periodo: guardada.republicacao!.periodo)
+        #expect(painel.vagas.map(\.id) == [publicada.vagaID])
+    }
+
+    @Test("Recusa definitiva remove republicação da fila real sem registrar sucesso",
+           arguments: [CodigoErroAPI.naoEncontrado, .vagaOculta, .horarioInvalido])
+    func sincronizadorRemoveRecusaDefinitiva(codigo: CodigoErroAPI) async throws {
+        let api = ApiRepublicacaoRegistrada(erro: codigo)
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let periodo = try Periodo(inicio: base, fim: base.addingTimeInterval(4 * 3600))
+        let acao = AcaoPendente(tipo: .republicacaoVaga, instanteDoToque: base, chave: UUID(),
+                                republicacao: RepublicacaoVaga(vagaID: UUID(), periodo: periodo))
+        try await fila.enfileirar(acao)
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(try await fila.pendentes().isEmpty)
+        #expect(await api.registro.publicadas.isEmpty)
+        #expect(await api.registro.recebidas.count == 1)
+    }
+
+    @Test("Reabrir bloqueia confirmação até ler tentativa, sem criar outra chave")
+    @MainActor
+    func confirmacaoDuranteRestauracaoNaoDuplica() async throws {
+        let vaga = try criarVagaNoPainel()
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let periodo = try Periodo(inicio: base.addingTimeInterval(3 * 3600), fim: base.addingTimeInterval(7 * 3600))
+        let acao = AcaoPendente(tipo: .republicacaoVaga, instanteDoToque: base, chave: UUID(),
+                                republicacao: RepublicacaoVaga(vagaID: vaga.id, periodo: periodo))
+        let fila = FilaLeituraControlada(acao: acao)
+        let espiao = EspiaoRepublicacao()
+        let vm = RepublicarVagaViewModel(vagaOriginal: vaga, fila: fila, agora: { base }, republicar: { id, periodo, chave in
+            await espiao.gravar(id: id, periodo: periodo, chave: chave)
+            return VagaPublicada(vagaID: UUID(), posicoes: [UUID()])
+        })
+        #expect(!vm.podeConfirmar)
+        let restauracao = Task { await vm.restaurarTentativaPendente() }
+        while !(await fila.lendo) { await Task.yield() }
+        await vm.republicar()
+        #expect(await espiao.chamadas == 0)
+        #expect(vm.chave == nil)
+        #expect(!vm.podeConfirmar)
+        await fila.liberar()
+        await restauracao.value
+        #expect(vm.podeConfirmar)
+        #expect(vm.chave == acao.chave)
+        await vm.republicar()
+        #expect(await espiao.chaves == [acao.chave])
+    }
+
+    @Test("Falha ao ler fila bloqueia nova tentativa em vez de gerar outra chave")
+    @MainActor
+    func falhaAoRestaurarNaoCriaChave() async throws {
+        let vaga = try criarVagaNoPainel()
+        let espiao = EspiaoRepublicacao()
+        let vm = RepublicarVagaViewModel(vagaOriginal: vaga, fila: FilaLeituraComErro(), republicar: { id, periodo, chave in
+            await espiao.gravar(id: id, periodo: periodo, chave: chave)
+            return VagaPublicada(vagaID: UUID(), posicoes: [])
+        })
+        await vm.republicar()
+        #expect(!vm.podeConfirmar)
+        #expect(vm.chave == nil)
+        #expect(vm.mensagemErro == TextosRepublicarVaga.erroAoLerFila)
+        #expect(await espiao.chamadas == 0)
+    }
+
 }
 
 private actor FilaEspia: FilaDeAcoes {
@@ -583,4 +688,64 @@ private actor ServidorLentoEspiao {
         continuacao?.resume()
         continuacao = nil
     }
+}
+
+private struct RelogioRepublicacao: Relogio { let agora: Date }
+private struct RepublicacaoRecebida: Equatable, Sendable {
+    let id: UUID
+    let periodo: Periodo
+    let chave: UUID
+}
+private actor RegistroRepublicacoes {
+    var recebidas: [RepublicacaoRecebida] = []
+    var publicadas: [VagaPublicada] = []
+    let perderPrimeiraResposta: Bool
+    let erro: CodigoErroAPI?
+    init(perderPrimeiraResposta: Bool, erro: CodigoErroAPI?) {
+        self.perderPrimeiraResposta = perderPrimeiraResposta
+        self.erro = erro
+    }
+    func executar(base: ApiClienteEmMemoria, id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada {
+        recebidas.append(RepublicacaoRecebida(id: id, periodo: periodo, chave: chave))
+        if let erro { throw ErroDaApi(codigo: erro) }
+        let publicada = try await base.republicarVaga(id: id, periodo: periodo, chave: chave)
+        publicadas.append(publicada)
+        if perderPrimeiraResposta, recebidas.count == 1 { throw ErroDaApi(codigo: .semRede) }
+        return publicada
+    }
+}
+private final class ApiRepublicacaoRegistrada: ApiClienteEncaminhador, @unchecked Sendable {
+    let registro: RegistroRepublicacoes
+    init(base: ApiClienteEmMemoria = ApiClienteEmMemoria(), perderPrimeiraResposta: Bool = false, erro: CodigoErroAPI? = nil) {
+        registro = RegistroRepublicacoes(perderPrimeiraResposta: perderPrimeiraResposta, erro: erro)
+        super.init(base: base)
+    }
+    override func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada {
+        try await registro.executar(base: base, id: id, periodo: periodo, chave: chave)
+    }
+}
+private actor FilaLeituraControlada: FilaDeAcoes {
+    var acoes: [AcaoPendente]
+    var lendo = false
+    private var continuacao: CheckedContinuation<Void, Never>?
+    private var suspender = true
+    init(acao: AcaoPendente) { acoes = [acao] }
+    func enfileirar(_ acao: AcaoPendente) { acoes = [acao] }
+    func pendentes() async -> [AcaoPendente] {
+        if suspender {
+            suspender = false
+            lendo = true
+            await withCheckedContinuation { continuacao = $0 }
+        }
+        return acoes
+    }
+    func liberar() { continuacao?.resume(); continuacao = nil }
+    func remover(id: UUID) { acoes.removeAll { $0.id == id } }
+    func limpar() { acoes = [] }
+}
+private actor FilaLeituraComErro: FilaDeAcoes {
+    func pendentes() throws -> [AcaoPendente] { throw ErroDaApi(codigo: .respostaInvalida) }
+    func enfileirar(_ acao: AcaoPendente) {}
+    func remover(id: UUID) {}
+    func limpar() {}
 }
