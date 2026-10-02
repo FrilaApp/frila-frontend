@@ -26,22 +26,37 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
 
+        let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
+        XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+
+        // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
+        let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
+        let expectativaCamera = XCTNSPredicateExpectation(predicate: cameraPronta, object: mapa)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: 5), .completed, "A câmera deve assentar antes do arrasto.")
+
         guard let valorInicial = marcador.value as? String,
               let (latInicial, lonInicial) = extrairCoordenadas(valorInicial) else {
             XCTFail("Não foi possível ler as coordenadas iniciais do marcador: \(String(describing: marcador.value))")
             return
         }
 
-        let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
         let cameraInicial = try XCTUnwrap(mapa.value as? String)
         XCTAssertEqual(cameraInicial.split(separator: ",").count, 4, "O teste precisa ler o centro e a escala da câmera.")
         XCTAssertGreaterThanOrEqual(marcador.frame.width, 44)
         XCTAssertGreaterThanOrEqual(marcador.frame.height, 44)
+
         let coordenadaInicial = marcador.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let pontoInicial = coordenadaInicial.screenPoint
         let coordenadaFinal = coordenadaInicial.withOffset(CGVector(dx: 120, dy: -80))
-        // XCUICoordinate acompanha o elemento; fixe o destino antes de ele se mover.
         let pontoDeSoltura = coordenadaFinal.screenPoint
-        coordenadaInicial.press(forDuration: 0.2, thenDragTo: coordenadaFinal)
+
+        // Segura 0.2s no destino para que o despachador processe todos os eventos de movimento antes da soltura.
+        coordenadaInicial.press(forDuration: 0.2, thenDragTo: coordenadaFinal, withVelocity: .default, thenHoldForDuration: 0.2)
+
+        // Espera a condição: marcador parado com coordenadas atualizadas após o arrasto.
+        let marcadorMoveu = NSPredicate { _, _ in (marcador.value as? String) != valorInicial }
+        let expectativaMarcador = XCTNSPredicateExpectation(predicate: marcadorMoveu, object: marcador)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaMarcador], timeout: 5), .completed, "O marcador deve atualizar as coordenadas após o arrasto.")
 
         guard let valorFinal = marcador.value as? String,
               let (latFinal, lonFinal) = extrairCoordenadas(valorFinal) else {
@@ -50,8 +65,15 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         }
 
         // A ponta do símbolo é o ponto geográfico, 15 pt abaixo do centro da alça.
-        // A tolerância de 12 pt reprova o arrasto que parava no raio de 30 pt.
         let pontaFinal = CGPoint(x: marcador.frame.midX, y: marcador.frame.midY + 15)
+
+        // Medição do deslocamento relativo da ponta do marcador a partir do ponto de partida lido na hora.
+        let dxReal = pontaFinal.x - pontoInicial.x
+        let dyReal = pontaFinal.y - pontoInicial.y
+        XCTAssertEqual(dxReal, 120, accuracy: 12, "Deslocamento horizontal relativo deve ser 120 pt")
+        XCTAssertEqual(dyReal, -80, accuracy: 12, "Deslocamento vertical relativo deve ser -80 pt")
+
+        // A tolerância de 12 pt reprova o arrasto que parava no raio de 30 pt.
         XCTAssertEqual(pontaFinal.x, pontoDeSoltura.x, accuracy: 12)
         XCTAssertEqual(pontaFinal.y, pontoDeSoltura.y, accuracy: 12)
         XCTAssertEqual(mapa.value as? String, cameraInicial, "A câmera deve ficar parada durante o arrasto do marcador.")
