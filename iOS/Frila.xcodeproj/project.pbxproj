@@ -89,6 +89,7 @@
 		8C97FE7579D3C683369CFAD8 /* requisicao-publicar-vaga.json in Resources */ = {isa = PBXBuildFile; fileRef = AC0715D51EC624FFD2754B4B /* requisicao-publicar-vaga.json */; };
 		8D44DCBE863B3BEAF899FF5C /* FrilaApresentacao.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8F7FE646562C55065F0A0B19 /* CandidaturaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 026BCBC5E9C1298BCCF168F8 /* CandidaturaViewModel.swift */; };
+		9031AFFE3461E1034ABEFDD8 /* ExclusaoDeContaDubleComplementarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02E7BA06C93D2B4592EA95E /* ExclusaoDeContaDubleComplementarTests.swift */; };
 		90A64B886BA2372172581C39 /* usuario.json in Resources */ = {isa = PBXBuildFile; fileRef = 6044BB78E5ED8913EC72A112 /* usuario.json */; };
 		90E9EEA32A1708C210661BBC /* TelaMeusTurnos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08EC317A71AA356424C42CD7 /* TelaMeusTurnos.swift */; };
 		91B68B7FE18A1069848227F8 /* FixturesDoContrato.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2AD657929CF7047C53E6806 /* FixturesDoContrato.swift */; };
@@ -427,6 +428,7 @@
 		BDCD65257F314605356F4842 /* SegurancaDoCodigoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegurancaDoCodigoTests.swift; sourceTree = "<group>"; };
 		BE0AC842DF3BE306F3FF7A4F /* FluxoDoProfissional.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoProfissional.swift; sourceTree = "<group>"; };
 		C003E3313087A6450355751E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		C02E7BA06C93D2B4592EA95E /* ExclusaoDeContaDubleComplementarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaDubleComplementarTests.swift; sourceTree = "<group>"; };
 		C126662B38B9393EBBCEC099 /* AvaliacaoTurnoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvaliacaoTurnoViewModelTests.swift; sourceTree = "<group>"; };
 		C3E3E785E20103996C9DA2CE /* AvaliacaoTurnoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvaliacaoTurnoViewModel.swift; sourceTree = "<group>"; };
 		C5968D41D64341107B2ACE77 /* funcoes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = funcoes.json; sourceTree = "<group>"; };
@@ -637,6 +639,7 @@
 				90A4AC403161D71F18466D6A /* DominioTests.swift */,
 				0F1AAB76FBC70F896F4BEE7F /* EncerramentoDeSessaoTests.swift */,
 				65115E2F0782067BF1010B60 /* ErrosAPITests.swift */,
+				C02E7BA06C93D2B4592EA95E /* ExclusaoDeContaDubleComplementarTests.swift */,
 				FCB907629D17A01D860FE12A /* ExclusaoDeContaViewModelTests.swift */,
 				34CFCC58D9DFCC6F7EE4C4A6 /* FluxoDoContratanteTests.swift */,
 				CE7F5174A8365E2BCB231B62 /* FormatadorTests.swift */,
@@ -1368,6 +1371,7 @@
 				0614982DC6AABA151649D361 /* DominioTests.swift in Sources */,
 				50123FCE15102082A85D7C73 /* EncerramentoDeSessaoTests.swift in Sources */,
 				19C118B2A416731E092F1170 /* ErrosAPITests.swift in Sources */,
+				9031AFFE3461E1034ABEFDD8 /* ExclusaoDeContaDubleComplementarTests.swift in Sources */,
 				A4AB220969DBCDDE4AF6A6F3 /* ExclusaoDeContaViewModelTests.swift in Sources */,
 				701B3A1F6BBCD3B97768450C /* FluxoDoContratanteTests.swift in Sources */,
 				0B611AAFB501EE22B062A798 /* FormatadorTests.swift in Sources */,
