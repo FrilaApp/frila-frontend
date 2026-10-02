@@ -160,5 +160,17 @@
     "message": "a_caminho_fora_da_janela",
     "details": null,
     "hint": null
+  },
+  {
+    "code": "candidatura_indisponivel",
+    "message": "candidatura_indisponivel",
+    "details": null,
+    "hint": null
+  },
+  {
+    "code": "inelegivel",
+    "message": "inelegivel",
+    "details": "perfil_suspenso",
+    "hint": null
   }
 ]

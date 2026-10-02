@@ -1,0 +1,11 @@
+{
+  "estado": "confirmada",
+  "posicao_id": "50000000-0000-0000-0000-000000000002",
+  "turno_id": "60000000-0000-0000-0000-000000000002",
+  "contato": {
+    "nome": "Ana Cunha",
+    "telefone": "+5561988887777",
+    "whatsapp_url": "https://wa.me/5561988887777",
+    "visivel_ate": "2026-10-17T01:00:00Z"
+  }
+}

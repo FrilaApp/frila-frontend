@@ -43,6 +43,12 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura { try await base.candidatar(vagaID: vagaID) }
     func perfilPublico(id: UUID) async throws -> PerfilPublico { try await base.perfilPublico(id: id) }
 
+    // Modo seleção
+    func candidatosDaVaga(id: UUID) async throws -> [Candidato] { try await base.candidatosDaVaga(id: id) }
+    func escolherCandidato(candidaturaID: UUID) async throws -> ResultadoConfirmacao { try await base.escolherCandidato(candidaturaID: candidaturaID) }
+    func retirarCandidatura(id: UUID) async throws -> Candidatura { try await base.retirarCandidatura(id: id) }
+    func minhasCandidaturas(estado: EstadoCandidatura?) async throws -> [Candidatura] { try await base.minhasCandidaturas(estado: estado) }
+
     // Turno
     func meusTurnos() async throws -> [Turno] { try await base.meusTurnos() }
     /// A `ler` da porta tem implementação padrão, que não é despachada pela subclasse: fica aqui para
