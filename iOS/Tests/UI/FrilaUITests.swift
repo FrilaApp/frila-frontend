@@ -78,6 +78,7 @@ final class VagasUITests: XCTestCase {
         XCTAssertTrue(primeira.waitForExistence(timeout: 10))
         primeira.tap()
 
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
         let aviso = app.descendants(matching: .any)["aviso-rn10"]
         XCTAssertTrue(aviso.waitForExistence(timeout: 10))
         XCTAssertTrue(aviso.label.contains("seu telefone e WhatsApp serão mostrados"))
@@ -154,6 +155,7 @@ final class CandidaturaUITests: XCTestCase {
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         XCTAssertTrue(primeira.waitForExistence(timeout: 25), "a primeira vaga deve aparecer na lista após o carregamento inicial")
         primeira.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10), "a tela de detalhe da vaga deve aparecer após o toque no cartão")
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
         XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")
@@ -608,3 +610,89 @@ extension XCUIElement {
         )
     }
 }
+
+enum DirecaoRolagem: Equatable {
+    case nenhuma
+    case rolarParaCima    // swipeUp (conteúdo sobe para revelar o que está abaixo)
+    case rolarParaBaixo   // swipeDown (conteúdo desce para revelar o que está acima)
+}
+
+/// Decide a direção de rolagem com base na posição do elemento em relação à área visível da tela.
+/// Se o topo do elemento estiver acima da margem superior (`minY < margemSuperior`), ele precisa
+/// descer para a área visível, portanto a rolagem deve ser para baixo (`swipeDown`).
+/// Anteriormente, a verificação avaliava `!isHittable` junto de `maxY > ...`, fazendo com que elementos
+/// que ficassem acima da tela rolassem para cima (`swipeUp`), afastando-se ainda mais da área visível.
+func direcaoParaTrazerParaATela(
+    quadro: CGRect,
+    alturaJanela: CGFloat,
+    margemSuperior: CGFloat = 120,
+    margemInferior: CGFloat = 60,
+    isHittable: Bool = true
+) -> DirecaoRolagem {
+    let visivel = isHittable
+        && quadro.minY >= margemSuperior
+        && quadro.maxY <= (alturaJanela - margemInferior)
+    if visivel { return .nenhuma }
+
+    if quadro.minY < margemSuperior {
+        return .rolarParaBaixo
+    } else if quadro.maxY > (alturaJanela - margemInferior) || !isHittable {
+        return .rolarParaCima
+    }
+    return .nenhuma
+}
+
+final class TrazerParaATelaCalculoTests: XCTestCase {
+    func testElementoAcimaDaAreaVisivelRolaParaBaixoMesmoNaoHittable() {
+        // Elemento com topo acima da margem superior (ex: rolado para cima, minY = -50, isHittable = false)
+        let quadro = CGRect(x: 20, y: -50, width: 200, height: 40)
+        let direcao = direcaoParaTrazerParaATela(
+            quadro: quadro,
+            alturaJanela: 800,
+            margemSuperior: 120,
+            margemInferior: 60,
+            isHittable: false
+        )
+        // Deve rolar para baixo (swipeDown) para trazer o elemento de volta à tela
+        XCTAssertEqual(direcao, .rolarParaBaixo)
+    }
+
+    func testElementoAbaixoDaAreaVisivelRolaParaCima() {
+        // Elemento com base abaixo da margem inferior (ex: minY = 750, maxY = 850, janela = 800)
+        let quadro = CGRect(x: 20, y: 750, width: 200, height: 100)
+        let direcao = direcaoParaTrazerParaATela(
+            quadro: quadro,
+            alturaJanela: 800,
+            margemSuperior: 120,
+            margemInferior: 60,
+            isHittable: false
+        )
+        XCTAssertEqual(direcao, .rolarParaCima)
+    }
+
+    func testElementoVisivelEHittableNaoRola() {
+        let quadro = CGRect(x: 20, y: 300, width: 200, height: 50)
+        let direcao = direcaoParaTrazerParaATela(
+            quadro: quadro,
+            alturaJanela: 800,
+            margemSuperior: 120,
+            margemInferior: 60,
+            isHittable: true
+        )
+        XCTAssertEqual(direcao, .nenhuma)
+    }
+
+    func testElementoDentroDosLimitesMasNaoHittableRolaParaCima() {
+        // Fallback: se está geometricamente dentro mas não está hittable (ex: sob sobreposição)
+        let quadro = CGRect(x: 20, y: 300, width: 200, height: 50)
+        let direcao = direcaoParaTrazerParaATela(
+            quadro: quadro,
+            alturaJanela: 800,
+            margemSuperior: 120,
+            margemInferior: 60,
+            isHittable: false
+        )
+        XCTAssertEqual(direcao, .rolarParaCima)
+    }
+}
+

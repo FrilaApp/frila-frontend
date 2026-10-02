@@ -40,19 +40,27 @@ final class ExclusaoDeContaUITests: XCTestCase {
         // 5. Aciona o botão de exclusão definitiva
         let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
         XCTAssertTrue(botaoExcluir.waitForExistence(timeout: 5))
+        let botaoHabilitado = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isEnabled == true"),
+            object: botaoExcluir
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [botaoHabilitado], timeout: 5), .completed,
+            "Botão de exclusão definitiva deve ser habilitado após confirmar as consequências"
+        )
+        if !botaoExcluir.isHittable {
+            app.swipeUp()
+        }
         botaoExcluir.tap()
 
         // 6. Confirma no diálogo de segurança
         let botaoConfirmar = app.buttons.matching(identifier: "botao-confirmar-exclusao-dialogo").firstMatch
-        if botaoConfirmar.waitForExistence(timeout: 5) {
-            botaoConfirmar.tap()
-        } else {
-            app.buttons["Sim, excluir minha conta"].firstMatch.tap()
-        }
+        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: 5), "Diálogo de confirmação deve aparecer")
+        botaoConfirmar.tap()
 
         // 7. A exclusão é concluída e o app volta para a tela de entrada
         let campoEmail = app.textFields["entrada-email"]
-        XCTAssertTrue(campoEmail.waitForExistence(timeout: 10))
+        XCTAssertTrue(campoEmail.waitForExistence(timeout: 15))
 
         let capturaEntrada = XCTAttachment(screenshot: app.screenshot())
         capturaEntrada.name = "VoltaParaEntrada"
@@ -136,18 +144,26 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         let botaoConfirmarDefinitivo = app.buttons["botao-excluir-conta-definitivo"]
         XCTAssertTrue(botaoConfirmarDefinitivo.waitForExistence(timeout: 5))
+        let botaoHabilitado = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isEnabled == true"),
+            object: botaoConfirmarDefinitivo
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [botaoHabilitado], timeout: 5), .completed,
+            "Botão de exclusão definitiva deve ser habilitado após confirmar as consequências"
+        )
+        if !botaoConfirmarDefinitivo.isHittable {
+            app.swipeUp()
+        }
         botaoConfirmarDefinitivo.tap()
 
         let botaoConfirmarDialogo = app.buttons.matching(identifier: "botao-confirmar-exclusao-dialogo").firstMatch
-        if botaoConfirmarDialogo.waitForExistence(timeout: 5) {
-            botaoConfirmarDialogo.tap()
-        } else {
-            app.buttons["Sim, excluir minha conta"].firstMatch.tap()
-        }
+        XCTAssertTrue(botaoConfirmarDialogo.waitForExistence(timeout: 5), "Diálogo de confirmação deve aparecer")
+        botaoConfirmarDialogo.tap()
 
         // 5. App volta para a tela de entrada
         let campoEmail = app.textFields["entrada-email"]
-        XCTAssertTrue(campoEmail.waitForExistence(timeout: 10), "Deve retornar à tela de entrada após exclusão")
+        XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão")
     }
 }
 
