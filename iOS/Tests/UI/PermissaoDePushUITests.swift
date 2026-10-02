@@ -98,26 +98,19 @@ final class PermissaoDePushUITests: XCTestCase {
 
     func testPublicarAPrimeiraVagaMostraAExplicacaoAoContratante() {
         // A conta de contratante ainda sem estabelecimento chega à publicação pelo cadastro, que
-        // `-FRILA_CADASTRO_UI_TEST` já traz preenchido.
+        // `-FRILA_CADASTRO_UI_TEST` já traz preenchido. O mesmo argumento preenche a função, o
+        // valor e o responsável da vaga: aqui só falta publicar.
         let app = abrir(["-FRILA_SCENARIO", "contratante-sem-estabelecimento", "-FRILA_CADASTRO_UI_TEST", "-FRILA_PERMISSAO_PUSH", "nao-pedida"])
 
         XCTAssertTrue(app.buttons["continuar-cadastro"].waitForExistence(timeout: 15))
         app.buttons["continuar-cadastro"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        app.buttons["Função, Selecione uma função"].tap()
-        app.buttons["Garçom"].firstMatch.tap()
-        // O responsável vai primeiro: o teclado numérico do valor não tem como ser fechado, e
-        // cobriria o campo de baixo.
-        let responsavel = app.textFields["Quem recebe no local"]
-        responsavel.tap()
-        responsavel.typeText("Marina\n")
-        let valor = app.textFields["Valor por posição"]
-        valor.tap()
-        valor.typeText("18000")
+        let publicar = app.buttons["publicar-vaga-botao"]
+        XCTAssertTrue(publicar.waitForExistence(timeout: 10))
         app.swipeUp()
         XCTAssertFalse(app.descendants(matching: .any)["explicacao-do-push"].exists)
-        app.buttons["publicar-vaga-botao"].tap()
+        publicar.tap()
 
         XCTAssertTrue(app.staticTexts["Ative as notificações"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Confirmação de quem vai trabalhar"].exists)
