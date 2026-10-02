@@ -43,7 +43,7 @@ enum BuscaDaVagaDoAviso: Equatable {
     static func decidir(vagaID: UUID, candidaturas: [Candidatura]?, turnos: [Turno]?) -> BuscaDaVagaDoAviso {
         let candidatura = candidaturas?.first { $0.vaga.id == vagaID }?.estado
         if candidatura == .recusada || candidatura == .expirada { return .semTurno(candidatura: candidatura) }
-        guard let meu = turnos?.first(where: { $0.vaga.id == vagaID }) else { return .semTurno(candidatura: candidatura) }
+        guard let meu = turnos?.first(where: { $0.vaga.id == vagaID && $0.estado != .cancelada }) else { return .semTurno(candidatura: candidatura) }
         return .achou(meu)
     }
 

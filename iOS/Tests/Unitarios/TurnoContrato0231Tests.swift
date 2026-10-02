@@ -233,6 +233,26 @@ struct TurnoContrato0231Tests {
         #expect(lido.cancelamento?.canceladaEm != nil)
     }
 
+    @Test("Aviso da vaga ignora cancelado e abre outro turno válido da mesma vaga", arguments: [EstadoPosicao.confirmada, .cumprida, nil])
+    func avisoProcuraTurnoValido(estado: EstadoPosicao?) throws {
+        let cancelado = try turno("turnos-cancelados")
+        var lista = try #require(try JSONSerialization.jsonObject(with: FixturesDoContrato.dados("turnos-cancelados")) as? [[String: Any]])
+        lista[0]["id"] = UUID().uuidString
+        if let estado { lista[0]["estado"] = estado.rawValue } else { lista[0].removeValue(forKey: "estado") }
+        let valido = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self, from: JSONSerialization.data(withJSONObject: lista)).first).dominio()
+        #expect(valido.vaga.id == cancelado.vaga.id)
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: cancelado.vaga.id, candidaturas: [], turnos: [cancelado, valido]) == .achou(valido))
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: cancelado.vaga.id, candidaturas: [], turnos: [valido, cancelado]) == .achou(valido))
+    }
+
+    @Test("Só turno cancelado não abre turno pelo aviso e mantém o estado da candidatura", arguments: [EstadoCandidatura.aceita, .pendente, .retirada, nil])
+    func avisoNaoAbreCancelado(estado: EstadoCandidatura?) throws {
+        let cancelado = try turno("turnos-cancelados")
+        let candidaturas = estado.map { [Candidatura(id: UUID(), vaga: cancelado.vaga, estado: $0, criadaEm: agora)] }
+        #expect(BuscaDaVagaDoAviso.decidir(vagaID: cancelado.vaga.id, candidaturas: candidaturas, turnos: [cancelado]) == .semTurno(candidatura: estado))
+    }
+
+
 }
 
 private struct RelogioFixo: Relogio {
