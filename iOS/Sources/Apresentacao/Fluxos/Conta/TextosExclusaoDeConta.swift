@@ -1,0 +1,24 @@
+import Foundation
+
+public enum TextosExclusaoDeConta {
+    public static let titulo = String(localized: "Excluir conta", bundle: bundleApresentacao)
+    public static let avisoConsequencias = String(localized: "Atenção: a exclusão da sua conta é permanente e não poderá ser desfeita.", bundle: bundleApresentacao)
+    public static let secaoOQueAcontece = String(localized: "O que acontece ao excluir sua conta:", bundle: bundleApresentacao)
+    public static let consequenciaAnonimizacao = String(localized: "Seus dados pessoais cadastrados serão anonimizados definitivamente.", bundle: bundleApresentacao)
+    public static let consequenciaTurnos = String(localized: "Turnos futuros agendados serão cancelados sem penalidade ou prejuízo para você.", bundle: bundleApresentacao)
+    public static let consequenciaPrazo = String(localized: "O prazo para a exclusão completa das cópias de backup é de até 15 dias.", bundle: bundleApresentacao)
+    public static let tituloTurnosFuturos = String(localized: "Turnos futuros que serão cancelados", bundle: bundleApresentacao)
+    public static let semTurnosFuturos = String(localized: "Nenhum turno futuro agendado.", bundle: bundleApresentacao)
+    public static let carregandoTurnos = String(localized: "Verificando turnos futuros…", bundle: bundleApresentacao)
+    public static let confirmacaoCheck = String(localized: "Estou ciente das consequências e confirmo a exclusão definitiva da minha conta", bundle: bundleApresentacao)
+    public static let botaoExcluir = String(localized: "Excluir minha conta definitivamente", bundle: bundleApresentacao)
+    public static let excluindo = String(localized: "Excluindo conta…", bundle: bundleApresentacao)
+    public static let dialogoTitulo = String(localized: "Excluir conta definitivamente?", bundle: bundleApresentacao)
+    public static let dialogoMensagem = String(localized: "Esta ação é irreversível. Todos os seus dados serão anonimizados e os turnos futuros serão cancelados.", bundle: bundleApresentacao)
+    public static let dialogoConfirmar = String(localized: "Sim, excluir minha conta", bundle: bundleApresentacao)
+    public static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+    public static let erroAdminUnico = String(localized: "Você é o único administrador deste estabelecimento. Não é possível excluir a conta enquanto houver outros membros.", bundle: bundleApresentacao)
+    public static let erroSemRede = String(localized: "A conta não foi excluída por falta de conexão. Verifique sua internet e tente novamente.", bundle: bundleApresentacao)
+    public static let erroGenerico = String(localized: "Não foi possível concluir a exclusão da conta. Tente novamente.", bundle: bundleApresentacao)
+    public static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundleApresentacao)
+}
