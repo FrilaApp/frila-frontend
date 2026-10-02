@@ -42,15 +42,15 @@
     "schema": "#/components/schemas/EstabelecimentoDaConta",
     "lista": true
   },
+  "minhas-candidaturas.json": {
+    "schema": "#/components/schemas/Candidatura",
+    "lista": true
+  },
   "painel-com-cancelamento.json": {
     "schema": "#/components/schemas/Painel"
   },
   "painel-com-presenca.json": {
     "schema": "#/components/schemas/Painel"
-  },
-  "minhas-candidaturas.json": {
-    "schema": "#/components/schemas/Candidatura",
-    "lista": true
   },
   "painel.json": {
     "schema": "#/components/schemas/Painel"

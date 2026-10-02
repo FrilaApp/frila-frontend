@@ -8,12 +8,20 @@ import Observation
 /// O pedido do sistema só aparece uma vez na vida do app, então ele nunca sai sozinho: primeiro a
 /// tela de explicação, no momento em que a notificação passa a fazer sentido (o profissional salvou
 /// funções e horários; o contratante publicou a vaga), e o pedido só depois de "Ativar notificações".
+/// A explicação aparece no máximo uma vez por sessão do app (uma abertura); o caminho de volta é
+/// o aviso fixo em Vagas e em Minhas vagas.
 @MainActor @Observable
 public final class PermissaoDePushModelo {
     /// `nil` até a primeira leitura.
     public private(set) var estado: EstadoDaPermissaoDePush?
-    public var explicacaoVisivel = false
+    public var explicacaoVisivel = false {
+        didSet {
+            if explicacaoVisivel { jaMostradaNaSessao = true }
+        }
+    }
     public private(set) var pedindo = false
+    /// Estado em memória: a explicação só aparece sozinha uma vez por sessão (#8).
+    public private(set) var jaMostradaNaSessao = false
 
     private let permissao: any PermissaoDePush
     private let abrirAjustesDoSistema: @MainActor () -> Void
@@ -28,11 +36,28 @@ public final class PermissaoDePushModelo {
         estado = await permissao.estado()
     }
 
-    /// O momento certo de explicar. Só mostra a explicação a quem o sistema ainda não perguntou:
-    /// quem já respondeu não vê o pedido de novo, e o caminho passa a ser o aviso com os Ajustes.
+    /// O momento certo de explicar (#8). Só mostra a explicação sozinha a quem o sistema ainda não
+    /// perguntou e no máximo uma vez por sessão do app: quem já viu (e adiou com "Agora não" ou
+    /// dispensou) nesta abertura não é interrompido de novo; quem já respondeu ao sistema não vê
+    /// o pedido de novo.
     public func oferecer() async {
+        guard !jaMostradaNaSessao else { return }
         await atualizar()
-        if estado == .naoPedida { explicacaoVisivel = true }
+        guard !jaMostradaNaSessao else { return }
+        if estado == .naoPedida {
+            jaMostradaNaSessao = true
+            explicacaoVisivel = true
+        }
+    }
+
+    /// Reabre a explicação a pedido da pessoa, pelo aviso fixo em Vagas ou em Minhas vagas (#8).
+    /// Abre mesmo que a explicação já tenha aparecido nesta sessão.
+    public func reabrir() async {
+        await atualizar()
+        if estado == .naoPedida {
+            jaMostradaNaSessao = true
+            explicacaoVisivel = true
+        }
     }
 
     /// "Ativar notificações" na explicação: só aqui o pedido do sistema aparece.
