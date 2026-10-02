@@ -65,6 +65,11 @@ private struct Cena {
         try #require(try await vagaNoPainel().posicoes.first { $0.id == id ?? posicaoID })
     }
 
+    /// O turno como `meusTurnos` o devolve. Como no backend, o de posição cancelada continua na lista.
+    func turnoEmMeusTurnos() async throws -> Turno {
+        try #require(try await api.meusTurnos().first { $0.id == turnoID })
+    }
+
     /// Check-in sem localização, no início do turno: manual e pendente.
     func checkinManual() async throws {
         relogio.avancar(para: inicio)
@@ -195,8 +200,8 @@ struct TurnoDoContratanteEmMemoriaTests {
         let vaga = try await cena.vagaNoPainel()
         #expect(vaga.estado == .publicada)
         #expect(vaga.posicoes.count == 2)
-        // O turno de quem faltou sai de Meus turnos.
-        #expect(try await !cena.api.meusTurnos().contains { $0.id == cena.turnoID })
+        // Como no backend, o turno de quem faltou continua em Meus turnos, já sem presença a provar.
+        #expect(try await cena.turnoEmMeusTurnos().verificacao == .naoVerificado)
     }
 
     @Test("Reenviar a reabertura devolve o mesmo resultado, sem segunda posição")
@@ -268,7 +273,9 @@ struct CancelamentoEmMemoriaTests {
         #expect(try await cena.posicaoNoPainel().estado == .cancelada)
         #expect(try await cena.posicaoNoPainel(nova).estado == .aberta)
         #expect(try await cena.vagaNoPainel().estado == .publicada)
-        #expect(try await !cena.api.meusTurnos().contains { $0.id == cena.turnoID })
+        // `meus_turnos` não filtra pelo estado da posição: o turno cancelado continua na lista, e o
+        // `Turno` do contrato não tem estado que o distinga, só a verificação.
+        #expect(try await cena.turnoEmMeusTurnos().verificacao == .naoVerificado)
         // A posição nova volta para a vitrine.
         #expect(try await cena.api.vagasAbertas().contains { $0.id == cena.vagaID })
     }
@@ -338,8 +345,37 @@ struct CancelamentoEmMemoriaTests {
         #expect(try await cena.vagaNoPainel().estado == .cancelada)
         #expect(try await cena.posicaoNoPainel().estado == .cancelada)
         #expect(try await !cena.api.vagasAbertas().contains { $0.id == cena.vagaID })
-        #expect(try await !cena.api.meusTurnos().contains { $0.id == cena.turnoID })
+        #expect(try await cena.turnoEmMeusTurnos().verificacao == .naoVerificado)
         await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) { try await cena.api.candidatar(vagaID: cena.vagaID) }
+    }
+
+    @Test("Cancelar a vaga depois do início cancela o turno em andamento, sem falta, e mantém a presença já verificada")
+    func cancelarVagaDepoisDoInicio() async throws {
+        let cena = try await Cena.montar()
+        cena.relogio.avancar(para: cena.inicio)
+        _ = try await cena.api.fazerCheckin(turnoID: cena.turnoID, distanciaMetros: 40, registradoEm: cena.inicio)
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(hora))
+
+        let cancelada = try await cena.api.cancelarVaga(id: cena.vagaID, motivo: motivo)
+
+        #expect(cancelada == VagaCancelada(vagaID: cena.vagaID, estado: .cancelada, posicoesCanceladas: 1))
+        let posicao = try await cena.posicaoNoPainel()
+        #expect(posicao.estado == .cancelada)
+        #expect(posicao.verificacao == .verificado)
+    }
+
+    @Test("Posição com check-in feito e turno em andamento ainda pode ser cancelada, sem reabertura")
+    func cancelarComCheckinFeito() async throws {
+        let cena = try await Cena.montar(cenario: .contratante)
+        try await cena.checkinManual()
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(hora))
+
+        let resultado = try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
+
+        #expect(resultado == ResultadoCancelamento(posicaoID: cena.posicaoID, falta: false, reaberta: false, novaPosicaoID: nil))
+        // O check-in manual que ninguém confirmou deixa de esperar: sai dos pendentes como não verificado.
+        #expect(try await cena.posicaoNoPainel().verificacao == .naoVerificado)
+        #expect(try await cena.painel().checkinsPendentes.isEmpty)
     }
 
     @Test("Vaga já cancelada é vaga_encerrada; a que não existe, nao_encontrado")
@@ -424,12 +460,29 @@ struct ConfiancaEmMemoriaTests {
 
     @Test("Alvo que não existe é 404, na denúncia e no bloqueio", arguments: [TipoPerfilPublico.profissional, .estabelecimento])
     func alvoQueNaoExiste(tipo: TipoPerfilPublico) async throws {
-        let cena = try await Cena.montar()
+        // Quem bloqueia é do outro perfil: a casa bloqueia o profissional, e o profissional, a casa.
+        let cena = try await Cena.montar(cenario: tipo == .profissional ? .contratante : .sucesso)
         let estranho = Alvo(tipo: tipo, id: UUID())
         await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) {
             try await cena.api.denunciar(Denuncia(alvo: estranho, motivo: .outro, relato: relato, chave: UUID()))
         }
         await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) { try await cena.api.bloquear(estranho) }
+    }
+
+    @Test("Bloquear alvo do mesmo perfil é campo_invalido em alvo_tipo, exista o alvo ou não")
+    func bloquearMesmoPerfil() async throws {
+        let profissional = try await Cena.montar()
+        let colega = try await self.profissional(profissional)
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, detalhes: "alvo_tipo")) { try await profissional.api.bloquear(colega) }
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, detalhes: "alvo_tipo")) {
+            try await profissional.api.bloquear(Alvo(tipo: .profissional, id: UUID()))
+        }
+
+        let contratante = try await Cena.montar(cenario: .contratante)
+        let outraCasa = try await casa(contratante)
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, detalhes: "alvo_tipo")) { try await contratante.api.bloquear(outraCasa) }
+        // Nada foi bloqueado: a vaga da casa continua na lista.
+        #expect(try await contratante.api.detalheDaVaga(id: contratante.vagaID).id == contratante.vagaID)
     }
 
     @Test("Turno que não é das duas partes é 404")
@@ -443,7 +496,7 @@ struct ConfiancaEmMemoriaTests {
 
     @Test("Bloquear é imediato, e bloquear de novo devolve o bloqueio que já existe")
     func bloquear() async throws {
-        let cena = try await Cena.montar()
+        let cena = try await Cena.montar(cenario: .contratante)
         let alvo = try await profissional(cena)
 
         let bloqueio = try await cena.api.bloquear(alvo)
