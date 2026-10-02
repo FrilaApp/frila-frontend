@@ -75,6 +75,20 @@ struct ConfiguracaoDoPushTests {
         #expect(direitos["aps-environment"] as? String == "$(FRILA_APS_ENVIRONMENT)")
     }
 
+    /// O token de push é registrado no servidor para a conta (`registrar_dispositivo`): é um
+    /// identificador do aparelho vinculado à pessoa, e o manifesto de privacidade diz isso.
+    @Test("O manifesto de privacidade declara o Device ID vinculado à pessoa, só para o funcionamento do app e sem rastreamento")
+    func deviceIDVinculado() throws {
+        let dados = try Data(contentsOf: Self.raiz.appending(path: "Resources/PrivacyInfo.xcprivacy"))
+        let manifesto = try #require(PropertyListSerialization.propertyList(from: dados, format: nil) as? [String: Any])
+        let coletados = try #require(manifesto["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
+        let deviceID = try #require(coletados.first { $0["NSPrivacyCollectedDataType"] as? String == "NSPrivacyCollectedDataTypeDeviceID" })
+
+        #expect(deviceID["NSPrivacyCollectedDataTypeLinked"] as? Bool == true)
+        #expect(deviceID["NSPrivacyCollectedDataTypeTracking"] as? Bool == false)
+        #expect(deviceID["NSPrivacyCollectedDataTypePurposes"] as? [String] == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])
+    }
+
     @Test("O proxy do Firebase fica desligado: o token e o toque passam pelo AppDelegate, à vista")
     func proxyDesligado() throws {
         let dados = try Data(contentsOf: Self.raiz.appending(path: "Sources/App/Info.plist"))
