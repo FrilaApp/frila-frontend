@@ -64,6 +64,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case vagaEmSelecao = "vaga-em-selecao"
         /// Conta de profissional que já tem candidatura pendente na vaga de seleção da lista.
         case candidaturaPendente = "candidatura-pendente"
+        case exportarSemRede = "exportar-sem-rede"
+        case exportarErroServidor = "exportar-erro-servidor"
 
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
@@ -1117,11 +1119,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
             throw erroExportarMeusDados
         }
 
-        let argumentos = ProcessInfo.processInfo.arguments
-        if argumentos.contains("-FRILA_EXPORTAR_SEM_REDE") {
+        if cenario == .exportarSemRede {
             throw ErroDaApi(codigo: .semRede)
         }
-        if argumentos.contains("-FRILA_EXPORTAR_ERRO_SERVIDOR") {
+        if cenario == .exportarErroServidor {
             throw ErroDaApi(codigo: .desconhecido)
         }
 
