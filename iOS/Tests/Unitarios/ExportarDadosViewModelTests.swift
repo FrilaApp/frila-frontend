@@ -186,7 +186,7 @@ struct ExportarDadosViewModelTests {
         #expect(!vm.mostrarFolhaCompartilhamento)
     }
 
-    @Test("Sobras no temporário: criação do view model e início da exportação limpam arquivos residuais frila-meus-dados-*.json")
+    @Test("Sobras no temporário: início da exportação limpa arquivos residuais frila-meus-dados-*.json antes de gravar novo")
     func limpaArquivosTemporariosResiduais() async throws {
         let duble = DubleApiExportar()
         let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -205,21 +205,47 @@ struct ExportarDadosViewModelTests {
         #expect(FileManager.default.fileExists(atPath: arquivoSobra2.path))
         #expect(FileManager.default.fileExists(atPath: arquivoOutro.path))
 
-        // 1. Ao instanciar o ViewModel, resíduos frila-meus-dados-*.json devem ser limpos, mantendo outros
         let vm = ExportarDadosViewModel(api: duble, diretorioTemporario: diretorioTeste)
+
+        // Instanciação não apaga arquivos
+        #expect(FileManager.default.fileExists(atPath: arquivoSobra1.path))
+        #expect(FileManager.default.fileExists(atPath: arquivoSobra2.path))
+
+        // Início da exportação limpa os resíduos antes de gravar o novo arquivo
+        await vm.exportarDados()
         #expect(!FileManager.default.fileExists(atPath: arquivoSobra1.path))
         #expect(!FileManager.default.fileExists(atPath: arquivoSobra2.path))
         #expect(FileManager.default.fileExists(atPath: arquivoOutro.path))
 
-        // 2. Se surgir um resíduo antes de iniciar uma exportação, o início da exportação também o remove
-        let arquivoSobra3 = diretorioTeste.appendingPathComponent("frila-meus-dados-residual.json")
-        try Data("sobra3".utf8).write(to: arquivoSobra3)
-        #expect(FileManager.default.fileExists(atPath: arquivoSobra3.path))
-
-        await vm.exportarDados()
-        #expect(!FileManager.default.fileExists(atPath: arquivoSobra3.path))
-        #expect(FileManager.default.fileExists(atPath: arquivoOutro.path))
+        let urlNovo = try #require(vm.arquivoParaCompartilhar)
+        #expect(FileManager.default.fileExists(atPath: urlNovo.path))
 
         vm.folhaCompartilhamentoFechada()
+    }
+
+    @Test("Com arquivo exportado e folha aberta, criar segundo view model no mesmo diretório não apaga o arquivo do primeiro")
+    func criarSegundoViewModelComFolhaAbertaNaoApagaArquivoDoPrimeiro() async throws {
+        let duble = DubleApiExportar()
+        let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorioTeste) }
+
+        let vm1 = ExportarDadosViewModel(api: duble, diretorioTemporario: diretorioTeste)
+        await vm1.exportarDados()
+
+        let url = try #require(vm1.arquivoParaCompartilhar)
+        #expect(vm1.mostrarFolhaCompartilhamento)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+
+        // Simula redesenho da tela pai em SwiftUI criando nova instância no mesmo diretório
+        _ = ExportarDadosViewModel(api: duble, diretorioTemporario: diretorioTeste)
+
+        // O arquivo do primeiro view model deve continuar íntegro e a folha aberta
+        #expect(FileManager.default.fileExists(atPath: url.path))
+        #expect(vm1.arquivoParaCompartilhar != nil)
+        #expect(vm1.mostrarFolhaCompartilhamento)
+
+        vm1.folhaCompartilhamentoFechada()
+        #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 }

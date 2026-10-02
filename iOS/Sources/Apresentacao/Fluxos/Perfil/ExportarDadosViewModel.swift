@@ -51,7 +51,6 @@ public final class ExportarDadosViewModel {
         self.api = api
         self.relogio = relogio
         self.diretorioTemporario = diretorioTemporario
-        limparArquivosTemporariosAntigos()
     }
 
     public func exportarDados() async {
