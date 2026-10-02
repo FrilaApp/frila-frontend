@@ -5,6 +5,13 @@
   "bloqueio.json": {
     "schema": "#/components/schemas/Bloqueio"
   },
+  "candidatos.json": {
+    "schema": "#/components/schemas/Candidato",
+    "lista": true
+  },
+  "candidatura-retirada.json": {
+    "schema": "#/components/schemas/Candidatura"
+  },
   "candidatura-selecao.json": {
     "schema": "#/components/schemas/ResultadoCandidatura"
   },
@@ -33,6 +40,10 @@
   },
   "meus-estabelecimentos.json": {
     "schema": "#/components/schemas/EstabelecimentoDaConta",
+    "lista": true
+  },
+  "minhas-candidaturas.json": {
+    "schema": "#/components/schemas/Candidatura",
     "lista": true
   },
   "painel-com-cancelamento.json": {
@@ -89,6 +100,9 @@
   "requisicao-denunciar.json": {
     "schema": "#/paths/~1rpc~1denunciar/post/requestBody/content/application~1json/schema"
   },
+  "requisicao-escolher-candidato.json": {
+    "schema": "#/paths/~1rpc~1escolher_candidato/post/requestBody/content/application~1json/schema"
+  },
   "requisicao-publicar-vaga.json": {
     "schema": "#/components/schemas/NovaVaga"
   },
@@ -104,6 +118,9 @@
   "requisicao-remover-dispositivo.json": {
     "schema": "#/paths/~1rpc~1remover_dispositivo/post/requestBody/content/application~1json/schema"
   },
+  "requisicao-retirar-candidatura.json": {
+    "schema": "#/paths/~1rpc~1retirar_candidatura/post/requestBody/content/application~1json/schema"
+  },
   "resultado-a-caminho.json": {
     "schema": "#/components/schemas/ResultadoACaminho"
   },
@@ -112,6 +129,9 @@
   },
   "resultado-confirmacao-manual.json": {
     "schema": "#/components/schemas/ResultadoRegistro"
+  },
+  "resultado-confirmacao.json": {
+    "schema": "#/components/schemas/ResultadoConfirmacao"
   },
   "resultado-reabertura.json": {
     "schema": "#/components/schemas/ResultadoCancelamento"

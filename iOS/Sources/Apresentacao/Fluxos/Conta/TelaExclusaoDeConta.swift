@@ -107,7 +107,7 @@ public struct TelaExclusaoDeConta: View {
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-            } else if viewModel.turnosFuturos.isEmpty {
+            } else if viewModel.turnosFuturos.isEmpty && !viewModel.listaTurnosIndisponivel {
                 Text(verbatim: TextosExclusaoDeConta.semTurnosFuturos)
                     .font(.subheadline)
                     .foregroundStyle(FrilaCor.textoSecundario)
@@ -133,6 +133,15 @@ public struct TelaExclusaoDeConta: View {
                         .padding(FrilaEspaco.pequeno)
                         .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
                         .accessibilityIdentifier("item-turno-futuro-\(turno.id)")
+                    }
+                }
+            }
+            if let aviso = viewModel.avisoListaTurnos {
+                AvisoFrila(verbatim: aviso, tom: .informativo)
+                    .accessibilityIdentifier("aviso-lista-turnos-exclusao")
+                if viewModel.listaTurnosIndisponivel {
+                    BotaoSecundario(verbatim: TextosExclusaoDeConta.tentarNovamente) {
+                        Task { await viewModel.carregar() }
                     }
                 }
             }
