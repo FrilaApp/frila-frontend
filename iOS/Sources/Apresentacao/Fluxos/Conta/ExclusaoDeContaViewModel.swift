@@ -5,6 +5,8 @@ import Observation
 @MainActor @Observable
 public final class ExclusaoDeContaViewModel {
     public private(set) var turnosFuturos: [Turno] = []
+    public private(set) var avisoListaTurnos: String?
+    public private(set) var listaTurnosIndisponivel = false
     public private(set) var carregandoTurnos = false
     public var confirmouConsequencias = false
     public private(set) var excluindo = false
@@ -12,18 +14,43 @@ public final class ExclusaoDeContaViewModel {
     public private(set) var exclusaoConcluida = false
 
     private let executarExclusao: @Sendable () async throws -> ExclusaoDeConta
-    private let buscarTurnos: (@Sendable () async throws -> [Turno])?
+    private struct ConsultaTurnos: Sendable {
+        let turnos: [Turno]
+        let limitada: Bool
+    }
+
+    private let consultarTurnos: (@Sendable () async throws -> ConsultaTurnos)?
     private let aoConcluir: () -> Void
     private let relogio: any Relogio
 
-    public init(
+    public convenience init(
         executarExclusao: @escaping @Sendable () async throws -> ExclusaoDeConta,
         buscarTurnos: (@Sendable () async throws -> [Turno])? = nil,
         relogio: any Relogio = RelogioDoSistema(),
         aoConcluir: @escaping () -> Void = {}
     ) {
+        let consulta: (@Sendable () async throws -> ConsultaTurnos)?
+        if let buscarTurnos {
+            consulta = { ConsultaTurnos(turnos: try await buscarTurnos(), limitada: false) }
+        } else {
+            consulta = nil
+        }
+        self.init(
+            executarExclusao: executarExclusao,
+            consultarTurnos: consulta,
+            relogio: relogio,
+            aoConcluir: aoConcluir
+        )
+    }
+
+    private init(
+        executarExclusao: @escaping @Sendable () async throws -> ExclusaoDeConta,
+        consultarTurnos: (@Sendable () async throws -> ConsultaTurnos)?,
+        relogio: any Relogio,
+        aoConcluir: @escaping () -> Void
+    ) {
         self.executarExclusao = executarExclusao
-        self.buscarTurnos = buscarTurnos
+        self.consultarTurnos = consultarTurnos
         self.relogio = relogio
         self.aoConcluir = aoConcluir
     }
@@ -57,21 +84,21 @@ public final class ExclusaoDeContaViewModel {
         } else {
             acao = { throw ErroDaApi(codigo: .respostaInvalida) }
         }
-        let busca: @Sendable () async throws -> [Turno]
+        let busca: @Sendable () async throws -> ConsultaTurnos
         if let buscarTurnos {
-            busca = buscarTurnos
+            busca = { ConsultaTurnos(turnos: try await buscarTurnos(), limitada: false) }
         } else {
             busca = {
                 let conta = try await api.minhaConta()
                 if conta.perfil == .contratante {
-                    return try await Self.buscarTurnosContratante(api: api, relogio: relogio)
+                    return try await Self.consultarTurnosContratante(api: api, relogio: relogio)
                 }
-                return try await api.meusTurnos()
+                return ConsultaTurnos(turnos: try await api.meusTurnos(), limitada: false)
             }
         }
         self.init(
             executarExclusao: acao,
-            buscarTurnos: busca,
+            consultarTurnos: busca,
             relogio: relogio,
             aoConcluir: aoConcluir
         )
@@ -81,16 +108,18 @@ public final class ExclusaoDeContaViewModel {
         api: any ApiCliente,
         relogio: any Relogio = RelogioDoSistema()
     ) async throws -> [Turno] {
+        try await consultarTurnosContratante(api: api, relogio: relogio).turnos
+    }
+
+    private static func consultarTurnosContratante(api: any ApiCliente, relogio: any Relogio) async throws -> ConsultaTurnos {
         let estabelecimentos = try await api.meusEstabelecimentos()
-        guard !estabelecimentos.isEmpty else { return [] }
+        guard !estabelecimentos.isEmpty else { return ConsultaTurnos(turnos: [], limitada: false) }
         let agora = relogio.agora
         var calendario = Calendar(identifier: .gregorian)
         calendario.timeZone = TimeZone(identifier: "America/Sao_Paulo") ?? .current
         let de = agora.addingTimeInterval(-86400)
         let ate = calendario.date(byAdding: .year, value: 1, to: agora) ?? agora.addingTimeInterval(365 * 86400)
-        guard let periodo = try? Periodo(inicio: de, fim: ate) else {
-            return []
-        }
+        let periodo = try Periodo(inicio: de, fim: ate)
         var turnos: [Turno] = []
         for est in estabelecimentos {
             let painel = try await api.painelEstabelecimento(id: est.id, periodo: periodo)
@@ -121,22 +150,24 @@ public final class ExclusaoDeContaViewModel {
                 }
             }
         }
-        return turnos
+        return ConsultaTurnos(turnos: turnos, limitada: true)
     }
 
     public func carregar() async {
-        guard let buscarTurnos else { return }
+        guard !carregandoTurnos, let consultarTurnos else { return }
         carregandoTurnos = true
         defer { carregandoTurnos = false }
         do {
-            let todos = try await buscarTurnos()
+            let consulta = try await consultarTurnos()
+            listaTurnosIndisponivel = false
+            avisoListaTurnos = consulta.limitada ? TextosExclusaoDeConta.listaLimitada : nil
             let agora = relogio.agora
-            turnosFuturos = todos
-                .filter { $0.vaga.periodo.fim >= agora }
+            turnosFuturos = consulta.turnos
+                .filter { $0.vaga.periodo.inicio > agora }
                 .sorted { $0.vaga.periodo.inicio < $1.vaga.periodo.inicio }
         } catch {
-            // Se falhar ao buscar turnos (ex: offline), mantém lista vazia e não impede ver as consequências
-            turnosFuturos = []
+            listaTurnosIndisponivel = true
+            avisoListaTurnos = TextosExclusaoDeConta.listaIndisponivel
         }
     }
 

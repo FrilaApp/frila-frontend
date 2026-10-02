@@ -24,6 +24,9 @@ public enum TextosRepublicarVaga {
     public static let confirmar = String(localized: "Confirmar republicação", bundle: bundleApresentacao)
     public static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundleApresentacao)
     public static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+    public static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
+    public static let tentativaContinua = String(localized: "A republicação continua e será concluída quando a conexão voltar.", bundle: bundleApresentacao)
+    public static let erroAoLerFila = String(localized: "Não foi possível verificar a republicação pendente. Tente novamente antes de confirmar.", bundle: bundleApresentacao)
     public static let sucesso = String(localized: "Vaga republicada com sucesso!", bundle: bundleApresentacao)
 
     // Mensagens de validação e regras (RN02, RN03, RN18, RN24)
@@ -57,6 +60,13 @@ public final class RepublicarVagaViewModel {
     public private(set) var republicacaoPendente: RepublicacaoVaga?
     public private(set) var acaoPendente: AcaoPendente?
 
+    public private(set) var restaurandoTentativa = false
+    public private(set) var tentativaRestaurada: Bool
+    public var podeConfirmar: Bool { tentativaRestaurada && !enviando }
+    public var textoAoFechar: String {
+        republicacaoPendente == nil ? TextosRepublicarVaga.cancelar : TextosRepublicarVaga.fechar
+    }
+
     private let republicarAPI: @Sendable (UUID, Periodo, UUID) async throws -> VagaPublicada
     private let fila: (any FilaDeAcoes)?
     private let agora: @Sendable () -> Date
@@ -71,6 +81,7 @@ public final class RepublicarVagaViewModel {
     ) {
         self.vagaOriginal = vagaOriginal
         self.fila = fila
+        self.tentativaRestaurada = fila == nil
         self.agora = agora
         self.aoConcluir = aoConcluir
         let inicioPadrao = agora().addingTimeInterval(3 * 3600)
@@ -90,6 +101,7 @@ public final class RepublicarVagaViewModel {
     ) {
         self.vagaOriginal = vagaOriginal
         self.fila = fila
+        self.tentativaRestaurada = fila == nil
         self.agora = agora
         self.aoConcluir = aoConcluir
         let inicioPadrao = agora().addingTimeInterval(3 * 3600)
@@ -99,7 +111,9 @@ public final class RepublicarVagaViewModel {
     }
 
     public func restaurarTentativaPendente() async {
-        guard let fila else { return }
+        guard !tentativaRestaurada, !restaurandoTentativa, let fila else { return }
+        restaurandoTentativa = true
+        defer { restaurandoTentativa = false }
         do {
             let pendentes = try await fila.pendentes()
             if let acao = pendentes.first(where: {
@@ -112,8 +126,10 @@ public final class RepublicarVagaViewModel {
                 self.fim = rep.periodo.fim
                 self.camposBloqueados = true
             }
+            tentativaRestaurada = true
+            mensagemErro = nil
         } catch {
-            // Falha ao ler a fila mantém os valores padrão
+            mensagemErro = TextosRepublicarVaga.erroAoLerFila
         }
     }
 
@@ -147,7 +163,9 @@ public final class RepublicarVagaViewModel {
     }
 
     public func republicar() async {
-        guard !enviando else { return }
+        guard !enviando, resultado == nil else { return }
+        if !tentativaRestaurada { await restaurarTentativaPendente() }
+        guard tentativaRestaurada else { return }
 
         // Se ainda não temos uma tentativa congelada, validamos e congelamos
         if republicacaoPendente == nil {
@@ -185,7 +203,6 @@ public final class RepublicarVagaViewModel {
 
         do {
             let vagaPublicada = try await republicarAPI(rep.vagaID, rep.periodo, acao.chave)
-            resultado = vagaPublicada
             camposBloqueados = false
             if let fila {
                 try? await fila.remover(id: acao.id)
@@ -193,6 +210,7 @@ public final class RepublicarVagaViewModel {
             republicacaoPendente = nil
             acaoPendente = nil
             await aoConcluir?(vagaPublicada)
+            resultado = vagaPublicada
         } catch let erro as ErroDaApi {
             tratarErro(erro)
             if erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta {
@@ -265,6 +283,15 @@ public struct TelaRepublicarVaga: View {
                     AvisoFrila(verbatim: erro, tom: .erro)
                         .accessibilityIdentifier("aviso-erro-republicacao")
                 }
+                if viewModel.republicacaoPendente != nil {
+                    AvisoFrila(verbatim: TextosRepublicarVaga.tentativaContinua, tom: .informativo)
+                        .accessibilityIdentifier("aviso-republicacao-continua")
+                }
+                if !viewModel.tentativaRestaurada, !viewModel.restaurandoTentativa, viewModel.mensagemErro != nil {
+                    BotaoSecundario(verbatim: TextosRepublicarVaga.tentarNovamente) {
+                        Task { await viewModel.restaurarTentativaPendente() }
+                    }
+                }
                 botoesAcao
             }
             .padding(FrilaEspaco.medio)
@@ -280,6 +307,7 @@ public struct TelaRepublicarVaga: View {
         .task {
             await viewModel.restaurarTentativaPendente()
         }
+        .interactiveDismissDisabled(viewModel.enviando || viewModel.restaurandoTentativa)
         .accessibilityIdentifier("tela-republicar-vaga")
     }
 
@@ -344,7 +372,7 @@ public struct TelaRepublicarVaga: View {
                     selection: $viewModel.inicio,
                     displayedComponents: [.date, .hourAndMinute]
                 )
-                .disabled(viewModel.camposBloqueados || viewModel.enviando)
+                .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
                 .accessibilityIdentifier("campo-inicio-republicacao")
 
                 if let erroInicio = viewModel.erros[.inicio] {
@@ -361,7 +389,7 @@ public struct TelaRepublicarVaga: View {
                     selection: $viewModel.fim,
                     displayedComponents: [.date, .hourAndMinute]
                 )
-                .disabled(viewModel.camposBloqueados || viewModel.enviando)
+                .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
                 .accessibilityIdentifier("campo-fim-republicacao")
 
                 if let erroFim = viewModel.erros[.fim] {
@@ -383,17 +411,20 @@ public struct TelaRepublicarVaga: View {
                 BotaoPrimario(verbatim: TextosRepublicarVaga.tentarNovamente, carregando: viewModel.enviando) {
                     Task { await viewModel.republicar() }
                 }
+                .disabled(!viewModel.podeConfirmar)
                 .accessibilityIdentifier("botao-tentar-novamente-republicacao")
             } else {
                 BotaoPrimario(verbatim: TextosRepublicarVaga.confirmar, carregando: viewModel.enviando) {
                     Task { await viewModel.republicar() }
                 }
+                .disabled(!viewModel.podeConfirmar)
                 .accessibilityIdentifier("botao-confirmar-republicacao")
             }
 
-            BotaoSecundario(verbatim: TextosRepublicarVaga.cancelar) {
+            BotaoSecundario(verbatim: viewModel.textoAoFechar) {
                 fechar()
             }
+            .disabled(viewModel.enviando || viewModel.restaurandoTentativa)
             .accessibilityIdentifier("botao-cancelar-republicacao")
         }
         .padding(.top, FrilaEspaco.pequeno)
