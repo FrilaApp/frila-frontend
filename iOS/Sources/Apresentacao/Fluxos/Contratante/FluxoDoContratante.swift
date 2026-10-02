@@ -55,11 +55,17 @@ public struct FluxoDoContratante: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let sair: () -> Void
+    private let roteador: RoteadorDoContratante?
     @State private var model: FluxoDoContratanteViewModel
+    @State private var mostrandoPerfilEstabelecimento = false
+    @State private var mostrandoExclusaoDeConta = false
 
-    public init(api: any ApiCliente, fila: (any FilaDeAcoes)?, sair: @escaping () -> Void) {
+    /// O roteador é a entrada dos avisos da casa (`checkin_manual_pendente`, `atraso_15min` e
+    /// `vaga_vazia`), que o push (#8) vai usar.
+    public init(api: any ApiCliente, fila: (any FilaDeAcoes)?, roteador: RoteadorDoContratante? = nil, sair: @escaping () -> Void) {
         self.api = api
         self.fila = fila
+        self.roteador = roteador
         self.sair = sair
         _model = State(initialValue: FluxoDoContratanteViewModel(api: api))
     }
@@ -68,12 +74,71 @@ public struct FluxoDoContratante: View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
+                if case .vagas = model.estado {
+                    Button {
+                        mostrandoPerfilEstabelecimento = true
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                    .accessibilityIdentifier("abrir-perfil-estabelecimento")
+                }
+                if case .cadastro = model.estado {
+                    Button(role: .destructive) {
+                        mostrandoExclusaoDeConta = true
+                    } label: {
+                        Text("Excluir conta", bundle: bundleApresentacao)
+                            .foregroundStyle(FrilaCor.perigo)
+                    }
+                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityIdentifier("contratante-sem-estabelecimento-excluir-conta")
+                }
                 Button(action: sair) { Text("Sair", bundle: bundleApresentacao) }
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("sair-fluxo-contratante")
             }
             .padding(.horizontal, FrilaEspaco.medio)
             conteudo.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
+            NavigationStack {
+                TelaPerfilEstabelecimento(
+                    api: api,
+                    sair: {
+                        mostrandoPerfilEstabelecimento = false
+                        sair()
+                    }
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
+                            mostrandoPerfilEstabelecimento = false
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $mostrandoExclusaoDeConta) {
+            NavigationStack {
+                TelaExclusaoDeConta(
+                    viewModel: ExclusaoDeContaViewModel(
+                        api: api,
+                        aoConcluir: {
+                            mostrandoExclusaoDeConta = false
+                            sair()
+                        }
+                    )
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
+                            mostrandoExclusaoDeConta = false
+                        }
+                    }
+                }
+            }
         }
         .task { await model.carregar() }
     }
@@ -86,12 +151,13 @@ public struct FluxoDoContratante: View {
         case let .cadastro(conta):
             if let fila {
                 TelaCadastroEstabelecimento(api: api, fila: fila, responsavelNome: conta.nome,
-                                           responsavelTelefone: conta.telefone, sair: sair)
+                                           responsavelTelefone: conta.telefone, sair: sair,
+                                           aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
             } else {
                 erro(MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido)))
             }
         case let .vagas(estabelecimento):
-            DestinoDasVagasDoContratante(api: api, estabelecimento: estabelecimento)
+            DestinoDasVagasDoContratante(api: api, estabelecimento: estabelecimento, roteador: roteador)
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -107,14 +173,16 @@ public struct FluxoDoContratante: View {
 
 private struct DestinoDasVagasDoContratante: View {
     private let api: any ApiCliente
+    private let roteador: RoteadorDoContratante?
     @State private var model: MinhasVagasViewModel
 
-    init(api: any ApiCliente, estabelecimento: EstabelecimentoDaConta) {
+    init(api: any ApiCliente, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?) {
         self.api = api
+        self.roteador = roteador
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
     }
 
     var body: some View {
-        TelaMinhasVagas(viewModel: model, api: api)
+        TelaMinhasVagas(viewModel: model, api: api, roteador: roteador)
     }
 }

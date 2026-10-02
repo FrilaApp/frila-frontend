@@ -289,9 +289,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
+        let resposta: ContratoAPI.DispositivoDTO = try await rpc(
+            "registrar_dispositivo",
+            params: ContratoAPI.RegistrarDispositivo(tokenFCM: tokenFCM)
+        )
+        return resposta.dominio()
+    }
+
     public func removerDispositivo(tokenFCM: String) async throws {
-        struct Params: Encodable { let token_fcm: String }
-        let _: ContratoAPI.RemocaoDTO = try await rpc("remover_dispositivo", params: Params(token_fcm: tokenFCM))
+        let _: ContratoAPI.RemocaoDTO = try await rpc("remover_dispositivo", params: ContratoAPI.RemoverDispositivo(tokenFCM: tokenFCM))
     }
 
     public func sair(tokenFCM: String?) async {
@@ -521,3 +528,29 @@ final class ArmazenamentoDeSessaoEmMemoria: AuthLocalStorage, @unchecked Sendabl
         trava.withLock { valores[key] = nil }
     }
 }
+
+// MARK: - Exclusão de Conta (Porta ExclusaoDeContaPorta)
+
+extension SupabaseApiCliente: ExclusaoDeContaPorta {
+    public func excluirConta() async throws -> ExclusaoDeConta {
+        let relogio = ContinuousClock()
+        let inicio = relogio.now
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        do {
+            let resposta: DTOExclusaoDeConta = try await cliente.functions.invoke(
+                "excluir-conta",
+                options: FunctionInvokeOptions(body: RequisicaoExclusaoConta()),
+                decoder: decodificador
+            )
+            return try converter { try resposta.dominio() }
+        } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
+            let tipado = mapear(error)
+            await telemetria.registrarErroDaApi(codigo: tipado.codigoOriginal, rpc: "excluir-conta", duracao: inicio.duration(to: relogio.now))
+            throw tipado
+        }
+    }
+}
+

@@ -27,9 +27,7 @@ private enum TextosPerfilConta {
     static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
     static let papel = String(localized: "Seu acesso", bundle: bundleApresentacao)
     static let naoInformado = String(localized: "—", bundle: bundleApresentacao)
-    static let horariosCadastrados = String(localized: "%lld horários cadastrados", bundle: bundleApresentacao)
-    static let todoExportacao = String(localized: "Disponível no cartão #219", bundle: bundleApresentacao)
-    static let todoExclusao = String(localized: "Disponível no cartão #50", bundle: bundleApresentacao)
+    static let todoExportacao = String(localized: "Recurso em desenvolvimento", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
     static let suportePendente = String(localized: "Endereço de suporte pendente", bundle: bundleApresentacao)
     static let linkPendente = String(localized: "Link pendente", bundle: bundleApresentacao)
@@ -192,16 +190,21 @@ public struct TelaMeuPerfilProfissional: View {
                     Image(systemName: "square.and.arrow.up")
                 }
             }
-            .disabled(true).accessibilityHint(TextosPerfilConta.todoExportacao)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-            Button {} label: {
+            NavigationLink {
+                TelaExclusaoDeConta(
+                    viewModel: ExclusaoDeContaViewModel(
+                        api: api,
+                        aoConcluir: sair
+                    )
+                )
+            } label: {
                 Label {
                     Text(verbatim: TextosPerfilConta.excluir)
                 } icon: {
                     Image(systemName: "person.crop.circle.badge.xmark")
                 }
             }
-            .disabled(true).accessibilityHint(TextosPerfilConta.todoExclusao)
+            .accessibilityIdentifier("perfil-excluir-conta")
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
         }
     }
@@ -228,10 +231,12 @@ public struct TelaMeuPerfilProfissional: View {
 
 public struct TelaPerfilEstabelecimento: View {
     @State private var model: PerfilEstabelecimentoViewModel
+    private let api: any ApiCliente
     private let sair: () -> Void
     public let enderecos: EnderecosOficiais
     @State private var mostrarAjuda = false
     public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
+        self.api = api
         self.sair = sair
         self.enderecos = enderecos
         _model = State(initialValue: PerfilEstabelecimentoViewModel(api: api))
@@ -275,14 +280,22 @@ public struct TelaPerfilEstabelecimento: View {
                         }
                     }
                     .disabled(true).accessibilityHint(TextosPerfilConta.todoExportacao).frame(minHeight: FrilaMetrica.alvoMinimo)
-                    Button {} label: {
+                    NavigationLink {
+                        TelaExclusaoDeConta(
+                            viewModel: ExclusaoDeContaViewModel(
+                                api: api,
+                                aoConcluir: sair
+                            )
+                        )
+                    } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.excluir)
                         } icon: {
                             Image(systemName: "person.crop.circle.badge.xmark")
                         }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }
-                    .disabled(true).accessibilityHint(TextosPerfilConta.todoExclusao).frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityIdentifier("estabelecimento-excluir-conta")
                     Button(role: .destructive, action: sair) {
                         Label {
                             Text(verbatim: TextosPerfilConta.sair)
