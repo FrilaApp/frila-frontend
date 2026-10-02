@@ -25,6 +25,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         if let tamanho { app.launchArguments += ["-UIPreferredContentSizeCategoryName", tamanho] }
         app.launch()
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Continuar"].waitForExistence(timeout: 10))
         return app
     }
 
@@ -69,8 +70,9 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         let app = abrirCatalogo(tamanho: Self.ax5)
         var conferidos = Set<String>()
         var problemas: [String] = []
+        let fim = app.buttons["abrir-licencas"]
 
-        for _ in 0..<40 {
+        for _ in 0..<20 {
             let controles = app.buttons.allElementsBoundByIndex + app.textFields.allElementsBoundByIndex
             for controle in controles where controle.exists && controle.isHittable {
                 let chave = "\(controle.elementType.rawValue)|\(controle.identifier)|\(controle.label)"
@@ -84,11 +86,11 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
                     problemas.append("alvo \(Int(quadro.width))×\(Int(quadro.height)) pt: \(controle.label)")
                 }
             }
-            let antes = app.screenshot().pngRepresentation
+            if fim.exists && fim.isHittable { break }
             app.swipeUp()
-            if app.screenshot().pngRepresentation == antes { break }
         }
 
+        XCTAssertTrue(fim.isHittable, "o percurso não alcançou o fim do catálogo")
         XCTAssertGreaterThan(conferidos.count, 8, "o percurso não encontrou os controles do catálogo")
         XCTAssertTrue(problemas.isEmpty, problemas.joined(separator: "\n"))
     }
