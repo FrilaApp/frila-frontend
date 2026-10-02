@@ -199,9 +199,11 @@ public struct TelaPerfilProfissional: View {
                             } label: {
                                 Image(systemName: "trash")
                                     .foregroundStyle(FrilaCor.perigo)
-                                    .frame(width: 32, height: 32)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                             .accessibilityLabel(String(localized: "Remover horário de \(formatado.dia)", bundle: bundleApresentacao))
                             .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
                         }
@@ -229,7 +231,8 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
                 }
                 .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
                 .accessibilityIdentifier("picker-dia-semana")
 
                 HStack(spacing: FrilaEspaco.pequeno) {
@@ -262,11 +265,13 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.adicionar)
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, FrilaEspaco.medio)
-                        .frame(minHeight: 36)
+                        .frame(minHeight: 44)
                         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
                         .foregroundStyle(FrilaCor.sobrePrimaria)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
                 .accessibilityIdentifier("botao-adicionar-janela")
             }
             .padding(FrilaEspaco.pequeno)
