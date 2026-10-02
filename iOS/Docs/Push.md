@@ -10,14 +10,15 @@ quem ele pertence no servidor:
 
 | Momento | O que acontece |
 |---|---|
-| Abertura com sessão e entrada | `registrar_dispositivo`. O token que era de outra conta passa para quem entrou. |
+| Abertura com sessão e entrada | `registrar_dispositivo`. O token que era de outra conta passa para quem entrou. Só depois da confirmação o sistema volta a entregar (`AparelhoDePush.ligar`). |
 | O FCM entrega ou troca o token | O token é guardado. Com alguém dentro, o novo é registrado na hora e o antigo sai do servidor. |
-| Sair da conta | `remover_dispositivo` antes do `signOut`, com o token guardado. As notificações já entregues saem da central. |
-| Sessão encerrada por 401 | Não há mais sessão para chamar o servidor: o aparelho só deixa de ser da conta aqui. |
-| Conta excluída | O servidor apaga os aparelhos da conta (`excluir_conta`), e o app desfaz o vínculo local. |
+| Sair da conta | O app desregistra no sistema (a entrega para neste aparelho, com ou sem rede), tenta `remover_dispositivo` antes do `signOut`, com o token guardado, e limpa a central. |
+| Sessão encerrada por 401 | Não há mais sessão para chamar o servidor: o aparelho deixa de ser da conta aqui, a entrega é suspensa e a central é limpa. |
+| Conta excluída | O servidor apaga os aparelhos da conta (`excluir_conta`), e o app desfaz o vínculo local, suspende a entrega e limpa a central. |
 
-- **O que fica guardado.** O token e o vínculo (`VinculoDoAparelho`: a conta e desde quando o
-  aparelho é dela), no Keychain, pelo `ArmazenamentoDoAparelhoNoKeychain`. O esquema Local usa um
+- **O que fica guardado.** O token, o vínculo (`VinculoDoAparelho`: a conta e desde quando o
+  aparelho é dela) e, sem vínculo, o id da conta de quem o aparelho era por último (para a entrada
+  seguinte saber se houve troca de conta), no Keychain, pelo `ArmazenamentoDoAparelhoNoKeychain`. O esquema Local usa um
   item separado (`com.frila.org.app.push.local`), para o vínculo sobreviver ao app fechado. O token
   nunca vai para log nem para `UserDefaults`.
 - **O vínculo só existe com a confirmação do servidor.** Ele começa quando `registrar_dispositivo`
@@ -25,9 +26,13 @@ quem ele pertence no servidor:
   (RN15), então é pelo vínculo que o app sabe de quem é o aviso que chegou.
 - **Uma operação de cada vez.** Registro, troca de token e saída entram numa fila: a saída pedida
   com um registro em voo espera o registro terminar e só então tira o token.
-- **Limite conhecido.** Quem sai sem rede não consegue tirar o token do servidor. O aparelho deixa
-  de ser da conta no app, e o servidor só passa o token adiante na próxima entrada neste aparelho ou
-  na limpeza dos 60 dias sem atualização.
+- **Sair sem rede.** A remoção no servidor falha e não segura a saída: o token continua lá até a
+  próxima entrada neste aparelho ou a limpeza dos 60 dias sem atualização. Por isso a saída não
+  conta com o servidor: ela chama `unregisterForRemoteNotifications`, que é do próprio aparelho, e
+  o sistema para de entregar push a este app, mesmo com ele fechado. A entrega só volta com
+  `registerForRemoteNotifications`, que o app chama em dois casos: o aparelho já é da conta que
+  está nele, ou `registrar_dispositivo` acabou de confirmar o token para quem entrou. Se o registro
+  falhar na entrada, o aparelho fica sem receber até a abertura seguinte dar certo.
 
 ## FCM e APNs
 
@@ -44,26 +49,27 @@ quem ele pertence no servidor:
   conta e permissão.
 - **Os roteadores são do `AppDelegate`** (`NavegacaoDoApp`): o toque que abre o app chega antes de
   qualquer tela existir, e o `RoteadorDePush` o guarda até a conta ser conhecida.
-- **App aberto.** A notificação aparece com faixa e som, como fora do app, mas só se for da conta
-  que está na tela (as regras 1 e 2 de "Push de outra conta"). Na abertura, enquanto a conta ainda não
-  é conhecida, a notificação que chega não é mostrada.
-- **Saída.** O app tira o token do servidor e limpa a central de notificações. Ele **não** chama
-  `unregisterForRemoteNotifications`: quem sai sem rede continua com o token no servidor (limite
-  já descrito acima), e a notificação que chegar nesse intervalo aparece na tela bloqueada, mas não
-  é mostrada com o app aberto nem abre nada no toque.
+- **App aberto.** A notificação aparece com faixa e som, como fora do app, mas só a que o toque
+  abriria para a conta que está na tela (as regras 1 a 3 de "Push de outra conta" e os ids de que a
+  tela precisa). Aviso sem `tipo`, como a mensagem de teste do console do Firebase, não aparece com
+  o app aberto. Na abertura, enquanto a conta ainda não é conhecida, nada é mostrado.
+- **Saída.** O app suspende a entrega no sistema, tenta tirar o token do servidor e limpa a central
+  de notificações ("Sair sem rede", acima).
 - **Esquema Local.** Sem `GoogleService-Info.plist` o Firebase não é configurado: o canal não fala
   com o FCM nem com o APNs e entrega um token simulado ao dublê.
 
 ### `aps-environment`
 
 O entitlement vem do esquema, por `FRILA_APS_ENVIRONMENT` nos `.xcconfig`: `development` no Local e
-no Dev, `production` no Beta e no Prod. O `conferir-release.sh` reprova o bundle de Release que não
-declarar `production`, e a CI roda isso no Beta e no Prod.
+no Dev, `production` no Beta e no Prod. O `conferir-release.sh` reprova o bundle de Release cujo
+`aps-environment` efetivo não seja exatamente `production`, e a CI roda isso no Beta e no Prod.
 
 O que a CI confere é a configuração declarada, no build de simulador. **No build assinado, quem
 decide o valor é o perfil de provisionamento**: com assinatura automática de desenvolvimento, um
-build Release-Beta declarando `production` sai assinado com `development` (testado em 02/10/2026).
-No TestFlight o valor vem do perfil de distribuição. Para conferir o build que foi para lá:
+build Release-Beta declarando `production` sai assinado com `development` (testado em 02/10/2026),
+e o `conferir-release.sh` o reprova: no bundle assinado ele lê a assinatura, e `get-task-allow`
+não abranda a regra. No TestFlight o valor vem do perfil de distribuição. Para conferir o build
+que foi para lá, rode o `conferir-release.sh` no `.app` exportado, ou:
 
 ```bash
 codesign -d --entitlements :- caminho/Frila.app | grep -A1 aps-environment
@@ -150,13 +156,32 @@ Como o payload não diz o destinatário, a conferência usa o que o aparelho sab
 2. **Vínculo.** O aparelho precisa estar entregue, no servidor, à conta que está na tela
    (`VinculoDoAparelho`), e o aviso precisa ter sido **entregue depois** de o vínculo começar. O
    aviso que já estava na central de notificações quando a conta entrou era de quem estava antes.
+   **Na troca de conta** (o aparelho era de outra conta, com vínculo ou com saída), o vínculo de
+   quem entra só começa 60 s depois da confirmação do servidor
+   (`VinculoDoAparelho.carenciaNaTrocaDeConta`): o aviso mandado à conta anterior que ainda estava
+   a caminho chega nesse intervalo. A mesma conta que sai e volta, e a primeira entrada no
+   aparelho, não têm carência.
 3. **Perfil.** O tipo precisa ter destino no perfil da conta: aviso da casa não abre para quem trabalha.
 4. **Dados.** A tela de destino lê tudo com a sessão de quem está no aparelho. O turno ou a vaga de
    outra conta não vem na leitura.
 
-Limite conhecido: o aviso da conta anterior que o servidor mandou antes da troca e o APNs entregou
-depois dela passa pela regra 2. Ele ainda esbarra nas regras 3 e 4, mas só um identificador opaco do
-destinatário no payload fecharia essa janela, e isso é mudança de contrato.
+O que é entregue antes de o vínculo valer não aparece com o app aberto, não abre nada no toque e
+sai da central de notificações (na abertura, a cada mudança do vínculo e ao fim da carência).
+
+**O que sobra**, sem o destinatário no payload:
+
+- **App em segundo plano ou fechado, durante a carência.** Quem mostra a notificação é o sistema,
+  sem consultar o app: o aviso da conta anterior entregue logo depois da troca aparece na tela
+  bloqueada até o app voltar ao primeiro plano ou a carência acabar, quando ele sai da central.
+- **Depois da carência.** O aviso da conta anterior que o APNs entregar mais de 60 s depois da
+  confirmação passa pela regra 2. Ele ainda esbarra nas regras 3 e 4. Inferência: os 60 s não vêm
+  de medição da latência do FCM e do APNs; cobrem a entrega que já estava a caminho.
+- **O custo da carência.** O aviso de quem entrou, entregue nos primeiros 60 s depois de uma troca
+  de conta, é tratado como da conta anterior: não aparece com o app aberto e não abre no toque.
+
+Só um identificador opaco do destinatário no payload fecha essa janela, com o app conferindo o
+aviso antes de mostrar e de abrir. Isso é mudança de contrato (frila-docs, frila-backend e este
+app, nessa ordem) e decisão do Cauê.
 
 ### Simular no esquema Local
 
@@ -188,8 +213,39 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
 4. **Reinstalação.** Apague o app, instale de novo e entre: o token novo aparece no servidor, e o
    antigo deixa de receber.
 5. **Duas contas no mesmo iPhone.** Saia da conta A, entre na B e mande um aviso para a A: ele não
-   chega. Mande para a B: chega e abre.
+   chega. Mande para a B: chega e abre. Um aviso para a B nos primeiros 60 s depois da entrada não
+   aparece com o app aberto nem abre no toque (carência da troca de conta); depois disso, sim.
 6. **Permissão negada.** Negue nos Ajustes e volte ao app: o aviso fixo aparece, e o dispositivo
    sai do servidor.
-7. **Assinatura.** `codesign -d --entitlements :-` no `.app` do build exportado mostra
-   `aps-environment = production`.
+7. **Assinatura.** `Scripts/conferir-release.sh` no `.app` do build exportado passa, e
+   `codesign -d --entitlements :-` mostra `aps-environment = production`.
+8. **Sair sem rede.** Entre com a conta A, ponha o iPhone em modo avião, saia da conta, feche o app
+   e tire o modo avião. Confira no Supabase que o aparelho ainda está registrado para a A e mande
+   um aviso para ela: **não pode aparecer**, nem na tela bloqueada. É a prova de que
+   `unregisterForRemoteNotifications` segura a entrega com o token ainda no servidor.
+9. **Reativação.** Depois do passo 8, entre com a conta A de novo, com rede: o aviso mandado para
+   ela volta a chegar. Repita entrando com a conta B: o aparelho passa a ser da B no servidor, o
+   aviso para a B chega (passada a carência) e o aviso para a A não chega.
+10. **Reativação sem confirmação.** Depois de sair, entre com a rede falhando no registro (por
+    exemplo, cortando a rede logo depois do código de entrada): o aparelho continua sem receber.
+    Abra o app de novo com rede: o registro acontece e os avisos voltam.
+
+O simulador e o dublê provam a ordem das chamadas (suspender antes da rede, reativar só depois da
+confirmação) e a carência. O efeito de `unregisterForRemoteNotifications` sobre a entrega do APNs, e
+a volta dela, só o aparelho prova: são os passos 8 a 10.
+
+## Rótulo de privacidade da loja
+
+O token de push é registrado no servidor para a conta e guardado no aparelho junto com ela: é um
+identificador do aparelho vinculado à pessoa. O `PrivacyInfo.xcprivacy` declara o **Device ID** como
+vinculado, para *App Functionality*, sem tracking (um teste confere). No *App Privacy* do App Store
+Connect, o que muda, para o Cauê validar:
+
+| Item | Antes | Depois |
+|---|---|---|
+| Identifiers → Device ID: coletado | Sim | Sim |
+| Device ID: vinculado à identidade | Não | **Sim** |
+| Device ID: usado para tracking | Não | Não |
+| Device ID: finalidade | App Functionality | App Functionality |
+
+Os outros tipos do rótulo não mudam ([Crash Reporting](CrashReporting.md), "App Privacy e manifesto").
