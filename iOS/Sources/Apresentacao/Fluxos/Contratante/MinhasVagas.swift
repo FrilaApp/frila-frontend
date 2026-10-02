@@ -392,6 +392,7 @@ public struct TelaMinhasVagas: View {
             if confirmadas > 0 {
                 Text(verbatim: nomesConfirmados(vaga)).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             }
+            RotuloDaSelecao(vaga: vaga)
             Text(verbatim: TextosMinhasVagas.verDetalhes)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(FrilaCor.primaria)
@@ -433,6 +434,11 @@ private struct DestinoDaVagaDoContratante: View {
                 aoRepublicar: {
                     await viewModel.carregar()
                     await acompanhamento.carregar()
+                },
+                relerVaga: {
+                    await viewModel.carregar()
+                    await acompanhamento.carregar()
+                    return acompanhamento.falhouAoCarregar ? nil : acompanhamento.vaga(id: vagaID)
                 }
             )
         } else if acompanhamento.falhouAoCarregar {
@@ -466,6 +472,8 @@ private struct TelaDetalheVagaContratante: View {
     let fila: (any FilaDeAcoes)?
     let confirmado: Int
     var aoRepublicar: (@Sendable () async -> Void)? = nil
+    /// Relê o painel depois de uma escolha e devolve a vaga como ficou; `nil` se a leitura falhou (#10).
+    var relerVaga: @MainActor () async -> VagaNoPainel? = { nil }
     @State private var contatos: [UUID: Contato] = [:]
     @State private var carregandoContato: Set<UUID> = []
     @State private var errosContato: [UUID: String] = [:]
@@ -506,6 +514,10 @@ private struct TelaDetalheVagaContratante: View {
                     .buttonStyle(.borderedProminent)
                     .tint(FrilaCor.primaria)
                     .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
+                }
+
+                if vaga.modo == .selecao {
+                    SecaoDeCandidatos(vaga: vaga, api: api, relerVaga: relerVaga) { perfilSelecionado = $0 }
                 }
 
                 Text(verbatim: TextosMinhasVagas.posicoes).font(.title2.bold()).accessibilityAddTraits(.isHeader)
@@ -605,6 +617,9 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
                 }
+            } else if posicao.estado == .cancelada, vaga.modo == .selecao {
+                // A seleção fechou 24 h antes do início com esta posição ainda aberta (RN24).
+                Text(verbatim: TextosDosCandidatos.posicaoFechada).font(.headline)
             } else {
                 Text(verbatim: TextosMinhasVagas.encerradas).font(.headline)
             }

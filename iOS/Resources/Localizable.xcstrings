@@ -4313,6 +4313,436 @@
         }
       }
     },
+    "Candidatos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatos"
+          }
+        }
+      }
+    },
+    "Você escolhe quem vai trabalhar. A vaga fecha sozinha 24 horas antes do início se ninguém for escolhido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você escolhe quem vai trabalhar. A vaga fecha sozinha 24 horas antes do início se ninguém for escolhido."
+          }
+        }
+      }
+    },
+    "Ninguém se candidatou ainda": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguém se candidatou ainda"
+          }
+        }
+      }
+    },
+    "Os candidatos aparecem aqui assim que se candidatarem.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os candidatos aparecem aqui assim que se candidatarem."
+          }
+        }
+      }
+    },
+    "Atualizar candidatos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar candidatos"
+          }
+        }
+      }
+    },
+    "Não foi possível carregar os candidatos. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os candidatos. Tente novamente."
+          }
+        }
+      }
+    },
+    "Sem conexão. Os candidatos aparecem quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. Os candidatos aparecem quando a internet voltar."
+          }
+        }
+      }
+    },
+    "Não foi possível atualizar. A lista de candidatos pode estar desatualizada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível atualizar. A lista de candidatos pode estar desatualizada."
+          }
+        }
+      }
+    },
+    "Funções: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funções: %@"
+          }
+        }
+      }
+    },
+    "Ver perfil público de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver perfil público de %@"
+          }
+        }
+      }
+    },
+    "Escolher": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher"
+          }
+        }
+      }
+    },
+    "Escolher %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher %@"
+          }
+        }
+      }
+    },
+    "Confirmar a escolha?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar a escolha?"
+          }
+        }
+      }
+    },
+    "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro."
+          }
+        }
+      }
+    },
+    "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro. É a última posição: os outros candidatos serão avisados de que não foram escolhidos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro. É a última posição: os outros candidatos serão avisados de que não foram escolhidos."
+          }
+        }
+      }
+    },
+    "%@ foi confirmado. O contato está em Posições.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ foi confirmado. O contato está em Posições."
+          }
+        }
+      }
+    },
+    "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados. O contato está em Posições.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados. O contato está em Posições."
+          }
+        }
+      }
+    },
+    "Outra pessoa da sua equipe preencheu a última posição antes. Atualizamos a lista.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outra pessoa da sua equipe preencheu a última posição antes. Atualizamos a lista."
+          }
+        }
+      }
+    },
+    "Outra pessoa da sua equipe preencheu a última posição antes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outra pessoa da sua equipe preencheu a última posição antes."
+          }
+        }
+      }
+    },
+    "A candidatura de %@ não está mais disponível: foi retirada ou expirou. Atualizamos a lista.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A candidatura de %@ não está mais disponível: foi retirada ou expirou. Atualizamos a lista."
+          }
+        }
+      }
+    },
+    "A candidatura de %@ não está mais disponível: foi retirada ou expirou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A candidatura de %@ não está mais disponível: foi retirada ou expirou."
+          }
+        }
+      }
+    },
+    "A seleção desta vaga já fechou. Não dá mais para escolher candidato.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção desta vaga já fechou. Não dá mais para escolher candidato."
+          }
+        }
+      }
+    },
+    "%@ foi confirmado em outro turno no mesmo horário. Escolha outro candidato.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ foi confirmado em outro turno no mesmo horário. Escolha outro candidato."
+          }
+        }
+      }
+    },
+    "%@ não pode assumir este turno agora. Escolha outro candidato.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ não pode assumir este turno agora. Escolha outro candidato."
+          }
+        }
+      }
+    },
+    "Sem conexão. A escolha não foi enviada. Tente de novo quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. A escolha não foi enviada. Tente de novo quando a internet voltar."
+          }
+        }
+      }
+    },
+    "A Equipe Frila ocultou esta vaga. Você vê os candidatos, mas só pode escolher depois que ela for reexibida.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Equipe Frila ocultou esta vaga. Você vê os candidatos, mas só pode escolher depois que ela for reexibida."
+          }
+        }
+      }
+    },
+    "Seleção concluída. Os profissionais confirmados estão em Posições.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleção concluída. Os profissionais confirmados estão em Posições."
+          }
+        }
+      }
+    },
+    "A seleção fechou 24 horas antes do início sem nenhuma escolha. Os candidatos foram avisados e liberados.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção fechou 24 horas antes do início sem nenhuma escolha. Os candidatos foram avisados e liberados."
+          }
+        }
+      }
+    },
+    "A seleção desta vaga terminou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção desta vaga terminou."
+          }
+        }
+      }
+    },
+    "Posição fechada sem escolha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição fechada sem escolha"
+          }
+        }
+      }
+    },
+    "Modo seleção": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo seleção"
+          }
+        }
+      }
+    },
+    "1 candidato aguardando sua escolha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 candidato aguardando sua escolha"
+          }
+        }
+      }
+    },
+    "%d candidatos aguardando sua escolha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d candidatos aguardando sua escolha"
+          }
+        }
+      }
+    },
+    "nenhum candidato ainda": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nenhum candidato ainda"
+          }
+        }
+      }
+    },
+    "seleção concluída": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seleção concluída"
+          }
+        }
+      }
+    },
+    "fechou sem escolha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fechou sem escolha"
+          }
+        }
+      }
+    },
+    "seleção encerrada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seleção encerrada"
+          }
+        }
+      }
+    },
+    "Como preencher a vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como preencher a vaga"
+          }
+        }
+      }
+    },
+    "O primeiro profissional que aceitar é confirmado na hora.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O primeiro profissional que aceitar é confirmado na hora."
+          }
+        }
+      }
+    },
+    "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido."
+          }
+        }
+      }
+    },
+    "O modo seleção ainda não está disponível. Publique no modo urgência.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O modo seleção ainda não está disponível. Publique no modo urgência."
+          }
+        }
+      }
+    },
+    "Vagas no modo seleção exigem pelo menos 24 horas de antecedência.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vagas no modo seleção exigem pelo menos 24 horas de antecedência."
+          }
+        }
+      }
+    },
+    "Cancelar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
     "Check-in no local às %@.": {
       "localizations": {
         "pt-BR": {
