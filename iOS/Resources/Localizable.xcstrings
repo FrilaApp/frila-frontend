@@ -5262,6 +5262,96 @@
           }
         }
       }
+    },
+    "Turno cancelado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno cancelado"
+          }
+        }
+      }
+    },
+    "Cancelamento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelamento"
+          }
+        }
+      }
+    },
+    "Você cancelou este turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você cancelou este turno."
+          }
+        }
+      }
+    },
+    "O estabelecimento cancelou este turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento cancelou este turno."
+          }
+        }
+      }
+    },
+    "O estabelecimento reabriu a posição por atraso.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento reabriu a posição por atraso."
+          }
+        }
+      }
+    },
+    "O turno terminou sem check-in.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O turno terminou sem check-in."
+          }
+        }
+      }
+    },
+    "Cancelamento registrado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelamento registrado."
+          }
+        }
+      }
+    },
+    "Este cancelamento contou como falta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este cancelamento contou como falta."
+          }
+        }
+      }
+    },
+    "Este cancelamento não contou como falta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este cancelamento não contou como falta."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

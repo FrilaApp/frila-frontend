@@ -175,7 +175,10 @@ public struct FluxoDoProfissional<Barra: View>: View {
                             }
                         case let .avaliacao(turnoID):
                             if let contaID {
-                                TelaAvaliacao(turnoID: turnoID, contaID: contaID, api: api, fila: fila, relogio: relogio)
+                                DestinoDaAvaliacaoDoAviso(turnoID: turnoID, contaID: contaID, api: api,
+                                                          fila: fila, relogio: relogio, repositorio: repositorioTurnos) {
+                                    Task { await turnosViewModel.atualizar() }
+                                }
                             } else {
                                 EstadoErro(verbatim: TextosDoProfissional.Avaliacao.erroSemRede) {
                                     Task { await recuperarIdentidade() }
@@ -248,7 +251,7 @@ extension FluxoDoProfissional {
         contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
     }
 
-    /// O registro de presença aceito pelo servidor atualiza Meus turnos, que é de onde a tela reabre.
+    /// Presença ou avaliação aceita atualiza Meus turnos, que é de onde a tela reabre.
     private func destinoDoMeuTurno(_ turno: Turno) -> some View {
         let turnos = turnosViewModel
         return DestinoDoMeuTurno(turno: turno, api: api, contaID: contaID, relogio: relogio, localizacao: localizacao, fila: fila) {
@@ -346,10 +349,25 @@ private struct DestinoDoMeuTurno: View {
         let presenca = localizacao.map {
             PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
         }
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca))
+        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca, aoAvaliar: aoRegistrar))
     }
 
     var body: some View {
         TelaMeuTurno(viewModel: viewModel)
     }
+}
+
+/// Mantém o formulário enquanto a leitura assíncrona do turno atualiza a tela do aviso.
+private struct DestinoDaAvaliacaoDoAviso: View {
+    @State private var viewModel: AvaliacaoTurnoViewModel
+
+    init(turnoID: UUID, contaID: UUID, api: any ApiCliente, fila: (any FilaDeAcoes)?,
+         relogio: any Relogio, repositorio: any TurnoRepositorio, aoAvaliar: @escaping () -> Void) {
+        _viewModel = State(initialValue: AvaliacaoTurnoViewModel(
+            turnoID: turnoID, contaID: contaID, api: api, fila: fila, relogio: relogio,
+            aoAvaliar: { _ in aoAvaliar() }, repositorioTurnos: repositorio
+        ))
+    }
+
+    var body: some View { TelaAvaliacao(viewModel: viewModel) }
 }

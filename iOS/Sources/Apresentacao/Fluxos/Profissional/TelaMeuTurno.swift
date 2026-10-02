@@ -14,10 +14,15 @@ public struct TelaMeuTurno: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoTurno
-                if let presenca = viewModel.presenca {
-                    SecaoDePresenca(viewModel: presenca)
+                if viewModel.cancelamento != nil {
+                    cartaoCancelamento
                 }
-                cartaoContato
+                if viewModel.permiteAcoesDoTurno {
+                    if let presenca = viewModel.presenca {
+                        SecaoDePresenca(viewModel: presenca)
+                    }
+                    cartaoContato
+                }
                 if viewModel.podeAvaliar {
                     cartaoAvaliacao
                 }
@@ -32,8 +37,9 @@ public struct TelaMeuTurno: View {
     }
 
     private var cabecalho: some View {
-        Text(verbatim: TextosDoProfissional.Turnos.confirmadoTitulo)
+        Text(verbatim: viewModel.cancelado ? TextosDoProfissional.Turnos.canceladoTitulo : TextosDoProfissional.Turnos.confirmadoTitulo)
             .font(.title2.bold())
+            .accessibilityIdentifier("estado-do-turno")
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -63,6 +69,26 @@ public struct TelaMeuTurno: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
+    }
+
+    private var cartaoCancelamento: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosDoProfissional.Turnos.cancelamentoTitulo)
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            if let causa = viewModel.causaDoCancelamento {
+                Text(verbatim: causa)
+                    .font(.body)
+            }
+            if let falta = viewModel.faltaNoCancelamento {
+                Text(verbatim: falta)
+                    .font(.subheadline)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("cancelamento-do-turno")
     }
 
     private var cartaoContato: some View {
@@ -160,4 +186,3 @@ public struct TelaMeuTurno: View {
         .accessibilityIdentifier("cartao-avaliacao-turno")
     }
 }
-

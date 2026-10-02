@@ -51,7 +51,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case vagaEncerradaContratante = "vaga-encerrada-contratante"
         /// Turno encerrado e verificado para avaliação de turno no fluxo natural (#22).
         case turnoEncerrado = "turno-encerrado"
+        /// A lista funciona, mas avaliar falha sem rede para exercitar a fila real.
+        case avaliacaoSemRede = "avaliacao-sem-rede"
         case turnoEncerradoVerificado = "turno-encerrado-verificado"
+        case turnoCancelado = "turno-cancelado"
+        case turnoCanceladoComFalta = "turno-cancelado-com-falta"
+        case turnoCanceladoSemDetalhes = "turno-cancelado-sem-detalhes"
+        case turnoCanceladoOutro = "turno-cancelado-outro"
+        case turnoAvaliado = "turno-avaliado"
         /// Conta de contratante com uma vaga de seleção de uma posição e quatro candidatos pendentes (#10).
         case selecaoComCandidatos = "selecao-com-candidatos"
         /// Como `selecaoComCandidatos`, mas outro membro da casa ocupa a última posição antes: a
@@ -102,6 +109,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         var daSelecao: Bool { selecaoDoContratante || self == .vagaEmSelecao || candidaturaDaConta != nil }
+
+        var deTurnoCancelado: Bool {
+            self == .turnoCancelado || self == .turnoCanceladoComFalta || self == .turnoCanceladoSemDetalhes || self == .turnoCanceladoOutro
+        }
     }
 
     /// Uma candidatura como o backend a guarda: de quem é, em que vaga e em que estado.
@@ -115,6 +126,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         var estado: EstadoCandidatura
         var criadaEm: Date
     }
+
+    private var avaliacoes: [UUID: Avaliacao] = [:]
 
     private let cenario: Cenario
     private let relogio: any Relogio
@@ -349,7 +362,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     }
                 }
             }
-            if (cenario == .turnoEncerrado || cenario == .turnoEncerradoVerificado), let vaga = self.vagas.first {
+            if (cenario == .turnoEncerrado || cenario == .avaliacaoSemRede || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado), let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "22000000-0000-0000-0000-000000000002")!
                 let duracao: TimeInterval = 6 * 3600
@@ -412,6 +425,22 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     registradoEm: fim,
                     distanciaMetros: 50
                 )
+            }
+            if cenario.deTurnoCancelado {
+                let causa: CausaDoCancelamento = cenario == .turnoCanceladoComFalta ? .reaberturaPorAtraso : (cenario == .turnoCanceladoOutro ? .outro : .profissional)
+                let cancelamento: CancelamentoDoTurno? = cenario == .turnoCanceladoSemDetalhes ? nil :
+                    CancelamentoDoTurno(causa: causa, falta: cenario == .turnoCanceladoComFalta, canceladaEm: relogio.agora)
+                turnosCancelados = turnos.map { t in
+                    Turno(id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
+                          contatoVisivelAte: t.contatoVisivelAte, checkin: t.checkin, checkout: t.checkout,
+                          verificacao: t.verificacao, valorAcordado: t.valorAcordado, podeAvaliar: false,
+                          estado: .cancelada, avaliacaoInformada: true, cancelamento: cancelamento)
+                }
+                turnos = []
+                contatos = [:]
+            }
+            if cenario == .turnoAvaliado, let turno = turnos.first {
+                avaliacoes[turno.id] = Avaliacao(turnoID: turno.id, resposta: false, criadaEm: relogio.agora)
             }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
@@ -920,31 +949,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     // MARK: Turno
 
-    /// Como `meus_turnos` do backend, traz também os turnos de posição cancelada. O `Turno` do
-    /// contrato não tem estado: o que os distingue é só a verificação, que deixa de ser `pendente`.
+    /// Como `meus_turnos` na 0.2.31, mantém cancelados e devolve o voto deste lado.
     public func meusTurnos() async throws -> [Turno] {
         try verificarFalhaGeral()
         let agora = relogio.agora
         return (turnos + turnosCancelados).filter { profissionaisEscolhidos[$0.id] == nil }.map { t in
             let fimPassou = t.vaga.periodo.fim <= agora
-            let pode = t.verificacao == .verificado && fimPassou
-            if t.podeAvaliar != pode {
-                return Turno(
-                    id: t.id,
-                    posicaoID: t.posicaoID,
-                    vaga: t.vaga,
-                    contraparte: t.contraparte,
-                    contatoVisivelAte: t.contatoVisivelAte,
-                    aCaminhoEm: t.aCaminhoEm,
-                    checkin: t.checkin,
-                    checkout: t.checkout,
-                    verificacao: t.verificacao,
-                    valorAcordado: t.valorAcordado,
-                    podeAvaliar: pode,
-                    contato: t.contato
-                )
-            }
-            return t
+            let estado: EstadoPosicao = t.cancelado ? .cancelada : (fimPassou && t.checkin != nil ? .cumprida : .confirmada)
+            let avaliacao = avaliacoes[t.id]
+            let pode = estado != .cancelada && t.verificacao == .verificado && fimPassou && avaliacao == nil
+            return Turno(
+                id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
+                contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
+                checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
+                valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
+                estado: estado, avaliacao: avaliacao, avaliacaoInformada: true, cancelamento: t.cancelamento,
+                avaliacaoLidaEm: Date()
+            )
         }
     }
 
@@ -1046,14 +1067,20 @@ public actor ApiClienteEmMemoria: ApiCliente {
             verificacao: novaVerificacao,
             valorAcordado: t.valorAcordado,
             podeAvaliar: podeAvaliar,
-            contato: t.contato
+            contato: t.contato,
+            estado: t.estado, avaliacao: t.avaliacao, avaliacaoInformada: t.avaliacaoInformada,
+            cancelamento: t.cancelamento
         )
     }
 
     public func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
         try verificarFalhaGeral()
+        if cenario == .avaliacaoSemRede { throw ErroDaApi(codigo: .semRede) }
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
-        return Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: relogio.agora)
+        guard avaliacoes[turnoID] == nil else { throw erro("avaliacao_ja_registrada") }
+        let avaliacao = Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: relogio.agora)
+        avaliacoes[turnoID] = avaliacao
+        return avaliacao
     }
 
     // MARK: Turno do contratante
@@ -1489,7 +1516,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
             id: turno.id, posicaoID: turno.posicaoID, vaga: turno.vaga, contraparte: turno.contraparte,
             contatoVisivelAte: turno.contatoVisivelAte, aCaminhoEm: turno.aCaminhoEm, checkin: turno.checkin,
             checkout: turno.checkout, verificacao: verificacao == .pendente ? .naoVerificado : verificacao,
-            valorAcordado: turno.valorAcordado, podeAvaliar: turno.podeAvaliar
+            valorAcordado: turno.valorAcordado, podeAvaliar: false,
+            estado: .cancelada, avaliacao: avaliacoes[turno.id], avaliacaoInformada: true,
+            cancelamento: CancelamentoDoTurno(causa: causa, falta: falta, canceladaEm: relogio.agora)
         ))
         contatos[turno.id] = nil
         var nova: UUID?
@@ -1732,5 +1761,4 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
         suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: prot)
     }
 }
-
 

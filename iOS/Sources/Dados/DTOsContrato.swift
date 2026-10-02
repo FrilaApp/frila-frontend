@@ -644,6 +644,21 @@ enum ContratoAPI {
         let estado: EstadoCandidatura?
     }
 
+    struct CancelamentoDoTurnoDTO: Decodable {
+        let causa: CausaDoCancelamento
+        let falta: Bool
+        let canceladaEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case causa, falta
+            case canceladaEm = "cancelada_em"
+        }
+
+        func dominio() -> CancelamentoDoTurno {
+            CancelamentoDoTurno(causa: causa, falta: falta, canceladaEm: canceladaEm)
+        }
+    }
+
     struct TurnoDTO: Decodable {
         let id: UUID
         let posicaoID: UUID
@@ -660,9 +675,13 @@ enum ContratoAPI {
         let verificacao: Verificacao
         let valorAcordadoCentavos: Int
         let podeAvaliar: Bool
+        let estado: EstadoPosicao?
+        let avaliacao: AvaliacaoDTO?
+        let avaliacaoInformada: Bool
+        let cancelamento: CancelamentoDoTurnoDTO?
 
         enum CodingKeys: String, CodingKey {
-            case id, vaga, contraparte, verificacao
+            case id, vaga, contraparte, verificacao, estado, avaliacao, cancelamento
             case posicaoID = "posicao_id"
             case contatoVisivelAte = "contato_visivel_ate"
             case aCaminhoEm = "a_caminho_em"
@@ -674,6 +693,30 @@ enum ContratoAPI {
             case checkoutDistanciaM = "checkout_distancia_m"
             case valorAcordadoCentavos = "valor_acordado_centavos"
             case podeAvaliar = "pode_avaliar"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            posicaoID = try container.decode(UUID.self, forKey: .posicaoID)
+            vaga = try container.decode(VagaResumoDTO.self, forKey: .vaga)
+            contraparte = try container.decode(PerfilPublicoDTO.self, forKey: .contraparte)
+            contatoVisivelAte = try container.decode(Date.self, forKey: .contatoVisivelAte)
+            aCaminhoEm = try container.decodeIfPresent(Date.self, forKey: .aCaminhoEm)
+            checkinEm = try container.decodeIfPresent(Date.self, forKey: .checkinEm)
+            checkinTipo = try container.decodeIfPresent(TipoRegistro.self, forKey: .checkinTipo)
+            checkinDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkinDistanciaM)
+            checkinConfirmadoEm = try container.decodeIfPresent(Date.self, forKey: .checkinConfirmadoEm)
+            checkoutEm = try container.decodeIfPresent(Date.self, forKey: .checkoutEm)
+            checkoutDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkoutDistanciaM)
+            verificacao = try container.decode(Verificacao.self, forKey: .verificacao)
+            valorAcordadoCentavos = try container.decode(Int.self, forKey: .valorAcordadoCentavos)
+            podeAvaliar = try container.decode(Bool.self, forKey: .podeAvaliar)
+            // Um estado novo não invalida a lista inteira. Ausente ou desconhecido fica sem estado.
+            estado = try container.decodeIfPresent(String.self, forKey: .estado).flatMap(EstadoPosicao.init(rawValue:))
+            avaliacaoInformada = container.contains(.avaliacao)
+            avaliacao = try container.decodeIfPresent(AvaliacaoDTO.self, forKey: .avaliacao)
+            cancelamento = try container.decodeIfPresent(CancelamentoDoTurnoDTO.self, forKey: .cancelamento)
         }
 
         func dominio() throws -> Turno {
@@ -690,7 +733,11 @@ enum ContratoAPI {
                 checkout: checkoutEm.map { Presenca(instante: $0, distanciaMetros: checkoutDistanciaM) },
                 verificacao: verificacao,
                 valorAcordado: Dinheiro(centavos: valorAcordadoCentavos),
-                podeAvaliar: podeAvaliar
+                podeAvaliar: podeAvaliar,
+                estado: estado,
+                avaliacao: avaliacao?.dominio(),
+                avaliacaoInformada: avaliacaoInformada,
+                cancelamento: cancelamento?.dominio(), avaliacaoLidaEm: Date()
             )
         }
     }

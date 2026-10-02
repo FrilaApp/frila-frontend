@@ -153,6 +153,14 @@
     "schema": "#/components/schemas/Turno",
     "lista": true
   },
+  "turnos-com-cancelamento.json": {
+    "schema": "#/components/schemas/Turno",
+    "lista": true
+  },
+  "turnos-com-falta.json": {
+    "schema": "#/components/schemas/Turno",
+    "lista": true
+  },
   "turnos.json": {
     "schema": "#/components/schemas/Turno",
     "lista": true

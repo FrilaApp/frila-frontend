@@ -1,0 +1,188 @@
+import XCTest
+
+@MainActor
+final class TurnoContrato0231UITests: XCTestCase {
+    private let turnoID = "22000000-0000-0000-0000-000000000001"
+
+    private func abrirTurno(_ app: XCUIApplication) {
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        tocar(app.tabBars.buttons["Meus turnos"])
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        tocar(cartao)
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+    }
+
+    func testCanceladoApareceNaListaENoDetalheSemAcoes() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado"]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        tocar(app.tabBars.buttons["Meus turnos"])
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        XCTAssertTrue(cartao.label.contains("Turno cancelado"))
+        tocar(cartao)
+        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
+        let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.label.contains("Você cancelou este turno."))
+        XCTAssertTrue(cancelamento.label.contains("Este cancelamento não contou como falta."))
+        for id in ["presenca-do-turno", "contato-do-turno", "cartao-avaliacao-turno"] {
+            XCTAssertFalse(app.descendants(matching: .any)[id].exists)
+        }
+        for id in ["botao-whatsapp", "Avaliar turno", "Ver avaliação"] {
+            XCTAssertFalse(app.buttons[id].exists)
+        }
+    }
+
+    func testCancelamentoComFaltaMostraCausaEConsequencia() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado-com-falta"]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        abrirTurno(app)
+        let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.label.contains("O estabelecimento reabriu a posição por atraso."))
+        XCTAssertTrue(cancelamento.label.contains("Este cancelamento contou como falta."))
+        XCTAssertFalse(app.buttons["Avaliar turno"].exists)
+    }
+
+    func testCancelamentoAnteriorMostraSoCancelado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado-sem-detalhes"]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        abrirTurno(app)
+        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
+        XCTAssertFalse(app.descendants(matching: .any)["cancelamento-do-turno"].exists)
+        XCTAssertFalse(app.buttons["Avaliar turno"].exists)
+    }
+
+    func testOutraCausaTemTextoNeutro() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado-outro"]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        abrirTurno(app)
+        let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.label.contains("Cancelamento registrado."))
+        XCTAssertTrue(cancelamento.label.contains("Este cancelamento não contou como falta."))
+    }
+
+    func testAvaliacaoDoServidorMostraRespostaSemOferecerNovoEnvio() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-avaliado"]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        abrirTurno(app)
+        conferirAvaliacaoNegativa(app)
+    }
+
+    func testRespostaContinuaDepoisDeSairEEntrarNaConta() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado"]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        abrirTurno(app)
+        let avaliar = app.buttons["Avaliar turno"]
+        if !avaliar.isHittable { app.swipeUp() }
+        XCTAssertTrue(avaliar.waitForExistence(timeout: 5))
+        tocar(avaliar)
+        XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 5))
+        tocar(app.buttons["resposta-nao"])
+        tocar(app.buttons["botao-enviar-avaliacao"])
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-avaliacao"].waitForExistence(timeout: 5))
+        tocar(app.navigationBars["Avaliar turno"].buttons.firstMatch)
+        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
+        tocar(app.tabBars.buttons["Vagas no DF"])
+        tocar(app.buttons["abrir-meu-perfil"])
+        let sair = app.buttons["Sair"]
+        if !sair.isHittable { app.swipeUp() }
+        XCTAssertTrue(sair.waitForExistence(timeout: 5))
+        tocar(sair)
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        tocar(email)
+        email.digitarEEsperar("teste@frila.app")
+        tocar(app.buttons["entrada-receber-codigo"])
+        let codigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
+        tocar(codigo)
+        codigo.digitarEEsperar("123456")
+        tocar(app.buttons["codigo-entrar"])
+        abrirTurno(app)
+        conferirAvaliacaoNegativa(app)
+    }
+
+    func testAvaliarVoltarAListaEAbrirDeNovoPreservaResposta() {
+        conferirReabertura(cenario: "turno-encerrado", offline: false)
+    }
+
+    func testAvaliarSemRedeVoltarAListaEAbrirDeNovoMantemVotoNaFila() {
+        conferirReabertura(cenario: "avaliacao-sem-rede", offline: true)
+    }
+
+    func testAvaliacaoAbertaPeloAvisoUsaRespostaDoServidor() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-avaliado", "-FRILA_AVALIACAO_TURNO_ID", turnoID]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-ja-avaliado"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["resposta-nao"].isSelected)
+        XCTAssertFalse(app.buttons["resposta-sim"].isEnabled)
+        XCTAssertFalse(app.buttons["botao-enviar-avaliacao"].exists)
+    }
+
+    private func conferirReabertura(cenario: String, offline: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", cenario]
+        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
+        app.launch()
+        abrirTurno(app)
+        let avaliar = app.buttons["Avaliar turno"]
+        if !avaliar.isHittable { app.swipeUp() }
+        tocar(avaliar)
+        tocar(app.buttons["resposta-nao"])
+        tocar(app.buttons["botao-enviar-avaliacao"])
+        let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: 5))
+        if offline {
+            XCTAssertTrue(confirmacao.label.contains("Será enviada quando a internet voltar."))
+        }
+        tocar(app.navigationBars["Avaliar turno"].buttons.firstMatch)
+        XCTAssertTrue(app.staticTexts["Turno avaliado · Resposta: Não"].waitForExistence(timeout: 5))
+        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
+        XCTAssertTrue(app.navigationBars["Meus turnos"].waitForExistence(timeout: 5))
+        tocar(app.buttons["meu-turno-\(turnoID)"])
+        conferirAvaliacaoNegativa(app)
+    }
+
+    private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
+        let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
+        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
+        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 5), .completed, file: file, line: line)
+        elemento.tap()
+    }
+
+    private func conferirAvaliacaoNegativa(_ app: XCUIApplication) {
+        let status = app.staticTexts["Turno avaliado · Resposta: Não"]
+        if !status.isHittable { app.swipeUp() }
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertTrue(status.label.contains("Não"))
+        XCTAssertFalse(app.buttons["Avaliar turno"].exists)
+        tocar(app.buttons["Ver avaliação"])
+        XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["resposta-nao"].isSelected)
+        XCTAssertFalse(app.buttons["resposta-nao"].isEnabled)
+        XCTAssertFalse(app.buttons["resposta-sim"].isEnabled)
+        XCTAssertFalse(app.buttons["botao-enviar-avaliacao"].exists)
+    }
+}
