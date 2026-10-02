@@ -252,6 +252,8 @@ public struct TelaMinhasVagas: View {
                         .font(.headline)
                         .foregroundStyle(FrilaCor.textoSecundario)
 
+                    AvisoDePermissaoDePush(perfil: .contratante)
+
                     if let erro = viewModel.erro {
                         AvisoFrila(verbatim: erro, tom: .erro)
                         Button {

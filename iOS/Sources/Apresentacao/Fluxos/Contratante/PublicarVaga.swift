@@ -289,6 +289,7 @@ public struct TelaPublicarVaga: View {
     private let api: any ApiCliente
     private let sair: () -> Void
     @State private var mostrandoPerfilEstabelecimento = false
+    @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String, sair: @escaping () -> Void = {}) {
         self.api = api
@@ -316,6 +317,11 @@ public struct TelaPublicarVaga: View {
             NavigationStack {
                 TelaPerfilEstabelecimento(api: api, sair: sair)
             }
+        }
+        // A vaga publicada é o momento de explicar a notificação a quem contrata (#8): é por ela
+        // que chega o aviso de quem aceitou.
+        .onChange(of: model.resultado != nil) { _, publicou in
+            if publicou { Task { await permissaoDePush?.oferecer() } }
         }
         .task {
             await model.restaurarPublicacaoPendente()

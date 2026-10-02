@@ -32,7 +32,7 @@ struct FrilaApp: App {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
             let api = try Self.cliente(para: ambiente)
-            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api), Self.aparelhoDePush(para: api))
+            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api), Self.aparelhoDePush(para: api), Self.permissaoDePush(para: api))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
@@ -42,9 +42,9 @@ struct FrilaApp: App {
     var body: some Scene {
         WindowGroup {
             switch inicializacao {
-            case let .pronta(api, localizacao, aparelho):
+            case let .pronta(api, localizacao, aparelho, permissao):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao, aparelho: aparelho)
+                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao, aparelho: aparelho, permissao: permissao)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -85,10 +85,33 @@ struct FrilaApp: App {
             ? ArmazenamentoDoAparelhoEmMemoria() : ArmazenamentoDoAparelhoNoKeychain()
         return AparelhoDePush(api: api, armazenamento: armazenamento)
     }
+
+    /// A permissão de notificação é a do sistema. Só o dublê em memória (esquema Local) a simula,
+    /// e concedida, para o pedido de verdade não entrar nos testes de interface: lá,
+    /// `-FRILA_PERMISSAO_PUSH <nao-pedida|negada|sistema>` escolhe outro estado, e
+    /// `-FRILA_PERMISSAO_PUSH_RESPOSTA negada` faz a pessoa recusar o pedido.
+    private static func permissaoDePush(para api: any ApiCliente) -> any PermissaoDePush {
+        #if DEBUG
+        if api is ApiClienteEmMemoria {
+            let argumentos = ProcessInfo.processInfo.arguments
+            func valor(_ nome: String) -> String? {
+                guard let indice = argumentos.firstIndex(of: nome), argumentos.indices.contains(indice + 1) else { return nil }
+                return argumentos[indice + 1]
+            }
+            let pedido = valor("-FRILA_PERMISSAO_PUSH")
+            if pedido == "sistema" { return PermissaoDePushDoSistema() }
+            return PermissaoDePushSimulada(
+                estado: pedido.flatMap(EstadoDaPermissaoDePush.init(rawValue:)) ?? .concedida,
+                resposta: valor("-FRILA_PERMISSAO_PUSH_RESPOSTA").flatMap(EstadoDaPermissaoDePush.init(rawValue:)) ?? .concedida
+            )
+        }
+        #endif
+        return PermissaoDePushDoSistema()
+    }
 }
 
 private enum Inicializacao {
-    case pronta(any ApiCliente, any LeitorDeLocalizacao, AparelhoDePush)
+    case pronta(any ApiCliente, any LeitorDeLocalizacao, AparelhoDePush, any PermissaoDePush)
     case configuracaoInvalida(ErroDeConfiguracao)
 }
 
@@ -108,6 +131,8 @@ private struct EntradaDoApp: View {
     @State private var roteadorDoContratante: RoteadorDoContratante
     /// O ponto único do toque num push (#8): confere a conta e manda para um dos dois roteadores acima.
     @State private var roteadorDePush: RoteadorDePush
+    /// A permissão de notificação, a tela de explicação e o aviso fixo de quem está sem ela (#8).
+    @State private var permissaoDePush: PermissaoDePushModelo
     @State private var contaID: UUID?
     @State private var destinoAtual: DestinoDaConta?
     @State private var carregandoDestino: Bool = true
@@ -117,9 +142,16 @@ private struct EntradaDoApp: View {
     @State private var rotaInicialAplicada = false
     #endif
 
-    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao, aparelho: AparelhoDePush) {
+    init(
+        api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao,
+        aparelho: AparelhoDePush, permissao: any PermissaoDePush
+    ) {
         self.api = api
         self.aparelho = aparelho
+        _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: permissao, abrirAjustes: {
+            guard let ajustes = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
+            UIApplication.shared.open(ajustes)
+        }))
         let profissional = RoteadorDoProfissional()
         let contratante = RoteadorDoContratante()
         _roteador = State(initialValue: profissional)
@@ -181,18 +213,29 @@ private struct EntradaDoApp: View {
             fluxoOuTelaSemSessao
             #endif
         }
+        .environment(permissaoDePush)
+        .sheet(isPresented: $permissaoDePush.explicacaoVisivel) {
+            TelaExplicacaoDoPush(modelo: permissaoDePush, perfil: destinoAtual == .contratante ? .contratante : .profissional)
+        }
         .task { await avaliarSessao() }
+        .task { await permissaoDePush.atualizar() }
         // O token de push passa a ser da conta que está no aparelho, a cada abertura com sessão e a
         // cada entrada (#162). Sem token, ainda não há o que registrar. O roteador do push fica
         // sabendo de quem é o aparelho antes do registro, com o vínculo guardado, para o toque que
         // abriu o app não esperar a rede, e de novo depois, com o vínculo que o servidor confirmou.
-        .task(id: ContaNaTela(contaID: contaID, destino: destinoAtual)) {
-            guard let contaID else { return }
+        // Só fica registrado quem tem a permissão: sem ela, o token sai do servidor (contrato de
+        // `registrar_dispositivo`), e volta quando a permissão vier.
+        .task(id: ContaNaTela(contaID: contaID, destino: destinoAtual, permissao: permissaoDePush.estado)) {
+            guard let contaID, let permissao = permissaoDePush.estado else { return }
             #if DEBUG
             await simularTokenDePushSePedido()
             #endif
             await informarContaAoPush(contaID)
-            await aparelho.registrar(para: contaID)
+            if permissao == .concedida {
+                await aparelho.registrar(para: contaID)
+            } else {
+                await aparelho.suspender()
+            }
             await informarContaAoPush(contaID)
             #if DEBUG
             if !Task.isCancelled { aplicarPushDosArgumentos() }
@@ -207,6 +250,8 @@ private struct EntradaDoApp: View {
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
         .onChange(of: fase) { _, nova in
             if nova == .active, destinoAtual == nil { Task { await avaliarSessao() } }
+            // A pessoa pode ter mudado a permissão de notificação nos Ajustes.
+            if nova == .active { Task { await permissaoDePush.atualizar() } }
         }
         .task {
             guard let observador = api as? any ObservadorDeSessao else { return }
@@ -509,10 +554,12 @@ private struct EntradaDoApp: View {
     }
 }
 
-/// A conta e o fluxo que estão na tela: quando um dos dois muda, o push é avisado de novo.
+/// A conta, o fluxo e a permissão de notificação: quando um deles muda, o registro do aparelho e o
+/// roteador do push são atualizados.
 private struct ContaNaTela: Equatable {
     let contaID: UUID?
     let destino: DestinoDaConta?
+    let permissao: EstadoDaPermissaoDePush?
 }
 
 private struct TelaInicialDaFundacao: View {
