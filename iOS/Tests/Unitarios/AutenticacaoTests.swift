@@ -383,11 +383,20 @@ struct AutenticacaoTests {
         #expect(destino == .profissional)
     }
 
+    private func criarUserDefaultsIsolado() -> (UserDefaults, String) {
+        let nome = "AutenticacaoTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: nome)!
+        return (defaults, nome)
+    }
+
     @Test("DestinoDaConta: sem rede na abertura mantém destino guardado prévio (Critério 5)")
     func destinoSemRedeComContaSuspensaMantemDestinoGuardado() async throws {
-        DestinoGuardado.salvar(.profissional)
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.salvar(.profissional, em: defaults)
         let api = ApiClienteEmMemoria(cenario: .semRede)
-        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api, defaults: defaults)
         #expect(destino == .profissional)
     }
 
@@ -455,21 +464,26 @@ struct AutenticacaoTests {
 
     @Test("DestinoDaConta: semRede com destino guardado recupera o destino")
     func destinoSemRedeComDestinoGuardado() async throws {
-        DestinoGuardado.salvar(.profissional)
-        defer { DestinoGuardado.limpar() }
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.salvar(.profissional, em: defaults)
 
         let api = ApiClienteEmMemoria(cenario: .semRede)
-        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api, defaults: defaults)
         #expect(destino == .profissional)
     }
 
     @Test("DestinoDaConta: semRede sem destino guardado lança erro")
     func destinoSemRedeSemDestinoGuardado() async throws {
-        DestinoGuardado.limpar()
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.limpar(em: defaults)
 
         let api = ApiClienteEmMemoria(cenario: .semRede)
         do {
-            _ = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+            _ = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api, defaults: defaults)
             Issue.record("Deveria ter lançado erro de rede quando não há destino guardado")
         } catch let erro as ErroDaApi {
             #expect(erro.codigo == .semRede)
@@ -478,8 +492,11 @@ struct AutenticacaoTests {
 
     @Test("SaidaDaConta: ao sair da conta, o destino guardado é apagado")
     func saidaDaContaLimpaDestinoGuardado() async throws {
-        DestinoGuardado.salvar(.profissional)
-        #expect(DestinoGuardado.obter() == .profissional)
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.salvar(.profissional, em: defaults)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
 
         let container = try PersistenciaFrila.criarContainer(emMemoria: true)
         let local = ArmazenamentoSwiftData(modelContainer: container)
@@ -507,11 +524,19 @@ struct AutenticacaoTests {
         try await local.enfileirar(AcaoPendente(tipo: .checkin, turnoID: turno.id, instanteDoToque: instante, chave: UUID(), distanciaMetros: 20))
         #expect(try await local.turnosValidos(em: instante).first?.contato?.telefone == "+5561999990000")
         #expect(try await local.pendentes().count == 1)
-        let saida = SaidaDaConta(api: api, armazenamento: local)
+        let saida = SaidaDaConta(
+            api: api,
+            armazenamento: local,
+            limparDestino: {
+                if let defs = UserDefaults(suiteName: suiteName) {
+                    DestinoGuardado.limpar(em: defs)
+                }
+            }
+        )
 
         await saida.sair(tokenFCM: nil)
 
-        #expect(DestinoGuardado.obter() == nil)
+        #expect(DestinoGuardado.obter(de: defaults) == nil)
         #expect(try await local.sessao() == nil)
         #expect(try await local.turnosValidos(em: instante).isEmpty)
         #expect(try await local.funcoes().isEmpty)
