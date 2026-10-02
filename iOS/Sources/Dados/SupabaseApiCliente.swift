@@ -281,6 +281,23 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return try converter { try resposta.dominio() }
     }
 
+    public func exportarMeusDados() async throws -> Data {
+        let relogio = ContinuousClock()
+        let inicio = relogio.now
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        do {
+            let dados: Data = try await cliente.functions.invoke("exportar-meus-dados") { data, _ in data }
+            return dados
+        } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
+            let tipado = mapear(error)
+            await telemetria.registrarErroDaApi(codigo: tipado.codigoOriginal, rpc: "exportar-meus-dados", duracao: inicio.duration(to: relogio.now))
+            throw tipado
+        }
+    }
+
     // MARK: Aplicativo e dispositivo
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
