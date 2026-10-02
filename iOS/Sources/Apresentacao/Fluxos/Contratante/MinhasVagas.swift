@@ -374,7 +374,22 @@ private struct DestinoDaVagaDoContratante: View {
     var body: some View {
         if let vaga = acompanhamento.vaga(id: vagaID) ?? viewModel.vagas.first(where: { $0.vaga.id == vagaID }) {
             TelaDetalheVagaContratante(vaga: vaga, api: api, confirmado: viewModel.confirmadas(vaga))
-        } else if acompanhamento.painel == nil, !acompanhamento.falhouAoCarregar {
+        } else if acompanhamento.falhouAoCarregar {
+            // Sem leitura que tenha dado certo, não dá para dizer que a vaga não existe.
+            VStack(spacing: FrilaEspaco.medio) {
+                AvisoFrila(verbatim: TextosDoAcompanhamento.falhaAoCarregarVaga, tom: .erro)
+                BotaoSecundario("Tentar novamente") {
+                    Task {
+                        await viewModel.carregar()
+                        await acompanhamento.carregar()
+                    }
+                }
+                .accessibilityIdentifier("tentar-de-novo-vaga")
+            }
+            .padding(FrilaEspaco.medio)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("vaga-contratante-falha-ao-carregar")
+        } else if acompanhamento.painel == nil {
             EstadoCarregando()
         } else {
             AvisoFrila(verbatim: TextosDoAcompanhamento.vagaNaoEncontrada, tom: .informativo)

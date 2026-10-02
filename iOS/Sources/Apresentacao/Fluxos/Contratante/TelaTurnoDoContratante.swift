@@ -24,6 +24,9 @@ enum TextosDoAcompanhamento {
     static let faltaSemReabertura = String(localized: "Falta registrada. Falta menos de 1 hora para o fim do turno, e a vaga não foi reaberta.", bundle: bundleApresentacao)
     static let antesDaTolerancia = String(localized: "Ainda não passaram 15 minutos do início do turno.", bundle: bundleApresentacao)
     static let situacaoMudou = String(localized: "A situação deste turno mudou. Atualizamos a tela.", bundle: bundleApresentacao)
+    static let situacaoMudouSemAtualizar = String(localized: "A situação deste turno mudou.", bundle: bundleApresentacao)
+    static let desatualizado = String(localized: "Não foi possível atualizar. O que aparece aqui pode estar desatualizado.", bundle: bundleApresentacao)
+    static let falhaAoCarregarVaga = String(localized: "Não foi possível carregar a vaga. Tente novamente.", bundle: bundleApresentacao)
     static let falhaAoCarregar = String(localized: "Não foi possível carregar o turno. Tente novamente.", bundle: bundleApresentacao)
     static let naoEncontrado = String(localized: "Não encontramos este turno.", bundle: bundleApresentacao)
     static let profissional = String(localized: "Profissional confirmado", bundle: bundleApresentacao)
@@ -42,10 +45,11 @@ enum TextosDoAcompanhamento {
         }
     }
 
-    static func falha(_ falha: FalhaDoAcompanhamento) -> String {
+    /// Só diz "Atualizamos a tela" quando a releitura depois da recusa deu certo.
+    static func falha(_ falha: FalhaDoAcompanhamento, desatualizado: Bool) -> String {
         switch falha {
         case .antesDaTolerancia: antesDaTolerancia
-        case .situacaoMudou: situacaoMudou
+        case .situacaoMudou: desatualizado ? situacaoMudouSemAtualizar : situacaoMudou
         case let .api(erro): MensagemDoErroAPI.texto(erro)
         }
     }
@@ -67,9 +71,11 @@ struct TelaTurnoDoContratante: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if let turno = viewModel.turno(turnoID: turnoID) {
                     conteudo(turno)
-                } else if viewModel.painel == nil, viewModel.falhouAoCarregar {
+                } else if viewModel.falhouAoCarregar {
+                    // Sem leitura que tenha dado certo, não dá para dizer que o turno não existe.
                     AvisoFrila(verbatim: TextosDoAcompanhamento.falhaAoCarregar, tom: .erro)
                     BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+                        .accessibilityIdentifier("tentar-de-novo-turno")
                 } else if viewModel.painel == nil {
                     EstadoCarregando()
                 } else {
@@ -125,15 +131,19 @@ struct TelaTurnoDoContratante: View {
         case .manualPendente:
             Text(verbatim: TextosDoAcompanhamento.manualPendente).font(.headline)
             Text(verbatim: TextosDoAcompanhamento.explicacaoDaConfirmacao).foregroundStyle(FrilaCor.textoSecundario)
-            BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
-                Task { await viewModel.confirmarPresenca(turno) }
+            if viewModel.podeConfirmar(turno) {
+                BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
+                    Task { await viewModel.confirmarPresenca(turno) }
+                }
+                .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
             }
-            .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
         case .emAtraso:
             AvisoFrila(verbatim: TextosDoAcompanhamento.emAtraso, tom: .alerta)
-            BotaoSecundario(verbatim: TextosDoAcompanhamento.reabrirVaga) { viewModel.pedirReabertura(turno) }
-                .disabled(viewModel.emAndamento.contains(turno.id))
-                .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
+            if viewModel.podeReabrir(turno) {
+                BotaoSecundario(verbatim: TextosDoAcompanhamento.reabrirVaga) { viewModel.pedirReabertura(turno) }
+                    .disabled(viewModel.emAndamento.contains(turno.id))
+                    .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
+            }
         case .verificada:
             Text(verbatim: TextosDoAcompanhamento.verificada).font(.headline)
                 .accessibilityIdentifier("presenca-verificada-\(turnoID)")
@@ -156,8 +166,15 @@ struct AvisosDoAcompanhamento: View {
                 .accessibilityIdentifier("resultado-do-acompanhamento")
         }
         if let falha = viewModel.falha {
-            AvisoFrila(verbatim: TextosDoAcompanhamento.falha(falha), tom: .erro)
+            AvisoFrila(verbatim: TextosDoAcompanhamento.falha(falha, desatualizado: viewModel.falhouAoCarregar), tom: .erro)
                 .accessibilityIdentifier("falha-do-acompanhamento")
+        }
+        // A leitura falhou com um painel já na tela: o que aparece pode estar velho.
+        if viewModel.falhouAoCarregar, viewModel.painel != nil {
+            AvisoFrila(verbatim: TextosDoAcompanhamento.desatualizado, tom: .alerta)
+                .accessibilityIdentifier("acompanhamento-desatualizado")
+            BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+                .accessibilityIdentifier("atualizar-acompanhamento")
         }
     }
 }
@@ -202,10 +219,12 @@ struct PendenciasDoContratante: View {
             secao(TextosDoAcompanhamento.presencasAConfirmar, id: "presencas-a-confirmar") {
                 ForEach(pendentes) { turno in
                     cartao(turno, detalhe: TextosDoAcompanhamento.explicacaoDaConfirmacao) {
-                        BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
-                            Task { await viewModel.confirmarPresenca(turno) }
+                        if viewModel.podeConfirmar(turno) {
+                            BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
+                                Task { await viewModel.confirmarPresenca(turno) }
+                            }
+                            .accessibilityIdentifier("confirmar-presenca-\(turno.posicao.turnoID?.uuidString ?? "")")
                         }
-                        .accessibilityIdentifier("confirmar-presenca-\(turno.posicao.turnoID?.uuidString ?? "")")
                     }
                 }
             }
@@ -214,9 +233,11 @@ struct PendenciasDoContratante: View {
             secao(TextosDoAcompanhamento.atrasos, id: "turnos-em-atraso") {
                 ForEach(atrasos) { turno in
                     cartao(turno, detalhe: TextosDoAcompanhamento.semCheckin) {
-                        BotaoSecundario(verbatim: TextosDoAcompanhamento.reabrirVaga) { viewModel.pedirReabertura(turno) }
-                            .disabled(viewModel.emAndamento.contains(turno.id))
-                            .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
+                        if viewModel.podeReabrir(turno) {
+                            BotaoSecundario(verbatim: TextosDoAcompanhamento.reabrirVaga) { viewModel.pedirReabertura(turno) }
+                                .disabled(viewModel.emAndamento.contains(turno.id))
+                                .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
+                        }
                     }
                 }
             }

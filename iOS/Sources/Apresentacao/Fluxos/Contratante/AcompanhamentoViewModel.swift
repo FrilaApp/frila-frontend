@@ -114,7 +114,8 @@ public final class AcompanhamentoViewModel {
 
     /// Posições em atraso, da vaga que começou primeiro para a que começou depois.
     public var emAtraso: [TurnoAcompanhado] {
-        turnos.filter { podeReabrir($0) }.sorted { $0.vaga.periodo.inicio < $1.vaga.periodo.inicio }
+        turnos.filter { $0.posicao.estado == .confirmada && $0.posicao.emAtraso }
+            .sorted { $0.vaga.periodo.inicio < $1.vaga.periodo.inicio }
     }
 
     public func turno(turnoID: UUID) -> TurnoAcompanhado? {
@@ -125,20 +126,27 @@ public final class AcompanhamentoViewModel {
         painel?.vagas.first { $0.vaga.id == id }
     }
 
-    public func podeConfirmar(_ turno: TurnoAcompanhado) -> Bool {
+    private func pendenteNoPainel(_ turno: TurnoAcompanhado) -> Bool {
         guard let turnoID = turno.posicao.turnoID else { return false }
         return painel?.checkinsPendentes.contains(turnoID) ?? false
     }
 
-    /// Só o `em_atraso` do painel libera a reabertura: antes dos 15 minutos o botão não existe.
+    /// O check-in manual está pendente no painel, e o servidor não recusou este turno desde a
+    /// última leitura.
+    public func podeConfirmar(_ turno: TurnoAcompanhado) -> Bool {
+        pendenteNoPainel(turno) && !recusadas.contains(turno.id)
+    }
+
+    /// Só o `em_atraso` do painel libera a reabertura: antes dos 15 minutos o botão não existe. Depois
+    /// de uma recusa do servidor, também não, até o painel ser relido.
     public func podeReabrir(_ turno: TurnoAcompanhado) -> Bool {
-        turno.posicao.estado == .confirmada && turno.posicao.emAtraso
+        turno.posicao.estado == .confirmada && turno.posicao.emAtraso && !recusadas.contains(turno.id)
     }
 
     public func chegada(_ turno: TurnoAcompanhado) -> ChegadaDoProfissional {
         let posicao = turno.posicao
         if posicao.estado == .cancelada { return .cancelada }
-        if podeConfirmar(turno) { return .manualPendente }
+        if pendenteNoPainel(turno) { return .manualPendente }
         if posicao.verificacao == .verificado { return .verificada }
         if posicao.verificacao == .naoVerificado { return .naoVerificada }
         if posicao.emAtraso { return .emAtraso }
@@ -152,30 +160,55 @@ public final class AcompanhamentoViewModel {
         guard !carregando else { return }
         carregando = true
         defer { carregando = false }
-        do {
-            painel = try await buscarPainel()
-            falhouAoCarregar = false
-        } catch {
-            falhouAoCarregar = true
+        await lerPainel(registrandoFalha: true)
+    }
+
+    /// Lê o painel e só o aplica se nenhuma ação respondeu enquanto a leitura estava em voo. Uma
+    /// leitura que saiu antes da confirmação pode chegar depois dela com o estado antigo, e traria
+    /// de volta a pendência que a tela acabou de tirar; nesse caso a resposta é descartada e o
+    /// painel é lido de novo.
+    @discardableResult
+    private func lerPainel(registrandoFalha: Bool) async -> Bool {
+        while true {
+            let geracaoDaLeitura = geracao
+            do {
+                let novo = try await buscarPainel()
+                guard geracaoDaLeitura == geracao else { continue }
+                painel = novo
+                falhouAoCarregar = false
+                recusadas = []
+                return true
+            } catch {
+                guard geracaoDaLeitura == geracao else { continue }
+                if registrandoFalha { falhouAoCarregar = true }
+                return false
+            }
         }
     }
 
+    /// O turno como o painel o traz agora: o que a tela guardou pode ser de antes de uma leitura.
+    private func atual(_ turno: TurnoAcompanhado) -> TurnoAcompanhado? {
+        turnos.first { $0.id == turno.id }
+    }
+
     /// Um toque: o turno sai dos pendentes e a presença fica verificada assim que o servidor responde.
+    /// Só envia se o check-in ainda está pendente no painel de agora.
     public func confirmarPresenca(_ turno: TurnoAcompanhado) async {
-        guard let turnoID = turno.posicao.turnoID, !emAndamento.contains(turno.id) else { return }
+        guard let turno = atual(turno), podeConfirmar(turno), let turnoID = turno.posicao.turnoID,
+              !emAndamento.contains(turno.id) else { return }
         emAndamento.insert(turno.id)
         defer { emAndamento.remove(turno.id) }
         resultado = nil
         falha = nil
         do {
             let registro = try await confirmar(turnoID)
+            geracao += 1
             aplicar(verificacao: registro.verificacao, aoTurno: turnoID)
             resultado = .presencaConfirmada
             await aoMudar()
         } catch let erro as ErroDaApi where erro.codigo == .checkinJaConfirmado || erro.codigo == .checkinPendente {
             // O painel estava velho: o check-in já nasceu verificado, ou deixou de existir.
-            falha = .situacaoMudou
-            await recarregarEmSilencio()
+            await relerDepoisDaRecusa(de: turno, falha: .situacaoMudou)
         } catch {
             falha = .api(error as? ErroDaApi ?? ErroDaApi(codigo: .desconhecido))
         }
@@ -183,7 +216,7 @@ public final class AcompanhamentoViewModel {
 
     /// Reabrir conta como falta e não tem volta: a tela pergunta antes.
     public func pedirReabertura(_ turno: TurnoAcompanhado) {
-        guard podeReabrir(turno), !emAndamento.contains(turno.id) else { return }
+        guard let turno = atual(turno), podeReabrir(turno), !emAndamento.contains(turno.id) else { return }
         reaberturaEmConfirmacao = turno
     }
 
@@ -191,14 +224,14 @@ public final class AcompanhamentoViewModel {
         reaberturaEmConfirmacao = nil
     }
 
-    /// Só reabre o turno que passou por `pedirReabertura`. O pedido é lido aqui, na hora do toque, e
-    /// não dentro da tarefa: o alerta, ao fechar, chama `desistirDaReabertura` antes de a tarefa
-    /// começar, e a reabertura confirmada se perderia.
+    /// Só reabre o turno que passou por `pedirReabertura` e que continua em atraso no painel de
+    /// agora. O pedido é lido aqui, na hora do toque, e não dentro da tarefa: o alerta, ao fechar,
+    /// chama `desistirDaReabertura` antes de a tarefa começar, e a reabertura confirmada se perderia.
     @discardableResult
     public func confirmarReabertura() -> Task<Void, Never>? {
-        guard let turno = reaberturaEmConfirmacao else { return nil }
+        guard let pedido = reaberturaEmConfirmacao else { return nil }
         reaberturaEmConfirmacao = nil
-        guard !emAndamento.contains(turno.id) else { return nil }
+        guard let turno = atual(pedido), podeReabrir(turno), !emAndamento.contains(turno.id) else { return nil }
         emAndamento.insert(turno.id)
         return Task { await reabrirConfirmado(turno) }
     }
@@ -209,16 +242,16 @@ public final class AcompanhamentoViewModel {
         falha = nil
         do {
             let cancelamento = try await reabrir(turno.posicao.id)
+            geracao += 1
             aplicar(cancelamento)
             resultado = cancelamento.reaberta ? .vagaReaberta : .faltaSemReabertura
-            await recarregarEmSilencio()
+            // A leitura nova só confirma o que a tela já mostra; se falhar, o estado aplicado vale.
+            await lerPainel(registrandoFalha: false)
             await aoMudar()
         } catch let erro as ErroDaApi where erro.codigo == .reaberturaAntesDaTolerancia {
-            falha = .antesDaTolerancia
-            await recarregarEmSilencio()
+            await relerDepoisDaRecusa(de: turno, falha: .antesDaTolerancia)
         } catch let erro as ErroDaApi where erro.codigo == .posicaoNaoCancelavel {
-            falha = .situacaoMudou
-            await recarregarEmSilencio()
+            await relerDepoisDaRecusa(de: turno, falha: .situacaoMudou)
         } catch {
             falha = .api(error as? ErroDaApi ?? ErroDaApi(codigo: .desconhecido))
         }
@@ -226,10 +259,20 @@ public final class AcompanhamentoViewModel {
 
     // MARK: Estado local
 
-    /// Depois de uma ação que deu certo, a leitura nova só confirma o que a tela já mostra; se ela
-    /// falhar, o estado aplicado na hora continua valendo.
-    private func recarregarEmSilencio() async {
-        if let novo = try? await buscarPainel() { painel = novo }
+    /// Sobe a cada resposta do servidor a uma ação, aceita ou recusada: as leituras que saíram antes
+    /// dela não valem mais.
+    private var geracao = 0
+    /// Posições cuja ação o servidor recusou e que ainda não foram relidas: o painel da tela está
+    /// velho para elas, e a ação não é oferecida de novo até a próxima leitura que der certo.
+    private var recusadas: Set<UUID> = []
+
+    /// O servidor recusou porque o painel da tela estava velho. Só a releitura conserta a tela; se
+    /// ela falhar, `falhouAoCarregar` avisa que o que aparece está desatualizado.
+    private func relerDepoisDaRecusa(de turno: TurnoAcompanhado, falha: FalhaDoAcompanhamento) async {
+        geracao += 1
+        recusadas.insert(turno.id)
+        self.falha = falha
+        await lerPainel(registrandoFalha: true)
     }
 
     private func aplicar(verificacao: Verificacao, aoTurno turnoID: UUID) {

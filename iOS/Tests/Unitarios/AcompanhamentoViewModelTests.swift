@@ -15,7 +15,29 @@ private final class RelogioDeTeste: Relogio, @unchecked Sendable {
 
 private actor Contador {
     private(set) var valor = 0
-    func somar() { valor += 1 }
+    /// Soma um e devolve o total, numa passada só: é o número de ordem da chamada.
+    @discardableResult
+    func somar() -> Int {
+        valor += 1
+        return valor
+    }
+}
+
+/// Segura uma resposta até o teste liberar: é como uma leitura lenta chega depois de uma ação.
+private actor Portao {
+    private var aberto = false
+    private var esperando: [CheckedContinuation<Void, Never>] = []
+
+    func esperar() async {
+        guard !aberto else { return }
+        await withCheckedContinuation { esperando.append($0) }
+    }
+
+    func abrir() {
+        aberto = true
+        esperando.forEach { $0.resume() }
+        esperando = []
+    }
 }
 
 private let hora: TimeInterval = 3_600
@@ -116,10 +138,12 @@ private enum PainelDeTeste {
     }
 
     /// Um turno com check-in manual pendente (`pendente: true`) ou em atraso.
-    static func painel(pendente: Bool = false, emAtraso: Bool = false, aCaminhoEm: Date? = nil) throws -> Painel {
+    static func painel(
+        pendente: Bool = false, emAtraso: Bool = false, aCaminhoEm: Date? = nil, verificacao: Verificacao = .pendente
+    ) throws -> Painel {
         Painel(
             estabelecimentoID: casa,
-            vagas: [try vaga(posicoes: [posicao(emAtraso: emAtraso, aCaminhoEm: aCaminhoEm)])],
+            vagas: [try vaga(posicoes: [posicao(verificacao: verificacao, emAtraso: emAtraso, aCaminhoEm: aCaminhoEm)])],
             checkinsPendentes: pendente ? [turnoID] : []
         )
     }
@@ -252,6 +276,103 @@ struct AcompanhamentoViewModelTests {
         #expect(viewModel.falha == .situacaoMudou)
         #expect(viewModel.pendentes.isEmpty)
         #expect(await leituras.valor == 2)
+    }
+
+    @Test("Uma leitura que saiu antes da confirmação e chega depois não traz a pendência de volta")
+    func leituraAntigaNaoDesfazConfirmacao() async throws {
+        let leituras = Contador()
+        let portao = Portao()
+        let velho = try PainelDeTeste.painel(pendente: true)
+        let novo = try PainelDeTeste.painel(verificacao: .verificado)
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                switch await leituras.somar() {
+                case 1: return velho
+                case 2:
+                    // Saiu antes da confirmação e só chega depois dela, ainda com a pendência.
+                    await portao.esperar()
+                    return velho
+                default: return novo
+                }
+            },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+        let turno = try #require(viewModel.pendentes.first)
+        let releitura = Task { await viewModel.carregar() }
+        while await leituras.valor < 2 { await Task.yield() }
+
+        await viewModel.confirmarPresenca(turno)
+        #expect(viewModel.pendentes.isEmpty)
+        await portao.abrir()
+        await releitura.value
+
+        #expect(viewModel.pendentes.isEmpty)
+        #expect(viewModel.chegada(try #require(viewModel.turno(turnoID: PainelDeTeste.turnoID))) == .verificada)
+        #expect(viewModel.resultado == .presencaConfirmada)
+        // A resposta antiga foi descartada, e o painel, lido de novo.
+        #expect(await leituras.valor == 3)
+        #expect(!viewModel.carregando)
+    }
+
+    @Test("Confirmar presença não chama a API se o check-in não está pendente no painel de agora")
+    func confirmarSemPendencia() async throws {
+        let chamadas = Contador()
+        let leituras = Contador()
+        let pendente = try PainelDeTeste.painel(pendente: true)
+        let semPendencia = try PainelDeTeste.painel(verificacao: .verificado)
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: { await leituras.somar() == 1 ? pendente : semPendencia },
+            confirmar: { _ in
+                await chamadas.somar()
+                return PainelDeTeste.confirmado
+            },
+            reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+        let guardadoPelaTela = try #require(viewModel.pendentes.first)
+        await viewModel.carregar()
+        #expect(viewModel.pendentes.isEmpty)
+
+        // A tela ainda tem o turno de antes da releitura; o que vale é o painel de agora.
+        await viewModel.confirmarPresenca(guardadoPelaTela)
+
+        #expect(await chamadas.valor == 0)
+        #expect(viewModel.resultado == nil)
+        #expect(viewModel.falha == nil)
+    }
+
+    @Test("Recusa na confirmação com falha na releitura: a tela se diz desatualizada e não oferece confirmar de novo")
+    func confirmarRecusadoSemReler() async throws {
+        let leituras = Contador()
+        let velho = try PainelDeTeste.painel(pendente: true)
+        let novo = try PainelDeTeste.painel(verificacao: .verificado)
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                switch await leituras.somar() {
+                case 1: return velho
+                case 2: throw ErroDaApi(codigo: .semRede)
+                default: return novo
+                }
+            },
+            confirmar: { _ in throw ErroDaApi(codigo: .checkinJaConfirmado) },
+            reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+        let turno = try #require(viewModel.pendentes.first)
+
+        await viewModel.confirmarPresenca(turno)
+
+        #expect(viewModel.falha == .situacaoMudou)
+        #expect(viewModel.falhouAoCarregar)
+        #expect(!viewModel.podeConfirmar(turno))
+        #expect(TextosDoAcompanhamento.falha(.situacaoMudou, desatualizado: viewModel.falhouAoCarregar) == "A situação deste turno mudou.")
+
+        await viewModel.carregar()
+        #expect(!viewModel.falhouAoCarregar)
+        #expect(viewModel.pendentes.isEmpty)
+        #expect(TextosDoAcompanhamento.falha(.situacaoMudou, desatualizado: viewModel.falhouAoCarregar) == "A situação deste turno mudou. Atualizamos a tela.")
     }
 
     // MARK: Critério 3 — reabrir a vaga
@@ -402,7 +523,98 @@ struct AcompanhamentoViewModelTests {
         #expect(await leituras.valor == 2)
     }
 
+    @Test("Recusa na reabertura com falha na releitura: o atraso continua na tela, marcada como desatualizada, sem oferecer reabrir")
+    func reabrirRecusadoSemReler() async throws {
+        let leituras = Contador()
+        let chamadas = Contador()
+        let velho = try PainelDeTeste.painel(emAtraso: true)
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                // A terceira leitura dá certo e ainda traz o atraso: o servidor é quem diz.
+                guard await leituras.somar() != 2 else { throw ErroDaApi(codigo: .semRede) }
+                return velho
+            },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in
+                await chamadas.somar()
+                throw ErroDaApi(codigo: .posicaoNaoCancelavel, detalhes: "checkin_registrado")
+            }
+        )
+        await viewModel.carregar()
+        let turno = try #require(viewModel.emAtraso.first)
+        viewModel.pedirReabertura(turno)
+
+        await viewModel.confirmarReabertura()?.value
+
+        #expect(viewModel.falha == .situacaoMudou)
+        #expect(viewModel.falhouAoCarregar)
+        #expect(TextosDoAcompanhamento.falha(.situacaoMudou, desatualizado: viewModel.falhouAoCarregar) == "A situação deste turno mudou.")
+        // O painel velho ainda mostra o atraso, mas a reabertura não é oferecida nem aceita.
+        #expect(viewModel.emAtraso.count == 1)
+        #expect(!viewModel.podeReabrir(turno))
+        viewModel.pedirReabertura(turno)
+        #expect(viewModel.reaberturaEmConfirmacao == nil)
+        #expect(await chamadas.valor == 1)
+
+        // Relido com sucesso, vale de novo o que o servidor disser.
+        await viewModel.carregar()
+        #expect(!viewModel.falhouAoCarregar)
+        #expect(viewModel.podeReabrir(try #require(viewModel.emAtraso.first)))
+    }
+
+    @Test("Uma leitura que saiu antes da reabertura e chega depois não traz o atraso de volta")
+    func leituraAntigaNaoDesfazReabertura() async throws {
+        let leituras = Contador()
+        let portao = Portao()
+        let velho = try PainelDeTeste.painel(emAtraso: true)
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                switch await leituras.somar() {
+                case 1: return velho
+                case 2:
+                    await portao.esperar()
+                    return velho
+                default: throw ErroDaApi(codigo: .semRede)
+                }
+            },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+        let releitura = Task { await viewModel.carregar() }
+        while await leituras.valor < 2 { await Task.yield() }
+        viewModel.pedirReabertura(try #require(viewModel.emAtraso.first))
+
+        await viewModel.confirmarReabertura()?.value
+        await portao.abrir()
+        await releitura.value
+
+        #expect(viewModel.resultado == .vagaReaberta)
+        #expect(viewModel.emAtraso.isEmpty)
+        #expect(viewModel.painel?.vagas.first?.posicoes.map(\.estado) == [.cancelada, .aberta])
+    }
+
     // MARK: Leitura
+
+    @Test("Com o painel na tela, a leitura que falha mantém o painel e marca a tela como desatualizada")
+    func falhaAoAtualizar() async throws {
+        let leituras = Contador()
+        let painel = try PainelDeTeste.painel(pendente: true)
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                guard await leituras.somar() != 2 else { throw ErroDaApi(codigo: .semRede) }
+                return painel
+            },
+            confirmar: { _ in PainelDeTeste.confirmado }, reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+        await viewModel.carregar()
+        #expect(viewModel.falhouAoCarregar)
+        #expect(viewModel.painel == painel)
+
+        await viewModel.carregar()
+        #expect(!viewModel.falhouAoCarregar)
+    }
 
     @Test("A chegada mostra o aviso de a caminho enquanto não há check-in nem atraso")
     func aCaminho() async throws {

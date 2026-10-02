@@ -4082,6 +4082,36 @@
           }
         }
       }
+    },
+    "A situação deste turno mudou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A situação deste turno mudou."
+          }
+        }
+      }
+    },
+    "Não foi possível atualizar. O que aparece aqui pode estar desatualizado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível atualizar. O que aparece aqui pode estar desatualizado."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar a vaga. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar a vaga. Tente novamente."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

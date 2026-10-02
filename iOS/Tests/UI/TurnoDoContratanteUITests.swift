@@ -64,6 +64,25 @@ final class TurnoDoContratanteUITests: XCTestCase {
         XCTAssertFalse(reabrir.exists)
     }
 
+    func testAvisoSemRedeDizQueNaoCarregouEOfereceTentarDeNovo() {
+        let vaga = abrir([
+            "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "sem-rede",
+            "-FRILA_AVISO", "vaga_vazia", "-FRILA_AVISO_ID", vagaID,
+        ])
+        XCTAssertTrue(vaga.descendants(matching: .any)["vaga-contratante-falha-ao-carregar"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vaga.staticTexts["Não foi possível carregar a vaga. Tente novamente."].exists)
+        XCTAssertTrue(vaga.buttons["tentar-de-novo-vaga"].isHittable)
+        // Falha de rede não é ausência: a tela não diz que a vaga não existe.
+        XCTAssertFalse(vaga.staticTexts["Não encontramos esta vaga."].exists)
+
+        let turno = abrir([
+            "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "sem-rede",
+            "-FRILA_AVISO", "atraso_15min", "-FRILA_AVISO_ID", turnoID,
+        ])
+        XCTAssertTrue(turno.buttons["tentar-de-novo-turno"].waitForExistence(timeout: 15))
+        XCTAssertFalse(turno.staticTexts["Não encontramos este turno."].exists)
+    }
+
     func testAvisoDeVagaVaziaAbreAVagaCerta() {
         let app = abrir([
             "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "alerta-vaga-vazia",
