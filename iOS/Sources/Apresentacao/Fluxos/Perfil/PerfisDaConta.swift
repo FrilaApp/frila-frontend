@@ -16,6 +16,7 @@ private enum TextosPerfilConta {
     static let prazoSuporte = String(localized: "Respondemos em até 5 dias úteis.", bundle: bundleApresentacao)
     static let termos = String(localized: "Termos de uso", bundle: bundleApresentacao)
     static let privacidade = String(localized: "Política de privacidade", bundle: bundleApresentacao)
+    static let licencas = String(localized: "Licenças de terceiros", bundle: bundleApresentacao)
     static let exportar = String(localized: "Exportar meus dados", bundle: bundleApresentacao)
     static let excluir = String(localized: "Excluir conta", bundle: bundleApresentacao)
     static let sair = String(localized: "Sair", bundle: bundleApresentacao)
@@ -358,6 +359,16 @@ struct TelaAjudaPerfil: View {
                 .accessibilityLabel(Text(verbatim: TextosPerfilConta.privacidade))
                 .accessibilityAddTraits(.isLink)
                 .accessibilityIdentifier("perfil-privacidade")
+
+                NavigationLink {
+                    TelaLicencas()
+                } label: {
+                    Text(verbatim: TextosPerfilConta.licencas)
+                        .foregroundStyle(FrilaCor.texto)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("perfil-licencas")
             }
             .navigationTitle(Text(verbatim: TextosPerfilConta.ajuda)).navigationBarTitleDisplayMode(.inline)
             .toolbar {

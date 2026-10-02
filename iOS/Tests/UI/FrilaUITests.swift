@@ -450,5 +450,41 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(linkPrivacidade.isHittable)
         XCTAssertTrue(app.links["perfil-termos"].exists || linkTermos.elementType == .link || linkTermos.elementType == .button, "deve ser um link")
         XCTAssertTrue(app.links["perfil-privacidade"].exists || linkPrivacidade.elementType == .link || linkPrivacidade.elementType == .button, "deve ser um link")
+
+        let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+    }
+
+    func testMeuPerfilAjudaAbreLicencasDeTerceirosComPacoteConhecido() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        botaoPerfil.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+
+        let botaoAjuda = app.buttons["perfil-ajuda"]
+        if !botaoAjuda.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        botaoAjuda.tap()
+
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+
+        let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+        XCTAssertTrue(botaoLicencas.isHittable)
+        botaoLicencas.tap()
+
+        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: 5))
+
+        let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
+        XCTAssertTrue(pacote.waitForExistence(timeout: 5), "a lista deve exibir pelo menos um pacote conhecido")
     }
 }

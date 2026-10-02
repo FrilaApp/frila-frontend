@@ -110,4 +110,18 @@ struct PerfisDaContaTests {
         #expect(conteudoCatalogo.contains(padrao.termosDeUso.absoluteString), "Localizable.xcstrings deve conter o endereço oficial de termos")
         #expect(conteudoCatalogo.contains(padrao.politicaDePrivacidade.absoluteString), "Localizable.xcstrings deve conter o endereço oficial de privacidade")
     }
+
+    @Test("TelaAjudaPerfil inicializa com endereços padrão e catálogo contém Licenças de terceiros (#178)")
+    func ajudaContemLicencasDeTerceiros() throws {
+        let ajuda = TelaAjudaPerfil()
+        #expect(ajuda.enderecos == EnderecosOficiais.padrao)
+
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let caminhoCatalogo = raiz.appending(path: "Resources/Localizable.xcstrings")
+        let conteudoCatalogo = try String(contentsOf: caminhoCatalogo, encoding: .utf8)
+        #expect(conteudoCatalogo.contains("Licenças de terceiros"), "Localizable.xcstrings deve conter Licenças de terceiros")
+    }
 }
