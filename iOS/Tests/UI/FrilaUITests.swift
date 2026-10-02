@@ -496,6 +496,33 @@ final class AutenticacaoUITests: XCTestCase {
 /// Validação de interface das telas de perfil (#54).
 @MainActor
 final class PerfilUITests: XCTestCase {
+    /// O formulário de "Funções e horários" guarda o que carregou enquanto a tela está aberta: um
+    /// redesenho de "Meu perfil" (aqui, a troca de aba) não pode trocá-lo por um formulário vazio.
+    func testEdicaoDoPerfilMantemOQueCarregouQuandoATelaDeCimaRedesenha() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["abrir-meu-perfil"].waitForExistence(timeout: 15))
+        app.buttons["abrir-meu-perfil"].tap()
+        let funcoesEHorarios = app.descendants(matching: .any)["perfil-funcoes-horarios"]
+        XCTAssertTrue(funcoesEHorarios.waitForExistence(timeout: 10))
+        funcoesEHorarios.tap()
+
+        let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
+        let horario = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
+        XCTAssertTrue(funcao.waitForExistence(timeout: 10))
+        XCTAssertTrue(horario.waitForExistence(timeout: 5))
+
+        app.tabBars.buttons["Meus turnos"].tap()
+        XCTAssertFalse(funcao.waitForExistence(timeout: 2))
+        app.tabBars.buttons["Vagas no DF"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        XCTAssertTrue(funcao.waitForExistence(timeout: 5), "as funções carregadas continuam no formulário")
+        XCTAssertTrue(horario.exists, "os horários carregados continuam no formulário")
+    }
+
     func testMeuPerfilAbreAjudaComLinksDeTermosEPrivacidade() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
