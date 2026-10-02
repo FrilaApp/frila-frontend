@@ -183,6 +183,16 @@
         }
       }
     },
+    "A publicação continua e será concluída quando a conexão voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A publicação continua e será concluída quando a conexão voltar."
+          }
+        }
+      }
+    },
     "A seleção desta vaga foi encerrada": {
       "localizations": {
         "pt-BR": {

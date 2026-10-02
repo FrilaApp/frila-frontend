@@ -58,6 +58,9 @@ private enum TextosPublicarVaga {
     static let modoUrgenciaExplicacao = String(localized: "O primeiro profissional que aceitar é confirmado na hora.", bundle: bundlePublicarVaga)
     static let modoSelecaoExplicacao = String(localized: "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.", bundle: bundlePublicarVaga)
     static let modoIndisponivel = String(localized: "O modo seleção ainda não está disponível. Publique no modo urgência.", bundle: bundlePublicarVaga)
+    static let voltar = String(localized: "Voltar", bundle: bundleApresentacao)
+    static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+    static let publicacaoContinua = String(localized: "A publicação continua e será concluída quando a conexão voltar.", bundle: bundleApresentacao)
 }
 
 public enum CampoPublicacaoVaga: String, CaseIterable, Sendable {
@@ -150,6 +153,12 @@ public final class PublicarVagaViewModel {
 
     public var camposBloqueados: Bool { publicacaoPendente != nil }
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
+    public var textoAoFechar: String {
+        (publicacaoPendente != nil || resultado != nil) ? TextosPublicarVaga.voltar : TextosPublicarVaga.cancelar
+    }
+    public var mostraAvisoPublicacaoContinua: Bool {
+        publicacaoPendente != nil && resultado == nil && !enviando
+    }
 
     public func restaurarPublicacaoPendente() async {
         restaurandoPublicacao = true
@@ -345,10 +354,11 @@ public struct TelaPublicarVaga: View {
                     if let aoCancelar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button(action: aoCancelar) {
-                                Text("Cancelar", bundle: bundleApresentacao)
+                                Text(verbatim: model.textoAoFechar)
                                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                                     .contentShape(Rectangle())
                             }
+                            .disabled(model.enviando || model.restaurandoPublicacao)
                             .accessibilityIdentifier("cancelar-publicacao")
                         }
                     }
@@ -513,6 +523,10 @@ public struct TelaPublicarVaga: View {
                     Text(verbatim: telefoneResponsavel).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
                 }
                 if let erro = model.mensagemErro { AvisoFrila(verbatim: erro, tom: .erro) }
+                if model.mostraAvisoPublicacaoContinua {
+                    AvisoFrila(verbatim: TextosPublicarVaga.publicacaoContinua, tom: .informativo)
+                        .accessibilityIdentifier("aviso-publicacao-continua")
+                }
                 BotaoPrimario(verbatim: model.camposBloqueados ? TextosPublicarVaga.tentarNovamente : TextosPublicarVaga.publicar, carregando: model.enviando) {
                     Task {
                         await model.publicar()
@@ -529,6 +543,7 @@ public struct TelaPublicarVaga: View {
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(Text(verbatim: TextosPublicarVaga.titulo))
+        .interactiveDismissDisabled(model.enviando || model.restaurandoPublicacao)
         .accessibilityIdentifier("publicar-vaga-formulario")
     }
 

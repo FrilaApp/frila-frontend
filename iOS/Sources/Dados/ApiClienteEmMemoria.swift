@@ -79,6 +79,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case exportarErroServidor = "exportar-erro-servidor"
         /// Falha ao ler meu_estabelecimento (simula 404 do backend ou erro do servidor ao buscar o cadastro da casa).
         case erroAoLerMeuEstabelecimento = "erro-ao-ler-meu-estabelecimento"
+        /// Publicação de vaga falha por falta de rede (#73).
+        case publicarSemRede = "publicar-sem-rede"
         /// Painel com check-in já confirmado (contrato 0.2.31).
         case checkinConfirmado = "checkin-confirmado"
         /// Painel com posição cancelada com motivo informado (contrato 0.2.31).
@@ -205,7 +207,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || cenario == .erroAoLerMeuEstabelecimento {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -684,6 +686,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         publicacoesRecebidas.append(publicacao)
         if let resposta = publicacoesPorChave[publicacao.chave] { return resposta }
         try verificarFalhaGeral()
+        if cenario == .publicarSemRede { throw ErroDaApi(codigo: .semRede) }
         guard let estabelecimento = estabelecimentos.first(where: { $0.id == publicacao.estabelecimentoID }) else { throw erro("sem_permissao") }
         let regiao = publicacao.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !regiao.isEmpty else { throw erro("campo_obrigatorio", detalhes: "regiao_administrativa") }

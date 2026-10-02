@@ -29,7 +29,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         responsavel.digitarEEsperar("Marina")
         let valor = app.textFields["Valor por posição"]
         valor.tap()
-        valor.digitarEEsperar("18000", esperado: "180,00")
+        valor.digitarEEsperar("18000", esperado: "180")
         app.swipeUp()
         app.buttons["publicar-vaga-botao"].tap()
     }
@@ -122,6 +122,46 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["publicar-vaga-entrada"].exists)
+    }
+
+    func testPublicarSemRedeMostraAvisoVoltarEVagaContinuaPendente() {
+        let app = abrir(cenario: "publicar-sem-rede")
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        let antes = vagas(app).count
+
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        XCTAssertTrue(entrada.waitForExistence(timeout: 5))
+        entrada.tap()
+
+        // 1. Antes de publicar, o botão de fechar é "Cancelar" e não há aviso de publicação contínua
+        let botaoFechar = app.buttons["cancelar-publicacao"]
+        XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5))
+        XCTAssertEqual(botaoFechar.label, "Cancelar")
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-publicacao-continua"].exists)
+
+        // 2. Preenche e publica sem rede
+        preencherEPublicar(app)
+
+        // 3. Permanece no formulário: aviso informativo aparece e o botão vira "Voltar"
+        let avisoContinua = app.descendants(matching: .any)["aviso-publicacao-continua"]
+        XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "o aviso informativo de que a publicação continua deve aparecer")
+        XCTAssertTrue(app.staticTexts["A publicação continua e será concluída quando a conexão voltar."].exists)
+        XCTAssertEqual(botaoFechar.label, "Voltar", "o botão de fechar passa a ser 'Voltar' quando a publicação ficou na fila")
+
+        // 4. Toca em "Voltar" e volta para Minhas vagas
+        botaoFechar.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(vagas(app).count, antes, "a vaga não foi criada no servidor, continua pendente na fila")
+
+        // 5. Ao abrir o formulário novamente, a vaga continua pendente (restaurada da fila)
+        entrada.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+        XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "a vaga pendente na fila reabre com o aviso de continuação")
+        XCTAssertEqual(botaoFechar.label, "Voltar")
     }
 
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {
