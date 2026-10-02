@@ -47,6 +47,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case atrasoNoTurno = "atraso-no-turno"
         /// Configuração remota exige versão mínima superior à atual.
         case atualizacaoObrigatoria = "atualizacao-obrigatoria"
+        /// Painel com uma vaga encerrada para testar o fluxo de republicação (#147).
+        case vagaEncerradaContratante = "vaga-encerrada-contratante"
+        /// Turno encerrado e verificado para avaliação de turno no fluxo natural (#22).
+        case turnoEncerrado = "turno-encerrado"
+        case turnoEncerradoVerificado = "turno-encerrado-verificado"
     }
 
     private let cenario: Cenario
@@ -114,7 +119,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -153,9 +158,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .alertaVagaVazia: 2 * 60 * 60
                 case .checkinManualPendente: -10 * 60
                 case .atrasoNoTurno: -20 * 60
+                case .vagaEncerradaContratante: -10 * 60 * 60
                 default: 24 * 60 * 60
                 }
-                self.vagas = [try Self.noFuturo(vaga, agora: relogio.agora, inicioEm: ateInicio)]
+                let baseVaga = cenario == .vagaEncerradaContratante ? Self.copia(vaga, estado: .encerrada) : vaga
+                self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
             if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno, let vaga = self.vagas.first {
@@ -180,6 +187,70 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     )
                 }
                 self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
+            }
+            if (cenario == .turnoEncerrado || cenario == .turnoEncerradoVerificado), let vaga = self.vagas.first {
+                let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
+                let posicaoID = UUID(uuidString: "22000000-0000-0000-0000-000000000002")!
+                let duracao: TimeInterval = 6 * 3600
+                let fim = relogio.agora.addingTimeInterval(-2 * 3600)
+                let inicio = fim.addingTimeInterval(-duracao)
+                let periodo = try Periodo(inicio: inicio, fim: fim)
+                let resumo = VagaResumo(
+                    id: vaga.id,
+                    funcao: vaga.funcao.nome,
+                    local: vaga.local,
+                    regiaoAdministrativa: vaga.regiaoAdministrativa,
+                    periodo: periodo,
+                    valor: vaga.valor
+                )
+                let visivelAte = fim.addingTimeInterval(7 * 24 * 60 * 60)
+                let contato = Contato(
+                    nome: vaga.estabelecimento.nome,
+                    telefone: contatoDeExemplo.telefone,
+                    whatsappURL: contatoDeExemplo.whatsappURL,
+                    visivelAte: visivelAte
+                )
+                let checkinPresenca = Presenca(
+                    instante: inicio,
+                    tipo: .geolocalizado,
+                    distanciaMetros: 45,
+                    confirmadaEm: inicio
+                )
+                let checkoutPresenca = Presenca(
+                    instante: fim,
+                    tipo: .geolocalizado,
+                    distanciaMetros: 50,
+                    confirmadaEm: nil
+                )
+                turnos = [Turno(
+                    id: turnoID,
+                    posicaoID: posicaoID,
+                    vaga: resumo,
+                    contraparte: vaga.estabelecimento,
+                    contatoVisivelAte: visivelAte,
+                    aCaminhoEm: inicio.addingTimeInterval(-30 * 60),
+                    checkin: checkinPresenca,
+                    checkout: checkoutPresenca,
+                    verificacao: .verificado,
+                    valorAcordado: vaga.valor,
+                    podeAvaliar: true,
+                    contato: contato
+                )]
+                contatos[turnoID] = contato
+                checkins[turnoID] = ResultadoRegistro(
+                    turnoID: turnoID,
+                    tipo: .geolocalizado,
+                    verificacao: .verificado,
+                    registradoEm: inicio,
+                    distanciaMetros: 45
+                )
+                checkouts[turnoID] = ResultadoRegistro(
+                    turnoID: turnoID,
+                    tipo: .geolocalizado,
+                    verificacao: .verificado,
+                    registradoEm: fim,
+                    distanciaMetros: 50
+                )
             }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
@@ -548,7 +619,28 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// contrato não tem estado: o que os distingue é só a verificação, que deixa de ser `pendente`.
     public func meusTurnos() async throws -> [Turno] {
         try verificarFalhaGeral()
-        return turnos + turnosCancelados
+        let agora = relogio.agora
+        return (turnos + turnosCancelados).map { t in
+            let fimPassou = t.vaga.periodo.fim <= agora
+            let pode = t.verificacao == .verificado && fimPassou
+            if t.podeAvaliar != pode {
+                return Turno(
+                    id: t.id,
+                    posicaoID: t.posicaoID,
+                    vaga: t.vaga,
+                    contraparte: t.contraparte,
+                    contatoVisivelAte: t.contatoVisivelAte,
+                    aCaminhoEm: t.aCaminhoEm,
+                    checkin: t.checkin,
+                    checkout: t.checkout,
+                    verificacao: t.verificacao,
+                    valorAcordado: t.valorAcordado,
+                    podeAvaliar: pode,
+                    contato: t.contato
+                )
+            }
+            return t
+        }
     }
 
     public func contatoDoTurno(id: UUID) async throws -> Contato {
@@ -592,6 +684,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             registradoEm: registradoEm, distanciaMetros: perto ? distanciaMetros : nil
         )
         checkins[turnoID] = registro
+        atualizarTurnoAposPresenca(turnoID: turnoID)
         return registro
     }
 
@@ -610,7 +703,46 @@ public actor ApiClienteEmMemoria: ApiCliente {
             registradoEm: registradoEm, distanciaMetros: distanciaMetros
         )
         checkouts[turnoID] = registro
+        atualizarTurnoAposPresenca(turnoID: turnoID)
         return registro
+    }
+
+    private func atualizarTurnoAposPresenca(turnoID: UUID) {
+        guard let indice = turnos.firstIndex(where: { $0.id == turnoID }) else { return }
+        let t = turnos[indice]
+        let presencaCheckin = checkins[turnoID].map { c in
+            Presenca(
+                instante: c.registradoEm,
+                tipo: c.tipo,
+                distanciaMetros: c.distanciaMetros,
+                confirmadaEm: c.verificacao == .verificado ? c.registradoEm : nil
+            )
+        } ?? t.checkin
+        let presencaCheckout = checkouts[turnoID].map { o in
+            Presenca(
+                instante: o.registradoEm,
+                tipo: o.tipo,
+                distanciaMetros: o.distanciaMetros,
+                confirmadaEm: nil
+            )
+        } ?? t.checkout
+        let novaVerificacao = checkins[turnoID]?.verificacao ?? t.verificacao
+        let fimPassou = t.vaga.periodo.fim <= relogio.agora
+        let podeAvaliar = novaVerificacao == .verificado && fimPassou
+        turnos[indice] = Turno(
+            id: t.id,
+            posicaoID: t.posicaoID,
+            vaga: t.vaga,
+            contraparte: t.contraparte,
+            contatoVisivelAte: t.contatoVisivelAte,
+            aCaminhoEm: t.aCaminhoEm,
+            checkin: presencaCheckin,
+            checkout: presencaCheckout,
+            verificacao: novaVerificacao,
+            valorAcordado: t.valorAcordado,
+            podeAvaliar: podeAvaliar,
+            contato: t.contato
+        )
     }
 
     public func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
@@ -643,6 +775,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 registradoEm: checkout.registradoEm, distanciaMetros: checkout.distanciaMetros
             )
         }
+        atualizarTurnoAposPresenca(turnoID: turnoID)
         return confirmado
     }
 

@@ -33,6 +33,17 @@ public enum TipoAcaoPendente: String, Codable, CaseIterable, Sendable {
     case checkout
     case avaliacao
     case publicacaoVaga
+    case republicacaoVaga
+}
+
+public struct RepublicacaoVaga: Codable, Equatable, Sendable {
+    public let vagaID: UUID
+    public let periodo: Periodo
+
+    public init(vagaID: UUID, periodo: Periodo) {
+        self.vagaID = vagaID
+        self.periodo = periodo
+    }
 }
 
 public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
@@ -46,6 +57,7 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
     /// Autor da avaliação local; nil nos registros legados e nas outras ações.
     public let contaID: UUID?
     public let publicacao: PublicacaoVaga?
+    public let republicacao: RepublicacaoVaga?
 
     public init(
         id: UUID = UUID(),
@@ -56,7 +68,8 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         chave: UUID,
         distanciaMetros: Int? = nil,
         resposta: Bool? = nil,
-        publicacao: PublicacaoVaga? = nil
+        publicacao: PublicacaoVaga? = nil,
+        republicacao: RepublicacaoVaga? = nil
     ) {
         self.id = id
         self.tipo = tipo
@@ -67,6 +80,7 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         self.distanciaMetros = distanciaMetros
         self.resposta = resposta
         self.publicacao = publicacao
+        self.republicacao = republicacao
     }
 }
 

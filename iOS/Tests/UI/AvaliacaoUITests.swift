@@ -38,10 +38,71 @@ final class AvaliacaoUITests: XCTestCase {
 
     private func abrir(argumentos: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_ABRIR_AVALIACAO_UI_TEST", "-FRILA_SCENARIO", "success"] + argumentos
+        app.launchArguments = ["-FRILA_ABRIR_AVALIACAO_UI_TEST", "-FRILA_SCENARIO", "turno-encerrado"] + argumentos
         app.launch()
         XCTAssertTrue(app.staticTexts["pergunta-avaliacao"].waitForExistence(timeout: 10))
         return app
+    }
+
+    func testEnvioDeAvaliacaoPelaRotaDiretaMostraConfirmacao() {
+        let app = abrir()
+        let sim = app.buttons["resposta-sim"]
+        XCTAssertTrue(sim.waitForExistence(timeout: 5))
+        sim.tap()
+
+        let enviar = app.buttons["botao-enviar-avaliacao"]
+        XCTAssertTrue(enviar.waitForExistence(timeout: 5))
+        XCTAssertTrue(enviar.isEnabled)
+        enviar.tap()
+
+        let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: 5))
+        XCTAssertFalse(enviar.exists)
+        XCTAssertFalse(sim.isEnabled)
+    }
+
+    func testFluxoNaturalMeusTurnosAteAvaliacaoEConfirmacao() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+
+        let abaMeusTurnos = app.tabBars.buttons["Meus turnos"]
+        XCTAssertTrue(abaMeusTurnos.waitForExistence(timeout: 5))
+        abaMeusTurnos.tap()
+
+        XCTAssertTrue(app.navigationBars["Meus turnos"].waitForExistence(timeout: 5))
+
+        let cartaoTurno = app.buttons["meu-turno-22000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(cartaoTurno.waitForExistence(timeout: 5), "o turno encerrado e verificado deve aparecer em Meus turnos")
+        cartaoTurno.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+
+        let cartaoAvaliacao = app.descendants(matching: .any)["cartao-avaliacao-turno"]
+        if !cartaoAvaliacao.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 5), "o cartão de avaliação deve aparecer no turno encerrado e verificado")
+
+        let botaoAvaliar = app.buttons["Avaliar turno"]
+        XCTAssertTrue(botaoAvaliar.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoAvaliar.isHittable)
+        botaoAvaliar.tap()
+
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 5))
+        let sim = app.buttons["resposta-sim"]
+        XCTAssertTrue(sim.waitForExistence(timeout: 5))
+        sim.tap()
+
+        let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
+        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoEnviar.isEnabled)
+        botaoEnviar.tap()
+
+        let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: 5), "a tela deve exibir a confirmação após enviar a avaliação")
     }
 
     func testPerguntaSimNaoEmOrdemComRotuloValorESelecao() {
