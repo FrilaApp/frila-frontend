@@ -12,7 +12,7 @@ struct AtualizacaoObrigatoriaTests {
 
     @Test("Configuração mais nova bloqueia")
     func bloqueio() async {
-        let vm = AtualizacaoObrigatoriaViewModel(api: ApiClienteEmMemoria(cenario: .contaSuspensa), versaoAtual: "1.0.0")
+        let vm = AtualizacaoObrigatoriaViewModel(api: ApiClienteEmMemoria(cenario: .atualizacaoObrigatoria), versaoAtual: "1.0.0")
         await vm.verificar()
         guard case .bloqueado = vm.estado else { Issue.record("Esperava bloqueio"); return }
     }
