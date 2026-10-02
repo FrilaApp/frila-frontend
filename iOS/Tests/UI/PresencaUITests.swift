@@ -55,6 +55,21 @@ final class PresencaUITests: XCTestCase {
         XCTAssertFalse(app.buttons["fazer-checkout"].exists)
     }
 
+    func testCheckoutA150MetrosRegistraASaidaComADistancia() {
+        let app = abrirMeuTurno(localizacao: "perto")
+        fazerCheckinComPermissao(app)
+
+        let fazerCheckout = app.buttons["fazer-checkout"]
+        XCTAssertTrue(fazerCheckout.waitForExistence(timeout: 5))
+        fazerCheckout.tap()
+
+        let checkout = app.descendants(matching: .any)["checkout-situacao"]
+        XCTAssertTrue(checkout.waitForExistence(timeout: 10))
+        XCTAssertTrue(checkout.label.contains("Check-out registrado"), checkout.label)
+        XCTAssertTrue(checkout.label.contains("150 m"), checkout.label)
+        XCTAssertFalse(app.buttons["fazer-checkout"].exists)
+    }
+
     func testCheckinA350MetrosOfereceOManualQueFicaAguardandoConfirmacao() {
         let app = abrirMeuTurno(localizacao: "longe", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         fazerCheckinComPermissao(app)
