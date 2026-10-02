@@ -142,6 +142,22 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Limites.** A tela aberta não se atualiza sozinha quando a fila sobe. Uma ação da fila recusada pelo servidor (por exemplo `fora_da_janela`) continua na fila, como no #111. O `meusTurnos` do dublê não reflete o check-in, então reabrir o turno no esquema Local mostra o botão de novo, e o toque devolve o registro já gravado.
 - **GPS simulado.** No esquema Local, `-FRILA_LOCALIZACAO` seguido de `perto` (150 m), `longe` (350 m), `negada`, `sem-sinal`, `imprecisa` ou `aproximada` troca o CoreLocation pelo `LeitorDeLocalizacaoSimulado`, com as distâncias medidas até a vaga das fixtures. Só vale com o dublê em memória; sem o argumento, o esquema Local usa o GPS do simulador (`xcrun simctl location <udid> set <lat>,<lon>`).
 
+## Turno do contratante (#19, visual provisório)
+
+`AcompanhamentoViewModel` lê o `painel_estabelecimento` e cuida das duas decisões da casa durante o turno. As telas estão em `Sources/Apresentacao/Fluxos/Contratante/`, com componentes base, à espera do design de alta fidelidade.
+
+- **Confirmar presença.** O check-in manual pendente aparece em "Presenças a confirmar", no topo de Minhas vagas, e na seção Chegada de "Acompanhar turno". Um toque chama `confirmar_checkin_manual`; a tela muda assim que a chamada responde, sem esperar nova leitura do painel.
+- **Reabrir vaga.** O botão só existe quando o painel marca `em_atraso`. Quem decide os 15 minutos é o servidor, nunca o relógio do aparelho. O toque abre uma pergunta que avisa da falta; só a confirmação chama `reabrir_por_atraso`.
+- **Avisos da casa.** `RoteadorDoContratante.abrir(_:)` recebe um `AvisoDoContratante`, montado do `tipo` e do `payload` como o backend os envia: `vaga_vazia` abre a vaga; `checkin_manual_pendente` e `atraso_15min` abrem o turno. Ele nunca confirma nem reabre sozinho. É a entrada que o push (S2 #8) vai usar; até lá, em Debug, `-FRILA_AVISO <tipo> -FRILA_AVISO_ID <uuid>` simula o toque (o id é o `vaga_id` em `vaga_vazia` e o `turno_id` nos outros tipos).
+- **Leitura e ação não se atropelam.** Toda resposta do servidor a uma ação, aceita ou recusada, invalida as leituras do painel que saíram antes dela: a resposta antiga é descartada e o painel é lido de novo. Sem isso, uma releitura lenta traria de volta a pendência que a tela acabou de tirar.
+- **Recusa e tela desatualizada.** Quando o servidor recusa (`checkin_ja_confirmado`, `posicao_nao_cancelavel`, `reabertura_antes_da_tolerancia`), o painel da tela estava velho e é relido. Se a releitura falhar, a tela diz que pode estar desatualizada, oferece "Tentar novamente" e não oferece a mesma ação de novo até uma leitura dar certo. Falha de leitura nunca vira "não encontramos".
+
+Limites conhecidos:
+- sem push, o painel só é relido ao abrir a tela, ao puxar para atualizar e depois de cada ação;
+- o fluxo abre o primeiro estabelecimento da conta, e o `estabelecimento_id` do aviso ainda não troca de casa;
+- o painel não traz a hora do check-in nem o motivo de uma posição cancelada, então a tela não mostra nenhum dos dois;
+- Minhas vagas e o acompanhamento leem o mesmo painel em duas chamadas.
+
 ## Cenários simulados
 
 **Check-in e check-out no dublê.** O `ApiClienteEmMemoria` segue o `fazer_checkin` vigente do backend (`20260925233000_notificacao_para_qualquer_conta.sql`) e o `fazer_checkout` (`20260925000000_checkin_e_checkout.sql`):

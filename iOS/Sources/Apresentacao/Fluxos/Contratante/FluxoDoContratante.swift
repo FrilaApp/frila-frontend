@@ -55,12 +55,16 @@ public struct FluxoDoContratante: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let sair: () -> Void
+    private let roteador: RoteadorDoContratante?
     @State private var model: FluxoDoContratanteViewModel
     @State private var mostrandoPerfilEstabelecimento = false
 
-    public init(api: any ApiCliente, fila: (any FilaDeAcoes)?, sair: @escaping () -> Void) {
+    /// O roteador é a entrada dos avisos da casa (`checkin_manual_pendente`, `atraso_15min` e
+    /// `vaga_vazia`), que o push (#8) vai usar.
+    public init(api: any ApiCliente, fila: (any FilaDeAcoes)?, roteador: RoteadorDoContratante? = nil, sair: @escaping () -> Void) {
         self.api = api
         self.fila = fila
+        self.roteador = roteador
         self.sair = sair
         _model = State(initialValue: FluxoDoContratanteViewModel(api: api))
     }
@@ -121,7 +125,7 @@ public struct FluxoDoContratante: View {
                 erro(MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido)))
             }
         case let .vagas(estabelecimento):
-            DestinoDasVagasDoContratante(api: api, estabelecimento: estabelecimento)
+            DestinoDasVagasDoContratante(api: api, estabelecimento: estabelecimento, roteador: roteador)
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -137,14 +141,16 @@ public struct FluxoDoContratante: View {
 
 private struct DestinoDasVagasDoContratante: View {
     private let api: any ApiCliente
+    private let roteador: RoteadorDoContratante?
     @State private var model: MinhasVagasViewModel
 
-    init(api: any ApiCliente, estabelecimento: EstabelecimentoDaConta) {
+    init(api: any ApiCliente, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?) {
         self.api = api
+        self.roteador = roteador
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
     }
 
     var body: some View {
-        TelaMinhasVagas(viewModel: model, api: api)
+        TelaMinhasVagas(viewModel: model, api: api, roteador: roteador)
     }
 }

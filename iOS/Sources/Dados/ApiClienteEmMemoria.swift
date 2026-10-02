@@ -24,6 +24,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case menorDeIdade = "menor-de-idade"
         case contaExistente = "conta-existente"
         case semPerfilProfissional = "sem-perfil-profissional"
+        /// Conta sem perfil: o primeiro envio falha sem rede, e a repetição cria o perfil.
+        case erroCriacaoPerfilProfissional = "erro-criacao-perfil-profissional"
         case entrada = "entrada"
         case contratante = "contratante"
         case perfilProfissionalComErroDeRede = "perfil-profissional-com-erro-de-rede"
@@ -41,6 +43,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case checkinManualPendente = "checkin-manual-pendente"
         /// Conta de contratante com um turno que começou há 20 minutos e ainda não teve check-in (#19).
         case atrasoNoTurno = "atraso-no-turno"
+        /// Configuração remota exige versão mínima superior à atual.
+        case atualizacaoObrigatoria = "atualizacao-obrigatoria"
     }
 
     private let cenario: Cenario
@@ -53,6 +57,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var sessaoAtiva = false
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
+    private var tentativasCriacaoPerfil = 0
     private var estabelecimentos: [Estabelecimento]
     private var vagas: [Vaga]
     private var turnos: [Turno] = []
@@ -118,7 +123,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     perfilProfissional = nil
                 } else {
                     conta = usuario
-                    if cenario == .semPerfilProfissional {
+                    if cenario == .semPerfilProfissional || cenario == .erroCriacaoPerfilProfissional {
                         perfilProfissional = nil
                     } else {
                         perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
@@ -257,6 +262,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
+        tentativasCriacaoPerfil += 1
+        if cenario == .erroCriacaoPerfilProfissional, tentativasCriacaoPerfil == 1 {
+            throw ErroDaApi(codigo: .semRede)
+        }
         try verificarFalhaGeral()
         let conta = try await minhaConta()
         guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
@@ -770,8 +779,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
         try verificarRede()
-        guard cenario == .contaSuspensa else { return configuracao }
-        return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        if cenario == .atualizacaoObrigatoria {
+            return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        }
+        return configuracao
     }
 
     public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
@@ -1027,5 +1038,29 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
             turnosCancelados: cancelados
         )
     }
+
+    // MARK: - Suporte a cenários de teste da suspensão (#41)
+
+    public func reativarConta() {
+        if let contaAtual = conta {
+            conta = Conta(
+                id: contaAtual.id,
+                perfil: contaAtual.perfil,
+                nome: contaAtual.nome,
+                telefone: contaAtual.telefone,
+                email: contaAtual.email,
+                nascimento: contaAtual.nascimento,
+                estado: .ativa
+            )
+        }
+        suspensao = nil
+    }
+
+    public func definirContestacaoExistente(protocolo: Protocolo? = nil) throws {
+        guard let atual = suspensao else { throw erro("sem_suspensao_ativa") }
+        let prot = try protocolo ?? novoProtocolo(.contestacao)
+        suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: prot)
+    }
 }
+
 
