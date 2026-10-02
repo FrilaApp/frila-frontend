@@ -5,7 +5,7 @@ public enum TextosExclusaoDeConta {
     public static let avisoConsequencias = String(localized: "Atenção: a exclusão da sua conta é permanente e não poderá ser desfeita.", bundle: bundleApresentacao)
     public static let secaoOQueAcontece = String(localized: "O que acontece ao excluir sua conta:", bundle: bundleApresentacao)
     public static let consequenciaAnonimizacao = String(localized: "Seus dados pessoais cadastrados serão anonimizados definitivamente.", bundle: bundleApresentacao)
-    public static let consequenciaTurnos = String(localized: "Os turnos futuros do profissional são cancelados sem falta. Para contratantes, o cancelamento ocorre quando a conta é o único membro da casa. Turnos em andamento seguem até o fim.", bundle: bundleApresentacao)
+    public static let consequenciaTurnos = String(localized: "Os turnos futuros do profissional são cancelados sem falta. Para contratantes, o cancelamento ocorre quando a conta é o único membro do estabelecimento. Turnos em andamento seguem até o fim.", bundle: bundleApresentacao)
     public static let consequenciaPrazo = String(localized: "O prazo para a exclusão completa das cópias de backup é de até 15 dias.", bundle: bundleApresentacao)
     public static let tituloTurnosFuturos = String(localized: "Turnos futuros vinculados à conta", bundle: bundleApresentacao)
     public static let semTurnosFuturos = String(localized: "Nenhum turno futuro encontrado na consulta.", bundle: bundleApresentacao)
