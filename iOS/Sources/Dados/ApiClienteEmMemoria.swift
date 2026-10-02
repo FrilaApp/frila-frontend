@@ -76,6 +76,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var chamadasAVerificarCodigo = 0
     public private(set) var chamadasACriarConta = 0
     public private(set) var chamadasAPublicarVaga = 0
+    public private(set) var chamadasAExportarMeusDados = 0
     public private(set) var chavesPublicacaoRecebidas: [UUID] = []
     public private(set) var publicacoesRecebidas: [PublicacaoVaga] = []
     public private(set) var vagasCriadas = 0
@@ -910,6 +911,57 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let protocolo = try novoProtocolo(.contestacao)
         suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: protocolo)
         return protocolo
+    }
+
+    private var erroExportarMeusDados: (any Error)?
+
+    public func definirErroExportarMeusDados(_ erro: (any Error)?) {
+        self.erroExportarMeusDados = erro
+    }
+
+    public func exportarMeusDados() async throws -> Data {
+        chamadasAExportarMeusDados += 1
+        await Task.yield()
+        try verificarRede()
+
+        if let erroExportarMeusDados {
+            throw erroExportarMeusDados
+        }
+
+        let argumentos = ProcessInfo.processInfo.arguments
+        if argumentos.contains("-FRILA_EXPORTAR_SEM_REDE") {
+            throw ErroDaApi(codigo: .semRede)
+        }
+        if argumentos.contains("-FRILA_EXPORTAR_ERRO_SERVIDOR") {
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+
+        let agoraISO = ISO8601DateFormatter().string(from: relogio.agora)
+        let jsonString = """
+        {
+          "gerado_em": "\(agoraISO)",
+          "conta": {
+            "id": "\(conta?.id.uuidString.lowercased() ?? "a0000000-0000-4000-8000-000000000001")",
+            "perfil": "\(conta?.perfil.rawValue ?? "profissional")",
+            "nome": "\(conta?.nome ?? "Ana")",
+            "telefone": "\(conta?.telefone ?? "+5561999990001")",
+            "email": "\(conta?.email ?? "ana@frila.test")",
+            "nascimento": "\(conta?.nascimento.contrato ?? "1998-04-02")",
+            "estado": "\(conta?.estado.rawValue ?? "ativa")"
+          },
+          "perfil_profissional": null,
+          "estabelecimentos": [],
+          "disponibilidade": [],
+          "turnos": [],
+          "avaliacoes_dadas": [],
+          "avaliacoes_recebidas": [],
+          "dispositivos": []
+        }
+        """
+        guard let data = jsonString.data(using: .utf8) else {
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+        return data
     }
 
     // MARK: Aplicativo e dispositivo
