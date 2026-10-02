@@ -288,6 +288,13 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 
     // Aplicativo e dispositivo
     func configuracaoDoApp() async throws -> ConfiguracaoApp
+    /// A cada abertura com sessão e sempre que o token mudar. Reenviar o mesmo token só renova a
+    /// data; o token que era de outra conta passa para quem chamou (troca de conta no mesmo
+    /// aparelho). Token em branco é `campoObrigatorio`, e com menos de 20 caracteres,
+    /// `campoInvalido`, os dois com `token_fcm` no detalhe.
+    func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo
+    /// Antes de encerrar a sessão, que é quem autoriza a chamada. Só tira o token da própria conta,
+    /// e o token que não estava registrado não é erro.
     func removerDispositivo(tokenFCM: String) async throws
     func sair(tokenFCM: String?) async
 }

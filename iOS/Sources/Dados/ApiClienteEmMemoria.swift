@@ -24,6 +24,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case menorDeIdade = "menor-de-idade"
         case contaExistente = "conta-existente"
         case semPerfilProfissional = "sem-perfil-profissional"
+        /// Conta sem perfil: o primeiro envio falha sem rede, e a repetição cria o perfil.
+        case erroCriacaoPerfilProfissional = "erro-criacao-perfil-profissional"
         case entrada = "entrada"
         case contratante = "contratante"
         case perfilProfissionalComErroDeRede = "perfil-profissional-com-erro-de-rede"
@@ -41,6 +43,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case checkinManualPendente = "checkin-manual-pendente"
         /// Conta de contratante com um turno que começou há 20 minutos e ainda não teve check-in (#19).
         case atrasoNoTurno = "atraso-no-turno"
+        /// Configuração remota exige versão mínima superior à atual.
+        case atualizacaoObrigatoria = "atualizacao-obrigatoria"
     }
 
     private let cenario: Cenario
@@ -53,6 +57,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var sessaoAtiva = false
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
+    private var tentativasCriacaoPerfil = 0
     private var estabelecimentos: [Estabelecimento]
     private var vagas: [Vaga]
     private var turnos: [Turno] = []
@@ -84,6 +89,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var bloqueios: [Alvo: Bloqueio] = [:]
     /// Só no cenário `contaSuspensa`.
     private var suspensao: Suspensao?
+    /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
+    private var dispositivos: [String: UUID] = [:]
 
     public init(
         cenario: Cenario = .sucesso,
@@ -118,7 +125,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     perfilProfissional = nil
                 } else {
                     conta = usuario
-                    if cenario == .semPerfilProfissional {
+                    if cenario == .semPerfilProfissional || cenario == .erroCriacaoPerfilProfissional {
                         perfilProfissional = nil
                     } else {
                         perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
@@ -257,6 +264,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
+        tentativasCriacaoPerfil += 1
+        if cenario == .erroCriacaoPerfilProfissional, tentativasCriacaoPerfil == 1 {
+            throw ErroDaApi(codigo: .semRede)
+        }
         try verificarFalhaGeral()
         let conta = try await minhaConta()
         guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
@@ -770,13 +781,45 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
         try verificarRede()
-        guard cenario == .contaSuspensa else { return configuracao }
-        return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        if cenario == .atualizacaoObrigatoria {
+            return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+        }
+        return configuracao
     }
 
-    public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
+    /// Segue `registrar_dispositivo` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): o
+    /// token é único, e registrar o que era de outra conta troca o dono.
+    public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.isEmpty else { throw erro("campo_obrigatorio", detalhes: "token_fcm") }
+        guard token.count >= Self.tamanhoMinimoDoToken else { throw erro("campo_invalido", detalhes: "token_fcm") }
+        dispositivos[token] = conta.id
+        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora)
+    }
+
+    /// Segue `remover_dispositivo` do backend (`20260926070000_ciclo_token_push.sql`): só tira o token
+    /// da conta que chamou, e o token curto ou que não estava registrado não é erro.
+    public func removerDispositivo(tokenFCM: String) async throws {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
+        if dispositivos[token] == conta.id { dispositivos[token] = nil }
+    }
+
+    /// A conta dona do token no servidor simulado. Fica fora da porta: serve aos testes.
+    public func donoDoDispositivo(tokenFCM: String) -> UUID? { dispositivos[tokenFCM] }
+
+    /// Simula o aparelho que já estava registrado para outra conta. Fica fora da porta: o dublê tem
+    /// uma conta só, e a troca de conta no mesmo iPhone precisa da outra.
+    public func registrarDispositivo(tokenFCM: String, deOutraConta contaID: UUID) {
+        dispositivos[tokenFCM] = contaID
+    }
 
     public func sair(tokenFCM: String?) async {
+        // Como no cliente real: tira o aparelho antes de encerrar a sessão, e a falha não segura a saída.
+        if let tokenFCM { try? await removerDispositivo(tokenFCM: tokenFCM) }
         sessaoAtiva = false
         DestinoGuardado.limpar()
     }
@@ -791,6 +834,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     // MARK: Apoio
+
+    /// O contrato pede `token_fcm` com pelo menos 20 caracteres.
+    private static let tamanhoMinimoDoToken = 20
 
     /// RN24: a vaga de seleção fecha 24 horas antes do início.
     private static let antecedenciaDaSelecao: TimeInterval = 24 * 60 * 60
@@ -1027,5 +1073,29 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
             turnosCancelados: cancelados
         )
     }
+
+    // MARK: - Suporte a cenários de teste da suspensão (#41)
+
+    public func reativarConta() {
+        if let contaAtual = conta {
+            conta = Conta(
+                id: contaAtual.id,
+                perfil: contaAtual.perfil,
+                nome: contaAtual.nome,
+                telefone: contaAtual.telefone,
+                email: contaAtual.email,
+                nascimento: contaAtual.nascimento,
+                estado: .ativa
+            )
+        }
+        suspensao = nil
+    }
+
+    public func definirContestacaoExistente(protocolo: Protocolo? = nil) throws {
+        guard let atual = suspensao else { throw erro("sem_suspensao_ativa") }
+        let prot = try protocolo ?? novoProtocolo(.contestacao)
+        suspensao = Suspensao(motivo: atual.motivo, desde: atual.desde, contestacao: prot)
+    }
 }
+
 

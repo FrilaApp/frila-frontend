@@ -948,6 +948,38 @@ enum ContratoAPI {
         }
     }
 
+    struct RegistrarDispositivo: Encodable {
+        let tokenFCM: String
+        let plataforma = Plataforma.ios
+
+        enum CodingKeys: String, CodingKey {
+            case plataforma
+            case tokenFCM = "token_fcm"
+        }
+    }
+
+    struct RemoverDispositivo: Encodable {
+        let tokenFCM: String
+
+        enum CodingKeys: String, CodingKey {
+            case tokenFCM = "token_fcm"
+        }
+    }
+
+    struct DispositivoDTO: Decodable {
+        let plataforma: Plataforma
+        let atualizadoEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case plataforma
+            case atualizadoEm = "atualizado_em"
+        }
+
+        func dominio() -> Dispositivo {
+            Dispositivo(plataforma: plataforma, atualizadoEm: atualizadoEm)
+        }
+    }
+
     struct RemocaoDTO: Decodable {
         let removido: Bool
     }

@@ -17,6 +17,9 @@
   "contato.json": {
     "schema": "#/components/schemas/Contato"
   },
+  "dispositivo.json": {
+    "schema": "#/components/schemas/Dispositivo"
+  },
   "erros.json": {
     "schema": "#/components/schemas/Erro",
     "lista": true
@@ -86,8 +89,14 @@
   "requisicao-reabrir-por-atraso.json": {
     "schema": "#/paths/~1rpc~1reabrir_por_atraso/post/requestBody/content/application~1json/schema"
   },
+  "requisicao-registrar-dispositivo.json": {
+    "schema": "#/paths/~1rpc~1registrar_dispositivo/post/requestBody/content/application~1json/schema"
+  },
   "requisicao-registro-de-presenca.json": {
     "schema": "#/components/schemas/RegistroDePresenca"
+  },
+  "requisicao-remover-dispositivo.json": {
+    "schema": "#/paths/~1rpc~1remover_dispositivo/post/requestBody/content/application~1json/schema"
   },
   "resultado-a-caminho.json": {
     "schema": "#/components/schemas/ResultadoACaminho"
