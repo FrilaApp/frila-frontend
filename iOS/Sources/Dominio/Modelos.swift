@@ -438,6 +438,52 @@ public struct Contato: Codable, Hashable, Sendable {
     public func estaVisivel(em instante: Date) -> Bool { instante <= visivelAte }
 }
 
+/// O ciclo da candidatura (`EstadoCandidatura` do contrato). No modo seleção ela nasce `pendente`
+/// e só a escolha a leva a `aceita`; no modo urgência já nasce `aceita`.
+public enum EstadoCandidatura: String, Codable, CaseIterable, Sendable {
+    /// Candidatou-se e espera a escolha.
+    case pendente
+    case aceita
+    /// A vaga encheu com outros escolhidos.
+    case recusada
+    /// O profissional desistiu antes da escolha, sem penalidade (RN24).
+    case retirada
+    /// A vaga fechou sem escolhê-la: 24 h antes do início, cancelada ou encerrada.
+    case expirada
+}
+
+/// A candidatura como o profissional a vê em `minhas_candidaturas` (`Candidatura` do contrato). Não
+/// traz posição nem turno: o turno da candidatura aceita está em `meus_turnos`, pela vaga.
+public struct Candidatura: Codable, Hashable, Identifiable, Sendable {
+    public let id: UUID
+    public let vaga: VagaResumo
+    public let estado: EstadoCandidatura
+    public let criadaEm: Date
+
+    public init(id: UUID, vaga: VagaResumo, estado: EstadoCandidatura, criadaEm: Date) {
+        self.id = id
+        self.vaga = vaga
+        self.estado = estado
+        self.criadaEm = criadaEm
+    }
+}
+
+/// Quem espera a escolha numa vaga de seleção, como a casa vê em `candidatos_da_vaga` (`Candidato`
+/// do contrato): o perfil público, com a reputação e o denominador (RN08), e nunca o contato (RN10).
+public struct Candidato: Codable, Hashable, Identifiable, Sendable {
+    public let candidaturaID: UUID
+    public let profissional: PerfilPublico
+    public let criadaEm: Date
+
+    public init(candidaturaID: UUID, profissional: PerfilPublico, criadaEm: Date) {
+        self.candidaturaID = candidaturaID
+        self.profissional = profissional
+        self.criadaEm = criadaEm
+    }
+
+    public var id: UUID { candidaturaID }
+}
+
 /// Check-in ou check-out de um turno. A coordenada nunca sai do aparelho, só a distância (RN22).
 public struct Presenca: Codable, Hashable, Sendable {
     public let instante: Date

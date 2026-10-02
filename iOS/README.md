@@ -191,9 +191,24 @@ O dublê não é equivalente ao backend:
 
 Também aqui o dublê não é equivalente ao backend:
 - **Posição reaberta por atraso.** No backend ela aceita candidatura depois do início, até 1 hora antes do fim. No dublê, `reabrirPorAtraso` abre a posição nova e o painel a mostra, mas a vaga que começou não volta a aceitar candidatura.
-- **Reenvio de `candidatar`.** O backend devolve o mesmo turno a quem já está confirmado. O dublê simula uma conta só, e cada chamada é uma candidatura nova, inclusive na vaga ocultada, que responde `404`. Só a candidatura pendente da seleção é devolvida igual.
+- **Reenvio de `candidatar`.** O backend devolve o mesmo turno a quem já está confirmado. O dublê simula uma conta só, e cada chamada é uma candidatura nova, inclusive na vaga ocultada, que responde `404`. Na seleção, a candidatura pendente é devolvida igual, e quem a casa já escolheu recebe o próprio turno de volta.
 - **Moderação.** Ocultar e reexibir são da Equipe Frila, fora da API. No dublê existe `moderar(vagaID:oculta:)`, fora da porta `ApiCliente`, para os testes.
-- **Modo seleção.** Não há `escolher_candidato` nem o fechamento automático das 24 horas: a candidatura fica pendente, e a vaga, publicada.
+
+**Modo seleção no dublê (#10, contrato 0.2.24).** O `ApiClienteEmMemoria` segue `escolher_candidato`, `candidatos_da_vaga`, `retirar_candidatura`, `minhas_candidaturas` e o fechamento automático do backend (`20260929234100_modo_selecao.sql`), na ordem das recusas deles:
+- `candidatosDaVaga`: só os pendentes, por ordem de chegada, com o perfil público e a reputação; vaga que não existe é `404`. O painel conta os mesmos em `candidatos_pendentes`.
+- `escolherCandidato`: candidatura que não existe é `403 sem_permissao`; a já escolhida, `409 candidatura_indisponivel`; vaga ocultada, `422 vaga_oculta`; vaga cheia, `409 posicao_ja_preenchida`; fechada pelas 24 horas, cancelada ou encerrada, `409 vaga_encerrada`; candidatura retirada, recusada ou expirada, `409 candidatura_indisponivel`. A escolha cria o turno e devolve o contato do profissional; a que ocupa a última posição enche a vaga e passa os pendentes a `recusada`.
+- **Escolher não é idempotente**, como no contrato: escolher de novo a mesma candidatura é `409 candidatura_indisponivel`, e não o mesmo turno. Por isso a escolha não entra na fila offline.
+- `retirarCandidatura`: a pendente passa a `retirada`; retirar de novo devolve a mesma; escolhida, recusada ou expirada é `409 candidatura_indisponivel`; a que não é da conta, `404`. Candidatar-se de novo reativa a retirada, com a hora nova.
+- `minhasCandidaturas`: da mais nova para a mais antiga, com o filtro de estado; inclui a `aceita` do modo urgência.
+- A 24 horas do início, `candidatar` e `escolherCandidato` respondem `409 vaga_encerrada` mesmo sem o agendador ter passado. Cancelar a vaga expira as pendentes.
+
+Fora da porta `ApiCliente`, para os testes: `receberCandidatura(vagaID:de:)` é outro profissional se candidatando, e `fecharSelecoes()` é o job do agendador (RN24): pendentes a `expirada`, posições abertas a `cancelada`, e a vaga a `encerrada` sem escolha ou a `preenchida` com alguma.
+
+O que o dublê não modela no modo seleção:
+- **Uma conta só.** A conta do dublê se candidata, e a mesma conta escolhe: o `422 perfil_incompativel` das quatro RPCs e o `403` de quem não é da casa em `candidatos_da_vaga` não existem. A casa vê a candidatura da conta com o perfil de exemplo (Ana Cunha). O turno do candidato que a casa escolheu serve ao painel e fica fora de `meusTurnos`; o da conta, quando é ela a escolhida, entra.
+- **Avisos.** `confirmacao`, `candidatura_recusada` e `selecao_encerrada` são enfileirados pelo backend; o dublê não manda push.
+- **Inelegível na escolha.** `422 inelegivel` (`turno_sobreposto` e `perfil_suspenso`) só sai nos cenários `inelegivel` e `inelegivel-suspenso`; o dublê não cruza horários.
+- **Vitrine nas 24 horas.** A vaga de seleção só sai de `vagasAbertas` depois de `fecharSelecoes()`; no backend o job roda a cada minuto.
 
 **RPCs da Sprint 2 no dublê (#19, #20, #39 e #41).** O `ApiClienteEmMemoria` segue as funções do backend, na ordem das recusas delas:
 - `confirmarCheckinManual` (`20260926060100_exigir_conta_ativa_escrita.sql`): sem check-in é `409 checkin_pendente`; check-in geolocalizado, `409 checkin_ja_confirmado`; repetir devolve o registro confirmado. O turno sai de `checkins_pendentes` do painel, e a posição passa a `verificado`.
@@ -210,7 +225,7 @@ O que o dublê não modela nessas operações:
 - **Tolerância do substituto.** O backend conta os 15 minutos do início ou da confirmação, o que for mais tarde; o dublê conta do início.
 - **Alerta de vaga vazia.** A janela é a padrão, de 3 horas; o `alerta_antecedencia_min` da publicação não é guardado.
 
-No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede`, `conta-suspensa`, `contratante`, `checkin-manual-pendente` ou `atraso-no-turno`. Os dois últimos entram com conta de contratante: um turno em andamento com check-in manual esperando confirmação, e um turno que começou há 20 minutos sem check-in. Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações que o app usa até a Sprint 2.
+No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede`, `conta-suspensa`, `contratante`, `checkin-manual-pendente` ou `atraso-no-turno`. Os dois últimos entram com conta de contratante: um turno em andamento com check-in manual esperando confirmação, e um turno que começou há 20 minutos sem check-in. Para o modo seleção (#10): `selecao-com-candidatos` (contratante, vaga de uma posição com os quatro candidatos de `candidatos.json`), `escolha-perde-corrida` (a mesma vaga, e a primeira escolha responde `409 posicao_ja_preenchida` porque outro membro da casa escolheu antes), `selecao-encerrada-sem-escolha` (contratante, vaga que fechou sozinha 24 horas antes), `vaga-em-selecao` (profissional, a vaga da lista é de seleção) e `candidatura-pendente` (profissional que já espera a escolha). Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações que o app usa até a Sprint 2.
 
 ## Licenças de terceiros (#178)
 

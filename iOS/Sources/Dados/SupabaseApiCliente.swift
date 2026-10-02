@@ -210,6 +210,34 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    // MARK: Modo seleção (contrato 0.2.24)
+
+    public func candidatosDaVaga(id: UUID) async throws -> [Candidato] {
+        let resposta: [ContratoAPI.CandidatoDTO] = try await rpc("candidatos_da_vaga", params: ContratoAPI.ID("vaga_id", id))
+        return resposta.map { $0.dominio() }
+    }
+
+    public func escolherCandidato(candidaturaID: UUID) async throws -> ResultadoConfirmacao {
+        let resposta: ContratoAPI.ResultadoConfirmacaoDTO = try await rpc(
+            "escolher_candidato",
+            params: ContratoAPI.ID("candidatura_id", candidaturaID)
+        )
+        return resposta.dominio()
+    }
+
+    public func retirarCandidatura(id: UUID) async throws -> Candidatura {
+        let resposta: ContratoAPI.MinhaCandidaturaDTO = try await rpc("retirar_candidatura", params: ContratoAPI.ID("candidatura_id", id))
+        return try converter { try resposta.dominio() }
+    }
+
+    public func minhasCandidaturas(estado: EstadoCandidatura?) async throws -> [Candidatura] {
+        let resposta: [ContratoAPI.MinhaCandidaturaDTO] = try await rpc(
+            "minhas_candidaturas",
+            params: ContratoAPI.MinhasCandidaturasParametros(estado: estado)
+        )
+        return try converter { try resposta.map { try $0.dominio() } }
+    }
+
     // MARK: Turno
 
     public func meusTurnos() async throws -> [Turno] {

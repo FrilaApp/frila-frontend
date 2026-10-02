@@ -1,0 +1,30 @@
+[
+  {
+    "id": "6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88",
+    "vaga": {
+      "id": "40000000-0000-0000-0000-000000000001",
+      "funcao": "Garçom",
+      "local": "CLS 405, Asa Sul, Brasília - DF",
+      "regiao_administrativa": "Plano Piloto",
+      "inicio_em": "2026-10-09T21:00:00Z",
+      "fim_em": "2026-10-10T01:00:00Z",
+      "valor_centavos": 12000
+    },
+    "estado": "pendente",
+    "criada_em": "2026-10-06T14:02:11Z"
+  },
+  {
+    "id": "70000000-0000-0000-0000-000000000005",
+    "vaga": {
+      "id": "40000000-0000-0000-0000-000000000002",
+      "funcao": "Bartender",
+      "local": "CLS 405, Asa Sul, Brasília - DF",
+      "regiao_administrativa": "Plano Piloto",
+      "inicio_em": "2026-10-03T22:00:00Z",
+      "fim_em": "2026-10-04T03:00:00Z",
+      "valor_centavos": 15000
+    },
+    "estado": "recusada",
+    "criada_em": "2026-09-30T11:20:05.118+00:00"
+  }
+]

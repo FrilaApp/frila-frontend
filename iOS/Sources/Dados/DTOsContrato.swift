@@ -588,6 +588,62 @@ enum ContratoAPI {
         func dominio() -> Contato { Contato(nome: nome, telefone: telefone, whatsappURL: whatsappURL, visivelAte: visivelAte) }
     }
 
+    // MARK: Modo seleção (0.2.24)
+
+    /// `Candidatura` do contrato: o que `minhas_candidaturas` lista e `retirar_candidatura` devolve.
+    /// O `CandidaturaDTO` acima é outro schema, o `ResultadoCandidatura` de `candidatar`.
+    struct MinhaCandidaturaDTO: Decodable {
+        let id: UUID
+        let vaga: VagaResumoDTO
+        let estado: EstadoCandidatura
+        let criadaEm: Date
+        enum CodingKeys: String, CodingKey {
+            case id, vaga, estado
+            case criadaEm = "criada_em"
+        }
+        func dominio() throws -> Candidatura {
+            Candidatura(id: id, vaga: try vaga.dominio(), estado: estado, criadaEm: criadaEm)
+        }
+    }
+
+    /// `Candidato` do contrato, de `candidatos_da_vaga`.
+    struct CandidatoDTO: Decodable {
+        let candidaturaID: UUID
+        let profissional: PerfilPublicoDTO
+        let criadaEm: Date
+        enum CodingKeys: String, CodingKey {
+            case profissional
+            case candidaturaID = "candidatura_id"
+            case criadaEm = "criada_em"
+        }
+        func dominio() -> Candidato {
+            Candidato(candidaturaID: candidaturaID, profissional: profissional.dominio(), criadaEm: criadaEm)
+        }
+    }
+
+    /// `ResultadoConfirmacao` do contrato, de `escolher_candidato`. O `estado` é a constante
+    /// `confirmada`: outro valor não é esta resposta, e a decodificação falha.
+    struct ResultadoConfirmacaoDTO: Decodable {
+        enum Estado: String, Decodable { case confirmada }
+        let estado: Estado
+        let posicaoID: UUID
+        let turnoID: UUID
+        let contato: ContatoDTO
+        enum CodingKeys: String, CodingKey {
+            case estado, contato
+            case posicaoID = "posicao_id"
+            case turnoID = "turno_id"
+        }
+        func dominio() -> ResultadoConfirmacao {
+            ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turnoID, contato: contato.dominio())
+        }
+    }
+
+    /// O filtro de `minhas_candidaturas`. Sem estado, o campo não vai, e a função lista todas.
+    struct MinhasCandidaturasParametros: Encodable {
+        let estado: EstadoCandidatura?
+    }
+
     struct TurnoDTO: Decodable {
         let id: UUID
         let posicaoID: UUID

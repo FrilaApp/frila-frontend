@@ -175,6 +175,20 @@ public struct ResultadoCandidatura: Codable, Equatable, Sendable {
     }
 }
 
+/// Resposta de `escolher_candidato` (`ResultadoConfirmacao` do contrato): a posição e o turno que a
+/// escolha confirmou, com o contato do profissional, liberado a partir daí (RN10).
+public struct ResultadoConfirmacao: Codable, Equatable, Sendable {
+    public let posicaoID: UUID
+    public let turnoID: UUID
+    public let contato: Contato
+
+    public init(posicaoID: UUID, turnoID: UUID, contato: Contato) {
+        self.posicaoID = posicaoID
+        self.turnoID = turnoID
+        self.contato = contato
+    }
+}
+
 public struct Denuncia: Codable, Equatable, Sendable {
     public let alvo: Alvo
     /// O turno em que aconteceu, quando a denúncia sai da tela de um turno.
@@ -250,6 +264,28 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura
     func perfilPublico(id: UUID) async throws -> PerfilPublico
 
+    // Modo seleção (contrato 0.2.24)
+    /// Os candidatos que ainda esperam a escolha, por ordem de chegada, com perfil e reputação.
+    /// Só para membro da casa (`semPermissao`); vaga que não existe é `naoEncontrado`. Quem já foi
+    /// escolhido não vem aqui: está na posição confirmada do painel.
+    func candidatosDaVaga(id: UUID) async throws -> [Candidato]
+    /// A casa confirma um candidato numa posição aberta, com a garantia da RN19. **Não é
+    /// idempotente:** escolher de novo a candidatura já escolhida responde
+    /// `candidaturaIndisponivel`, e não o mesmo turno. Por isso a escolha nunca entra em fila
+    /// offline, e depois de uma resposta perdida a tela relê os candidatos e o painel antes de
+    /// dizer que falhou. `posicaoJaPreenchida`: outra escolha ocupou a última posição;
+    /// `vagaEncerrada`: fechada pelas 24 h, cancelada ou encerrada; `candidaturaIndisponivel`:
+    /// retirada, expirada ou já escolhida; `inelegivel`: `turno_sobreposto` ou `perfil_suspenso`;
+    /// `vagaOculta`: ocultada pela moderação, e a candidatura segue pendente.
+    func escolherCandidato(candidaturaID: UUID) async throws -> ResultadoConfirmacao
+    /// O profissional desiste antes da escolha, sem penalidade (RN24). Retirar de novo devolve a
+    /// mesma candidatura retirada. Escolhida, recusada ou expirada é `candidaturaIndisponivel`; a
+    /// que não é de quem chama, `naoEncontrado`.
+    func retirarCandidatura(id: UUID) async throws -> Candidatura
+    /// As candidaturas do profissional, da mais nova para a mais antiga. Sem `estado`, todas:
+    /// inclusive as `aceita` do modo urgência.
+    func minhasCandidaturas(estado: EstadoCandidatura?) async throws -> [Candidatura]
+
     // Turno
     func meusTurnos() async throws -> [Turno]
     func contatoDoTurno(id: UUID) async throws -> Contato
@@ -307,6 +343,7 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 
 public extension ApiCliente {
     func vagasAbertas() async throws -> [VagaNaLista] { try await vagasAbertas(.todas) }
+    func minhasCandidaturas() async throws -> [Candidatura] { try await minhasCandidaturas(estado: nil) }
 }
 
 public protocol VagaRepositorio: Sendable {

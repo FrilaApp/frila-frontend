@@ -1,0 +1,79 @@
+[
+  {
+    "candidatura_id": "70000000-0000-0000-0000-000000000001",
+    "profissional": {
+      "id": "80000000-0000-0000-0000-000000000001",
+      "tipo": "profissional",
+      "nome": "Ana Cunha",
+      "funcoes": [
+        "Garçom"
+      ],
+      "reputacao": {
+        "positivas": 7,
+        "total": 7,
+        "taxa_comparecimento": 1.0,
+        "turnos_considerados": 7,
+        "turnos_realizados": 7
+      }
+    },
+    "criada_em": "2026-10-06T14:02:11Z"
+  },
+  {
+    "candidatura_id": "70000000-0000-0000-0000-000000000002",
+    "profissional": {
+      "id": "80000000-0000-0000-0000-000000000002",
+      "tipo": "profissional",
+      "nome": "Bruno Tavares",
+      "funcoes": [
+        "Garçom",
+        "Bartender"
+      ],
+      "reputacao": {
+        "positivas": 10,
+        "total": 12,
+        "taxa_comparecimento": 0.9,
+        "turnos_considerados": 20,
+        "turnos_realizados": 18
+      }
+    },
+    "criada_em": "2026-10-06T15:40:00Z"
+  },
+  {
+    "candidatura_id": "70000000-0000-0000-0000-000000000003",
+    "profissional": {
+      "id": "80000000-0000-0000-0000-000000000003",
+      "tipo": "profissional",
+      "nome": "Carla Menezes",
+      "funcoes": [
+        "Garçom"
+      ],
+      "reputacao": {
+        "positivas": 0,
+        "total": 0,
+        "taxa_comparecimento": null,
+        "turnos_considerados": 0,
+        "turnos_realizados": 0
+      }
+    },
+    "criada_em": "2026-10-06T18:05:47.310+00:00"
+  },
+  {
+    "candidatura_id": "70000000-0000-0000-0000-000000000004",
+    "profissional": {
+      "id": "80000000-0000-0000-0000-000000000004",
+      "tipo": "profissional",
+      "nome": "Diego Rocha",
+      "funcoes": [
+        "Garçom"
+      ],
+      "reputacao": {
+        "positivas": 3,
+        "total": 5,
+        "taxa_comparecimento": 0.75,
+        "turnos_considerados": 8,
+        "turnos_realizados": 6
+      }
+    },
+    "criada_em": "2026-10-07T09:12:30Z"
+  }
+]

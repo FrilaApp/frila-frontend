@@ -230,6 +230,7 @@ public struct TelaMinhasVagas: View {
     @State private var acompanhamento: AcompanhamentoViewModel
     @State private var roteador: RoteadorDoContratante
     @State private var vagaParaRepublicar: VagaNoPainel?
+    @State private var republicacaoConcluida = false
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let publicarVaga: (() -> Void)?
@@ -265,6 +266,11 @@ public struct TelaMinhasVagas: View {
                     Text(verbatim: viewModel.nomeEstabelecimento)
                         .font(.headline)
                         .foregroundStyle(FrilaCor.textoSecundario)
+
+                    if republicacaoConcluida {
+                        AvisoFrila(verbatim: TextosRepublicarVaga.sucesso, tom: .informativo)
+                            .accessibilityIdentifier("aviso-sucesso-republicacao")
+                    }
 
                     // Sempre à vista, e não só na lista vazia: é por aqui que se publica a segunda vaga.
                     if let publicarVaga {
@@ -357,6 +363,7 @@ public struct TelaMinhasVagas: View {
                         fila: fila,
                         aoConcluir: { _ in
                             await carregar()
+                            await MainActor.run { republicacaoConcluida = true }
                         }
                     )
                 )
@@ -475,11 +482,16 @@ private struct TelaDetalheVagaContratante: View {
     @State private var errosContato: [UUID: String] = [:]
     @State private var perfilSelecionado: PerfilPublico?
     @State private var vagaParaRepublicar: VagaNoPainel?
+    @State private var republicacaoConcluida = false
     private let formatador = FormatadorFrila()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                if republicacaoConcluida {
+                    AvisoFrila(verbatim: TextosRepublicarVaga.sucesso, tom: .informativo)
+                        .accessibilityIdentifier("aviso-sucesso-republicacao")
+                }
                 Text(verbatim: vaga.vaga.funcao).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: vaga.vaga.local)
@@ -524,6 +536,7 @@ private struct TelaDetalheVagaContratante: View {
                         fila: fila,
                         aoConcluir: { _ in
                             await aoRepublicar?()
+                            await MainActor.run { republicacaoConcluida = true }
                         }
                     )
                 )

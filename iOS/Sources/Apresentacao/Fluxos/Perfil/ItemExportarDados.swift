@@ -4,17 +4,17 @@ import UIKit
 
 public struct FolhaCompartilhamento: UIViewControllerRepresentable {
     public let url: URL
-    public let aoConcluir: (() -> Void)?
+    public let aoConcluirAtividade: ((_ concluida: Bool) -> Void)?
 
-    public init(url: URL, aoConcluir: (() -> Void)? = nil) {
+    public init(url: URL, aoConcluirAtividade: ((_ concluida: Bool) -> Void)? = nil) {
         self.url = url
-        self.aoConcluir = aoConcluir
+        self.aoConcluirAtividade = aoConcluirAtividade
     }
 
     public func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        controller.completionWithItemsHandler = { _, _, _, _ in
-            aoConcluir?()
+        controller.completionWithItemsHandler = { _, completed, _, _ in
+            aoConcluirAtividade?(completed)
         }
         if UIDevice.current.userInterfaceIdiom == .pad {
             controller.popoverPresentationController?.sourceView = UIView()
@@ -76,8 +76,8 @@ public struct ItemExportarDados: View {
             viewModel.folhaCompartilhamentoFechada()
         }) {
             if let url = viewModel.arquivoParaCompartilhar {
-                FolhaCompartilhamento(url: url) {
-                    viewModel.folhaCompartilhamentoFechada()
+                FolhaCompartilhamento(url: url) { concluida in
+                    viewModel.atividadeCompartilhamentoConcluida(concluida: concluida)
                 }
             }
         }
