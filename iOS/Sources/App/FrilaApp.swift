@@ -217,7 +217,7 @@ private struct EntradaDoApp: View {
             case .funcoesEHorarios:
                 TelaFuncoesEHorariosProvisoria()
             case .contratante:
-                TelaInicioContratanteProvisoria()
+                FluxoDoContratante(api: api, fila: armazenamento, sair: acaoDeSair)
             case let .cadastro(email):
                 FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
                     aplicarDestinoManual(destino)

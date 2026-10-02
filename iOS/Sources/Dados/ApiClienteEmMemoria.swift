@@ -108,7 +108,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     }
                 }
             }
-            estabelecimentos = [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
+            estabelecimentos = conta == nil ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
             if let vagas {
                 self.vagas = vagas
             } else {
