@@ -314,11 +314,27 @@ public final class AcompanhamentoViewModel {
     }
 
     private static func copia(
-        _ posicao: PosicaoNoPainel, estado: EstadoPosicao? = nil, verificacao: Verificacao? = nil, emAtraso: Bool? = nil
+        _ posicao: PosicaoNoPainel,
+        estado: EstadoPosicao? = nil,
+        verificacao: Verificacao? = nil,
+        emAtraso: Bool? = nil,
+        checkinEm: Date? = nil,
+        checkinTipo: TipoRegistro? = nil,
+        checkinConfirmadoEm: Date? = nil,
+        cancelamento: CancelamentoDaPosicao? = nil
     ) -> PosicaoNoPainel {
         PosicaoNoPainel(
-            id: posicao.id, estado: estado ?? posicao.estado, profissional: posicao.profissional, turnoID: posicao.turnoID,
-            verificacao: verificacao ?? posicao.verificacao, emAtraso: emAtraso ?? posicao.emAtraso, aCaminhoEm: posicao.aCaminhoEm
+            id: posicao.id,
+            estado: estado ?? posicao.estado,
+            profissional: posicao.profissional,
+            turnoID: posicao.turnoID,
+            verificacao: verificacao ?? posicao.verificacao,
+            emAtraso: emAtraso ?? posicao.emAtraso,
+            aCaminhoEm: posicao.aCaminhoEm,
+            checkinEm: checkinEm ?? posicao.checkinEm,
+            checkinTipo: checkinTipo ?? posicao.checkinTipo,
+            checkinConfirmadoEm: checkinConfirmadoEm ?? posicao.checkinConfirmadoEm,
+            cancelamento: cancelamento ?? posicao.cancelamento
         )
     }
 }

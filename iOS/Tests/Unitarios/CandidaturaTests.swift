@@ -80,16 +80,18 @@ struct CandidaturaViewModelTests {
         #expect(vm.estado == .concluida(esperado))
     }
 
-    @Test("Candidatura pendente não existe na v1.0: vira falha tipada")
+    @Test("Candidatura pendente (vaga de seleção) é resultado próprio, com o id que a retirada pede")
     func pendente() async throws {
         let vaga = try await vagaDoDuble(ApiClienteEmMemoria())
+        let candidaturaID = UUID()
         let vm = CandidaturaViewModel(
             vaga: vaga,
-            candidatar: { _ in ResultadoCandidatura(estado: .pendente, candidaturaID: UUID(), posicaoID: nil, turnoID: nil, contato: nil) }
+            candidatar: { _ in ResultadoCandidatura(estado: .pendente, candidaturaID: candidaturaID, posicaoID: nil, turnoID: nil, contato: nil) }
         )
         await vm.candidatar()
-        guard case let .concluida(.falha(erro)) = vm.estado else { Issue.record("esperado falha: \(vm.estado)"); return }
-        #expect(erro.codigoOriginal == "candidatura_pendente")
+        #expect(vm.estado == .concluida(.pendente(candidaturaID: candidaturaID)))
+        #expect(vm.candidaturaPendente == candidaturaID)
+        #expect(ResultadoDaCandidatura.pendente(candidaturaID: candidaturaID).abreTelaPropria)
     }
 
     @Test("Toque duplo: o segundo toque durante o envio não chama candidatar de novo")

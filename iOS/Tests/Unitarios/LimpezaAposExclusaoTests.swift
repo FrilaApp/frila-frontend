@@ -13,7 +13,13 @@ struct LimpezaAposExclusaoTests {
         return ArmazenamentoSwiftData(modelContainer: container)
     }
 
-    private func popularDadosLocais(no local: ArmazenamentoSwiftData, instante: Date) async throws -> Turno {
+    private func criarUserDefaultsIsolado() -> (UserDefaults, String) {
+        let nome = "LimpezaAposExclusaoTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: nome)!
+        return (defaults, nome)
+    }
+
+    private func popularDadosLocais(no local: ArmazenamentoSwiftData, instante: Date, defaults: UserDefaults) async throws -> Turno {
         let inicio = instante.addingTimeInterval(3_600)
         let fim = inicio.addingTimeInterval(3_600)
         let resumo = VagaResumo(
@@ -37,29 +43,36 @@ struct LimpezaAposExclusaoTests {
         try await local.salvar(turnos: [turno], em: instante)
         try await local.salvar(funcoes: [Funcao(id: UUID(), nome: "Garçom", categoria: "Restaurante")])
         try await local.enfileirar(AcaoPendente(tipo: .checkin, turnoID: turno.id, instanteDoToque: instante, chave: UUID(), distanciaMetros: 20))
-        DestinoGuardado.salvar(.profissional)
+        DestinoGuardado.salvar(.profissional, em: defaults)
         return turno
     }
 
     @Test("Limpeza: Sucesso na exclusão apaga cache, fila, destino guardado e encerra sessão (Critério 2)")
     func sucessoLimpaAparelho() async throws {
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
         let local = try criarArmazenamentoLocal()
         let instante = Date(timeIntervalSince1970: 1_800_000_000)
-        _ = try await popularDadosLocais(no: local, instante: instante)
+        _ = try await popularDadosLocais(no: local, instante: instante, defaults: defaults)
 
         #expect(try await local.sessao() != nil)
         #expect(try await !local.turnosValidos(em: instante).isEmpty)
         #expect(try await !local.pendentes().isEmpty)
-        #expect(DestinoGuardado.obter() == .profissional)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
 
         let api = ApiClienteEmMemoria()
-        let saida = SaidaDaConta(api: api, armazenamento: local)
+        let saida = SaidaDaConta(api: api, armazenamento: local, limparDestino: {
+            if let defs = UserDefaults(suiteName: suiteName) {
+                DestinoGuardado.limpar(em: defs)
+            }
+        })
 
         let resultado = try await saida.excluir()
         #expect(resultado.turnosCancelados >= 0)
 
         // Verificações de limpeza
-        #expect(DestinoGuardado.obter() == nil)
+        #expect(DestinoGuardado.obter(de: defaults) == nil)
         #expect(try await local.sessao() == nil)
         #expect(try await local.turnosValidos(em: instante).isEmpty)
         #expect(try await local.funcoes().isEmpty)
@@ -69,12 +82,19 @@ struct LimpezaAposExclusaoTests {
 
     @Test("Cuidado crítico: Erro de rede na exclusão NÃO limpa cache, fila nem sessão")
     func erroDeRedeNaoLimpaAparelho() async throws {
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
         let local = try criarArmazenamentoLocal()
         let instante = Date(timeIntervalSince1970: 1_800_000_000)
-        _ = try await popularDadosLocais(no: local, instante: instante)
+        _ = try await popularDadosLocais(no: local, instante: instante, defaults: defaults)
 
         let api = ApiClienteEmMemoria(cenario: .semRede)
-        let saida = SaidaDaConta(api: api, armazenamento: local)
+        let saida = SaidaDaConta(api: api, armazenamento: local, limparDestino: {
+            if let defs = UserDefaults(suiteName: suiteName) {
+                DestinoGuardado.limpar(em: defs)
+            }
+        })
 
         do {
             _ = try await saida.excluir()
@@ -84,7 +104,7 @@ struct LimpezaAposExclusaoTests {
         }
 
         // Nada pode ser apagado se o servidor não confirmou a exclusão!
-        #expect(DestinoGuardado.obter() == .profissional)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
         #expect(try await local.sessao() != nil)
         #expect(try await !local.turnosValidos(em: instante).isEmpty)
         #expect(try await !local.pendentes().isEmpty)
@@ -93,13 +113,20 @@ struct LimpezaAposExclusaoTests {
 
     @Test("Cuidado crítico: Erro 409 administrador_unico NÃO limpa cache, fila nem sessão")
     func erroAdministradorUnicoNaoLimpaAparelho() async throws {
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
         let local = try criarArmazenamentoLocal()
         let instante = Date(timeIntervalSince1970: 1_800_000_000)
-        _ = try await popularDadosLocais(no: local, instante: instante)
+        _ = try await popularDadosLocais(no: local, instante: instante, defaults: defaults)
 
         let api = ApiClienteEmMemoria()
         await api.configurarCenarioExclusao(.administradorUnico)
-        let saida = SaidaDaConta(api: api, armazenamento: local)
+        let saida = SaidaDaConta(api: api, armazenamento: local, limparDestino: {
+            if let defs = UserDefaults(suiteName: suiteName) {
+                DestinoGuardado.limpar(em: defs)
+            }
+        })
 
         do {
             _ = try await saida.excluir()
@@ -109,7 +136,7 @@ struct LimpezaAposExclusaoTests {
         }
 
         // Nada pode ser apagado se o servidor recusou com conflito!
-        #expect(DestinoGuardado.obter() == .profissional)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
         #expect(try await local.sessao() != nil)
         #expect(try await !local.turnosValidos(em: instante).isEmpty)
         #expect(try await !local.pendentes().isEmpty)
@@ -117,13 +144,20 @@ struct LimpezaAposExclusaoTests {
 
     @Test("Cuidado crítico: Erro 401 nao_autenticado NÃO limpa cache, fila nem sessão")
     func erro401NaoAutenticadoNaoLimpaAparelho() async throws {
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
         let local = try criarArmazenamentoLocal()
         let instante = Date(timeIntervalSince1970: 1_800_000_000)
-        _ = try await popularDadosLocais(no: local, instante: instante)
+        _ = try await popularDadosLocais(no: local, instante: instante, defaults: defaults)
 
         let api = ApiClienteEmMemoria()
         await api.configurarCenarioExclusao(.naoAutenticado)
-        let saida = SaidaDaConta(api: api, armazenamento: local)
+        let saida = SaidaDaConta(api: api, armazenamento: local, limparDestino: {
+            if let defs = UserDefaults(suiteName: suiteName) {
+                DestinoGuardado.limpar(em: defs)
+            }
+        })
 
         do {
             _ = try await saida.excluir()
@@ -133,7 +167,7 @@ struct LimpezaAposExclusaoTests {
         }
 
         // Com 401, nada pode ser apagado se a exclusão falhou na porta
-        #expect(DestinoGuardado.obter() == .profissional)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
         #expect(try await local.sessao() != nil)
         #expect(try await !local.turnosValidos(em: instante).isEmpty)
         #expect(try await !local.pendentes().isEmpty)
@@ -148,12 +182,19 @@ struct LimpezaAposExclusaoTests {
             }
         }
 
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
         let local = try criarArmazenamentoLocal()
         let instante = Date(timeIntervalSince1970: 1_800_000_000)
-        _ = try await popularDadosLocais(no: local, instante: instante)
+        _ = try await popularDadosLocais(no: local, instante: instante, defaults: defaults)
 
         let api = ApiClienteEmMemoria()
-        let saida = SaidaDaConta(api: api, armazenamento: local)
+        let saida = SaidaDaConta(api: api, armazenamento: local, limparDestino: {
+            if let defs = UserDefaults(suiteName: suiteName) {
+                DestinoGuardado.limpar(em: defs)
+            }
+        })
 
         do {
             _ = try await saida.excluir(porta: Porta401())
@@ -162,7 +203,7 @@ struct LimpezaAposExclusaoTests {
             #expect(erro.codigo == .naoAutenticado)
         }
 
-        #expect(DestinoGuardado.obter() == .profissional)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
         #expect(try await local.sessao() != nil)
         #expect(try await !local.turnosValidos(em: instante).isEmpty)
         #expect(try await !local.pendentes().isEmpty)

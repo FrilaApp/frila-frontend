@@ -36,6 +36,44 @@ enum TextosDoAcompanhamento {
     static let acompanharTurno = titulo
     static let vagaNaoEncontrada = String(localized: "Não encontramos esta vaga.", bundle: bundleApresentacao)
     static let periodo = String(localized: "%@ – %@", bundle: bundleApresentacao)
+    static let checkinNoLocal = String(localized: "Check-in no local às %@.", bundle: bundleApresentacao)
+    static let checkinManual = String(localized: "Check-in manual às %@.", bundle: bundleApresentacao)
+    static let checkinGenerico = String(localized: "Check-in às %@.", bundle: bundleApresentacao)
+    static let checkinConfirmado = String(localized: "Check-in confirmado às %@.", bundle: bundleApresentacao)
+    static let causaProfissional = String(localized: "Cancelado pelo profissional.", bundle: bundleApresentacao)
+    static let causaEstabelecimento = String(localized: "Cancelado pelo estabelecimento.", bundle: bundleApresentacao)
+    static let causaReaberturaPorAtraso = String(localized: "Reabertura por atraso.", bundle: bundleApresentacao)
+    static let causaNoShowSemCheckin = String(localized: "Turno encerrado sem check-in.", bundle: bundleApresentacao)
+    static let causaOutro = String(localized: "Posição cancelada.", bundle: bundleApresentacao)
+    static let contouFalta = String(localized: "Contou como falta para o profissional.", bundle: bundleApresentacao)
+    static let naoContouFalta = String(localized: "Não contou como falta.", bundle: bundleApresentacao)
+    static let motivoCancelamento = String(localized: "Motivo: %@", bundle: bundleApresentacao)
+    static let canceladaEm = String(localized: "Cancelada em %@.", bundle: bundleApresentacao)
+
+    static func detalheDoCheckin(em hora: String, tipo: TipoRegistro?) -> String {
+        switch tipo {
+        case .geolocalizado:
+            String(format: checkinNoLocal, hora)
+        case .manual:
+            String(format: checkinManual, hora)
+        case .none:
+            String(format: checkinGenerico, hora)
+        }
+    }
+
+    static func textoDaCausa(_ causa: CausaDoCancelamento) -> String {
+        switch causa {
+        case .profissional: causaProfissional
+        case .estabelecimento: causaEstabelecimento
+        case .reaberturaPorAtraso: causaReaberturaPorAtraso
+        case .noShowSemCheckin: causaNoShowSemCheckin
+        case .outro: causaOutro
+        }
+    }
+
+    static func textoDaFalta(_ falta: Bool) -> String {
+        falta ? contouFalta : naoContouFalta
+    }
 
     static func resultado(_ resultado: ResultadoDoAcompanhamento) -> String {
         switch resultado {
@@ -131,6 +169,11 @@ struct TelaTurnoDoContratante: View {
         case .manualPendente:
             Text(verbatim: TextosDoAcompanhamento.manualPendente).font(.headline)
             Text(verbatim: TextosDoAcompanhamento.explicacaoDaConfirmacao).foregroundStyle(FrilaCor.textoSecundario)
+            if let checkinEm = turno.posicao.checkinEm {
+                Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo ?? .manual))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
+            }
             if viewModel.podeConfirmar(turno) {
                 BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
                     Task { await viewModel.confirmarPresenca(turno) }
@@ -147,11 +190,38 @@ struct TelaTurnoDoContratante: View {
         case .verificada:
             Text(verbatim: TextosDoAcompanhamento.verificada).font(.headline)
                 .accessibilityIdentifier("presenca-verificada-\(turnoID)")
+            if let checkinEm = turno.posicao.checkinEm {
+                Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
+            }
+            if let confirmadoEm = turno.posicao.checkinConfirmadoEm {
+                Text(verbatim: String(format: TextosDoAcompanhamento.checkinConfirmado, formatador.hora(confirmadoEm)))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("detalhe-confirmacao-\(turnoID)")
+            }
         case .naoVerificada:
             Text(verbatim: TextosDoAcompanhamento.naoVerificada)
         case .cancelada:
-            Text(verbatim: TextosDoAcompanhamento.cancelada)
+            Text(verbatim: TextosDoAcompanhamento.cancelada).font(.headline)
                 .accessibilityIdentifier("posicao-cancelada-\(turno.id)")
+            if let cancelamento = turno.posicao.cancelamento {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: TextosDoAcompanhamento.textoDaCausa(cancelamento.causa))
+                        .accessibilityIdentifier("cancelamento-causa-\(turnoID)")
+                    Text(verbatim: TextosDoAcompanhamento.textoDaFalta(cancelamento.falta))
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("cancelamento-falta-\(turnoID)")
+                    if let motivo = cancelamento.motivo, !motivo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(verbatim: String(format: TextosDoAcompanhamento.motivoCancelamento, motivo))
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityIdentifier("cancelamento-motivo-\(turnoID)")
+                    }
+                    Text(verbatim: String(format: TextosDoAcompanhamento.canceladaEm, formatador.dataEHora(cancelamento.canceladaEm)))
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("cancelamento-data-\(turnoID)")
+                }
+            }
         }
     }
 }
