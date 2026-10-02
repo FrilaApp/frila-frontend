@@ -84,16 +84,22 @@ O pedido do sistema só aparece uma vez na vida do app, então ele nunca sai soz
 
 | Momento | O que o app faz |
 |---|---|
-| O profissional salva funções e horários (na criação e na edição do perfil) | Mostra a tela de explicação, se o sistema ainda não perguntou. |
+| O profissional salva funções e horários (na criação e na edição do perfil) | Mostra a tela de explicação, se o sistema ainda não perguntou e ela ainda não tiver aparecido nesta sessão do app. |
 | O contratante publica a vaga | Idem. |
 | "Ativar notificações" na explicação | Só aqui aparece o pedido do sistema. |
 | "Agora não" na explicação | Fecha, e o pedido do sistema não é gasto. |
 | Volta ao primeiro plano | Relê a permissão: a pessoa pode ter mudado nos Ajustes. |
 
+- **No máximo uma vez por sessão.** A explicação só aparece sozinha uma vez por sessão do app (uma
+  abertura), para não cansar. Depois de mostrada (e adiada com "Agora não" ou dispensada), ela não
+  volta a aparecer automaticamente em novos salvamentos ou publicações até o app ser aberto de novo.
+  O estado fica em memória (`PermissaoDePushModelo.jaMostradaNaSessao`), sem gravar em
+  `UserDefaults`.
 - **Aviso fixo.** Em Vagas e em Minhas vagas, `AvisoDePermissaoDePush` aparece para quem está sem
   notificação. Com a permissão **negada**, o botão leva aos Ajustes de notificação do app
   (`UIApplication.openNotificationSettingsURLString`). Se o sistema **ainda não perguntou** (a pessoa
-  adiou, ou já usava o app antes de o push existir), o botão abre a explicação.
+  adiou, ou já usava o app antes de o push existir), o botão reabre a explicação quando a pessoa
+  quiser, mesmo que ela já tenha aparecido nesta sessão.
 - **O que é pedido.** Alerta e som (`PermissaoDePushDoSistema.opcoes`). Sem Time Sensitive, sem
   alerta crítico, sem autorização provisória, sem selo e sem modo de segundo plano (B08); um teste
   confere o código, os entitlements e o `project.yml`.

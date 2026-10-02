@@ -46,6 +46,12 @@
     "schema": "#/components/schemas/Candidatura",
     "lista": true
   },
+  "painel-com-cancelamento.json": {
+    "schema": "#/components/schemas/Painel"
+  },
+  "painel-com-presenca.json": {
+    "schema": "#/components/schemas/Painel"
+  },
   "painel.json": {
     "schema": "#/components/schemas/Painel"
   },
@@ -138,6 +144,14 @@
   },
   "situacao-da-conta.json": {
     "schema": "#/components/schemas/SituacaoDaConta"
+  },
+  "turnos-avaliados.json": {
+    "schema": "#/components/schemas/Turno",
+    "lista": true
+  },
+  "turnos-cancelados.json": {
+    "schema": "#/components/schemas/Turno",
+    "lista": true
   },
   "turnos.json": {
     "schema": "#/components/schemas/Turno",

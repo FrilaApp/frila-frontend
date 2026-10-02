@@ -3,7 +3,7 @@ import Foundation
 import FrilaDominio
 import Testing
 
-@Suite("Contrato 0.2.27")
+@Suite("Contrato 0.2.31")
 struct ContratoTests {
     static func objeto(_ valor: some Encodable) throws -> NSDictionary {
         let dados = try JSONEncoder().encode(valor)
@@ -20,7 +20,25 @@ struct ContratoTests {
     @Test("As fixtures declaram a versão do contrato espelhado")
     func versao() throws {
         struct Versao: Decodable { let version: String }
-        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.27")
+        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.31")
+    }
+
+    @Test("Fixtures da 0.2.31 cobrem turno cancelado, avaliação dada e servidor anterior")
+    func camposOpcionaisDoTurno() throws {
+        func primeiro(_ nome: String) throws -> NSDictionary {
+            let lista = try #require(JSONSerialization.jsonObject(with: FixturesDoContrato.dados(nome)) as? [NSDictionary])
+            return try #require(lista.first)
+        }
+        let anterior = try primeiro("turnos")
+        #expect(anterior["estado"] == nil && anterior["avaliacao"] == nil)
+        let cancelado = try primeiro("turnos-cancelados")
+        #expect(cancelado["estado"] as? String == "cancelada")
+        #expect(cancelado["avaliacao"] is NSNull)
+        let avaliado = try primeiro("turnos-avaliados")
+        #expect(avaliado["estado"] as? String == "cumprida")
+        let avaliacaoEsperada = try Self.fixture("avaliacao")
+        #expect(avaliado["avaliacao"] as? NSDictionary == avaliacaoEsperada)
+        #expect(avaliado["pode_avaliar"] as? Bool == false)
     }
 
     @Test("Conta, perfil e estabelecimento do contrato viram domínio")

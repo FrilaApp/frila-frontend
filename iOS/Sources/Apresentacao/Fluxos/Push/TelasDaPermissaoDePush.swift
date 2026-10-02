@@ -78,7 +78,7 @@ public struct AvisoDePermissaoDePush: View {
                 .accessibilityIdentifier("aviso-push-negado")
             case .naoPedida:
                 aviso(TextosDoPush.Aviso.naoPedida(perfil), tom: .informativo, botao: TextosDoPush.Explicacao.ativar, id: "explicar-notificacoes") {
-                    Task { await modelo.oferecer() }
+                    Task { await modelo.reabrir() }
                 }
                 .accessibilityIdentifier("aviso-push-nao-pedido")
             case .concedida, nil:

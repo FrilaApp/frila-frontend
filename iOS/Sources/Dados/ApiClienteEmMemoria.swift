@@ -75,6 +75,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Conta de profissional cuja candidatura esperava quando a seleção fechou sozinha, 24 h
         /// antes do início: candidatura `expirada` e vaga `encerrada` (critério 2 do #10).
         case candidaturaExpirada = "candidatura-expirada"
+        case exportarSemRede = "exportar-sem-rede"
+        case exportarErroServidor = "exportar-erro-servidor"
 
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
@@ -1170,11 +1172,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
             throw erroExportarMeusDados
         }
 
-        let argumentos = ProcessInfo.processInfo.arguments
-        if argumentos.contains("-FRILA_EXPORTAR_SEM_REDE") {
+        if cenario == .exportarSemRede {
             throw ErroDaApi(codigo: .semRede)
         }
-        if argumentos.contains("-FRILA_EXPORTAR_ERRO_SERVIDOR") {
+        if cenario == .exportarErroServidor {
             throw ErroDaApi(codigo: .desconhecido)
         }
 
