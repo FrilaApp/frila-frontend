@@ -62,7 +62,8 @@ public final class ExclusaoDeContaViewModel {
             busca = buscarTurnos
         } else {
             busca = {
-                if let conta = try? await api.minhaConta(), conta.perfil == .contratante {
+                let conta = try await api.minhaConta()
+                if conta.perfil == .contratante {
                     return try await Self.buscarTurnosContratante(api: api, relogio: relogio)
                 }
                 return try await api.meusTurnos()
