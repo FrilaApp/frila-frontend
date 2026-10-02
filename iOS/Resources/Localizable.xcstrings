@@ -3802,6 +3802,276 @@
           }
         }
       }
+    },
+    "Acompanhar turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acompanhar turno"
+          }
+        }
+      }
+    },
+    "Chegada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chegada"
+          }
+        }
+      }
+    },
+    "Ainda não fez o check-in.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não fez o check-in."
+          }
+        }
+      }
+    },
+    "Avisou que está a caminho às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisou que está a caminho às %@."
+          }
+        }
+      }
+    },
+    "Fez o check-in manual, sem confirmação pelo GPS.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fez o check-in manual, sem confirmação pelo GPS."
+          }
+        }
+      }
+    },
+    "Confirme se a pessoa chegou. Sem a sua confirmação, o turno fica como não verificado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirme se a pessoa chegou. Sem a sua confirmação, o turno fica como não verificado."
+          }
+        }
+      }
+    },
+    "Confirmar presença": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar presença"
+          }
+        }
+      }
+    },
+    "Presença verificada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença verificada."
+          }
+        }
+      }
+    },
+    "Presença não verificada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença não verificada."
+          }
+        }
+      }
+    },
+    "Passaram 15 minutos do início e não há check-in. Você pode esperar ou reabrir a vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passaram 15 minutos do início e não há check-in. Você pode esperar ou reabrir a vaga."
+          }
+        }
+      }
+    },
+    "Reabrir vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reabrir vaga"
+          }
+        }
+      }
+    },
+    "Reabrir a vaga?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reabrir a vaga?"
+          }
+        }
+      }
+    },
+    "Conta como falta para %@, e a vaga volta a ser oferecida a outros profissionais.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta como falta para %@, e a vaga volta a ser oferecida a outros profissionais."
+          }
+        }
+      }
+    },
+    "Esperar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperar"
+          }
+        }
+      }
+    },
+    "Esta posição foi cancelada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta posição foi cancelada."
+          }
+        }
+      }
+    },
+    "Presença confirmada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença confirmada."
+          }
+        }
+      }
+    },
+    "Vaga reaberta. A falta foi registrada, e a posição voltou a ser oferecida.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga reaberta. A falta foi registrada, e a posição voltou a ser oferecida."
+          }
+        }
+      }
+    },
+    "Falta registrada. Falta menos de 1 hora para o fim do turno, e a vaga não foi reaberta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta registrada. Falta menos de 1 hora para o fim do turno, e a vaga não foi reaberta."
+          }
+        }
+      }
+    },
+    "Ainda não passaram 15 minutos do início do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não passaram 15 minutos do início do turno."
+          }
+        }
+      }
+    },
+    "A situação deste turno mudou. Atualizamos a tela.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A situação deste turno mudou. Atualizamos a tela."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar o turno. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o turno. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não encontramos este turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não encontramos este turno."
+          }
+        }
+      }
+    },
+    "Profissional confirmado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profissional confirmado"
+          }
+        }
+      }
+    },
+    "Presenças a confirmar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presenças a confirmar"
+          }
+        }
+      }
+    },
+    "Em atraso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em atraso"
+          }
+        }
+      }
+    },
+    "Sem check-in 15 minutos depois do início.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem check-in 15 minutos depois do início."
+          }
+        }
+      }
+    },
+    "Não encontramos esta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não encontramos esta vaga."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

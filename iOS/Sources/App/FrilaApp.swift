@@ -96,6 +96,7 @@ private struct EntradaDoApp: View {
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
+    @State private var roteadorDoContratante = RoteadorDoContratante()
     @State private var contaID: UUID?
     @State private var destinoAtual: DestinoDaConta?
     @State private var carregandoDestino: Bool = true
@@ -142,8 +143,10 @@ private struct EntradaDoApp: View {
                 )
                 TelaMinhasVagas(
                     viewModel: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento),
-                    api: api
+                    api: api,
+                    roteador: roteadorDoContratante
                 )
+                .task { aplicarAvisoDosArgumentos() }
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO") {
                 let apiCadastro = ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST")
                     ? ApiClienteEmMemoria(cenario: .primeiroAcesso) : api
@@ -238,7 +241,7 @@ private struct EntradaDoApp: View {
             case .funcoesEHorarios:
                 TelaFuncoesEHorariosProvisoria()
             case .contratante:
-                FluxoDoContratante(api: api, fila: armazenamento, sair: acaoDeSair)
+                fluxoContratanteView
             case let .cadastro(email):
                 FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
                     aplicarDestinoManual(destino)
@@ -280,6 +283,18 @@ private struct EntradaDoApp: View {
             DestinoGuardado.salvar(.contratante)
             destinoAtual = .contratante
         }
+    }
+
+    @ViewBuilder
+    private var fluxoContratanteView: some View {
+        #if DEBUG
+        FluxoDoContratante(api: api, fila: armazenamento, roteador: roteadorDoContratante, sair: acaoDeSair)
+            // Aviso da casa simulado: a mesma entrada que o push vai usar (S2 #8). Abre a vaga ou o
+            // turno; nunca confirma presença nem reabre vaga sozinho.
+            .task { aplicarAvisoDosArgumentos() }
+        #else
+        FluxoDoContratante(api: api, fila: armazenamento, roteador: roteadorDoContratante, sair: acaoDeSair)
+        #endif
     }
 
     @ViewBuilder
@@ -326,6 +341,21 @@ private struct EntradaDoApp: View {
         let argumentos = ProcessInfo.processInfo.arguments
         guard let indice = argumentos.firstIndex(of: "-FRILA_VAGA_ID"), argumentos.indices.contains(indice + 1) else { return nil }
         return UUID(uuidString: argumentos[indice + 1])
+    }
+
+    /// `-FRILA_AVISO <tipo> -FRILA_AVISO_ID <uuid>`: abre o destino de um aviso da casa, como o toque
+    /// no push (#8) vai abrir. O id é o `vaga_id` em `vaga_vazia` e o `turno_id` nos outros tipos.
+    private func aplicarAvisoDosArgumentos() {
+        let argumentos = ProcessInfo.processInfo.arguments
+        guard !rotaInicialAplicada,
+              let tipo = argumentos.firstIndex(of: "-FRILA_AVISO"), argumentos.indices.contains(tipo + 1),
+              let id = argumentos.firstIndex(of: "-FRILA_AVISO_ID"), argumentos.indices.contains(id + 1),
+              let aviso = AvisoDoContratante(
+                  tipo: argumentos[tipo + 1],
+                  payload: ["vaga_id": argumentos[id + 1], "turno_id": argumentos[id + 1]]
+              ) else { return }
+        rotaInicialAplicada = true
+        roteadorDoContratante.abrir(aviso)
     }
 
     private static func turnoIDDosArgumentos() -> UUID? {

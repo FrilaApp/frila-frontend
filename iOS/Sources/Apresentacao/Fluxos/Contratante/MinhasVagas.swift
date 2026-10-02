@@ -225,16 +225,24 @@ public final class MinhasVagasViewModel {
 
 public struct TelaMinhasVagas: View {
     @State private var viewModel: MinhasVagasViewModel
+    @State private var acompanhamento: AcompanhamentoViewModel
+    @State private var roteador: RoteadorDoContratante
     private let api: any ApiCliente
     private let formatador = FormatadorFrila()
 
-    public init(viewModel: MinhasVagasViewModel, api: any ApiCliente) {
+    /// O roteador vem de fora quando um aviso do push precisa abrir a vaga ou o turno (#8).
+    public init(viewModel: MinhasVagasViewModel, api: any ApiCliente, roteador: RoteadorDoContratante? = nil) {
         _viewModel = State(initialValue: viewModel)
+        _acompanhamento = State(initialValue: AcompanhamentoViewModel(
+            api: api, estabelecimentoID: viewModel.estabelecimentoID, aoMudar: { await viewModel.carregar() }
+        ))
+        _roteador = State(initialValue: roteador ?? RoteadorDoContratante())
         self.api = api
     }
 
     public var body: some View {
-        NavigationStack {
+        @Bindable var roteador = roteador
+        NavigationStack(path: $roteador.caminho) {
             ScrollView {
                 VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                     Text(verbatim: TextosMinhasVagas.titulo)
@@ -267,6 +275,7 @@ public struct TelaMinhasVagas: View {
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("estado-vazio-minhas-vagas")
                     } else {
+                        PendenciasDoContratante(viewModel: acompanhamento) { roteador.caminho.append(.turno(turnoID: $0)) }
                         ForEach(SecaoMinhasVagas.allCases) { secao in
                             let itens = viewModel.vagas(na: secao)
                             if !itens.isEmpty {
@@ -275,7 +284,7 @@ public struct TelaMinhasVagas: View {
                                         .font(.title3.bold())
                                         .accessibilityAddTraits(.isHeader)
                                     ForEach(itens, id: \.vaga.id) { vaga in
-                                        NavigationLink(value: vaga.vaga.id) { cartao(vaga, secao: secao) }
+                                        NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) { cartao(vaga, secao: secao) }
                                             .buttonStyle(.plain)
                                             .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
                                             .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
@@ -288,17 +297,26 @@ public struct TelaMinhasVagas: View {
                 .padding(FrilaEspaco.medio)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
-            .refreshable { await viewModel.carregar() }
+            .refreshable { await carregar() }
             .navigationTitle(TextosMinhasVagas.titulo)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: UUID.self) { vagaID in
-                if let vaga = viewModel.vagas.first(where: { $0.vaga.id == vagaID }) {
-                    TelaDetalheVagaContratante(vaga: vaga, api: api, confirmado: viewModel.confirmadas(vaga))
+            .navigationDestination(for: RotaDoContratante.self) { rota in
+                switch rota {
+                case let .vaga(vagaID):
+                    DestinoDaVagaDoContratante(viewModel: viewModel, acompanhamento: acompanhamento, vagaID: vagaID, api: api)
+                case let .turno(turnoID):
+                    TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID)
                 }
             }
         }
-        .task { await viewModel.carregar() }
+        .modifier(ConfirmacaoDeReabertura(viewModel: acompanhamento))
+        .task { await carregar() }
         .accessibilityIdentifier("minhas-vagas")
+    }
+
+    private func carregar() async {
+        await viewModel.carregar()
+        await acompanhamento.carregar()
     }
 
     private func cartao(_ vaga: VagaNoPainel, secao: SecaoMinhasVagas) -> some View {
@@ -342,6 +360,27 @@ public struct TelaMinhasVagas: View {
 
     private func periodo(_ periodo: Periodo) -> String {
         textoPeriodo(periodo)
+    }
+}
+
+/// A vaga pelo id, que é o que a lista e o aviso de vaga vazia trazem. Lê o painel do
+/// acompanhamento, que já reflete uma confirmação ou reabertura feita agora.
+private struct DestinoDaVagaDoContratante: View {
+    let viewModel: MinhasVagasViewModel
+    let acompanhamento: AcompanhamentoViewModel
+    let vagaID: UUID
+    let api: any ApiCliente
+
+    var body: some View {
+        if let vaga = acompanhamento.vaga(id: vagaID) ?? viewModel.vagas.first(where: { $0.vaga.id == vagaID }) {
+            TelaDetalheVagaContratante(vaga: vaga, api: api, confirmado: viewModel.confirmadas(vaga))
+        } else if acompanhamento.painel == nil, !acompanhamento.falhouAoCarregar {
+            EstadoCarregando()
+        } else {
+            AvisoFrila(verbatim: TextosDoAcompanhamento.vagaNaoEncontrada, tom: .informativo)
+                .padding(FrilaEspaco.medio)
+                .accessibilityIdentifier("vaga-contratante-nao-encontrada")
+        }
     }
 }
 
@@ -397,6 +436,13 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .accessibilityIdentifier("perfil-publico-\(posicao.id)")
                 }
+                if let turnoID = posicao.turnoID {
+                    NavigationLink(value: RotaDoContratante.turno(turnoID: turnoID)) {
+                        Text(verbatim: TextosDoAcompanhamento.acompanharTurno)
+                            .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
+                }
                 if let contato = contatos[posicao.id], contato.estaVisivel(em: .now), let turnoID = posicao.turnoID {
                     VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                         Text(verbatim: "\(contato.nome) · \(contato.telefone)")
@@ -433,6 +479,10 @@ private struct TelaDetalheVagaContratante: View {
                 }
             } else if posicao.estado == .aberta {
                 Text(verbatim: TextosMinhasVagas.posicaoAberta).font(.headline)
+            } else if posicao.estado == .cancelada, let nome = posicao.profissional?.nome {
+                // Cancelada ou reaberta por atraso: a posição guarda de quem era (RN12).
+                Text(verbatim: nome).font(.headline)
+                Text(verbatim: TextosDoAcompanhamento.cancelada).foregroundStyle(FrilaCor.textoSecundario)
             } else {
                 Text(verbatim: TextosMinhasVagas.encerradas).font(.headline)
             }
