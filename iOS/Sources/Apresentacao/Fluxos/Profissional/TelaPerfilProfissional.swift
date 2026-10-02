@@ -7,18 +7,21 @@ import SwiftUI
 
 public struct TelaPerfilProfissional: View {
     @Bindable private var viewModel: PerfilProfissionalViewModel
+    private let aoSalvar: () -> Void
     @State private var diaNovo: Int = 5 // Sexta-feira padrão
     @State private var inicioNovo: String = "18:00"
     @State private var fimNovo: String = "02:00"
     @State private var erroFormatoJanela: String?
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
-    public init(viewModel: PerfilProfissionalViewModel) {
+    public init(viewModel: PerfilProfissionalViewModel, aoSalvar: @escaping () -> Void = {}) {
         self.viewModel = viewModel
+        self.aoSalvar = aoSalvar
     }
 
-    public init(api: any ApiCliente, modo: PerfilProfissionalViewModel.Modo = .criacao) {
+    public init(api: any ApiCliente, modo: PerfilProfissionalViewModel.Modo = .criacao, aoSalvar: @escaping () -> Void = {}) {
         self.viewModel = PerfilProfissionalViewModel(api: api, modo: modo)
+        self.aoSalvar = aoSalvar
     }
 
     public var body: some View {
@@ -36,6 +39,13 @@ public struct TelaPerfilProfissional: View {
                     if let erro = viewModel.mensagemDeErro {
                         AvisoFrila(verbatim: erro, tom: .erro)
                             .accessibilityIdentifier("aviso-erro-perfil")
+
+                        if viewModel.funcoesDisponiveis.isEmpty {
+                            BotaoSecundario("Tentar novamente") {
+                                Task { await viewModel.carregar() }
+                            }
+                            .accessibilityIdentifier("perfil-tentar-carregar")
+                        }
                     }
 
                     if viewModel.sucesso {
@@ -49,7 +59,9 @@ public struct TelaPerfilProfissional: View {
                             : TextosDoProfissional.Perfil.salvarEdicao,
                         carregando: viewModel.salvando
                     ) {
-                        Task { await viewModel.salvar() }
+                        Task {
+                            if await viewModel.salvar() { aoSalvar() }
+                        }
                     }
                     .accessibilityIdentifier("botao-salvar-perfil")
                 }
@@ -205,9 +217,11 @@ public struct TelaPerfilProfissional: View {
                             } label: {
                                 Image(systemName: "trash")
                                     .foregroundStyle(FrilaCor.perigo)
-                                    .frame(width: 32, height: 32)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                             .accessibilityLabel(String(localized: "Remover horário de \(formatado.dia)", bundle: bundleApresentacao))
                             .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
                         }
@@ -235,7 +249,8 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
                 }
                 .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
                 .accessibilityIdentifier("picker-dia-semana")
 
                 HStack(spacing: FrilaEspaco.pequeno) {
@@ -268,11 +283,13 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.adicionar)
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, FrilaEspaco.medio)
-                        .frame(minHeight: 36)
+                        .frame(minHeight: 44)
                         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
                         .foregroundStyle(FrilaCor.sobrePrimaria)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
                 .accessibilityIdentifier("botao-adicionar-janela")
             }
             .padding(FrilaEspaco.pequeno)

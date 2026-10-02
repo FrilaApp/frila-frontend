@@ -21,7 +21,7 @@ final class PermissaoDePushUITests: XCTestCase {
     }
 
     func testPermissaoNegadaMostraOAvisoFixoEmMinhasVagas() {
-        let app = abrir(["-FRILA_SCENARIO", "painel-contratante", "-FRILA_PERMISSAO_PUSH", "negada"])
+        let app = abrir(["-FRILA_SCENARIO", "checkin-manual-pendente", "-FRILA_PERMISSAO_PUSH", "negada"])
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.staticTexts["As notificações estão desativadas. Você não recebe o aviso de quem aceitou a vaga, de check-in nem de atraso."].waitForExistence(timeout: 5))
@@ -97,20 +97,25 @@ final class PermissaoDePushUITests: XCTestCase {
     }
 
     func testPublicarAPrimeiraVagaMostraAExplicacaoAoContratante() {
-        let app = abrir(["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST", "-FRILA_PERMISSAO_PUSH", "nao-pedida"])
+        // A conta de contratante ainda sem estabelecimento chega à publicação pelo cadastro, que
+        // `-FRILA_CADASTRO_UI_TEST` já traz preenchido.
+        let app = abrir(["-FRILA_SCENARIO", "contratante-sem-estabelecimento", "-FRILA_CADASTRO_UI_TEST", "-FRILA_PERMISSAO_PUSH", "nao-pedida"])
 
         XCTAssertTrue(app.buttons["continuar-cadastro"].waitForExistence(timeout: 15))
         app.buttons["continuar-cadastro"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        app.buttons["Selecione uma função"].firstMatch.tap()
+        app.buttons["Função, Selecione uma função"].tap()
         app.buttons["Garçom"].firstMatch.tap()
+        // O responsável vai primeiro: o teclado numérico do valor não tem como ser fechado, e
+        // cobriria o campo de baixo.
+        let responsavel = app.textFields["Quem recebe no local"]
+        responsavel.tap()
+        responsavel.typeText("Marina\n")
         let valor = app.textFields["Valor por posição"]
         valor.tap()
         valor.typeText("18000")
-        let responsavel = app.textFields["Quem recebe no local"]
-        responsavel.tap()
-        responsavel.typeText("Marina")
+        app.swipeUp()
         XCTAssertFalse(app.descendants(matching: .any)["explicacao-do-push"].exists)
         app.buttons["publicar-vaga-botao"].tap()
 

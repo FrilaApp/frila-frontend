@@ -528,3 +528,29 @@ final class ArmazenamentoDeSessaoEmMemoria: AuthLocalStorage, @unchecked Sendabl
         trava.withLock { valores[key] = nil }
     }
 }
+
+// MARK: - Exclusão de Conta (Porta ExclusaoDeContaPorta)
+
+extension SupabaseApiCliente: ExclusaoDeContaPorta {
+    public func excluirConta() async throws -> ExclusaoDeConta {
+        let relogio = ContinuousClock()
+        let inicio = relogio.now
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        do {
+            let resposta: DTOExclusaoDeConta = try await cliente.functions.invoke(
+                "excluir-conta",
+                options: FunctionInvokeOptions(body: RequisicaoExclusaoConta()),
+                decoder: decodificador
+            )
+            return try converter { try resposta.dominio() }
+        } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
+            let tipado = mapear(error)
+            await telemetria.registrarErroDaApi(codigo: tipado.codigoOriginal, rpc: "excluir-conta", duracao: inicio.duration(to: relogio.now))
+            throw tipado
+        }
+    }
+}
+

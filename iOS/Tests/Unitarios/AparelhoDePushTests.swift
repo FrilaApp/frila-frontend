@@ -82,17 +82,6 @@ struct DispositivoEmMemoriaTests {
         #expect(await api.donoDoDispositivo(tokenFCM: Tokens.novo) == outraConta)
         #expect(await api.donoDoDispositivo(tokenFCM: Tokens.aparelho) == nil)
     }
-
-    @Test("Sair com o token tira o aparelho antes de encerrar a sessão; sem token, o aparelho fica")
-    func sair() async throws {
-        let api = ApiClienteEmMemoria()
-        _ = try await api.registrarDispositivo(tokenFCM: Tokens.aparelho)
-        await api.sair(tokenFCM: nil)
-        #expect(await api.donoDoDispositivo(tokenFCM: Tokens.aparelho) != nil)
-
-        await api.sair(tokenFCM: Tokens.aparelho)
-        #expect(await api.donoDoDispositivo(tokenFCM: Tokens.aparelho) == nil)
-    }
 }
 
 // MARK: - Contrato
@@ -282,10 +271,12 @@ private final class ApiDoAparelho: ApiClienteEncaminhador, @unchecked Sendable {
         try await base.removerDispositivo(tokenFCM: tokenFCM)
     }
 
-    /// Como o cliente real: sem rede, a remoção falha em silêncio e a sessão acaba do mesmo jeito.
+    /// Como o cliente real: tira o aparelho antes de encerrar a sessão, e sem rede a remoção falha
+    /// em silêncio. Não chama o `sair` do dublê, que limpa o destino guardado, global: os testes
+    /// que dependem dele rodam em paralelo com estes.
     override func sair(tokenFCM: String?) async {
         anotar("sair \(tokenFCM ?? "sem token")")
-        await base.sair(tokenFCM: semRede ? nil : tokenFCM)
+        if let tokenFCM, !semRede { try? await base.removerDispositivo(tokenFCM: tokenFCM) }
     }
 }
 
@@ -314,6 +305,12 @@ struct AparelhoDePushTests {
 
     private func aparelho() -> AparelhoDePush {
         AparelhoDePush(api: api, armazenamento: guardado, relogio: relogio)
+    }
+
+    /// O destino guardado é global (`UserDefaults.standard`): estes testes não o limpam, para não
+    /// atropelar os que dependem dele e rodam em paralelo.
+    private func saida(_ aparelho: AparelhoDePush) -> SaidaDaConta {
+        SaidaDaConta(api: api, armazenamento: nil, aparelho: aparelho, limparDestino: {})
     }
 
     private func conta() async throws -> UUID { try await api.minhaConta().id }
@@ -379,7 +376,7 @@ struct AparelhoDePushTests {
         await aparelho.receber(token: Tokens.aparelho)
         await aparelho.registrar(para: try await conta())
 
-        await SaidaDaConta(api: api, armazenamento: nil, aparelho: aparelho).sair()
+        await saida(aparelho).sair()
 
         #expect(api.chamadas.last == "sair \(Tokens.aparelho)")
         #expect(await dono(Tokens.aparelho) == nil)
@@ -429,7 +426,7 @@ struct AparelhoDePushTests {
         await aparelho.registrar(para: contaID)
 
         api.semRede = true
-        await SaidaDaConta(api: api, armazenamento: nil, aparelho: aparelho).sair()
+        await saida(aparelho).sair()
 
         #expect(api.chamadas.last == "sair \(Tokens.aparelho)")
         #expect(await aparelho.vinculo() == nil)
@@ -471,7 +468,7 @@ struct AparelhoDePushTests {
         await aparelho.registrar(para: try await conta())
         let antes = api.chamadas
 
-        await SaidaDaConta(api: api, armazenamento: nil, aparelho: aparelho).acompanharEncerramentos(de: ObservadorDeUmEncerramento())
+        await saida(aparelho).acompanharEncerramentos(de: ObservadorDeUmEncerramento())
 
         #expect(await aparelho.vinculo() == nil)
         #expect(api.chamadas == antes)
@@ -529,6 +526,33 @@ struct AparelhoDePushTests {
         #expect(await dono(Tokens.aparelho) == nil)
     }
 
+    @Test("Excluir a conta desfaz o vínculo do aparelho, e a exclusão recusada não desfaz")
+    func exclusao() async throws {
+        struct Porta: ExclusaoDeContaPorta {
+            let erro: ErroDaApi?
+            func excluirConta() async throws -> ExclusaoDeConta {
+                if let erro { throw erro }
+                return ExclusaoDeConta(perfilRemovidoEm: .now, dadosApagadosAte: try DataCivil("2026-10-17"), turnosCancelados: 0)
+            }
+        }
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.registrar(para: contaID)
+        let vinculo = await aparelho.vinculo()
+
+        await #expect(throws: ErroDaApi(codigo: .administradorUnico)) {
+            try await saida(aparelho).excluir(porta: Porta(erro: ErroDaApi(codigo: .administradorUnico)))
+        }
+        #expect(await aparelho.vinculo() == vinculo)
+
+        // No servidor, é a própria exclusão que apaga os aparelhos da conta
+        // (frila-backend, `20260929160000_excluir_conta_autor.sql`).
+        try await saida(aparelho).excluir(porta: Porta(erro: nil))
+        #expect(await aparelho.vinculo() == nil)
+        #expect(await aparelho.receber(token: Tokens.novo) == .semConta)
+    }
+
     @Test("Saída pedida com um registro em voo espera o registro e só então tira o token: ele não fica com quem saiu")
     func saidaComRegistroEmVoo() async throws {
         let aparelho = aparelho()
@@ -539,7 +563,7 @@ struct AparelhoDePushTests {
 
         async let registro = aparelho.registrar(para: contaID)
         await portao.alguemChegou()
-        async let saida: Void = SaidaDaConta(api: api, armazenamento: nil, aparelho: aparelho).sair()
+        async let saida: Void = saida(aparelho).sair()
         await portao.abrir()
         _ = await (registro, saida)
 
