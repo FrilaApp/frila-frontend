@@ -152,6 +152,7 @@ public struct TelaMeuPerfilProfissional: View {
                             Image(systemName: "lifepreserver")
                         }
                     }
+                    .accessibilityIdentifier("perfil-ajuda")
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     placeholders
                     Button(role: .destructive, action: sair) {
@@ -263,6 +264,7 @@ public struct TelaPerfilEstabelecimento: View {
                             Image(systemName: "lifepreserver")
                         }
                     }
+                    .accessibilityIdentifier("perfil-ajuda")
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     Button {} label: {
                         Label {
@@ -338,6 +340,7 @@ struct TelaAjudaPerfil: View {
                     .contentShape(Rectangle())
                 }
                 .accessibilityLabel(Text(verbatim: TextosPerfilConta.termos))
+                .accessibilityAddTraits(.isLink)
                 .accessibilityIdentifier("perfil-termos")
 
                 Link(destination: enderecos.politicaDePrivacidade) {
@@ -353,6 +356,7 @@ struct TelaAjudaPerfil: View {
                     .contentShape(Rectangle())
                 }
                 .accessibilityLabel(Text(verbatim: TextosPerfilConta.privacidade))
+                .accessibilityAddTraits(.isLink)
                 .accessibilityIdentifier("perfil-privacidade")
             }
             .navigationTitle(Text(verbatim: TextosPerfilConta.ajuda)).navigationBarTitleDisplayMode(.inline)

@@ -16,13 +16,3 @@ public struct EnderecosOficiais: Sendable, Equatable {
         politicaDePrivacidade: URL(string: "https://frila.app/privacidade")!
     )
 }
-
-public extension EnderecosOficiais {
-    var termos: URL { termosDeUso }
-    var privacidade: URL { politicaDePrivacidade }
-
-    static var termosDeUso: URL { padrao.termosDeUso }
-    static var politicaDePrivacidade: URL { padrao.politicaDePrivacidade }
-}
-
-public let enderecosOficiais = EnderecosOficiais.padrao

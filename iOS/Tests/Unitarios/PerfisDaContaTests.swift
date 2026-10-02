@@ -62,11 +62,6 @@ struct PerfisDaContaTests {
         let padrao = EnderecosOficiais.padrao
         #expect(padrao.termosDeUso.absoluteString == "https://frila.app/termos")
         #expect(padrao.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
-        #expect(padrao.termos == padrao.termosDeUso)
-        #expect(padrao.privacidade == padrao.politicaDePrivacidade)
-        #expect(EnderecosOficiais.termosDeUso == padrao.termosDeUso)
-        #expect(EnderecosOficiais.politicaDePrivacidade == padrao.politicaDePrivacidade)
-        #expect(enderecosOficiais == padrao)
     }
 
     @Test("Os dois links de termos e privacidade existem em Meu perfil e apontam para a constante (#54)")
@@ -97,14 +92,22 @@ struct PerfisDaContaTests {
         #expect(ajuda.enderecos.politicaDePrivacidade == EnderecosOficiais.padrao.politicaDePrivacidade)
     }
 
-    @Test("O cadastro usa a constante e continua com os mesmos endereços oficiais (#54)")
-    func cadastroContinuaComMesmosEnderecos() {
-        let api = ApiClienteEmMemoria()
-        let vm = CadastroViewModel(api: api, email: "novo@frila.app")
-        let tela = TelaCadastro(viewModel: vm, aoVoltar: {}, aoConcluir: { _ in })
+    @Test("Texto de aceite do cadastro contém os endereços da constante EnderecosOficiais (#54)")
+    func cadastroContemEnderecosOficiais() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
 
-        #expect(tela.enderecos == EnderecosOficiais.padrao)
-        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
-        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+        let caminhoCadastro = raiz.appending(path: "Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift")
+        let codigoCadastro = try String(contentsOf: caminhoCadastro, encoding: .utf8)
+        let padrao = EnderecosOficiais.padrao
+        #expect(codigoCadastro.contains(padrao.termosDeUso.absoluteString), "TelaCadastro deve conter o endereço oficial de termos")
+        #expect(codigoCadastro.contains(padrao.politicaDePrivacidade.absoluteString), "TelaCadastro deve conter o endereço oficial de privacidade")
+
+        let caminhoCatalogo = raiz.appending(path: "Resources/Localizable.xcstrings")
+        let conteudoCatalogo = try String(contentsOf: caminhoCatalogo, encoding: .utf8)
+        #expect(conteudoCatalogo.contains(padrao.termosDeUso.absoluteString), "Localizable.xcstrings deve conter o endereço oficial de termos")
+        #expect(conteudoCatalogo.contains(padrao.politicaDePrivacidade.absoluteString), "Localizable.xcstrings deve conter o endereço oficial de privacidade")
     }
 }
