@@ -14,6 +14,11 @@ struct ExclusaoDeContaDubleComplementarTests {
         let agora: Date
     }
 
+    private final class Caixa<T>: @unchecked Sendable {
+        var valor: T
+        init(_ valor: T) { self.valor = valor }
+    }
+
     private func criarTurnoDeTeste(id: UUID = UUID(), inicioEmHoras: Double, duracaoHoras: Double = 4) -> Turno {
         let agora = Date(timeIntervalSince1970: 1_700_000_000)
         let inicio = agora.addingTimeInterval(inicioEmHoras * 3600)
@@ -186,11 +191,11 @@ struct ExclusaoDeContaDubleComplementarTests {
     @Test("ViewModel init com api + executarExclusao customizado: prioriza a closure")
     func initComApiMaisClosureCustomizada() async throws {
         let api = ApiClienteEmMemoria()
-        var closureChamada = false
+        let closureChamada = Caixa(false)
         let vm = ExclusaoDeContaViewModel(
             api: api,
             executarExclusao: {
-                closureChamada = true
+                closureChamada.valor = true
                 return ExclusaoDeConta(
                     perfilRemovidoEm: Date(),
                     dadosApagadosAte: try! DataCivil("2026-10-16"),
@@ -202,7 +207,7 @@ struct ExclusaoDeContaDubleComplementarTests {
 
         await vm.confirmarExclusao()
 
-        #expect(closureChamada)
+        #expect(closureChamada.valor)
         #expect(vm.exclusaoConcluida)
         #expect(vm.mensagemErro == nil)
     }
@@ -213,10 +218,10 @@ struct ExclusaoDeContaDubleComplementarTests {
         let relogio = RelogioFixo(agora: agora)
         let turnoFuturo = criarTurnoDeTeste(inicioEmHoras: 10)
 
-        var executouExclusao = false
+        let executouExclusao = Caixa(false)
         let vm = ExclusaoDeContaViewModel(
             executarExclusao: {
-                executouExclusao = true
+                executouExclusao.valor = true
                 return ExclusaoDeConta(
                     perfilRemovidoEm: agora,
                     dadosApagadosAte: try! DataCivil("2026-10-16"),
@@ -233,7 +238,7 @@ struct ExclusaoDeContaDubleComplementarTests {
         vm.confirmouConsequencias = true
         await vm.confirmarExclusao()
 
-        #expect(executouExclusao)
+        #expect(executouExclusao.valor)
         #expect(vm.exclusaoConcluida)
     }
 
@@ -274,10 +279,10 @@ struct ExclusaoDeContaDubleComplementarTests {
 
     @Test("ViewModel: confirmarExclusao sem confirmouConsequencias não chama executarExclusao")
     func semConfirmacaoNaoChamaExclusao() async throws {
-        var chamadas = 0
+        let chamadas = Caixa(0)
         let vm = ExclusaoDeContaViewModel(
             executarExclusao: {
-                chamadas += 1
+                chamadas.valor += 1
                 return ExclusaoDeConta(
                     perfilRemovidoEm: Date(),
                     dadosApagadosAte: try! DataCivil("2026-10-16"),
@@ -289,7 +294,7 @@ struct ExclusaoDeContaDubleComplementarTests {
         #expect(!vm.confirmouConsequencias)
         await vm.confirmarExclusao()
 
-        #expect(chamadas == 0)
+        #expect(chamadas.valor == 0)
         #expect(!vm.exclusaoConcluida)
         #expect(vm.mensagemErro == nil)
     }
