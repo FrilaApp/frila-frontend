@@ -300,7 +300,7 @@ public struct TelaMinhasVagas: View {
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
             .refreshable { await carregar() }
-            .navigationTitle(TextosMinhasVagas.titulo)
+            .navigationTitle(Text(verbatim: TextosMinhasVagas.titulo))
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: RotaDoContratante.self) { rota in
                 switch rota {
@@ -435,7 +435,7 @@ private struct TelaDetalheVagaContratante: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle(TextosMinhasVagas.detalheTitulo)
+        .navigationTitle(Text(verbatim: TextosMinhasVagas.detalheTitulo))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $perfilSelecionado) { perfil in
             TelaPerfilPublicoContratante(perfil: perfil)
@@ -468,7 +468,7 @@ private struct TelaDetalheVagaContratante: View {
                         let telefone = contato.telefone.filter { $0.isNumber || $0 == "+" }
                         if let telefoneURL = URL(string: "tel:\(telefone)") {
                             Link(destination: telefoneURL) {
-                                Label(TextosMinhasVagas.ligar, systemImage: "phone")
+                                Label { Text(verbatim: TextosMinhasVagas.ligar) } icon: { Image(systemName: "phone") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
                         }
@@ -558,7 +558,7 @@ private struct TelaPerfilPublicoContratante: View {
             .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle(TextosMinhasVagas.perfilTitulo)
+        .navigationTitle(Text(verbatim: TextosMinhasVagas.perfilTitulo))
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("perfil-publico-contratante")
     }
