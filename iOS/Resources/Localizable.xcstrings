@@ -903,6 +903,16 @@
         }
       }
     },
+    "Ele não está entre os turnos desta conta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ele não está entre os turnos desta conta."
+          }
+        }
+      }
+    },
     "Endereço": {
       "localizations": {
         "pt-BR": {
@@ -1569,6 +1579,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mude os filtros ou puxe para atualizar."
+          }
+        }
+      }
+    },
+    "Não encontramos este turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não encontramos este turno"
+          }
+        }
+      }
+    },
+    "Não foi possível abrir este turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir este turno."
           }
         }
       }
@@ -2989,6 +3019,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver avaliação"
+          }
+        }
+      }
+    },
+    "Ver meus turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver meus turnos"
           }
         }
       }

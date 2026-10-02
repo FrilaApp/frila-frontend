@@ -94,6 +94,8 @@ ganchos_de_desenvolvimento=(
   '-FRILA_ENTRADA'
   '-FRILA_LOCALIZACAO'
   '-FRILA_VAGA_ID'
+  '-FRILA_AVISO'
+  '-FRILA_PUSH'
   'forcar-falha-crashlytics'
 )
 

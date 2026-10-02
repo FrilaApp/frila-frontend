@@ -35,7 +35,7 @@ struct FrilaApp: App {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
             let api = try Self.cliente(para: ambiente)
-            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api))
+            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api), Self.aparelhoDePush(para: api))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
@@ -45,9 +45,9 @@ struct FrilaApp: App {
     var body: some Scene {
         WindowGroup {
             switch inicializacao {
-            case let .pronta(api, localizacao):
+            case let .pronta(api, localizacao, aparelho):
                 PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao)
+                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao, aparelho: aparelho)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -80,10 +80,18 @@ struct FrilaApp: App {
         #endif
         return LeitorDeLocalizacaoDoSistema()
     }
+
+    /// Um por app: o token de push e a conta a que o aparelho está entregue (#162). Com o dublê em
+    /// memória o guardado também fica em memória; com Supabase, no Keychain.
+    private static func aparelhoDePush(para api: any ApiCliente) -> AparelhoDePush {
+        let armazenamento: any ArmazenamentoDoAparelho = api is ApiClienteEmMemoria
+            ? ArmazenamentoDoAparelhoEmMemoria() : ArmazenamentoDoAparelhoNoKeychain()
+        return AparelhoDePush(api: api, armazenamento: armazenamento)
+    }
 }
 
 private enum Inicializacao {
-    case pronta(any ApiCliente, any LeitorDeLocalizacao)
+    case pronta(any ApiCliente, any LeitorDeLocalizacao, AparelhoDePush)
     case configuracaoInvalida(ErroDeConfiguracao)
 }
 
@@ -96,10 +104,13 @@ private struct EntradaDoApp: View {
     let api: any ApiCliente
     let armazenamento: ArmazenamentoSwiftData?
     let localizacao: any LeitorDeLocalizacao
+    let aparelho: AparelhoDePush
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
-    @State private var roteador = RoteadorDoProfissional()
-    @State private var roteadorDoContratante = RoteadorDoContratante()
+    @State private var roteador: RoteadorDoProfissional
+    @State private var roteadorDoContratante: RoteadorDoContratante
+    /// O ponto único do toque num push (#8): confere a conta e manda para um dos dois roteadores acima.
+    @State private var roteadorDePush: RoteadorDePush
     @State private var contaID: UUID?
     @State private var destinoAtual: DestinoDaConta?
     @State private var carregandoDestino: Bool = true
@@ -109,8 +120,14 @@ private struct EntradaDoApp: View {
     @State private var rotaInicialAplicada = false
     #endif
 
-    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao) {
+    init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao, aparelho: AparelhoDePush) {
         self.api = api
+        self.aparelho = aparelho
+        let profissional = RoteadorDoProfissional()
+        let contratante = RoteadorDoContratante()
+        _roteador = State(initialValue: profissional)
+        _roteadorDoContratante = State(initialValue: contratante)
+        _roteadorDePush = State(initialValue: RoteadorDePush(profissional: profissional, contratante: contratante))
         #if DEBUG
         // Reproduz a instalação anterior ao cache de sessão, somente com o dublê Local.
         let armazenamento: ArmazenamentoSwiftData? = if api is ApiClienteEmMemoria,
@@ -168,6 +185,27 @@ private struct EntradaDoApp: View {
             #endif
         }
         .task { await avaliarSessao() }
+        // O token de push passa a ser da conta que está no aparelho, a cada abertura com sessão e a
+        // cada entrada (#162). Sem token, ainda não há o que registrar. O roteador do push fica
+        // sabendo de quem é o aparelho antes do registro, com o vínculo guardado, para o toque que
+        // abriu o app não esperar a rede, e de novo depois, com o vínculo que o servidor confirmou.
+        .task(id: ContaNaTela(contaID: contaID, destino: destinoAtual)) {
+            guard let contaID else { return }
+            #if DEBUG
+            await simularTokenDePushSePedido()
+            #endif
+            await informarContaAoPush(contaID)
+            await aparelho.registrar(para: contaID)
+            await informarContaAoPush(contaID)
+            #if DEBUG
+            if !Task.isCancelled { aplicarPushDosArgumentos() }
+            #endif
+        }
+        // Suspensão e reativação não têm tela própria no payload: a conta é reavaliada, e é a
+        // situação dela que decide o que abre.
+        .onChange(of: roteadorDePush.reavaliacoesDaConta) {
+            Task { await avaliarSessao() }
+        }
         // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
         .onChange(of: fase) { _, nova in
@@ -177,6 +215,8 @@ private struct EntradaDoApp: View {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
+                await aparelho.desvincular()
+                roteadorDePush.semSessao()
                 contaID = nil
                 roteador.voltarParaLista()
                 destinoAtual = nil
@@ -197,7 +237,7 @@ private struct EntradaDoApp: View {
                 UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
             })
         )
-        let saida = SaidaDaConta(api: api, armazenamento: armazenamento,
+        let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho,
                                 limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() })
         let observador = api as? any ObservadorDeSessao
         await withTaskGroup(of: Void.self) { grupo in
@@ -272,6 +312,22 @@ private struct EntradaDoApp: View {
                 aplicarDestinoManual(destino)
             }
         }
+    }
+
+    /// Diz ao roteador do push quem está no aparelho. A tarefa cancelada, ou de uma conta que já
+    /// não é a da tela, não informa nada.
+    private func informarContaAoPush(_ contaID: UUID) async {
+        let vinculo = await aparelho.vinculo()
+        // Sem destino, a conta ainda está sendo avaliada: informar agora decidiria um toque pendente
+        // sem saber o fluxo dela.
+        guard !Task.isCancelled, contaID == self.contaID, let destinoAtual else { return }
+        let fluxo: FluxoDaConta = switch destinoAtual {
+        case .profissional: .profissional
+        case .contratante: .contratante
+        // A conta suspensa não tem fluxo: só os avisos da conta (suspensão e reativação) a reavaliam.
+        case .funcoesEHorarios, .cadastro, .contaSuspensa: .nenhum
+        }
+        roteadorDePush.contaAtiva(ContaNoAparelho(contaID: contaID, fluxo: fluxo, vinculo: vinculo))
     }
 
     private func aplicarDestinoManual(_ destino: DestinoAposEntrada) {
@@ -380,6 +436,30 @@ private struct EntradaDoApp: View {
         roteadorDoContratante.abrir(aviso)
     }
 
+    /// `-FRILA_PUSH <tipo> -FRILA_PUSH_ID <uuid>`: o toque num push, pelo caminho inteiro do #8, só
+    /// contra o dublê. O id vai como `vaga_id` e como `turno_id`, e o roteador usa o que o tipo pede.
+    /// Com `-FRILA_PUSH_DE_ANTES`, o aviso chegou antes de o aparelho ser da conta e não abre nada.
+    private func aplicarPushDosArgumentos() {
+        let argumentos = ProcessInfo.processInfo.arguments
+        guard api is ApiClienteEmMemoria, !rotaInicialAplicada,
+              let tipo = argumentos.firstIndex(of: "-FRILA_PUSH"), argumentos.indices.contains(tipo + 1) else { return }
+        rotaInicialAplicada = true
+        var payload = ["tipo": argumentos[tipo + 1]]
+        if let id = argumentos.firstIndex(of: "-FRILA_PUSH_ID"), argumentos.indices.contains(id + 1) {
+            payload["vaga_id"] = argumentos[id + 1]
+            payload["turno_id"] = argumentos[id + 1]
+        }
+        let entregueEm: Date = argumentos.contains("-FRILA_PUSH_DE_ANTES") ? .distantPast : .now
+        roteadorDePush.tocar(payload: payload, entregueEm: entregueEm)
+    }
+
+    /// O esquema Local não tem FCM: com `-FRILA_PUSH`, o aparelho ganha um token simulado, para o
+    /// registro e o vínculo acontecerem contra o dublê como aconteceriam com o servidor.
+    private func simularTokenDePushSePedido() async {
+        guard api is ApiClienteEmMemoria, ProcessInfo.processInfo.arguments.contains("-FRILA_PUSH") else { return }
+        await aparelho.receber(token: "token-simulado-do-esquema-local")
+    }
+
     private static func turnoIDDosArgumentos() -> UUID? {
         let argumentos = ProcessInfo.processInfo.arguments
         guard let indice = argumentos.firstIndex(of: "-FRILA_AVALIACAO_TURNO_ID"), argumentos.indices.contains(indice + 1) else { return nil }
@@ -405,6 +485,7 @@ private struct EntradaDoApp: View {
         erroAoAvaliar = nil
         let possuiSessao = await api.possuiSessao()
         guard possuiSessao else {
+            roteadorDePush.semSessao()
             contaID = nil
             destinoAtual = nil
             carregandoDestino = false
@@ -440,14 +521,21 @@ private struct EntradaDoApp: View {
 
     @MainActor
     private func sairDaConta() async {
+        roteadorDePush.semSessao()
         contaID = nil
         destinoAtual = nil
-        await SaidaDaConta(api: api, armazenamento: armazenamento,
-                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair(tokenFCM: nil)
+        await SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho,
+                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair()
         roteador.voltarParaLista()
         destinoAtual = nil
         await avaliarSessao()
     }
+}
+
+/// A conta e o fluxo que estão na tela: quando um dos dois muda, o push é avisado de novo.
+private struct ContaNaTela: Equatable {
+    let contaID: UUID?
+    let destino: DestinoDaConta?
 }
 
 /// O cadastro mantém seu modelo enquanto há erro e usa a mesma saída dos demais fluxos.

@@ -714,13 +714,14 @@ struct RoteadorDoContratanteTests {
         #expect(roteador.caminho.isEmpty)
     }
 
-    @Test("Aviso de outro tipo, sem o id ou com id inválido não abre nada", arguments: [
+    @Test("Aviso que não é para a casa, sem o id ou com id inválido não abre nada", arguments: [
         ("vaga_vazia", ["posicao_id": "50000000-0000-0000-0000-000000000001"]),
         ("vaga_vazia", ["vaga_id": "não é uuid"]),
         ("atraso_15min", ["posicao_id": "50000000-0000-0000-0000-000000000001"]),
         ("checkin_manual_pendente", [:]),
-        ("checkin", ["turno_id": "60000000-0000-0000-0000-000000000001"]),
-        ("cancelamento", ["vaga_id": "40000000-0000-0000-0000-000000000001"]),
+        ("vaga", ["vaga_id": "40000000-0000-0000-0000-000000000001"]),
+        ("inicio_sem_checkin", ["turno_id": "60000000-0000-0000-0000-000000000001"]),
+        ("tipo_que_nao_existe", ["vaga_id": "40000000-0000-0000-0000-000000000001"]),
     ] as [(String, [String: String])])
     func avisoQueNaoAbre(tipo: String, payload: [String: String]) {
         #expect(AvisoDoContratante(tipo: tipo, payload: payload) == nil)

@@ -89,6 +89,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var bloqueios: [Alvo: Bloqueio] = [:]
     /// Só no cenário `contaSuspensa`.
     private var suspensao: Suspensao?
+    /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
+    private var dispositivos: [String: UUID] = [:]
 
     public init(
         cenario: Cenario = .sucesso,
@@ -785,9 +787,39 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return configuracao
     }
 
-    public func removerDispositivo(tokenFCM: String) async throws { try verificarRede() }
+    /// Segue `registrar_dispositivo` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): o
+    /// token é único, e registrar o que era de outra conta troca o dono.
+    public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.isEmpty else { throw erro("campo_obrigatorio", detalhes: "token_fcm") }
+        guard token.count >= Self.tamanhoMinimoDoToken else { throw erro("campo_invalido", detalhes: "token_fcm") }
+        dispositivos[token] = conta.id
+        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora)
+    }
+
+    /// Segue `remover_dispositivo` do backend (`20260926070000_ciclo_token_push.sql`): só tira o token
+    /// da conta que chamou, e o token curto ou que não estava registrado não é erro.
+    public func removerDispositivo(tokenFCM: String) async throws {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
+        if dispositivos[token] == conta.id { dispositivos[token] = nil }
+    }
+
+    /// A conta dona do token no servidor simulado. Fica fora da porta: serve aos testes.
+    public func donoDoDispositivo(tokenFCM: String) -> UUID? { dispositivos[tokenFCM] }
+
+    /// Simula o aparelho que já estava registrado para outra conta. Fica fora da porta: o dublê tem
+    /// uma conta só, e a troca de conta no mesmo iPhone precisa da outra.
+    public func registrarDispositivo(tokenFCM: String, deOutraConta contaID: UUID) {
+        dispositivos[tokenFCM] = contaID
+    }
 
     public func sair(tokenFCM: String?) async {
+        // Como no cliente real: tira o aparelho antes de encerrar a sessão, e a falha não segura a saída.
+        if let tokenFCM { try? await removerDispositivo(tokenFCM: tokenFCM) }
         sessaoAtiva = false
         DestinoGuardado.limpar()
     }
@@ -802,6 +834,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     // MARK: Apoio
+
+    /// O contrato pede `token_fcm` com pelo menos 20 caracteres.
+    private static let tamanhoMinimoDoToken = 20
 
     /// RN24: a vaga de seleção fecha 24 horas antes do início.
     private static let antecedenciaDaSelecao: TimeInterval = 24 * 60 * 60
