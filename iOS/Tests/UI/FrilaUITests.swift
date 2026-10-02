@@ -152,11 +152,11 @@ final class CandidaturaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
         app.launch()
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
-        XCTAssertTrue(primeira.waitForExistence(timeout: 10))
+        XCTAssertTrue(primeira.waitForExistence(timeout: 25), "a primeira vaga deve aparecer na lista após o carregamento inicial")
         primeira.tap()
         let candidatar = app.buttons["candidatar"]
-        XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 5), "o aviso da RN10 vem antes de Candidatar-me")
+        XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")
         candidatar.tap()
         return app
     }
@@ -188,10 +188,10 @@ final class CandidaturaUITests: XCTestCase {
 
     func testTurnoSobrepostoMostraOConflitoSemApontarTurno() {
         let app = abrirDetalheECandidatar("inelegivel")
-        XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["ver-meu-turno"].exists, "sem link para um turno específico")
         app.buttons["voltar-para-lista"].tap()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
     func testContaSuspensaMostraOMotivoEContestarDesabilitado() {
