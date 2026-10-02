@@ -566,6 +566,47 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
     }
 
+    func testPerfilEstabelecimentoAbreAjudaComLinksDeTermosEPrivacidade() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
+        app.launch()
+
+        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "botão de abrir perfil do estabelecimento deve existir")
+        botaoPerfil.tap()
+
+        XCTAssertTrue(app.navigationBars["Perfil do estabelecimento"].waitForExistence(timeout: 5))
+
+        let botaoAjuda = app.buttons["perfil-ajuda"]
+        if !botaoAjuda.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        botaoAjuda.tap()
+
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+
+        let suporte = app.descendants(matching: .any)["perfil-suporte"]
+        XCTAssertTrue(suporte.waitForExistence(timeout: 5), "perfil-suporte deve existir na tela de ajuda")
+
+        let emailSuporte = app.descendants(matching: .any)["perfil-suporte-email"]
+        XCTAssertTrue(emailSuporte.waitForExistence(timeout: 5), "perfil-suporte-email deve existir na tela de ajuda")
+        XCTAssertTrue(emailSuporte.label.contains("suportefrila@gmail.com"), "o endereço de suporte deve ser visível")
+
+        let linkTermos = app.descendants(matching: .any)["perfil-termos"]
+        let linkPrivacidade = app.descendants(matching: .any)["perfil-privacidade"]
+
+        XCTAssertTrue(linkTermos.waitForExistence(timeout: 5), "perfil-termos deve existir na tela de ajuda")
+        XCTAssertTrue(linkPrivacidade.waitForExistence(timeout: 5), "perfil-privacidade deve existir na tela de ajuda")
+        XCTAssertTrue(linkTermos.isHittable)
+        XCTAssertTrue(linkPrivacidade.isHittable)
+        XCTAssertTrue(app.links["perfil-termos"].exists || linkTermos.elementType == .link || linkTermos.elementType == .button, "deve ser um link")
+        XCTAssertTrue(app.links["perfil-privacidade"].exists || linkPrivacidade.elementType == .link || linkPrivacidade.elementType == .button, "deve ser um link")
+
+        let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+    }
+
     func testMeuPerfilAjudaAbreLicencasDeTerceirosComPacoteConhecido() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]

@@ -65,6 +65,14 @@ struct PerfisDaContaTests {
         #expect(padrao.emailSuporte == "suportefrila@gmail.com")
         #expect(padrao.urlSuporte?.absoluteString == "mailto:suportefrila@gmail.com")
         #expect(padrao.urlSuporte?.scheme == "mailto")
+
+        let personalizado = EnderecosOficiais(
+            termosDeUso: URL(string: "https://exemplo.com/termos")!,
+            politicaDePrivacidade: URL(string: "https://exemplo.com/privacidade")!,
+            emailSuporte: "ajuda@frila.app"
+        )
+        #expect(personalizado.emailSuporte == "ajuda@frila.app")
+        #expect(personalizado.urlSuporte?.absoluteString == "mailto:ajuda@frila.app")
     }
 
     @Test("Os dois links de termos e privacidade existem em Meu perfil e apontam para a constante (#54)")
