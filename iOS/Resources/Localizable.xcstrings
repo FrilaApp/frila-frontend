@@ -253,6 +253,16 @@
         }
       }
     },
+    "Abrir os Ajustes": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir os Ajustes"
+          }
+        }
+      }
+    },
     "Adicionar": {
       "localizations": {
         "pt-BR": {
@@ -363,6 +373,66 @@
         }
       }
     },
+    "As notificações estão desativadas. Você não recebe o aviso de quem aceitou a vaga, de check-in nem de atraso.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notificações estão desativadas. Você não recebe o aviso de quem aceitou a vaga, de check-in nem de atraso."
+          }
+        }
+      }
+    },
+    "As notificações estão desativadas. Você não recebe o aviso de vaga nova nem os lembretes dos seus turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notificações estão desativadas. Você não recebe o aviso de vaga nova nem os lembretes dos seus turnos."
+          }
+        }
+      }
+    },
+    "Ativar notificações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativar notificações"
+          }
+        }
+      }
+    },
+    "Ative as notificações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ative as notificações"
+          }
+        }
+      }
+    },
+    "Ative as notificações para saber de uma vaga nova na hora.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ative as notificações para saber de uma vaga nova na hora."
+          }
+        }
+      }
+    },
+    "Ative as notificações para saber quando alguém aceita a sua vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ative as notificações para saber quando alguém aceita a sua vaga."
+          }
+        }
+      }
+    },
     "Atualizar agora": {
       "localizations": {
         "pt-BR": {
@@ -453,6 +523,26 @@
         }
       }
     },
+    "Aviso quando alguém cancela": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso quando alguém cancela"
+          }
+        }
+      }
+    },
+    "Aviso quando um turno seu é cancelado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso quando um turno seu é cancelado"
+          }
+        }
+      }
+    },
     "Avisos do pacote": {
       "localizations": {
         "pt-BR": {
@@ -509,6 +599,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Buscar endereço ou bairro"
+          }
+        }
+      }
+    },
+    "Check-in, atraso e vaga que ainda está sem ninguém": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in, atraso e vaga que ainda está sem ninguém"
+          }
+        }
+      }
+    },
+    "Confirmação de quem vai trabalhar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmação de quem vai trabalhar"
+          }
+        }
+      }
+    },
+    "Confirmação e lembretes do seu turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmação e lembretes do seu turno"
           }
         }
       }
@@ -879,6 +999,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Domingo"
+          }
+        }
+      }
+    },
+    "É pela notificação que você fica sabendo de uma vaga nova perto de você, na hora em que ela é publicada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "É pela notificação que você fica sabendo de uma vaga nova perto de você, na hora em que ela é publicada."
+          }
+        }
+      }
+    },
+    "É pela notificação que você fica sabendo quando alguém aceita a sua vaga e quando a pessoa chega para o turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "É pela notificação que você fica sabendo quando alguém aceita a sua vaga e quando a pessoa chega para o turno."
           }
         }
       }
@@ -2933,6 +3073,16 @@
         }
       }
     },
+    "Vaga nova na sua função e na sua região": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga nova na sua função e na sua região"
+          }
+        }
+      }
+    },
     "Vaga publicada": {
       "localizations": {
         "pt-BR": {
@@ -3129,6 +3279,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você pode fazer o check-in manual. Ele fica aguardando a confirmação do contratante."
+          }
+        }
+      }
+    },
+    "Você pode mudar isso quando quiser, nos Ajustes do iPhone.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode mudar isso quando quiser, nos Ajustes do iPhone."
           }
         }
       }

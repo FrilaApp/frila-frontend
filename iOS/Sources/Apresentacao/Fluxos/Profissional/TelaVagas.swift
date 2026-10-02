@@ -18,6 +18,7 @@ public struct TelaVagas: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                AvisoDePermissaoDePush(perfil: .profissional)
                 filtros
                 conteudo
             }

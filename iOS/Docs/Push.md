@@ -28,6 +28,36 @@ quem ele pertence no servidor:
   de ser da conta no app, e o servidor só passa o token adiante na próxima entrada neste aparelho ou
   na limpeza dos 60 dias sem atualização.
 
+## Permissão
+
+O pedido do sistema só aparece uma vez na vida do app, então ele nunca sai sozinho.
+
+| Momento | O que o app faz |
+|---|---|
+| O profissional salva funções e horários (na criação e na edição do perfil) | Mostra a tela de explicação, se o sistema ainda não perguntou. |
+| O contratante publica a vaga | Idem. |
+| "Ativar notificações" na explicação | Só aqui aparece o pedido do sistema. |
+| "Agora não" na explicação | Fecha, e o pedido do sistema não é gasto. |
+| Volta ao primeiro plano | Relê a permissão: a pessoa pode ter mudado nos Ajustes. |
+
+- **Aviso fixo.** Em Vagas e em Minhas vagas, `AvisoDePermissaoDePush` aparece para quem está sem
+  notificação. Com a permissão **negada**, o botão leva aos Ajustes de notificação do app
+  (`UIApplication.openNotificationSettingsURLString`). Se o sistema **ainda não perguntou** (a pessoa
+  adiou, ou já usava o app antes de o push existir), o botão abre a explicação.
+- **O que é pedido.** Alerta e som (`PermissaoDePushDoSistema.opcoes`). Sem Time Sensitive, sem
+  alerta crítico, sem autorização provisória, sem selo e sem modo de segundo plano (B08); um teste
+  confere o código, os entitlements e o `project.yml`.
+- **Sem permissão, sem registro.** Só fica registrado no servidor quem tem a permissão concedida
+  (contrato de `registrar_dispositivo`: quem não recebe notificação não é alcançável para o
+  despacho). Sem ela, o `AparelhoDePush` tira o token do servidor e desfaz o vínculo; quando a
+  permissão vem, o registro volta.
+- **Textos provisórios.** Não há texto aprovado no frila-docs. Todos os textos da explicação, do
+  aviso fixo e do turno não encontrado estão em `Sources/Apresentacao/Fluxos/Push/TextosDoPush.swift`,
+  e só lá.
+- **No esquema Local** a permissão é simulada, e concedida, para o pedido de verdade não entrar nos
+  testes de interface. `-FRILA_PERMISSAO_PUSH <nao-pedida|negada|sistema>` escolhe outro estado
+  (`sistema` usa o pedido de verdade), e `-FRILA_PERMISSAO_PUSH_RESPOSTA negada` faz a pessoa recusar.
+
 ## Destino do toque
 
 Todo toque entra por um ponto só, o `RoteadorDePush` (`Sources/Apresentacao/Fluxos/Push`). Ele lê o
