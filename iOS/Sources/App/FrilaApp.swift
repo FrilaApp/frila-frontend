@@ -107,6 +107,18 @@ private struct EntradaDoApp: View {
 
     init(api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao) {
         self.api = api
+        #if DEBUG
+        // Reproduz a instalação anterior ao cache de sessão, somente com o dublê Local.
+        let armazenamento: ArmazenamentoSwiftData? = if api is ApiClienteEmMemoria,
+            ProcessInfo.processInfo.arguments.contains("-FRILA_CACHE_VAZIO_UI_TEST") {
+            try? ArmazenamentoSwiftData(modelContainer: PersistenciaFrila.criarContainer(emMemoria: true))
+        } else if api is ApiClienteEmMemoria,
+                  ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_CACHE_UI_TEST") {
+            nil
+        } else {
+            armazenamento
+        }
+        #endif
         self.armazenamento = armazenamento
         self.localizacao = localizacao
         if let armazenamento {
@@ -282,7 +294,13 @@ private struct EntradaDoApp: View {
         .task {
             // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
             // vaga vai usar (S2 #8). Abre o detalhe; nunca candidata sozinho.
-            guard !rotaInicialAplicada, let vagaID = Self.vagaIDDosArgumentos() else { return }
+            guard !rotaInicialAplicada else { return }
+            if api is ApiClienteEmMemoria, let turnoID = Self.turnoIDDosArgumentos() {
+                rotaInicialAplicada = true
+                roteador.abrirAvaliacao(turnoID: turnoID)
+                return
+            }
+            guard let vagaID = Self.vagaIDDosArgumentos() else { return }
             rotaInicialAplicada = true
             roteador.abrirVaga(id: vagaID)
         }
@@ -307,6 +325,12 @@ private struct EntradaDoApp: View {
     private static func vagaIDDosArgumentos() -> UUID? {
         let argumentos = ProcessInfo.processInfo.arguments
         guard let indice = argumentos.firstIndex(of: "-FRILA_VAGA_ID"), argumentos.indices.contains(indice + 1) else { return nil }
+        return UUID(uuidString: argumentos[indice + 1])
+    }
+
+    private static func turnoIDDosArgumentos() -> UUID? {
+        let argumentos = ProcessInfo.processInfo.arguments
+        guard let indice = argumentos.firstIndex(of: "-FRILA_AVALIACAO_TURNO_ID"), argumentos.indices.contains(indice + 1) else { return nil }
         return UUID(uuidString: argumentos[indice + 1])
     }
 
@@ -338,7 +362,12 @@ private struct EntradaDoApp: View {
         do {
             let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
             if destino.tipoGuardavel != nil {
-                contaID = try await IdentidadeDaAvaliacao.obter(api: api, cache: armazenamento)
+                do {
+                    contaID = try await IdentidadeDaAvaliacao.obter(api: api, cache: armazenamento)
+                } catch let erro as ErroDaApi where erro.codigo == .semRede {
+                    // O destino guardado continua disponível sem identidade. Só a avaliação depende dela.
+                    contaID = nil
+                }
             } else {
                 contaID = nil
             }

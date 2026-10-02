@@ -3,6 +3,39 @@ import XCTest
 /// #22 C3: confere a árvore de acessibilidade da tela real, sem comparar imagens.
 @MainActor
 final class AvaliacaoUITests: XCTestCase {
+    func testSemRedeSemSessaoNoCacheAbreDestinoGuardado() {
+        conferirAberturaSemIdentidade(cache: "-FRILA_CACHE_VAZIO_UI_TEST")
+    }
+
+    func testSemRedeSemArmazenamentoAbreDestinoGuardado() {
+        conferirAberturaSemIdentidade(cache: "-FRILA_SEM_CACHE_UI_TEST")
+    }
+
+    func testRotaSemIdentidadeMostraSemConexaoComNovaTentativa() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "sem-rede", "-FRILA_CACHE_VAZIO_UI_TEST",
+                               "-FRILA_AVALIACAO_TURNO_ID", "22000000-0000-0000-0000-000000000001"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
+        let estado = app.descendants(matching: .any)["avaliacao-sem-conexao"]
+        XCTAssertTrue(estado.exists)
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Sem conexão.")).firstMatch.exists)
+        XCTAssertFalse(app.buttons["resposta-sim"].exists)
+        XCTAssertFalse(app.buttons["botao-enviar-avaliacao"].exists)
+        app.buttons["Tentar novamente"].tap()
+        XCTAssertTrue(estado.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Tentar novamente"].isEnabled)
+    }
+
+    private func conferirAberturaSemIdentidade(cache: String) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "sem-rede", cache]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["vagas-sem-conexao"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Meus turnos"].exists)
+    }
+
     private func abrir(argumentos: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ABRIR_AVALIACAO_UI_TEST", "-FRILA_SCENARIO", "success"] + argumentos

@@ -41,7 +41,8 @@ public final class RoteadorDoProfissional {
     }
 
     public func abrirAvaliacao(turnoID: UUID) {
-        aba = .turnos
+        // A rota de avaliação pertence ao NavigationStack que usa `caminho`.
+        aba = .vagas
         caminho.append(.avaliacao(turnoID: turnoID))
     }
 
@@ -71,7 +72,8 @@ public final class RoteadorDoProfissional {
 
 /// Lista de vagas -> detalhe (#104) -> candidatura e resultado (#105), e aba Meus turnos (#109).
 public struct FluxoDoProfissional<Barra: View>: View {
-    private let contaID: UUID?
+    @State private var contaID: UUID?
+    @State private var recuperandoIdentidade = false
     private let api: any ApiCliente
     private let repositorioTurnos: any TurnoRepositorio
     private let relogio: any Relogio
@@ -96,7 +98,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
         @ViewBuilder barra: @escaping () -> Barra
     ) {
         self.api = api
-        self.contaID = contaID
+        _contaID = State(initialValue: contaID)
         let repo = repositorioTurnos ?? api
         self.repositorioTurnos = repo
         self.relogio = relogio
@@ -145,6 +147,14 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .avaliacao(turnoID):
                             if let contaID {
                                 TelaAvaliacao(turnoID: turnoID, contaID: contaID, api: api, fila: fila, relogio: relogio)
+                            } else {
+                                EstadoErro(verbatim: TextosDoProfissional.Avaliacao.erroSemRede) {
+                                    Task { await recuperarIdentidade() }
+                                }
+                                .disabled(recuperandoIdentidade)
+                                .padding(FrilaEspaco.medio)
+                                .navigationTitle(TextosDoProfissional.Avaliacao.titulo)
+                                .accessibilityIdentifier("avaliacao-sem-conexao")
                             }
                         }
                     }
@@ -171,6 +181,13 @@ public struct FluxoDoProfissional<Barra: View>: View {
 }
 
 extension FluxoDoProfissional {
+    private func recuperarIdentidade() async {
+        guard !recuperandoIdentidade else { return }
+        recuperandoIdentidade = true
+        defer { recuperandoIdentidade = false }
+        contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
+    }
+
     /// O registro de presença aceito pelo servidor atualiza Meus turnos, que é de onde a tela reabre.
     private func destinoDoMeuTurno(_ turno: Turno) -> some View {
         let turnos = turnosViewModel

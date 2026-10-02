@@ -49,6 +49,32 @@ Validação em 01/10/2026: `xcodebuild test -project iOS/Frila.xcodeproj -scheme
 290 testes unitários e 43 testes de interface, sem falhas. `conferir-textos.sh` passou,
 as 28 fixtures do contrato foram validadas e o projeto versionado foi gerado com XcodeGen.
 
+## Revisão do PR #52
+
+A recuperação offline do destino não depende da identidade da avaliação. Com destino
+guardado, sem rede e sem sessão no cache (ou sem armazenamento), o app abre o fluxo
+normal com `contaID = nil`; a avaliação permanece indisponível. Os testes de interface
+`testSemRedeSemSessaoNoCacheAbreDestinoGuardado` e
+`testSemRedeSemArmazenamentoAbreDestinoGuardado` passam pela entrada real do app,
+com cache vazio isolado ou ausente, exclusivamente no dublê Local em Debug. O primeiro
+reproduziu a regressão antes da correção.
+
+Uma rota de avaliação sem identidade mostra `EstadoErro` com a mensagem de falta de
+conexão e “Tentar novamente”. O botão consulta novamente a identidade; sem sucesso,
+mantém esse estado e não permite responder. `testRotaSemIdentidadeMostraSemConexaoComNovaTentativa`
+confere a rota e a nova tentativa. O roteador seleciona a aba da pilha que contém essa
+rota. O texto antigo `respostaRegistrada`, sem uso, foi removido junto de sua tradução.
+
+As chamadas de `minhaConta()` na abertura e no reenvio foram mantidas nesta revisão.
+Reaproveitar a conta entre os dois resolvedores exige alterar a interface de resolução
+do destino, além dos dois ajustes solicitados. `SaidaDaConta` e os arquivos reservados
+não tiveram mudanças na revisão.
+
+Validação da revisão: o mesmo comando da suíte completa passou com 290 testes
+unitários e 46 testes de interface, sem falhas. Antes dela, passaram 29 testes
+unitários e os 5 testes de interface da avaliação no teste dirigido.
+`conferir-textos.sh` e `git diff --check` também passaram.
+
 ## Limite e dependência do contrato
 
 “Reabrir mostra a resposta dada” vale somente para a mesma conta, no mesmo aparelho e
