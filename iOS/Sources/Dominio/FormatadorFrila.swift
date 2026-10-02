@@ -31,6 +31,15 @@ public struct FormatadorFrila: Sendable {
         componentesDaData(instante, calendario: Calendar(identifier: .gregorian).configuradoParaSaoPaulo).hora
     }
 
+    /// Data e hora no fuso de São Paulo, ex.: "08/10/2026 às 15:00".
+    public func dataEHora(_ instante: Date) -> String {
+        let formatador = DateFormatter()
+        formatador.locale = Self.locale
+        formatador.timeZone = Self.fuso
+        formatador.dateFormat = "dd/MM/yyyy 'às' HH:mm"
+        return formatador.string(from: instante)
+    }
+
     public func diaDeSaoPaulo(_ instante: Date) -> DateComponents {
         Calendar(identifier: .gregorian).configuradoParaSaoPaulo.dateComponents(
             [.year, .month, .day],

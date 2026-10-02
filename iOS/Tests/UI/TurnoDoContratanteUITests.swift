@@ -96,4 +96,47 @@ final class TurnoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Em alerta"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["tempo-alerta-\(vagaID.uppercased())"].exists)
     }
+
+    func testTurnoComCheckinConfirmadoMostraHoraETipoEConfirmacao() {
+        let app = abrir([
+            "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "checkin-confirmado",
+            "-FRILA_AVISO", "checkin", "-FRILA_AVISO_ID", turnoID,
+        ])
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-checkin-\(turnoID)"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-confirmacao-\(turnoID)"].exists)
+    }
+
+    func testTurnoComPosicaoCanceladaComMotivoMostraCausaFaltaEMotivo() {
+        let app = abrir([
+            "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "posicao-cancelada-com-motivo",
+            "-FRILA_AVISO", "checkin", "-FRILA_AVISO_ID", turnoID,
+        ])
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Esta posição foi cancelada."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["cancelamento-causa-\(turnoID)"].exists)
+        XCTAssertTrue(app.staticTexts["Cancelado pelo profissional."].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["cancelamento-falta-\(turnoID)"].exists)
+        XCTAssertTrue(app.staticTexts["Contou como falta para o profissional."].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["cancelamento-motivo-\(turnoID)"].exists)
+        XCTAssertTrue(app.staticTexts["Motivo: Imprevisto de saúde e não poderei comparecer."].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["cancelamento-data-\(turnoID)"].exists)
+    }
+
+    func testTurnoComServidorAntigoNaoMostraCamposNovos() {
+        let app = abrir([
+            "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "servidor-antigo",
+            "-FRILA_AVISO", "checkin", "-FRILA_AVISO_ID", turnoID,
+        ])
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: 5))
+        // Servidor antigo não manda os campos: nada novo aparece na tela
+        XCTAssertFalse(app.descendants(matching: .any)["detalhe-checkin-\(turnoID)"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["detalhe-confirmacao-\(turnoID)"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["cancelamento-causa-\(turnoID)"].exists)
+    }
 }

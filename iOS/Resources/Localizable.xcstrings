@@ -4742,6 +4742,136 @@
           }
         }
       }
+    },
+    "Check-in no local às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in no local às %@."
+          }
+        }
+      }
+    },
+    "Check-in manual às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in manual às %@."
+          }
+        }
+      }
+    },
+    "Check-in às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in às %@."
+          }
+        }
+      }
+    },
+    "Check-in confirmado às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in confirmado às %@."
+          }
+        }
+      }
+    },
+    "Cancelado pelo profissional.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelado pelo profissional."
+          }
+        }
+      }
+    },
+    "Cancelado pelo estabelecimento.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelado pelo estabelecimento."
+          }
+        }
+      }
+    },
+    "Reabertura por atraso.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reabertura por atraso."
+          }
+        }
+      }
+    },
+    "Turno encerrado sem check-in.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno encerrado sem check-in."
+          }
+        }
+      }
+    },
+    "Posição cancelada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição cancelada."
+          }
+        }
+      }
+    },
+    "Contou como falta para o profissional.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contou como falta para o profissional."
+          }
+        }
+      }
+    },
+    "Não contou como falta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não contou como falta."
+          }
+        }
+      }
+    },
+    "Motivo: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motivo: %@"
+          }
+        }
+      }
+    },
+    "Cancelada em %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelada em %@."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

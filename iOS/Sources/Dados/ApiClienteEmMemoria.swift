@@ -66,6 +66,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case candidaturaPendente = "candidatura-pendente"
         case exportarSemRede = "exportar-sem-rede"
         case exportarErroServidor = "exportar-erro-servidor"
+        /// Painel com check-in já confirmado (contrato 0.2.31).
+        case checkinConfirmado = "checkin-confirmado"
+        /// Painel com posição cancelada com motivo informado (contrato 0.2.31).
+        case posicaoCanceladaComMotivo = "posicao-cancelada-com-motivo"
+        /// Servidor anterior à 0.2.31: não manda os quatro campos opcionais do painel.
+        case servidorAntigo = "servidor-antigo"
 
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
@@ -142,6 +148,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var posicoesAbertasDoPainel: [UUID: [UUID]] = [:]
     /// O que `reabrir_por_atraso` devolveu por posição: reenviar devolve o mesmo.
     private var reaberturasPorAtraso: [UUID: ResultadoCancelamento] = [:]
+    /// Quando o contratante confirmou o check-in manual (contrato 0.2.31).
+    private var confirmacoesDeCheckin: [UUID: Date] = [:]
+    /// Detalhe do cancelamento por posição (contrato 0.2.31).
+    private var cancelamentosPorPosicao: [UUID: CancelamentoDaPosicao] = [:]
     private var denunciasPorChave: [UUID: Protocolo] = [:]
     private var bloqueios: [Alvo: Bloqueio] = [:]
     /// Só no cenário `contaSuspensa`.
@@ -170,7 +180,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario.selecaoDoContratante {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -207,7 +217,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
                 let ateInicio: TimeInterval = switch cenario {
                 case .alertaVagaVazia: 2 * 60 * 60
-                case .checkinManualPendente: -10 * 60
+                case .checkinManualPendente, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
@@ -219,7 +229,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
-            if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno, let vaga = self.vagas.first {
+            if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
+                || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo,
+                let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "82000000-0000-0000-0000-000000000002")!
                 let contato = Contato(
@@ -228,17 +240,36 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     whatsappURL: contatoDeExemplo.whatsappURL,
                     visivelAte: vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
                 )
-                turnos = [Turno(
+                let turnoExemplo = Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: cenario == .painelContratante ? .verificado : .pendente, valorAcordado: vaga.valor, podeAvaliar: false
-                )]
-                contatos[turnoID] = contato
-                if cenario == .checkinManualPendente {
-                    checkins[turnoID] = ResultadoRegistro(
-                        turnoID: turnoID, tipo: .manual, verificacao: .pendente,
-                        registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
+                    verificacao: (cenario == .painelContratante || cenario == .checkinConfirmado || cenario == .servidorAntigo) ? .verificado : .pendente,
+                    valorAcordado: vaga.valor, podeAvaliar: false
+                )
+                if cenario == .posicaoCanceladaComMotivo {
+                    turnos = []
+                    turnosCancelados = [turnoExemplo]
+                    cancelamentosPorPosicao[posicaoID] = CancelamentoDaPosicao(
+                        causa: .profissional,
+                        falta: true,
+                        motivo: "Imprevisto de saúde e não poderei comparecer.",
+                        canceladaEm: relogio.agora.addingTimeInterval(-30 * 60)
                     )
+                } else {
+                    turnos = [turnoExemplo]
+                    contatos[turnoID] = contato
+                    if cenario == .checkinManualPendente {
+                        checkins[turnoID] = ResultadoRegistro(
+                            turnoID: turnoID, tipo: .manual, verificacao: .pendente,
+                            registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
+                        )
+                    } else if cenario == .checkinConfirmado {
+                        checkins[turnoID] = ResultadoRegistro(
+                            turnoID: turnoID, tipo: .manual, verificacao: .verificado,
+                            registradoEm: vaga.periodo.inicio.addingTimeInterval(-5 * 60), distanciaMetros: nil
+                        )
+                        confirmacoesDeCheckin[turnoID] = vaga.periodo.inicio.addingTimeInterval(2 * 60)
+                    }
                 }
                 self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
             }
@@ -494,16 +525,48 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let atrasada = agora >= vaga.periodo.inicio.addingTimeInterval(Self.toleranciaDeAtraso) && agora < vaga.periodo.fim
                 let confirmadas = turnos.filter { $0.vaga.id == vaga.id }.map { turno in
                     let registro = checkins[turno.id]
+                    let checkinEm: Date?
+                    let checkinTipo: TipoRegistro?
+                    let checkinConfirmadoEm: Date?
+                    if cenario == .servidorAntigo {
+                        checkinEm = nil
+                        checkinTipo = nil
+                        checkinConfirmadoEm = nil
+                    } else {
+                        checkinEm = registro?.registradoEm ?? turno.checkin?.instante
+                        checkinTipo = registro?.tipo ?? turno.checkin?.tipo
+                        checkinConfirmadoEm = confirmacoesDeCheckin[turno.id] ?? turno.checkin?.confirmadaEm
+                    }
                     return PosicaoNoPainel(
                         id: turno.posicaoID, estado: .confirmada, profissional: profissionalDo(turno), turnoID: turno.id,
                         verificacao: registro?.verificacao ?? turno.verificacao,
-                        emAtraso: atrasada && registro == nil && turno.checkin == nil, aCaminhoEm: turno.aCaminhoEm
+                        emAtraso: atrasada && registro == nil && turno.checkin == nil, aCaminhoEm: turno.aCaminhoEm,
+                        checkinEm: checkinEm, checkinTipo: checkinTipo, checkinConfirmadoEm: checkinConfirmadoEm,
+                        cancelamento: nil
                     )
                 }
                 let canceladas = turnosCancelados.filter { $0.vaga.id == vaga.id }.map { turno in
-                    PosicaoNoPainel(
+                    let registro = checkins[turno.id]
+                    let checkinEm: Date?
+                    let checkinTipo: TipoRegistro?
+                    let checkinConfirmadoEm: Date?
+                    let cancelamento: CancelamentoDaPosicao?
+                    if cenario == .servidorAntigo {
+                        checkinEm = nil
+                        checkinTipo = nil
+                        checkinConfirmadoEm = nil
+                        cancelamento = nil
+                    } else {
+                        checkinEm = registro?.registradoEm ?? turno.checkin?.instante
+                        checkinTipo = registro?.tipo ?? turno.checkin?.tipo
+                        checkinConfirmadoEm = confirmacoesDeCheckin[turno.id] ?? turno.checkin?.confirmadaEm
+                        cancelamento = cancelamentosPorPosicao[turno.posicaoID]
+                    }
+                    return PosicaoNoPainel(
                         id: turno.posicaoID, estado: .cancelada, profissional: profissionalDo(turno), turnoID: turno.id,
-                        verificacao: turno.verificacao, emAtraso: false, aCaminhoEm: turno.aCaminhoEm
+                        verificacao: turno.verificacao, emAtraso: false, aCaminhoEm: turno.aCaminhoEm,
+                        checkinEm: checkinEm, checkinTipo: checkinTipo, checkinConfirmadoEm: checkinConfirmadoEm,
+                        cancelamento: cancelamento
                     )
                 }
                 // A posição que o fechamento das 24 h cancelou aberta não tem profissional nem turno (RN24).
@@ -962,6 +1025,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             registradoEm: checkin.registradoEm, distanciaMetros: checkin.distanciaMetros
         )
         checkins[turnoID] = confirmado
+        confirmacoesDeCheckin[turnoID] = relogio.agora
         // O check-out já gravado passa a responder com a verificação atual do turno.
         if let checkout = checkouts[turnoID] {
             checkouts[turnoID] = ResultadoRegistro(
@@ -992,7 +1056,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard agora >= turno.vaga.periodo.inicio.addingTimeInterval(Self.toleranciaDeAtraso) else {
             throw erro("reabertura_antes_da_tolerancia")
         }
-        let resultado = cancelarTurno(em: indice, falta: true, reabrir: agora < turno.vaga.periodo.fim.addingTimeInterval(-60 * 60))
+        let resultado = cancelarTurno(
+            em: indice, falta: true, reabrir: agora < turno.vaga.periodo.fim.addingTimeInterval(-60 * 60),
+            causa: .reaberturaPorAtraso, motivo: nil
+        )
         reaberturasPorAtraso[posicaoID] = resultado
         return resultado
     }
@@ -1015,8 +1082,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let agora = relogio.agora
         let inicio = turnos[indice].vaga.periodo.inicio
         let peloProfissional = conta?.perfil == .profissional
+        let causa: CausaDoCancelamento = peloProfissional ? .profissional : .estabelecimento
         return cancelarTurno(
-            em: indice, falta: peloProfissional && inicio.timeIntervalSince(agora) < 24 * 60 * 60, reabrir: inicio > agora
+            em: indice, falta: peloProfissional && inicio.timeIntervalSince(agora) < 24 * 60 * 60, reabrir: inicio > agora,
+            causa: causa, motivo: motivo
         )
     }
 
@@ -1033,7 +1102,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard vaga.estado != .cancelada, vaga.estado != .encerrada else { throw erro("vaga_encerrada") }
         var confirmadas = 0
         while let turno = turnos.firstIndex(where: { $0.vaga.id == id }) {
-            _ = cancelarTurno(em: turno, falta: false, reabrir: false)
+            _ = cancelarTurno(em: turno, falta: false, reabrir: false, causa: .estabelecimento, motivo: motivo)
             confirmadas += 1
         }
         posicoesReabertas[id] = nil
@@ -1355,8 +1424,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// O que `privado.cancelar_uma_posicao` faz: a posição cancelada guarda de quem era, e a vaga,
     /// quando reabre, ganha uma posição nova e volta a `publicada`.
-    private func cancelarTurno(em indice: Int, falta: Bool, reabrir: Bool) -> ResultadoCancelamento {
+    private func cancelarTurno(
+        em indice: Int, falta: Bool, reabrir: Bool,
+        causa: CausaDoCancelamento = .outro, motivo: String? = nil
+    ) -> ResultadoCancelamento {
         let turno = turnos.remove(at: indice)
+        let agora = relogio.agora
+        cancelamentosPorPosicao[turno.posicaoID] = CancelamentoDaPosicao(
+            causa: causa, falta: falta, motivo: motivo, canceladaEm: agora
+        )
         // A presença que ainda esperava prova fica `nao_verificado`.
         let verificacao = checkins[turno.id]?.verificacao ?? turno.verificacao
         turnosCancelados.append(Turno(

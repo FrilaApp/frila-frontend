@@ -636,6 +636,34 @@ public struct VagaCancelada: Codable, Hashable, Sendable {
     }
 }
 
+public enum CausaDoCancelamento: String, Codable, Hashable, Sendable {
+    case profissional
+    case estabelecimento
+    case reaberturaPorAtraso = "reabertura_por_atraso"
+    case noShowSemCheckin = "no_show_sem_checkin"
+    case outro
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = CausaDoCancelamento(rawValue: rawValue) ?? .outro
+    }
+}
+
+public struct CancelamentoDaPosicao: Codable, Hashable, Sendable {
+    public let causa: CausaDoCancelamento
+    public let falta: Bool
+    public let motivo: String?
+    public let canceladaEm: Date
+
+    public init(causa: CausaDoCancelamento, falta: Bool, motivo: String?, canceladaEm: Date) {
+        self.causa = causa
+        self.falta = falta
+        self.motivo = motivo
+        self.canceladaEm = canceladaEm
+    }
+}
+
 public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let estado: EstadoPosicao
@@ -645,10 +673,19 @@ public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
     public let emAtraso: Bool
     /// Nulo enquanto o profissional não avisou, ou se a posição ainda não tem turno (contrato 0.2.25).
     public let aCaminhoEm: Date?
+    /// Hora do toque no check-in (contrato 0.2.31). Opcional: o servidor anterior à 0.2.31 não manda.
+    public let checkinEm: Date?
+    /// Tipo do check-in (contrato 0.2.31). Opcional.
+    public let checkinTipo: TipoRegistro?
+    /// Quando o contratante confirmou o check-in manual (contrato 0.2.31). Opcional.
+    public let checkinConfirmadoEm: Date?
+    /// Por que a posição foi cancelada (contrato 0.2.31, RN12). Opcional.
+    public let cancelamento: CancelamentoDaPosicao?
 
     public init(
         id: UUID, estado: EstadoPosicao, profissional: PerfilPublico?, turnoID: UUID?, verificacao: Verificacao?,
-        emAtraso: Bool, aCaminhoEm: Date? = nil
+        emAtraso: Bool, aCaminhoEm: Date? = nil, checkinEm: Date? = nil, checkinTipo: TipoRegistro? = nil,
+        checkinConfirmadoEm: Date? = nil, cancelamento: CancelamentoDaPosicao? = nil
     ) {
         self.id = id
         self.estado = estado
@@ -657,6 +694,10 @@ public struct PosicaoNoPainel: Codable, Hashable, Identifiable, Sendable {
         self.verificacao = verificacao
         self.emAtraso = emAtraso
         self.aCaminhoEm = aCaminhoEm
+        self.checkinEm = checkinEm
+        self.checkinTipo = checkinTipo
+        self.checkinConfirmadoEm = checkinConfirmadoEm
+        self.cancelamento = cancelamento
     }
 }
 
