@@ -83,6 +83,7 @@
 		7099E790EA08059ECD1D5185 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
 		723AD6D9A4B4D48C1F93D6C0 /* requisicao-cadastrar-estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */; };
 		73699023A012E6D9CFBF817F /* TelaCadastro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B70FF4F64AE47220B634F0D /* TelaCadastro.swift */; };
+		743D7C3616BAE8750263E4AF /* ApiClienteEncaminhador.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154D610830BCEC80267BE4B7 /* ApiClienteEncaminhador.swift */; };
 		749938B074A87764142A0458 /* TelaProvisoriaDestino.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87225F8AF2D750649044D7BA /* TelaProvisoriaDestino.swift */; };
 		749A50A9689BCA6CA96C6C86 /* LeitorDeLocalizacaoSimulado.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCF8C477F96387DC7EE8A64 /* LeitorDeLocalizacaoSimulado.swift */; };
 		781446FFC40FD90A510DA4E8 /* vaga-publicada.json in Resources */ = {isa = PBXBuildFile; fileRef = A3E6257414B3A5DD6EA2CC29 /* vaga-publicada.json */; };
@@ -328,6 +329,7 @@
 		11ACF6312B2CF11BD386390B /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		11E1ABDC7050A3310FB160AE /* DetalheVagaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetalheVagaViewModel.swift; sourceTree = "<group>"; };
 		120490C59760F033206A2EDD /* turnos.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = turnos.json; sourceTree = "<group>"; };
+		154D610830BCEC80267BE4B7 /* ApiClienteEncaminhador.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClienteEncaminhador.swift; sourceTree = "<group>"; };
 		1686AA539A8DA1D54FF79C2D /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		1DA156FA6E68AD723D3D9273 /* perfil-profissional.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "perfil-profissional.json"; sourceTree = "<group>"; };
 		1DA362D29BF0C32C2F429D63 /* requisicao-avaliar.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-avaliar.json"; sourceTree = "<group>"; };
@@ -632,6 +634,7 @@
 		623C5FF828A51708D0CA6EA9 /* Unitarios */ = {
 			isa = PBXGroup;
 			children = (
+				9A6447444F5014CBAE604CF1 /* Suporte */,
 				C6FA10275A7C93ECAB311691 /* ApiEmMemoriaTests.swift */,
 				88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */,
 				5C0E1AC569D582DEA901C362 /* AutenticacaoTests.swift */,
@@ -710,6 +713,14 @@
 				B1F45CA229E7E687ADCF92F0 /* TurnosComCache.swift */,
 			);
 			path = Dados;
+			sourceTree = "<group>";
+		};
+		9A6447444F5014CBAE604CF1 /* Suporte */ = {
+			isa = PBXGroup;
+			children = (
+				154D610830BCEC80267BE4B7 /* ApiClienteEncaminhador.swift */,
+			);
+			path = Suporte;
 			sourceTree = "<group>";
 		};
 		9EC354D9270BE4B83547CA2A /* Frameworks */ = {
@@ -1384,6 +1395,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				743D7C3616BAE8750263E4AF /* ApiClienteEncaminhador.swift in Sources */,
 				323E59B84BDAA751E9A9E952 /* ApiEmMemoriaTests.swift in Sources */,
 				1BFAB3F95F669A94FE53BEB8 /* AtualizacaoObrigatoriaTests.swift in Sources */,
 				C19CA0315BD20ECA87011640 /* AutenticacaoTests.swift in Sources */,

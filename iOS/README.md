@@ -68,6 +68,8 @@ xcodebuild build -project Frila.xcodeproj -scheme Frila-Prod -destination 'gener
 
 A CI roda a mesma sequência; ver [Integração contínua](Docs/CI.md).
 
+Dublê de teste que conforma a `ApiCliente` herda de `ApiClienteEncaminhador` (`Tests/Unitarios/Suporte/`), que encaminha tudo para um `ApiClienteEmMemoria`, e sobrescreve só o que quer espiar ou trocar. Operação nova na porta ganha o encaminhamento lá, uma vez, e nenhum dublê quebra.
+
 ### Validação manual do cliente da API (#53)
 
 Em builds Debug, o catálogo traz a seção **Validação do cliente**. A entrada é só por código de seis dígitos, como o contrato define em `/otp`: o modelo de e-mail do Supabase leva `{{ .Token }}`, sem link. O app não registra esquema de URL nem trata retorno de autenticação.
