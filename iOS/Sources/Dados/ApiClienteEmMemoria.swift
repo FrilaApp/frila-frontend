@@ -116,7 +116,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .contratanteSemEstabelecimento || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .vagaEncerradaContratante {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -146,7 +146,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     desde: relogio.agora.addingTimeInterval(-2 * 24 * 60 * 60), contestacao: nil
                 )
             }
-            estabelecimentos = conta == nil || cenario == .contratanteSemEstabelecimento ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
+            estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
             if let vagas {
                 self.vagas = vagas
             } else {
@@ -161,7 +161,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let baseVaga = cenario == .vagaEncerradaContratante ? Self.copia(vaga, estado: .encerrada) : vaga
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
-            if cenario == .painelVazio { self.vagas = [] }
+            if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
             if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno, let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "82000000-0000-0000-0000-000000000002")!

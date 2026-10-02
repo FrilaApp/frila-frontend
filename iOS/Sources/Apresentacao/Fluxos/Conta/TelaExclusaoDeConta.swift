@@ -2,12 +2,12 @@ import FrilaDominio
 import SwiftUI
 
 public struct TelaExclusaoDeConta: View {
-    @Bindable private var viewModel: ExclusaoDeContaViewModel
+    @State private var viewModel: ExclusaoDeContaViewModel
     @State private var mostrarDialogoConfirmacao = false
     private let formatador = FormatadorFrila()
 
     public init(viewModel: ExclusaoDeContaViewModel) {
-        self.viewModel = viewModel
+        _viewModel = State(initialValue: viewModel)
     }
 
     public var body: some View {
