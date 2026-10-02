@@ -482,7 +482,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarFalhaGeral()
         // Como no backend: o id que não existe responde igual ao da casa de outra conta.
         guard let estabelecimento = estabelecimentos.first(where: { $0.id == id }) else { throw erro("sem_permissao") }
-        return estabelecimento
+        // Como no contrato 0.2.29: MeuEstabelecimento não devolve documento.
+        return Estabelecimento(
+            id: estabelecimento.id,
+            nome: estabelecimento.nome,
+            documento: "",
+            tipo: estabelecimento.tipo,
+            endereco: estabelecimento.endereco,
+            regiaoAdministrativa: estabelecimento.regiaoAdministrativa,
+            ponto: estabelecimento.ponto,
+            papel: estabelecimento.papel
+        )
     }
 
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {

@@ -136,7 +136,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func meuEstabelecimento(id: UUID) async throws -> Estabelecimento {
-        let resposta: ContratoAPI.EstabelecimentoDTO = try await rpc(
+        let resposta: ContratoAPI.MeuEstabelecimentoDTO = try await rpc(
             "meu_estabelecimento",
             params: ContratoAPI.EstabelecimentoParametros(estabelecimentoID: id)
         )

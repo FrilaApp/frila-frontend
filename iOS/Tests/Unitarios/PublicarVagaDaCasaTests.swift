@@ -18,13 +18,14 @@ private func recusa(_ api: ApiClienteEmMemoria, id: UUID) async -> CodigoErroAPI
 
 @Suite("meu_estabelecimento no dublê em memória, como o backend responde (contrato 0.2.29)")
 struct MeuEstabelecimentoEmMemoriaTests {
-    @Test("Quem é membro recebe o cadastro da casa, com o endereço, a região e o ponto")
+    @Test("Quem é membro recebe o cadastro da casa, com o endereço, a região e o ponto, sem documento")
     func membro() async throws {
         let casa = try await ApiClienteEmMemoria(cenario: .contratante).meuEstabelecimento(id: casaID)
 
-        #expect(casa == (try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()))
+        #expect(casa == (try FixturesDoContrato.carregar("meu-estabelecimento", como: ContratoAPI.MeuEstabelecimentoDTO.self).dominio()))
         #expect(casa.endereco == "CLS 405, Asa Sul, Brasília - DF")
         #expect(casa.regiaoAdministrativa == "Plano Piloto")
+        #expect(casa.documento.isEmpty)
     }
 
     @Test("A casa de outra conta e o id que não existe respondem sem_permissao, iguais")
@@ -38,7 +39,7 @@ struct MeuEstabelecimentoEmMemoriaTests {
         #expect(await recusa(ApiClienteEmMemoria(cenario: .semRede), id: casaID) == .semRede)
     }
 
-    @Test("A casa recém-cadastrada pode ser lida de novo, igual à resposta do cadastro")
+    @Test("A casa recém-cadastrada pode ser lida de novo, com o endereço e sem o documento")
     func depoisDoCadastro() async throws {
         let api = ApiClienteEmMemoria(cenario: .contratanteSemEstabelecimento)
         let cadastrada = try await api.cadastrarEstabelecimento(CadastroEstabelecimento(
@@ -46,7 +47,15 @@ struct MeuEstabelecimentoEmMemoriaTests {
             regiaoAdministrativa: "Plano Piloto", ponto: try Coordenada(latitude: -15.78, longitude: -47.93)
         ))
 
-        #expect(try await api.meuEstabelecimento(id: cadastrada.id) == cadastrada)
+        let lida = try await api.meuEstabelecimento(id: cadastrada.id)
+        #expect(lida.id == cadastrada.id)
+        #expect(lida.nome == cadastrada.nome)
+        #expect(lida.tipo == cadastrada.tipo)
+        #expect(lida.endereco == cadastrada.endereco)
+        #expect(lida.regiaoAdministrativa == cadastrada.regiaoAdministrativa)
+        #expect(lida.ponto == cadastrada.ponto)
+        #expect(lida.papel == cadastrada.papel)
+        #expect(lida.documento.isEmpty)
     }
 }
 
@@ -63,11 +72,12 @@ struct ContratoDeMeuEstabelecimentoTests {
         )
     }
 
-    @Test("Chama /rpc/meu_estabelecimento com o estabelecimento_id e lê o Estabelecimento do contrato")
+    @Test("Chama /rpc/meu_estabelecimento com o estabelecimento_id e lê o MeuEstabelecimento do contrato")
     func leitura() async throws {
         let casa = try await cliente(BackendDoEstabelecimento.self).meuEstabelecimento(id: casaID)
 
-        #expect(casa == (try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()))
+        #expect(casa == (try FixturesDoContrato.carregar("meu-estabelecimento", como: ContratoAPI.MeuEstabelecimentoDTO.self).dominio()))
+        #expect(casa.documento.isEmpty)
         let corpo = try BackendDoEstabelecimento.recebido()
         #expect(corpo == ["estabelecimento_id": casaID.uuidString] as NSDictionary)
     }
@@ -79,6 +89,17 @@ struct ContratoDeMeuEstabelecimentoTests {
             Issue.record("a leitura devia ter sido recusada")
         } catch let erro as ErroDaApi {
             #expect(erro.codigo == .semPermissao)
+        }
+    }
+
+    @Test("Resposta 404 do servidor atual (RPC inexistente) chega como erro da API e não trava")
+    func rpcInexistente() async throws {
+        do {
+            _ = try await cliente(ServidorSemRpc.self).meuEstabelecimento(id: casaID)
+            Issue.record("a leitura devia ter falhado com 404")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .desconhecido)
+            #expect(MensagemDoErroAPI.texto(erro) == "Não foi possível concluir esta ação. Tente novamente.")
         }
     }
 }
@@ -123,11 +144,28 @@ private final class BackendDoEstabelecimento: URLProtocol {
 
     override func startLoading() {
         guard request.url?.lastPathComponent == "meu_estabelecimento",
-              let resposta = try? FixturesDoContrato.dados("estabelecimento") else {
+              let resposta = try? FixturesDoContrato.dados("meu-estabelecimento") else {
             return responder(self, status: 500, corpo: Data("{}".utf8))
         }
         if let corpo = corpoEnviado(em: request) { Self.trava.withLock { Self.corpo = corpo } }
         responder(self, status: 200, corpo: resposta)
+    }
+
+    override func stopLoading() {}
+}
+
+private final class ServidorSemRpc: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let envelope = EnvelopeErroAPI(
+            code: "PGRST202",
+            message: "Could not find the function meu_estabelecimento in the schema cache",
+            details: nil,
+            hint: nil
+        )
+        responder(self, status: 404, corpo: (try? JSONEncoder().encode(envelope)) ?? Data())
     }
 
     override func stopLoading() {}
@@ -218,6 +256,19 @@ struct PublicacaoDaCasaViewModelTests {
         await modelo.carregar()
 
         #expect(await chamadas.total == 1)
+    }
+
+    @Test("Quando a RPC não existe no servidor (404), mostra mensagem padrão sem travar a tela")
+    func rpcInexistente() async {
+        let modelo = PublicacaoDaCasaViewModel(
+            estabelecimentoID: casaID,
+            estabelecimento: { _ in throw ErroDaApi(codigo: .desconhecido, codigoOriginal: "PGRST202") },
+            minhaConta: { try await ApiClienteEmMemoria(cenario: .contratante).minhaConta() }
+        )
+
+        await modelo.carregar()
+
+        #expect(modelo.estado == .erro(mensagem: MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido))))
     }
 }
 
