@@ -311,6 +311,8 @@ public struct TelaMinhasVagas: View {
         }
         .modifier(ConfirmacaoDeReabertura(viewModel: acompanhamento))
         .task { await carregar() }
+        // O aviso do push diz que algo mudou na casa: o painel é relido para a tela que ele abre.
+        .onChange(of: roteador.avisosAbertos) { Task { await carregar() } }
         .accessibilityIdentifier("minhas-vagas")
     }
 

@@ -17,6 +17,10 @@ public enum RotaDoProfissional: Hashable, Sendable {
     case resultado(vaga: Vaga, resultado: ResultadoDaCandidatura)
     case meuTurno(turno: Turno)
     case avaliacao(turnoID: UUID)
+    /// A vaga de um aviso (#8): o detalhe, ou a tela de vaga indisponível.
+    case vagaDoAviso(vagaID: UUID)
+    /// O turno de um aviso (#8), que só traz o id: a tela o procura entre os turnos da conta.
+    case turnoDoAviso(turnoID: UUID)
 }
 
 /// Pilha de navegação do fluxo. É a entrada que a notificação do tipo vaga (S2 #8) vai usar:
@@ -25,6 +29,8 @@ public enum RotaDoProfissional: Hashable, Sendable {
 public final class RoteadorDoProfissional {
     public var caminho: [RotaDoProfissional] = []
     public var aba: AbaDoProfissional = .vagas
+    /// Conta os avisos abertos (#8): as listas são relidas a cada um, porque o aviso diz que algo mudou.
+    public internal(set) var avisosAbertos = 0
     /// Sobrevive à saída do detalhe enquanto `candidatar` ainda está em voo. O roteador, e não a
     /// view que iniciou a chamada, decide o destino do resultado definitivo.
     var candidaturaEmAndamento: CandidaturaViewModel?
@@ -144,6 +150,15 @@ public struct FluxoDoProfissional<Barra: View>: View {
                             TelaResultadoDaCandidatura(vaga: vaga, resultado: resultado, voltarParaLista: voltarParaLista)
                         case let .meuTurno(turno):
                             destinoDoMeuTurno(turno)
+                        case let .vagaDoAviso(vagaID):
+                            DestinoDaVagaDoAviso(
+                                vagaID: vagaID, api: api, repositorio: repositorioTurnos,
+                                candidatar: roteador.candidatar, voltarParaLista: voltarParaLista
+                            ) { destinoDoMeuTurno($0) }
+                        case let .turnoDoAviso(turnoID):
+                            DestinoDoTurnoDoAviso(turnoID: turnoID, repositorio: repositorioTurnos, verMeusTurnos: { roteador.abrir(.meusTurnos) }) {
+                                destinoDoMeuTurno($0)
+                            }
                         case let .avaliacao(turnoID):
                             if let contaID {
                                 TelaAvaliacao(turnoID: turnoID, contaID: contaID, api: api, fila: fila, relogio: relogio)
@@ -177,6 +192,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
             }
             .tag(AbaDoProfissional.turnos)
         }
+        .onChange(of: roteador.avisosAbertos) { atualizarListas() }
     }
 }
 
@@ -199,6 +215,10 @@ extension FluxoDoProfissional {
     /// "Vaga preenchida" e os outros resultados voltam para a lista (#105 C4), que é atualizada.
     private func voltarParaLista() {
         roteador.voltarParaLista()
+        atualizarListas()
+    }
+
+    private func atualizarListas() {
         let feed = feed
         let turnos = turnosViewModel
         Task {

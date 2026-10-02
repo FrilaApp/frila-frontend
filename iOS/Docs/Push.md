@@ -27,3 +27,69 @@ quem ele pertence no servidor:
 - **Limite conhecido.** Quem sai sem rede não consegue tirar o token do servidor. O aparelho deixa
   de ser da conta no app, e o servidor só passa o token adiante na próxima entrada neste aparelho ou
   na limpeza dos 60 dias sem atualização.
+
+## Destino do toque
+
+Todo toque entra por um ponto só, o `RoteadorDePush` (`Sources/Apresentacao/Fluxos/Push`). Ele lê o
+payload, confere a conta e manda para o `RoteadorDoProfissional` ou para o `RoteadorDoContratante`.
+Ele só abre telas: quem candidata, confirma presença ou reabre vaga é a pessoa.
+
+### O que o payload traz
+
+O servidor só deixa passar `tipo`, `vaga_id`, `posicao_id`, `turno_id`, `estabelecimento_id` e
+`reaberta` (`privado.notificar` e `filtrarDataPayloadFcm` no frila-backend), todos como texto na raiz
+do `userInfo`. Nenhum nome, telefone ou endereço, e **nada que diga de quem é o aviso** (RN15). A
+tabela abaixo foi conferida nas migrações do frila-backend (`develop`, 6d96d88).
+
+| Tipo | Quem recebe | Ids no payload | Abre para quem trabalha | Abre para quem contrata |
+|---|---|---|---|---|
+| `vaga` | profissional | `vaga_id` (`reaberta` só quando é verdade) | detalhe da vaga, ou vaga indisponível | nada |
+| `vagas_agrupadas` | profissional | nenhum | lista de vagas | nada |
+| `vaga_sem_elegiveis` | casa | `vaga_id` | nada | a vaga |
+| `confirmacao` | os dois | `turno_id`, `vaga_id` | o turno | o turno |
+| `lembrete_24h`, `lembrete_3h` | os dois | `turno_id` (a casa recebe também `estabelecimento_id`) | o turno | o turno |
+| `inicio_sem_checkin` | profissional | `turno_id` | o turno, com o check-in | nada |
+| `atraso_15min` | casa | `turno_id`, `posicao_id` | nada | o turno, com Reabrir vaga |
+| `fim_sem_checkout` | os dois | `turno_id` | o turno, com o check-out | o turno |
+| `vaga_vazia` | casa | `vaga_id`, `posicao_id` | nada | a vaga em alerta |
+| `checkin` | casa | `turno_id`, `vaga_id` | nada | o turno |
+| `checkin_manual_pendente` | casa | `turno_id`, `vaga_id` | nada | o turno, com Confirmar presença |
+| `cancelamento` | a outra parte | `posicao_id`, `vaga_id`, `reaberta`; para o candidato de vaga recolhida, só `vaga_id` e `reaberta` | Meus turnos; sem `posicao_id`, vaga indisponível | a vaga |
+| `avaliacao_disponivel` | os dois | `turno_id` | a avaliação do turno | o turno |
+| `suspensao`, `reativacao` | a conta | nenhum | reavalia a conta | reavalia a conta |
+| `candidatura_recusada` | profissional | `vaga_id` | vaga indisponível | nada |
+| `selecao_encerrada` | os dois | `vaga_id` | vaga indisponível | a vaga |
+
+- **Vaga indisponível.** A vaga de um aviso que não aceita mais candidatura (preenchida, cancelada,
+  encerrada, com o início já passado ou `404`) abre a tela própria, com a volta para a lista. Quem
+  decide é o servidor (`estado` e `posicoes_abertas`), nunca o relógio do aparelho. Se a vaga já é
+  de quem tocou, o destino é o turno dela.
+- **Turno pelo id.** O aviso só traz o `turno_id`: a tela procura o turno entre os da conta. O que
+  não está lá vira "Não encontramos este turno", e falha de leitura não vira "não encontrado".
+- **Suspensão e reativação** não têm tela no payload: o app reavalia a conta, e a situação dela
+  decide o que abre.
+- **Aviso relê as listas.** Abrir um aviso atualiza a lista de vagas e Meus turnos, ou o painel da casa.
+
+### Push de outra conta
+
+Como o payload não diz o destinatário, a conferência usa o que o aparelho sabe:
+
+1. **Sessão.** Sem sessão, nada abre. Com o app aberto pelo toque, a decisão espera a conta ser
+   conhecida; se não houver sessão, o toque é descartado e não reaparece depois de uma entrada.
+2. **Vínculo.** O aparelho precisa estar entregue, no servidor, à conta que está na tela
+   (`VinculoDoAparelho`), e o aviso precisa ter sido **entregue depois** de o vínculo começar. O
+   aviso que já estava na central de notificações quando a conta entrou era de quem estava antes.
+3. **Perfil.** O tipo precisa ter destino no perfil da conta: aviso da casa não abre para quem trabalha.
+4. **Dados.** A tela de destino lê tudo com a sessão de quem está no aparelho. O turno ou a vaga de
+   outra conta não vem na leitura.
+
+Limite conhecido: o aviso da conta anterior que o servidor mandou antes da troca e o APNs entregou
+depois dela passa pela regra 2. Ele ainda esbarra nas regras 3 e 4, mas só um identificador opaco do
+destinatário no payload fecharia essa janela, e isso é mudança de contrato.
+
+### Simular no esquema Local
+
+`-FRILA_PUSH <tipo> -FRILA_PUSH_ID <uuid>` entrega o toque ao `RoteadorDePush` depois que a conta do
+dublê registra um token simulado (o id vai como `vaga_id` e como `turno_id`). Com
+`-FRILA_PUSH_DE_ANTES`, o aviso é datado de antes do vínculo e não abre nada. Só existe em Debug e só
+contra o dublê; o `conferir-release.sh` reprova o binário de Release que tiver o gancho.

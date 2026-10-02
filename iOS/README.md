@@ -148,12 +148,12 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 
 - **Confirmar presença.** O check-in manual pendente aparece em "Presenças a confirmar", no topo de Minhas vagas, e na seção Chegada de "Acompanhar turno". Um toque chama `confirmar_checkin_manual`; a tela muda assim que a chamada responde, sem esperar nova leitura do painel.
 - **Reabrir vaga.** O botão só existe quando o painel marca `em_atraso`. Quem decide os 15 minutos é o servidor, nunca o relógio do aparelho. O toque abre uma pergunta que avisa da falta; só a confirmação chama `reabrir_por_atraso`.
-- **Avisos da casa.** `RoteadorDoContratante.abrir(_:)` recebe um `AvisoDoContratante`, montado do `tipo` e do `payload` como o backend os envia: `vaga_vazia` abre a vaga; `checkin_manual_pendente` e `atraso_15min` abrem o turno. Ele nunca confirma nem reabre sozinho. É a entrada que o push (S2 #8) vai usar; até lá, em Debug, `-FRILA_AVISO <tipo> -FRILA_AVISO_ID <uuid>` simula o toque (o id é o `vaga_id` em `vaga_vazia` e o `turno_id` nos outros tipos).
+- **Avisos da casa.** `RoteadorDoContratante.abrir(_:)` recebe um `AvisoDoContratante`, montado do `tipo` e do `payload` como o backend os envia: `vaga_vazia` abre a vaga; `checkin_manual_pendente` e `atraso_15min` abrem o turno; os outros avisos da casa abrem a vaga ou o turno de que falam. Ele nunca confirma nem reabre sozinho, e o painel é relido a cada aviso. É a entrada do push ([Push](Docs/Push.md)). Em Debug, `-FRILA_AVISO <tipo> -FRILA_AVISO_ID <uuid>` simula só a tela (o id é o `vaga_id` em `vaga_vazia` e o `turno_id` nos outros tipos), e `-FRILA_PUSH` simula o toque inteiro.
 - **Leitura e ação não se atropelam.** Toda resposta do servidor a uma ação, aceita ou recusada, invalida as leituras do painel que saíram antes dela: a resposta antiga é descartada e o painel é lido de novo. Sem isso, uma releitura lenta traria de volta a pendência que a tela acabou de tirar.
 - **Recusa e tela desatualizada.** Quando o servidor recusa (`checkin_ja_confirmado`, `posicao_nao_cancelavel`, `reabertura_antes_da_tolerancia`), o painel da tela estava velho e é relido. Se a releitura falhar, a tela diz que pode estar desatualizada, oferece "Tentar novamente" e não oferece a mesma ação de novo até uma leitura dar certo. Falha de leitura nunca vira "não encontramos".
 
 Limites conhecidos:
-- sem push, o painel só é relido ao abrir a tela, ao puxar para atualizar e depois de cada ação;
+- o painel só é relido ao abrir a tela, ao puxar para atualizar, depois de cada ação e quando um aviso do push é aberto;
 - o fluxo abre o primeiro estabelecimento da conta, e o `estabelecimento_id` do aviso ainda não troca de casa;
 - o painel não traz a hora do check-in nem o motivo de uma posição cancelada, então a tela não mostra nenhum dos dois;
 - Minhas vagas e o acompanhamento leem o mesmo painel em duas chamadas.
