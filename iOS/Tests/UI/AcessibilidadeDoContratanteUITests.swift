@@ -139,6 +139,61 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '#219' OR label CONTAINS '#50'")).firstMatch.exists)
     }
 
+    // MARK: - 5. Minhas Vagas: Títulos Acessíveis e Link Ligar (3.1 a 3.4)
+
+    func testMinhasVagasAcessibilidadeTitulosELinkLigar() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "painel-contratante",
+        ]
+        app.launch()
+
+        // 3.2 NavigationTitle da lista
+        let barraLista = app.navigationBars["Minhas vagas"]
+        XCTAssertTrue(barraLista.waitForExistence(timeout: 10))
+        XCTAssertTrue(barraLista.staticTexts["Minhas vagas"].exists)
+
+        let vaga = app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(vaga.waitForExistence(timeout: 10))
+        vaga.tap()
+
+        // 3.3 NavigationTitle do detalhe da vaga
+        let barraDetalhe = app.navigationBars["Detalhe da vaga"]
+        XCTAssertTrue(barraDetalhe.waitForExistence(timeout: 10))
+        XCTAssertTrue(barraDetalhe.staticTexts["Detalhe da vaga"].exists)
+
+        // 3.4 NavigationTitle do perfil público
+        let perfil = app.buttons["perfil-publico-82000000-0000-0000-0000-000000000002"]
+        XCTAssertTrue(perfil.waitForExistence(timeout: 5))
+        perfil.tap()
+
+        let barraPerfil = app.navigationBars["Perfil público"]
+        XCTAssertTrue(barraPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(barraPerfil.staticTexts["Perfil público"].exists)
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        // 3.1 Link Ligar com Label acessível e alvo de toque >= 44 pt
+        let contato = app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"]
+        XCTAssertTrue(contato.waitForExistence(timeout: 5))
+        trazerParaATela(contato, em: app)
+        contato.tap()
+
+        let linkLigar = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Ligar'")).firstMatch
+        XCTAssertTrue(linkLigar.waitForExistence(timeout: 5))
+        trazerParaATela(linkLigar, em: app)
+        XCTAssertGreaterThanOrEqual(linkLigar.frame.height, 44, "Link Ligar deve ter altura mínima de 44 pt")
+        XCTAssertTrue(linkLigar.isHittable)
+
+        // Verifica que o WhatsApp também mantém alvo de toque
+        let linkWhatsApp = app.buttons.matching(NSPredicate(format: "label CONTAINS 'WhatsApp'")).firstMatch
+        XCTAssertTrue(linkWhatsApp.waitForExistence(timeout: 5))
+        trazerParaATela(linkWhatsApp, em: app)
+        XCTAssertGreaterThanOrEqual(linkWhatsApp.frame.height, 44, "Link WhatsApp deve ter altura mínima de 44 pt")
+        XCTAssertTrue(linkWhatsApp.isHittable)
+    }
+
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
         let janela = app.windows.firstMatch.frame
         let margemSuperior: CGFloat = 120
