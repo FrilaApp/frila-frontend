@@ -476,6 +476,24 @@ struct AparelhoDePushTests {
         #expect(await aparelho.receber(token: Tokens.novo) == .semConta)
     }
 
+    @Test("Quem acompanha o vínculo fica sabendo do registro e da saída, e não é avisado do que não mudou")
+    func mudancasDoVinculo() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        var mudancas = await aparelho.mudancasDoVinculo().makeAsyncIterator()
+
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.registrar(para: contaID)
+        await aparelho.registrar(para: contaID)
+        await aparelho.desvincular()
+        await aparelho.registrar(para: contaID)
+
+        let vinculo = VinculoDoAparelho(contaID: contaID, desde: relogio.agora)
+        #expect(await mudancas.next() == .some(vinculo))
+        #expect(await mudancas.next() == .some(nil))
+        #expect(await mudancas.next() == .some(vinculo))
+    }
+
     @Test("Sem a permissão de notificação, o token sai do servidor e não volta enquanto ela não vier")
     func semPermissao() async throws {
         let aparelho = aparelho()

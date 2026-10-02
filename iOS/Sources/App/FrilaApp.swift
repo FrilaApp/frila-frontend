@@ -4,6 +4,7 @@ import FrilaDominio
 import FrilaInfraestrutura
 #if DEBUG
 import MapKit
+import UserNotifications
 #endif
 import OSLog
 import SwiftData
@@ -268,7 +269,7 @@ private struct EntradaDoApp: View {
         // O token do FCM chega depois da entrada, e o registro dele termina fora da tarefa acima: o
         // roteador do push fica sabendo do vínculo novo por aqui.
         .task {
-            for await _ in aparelho.mudancasDoVinculo() {
+            for await _ in await aparelho.mudancasDoVinculo() {
                 if let contaID { await informarContaAoPush(contaID) }
             }
         }
@@ -513,16 +514,34 @@ private struct EntradaDoApp: View {
     /// `-FRILA_PUSH <tipo> -FRILA_PUSH_ID <uuid>`: o toque num push, pelo caminho inteiro do #8, só
     /// contra o dublê. O id vai como `vaga_id` e como `turno_id`, e o roteador usa o que o tipo pede.
     /// Com `-FRILA_PUSH_DE_ANTES`, o aviso chegou antes de o aparelho ser da conta e não abre nada.
+    /// Com `-FRILA_PUSH_NOTIFICACAO_EM <segundos>`, o payload vai numa notificação local: quem a
+    /// mostra e entrega o toque é o sistema, pelo `AppDelegate`, com o app aberto, em segundo plano
+    /// ou fechado, como no push de verdade. Precisa da permissão do sistema (`-FRILA_PERMISSAO_PUSH sistema`).
     private func aplicarPushDosArgumentos() {
         let argumentos = ProcessInfo.processInfo.arguments
         guard api is ApiClienteEmMemoria, !rotaInicialAplicada,
               let tipo = argumentos.firstIndex(of: "-FRILA_PUSH"), argumentos.indices.contains(tipo + 1) else { return }
-        rotaInicialAplicada = true
         var payload = ["tipo": argumentos[tipo + 1]]
         if let id = argumentos.firstIndex(of: "-FRILA_PUSH_ID"), argumentos.indices.contains(id + 1) {
             payload["vaga_id"] = argumentos[id + 1]
             payload["turno_id"] = argumentos[id + 1]
         }
+        if let espera = argumentos.firstIndex(of: "-FRILA_PUSH_NOTIFICACAO_EM"), argumentos.indices.contains(espera + 1),
+           let segundos = TimeInterval(argumentos[espera + 1]), segundos > 0 {
+            // Sem a permissão o sistema recusa a notificação: espera a pessoa conceder.
+            guard permissaoDePush.estado == .concedida else { return }
+            rotaInicialAplicada = true
+            let conteudo = UNMutableNotificationContent()
+            conteudo.title = "Frila"
+            conteudo.body = "Aviso simulado: \(argumentos[tipo + 1])"
+            conteudo.userInfo = payload
+            UNUserNotificationCenter.current().add(UNNotificationRequest(
+                identifier: UUID().uuidString, content: conteudo,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: segundos, repeats: false)
+            ))
+            return
+        }
+        rotaInicialAplicada = true
         let entregueEm: Date = argumentos.contains("-FRILA_PUSH_DE_ANTES") ? .distantPast : .now
         roteadorDePush.tocar(payload: payload, entregueEm: entregueEm)
     }

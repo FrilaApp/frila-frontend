@@ -324,6 +324,31 @@ struct RoteadorDePushTests {
         #expect(roteador.tocar(payload: payload("vaga", ["vaga_id": IDs.vaga.uuidString]), entregueEm: depois) == .ignorar(.semSessao))
         #expect(nadaAbriu)
     }
+
+    @Test("Com o app aberto, só é mostrada a notificação da conta que está na tela")
+    func mostradaComOAppAberto() {
+        // Abertura a frio: a conta ainda não é conhecida.
+        #expect(!roteador.eDaContaAtiva(entregueEm: depois))
+
+        roteador.contaAtiva(conta(.profissional, vinculo: nil))
+        #expect(!roteador.eDaContaAtiva(entregueEm: depois))
+
+        roteador.contaAtiva(conta(.profissional, vinculo: VinculoDoAparelho(contaID: IDs.outraConta, desde: desde)))
+        #expect(!roteador.eDaContaAtiva(entregueEm: depois))
+
+        roteador.contaAtiva(conta(.profissional))
+        #expect(roteador.eDaContaAtiva(entregueEm: desde))
+        #expect(roteador.eDaContaAtiva(entregueEm: depois))
+        #expect(!roteador.eDaContaAtiva(entregueEm: desde.addingTimeInterval(-1)))
+
+        // A conta sem fluxo montado também vê a notificação dela: o toque é que não tem destino.
+        roteador.contaAtiva(conta(.nenhum))
+        #expect(roteador.eDaContaAtiva(entregueEm: depois))
+
+        roteador.semSessao()
+        #expect(!roteador.eDaContaAtiva(entregueEm: depois))
+        #expect(nadaAbriu)
+    }
 }
 
 // MARK: - Telas de destino

@@ -45,12 +45,13 @@ public actor AparelhoDePush {
 
     /// O vínculo a cada mudança: o token do FCM chega depois da entrada, e o registro dele termina
     /// sem ninguém esperando. Quem confere de quem é um aviso acompanha por aqui.
-    public nonisolated func mudancasDoVinculo() -> AsyncStream<VinculoDoAparelho?> {
-        AsyncStream { continuacao in
-            let id = UUID()
-            Task { await self.observar(id, continuacao) }
-            continuacao.onTermination = { _ in Task { await self.esquecer(id) } }
-        }
+    /// Quem pede já está inscrito quando recebe o fluxo: a mudança seguinte não se perde.
+    public func mudancasDoVinculo() -> AsyncStream<VinculoDoAparelho?> {
+        let (fluxo, continuacao) = AsyncStream.makeStream(of: VinculoDoAparelho?.self)
+        let id = UUID()
+        observadores[id] = continuacao
+        continuacao.onTermination = { [weak self] _ in Task { await self?.esquecer(id) } }
+        return fluxo
     }
 
     /// A cada abertura com sessão e a cada entrada (contrato: "chamar a cada abertura do app").
@@ -162,16 +163,12 @@ public actor AparelhoDePush {
         if mudou { observadores.values.forEach { $0.yield(novo.vinculo) } }
     }
 
-    private func observar(_ id: UUID, _ continuacao: AsyncStream<VinculoDoAparelho?>.Continuation) {
-        observadores[id] = continuacao
-    }
-
     private func esquecer(_ id: UUID) {
         observadores[id] = nil
     }
 }
 
-/// O guardado só em memória: testes, prévias e o esquema Local, que não toca o Keychain.
+/// O guardado só em memória, para os testes e as prévias.
 public final class ArmazenamentoDoAparelhoEmMemoria: ArmazenamentoDoAparelho, @unchecked Sendable {
     private let trava = NSLock()
     private var aparelho: AparelhoGuardado?

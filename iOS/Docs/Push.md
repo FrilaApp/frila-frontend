@@ -12,13 +12,14 @@ quem ele pertence no servidor:
 |---|---|
 | Abertura com sessão e entrada | `registrar_dispositivo`. O token que era de outra conta passa para quem entrou. |
 | O FCM entrega ou troca o token | O token é guardado. Com alguém dentro, o novo é registrado na hora e o antigo sai do servidor. |
-| Sair da conta | `remover_dispositivo` antes do `signOut`, com o token guardado. |
+| Sair da conta | `remover_dispositivo` antes do `signOut`, com o token guardado. As notificações já entregues saem da central. |
 | Sessão encerrada por 401 | Não há mais sessão para chamar o servidor: o aparelho só deixa de ser da conta aqui. |
 | Conta excluída | O servidor apaga os aparelhos da conta (`excluir_conta`), e o app desfaz o vínculo local. |
 
 - **O que fica guardado.** O token e o vínculo (`VinculoDoAparelho`: a conta e desde quando o
-  aparelho é dela), no Keychain, pelo `ArmazenamentoDoAparelhoNoKeychain`. No esquema Local fica em
-  memória. O token nunca vai para log nem para `UserDefaults`.
+  aparelho é dela), no Keychain, pelo `ArmazenamentoDoAparelhoNoKeychain`. O esquema Local usa um
+  item separado (`com.frila.org.app.push.local`), para o vínculo sobreviver ao app fechado. O token
+  nunca vai para log nem para `UserDefaults`.
 - **O vínculo só existe com a confirmação do servidor.** Ele começa quando `registrar_dispositivo`
   responde e acaba na saída ou no encerramento da sessão. O payload do push não diz para quem ele é
   (RN15), então é pelo vínculo que o app sabe de quem é o aviso que chegou.
@@ -27,6 +28,46 @@ quem ele pertence no servidor:
 - **Limite conhecido.** Quem sai sem rede não consegue tirar o token do servidor. O aparelho deixa
   de ser da conta no app, e o servidor só passa o token adiante na próxima entrada neste aparelho ou
   na limpeza dos 60 dias sem atualização.
+
+## FCM e APNs
+
+| Passo | Onde |
+|---|---|
+| A conta entrou e a permissão está concedida: o app pede o registro ao sistema | `CanalDePushDoAparelho.ativar()` (`Sources/Infraestrutura`) |
+| O sistema entrega o token do APNs | `AppDelegate`, que o repassa ao `Messaging` |
+| O FCM entrega o token dele, na abertura e a cada troca | `MessagingDelegate` no canal, que chama `AparelhoDePush.receber(token:)` |
+| A notificação chega com o app aberto | `AppDelegate.userNotificationCenter(_:willPresent:)` |
+| A pessoa toca na notificação (app aberto, em segundo plano ou fechado) | `AppDelegate.userNotificationCenter(_:didReceive:)`, que chama `RoteadorDePush.tocar` |
+
+- **Sem troca de método.** `FirebaseAppDelegateProxyEnabled` é `false` no `Info.plist`: o token e o
+  toque passam pelo `AppDelegate`, à vista. O app não pede o registro ao sistema antes de haver
+  conta e permissão.
+- **Os roteadores são do `AppDelegate`** (`NavegacaoDoApp`): o toque que abre o app chega antes de
+  qualquer tela existir, e o `RoteadorDePush` o guarda até a conta ser conhecida.
+- **App aberto.** A notificação aparece com faixa e som, como fora do app, mas só se for da conta
+  que está na tela (as regras 1 e 2 de "Push de outra conta"). Na abertura, enquanto a conta ainda não
+  é conhecida, a notificação que chega não é mostrada.
+- **Saída.** O app tira o token do servidor e limpa a central de notificações. Ele **não** chama
+  `unregisterForRemoteNotifications`: quem sai sem rede continua com o token no servidor (limite
+  já descrito acima), e a notificação que chegar nesse intervalo aparece na tela bloqueada, mas não
+  é mostrada com o app aberto nem abre nada no toque.
+- **Esquema Local.** Sem `GoogleService-Info.plist` o Firebase não é configurado: o canal não fala
+  com o FCM nem com o APNs e entrega um token simulado ao dublê.
+
+### `aps-environment`
+
+O entitlement vem do esquema, por `FRILA_APS_ENVIRONMENT` nos `.xcconfig`: `development` no Local e
+no Dev, `production` no Beta e no Prod. O `conferir-release.sh` reprova o bundle de Release que não
+declarar `production`, e a CI roda isso no Beta e no Prod.
+
+O que a CI confere é a configuração declarada, no build de simulador. **No build assinado, quem
+decide o valor é o perfil de provisionamento**: com assinatura automática de desenvolvimento, um
+build Release-Beta declarando `production` sai assinado com `development` (testado em 02/10/2026).
+No TestFlight o valor vem do perfil de distribuição. Para conferir o build que foi para lá:
+
+```bash
+codesign -d --entitlements :- caminho/Frila.app | grep -A1 aps-environment
+```
 
 ## Permissão
 
@@ -120,6 +161,35 @@ destinatário no payload fecharia essa janela, e isso é mudança de contrato.
 ### Simular no esquema Local
 
 `-FRILA_PUSH <tipo> -FRILA_PUSH_ID <uuid>` entrega o toque ao `RoteadorDePush` depois que a conta do
-dublê registra um token simulado (o id vai como `vaga_id` e como `turno_id`). Com
+dublê registra o token simulado (o id vai como `vaga_id` e como `turno_id`). Com
 `-FRILA_PUSH_DE_ANTES`, o aviso é datado de antes do vínculo e não abre nada. Só existe em Debug e só
 contra o dublê; o `conferir-release.sh` reprova o binário de Release que tiver o gancho.
+
+Para passar pelo sistema, como o push de verdade, junte `-FRILA_PERMISSAO_PUSH sistema` e
+`-FRILA_PUSH_NOTIFICACAO_EM <segundos>`: o payload vai numa notificação local, e o toque nela chega
+pelo `AppDelegate`, com o app aberto, em segundo plano ou fechado (`NotificacaoDePushUITests`).
+O simulador também aceita um push remoto simulado, sem APNs, com a permissão já concedida:
+
+```bash
+xcrun simctl push <UDID> com.frila.org.app aviso.apns
+# aviso.apns: {"aps":{"alert":{"title":"Frila","body":"Vaga nova"}},"tipo":"vaga","vaga_id":"<uuid>"}
+```
+
+## Roteiro de teste no aparelho
+
+O que o simulador e o dublê não provam, para rodar num iPhone com o build do TestFlight (Beta):
+
+1. **Chegada.** Entre, aceite a permissão e confira no Supabase do ambiente que
+   `registrar_dispositivo` gravou o aparelho da conta, com plataforma `ios`. Mande uma mensagem de
+   teste pelo console do Firebase do projeto daquele ambiente para o token; repita no outro projeto
+   com o build Prod.
+2. **Tela bloqueada.** Com o iPhone bloqueado, o aviso aparece e o toque abre a tela do tipo.
+3. **App aberto, em segundo plano e fechado.** O toque abre o mesmo destino nos três.
+4. **Reinstalação.** Apague o app, instale de novo e entre: o token novo aparece no servidor, e o
+   antigo deixa de receber.
+5. **Duas contas no mesmo iPhone.** Saia da conta A, entre na B e mande um aviso para a A: ele não
+   chega. Mande para a B: chega e abre.
+6. **Permissão negada.** Negue nos Ajustes e volte ao app: o aviso fixo aparece, e o dispositivo
+   sai do servidor.
+7. **Assinatura.** `codesign -d --entitlements :-` no `.app` do build exportado mostra
+   `aps-environment = production`.
