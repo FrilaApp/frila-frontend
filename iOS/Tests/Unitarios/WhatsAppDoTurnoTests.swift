@@ -1,0 +1,238 @@
+import Foundation
+@testable import FrilaApresentacao
+@testable import FrilaDados
+import FrilaDominio
+import Testing
+
+private func criarContatoComTelefone(_ telefone: String, visivelAte: Date) throws -> Contato {
+    let digitos = telefone.replacingOccurrences(of: "+", with: "")
+    let url = try #require(URL(string: "https://wa.me/\(digitos)"))
+    return Contato(
+        nome: "Responsável do Bistrô",
+        telefone: telefone,
+        whatsappURL: url,
+        visivelAte: visivelAte
+    )
+}
+
+private func criarTurnoParaWhatsApp(
+    funcao: String = "Garçom & Barista",
+    local: String = "Café & Bistrô das Nações",
+    inicio: Date,
+    fim: Date,
+    contato: Contato?
+) throws -> Turno {
+    let vaga = VagaResumo(
+        id: UUID(),
+        funcao: funcao,
+        local: local,
+        regiaoAdministrativa: "Plano Piloto",
+        periodo: try Periodo(inicio: inicio, fim: fim),
+        valor: Dinheiro(centavos: 18000)
+    )
+    let contraparte = PerfilPublico(
+        id: UUID(),
+        tipo: .estabelecimento,
+        nome: "Café & Bistrô",
+        reputacao: Reputacao(positivas: 5, total: 5, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+    )
+    let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
+    return Turno(
+        id: UUID(),
+        posicaoID: UUID(),
+        vaga: vaga,
+        contraparte: contraparte,
+        contatoVisivelAte: visivelAte,
+        verificacao: .pendente,
+        valorAcordado: vaga.valor,
+        podeAvaliar: false,
+        contato: contato
+    )
+}
+
+private final class RelogioFixo: Relogio, @unchecked Sendable {
+    let agora: Date
+    init(_ agora: Date) { self.agora = agora }
+}
+
+private final class ApiDubleWhatsApp: ApiCliente, @unchecked Sendable {
+    private let base = ApiClienteEmMemoria()
+    var onContatoDoTurno: (@Sendable (UUID) async throws -> Contato)?
+
+    func solicitarCodigo(email: String) async throws { try await base.solicitarCodigo(email: email) }
+    func verificarCodigo(email: String, codigo: String) async throws { try await base.verificarCodigo(email: email, codigo: codigo) }
+    func entrarDemonstracao(email: String, codigo: String) async throws { try await base.entrarDemonstracao(email: email, codigo: codigo) }
+    func possuiSessao() async -> Bool { await base.possuiSessao() }
+    func minhaConta() async throws -> Conta { try await base.minhaConta() }
+    func criarConta(_ cadastro: CadastroConta) async throws -> Conta { try await base.criarConta(cadastro) }
+    func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional { try await base.criarPerfilProfissional(dados) }
+    func meuPerfilProfissional() async throws -> PerfilProfissional { try await base.meuPerfilProfissional() }
+    func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional { try await base.atualizarPerfilProfissional(alteracao) }
+    func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento { try await base.cadastrarEstabelecimento(cadastro) }
+    func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] { try await base.meusEstabelecimentos() }
+    func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel { try await base.painelEstabelecimento(id: id, periodo: periodo) }
+    func funcoes() async throws -> [Funcao] { try await base.funcoes() }
+    func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada { try await base.publicarVaga(publicacao) }
+    func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada { try await base.republicarVaga(id: id, periodo: periodo, chave: chave) }
+    func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] { try await base.vagasAbertas(filtro) }
+    func detalheDaVaga(id: UUID) async throws -> Vaga { try await base.detalheDaVaga(id: id) }
+    func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura { try await base.candidatar(vagaID: vagaID) }
+    func perfilPublico(id: UUID) async throws -> PerfilPublico { try await base.perfilPublico(id: id) }
+    func meusTurnos() async throws -> [Turno] { try await base.meusTurnos() }
+    func contatoDoTurno(id: UUID) async throws -> Contato {
+        if let onContatoDoTurno { return try await onContatoDoTurno(id) }
+        return try await base.contatoDoTurno(id: id)
+    }
+    func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho { try await base.avisarACaminho(turnoID: turnoID) }
+    func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
+        try await base.fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+    }
+    func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
+        try await base.fazerCheckout(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+    }
+    func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao { try await base.avaliar(turnoID: turnoID, resposta: resposta) }
+    func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
+    func removerDispositivo(tokenFCM: String) async throws { try await base.removerDispositivo(tokenFCM: tokenFCM) }
+    func sair(tokenFCM: String?) async { await base.sair(tokenFCM: tokenFCM) }
+}
+
+@MainActor
+@Suite("WhatsApp do Meu turno (#109): número, codificação da mensagem e visibilidade")
+struct WhatsAppDoTurnoTests {
+
+    @Test("O número do endereço wa.me contém exatamente os dígitos do contato com código do país")
+    func numeroDoEnderecoMantemDigitosComCodigoDoPais() async throws {
+        let inicio = Date(timeIntervalSince1970: 1_800_000_000)
+        let fim = inicio.addingTimeInterval(4 * 3_600)
+        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
+
+        // Testa número de Brasília (+55 61 ...)
+        let contatoBrasilia = try criarContatoComTelefone("+5561999990000", visivelAte: visivelAte)
+        let turnoBrasilia = try criarTurnoParaWhatsApp(inicio: inicio, fim: fim, contato: contatoBrasilia)
+        let vmBrasilia = MeuTurnoViewModel(turno: turnoBrasilia, api: ApiDubleWhatsApp(), relogio: RelogioFixo(inicio))
+
+        let urlBrasilia = try #require(vmBrasilia.urlWhatsApp)
+        #expect(urlBrasilia.scheme == "https")
+        #expect(urlBrasilia.host == "wa.me")
+        #expect(urlBrasilia.path == "/5561999990000")
+
+        // Testa número de São Paulo (+55 11 ...) para provar que o caminho não está engessado em um número só
+        let contatoSP = try criarContatoComTelefone("+5511987654321", visivelAte: visivelAte)
+        let turnoSP = try criarTurnoParaWhatsApp(inicio: inicio, fim: fim, contato: contatoSP)
+        let vmSP = MeuTurnoViewModel(turno: turnoSP, api: ApiDubleWhatsApp(), relogio: RelogioFixo(inicio))
+
+        let urlSP = try #require(vmSP.urlWhatsApp)
+        #expect(urlSP.scheme == "https")
+        #expect(urlSP.host == "wa.me")
+        #expect(urlSP.path == "/5511987654321")
+    }
+
+    @Test("A mensagem leva função, data e local, e sai codificada com acentos, espaços e o caractere &")
+    func mensagemLevaFuncaoDataELocalCodificadaCorretamente() async throws {
+        // Sexta-feira às 18:00 (em fuso de São Paulo UTC-3)
+        let inicio = Date(timeIntervalSince1970: 1_800_000_000)
+        let fim = inicio.addingTimeInterval(4 * 3_600)
+        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
+
+        let funcaoComAcentoEEComercial = "Garçom & Barista"
+        let localComAcentoEEComercial = "Café & Bistrô das Nações"
+
+        let contato = try criarContatoComTelefone("+5561999990000", visivelAte: visivelAte)
+        let turno = try criarTurnoParaWhatsApp(
+            funcao: funcaoComAcentoEEComercial,
+            local: localComAcentoEEComercial,
+            inicio: inicio,
+            fim: fim,
+            contato: contato
+        )
+        let vm = MeuTurnoViewModel(turno: turno, api: ApiDubleWhatsApp(), relogio: RelogioFixo(inicio))
+
+        let url = try #require(vm.urlWhatsApp)
+        let urlString = url.absoluteString
+
+        // 1. A URL contém wa.me com os dígitos corretos
+        #expect(urlString.hasPrefix("https://wa.me/5561999990000?text="))
+
+        // 2. O '&' do nome do local e da função NÃO cria novos parâmetros de query (não divide a query em múltiplos query items)
+        let componentes = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        #expect(componentes.queryItems?.count == 1)
+        #expect(componentes.queryItems?.first?.name == "text")
+
+        // 3. Na query codificada (percent-encoded), caracteres especiais estão devidamente escapados:
+        //    - Espaços são codificados como %20
+        //    - '&' é codificado como %26
+        //    - Acentos como 'ç' (%C3%A7), 'ã' (%C3%A3), 'é' (%C3%A9), 'ô' (%C3%B4)
+        let queryCodificada = try #require(componentes.percentEncodedQuery)
+        #expect(!queryCodificada.contains(" "))
+        #expect(queryCodificada.contains("%26"), "O caractere '&' deve estar percent-encoded como %26 para não corromper a query string")
+        #expect(queryCodificada.contains("%20"), "Espaços devem estar percent-encoded como %20")
+        #expect(queryCodificada.contains("%C3%A7") || queryCodificada.contains("%C3%A3"), "Acentos devem estar em UTF-8 percent-encoded")
+
+        // 4. Ao decodificar o valor do query item text, a mensagem sai íntegra com todos os campos
+        let dataFormatadaEsperada = FormatadorFrila().intervalo(turno.vaga.periodo)
+        let mensagemDecodificada = try #require(componentes.queryItems?.first?.value)
+
+        #expect(mensagemDecodificada.contains(funcaoComAcentoEEComercial))
+        #expect(mensagemDecodificada.contains(dataFormatadaEsperada))
+        #expect(mensagemDecodificada.contains(localComAcentoEEComercial))
+        #expect(mensagemDecodificada == "Olá! Sou o profissional do turno de \(funcaoComAcentoEEComercial) em \(dataFormatadaEsperada) no \(localComAcentoEEComercial).")
+    }
+
+    @Test("O botão do WhatsApp só existe com o contato liberado, e some quando expirado ou nulo")
+    func botaoWhatsAppSoExisteComContatoLiberadoESomeExpirado() async throws {
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let fim = agora.addingTimeInterval(4 * 3_600)
+        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
+        let contato = try criarContatoComTelefone("+5561999990000", visivelAte: visivelAte)
+
+        // 1. Contato liberado e dentro do prazo: urlWhatsApp está presente
+        let turnoAtivo = try criarTurnoParaWhatsApp(inicio: agora, fim: fim, contato: contato)
+        let vmAtivo = MeuTurnoViewModel(turno: turnoAtivo, api: ApiDubleWhatsApp(), relogio: RelogioFixo(agora))
+        #expect(vmAtivo.urlWhatsApp != nil)
+        #expect(!vmAtivo.contatoExpirado)
+        #expect(vmAtivo.contato != nil)
+
+        // 2. Contato não carregado inicialmente (contato == nil): urlWhatsApp é nil
+        let turnoSemContato = try criarTurnoParaWhatsApp(inicio: agora, fim: fim, contato: nil)
+        let vmSemContato = MeuTurnoViewModel(turno: turnoSemContato, api: ApiDubleWhatsApp(), relogio: RelogioFixo(agora))
+        #expect(vmSemContato.urlWhatsApp == nil)
+        #expect(!vmSemContato.contatoExpirado)
+
+        // 3. Contato expirado pelo relógio (> 7 dias após o fim do turno): urlWhatsApp é nil e contatoExpirado é true
+        let relogioAposExpiracao = RelogioFixo(visivelAte.addingTimeInterval(3_600))
+        let vmExpiradoRelogio = MeuTurnoViewModel(turno: turnoAtivo, api: ApiDubleWhatsApp(), relogio: relogioAposExpiracao)
+        #expect(vmExpiradoRelogio.urlWhatsApp == nil)
+        #expect(vmExpiradoRelogio.contato == nil)
+        #expect(vmExpiradoRelogio.contatoExpirado)
+
+        // 4. Contato expirado pelo servidor (403 contato_expirado retornado por contatoDoTurno): urlWhatsApp é nil
+        let apiExpirada = ApiDubleWhatsApp()
+        apiExpirada.onContatoDoTurno = { _ in throw ErroDaApi(codigo: .contatoExpirado) }
+        let vmExpiradoAPI = MeuTurnoViewModel(turno: turnoSemContato, api: apiExpirada, relogio: RelogioFixo(agora))
+        await vmExpiradoAPI.carregar()
+        #expect(vmExpiradoAPI.urlWhatsApp == nil)
+        #expect(vmExpiradoAPI.contato == nil)
+        #expect(vmExpiradoAPI.contatoExpirado)
+    }
+
+    @Test("DTO do contrato decodifica whatsapp_url e mapeia para o domínio Contato preservando o link")
+    func dtoDoContratoDecodificaETransfereWhatsappURL() throws {
+        let json = """
+        {
+            "nome": "Choperia Central",
+            "telefone": "+5561988881234",
+            "whatsapp_url": "https://wa.me/5561988881234",
+            "visivel_ate": "2026-10-15T22:00:00Z"
+        }
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dto = try decoder.decode(ContratoAPI.ContatoDTO.self, from: json)
+        let dominio = dto.dominio()
+
+        #expect(dominio.nome == "Choperia Central")
+        #expect(dominio.telefone == "+5561988881234")
+        #expect(dominio.whatsappURL.absoluteString == "https://wa.me/5561988881234")
+    }
+}
