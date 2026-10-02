@@ -140,6 +140,14 @@ public final class RoteadorDePush {
         }
     }
 
+    /// Se uma notificação entregue em `entregueEm` é da conta que está na tela, pelo que o aparelho
+    /// sabe: há sessão, o aparelho está entregue a ela e a entrega veio depois disso. Com o app
+    /// aberto, só a notificação que passa aqui é mostrada.
+    public func eDaContaAtiva(entregueEm: Date) -> Bool {
+        guard case let .ativa(conta) = sessao else { return false }
+        return Self.vinculoVale(conta, entregueEm: entregueEm)
+    }
+
     /// A conta que está no aparelho ficou conhecida, ou o vínculo dela mudou. O toque que esperava
     /// por isso é decidido agora.
     public func contaAtiva(_ conta: ContaNoAparelho) {
@@ -161,9 +169,7 @@ public final class RoteadorDePush {
     public nonisolated static func decidir(payload: [AnyHashable: Any], entregueEm: Date, conta: ContaNoAparelho?) -> DecisaoDoPush {
         guard let aviso = AvisoDePush(payload: payload) else { return .ignorar(.payloadInvalido) }
         guard let conta else { return .ignorar(.semSessao) }
-        guard let vinculo = conta.vinculo, vinculo.contaID == conta.contaID, entregueEm >= vinculo.desde else {
-            return .ignorar(.deOutraConta)
-        }
+        guard vinculoVale(conta, entregueEm: entregueEm) else { return .ignorar(.deOutraConta) }
         if aviso.tipo == .suspensao || aviso.tipo == .reativacao { return .abrir(.situacaoDaConta) }
         switch conta.fluxo {
         case .profissional:
@@ -175,6 +181,11 @@ public final class RoteadorDePush {
         case .nenhum:
             return .ignorar(.semDestino)
         }
+    }
+
+    private nonisolated static func vinculoVale(_ conta: ContaNoAparelho, entregueEm: Date) -> Bool {
+        guard let vinculo = conta.vinculo else { return false }
+        return vinculo.contaID == conta.contaID && entregueEm >= vinculo.desde
     }
 
     @discardableResult

@@ -132,4 +132,33 @@ for arquivo in "${arquivos_para_conferir[@]}"; do
   fi
 done
 
+# Push de produção (#8): o Release declara aps-environment = production. No build de simulador o
+# Xcode embute os entitlements declarados na seção __TEXT,__entitlements do executável; no build
+# assinado eles ficam na assinatura, e ali quem decide o valor é o perfil de provisionamento, não
+# o arquivo de entitlements. Por isso a assinatura de desenvolvimento só gera aviso: o que vale
+# para o TestFlight é a assinatura de distribuição, conferida no build exportado.
+aps="$(python3 - "$app" "$executavel" <<'PYAPS'
+import plistlib, re, subprocess, sys
+app, executavel = sys.argv[1], sys.argv[2]
+try:
+    saida = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", app], capture_output=True).stdout
+    assinatura = plistlib.loads(saida) if saida.strip() else {}
+except Exception:
+    assinatura = {}
+if "aps-environment" in assinatura:
+    print("assinatura-de-desenvolvimento" if assinatura.get("get-task-allow") is True else assinatura["aps-environment"])
+else:
+    with open(executavel, "rb") as arquivo:
+        valores = set(re.findall(rb"<key>aps-environment</key>\s*<string>([^<]*)</string>", arquivo.read()))
+    print(",".join(sorted(valor.decode() for valor in valores)) or "ausente")
+PYAPS
+)"
+case "$aps" in
+  production) ;;
+  assinatura-de-desenvolvimento)
+    echo "aviso: assinatura de desenvolvimento; o aps-environment vem do perfil de provisionamento" >&2 ;;
+  ausente) falhar "o bundle não declara aps-environment: sem ele o app não recebe push" ;;
+  *) falhar "aps-environment deve ser production no Release (encontrado: $aps)" ;;
+esac
+
 echo "OK: bundle de Release em conformidade: $app"

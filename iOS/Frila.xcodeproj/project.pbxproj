@@ -86,6 +86,7 @@
 		5D0F0F64CA928A5F55C92E39 /* TelaCodigo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FC77D164D16038AC062373 /* TelaCodigo.swift */; };
 		60434332F95A22A699C26B79 /* AvisoDePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A0083F1DF26A4FAF63AE43 /* AvisoDePush.swift */; };
 		60969818C532D7F87CE785B2 /* TurnosComCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F45CA229E7E687ADCF92F0 /* TurnosComCache.swift */; };
+		661B8653B9251A43869A3823 /* CanalDePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403BE76B115BBEECD1338CAA /* CanalDePush.swift */; };
 		66AEE4DC7A8EE1EC35C5BF36 /* PermissaoDePushSimulada.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996C6EF27DB5F5D66A15500C /* PermissaoDePushSimulada.swift */; };
 		68501EF4E0C6F79B60917356 /* RpcsDaSprint2EmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A8EAF4481B7F234FFA38CF /* RpcsDaSprint2EmMemoriaTests.swift */; };
 		68BFBF4CB55A1D6E926782C2 /* resultado-registro.json in Resources */ = {isa = PBXBuildFile; fileRef = FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */; };
@@ -93,6 +94,7 @@
 		6B43F18F972E1E61FBD82F88 /* FormatadorFrila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA32088E555C10CC772D882 /* FormatadorFrila.swift */; };
 		6CB61C7F29A60C7723A65812 /* TextosDoPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D96CB1BA1E569ADEEA5A236 /* TextosDoPush.swift */; };
 		6DA49CC0E9B9D381DD4CCE47 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */; };
+		6E87ABA5615190212BE80BEC /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 5B3B28D862D6D2AD7D0AB9EB /* FirebaseMessaging */; };
 		701B3A1F6BBCD3B97768450C /* FluxoDoContratanteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34CFCC58D9DFCC6F7EE4C4A6 /* FluxoDoContratanteTests.swift */; };
 		7099E790EA08059ECD1D5185 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
 		723AD6D9A4B4D48C1F93D6C0 /* requisicao-cadastrar-estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */; };
@@ -103,6 +105,7 @@
 		74DF5189A9B8BA7D3D972F43 /* RoteadorDoContratante.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A068E519C2ED7C91F547AA /* RoteadorDoContratante.swift */; };
 		781446FFC40FD90A510DA4E8 /* vaga-publicada.json in Resources */ = {isa = PBXBuildFile; fileRef = A3E6257414B3A5DD6EA2CC29 /* vaga-publicada.json */; };
 		7AC78C04FA273B0496B4880D /* requisicao-remover-dispositivo.json in Resources */ = {isa = PBXBuildFile; fileRef = 547E626FB587B269E061429A /* requisicao-remover-dispositivo.json */; };
+		7AF3C1AD00063EB0CC0ED4CB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B982881F426B2CA442617F /* AppDelegate.swift */; };
 		7E2C15CB3F6ED4112A9BA8F7 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 96B5D777149B06DDCF07C3B7 /* FirebaseCrashlytics */; };
 		82C31672FDB4638A40A940BA /* requisicao-confirmar-checkin-manual.json in Resources */ = {isa = PBXBuildFile; fileRef = EEC48633CBE124BC737FDC13 /* requisicao-confirmar-checkin-manual.json */; };
 		82F3D63694FF304FDB047AF2 /* FrilaDados.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; };
@@ -141,6 +144,7 @@
 		A9F2D59CF08877E1ECDB642F /* TelaLicencas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AFCB78054D6FCF48C55B9E /* TelaLicencas.swift */; };
 		AB7584C2DC5EA381B6B73DA1 /* CadastroViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C99ED74032103B1038EAF6 /* CadastroViewModel.swift */; };
 		ABE4178CEC067E14CACB2DE9 /* TextosDaPresenca.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287566AB9C576233024D229E /* TextosDaPresenca.swift */; };
+		ABE42A2D7103809F45C52813 /* CanalDePushDoAparelho.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC84C8EE2DE1BC6D69632994 /* CanalDePushDoAparelho.swift */; };
 		ACC5F7862C02C11DA160451E /* ApiClienteEmMemoria.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B43084AE2BBE6031C888000 /* ApiClienteEmMemoria.swift */; };
 		B0A2F223F90194BF0E55C3EA /* perfil-publico.json in Resources */ = {isa = PBXBuildFile; fileRef = 2C6E29E69383AE68FCC59B8B /* perfil-publico.json */; };
 		B10F68A230DCC58491A14B4F /* EnderecosOficiais.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6350F07C15F2C061485D1893 /* EnderecosOficiais.swift */; };
@@ -390,6 +394,7 @@
 		3E170CF5FEBE4A60D1A81D2C /* App.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = App.xcassets; sourceTree = "<group>"; };
 		3E5678016DBD1843154B5992 /* candidatura-selecao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "candidatura-selecao.json"; sourceTree = "<group>"; };
 		3F7D2A82477B3B29CAF6CFC3 /* vagas-abertas.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vagas-abertas.json"; sourceTree = "<group>"; };
+		403BE76B115BBEECD1338CAA /* CanalDePush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanalDePush.swift; sourceTree = "<group>"; };
 		44EEFDC3ABA747665D22A07F /* MonitorDeConexaoDoSistema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorDeConexaoDoSistema.swift; sourceTree = "<group>"; };
 		44FCBC781830AFDC791F353D /* FrilaDados.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FrilaDados.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		46A0083F1DF26A4FAF63AE43 /* AvisoDePush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvisoDePush.swift; sourceTree = "<group>"; };
@@ -432,6 +437,7 @@
 		728FBA1A7EABDE751ECCAF2F /* ListaDeVagasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListaDeVagasTests.swift; sourceTree = "<group>"; };
 		73537BBAEE93EF4D74DA73DC /* AparelhoDePush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AparelhoDePush.swift; sourceTree = "<group>"; };
 		74743E2CE1FC42EB7853C2E2 /* LicencasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicencasTests.swift; sourceTree = "<group>"; };
+		76B982881F426B2CA442617F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		77974316540827A3BE34F061 /* MeuTurnoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeuTurnoViewModel.swift; sourceTree = "<group>"; };
 		78AFCB78054D6FCF48C55B9E /* TelaLicencas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaLicencas.swift; sourceTree = "<group>"; };
 		7BC76B02923AFFCF1F576C1E /* requisicao-avisar-a-caminho.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-avisar-a-caminho.json"; sourceTree = "<group>"; };
@@ -507,6 +513,7 @@
 		CA215437724E11E1540CB9C9 /* EstadosDeTela.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EstadosDeTela.swift; sourceTree = "<group>"; };
 		CA800A26D965400E7DD27C89 /* TelaEntrada.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaEntrada.swift; sourceTree = "<group>"; };
 		CB0DAB39F53C66FB25CB0D05 /* PerfilProfissionalViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfilProfissionalViewModelTests.swift; sourceTree = "<group>"; };
+		CC84C8EE2DE1BC6D69632994 /* CanalDePushDoAparelho.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanalDePushDoAparelho.swift; sourceTree = "<group>"; };
 		CE7F5174A8365E2BCB231B62 /* FormatadorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatadorTests.swift; sourceTree = "<group>"; };
 		CF214B67EA4C7F4B8DBC32B7 /* DestinoGuardado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DestinoGuardado.swift; sourceTree = "<group>"; };
 		D1668D57CC8752599593C865 /* ArmazenamentoDoAparelhoNoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoDoAparelhoNoKeychain.swift; sourceTree = "<group>"; };
@@ -575,6 +582,7 @@
 			files = (
 				4E246A9F6D8B280FE69149CE /* FrilaDominio.framework in Frameworks */,
 				7E2C15CB3F6ED4112A9BA8F7 /* FirebaseCrashlytics in Frameworks */,
+				6E87ABA5615190212BE80BEC /* FirebaseMessaging in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -654,6 +662,7 @@
 			children = (
 				D1668D57CC8752599593C865 /* ArmazenamentoDoAparelhoNoKeychain.swift */,
 				5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */,
+				CC84C8EE2DE1BC6D69632994 /* CanalDePushDoAparelho.swift */,
 				ED4681E82BFB78ADC11F0C80 /* LeitorDeLocalizacaoDoSistema.swift */,
 				44EEFDC3ABA747665D22A07F /* MonitorDeConexaoDoSistema.swift */,
 				20D789C620FE3A1368A62E41 /* PermissaoDePushDoSistema.swift */,
@@ -744,6 +753,7 @@
 			children = (
 				46A0083F1DF26A4FAF63AE43 /* AvisoDePush.swift */,
 				9AD10D457C0BA33C2707A053 /* Cache.swift */,
+				403BE76B115BBEECD1338CAA /* CanalDePush.swift */,
 				CF214B67EA4C7F4B8DBC32B7 /* DestinoGuardado.swift */,
 				822693D3DCCCEAD31BD7BBA1 /* DiaDeSaoPaulo.swift */,
 				D7D2FD77BD8C53C3BFED6AAA /* Dispositivo.swift */,
@@ -877,6 +887,7 @@
 		B4FDD8E73721E7A951EAD644 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				76B982881F426B2CA442617F /* AppDelegate.swift */,
 				0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */,
 				330A7012F96AEC9C169084D2 /* Frila.entitlements */,
 				A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */,
@@ -1100,6 +1111,7 @@
 			name = FrilaInfraestrutura;
 			packageProductDependencies = (
 				96B5D777149B06DDCF07C3B7 /* FirebaseCrashlytics */,
+				5B3B28D862D6D2AD7D0AB9EB /* FirebaseMessaging */,
 			);
 			productName = FrilaInfraestrutura;
 			productReference = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */;
@@ -1378,6 +1390,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7AF3C1AD00063EB0CC0ED4CB /* AppDelegate.swift in Sources */,
 				09A0B06C662525A8361F803D /* ConfiguracaoAmbiente.swift in Sources */,
 				E37C08338359D5E72F19001B /* FrilaApp.swift in Sources */,
 			);
@@ -1409,6 +1422,7 @@
 			files = (
 				3B241165B8236FD5764ABFCE /* ArmazenamentoDoAparelhoNoKeychain.swift in Sources */,
 				E78679D5778572DE77CA3C59 /* ArmazenamentoKeychain.swift in Sources */,
+				ABE42A2D7103809F45C52813 /* CanalDePushDoAparelho.swift in Sources */,
 				DB1B3EA93B83A5C531BE9D26 /* LeitorDeLocalizacaoDoSistema.swift in Sources */,
 				21A1EA161F00EBB126EC5C03 /* MonitorDeConexaoDoSistema.swift in Sources */,
 				1BB09E829170A787969EA8A4 /* PermissaoDePushDoSistema.swift in Sources */,
@@ -1422,6 +1436,7 @@
 			files = (
 				60434332F95A22A699C26B79 /* AvisoDePush.swift in Sources */,
 				9CBB63F1F429CC6D42C84569 /* Cache.swift in Sources */,
+				661B8653B9251A43869A3823 /* CanalDePush.swift in Sources */,
 				C25A65FFD8F5EAEF0E4F3201 /* DestinoGuardado.swift in Sources */,
 				2B3125D98F9CE8C14E6FBD89 /* DiaDeSaoPaulo.swift in Sources */,
 				83CD4512A38D276E3C68DCA0 /* Dispositivo.swift in Sources */,
@@ -2624,6 +2639,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5B3B28D862D6D2AD7D0AB9EB /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9A2CC2F1011A15C2E82C8DE /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
 		6E9B44D44F388557013F7FC6 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 226DD53212C98F305F9EA937 /* XCRemoteSwiftPackageReference "supabase-swift" */;

@@ -29,6 +29,7 @@ public actor AparelhoDePush {
     /// A conta com sessão neste aparelho, só em memória: é para ela que um token que chegue ou
     /// troque depois da entrada é registrado.
     private var contaAtiva: UUID?
+    private var observadores: [UUID: AsyncStream<VinculoDoAparelho?>.Continuation] = [:]
 
     public init(api: any ApiCliente, armazenamento: any ArmazenamentoDoAparelho, relogio: any Relogio = RelogioDoSistema()) {
         self.api = api
@@ -40,6 +41,16 @@ public actor AparelhoDePush {
     /// do servidor.
     public func vinculo() -> VinculoDoAparelho? {
         guardado()?.vinculo
+    }
+
+    /// O vínculo a cada mudança: o token do FCM chega depois da entrada, e o registro dele termina
+    /// sem ninguém esperando. Quem confere de quem é um aviso acompanha por aqui.
+    public nonisolated func mudancasDoVinculo() -> AsyncStream<VinculoDoAparelho?> {
+        AsyncStream { continuacao in
+            let id = UUID()
+            Task { await self.observar(id, continuacao) }
+            continuacao.onTermination = { _ in Task { await self.esquecer(id) } }
+        }
     }
 
     /// A cada abertura com sessão e a cada entrada (contrato: "chamar a cada abertura do app").
@@ -144,9 +155,19 @@ public actor AparelhoDePush {
     }
 
     private func guardar(_ novo: AparelhoGuardado) {
+        let mudou = guardado()?.vinculo != novo.vinculo
         aparelho = novo
         carregado = true
         armazenamento.guardar(novo)
+        if mudou { observadores.values.forEach { $0.yield(novo.vinculo) } }
+    }
+
+    private func observar(_ id: UUID, _ continuacao: AsyncStream<VinculoDoAparelho?>.Continuation) {
+        observadores[id] = continuacao
+    }
+
+    private func esquecer(_ id: UUID) {
+        observadores[id] = nil
     }
 }
 

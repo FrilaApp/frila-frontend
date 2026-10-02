@@ -9,6 +9,8 @@ import SwiftUI
 @main
 struct FrilaApp: App {
     private static let logger = Logger(subsystem: "com.frila.org.app", category: "ambiente")
+    /// O sistema entrega o token do APNs e as notificações ao delegate, que é dono dos roteadores (#8).
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegado
     private let inicializacao: Inicializacao
     private let versao: String
     private let armazenamento: ArmazenamentoSwiftData?
@@ -32,7 +34,11 @@ struct FrilaApp: App {
             let ambiente = try ConfiguracaoAmbiente()
             Self.logger.notice("inicio \(ambiente.resumoParaLog, privacy: .public) versao=\(versao, privacy: .public)")
             let api = try Self.cliente(para: ambiente)
-            inicializacao = .pronta(api, Self.leitorDeLocalizacao(para: api), Self.aparelhoDePush(para: api), Self.permissaoDePush(para: api))
+            let aparelho = Self.aparelhoDePush(para: api)
+            inicializacao = .pronta(Dependencias(
+                api: api, localizacao: Self.leitorDeLocalizacao(para: api), aparelho: aparelho,
+                permissao: Self.permissaoDePush(para: api), canal: Self.canalDePush(para: api, aparelho: aparelho)
+            ))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
             inicializacao = .configuracaoInvalida(error)
@@ -42,9 +48,9 @@ struct FrilaApp: App {
     var body: some Scene {
         WindowGroup {
             switch inicializacao {
-            case let .pronta(api, localizacao, aparelho, permissao):
-                PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: versao)) {
-                    EntradaDoApp(api: api, armazenamento: armazenamento, localizacao: localizacao, aparelho: aparelho, permissao: permissao)
+            case let .pronta(dependencias):
+                PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: dependencias.api, versaoAtual: versao)) {
+                    EntradaDoApp(dependencias, armazenamento: armazenamento, navegacao: delegado.navegacao)
                 }
             case let .configuracaoInvalida(erro):
                 TelaDeConfiguracaoInvalida(erro: erro)
@@ -78,12 +84,21 @@ struct FrilaApp: App {
         return LeitorDeLocalizacaoDoSistema()
     }
 
-    /// Um por app: o token de push e a conta a que o aparelho está entregue (#162). Com o dublê em
-    /// memória o guardado também fica em memória; com Supabase, no Keychain.
+    /// Um por app: o token de push e a conta a que o aparelho está entregue (#162), no Keychain. O
+    /// dublê em memória (esquema Local) guarda num item separado: o vínculo precisa sobreviver ao
+    /// app fechado, que é quando o toque numa notificação o abre.
     private static func aparelhoDePush(para api: any ApiCliente) -> AparelhoDePush {
-        let armazenamento: any ArmazenamentoDoAparelho = api is ApiClienteEmMemoria
-            ? ArmazenamentoDoAparelhoEmMemoria() : ArmazenamentoDoAparelhoNoKeychain()
+        let armazenamento = api is ApiClienteEmMemoria
+            ? ArmazenamentoDoAparelhoNoKeychain(servico: "com.frila.org.app.push.local") : ArmazenamentoDoAparelhoNoKeychain()
         return AparelhoDePush(api: api, armazenamento: armazenamento)
+    }
+
+    /// O token chega pelo FCM. No esquema Local não há Firebase: o dublê recebe um token simulado, e
+    /// o registro, o vínculo e o destino do toque rodam como rodariam com o servidor.
+    private static func canalDePush(para api: any ApiCliente, aparelho: AparelhoDePush) -> any CanalDePush {
+        CanalDePushDoAparelho(tokenSimulado: api is ApiClienteEmMemoria ? "token-simulado-do-esquema-local" : nil) { token in
+            await aparelho.receber(token: token)
+        }
     }
 
     /// A permissão de notificação é a do sistema. Só o dublê em memória (esquema Local) a simula,
@@ -111,8 +126,17 @@ struct FrilaApp: App {
 }
 
 private enum Inicializacao {
-    case pronta(any ApiCliente, any LeitorDeLocalizacao, AparelhoDePush, any PermissaoDePush)
+    case pronta(Dependencias)
     case configuracaoInvalida(ErroDeConfiguracao)
+}
+
+/// O que o app monta uma vez, na abertura, quando a configuração do ambiente é válida.
+private struct Dependencias {
+    let api: any ApiCliente
+    let localizacao: any LeitorDeLocalizacao
+    let aparelho: AparelhoDePush
+    let permissao: any PermissaoDePush
+    let canal: any CanalDePush
 }
 
 /// Decide o que o app abre. Com o dublê (esquema Local), ou com sessão guardada no Dev e no Prod, abre
@@ -125,6 +149,7 @@ private struct EntradaDoApp: View {
     let armazenamento: ArmazenamentoSwiftData?
     let localizacao: any LeitorDeLocalizacao
     let aparelho: AparelhoDePush
+    let canal: any CanalDePush
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador: RoteadorDoProfissional
@@ -142,21 +167,19 @@ private struct EntradaDoApp: View {
     @State private var rotaInicialAplicada = false
     #endif
 
-    init(
-        api: any ApiCliente, armazenamento: ArmazenamentoSwiftData?, localizacao: any LeitorDeLocalizacao,
-        aparelho: AparelhoDePush, permissao: any PermissaoDePush
-    ) {
+    init(_ dependencias: Dependencias, armazenamento: ArmazenamentoSwiftData?, navegacao: NavegacaoDoApp) {
+        let api = dependencias.api
+        let localizacao = dependencias.localizacao
         self.api = api
-        self.aparelho = aparelho
-        _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: permissao, abrirAjustes: {
+        aparelho = dependencias.aparelho
+        canal = dependencias.canal
+        _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: dependencias.permissao, abrirAjustes: {
             guard let ajustes = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
             UIApplication.shared.open(ajustes)
         }))
-        let profissional = RoteadorDoProfissional()
-        let contratante = RoteadorDoContratante()
-        _roteador = State(initialValue: profissional)
-        _roteadorDoContratante = State(initialValue: contratante)
-        _roteadorDePush = State(initialValue: RoteadorDePush(profissional: profissional, contratante: contratante))
+        _roteador = State(initialValue: navegacao.profissional)
+        _roteadorDoContratante = State(initialValue: navegacao.contratante)
+        _roteadorDePush = State(initialValue: navegacao.push)
         #if DEBUG
         // Reproduz a instalação anterior ao cache de sessão, somente com o dublê Local.
         let armazenamento: ArmazenamentoSwiftData? = if api is ApiClienteEmMemoria,
@@ -227,11 +250,9 @@ private struct EntradaDoApp: View {
         // `registrar_dispositivo`), e volta quando a permissão vier.
         .task(id: ContaNaTela(contaID: contaID, destino: destinoAtual, permissao: permissaoDePush.estado)) {
             guard let contaID, let permissao = permissaoDePush.estado else { return }
-            #if DEBUG
-            await simularTokenDePushSePedido()
-            #endif
             await informarContaAoPush(contaID)
             if permissao == .concedida {
+                await canal.ativar()
                 await aparelho.registrar(para: contaID)
             } else {
                 await aparelho.suspender()
@@ -240,6 +261,13 @@ private struct EntradaDoApp: View {
             #if DEBUG
             if !Task.isCancelled { aplicarPushDosArgumentos() }
             #endif
+        }
+        // O token do FCM chega depois da entrada, e o registro dele termina fora da tarefa acima: o
+        // roteador do push fica sabendo do vínculo novo por aqui.
+        .task {
+            for await _ in aparelho.mudancasDoVinculo() {
+                if let contaID { await informarContaAoPush(contaID) }
+            }
         }
         // Suspensão e reativação não têm tela própria no payload: a conta é reavaliada, e é a
         // situação dela que decide o que abre.
@@ -258,6 +286,7 @@ private struct EntradaDoApp: View {
             for await _ in observador.encerramentos() {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
                 await aparelho.desvincular()
+                await canal.limparEntregues()
                 roteadorDePush.semSessao()
                 contaID = nil
                 roteador.voltarParaLista()
@@ -475,13 +504,6 @@ private struct EntradaDoApp: View {
         roteadorDePush.tocar(payload: payload, entregueEm: entregueEm)
     }
 
-    /// O esquema Local não tem FCM: com `-FRILA_PUSH`, o aparelho ganha um token simulado, para o
-    /// registro e o vínculo acontecerem contra o dublê como aconteceriam com o servidor.
-    private func simularTokenDePushSePedido() async {
-        guard api is ApiClienteEmMemoria, ProcessInfo.processInfo.arguments.contains("-FRILA_PUSH") else { return }
-        await aparelho.receber(token: "token-simulado-do-esquema-local")
-    }
-
     private static func turnoIDDosArgumentos() -> UUID? {
         let argumentos = ProcessInfo.processInfo.arguments
         guard let indice = argumentos.firstIndex(of: "-FRILA_AVALIACAO_TURNO_ID"), argumentos.indices.contains(indice + 1) else { return nil }
@@ -548,6 +570,9 @@ private struct EntradaDoApp: View {
         destinoAtual = nil
         await SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho,
                                 limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair()
+        // O que a conta que saiu recebeu não fica na central de notificações para quem pegar o
+        // aparelho depois (RN15).
+        await canal.limparEntregues()
         roteador.voltarParaLista()
         destinoAtual = nil
         await avaliarSessao()
