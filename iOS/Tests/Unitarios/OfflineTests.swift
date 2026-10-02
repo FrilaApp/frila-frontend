@@ -190,24 +190,16 @@ struct OfflineTests {
         let local = try armazenamento()
         try await local.salvar(turnos: [try turno(fim: agora.addingTimeInterval(3_600))], em: agora)
         try await local.enfileirar(AcaoPendente(tipo: .checkout, turnoID: UUID(), instanteDoToque: agora, chave: UUID()))
-        let (defaults, suiteName) = criarUserDefaultsIsolado()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        DestinoGuardado.salvar(.profissional, em: defaults)
+        // Exercita o limparDestino com o UserDefaults padrão, limpando o que escrever (defer).
+        DestinoGuardado.salvar(.profissional)
+        defer { DestinoGuardado.limpar() }
 
-        await SaidaDaConta(
-            api: ApiClienteEmMemoria(),
-            armazenamento: local,
-            limparDestino: {
-                if let defs = UserDefaults(suiteName: suiteName) {
-                    DestinoGuardado.limpar(em: defs)
-                }
-            }
-        ).sair(tokenFCM: nil)
+        await SaidaDaConta(api: ApiClienteEmMemoria(), armazenamento: local).sair(tokenFCM: nil)
 
         #expect(try await local.turnosValidos(em: agora).isEmpty)
         #expect(try await local.pendentes().isEmpty)
-        #expect(DestinoGuardado.obter(de: defaults) == nil)
+        #expect(DestinoGuardado.obter() == nil)
     }
 
     @Test("Sessão encerrada sem a pessoa pedir também apaga o cache e a fila")

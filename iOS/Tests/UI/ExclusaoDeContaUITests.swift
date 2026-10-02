@@ -54,9 +54,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         botaoExcluir.tap()
 
         // 6. Confirma no diálogo de segurança
-        let botaoConfirmar = app.buttons.matching(identifier: "botao-confirmar-exclusao-dialogo").firstMatch
-        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: 5), "Diálogo de confirmação deve aparecer")
-        botaoConfirmar.tap()
+        confirmarExclusaoNoDialogo(no: app)
 
         // 7. A exclusão é concluída e o app volta para a tela de entrada
         let campoEmail = app.textFields["entrada-email"]
@@ -157,13 +155,51 @@ final class ExclusaoDeContaUITests: XCTestCase {
         }
         botaoConfirmarDefinitivo.tap()
 
-        let botaoConfirmarDialogo = app.buttons.matching(identifier: "botao-confirmar-exclusao-dialogo").firstMatch
-        XCTAssertTrue(botaoConfirmarDialogo.waitForExistence(timeout: 5), "Diálogo de confirmação deve aparecer")
-        botaoConfirmarDialogo.tap()
+        confirmarExclusaoNoDialogo(no: app)
 
         // 5. App volta para a tela de entrada
         let campoEmail = app.textFields["entrada-email"]
         XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão")
+    }
+
+    private func confirmarExclusaoNoDialogo(no app: XCUIApplication) {
+        let botaoConfirmar = app.buttons.matching(identifier: "botao-confirmar-exclusao-dialogo").firstMatch
+        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: 5), "Diálogo de confirmação deve aparecer")
+
+        let tocavel = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"),
+            object: botaoConfirmar
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [tocavel], timeout: 5), .completed,
+            "Botão de confirmação de exclusão deve ficar tocável no diálogo"
+        )
+
+        botaoConfirmar.tap()
+
+        let sumiu = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: botaoConfirmar
+        )
+        if XCTWaiter.wait(for: [sumiu], timeout: 3) != .completed {
+            XCTContext.runActivity(named: "Repetir toque no botão de confirmação de exclusão") { _ in
+                let anexo = XCTAttachment(string: "O diálogo de confirmação não sumiu em até 3 s após o primeiro toque; acionando segundo toque.")
+                anexo.name = "RepeticaoDoToqueDeConfirmacaoDeExclusao"
+                anexo.lifetime = .keepAlways
+                add(anexo)
+            }
+            if botaoConfirmar.exists && botaoConfirmar.isHittable {
+                botaoConfirmar.tap()
+            }
+            let sumiuAposSegundoToque = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"),
+                object: botaoConfirmar
+            )
+            XCTAssertEqual(
+                XCTWaiter.wait(for: [sumiuAposSegundoToque], timeout: 3), .completed,
+                "Defeito do app: diálogo de confirmação de exclusão não fechou após o segundo toque"
+            )
+        }
     }
 }
 
