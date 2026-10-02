@@ -56,8 +56,9 @@ struct RegrasDeVagaEmMemoriaTests {
                 nome: "Casa", documento: "11222333000181", tipo: .evento, endereco: "SCS", regiaoAdministrativa: "  ", ponto: ponto
             ))
         }
+        let comEstabelecimento = ApiClienteEmMemoria(cenario: .contratante, relogio: relogio)
         await #expect(throws: ErroDaApi(codigo: .campoObrigatorio, detalhes: "regiao_administrativa")) {
-            _ = try await publicar(api, emHoras: 48, relogio: relogio, regiao: "")
+            _ = try await publicar(comEstabelecimento, emHoras: 48, relogio: relogio, regiao: "")
         }
     }
 

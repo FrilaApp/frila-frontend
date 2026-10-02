@@ -11,8 +11,15 @@ final class LicencasUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
 
         let entrada = app.buttons["abrir-licencas"]
-        for _ in 0..<12 where !entrada.isHittable { app.swipeUp() }
+        let janela = app.windows.firstMatch
+        for _ in 0..<12 {
+            let areaVisivel = janela.frame.insetBy(dx: 0, dy: entrada.frame.height)
+            if entrada.isHittable && areaVisivel.contains(entrada.frame) { break }
+            app.swipeUp()
+        }
         XCTAssertTrue(entrada.isHittable, "a entrada das licenças não apareceu no catálogo")
+        XCTAssertTrue(janela.frame.insetBy(dx: 0, dy: entrada.frame.height).contains(entrada.frame),
+                      "o botão precisa estar inteiro dentro da área visível antes do toque")
         entrada.tap()
 
         XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: 5))
