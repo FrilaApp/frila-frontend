@@ -125,7 +125,9 @@ public struct TelaMeuTurno: View {
                 }
 
                 NavigationLink {
-                    TelaAvaliacao(viewModel: viewModel.criarAvaliacaoViewModel())
+                    if let avaliacao = viewModel.criarAvaliacaoViewModel() {
+                        TelaAvaliacao(viewModel: avaliacao)
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")
@@ -140,7 +142,9 @@ public struct TelaMeuTurno: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
 
                 NavigationLink {
-                    TelaAvaliacao(viewModel: viewModel.criarAvaliacaoViewModel())
+                    if let avaliacao = viewModel.criarAvaliacaoViewModel() {
+                        TelaAvaliacao(viewModel: avaliacao)
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")

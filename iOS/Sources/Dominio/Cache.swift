@@ -43,12 +43,15 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
     public let chave: UUID
     public let distanciaMetros: Int?
     public let resposta: Bool?
+    /// Autor da avaliação local; nil nos registros legados e nas outras ações.
+    public let contaID: UUID?
     public let publicacao: PublicacaoVaga?
 
     public init(
         id: UUID = UUID(),
         tipo: TipoAcaoPendente,
         turnoID: UUID? = nil,
+        contaID: UUID? = nil,
         instanteDoToque: Date,
         chave: UUID,
         distanciaMetros: Int? = nil,
@@ -58,6 +61,7 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         self.id = id
         self.tipo = tipo
         self.turnoID = turnoID
+        self.contaID = contaID
         self.instanteDoToque = instanteDoToque
         self.chave = chave
         self.distanciaMetros = distanciaMetros

@@ -128,6 +128,7 @@ private func criarTurno(
 
 @Suite("Avaliação do turno (#22)")
 struct AvaliacaoTurnoViewModelTests {
+    private let contaID = UUID()
     private let agora = Date(timeIntervalSince1970: 1_800_000_000)
 
     @Test("Sucesso: registra avaliação online e salva resposta no armazenamento local")
@@ -138,6 +139,7 @@ struct AvaliacaoTurnoViewModelTests {
         let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
         let vm = AvaliacaoTurnoViewModel(
             turnoID: turno.id,
+            contaID: contaID,
             turno: turno,
             api: api,
             armazenamento: armazenamento,
@@ -152,7 +154,7 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(vm.jaAvaliado == true)
         #expect(vm.mensagemDeSucesso == TextosDoProfissional.Avaliacao.avaliadoSucesso)
         #expect(vm.mensagemDeErro == nil)
-        #expect(armazenamento.resposta(para: turno.id) == true)
+        #expect(armazenamento.resposta(para: turno.id, contaID: contaID) == true)
         #expect(api.chamadasAvaliar.count == 1)
         #expect(api.chamadasAvaliar.first?.resposta == true)
     }
@@ -166,6 +168,7 @@ struct AvaliacaoTurnoViewModelTests {
         let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
         let vm = AvaliacaoTurnoViewModel(
             turnoID: turno.id,
+            contaID: contaID,
             turno: turno,
             api: api,
             armazenamento: armazenamento,
@@ -179,10 +182,10 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(vm.sucesso == false)
         #expect(vm.jaAvaliado == false)
         #expect(vm.mensagemDeErro == TextosDoProfissional.Avaliacao.erroIndisponivel)
-        #expect(armazenamento.resposta(para: turno.id) == nil)
+        #expect(armazenamento.resposta(para: turno.id, contaID: contaID) == nil)
     }
 
-    @Test("Erro 409: avaliacao_ja_registrada marca como ja avaliado e exibe mensagem")
+    @Test("Erro 409: estado neutro sem gravar ou mostrar a resposta recusada")
     @MainActor
     func erro409AvaliacaoJaRegistrada() async throws {
         let api = ApiClienteAvaliacaoDuble()
@@ -191,6 +194,7 @@ struct AvaliacaoTurnoViewModelTests {
         let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
         let vm = AvaliacaoTurnoViewModel(
             turnoID: turno.id,
+            contaID: contaID,
             turno: turno,
             api: api,
             armazenamento: armazenamento,
@@ -203,8 +207,16 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(salvou == false)
         #expect(vm.sucesso == false)
         #expect(vm.jaAvaliado == true)
-        #expect(vm.mensagemDeErro == TextosDoProfissional.Avaliacao.erroJaRegistrada)
-        #expect(armazenamento.resposta(para: turno.id) == false)
+        #expect(vm.mensagemDeErro == nil)
+        #expect(vm.resposta == nil)
+        #expect(armazenamento.resposta(para: turno.id, contaID: contaID) == nil)
+        vm.resposta = true
+        #expect(vm.resposta == nil)
+        #expect(await vm.salvar() == false)
+        #expect(api.chamadasAvaliar.count == 1)
+        let reaberto = AvaliacaoTurnoViewModel(turnoID: turno.id, contaID: contaID, api: api, armazenamento: armazenamento)
+        #expect(reaberto.jaAvaliado)
+        #expect(reaberto.resposta == nil)
     }
 
     @Test("Sem rede: enfileira ação de avaliação na fila offline e salva localmente")
@@ -212,11 +224,16 @@ struct AvaliacaoTurnoViewModelTests {
     func semRedeEnfileirando() async throws {
         let api = ApiClienteAvaliacaoDuble()
         api.erroAvaliar = ErroDaApi(codigo: .semRede)
-        let fila = FilaDeAcoesMemoria()
-        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let fila = ArmazenamentoSwiftData(modelContainer: container)
+        let suite = "avaliacao-offline-test-\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let armazenamento = UserDefaultsArmazenamentoAvaliacoes(defaults: defaults)
         let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
         let vm = AvaliacaoTurnoViewModel(
             turnoID: turno.id,
+            contaID: contaID,
             turno: turno,
             api: api,
             fila: fila,
@@ -233,13 +250,28 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(vm.jaAvaliado == true)
         #expect(vm.mensagemDeSucesso == TextosDoProfissional.Avaliacao.avaliadoOffline)
         #expect(vm.mensagemDeErro == nil)
-        #expect(armazenamento.resposta(para: turno.id) == true)
+        #expect(armazenamento.resposta(para: turno.id, contaID: contaID) == true)
 
         let pendentes = try await fila.pendentes()
         #expect(pendentes.count == 1)
         #expect(pendentes.first?.tipo == .avaliacao)
         #expect(pendentes.first?.turnoID == turno.id)
         #expect(pendentes.first?.resposta == true)
+        #expect(pendentes.first?.contaID == contaID)
+        vm.resposta = false
+        #expect(await vm.salvar() == false)
+        let reaberto = AvaliacaoTurnoViewModel(turnoID: turno.id, contaID: contaID, turno: turno,
+                                             api: api, fila: ArmazenamentoSwiftData(modelContainer: container),
+                                             armazenamento: UserDefaultsArmazenamentoAvaliacoes(defaults: defaults))
+        await reaberto.carregar()
+        #expect(reaberto.resposta == true)
+        #expect(reaberto.enfileiradoOffline)
+        #expect(reaberto.mensagemDeSucesso == TextosDoProfissional.Avaliacao.avaliadoOffline)
+        reaberto.resposta = false
+        #expect(reaberto.resposta == true)
+        #expect(await reaberto.salvar() == false)
+        #expect(try await fila.pendentes().count == 1)
+        #expect(api.chamadasAvaliar.count == 1)
     }
 
     @Test("Reentrada com guard: chamadas simultâneas a salvar chamam a API apenas uma vez")
@@ -251,6 +283,7 @@ struct AvaliacaoTurnoViewModelTests {
         let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
         let vm = AvaliacaoTurnoViewModel(
             turnoID: turno.id,
+            contaID: contaID,
             turno: turno,
             api: api,
             armazenamento: armazenamento,
@@ -272,10 +305,13 @@ struct AvaliacaoTurnoViewModelTests {
         let api = ApiClienteAvaliacaoDuble()
         let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
         let turnoID = UUID()
-        armazenamento.salvar(resposta: false, para: turnoID)
+        let primeira = AvaliacaoTurnoViewModel(turnoID: turnoID, contaID: contaID, api: api, armazenamento: armazenamento)
+        primeira.resposta = false
+        #expect(await primeira.salvar())
 
         let vm = AvaliacaoTurnoViewModel(
             turnoID: turnoID,
+            contaID: contaID,
             api: api,
             armazenamento: armazenamento,
             relogio: RelogioSimulado(agora)
@@ -286,7 +322,7 @@ struct AvaliacaoTurnoViewModelTests {
 
         let salvou = await vm.salvar()
         #expect(salvou == false)
-        #expect(api.chamadasAvaliar.isEmpty)
+        #expect(api.chamadasAvaliar.count == 1)
     }
 
     @Test("Reabrir carrega resposta da fila de ações pendentes se não gravada no armazenamento")
@@ -300,6 +336,7 @@ struct AvaliacaoTurnoViewModelTests {
         let acao = AcaoPendente(
             tipo: .avaliacao,
             turnoID: turnoID,
+            contaID: contaID,
             instanteDoToque: agora,
             chave: UUID(),
             resposta: true
@@ -308,6 +345,7 @@ struct AvaliacaoTurnoViewModelTests {
 
         let vm = AvaliacaoTurnoViewModel(
             turnoID: turnoID,
+            contaID: contaID,
             api: api,
             fila: fila,
             armazenamento: armazenamento,
@@ -319,7 +357,7 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(vm.resposta == true)
         #expect(vm.jaAvaliado == true)
         #expect(vm.enfileiradoOffline == true)
-        #expect(armazenamento.resposta(para: turnoID) == true)
+        #expect(armazenamento.resposta(para: turnoID, contaID: contaID) == true)
     }
 
     @Test("Validação local: não permite avaliar antes do fim previsto ou sem presença verificada")
@@ -332,6 +370,7 @@ struct AvaliacaoTurnoViewModelTests {
         let turnoFuturo = try criarTurno(fim: agora.addingTimeInterval(3600), verificacao: .verificado)
         let vmFuturo = AvaliacaoTurnoViewModel(
             turnoID: turnoFuturo.id,
+            contaID: contaID,
             turno: turnoFuturo,
             api: api,
             armazenamento: armazenamento,
@@ -346,6 +385,7 @@ struct AvaliacaoTurnoViewModelTests {
         let turnoSemPresenca = try criarTurno(fim: agora.addingTimeInterval(-3600), verificacao: .pendente)
         let vmSemPresenca = AvaliacaoTurnoViewModel(
             turnoID: turnoSemPresenca.id,
+            contaID: contaID,
             turno: turnoSemPresenca,
             api: api,
             armazenamento: armazenamento,
@@ -367,28 +407,133 @@ struct AvaliacaoTurnoViewModelTests {
 
         // Antes do fim
         let turnoAntesDoFim = try criarTurno(fim: agora.addingTimeInterval(3600), verificacao: .verificado)
-        let vm1 = MeuTurnoViewModel(turno: turnoAntesDoFim, api: api, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
+        let vm1 = MeuTurnoViewModel(turno: turnoAntesDoFim, api: api, contaID: contaID, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
         #expect(vm1.podeAvaliar == false)
 
         // Depois do fim, mas presença pendente
         let turnoPendente = try criarTurno(fim: agora.addingTimeInterval(-3600), verificacao: .pendente)
-        let vm2 = MeuTurnoViewModel(turno: turnoPendente, api: api, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
+        let vm2 = MeuTurnoViewModel(turno: turnoPendente, api: api, contaID: contaID, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
         #expect(vm2.podeAvaliar == false)
 
         // Depois do fim, mas presença não verificada
         let turnoNaoVerificado = try criarTurno(fim: agora.addingTimeInterval(-3600), verificacao: .naoVerificado)
-        let vm3 = MeuTurnoViewModel(turno: turnoNaoVerificado, api: api, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
+        let vm3 = MeuTurnoViewModel(turno: turnoNaoVerificado, api: api, contaID: contaID, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
         #expect(vm3.podeAvaliar == false)
 
         // Depois do fim e verificado
         let turnoPronto = try criarTurno(fim: agora.addingTimeInterval(-3600), verificacao: .verificado)
-        let vm4 = MeuTurnoViewModel(turno: turnoPronto, api: api, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
+        let vm4 = MeuTurnoViewModel(turno: turnoPronto, api: api, contaID: contaID, armazenamentoAvaliacoes: armazenamento, relogio: relogio)
         #expect(vm4.podeAvaliar == true)
         #expect(vm4.jaAvaliado == false)
 
         // Quando avaliado
-        armazenamento.salvar(resposta: true, para: turnoPronto.id)
+        armazenamento.salvar(resposta: true, para: turnoPronto.id, contaID: contaID)
         #expect(vm4.respostaAvaliacao == true)
         #expect(vm4.jaAvaliado == true)
     }
+    @Test("Segunda resposta é barrada, inclusive em modelo aberto antes do primeiro envio")
+    @MainActor
+    func segundaRespostaBarrada() async {
+        let api = ApiClienteAvaliacaoDuble()
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turnoID = UUID()
+        let primeira = AvaliacaoTurnoViewModel(turnoID: turnoID, contaID: contaID, api: api, armazenamento: armazenamento)
+        let segunda = AvaliacaoTurnoViewModel(turnoID: turnoID, contaID: contaID, api: api, armazenamento: armazenamento)
+        primeira.resposta = true
+        #expect(await primeira.salvar())
+        primeira.resposta = false
+        #expect(primeira.resposta == true)
+        #expect(await primeira.salvar() == false)
+        segunda.resposta = false
+        #expect(await segunda.salvar() == false)
+        #expect(segunda.resposta == true)
+        #expect(api.chamadasAvaliar.count == 1)
+    }
+
+    @Test("pode_avaliar falso sem cache bloqueia a escolha sem inventar resposta")
+    @MainActor
+    func jaRegistradaSemRespostaLocal() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600), podeAvaliar: false)
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let vm = AvaliacaoTurnoViewModel(turnoID: turno.id, contaID: contaID, turno: turno,
+                                       api: api, armazenamento: armazenamento)
+        await vm.carregar()
+        #expect(vm.jaAvaliado)
+        #expect(vm.resposta == nil)
+        #expect(vm.mensagemDeErro == nil)
+        vm.resposta = true
+        #expect(vm.resposta == nil)
+        #expect(await vm.salvar() == false)
+        #expect(api.chamadasAvaliar.isEmpty)
+        #expect(armazenamento.resposta(para: turno.id, contaID: contaID) == nil)
+    }
+
+    @Test("Outra conta não vê resposta confirmada nem pendente no mesmo turno")
+    @MainActor
+    func outraContaNaoVeResposta() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let fila = FilaDeAcoesMemoria()
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turnoID = UUID()
+        armazenamento.salvar(resposta: true, para: turnoID, contaID: contaID)
+        try await fila.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: contaID,
+                                              instanteDoToque: agora, chave: UUID(), resposta: true))
+        let outra = AvaliacaoTurnoViewModel(turnoID: turnoID, contaID: UUID(), api: api, fila: fila, armazenamento: armazenamento)
+        await outra.carregar()
+        #expect(outra.resposta == nil)
+        #expect(!outra.jaAvaliado)
+        #expect(!outra.enfileiradoOffline)
+    }
+
+    @Test("Fila persistida mantém só a primeira avaliação por conta e turno")
+    func filaNaoDuplica() async throws {
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let turnoID = UUID()
+        let primeira = AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: contaID,
+                                    instanteDoToque: agora, chave: UUID(), resposta: false)
+        try await fila.enfileirar(primeira)
+        try await fila.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: contaID,
+                                              instanteDoToque: agora, chave: UUID(), resposta: true))
+        #expect(try await fila.pendentes() == [primeira])
+    }
+
+    @Test("409 no reenvio remove a pendente e reabre em estado neutro")
+    @MainActor
+    func conflitoNoReenvio() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let autor = try await api.minhaConta().id
+        api.erroAvaliar = ErroDaApi(codigo: .avaliacaoJaRegistrada)
+        let fila = FilaDeAcoesMemoria()
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turnoID = UUID()
+        armazenamento.salvar(resposta: false, para: turnoID, contaID: autor)
+        try await fila.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: autor,
+                                              instanteDoToque: agora, chave: UUID(), resposta: false))
+        await SincronizadorAcoes(fila: fila, api: api, avaliacaoJaRegistrada: { acao in
+            armazenamento.registrarSemResposta(para: acao.turnoID!, contaID: acao.contaID!)
+        }).sincronizar()
+        #expect(try await fila.pendentes().isEmpty)
+        let reaberto = AvaliacaoTurnoViewModel(turnoID: turnoID, contaID: autor, api: api,
+                                             fila: fila, armazenamento: armazenamento)
+        await reaberto.carregar()
+        #expect(reaberto.jaAvaliado)
+        #expect(reaberto.resposta == nil)
+        #expect(!reaberto.enfileiradoOffline)
+        #expect(reaberto.mensagemDeSucesso == nil)
+    }
+
+    @Test("Reenvio não manda a avaliação pendente de outra conta")
+    func reenvioRespeitaAutor() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let fila = FilaDeAcoesMemoria()
+        try await fila.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: UUID(), contaID: UUID(),
+                                              instanteDoToque: agora, chave: UUID(), resposta: true))
+        try await fila.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: UUID(),
+                                              instanteDoToque: agora, chave: UUID(), resposta: false))
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(api.chamadasAvaliar.isEmpty)
+        #expect(try await fila.pendentes().count == 2)
+    }
+
 }

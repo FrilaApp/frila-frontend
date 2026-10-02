@@ -2,11 +2,14 @@ import Foundation
 import FrilaDominio
 import Observation
 
-/// Persistência local para a resposta de avaliação dada por este aparelho (RN07 / Critério 2).
-/// Garante que reabrir a tela mostre a resposta dada mesmo offline ou após reiniciar o app.
+/// Resposta local por conta e turno, disponível somente nesta instalação (RN07 / #22).
+/// Chaves legadas sem autor não são reutilizadas.
 public protocol ArmazenamentoAvaliacoes: Sendable {
-    func resposta(para turnoID: UUID) -> Bool?
-    func salvar(resposta: Bool, para turnoID: UUID)
+    func resposta(para turnoID: UUID, contaID: UUID) -> Bool?
+    func salvar(resposta: Bool, para turnoID: UUID, contaID: UUID)
+    func jaRegistrada(para turnoID: UUID, contaID: UUID) -> Bool
+    func registrarSemResposta(para turnoID: UUID, contaID: UUID)
+    func limpar()
 }
 
 public final class UserDefaultsArmazenamentoAvaliacoes: ArmazenamentoAvaliacoes, @unchecked Sendable {
@@ -17,42 +20,85 @@ public final class UserDefaultsArmazenamentoAvaliacoes: ArmazenamentoAvaliacoes,
         self.defaults = defaults
     }
 
-    public func resposta(para turnoID: UUID) -> Bool? {
-        let chave = prefixo + turnoID.uuidString
-        guard defaults.object(forKey: chave) != nil else { return nil }
-        return defaults.bool(forKey: chave)
+    public func resposta(para turnoID: UUID, contaID: UUID) -> Bool? {
+        let chave = prefixo + contaID.uuidString + "_" + turnoID.uuidString
+        return defaults.object(forKey: chave) as? Bool
     }
 
-    public func salvar(resposta: Bool, para turnoID: UUID) {
-        let chave = prefixo + turnoID.uuidString
+    public func salvar(resposta: Bool, para turnoID: UUID, contaID: UUID) {
+        let chave = prefixo + contaID.uuidString + "_" + turnoID.uuidString
         defaults.set(resposta, forKey: chave)
+    }
+
+    public func jaRegistrada(para turnoID: UUID, contaID: UUID) -> Bool {
+        defaults.object(forKey: prefixo + contaID.uuidString + "_" + turnoID.uuidString) != nil
+    }
+
+    public func registrarSemResposta(para turnoID: UUID, contaID: UUID) {
+        defaults.set("registrada-sem-resposta", forKey: prefixo + contaID.uuidString + "_" + turnoID.uuidString)
+    }
+
+    public func limpar() {
+        for chave in defaults.dictionaryRepresentation().keys where chave.hasPrefix(prefixo) {
+            defaults.removeObject(forKey: chave)
+        }
     }
 }
 
 public final class ArmazenamentoAvaliacoesEmMemoria: ArmazenamentoAvaliacoes, @unchecked Sendable {
     private let trava = NSLock()
-    private var valores: [UUID: Bool]
+    private var semResposta: [UUID: Set<UUID>] = [:]
+    private var valores: [UUID: [UUID: Bool]]
 
-    public init(valores: [UUID: Bool] = [:]) {
+    public init(valores: [UUID: [UUID: Bool]] = [:]) {
         self.valores = valores
     }
 
-    public func resposta(para turnoID: UUID) -> Bool? {
-        trava.withLock { valores[turnoID] }
+    public func resposta(para turnoID: UUID, contaID: UUID) -> Bool? {
+        trava.withLock { valores[contaID]?[turnoID] }
     }
 
-    public func salvar(resposta: Bool, para turnoID: UUID) {
-        trava.withLock { valores[turnoID] = resposta }
+    public func salvar(resposta: Bool, para turnoID: UUID, contaID: UUID) {
+        trava.withLock {
+            valores[contaID, default: [:]][turnoID] = resposta
+            semResposta[contaID]?.remove(turnoID)
+        }
+    }
+
+    public func jaRegistrada(para turnoID: UUID, contaID: UUID) -> Bool {
+        trava.withLock { valores[contaID]?[turnoID] != nil || semResposta[contaID]?.contains(turnoID) == true }
+    }
+
+    public func registrarSemResposta(para turnoID: UUID, contaID: UUID) {
+        trava.withLock {
+            valores[contaID]?[turnoID] = nil
+            semResposta[contaID, default: []].insert(turnoID)
+        }
+    }
+
+    public func limpar() {
+        trava.withLock {
+            valores.removeAll()
+            semResposta.removeAll()
+        }
     }
 }
 
 @MainActor @Observable
 public final class AvaliacaoTurnoViewModel {
     public let turnoID: UUID
+    public let contaID: UUID
     public let turno: Turno?
     public let pergunta: String
 
-    public var resposta: Bool?
+    private var respostaAtual: Bool?
+    public var resposta: Bool? {
+        get { respostaAtual }
+        set {
+            guard !jaAvaliado, !salvando else { return }
+            respostaAtual = newValue
+        }
+    }
     public private(set) var jaAvaliado: Bool
     public private(set) var salvando: Bool = false
     public private(set) var sucesso: Bool = false
@@ -67,6 +113,7 @@ public final class AvaliacaoTurnoViewModel {
 
     public init(
         turnoID: UUID,
+        contaID: UUID,
         turno: Turno? = nil,
         api: any ApiCliente,
         fila: (any FilaDeAcoes)? = nil,
@@ -75,6 +122,7 @@ public final class AvaliacaoTurnoViewModel {
         pergunta: String? = nil
     ) {
         self.turnoID = turnoID
+        self.contaID = contaID
         self.turno = turno
         self.api = api
         self.fila = fila
@@ -82,10 +130,10 @@ public final class AvaliacaoTurnoViewModel {
         self.relogio = relogio
         self.pergunta = pergunta ?? TextosDoProfissional.Avaliacao.perguntaProfissional
 
-        if let gravada = armazenamento.resposta(para: turnoID) {
-            self.resposta = gravada
+        if let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
+            self.respostaAtual = gravada
             self.jaAvaliado = true
-        } else if let turno, !turno.podeAvaliar {
+        } else if armazenamento.jaRegistrada(para: turnoID, contaID: contaID) || turno?.podeAvaliar == false {
             self.jaAvaliado = true
         } else {
             self.jaAvaliado = false
@@ -93,19 +141,35 @@ public final class AvaliacaoTurnoViewModel {
     }
 
     public func carregar() async {
-        if resposta == nil, let fila {
-            if let pendente = try? await fila.pendentes().first(where: { $0.tipo == .avaliacao && $0.turnoID == turnoID }),
-               let respostaPendente = pendente.resposta {
-                self.resposta = respostaPendente
-                self.jaAvaliado = true
-                self.enfileiradoOffline = true
-                self.armazenamento.salvar(resposta: respostaPendente, para: turnoID)
-            }
+        // A consulta ocorre também com resposta local: pendente não é confirmação do servidor.
+        let pendentes = try? await fila?.pendentes()
+        enfileiradoOffline = false
+        if armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
+           armazenamento.resposta(para: turnoID, contaID: contaID) == nil {
+            // Um 409 no reenvio não pode ser sobrescrito pela resposta recusada da fila.
+            respostaAtual = nil
+            jaAvaliado = true
+            mensagemDeSucesso = nil
+        } else if let pendente = pendentes?.first(where: {
+            $0.tipo == .avaliacao && $0.turnoID == turnoID && $0.contaID == contaID
+        }), let respostaPendente = pendente.resposta {
+            respostaAtual = respostaPendente
+            jaAvaliado = true
+            enfileiradoOffline = true
+            mensagemDeSucesso = TextosDoProfissional.Avaliacao.avaliadoOffline
+            armazenamento.salvar(resposta: respostaPendente, para: turnoID, contaID: contaID)
+        } else if let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
+            respostaAtual = gravada
+            jaAvaliado = true
+            mensagemDeSucesso = nil
         }
     }
 
     public func salvar() async -> Bool {
         guard !salvando else { return false }
+        salvando = true
+        defer { salvando = false }
+        await carregar()
         guard !jaAvaliado else { return false }
         guard let resposta else {
             mensagemDeErro = TextosDoProfissional.Avaliacao.erroSelecioneResposta
@@ -120,14 +184,13 @@ public final class AvaliacaoTurnoViewModel {
             }
         }
 
-        salvando = true
         mensagemDeErro = nil
         mensagemDeSucesso = nil
-        defer { salvando = false }
 
         do {
-            _ = try await api.avaliar(turnoID: turnoID, resposta: resposta)
-            armazenamento.salvar(resposta: resposta, para: turnoID)
+            let avaliacao = try await api.avaliar(turnoID: turnoID, resposta: resposta)
+            respostaAtual = avaliacao.resposta
+            armazenamento.salvar(resposta: avaliacao.resposta, para: turnoID, contaID: contaID)
             jaAvaliado = true
             sucesso = true
             mensagemDeSucesso = TextosDoProfissional.Avaliacao.avaliadoSucesso
@@ -138,8 +201,9 @@ public final class AvaliacaoTurnoViewModel {
             return await enfileirarOfflineSePossivel(resposta: resposta, erroOriginal: ErroDaApi(codigo: .semRede))
         } catch let erro as ErroDaApi where erro.codigo == .avaliacaoJaRegistrada {
             jaAvaliado = true
-            armazenamento.salvar(resposta: resposta, para: turnoID)
-            mensagemDeErro = TextosDoProfissional.Avaliacao.erroJaRegistrada
+            respostaAtual = nil
+            armazenamento.registrarSemResposta(para: turnoID, contaID: contaID)
+            mensagemDeErro = nil
             return false
         } catch let erro as ErroDaApi where erro.codigo == .avaliacaoIndisponivel {
             mensagemDeErro = TextosDoProfissional.Avaliacao.erroIndisponivel
@@ -162,12 +226,18 @@ public final class AvaliacaoTurnoViewModel {
             let acao = AcaoPendente(
                 tipo: .avaliacao,
                 turnoID: turnoID,
+                contaID: contaID,
                 instanteDoToque: relogio.agora,
                 chave: UUID(),
                 resposta: resposta
             )
             try await fila.enfileirar(acao)
-            armazenamento.salvar(resposta: resposta, para: turnoID)
+            // Se outro modelo enfileirou antes, prevalece a primeira resposta da fila.
+            let primeira = try await fila.pendentes().first(where: {
+                $0.tipo == .avaliacao && $0.turnoID == turnoID && $0.contaID == contaID
+            })?.resposta ?? resposta
+            respostaAtual = primeira
+            armazenamento.salvar(resposta: primeira, para: turnoID, contaID: contaID)
             jaAvaliado = true
             sucesso = true
             enfileiradoOffline = true

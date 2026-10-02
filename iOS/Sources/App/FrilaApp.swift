@@ -96,6 +96,7 @@ private struct EntradaDoApp: View {
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador = RoteadorDoProfissional()
+    @State private var contaID: UUID?
     @State private var destinoAtual: DestinoDaConta?
     @State private var carregandoDestino: Bool = true
     @State private var erroAoAvaliar: String?
@@ -119,7 +120,9 @@ private struct EntradaDoApp: View {
         Group {
             #if DEBUG
             // Entrada isolada para o UI test do cadastro; a entrada por código fará a ligação de produto.
-            if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_MINHAS_VAGAS") {
+            if api is ApiClienteEmMemoria, ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_AVALIACAO_UI_TEST") {
+                DestinoDaAvaliacaoParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_MINHAS_VAGAS") {
                 let estabelecimento = EstabelecimentoDaConta(
                     id: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!,
                     nome: "Bistrô Ipê",
@@ -155,6 +158,8 @@ private struct EntradaDoApp: View {
         .task {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
+                UserDefaultsArmazenamentoAvaliacoes().limpar()
+                contaID = nil
                 roteador.voltarParaLista()
                 destinoAtual = nil
                 await avaliarSessao()
@@ -169,9 +174,13 @@ private struct EntradaDoApp: View {
         guard let armazenamento else { return }
         let reenvio = ReenvioAoReconectar(
             monitor: MonitorDeConexaoDoSistema(),
-            sincronizador: SincronizadorAcoes(fila: armazenamento, api: api)
+            sincronizador: SincronizadorAcoes(fila: armazenamento, api: api, avaliacaoJaRegistrada: { acao in
+                guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
+                UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
+            })
         )
-        let saida = SaidaDaConta(api: api, armazenamento: armazenamento)
+        let saida = SaidaDaConta(api: api, armazenamento: armazenamento,
+                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() })
         let observador = api as? any ObservadorDeSessao
         await withTaskGroup(of: Void.self) { grupo in
             grupo.addTask { await reenvio.acompanhar() }
@@ -231,6 +240,23 @@ private struct EntradaDoApp: View {
     }
 
     private func aplicarDestinoManual(_ destino: DestinoAposEntrada) {
+        // Uma nova autenticação nunca herda o ID da conta anterior, nem mesmo sem rede.
+        contaID = nil
+        destinoAtual = nil
+        carregandoDestino = true
+        Task {
+            do {
+                contaID = try await IdentidadeDaAvaliacao.obter(api: api, cache: armazenamento, permitirCache: false)
+                roteador.voltarParaLista()
+                aplicarDestinoIdentificado(destino)
+            } catch {
+                erroAoAvaliar = MensagemDoErroAPI.texto(error as? ErroDaApi ?? ErroDaApi(codigo: .semRede))
+            }
+            carregandoDestino = false
+        }
+    }
+
+    private func aplicarDestinoIdentificado(_ destino: DestinoAposEntrada) {
         switch destino {
         case .profissional:
             DestinoGuardado.salvar(.profissional)
@@ -247,10 +273,11 @@ private struct EntradaDoApp: View {
     @ViewBuilder
     private var fluxoProfissionalView: some View {
         #if DEBUG
-        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair) {
+        FluxoDoProfissional(api: api, contaID: contaID, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair) {
             Button("Catálogo") { mostrandoCatalogo = true }
                 .accessibilityHint("Abre o catálogo de componentes, só em Debug")
         }
+        .id(contaID)
         .sheet(isPresented: $mostrandoCatalogo) { catalogo }
         .task {
             // Roteador de destino com vaga_id simulado (#105 C3): a mesma entrada que o push do tipo
@@ -260,7 +287,8 @@ private struct EntradaDoApp: View {
             roteador.abrirVaga(id: vagaID)
         }
         #else
-        FluxoDoProfissional(api: api, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair)
+        FluxoDoProfissional(api: api, contaID: contaID, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair)
+            .id(contaID)
         #endif
     }
 
@@ -301,13 +329,20 @@ private struct EntradaDoApp: View {
         erroAoAvaliar = nil
         let possuiSessao = await api.possuiSessao()
         guard possuiSessao else {
+            contaID = nil
             destinoAtual = nil
             carregandoDestino = false
             return
         }
 
         do {
-            destinoAtual = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+            let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+            if destino.tipoGuardavel != nil {
+                contaID = try await IdentidadeDaAvaliacao.obter(api: api, cache: armazenamento)
+            } else {
+                contaID = nil
+            }
+            destinoAtual = destino
             carregandoDestino = false
         } catch let erroApi as ErroDaApi {
             erroAoAvaliar = MensagemDoErroAPI.texto(erroApi)
@@ -324,7 +359,10 @@ private struct EntradaDoApp: View {
 
     @MainActor
     private func sairDaConta() async {
-        await SaidaDaConta(api: api, armazenamento: armazenamento).sair(tokenFCM: nil)
+        contaID = nil
+        destinoAtual = nil
+        await SaidaDaConta(api: api, armazenamento: armazenamento,
+                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair(tokenFCM: nil)
         roteador.voltarParaLista()
         destinoAtual = nil
         await avaliarSessao()
@@ -354,3 +392,25 @@ private struct TelaDeConfiguracaoInvalida: View {
         .accessibilityIdentifier("configuracao-invalida")
     }
 }
+
+#if DEBUG
+/// Usa a tela de produto e um armazenamento isolado, apenas contra o dublê Local.
+private struct DestinoDaAvaliacaoParaTeste: View {
+    @State private var viewModel: AvaliacaoTurnoViewModel
+
+    init(api: any ApiCliente) {
+        let contaID = UUID(uuidString: "10000000-0000-0000-0000-000000000001")!
+        let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        if ProcessInfo.processInfo.arguments.contains("-FRILA_AVALIACAO_SALVA_UI_TEST") {
+            armazenamento.salvar(resposta: false, para: turnoID, contaID: contaID)
+        }
+        _viewModel = State(initialValue: AvaliacaoTurnoViewModel(turnoID: turnoID, contaID: contaID,
+                                                              api: api, armazenamento: armazenamento))
+    }
+
+    var body: some View {
+        NavigationStack { TelaAvaliacao(viewModel: viewModel) }
+    }
+}
+#endif
