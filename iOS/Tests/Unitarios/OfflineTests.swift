@@ -178,19 +178,36 @@ struct OfflineTests {
         #expect(contador.total == 2)
     }
 
+    private func criarUserDefaultsIsolado() -> (UserDefaults, String) {
+        let nome = "OfflineTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: nome)!
+        return (defaults, nome)
+    }
+
     @Test("Sair da conta apaga o cache e a fila")
     func sairApaga() async throws {
         let agora = Date.now
         let local = try armazenamento()
         try await local.salvar(turnos: [try turno(fim: agora.addingTimeInterval(3_600))], em: agora)
         try await local.enfileirar(AcaoPendente(tipo: .checkout, turnoID: UUID(), instanteDoToque: agora, chave: UUID()))
-        DestinoGuardado.salvar(.profissional)
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        await SaidaDaConta(api: ApiClienteEmMemoria(), armazenamento: local).sair(tokenFCM: nil)
+        DestinoGuardado.salvar(.profissional, em: defaults)
+
+        await SaidaDaConta(
+            api: ApiClienteEmMemoria(),
+            armazenamento: local,
+            limparDestino: {
+                if let defs = UserDefaults(suiteName: suiteName) {
+                    DestinoGuardado.limpar(em: defs)
+                }
+            }
+        ).sair(tokenFCM: nil)
 
         #expect(try await local.turnosValidos(em: agora).isEmpty)
         #expect(try await local.pendentes().isEmpty)
-        #expect(DestinoGuardado.obter() == nil)
+        #expect(DestinoGuardado.obter(de: defaults) == nil)
     }
 
     @Test("Sessão encerrada sem a pessoa pedir também apaga o cache e a fila")
@@ -199,11 +216,22 @@ struct OfflineTests {
         let local = try armazenamento()
         try await local.salvar(turnos: [try turno(fim: agora.addingTimeInterval(3_600))], em: agora)
         try await local.enfileirar(AcaoPendente(tipo: .avaliacao, turnoID: UUID(), instanteDoToque: agora, chave: UUID(), resposta: true))
-        DestinoGuardado.salvar(.profissional)
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.salvar(.profissional, em: defaults)
 
         let (encerramentos, avisar) = AsyncStream<Void>.makeStream()
         let observador = ObservadorDeTeste(encerramentos)
-        let saida = SaidaDaConta(api: ApiClienteEmMemoria(), armazenamento: local)
+        let saida = SaidaDaConta(
+            api: ApiClienteEmMemoria(),
+            armazenamento: local,
+            limparDestino: {
+                if let defs = UserDefaults(suiteName: suiteName) {
+                    DestinoGuardado.limpar(em: defs)
+                }
+            }
+        )
         let acompanhamento = Task { await saida.acompanharEncerramentos(de: observador) }
         avisar.yield()
         avisar.finish()
@@ -211,7 +239,7 @@ struct OfflineTests {
 
         #expect(try await local.turnosValidos(em: agora).isEmpty)
         #expect(try await local.pendentes().isEmpty)
-        #expect(DestinoGuardado.obter() == nil)
+        #expect(DestinoGuardado.obter(de: defaults) == nil)
     }
 }
 
