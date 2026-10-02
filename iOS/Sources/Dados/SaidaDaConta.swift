@@ -21,6 +21,27 @@ public struct SaidaDaConta: ContaRepositorio {
         await apagarDadosLocais()
     }
 
+    /// Exclusão definitiva de conta (S2, RF25): chama a exclusão na porta informada e,
+    /// somente após a confirmação do servidor (202), apaga o cache, a fila, o destino guardado
+    /// e a sessão no Keychain. Se a porta falhar (sem rede, administrador_unico, etc.),
+    /// nenhum dado local é removido.
+    @discardableResult
+    public func excluir(porta: any ExclusaoDeContaPorta) async throws -> ExclusaoDeConta {
+        let resultado = try await porta.excluirConta()
+        await api.sair(tokenFCM: nil)
+        await apagarDadosLocais()
+        return resultado
+    }
+
+    /// Versão que utiliza a própria API quando ela conforma a `ExclusaoDeContaPorta`.
+    @discardableResult
+    public func excluir() async throws -> ExclusaoDeConta {
+        guard let porta = api as? any ExclusaoDeContaPorta else {
+            throw ErroDaApi(codigo: .respostaInvalida)
+        }
+        return try await excluir(porta: porta)
+    }
+
     /// Quando a sessão é encerrada sem a pessoa pedir (401 de conta excluída ou suspensa, sessão
     /// trocada), o efeito sobre o aparelho é o mesmo de sair.
     public func acompanharEncerramentos(de observador: any ObservadorDeSessao) async {
