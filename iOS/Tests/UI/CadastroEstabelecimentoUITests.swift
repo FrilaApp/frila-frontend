@@ -14,7 +14,14 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         app.buttons["continuar-cadastro"].tap()
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
-        XCTAssertTrue(app.staticTexts["O profissional recebe o valor integral"].exists)
+        let btnPerfil = app.buttons["Perfil do estabelecimento"]
+        XCTAssertTrue(btnPerfil.waitForExistence(timeout: 5))
+        btnPerfil.tap()
+
+        let btnFechar = app.buttons["Fechar"]
+        XCTAssertTrue(btnFechar.waitForExistence(timeout: 5))
+        btnFechar.tap()
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 5))
     }
 
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
@@ -25,9 +32,11 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
+        XCTAssertEqual(marcador.label, "Ponto do estabelecimento")
 
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
         XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+        XCTAssertEqual(mapa.label, "Mapa do estabelecimento")
 
         // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
         let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
@@ -39,7 +48,6 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             XCTFail("Não foi possível ler as coordenadas iniciais do marcador: \(String(describing: marcador.value))")
             return
         }
-
         let cameraInicial = try XCTUnwrap(mapa.value as? String)
         XCTAssertEqual(cameraInicial.split(separator: ",").count, 4, "O teste precisa ler o centro e a escala da câmera.")
         XCTAssertGreaterThanOrEqual(marcador.frame.width, 44)
@@ -170,6 +178,113 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertEqual(marcador.value as? String, pontoInicial)
     }
 
+    func testPublicarVagaEmAccessibilityXXXLControlesDentroDaTelaETocaveis() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
+            "-FRILA_CADASTRO_UI_TEST",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        app.buttons["continuar-cadastro"].tap()
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+
+        let larguraTela = app.windows.firstMatch.frame.width
+
+        let botoesSim = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Sim" }
+        XCTAssertEqual(botoesSim.count, 3, "Devem existir 3 seletores com botão Sim (refeição, transporte, material)")
+
+        for (indice, sim) in botoesSim.enumerated() {
+            trazerParaATela(sim, em: app)
+            let quadroSim = sim.frame
+            XCTAssertLessThanOrEqual(quadroSim.maxX, larguraTela, "Botão Sim[\(indice)] extrapolou a tela: maxX=\(quadroSim.maxX) > largura=\(larguraTela)")
+            XCTAssertGreaterThanOrEqual(quadroSim.minX, 0, "Botão Sim[\(indice)] fora da tela à esquerda: minX=\(quadroSim.minX)")
+            XCTAssertTrue(sim.isHittable, "Botão Sim[\(indice)] deve ser tocável")
+        }
+
+        let botoesNao = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Não" }
+        XCTAssertEqual(botoesNao.count, 3, "Devem existir 3 seletores com botão Não (refeição, transporte, material)")
+
+        for (indice, nao) in botoesNao.enumerated() {
+            trazerParaATela(nao, em: app)
+            let quadroNao = nao.frame
+            XCTAssertLessThanOrEqual(quadroNao.maxX, larguraTela, "Botão Não[\(indice)] extrapolou a tela: maxX=\(quadroNao.maxX) > largura=\(larguraTela)")
+            XCTAssertGreaterThanOrEqual(quadroNao.minX, 0, "Botão Não[\(indice)] fora da tela à esquerda: minX=\(quadroNao.minX)")
+            XCTAssertTrue(nao.isHittable, "Botão Não[\(indice)] deve ser tocável")
+        }
+
+        let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
+        if dpInicio.exists {
+            trazerParaATela(dpInicio, em: app)
+            XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela, "DatePicker Início em XXXL extrapolou a tela")
+            XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 0, "DatePicker Início em XXXL fora à esquerda")
+        }
+
+        let dpFim = app.descendants(matching: .any)["datepicker-fim"]
+        if dpFim.exists {
+            trazerParaATela(dpFim, em: app)
+            XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela, "DatePicker Fim em XXXL extrapolou a tela")
+            XCTAssertGreaterThanOrEqual(dpFim.frame.minX, 0, "DatePicker Fim em XXXL fora à esquerda")
+        }
+
+        let botaoPublicar = app.buttons["publicar-vaga-botao"]
+        XCTAssertTrue(botaoPublicar.exists)
+        trazerParaATela(botaoPublicar, em: app)
+        XCTAssertTrue(botaoPublicar.isHittable)
+        XCTAssertLessThanOrEqual(botaoPublicar.frame.maxX, larguraTela)
+    }
+
+    func testDatePickersContidosNaLarguraDaTelaNoTamanhoPadrao() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        app.buttons["continuar-cadastro"].tap()
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+
+        let larguraTela = app.windows.firstMatch.frame.width
+
+        let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5))
+        trazerParaATela(dpInicio, em: app)
+        XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 16, "DatePicker Início fora da margem esquerda: \(dpInicio.frame.minX) < 16")
+        XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela - 16, "DatePicker Início extrapolou a margem direita: \(dpInicio.frame.maxX) > \(larguraTela - 16)")
+
+        let dpFim = app.descendants(matching: .any)["datepicker-fim"]
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5))
+        trazerParaATela(dpFim, em: app)
+        XCTAssertGreaterThanOrEqual(dpFim.frame.minX, 16, "DatePicker Fim fora da margem esquerda: \(dpFim.frame.minX) < 16")
+        XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela - 16, "DatePicker Fim extrapolou a margem direita: \(dpFim.frame.maxX) > \(larguraTela - 16)")
+    }
+
+    private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        let janela = app.windows.firstMatch.frame
+        let margemSuperior: CGFloat = 120
+        let margemInferior: CGFloat = 60
+
+        for _ in 0..<tentativas {
+            guard elemento.exists else {
+                app.swipeUp(velocity: .slow)
+                continue
+            }
+            let quadro = elemento.frame
+            let visivel = elemento.isHittable
+                && quadro.minY >= margemSuperior
+                && quadro.maxY <= (janela.height - margemInferior)
+            if visivel { break }
+
+            if quadro.maxY > (janela.height - margemInferior) || !elemento.isHittable {
+                app.swipeUp(velocity: .slow)
+            } else if quadro.minY < margemSuperior {
+                app.swipeDown(velocity: .slow)
+            }
+        }
+    }
+
     private func extrairCoordenadas(_ valor: String) -> (Double, Double)? {
         let partes = valor.split(separator: ",")
         guard partes.count == 2,
@@ -180,3 +295,4 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         return (lat, lon)
     }
 }
+

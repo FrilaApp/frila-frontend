@@ -82,6 +82,15 @@ struct CadastroEstabelecimentoTests {
         #expect(vm.erro == .documentoDuplicado)
     }
 
+    @Test("Erro de falta de conexão mostra mensagem própria de rede")
+    func semRede() async {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .semRede) }
+        preencher(vm)
+        await vm.salvar()
+        #expect(vm.erro == .semRede)
+        #expect(vm.mensagem(vm.erro!) == MensagemDoErroAPI.texto(ErroDaApi(codigo: .semRede)))
+    }
+
     @Test("422 campo obrigatório e inválido focam o campo indicado")
     func errosPorCampo() async {
         for (regra, codigo) in [(RegraCampoCadastro.obrigatorio, CodigoErroAPI.campoObrigatorio), (.invalido, .campoInvalido)] {
