@@ -98,11 +98,12 @@ struct ApiEmMemoriaTests {
         )
         await #expect(throws: ErroDaApi(codigo: .perfilIncompativel)) { try await profissional.cadastrarEstabelecimento(cadastro) }
 
-        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
-        _ = try await api.criarConta(CadastroConta(nome: "Casa", telefone: "+5561988887777", nascimento: try DataCivil("1990-01-31"), perfil: .contratante, versaoTermos: "2026-09-22"))
+        let contaNova = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        _ = try await contaNova.criarConta(CadastroConta(nome: "Casa", telefone: "+5561988887777", nascimento: try DataCivil("1990-01-31"), perfil: .contratante, versaoTermos: "2026-09-22"))
         await #expect(throws: ErroDaApi(codigo: .perfilIncompativel)) {
-            try await api.criarPerfilProfissional(DadosPerfilProfissional(funcoes: [], pontoBase: ponto, disponibilidades: []))
+            try await contaNova.criarPerfilProfissional(DadosPerfilProfissional(funcoes: [], pontoBase: ponto, disponibilidades: []))
         }
+        let api = ApiClienteEmMemoria(cenario: .contratante)
         let existente = try #require(try await api.meusEstabelecimentos().first)
         await #expect(throws: ErroDaApi(codigo: .documentoJaCadastrado)) {
             try await api.cadastrarEstabelecimento(CadastroEstabelecimento(
