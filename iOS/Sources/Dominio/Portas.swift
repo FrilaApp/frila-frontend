@@ -235,6 +235,10 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     // Estabelecimento
     func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento
     func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta]
+    /// O cadastro de um estabelecimento de que a conta é membro (contrato 0.2.29): o endereço, a
+    /// região e o ponto que preenchem a publicação de uma vaga. `meusEstabelecimentos` não os traz.
+    /// Quem não é membro recebe `sem_permissao`.
+    func meuEstabelecimento(id: UUID) async throws -> Estabelecimento
     func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel
 
     // Catálogo e vagas

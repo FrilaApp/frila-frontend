@@ -753,6 +753,11 @@ enum ContratoAPI {
 
     // MARK: Painel do estabelecimento
 
+    struct EstabelecimentoParametros: Encodable {
+        let estabelecimentoID: UUID
+        enum CodingKeys: String, CodingKey { case estabelecimentoID = "estabelecimento_id" }
+    }
+
     struct PainelParametros: Encodable {
         let estabelecimentoID: UUID
         let de: String

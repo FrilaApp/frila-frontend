@@ -603,6 +603,16 @@
         }
       }
     },
+    "Cancelar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
     "Check-in, atraso e vaga que ainda está sem ninguém": {
       "localizations": {
         "pt-BR": {
@@ -3669,6 +3679,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ligar"
+          }
+        }
+      }
+    },
+    "Voltar para Minhas vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voltar para Minhas vagas"
           }
         }
       }

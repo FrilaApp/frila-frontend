@@ -32,6 +32,7 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     // Estabelecimento
     func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento { try await base.cadastrarEstabelecimento(cadastro) }
     func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] { try await base.meusEstabelecimentos() }
+    func meuEstabelecimento(id: UUID) async throws -> Estabelecimento { try await base.meuEstabelecimento(id: id) }
     func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel { try await base.painelEstabelecimento(id: id, periodo: periodo) }
 
     // Catálogo e vagas

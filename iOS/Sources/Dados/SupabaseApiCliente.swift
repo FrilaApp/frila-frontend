@@ -135,6 +135,14 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.map { $0.dominio() }
     }
 
+    public func meuEstabelecimento(id: UUID) async throws -> Estabelecimento {
+        let resposta: ContratoAPI.EstabelecimentoDTO = try await rpc(
+            "meu_estabelecimento",
+            params: ContratoAPI.EstabelecimentoParametros(estabelecimentoID: id)
+        )
+        return try converter { try resposta.dominio() }
+    }
+
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
         let params = ContratoAPI.PainelParametros(
             estabelecimentoID: id,

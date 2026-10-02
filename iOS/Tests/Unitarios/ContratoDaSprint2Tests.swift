@@ -66,7 +66,7 @@ private enum Esperado {
     static let relatoDaContestacao = "Não estive nesse turno; houve engano de pessoa."
 }
 
-@Suite("Contrato 0.2.27: as RPCs da Sprint 2")
+@Suite("Contrato 0.2.29: as RPCs da Sprint 2")
 struct ContratoDaSprint2Tests {
     @Test("Confirmar check-in manual e reabrir por atraso mandam só o id (#19)")
     func requisicoesDoTurnoDoContratante() throws {

@@ -328,6 +328,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return estabelecimentos.map { EstabelecimentoDaConta(id: $0.id, nome: $0.nome, papel: $0.papel, tipo: $0.tipo, reputacao: perfilDo($0).reputacao) }
     }
 
+    public func meuEstabelecimento(id: UUID) async throws -> Estabelecimento {
+        try verificarFalhaGeral()
+        // Como no backend: o id que não existe responde igual ao da casa de outra conta.
+        guard let estabelecimento = estabelecimentos.first(where: { $0.id == id }) else { throw erro("sem_permissao") }
+        return estabelecimento
+    }
+
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
         try verificarFalhaGeral()
         guard estabelecimentos.contains(where: { $0.id == id }) else { throw erro("sem_permissao") }

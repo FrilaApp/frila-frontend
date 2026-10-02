@@ -56,13 +56,16 @@
 		36B2B8884875F282A910322A /* AcompanhamentoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1E01E1C5777E14656527E3 /* AcompanhamentoViewModelTests.swift */; };
 		3A96BB6BFA60AB9E3FA036D5 /* ContratoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60A4C3E1C9933DE5E17492B /* ContratoTests.swift */; };
 		3B241165B8236FD5764ABFCE /* ArmazenamentoDoAparelhoNoKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1668D57CC8752599593C865 /* ArmazenamentoDoAparelhoNoKeychain.swift */; };
+		3CC869800CAFA43AEEC6F43F /* PublicarVagaDaCasa.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5074610241B354EA03C570C0 /* PublicarVagaDaCasa.swift */; };
 		3CECC573C9D7BFA9E99C3B0E /* vagas-abertas.json in Resources */ = {isa = PBXBuildFile; fileRef = 3F7D2A82477B3B29CAF6CFC3 /* vagas-abertas.json */; };
 		3D473D40380DD3AE89567DCE /* TelaAvaliacao.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EEF0278CE243BB512D1CF4 /* TelaAvaliacao.swift */; };
 		3D8F1742AC594DBFBDB54B0E /* avaliacao.json in Resources */ = {isa = PBXBuildFile; fileRef = 0BBD26CA01BE17B1F08AC8AC /* avaliacao.json */; };
 		3DA89878D3C352FE23F473BD /* DestinosDoAviso.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFE42464071774A9DEF8CB6 /* DestinosDoAviso.swift */; };
 		3E6F76B1865D42856796698F /* ListaDeVagasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 728FBA1A7EABDE751ECCAF2F /* ListaDeVagasTests.swift */; };
 		3F90B968051E5A395EAE3F03 /* FluxoDeEntrada.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BACCBA4385723A7D64E8EE /* FluxoDeEntrada.swift */; };
+		419D0914239C7AD7A2592C82 /* PublicarVagaEmMinhasVagasUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A325AF6EBB81A586DEFFBB13 /* PublicarVagaEmMinhasVagasUITests.swift */; };
 		45025836682D6D56DD0D6DC7 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		45065DA5DD8DAE9E6E67E3BD /* PublicarVagaDaCasaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B620455D2C9289049F472DB4 /* PublicarVagaDaCasaTests.swift */; };
 		45C41EEEC8410A871550C1A0 /* TelaMeuTurno.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF8FF9519F58F6767F2890F /* TelaMeuTurno.swift */; };
 		4890D7C9147A3C5C5E9C29FE /* PontoBasePrivadoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D256A074F8AA6EDAE3F24D /* PontoBasePrivadoTests.swift */; };
 		4960BAD0F673063DFFD3A7C0 /* LimpezaAposExclusaoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDB5399BC57C113CCC2D222 /* LimpezaAposExclusaoTests.swift */; };
@@ -419,6 +422,7 @@
 		4DE21D78F07B1461627E524E /* TelemetriaCrashlytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetriaCrashlytics.swift; sourceTree = "<group>"; };
 		4EC58DADB3C7CEB0B0121D9C /* PermissaoDePushUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissaoDePushUITests.swift; sourceTree = "<group>"; };
 		4FEEDEB6A20B30B0C7F37E43 /* RegistroDePresencaEmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistroDePresencaEmMemoriaTests.swift; sourceTree = "<group>"; };
+		5074610241B354EA03C570C0 /* PublicarVagaDaCasa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicarVagaDaCasa.swift; sourceTree = "<group>"; };
 		5088E944B112BA4E2853E179 /* requisicao-cancelar-vaga.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-cancelar-vaga.json"; sourceTree = "<group>"; };
 		50F1444D39FB4D5811C1B586 /* WhatsAppDoTurnoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsAppDoTurnoTests.swift; sourceTree = "<group>"; };
 		51BACCBA4385723A7D64E8EE /* FluxoDeEntrada.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDeEntrada.swift; sourceTree = "<group>"; };
@@ -492,6 +496,7 @@
 		A170F7EF560E2F8A56EF9233 /* PermissaoDePushModelo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissaoDePushModelo.swift; sourceTree = "<group>"; };
 		A1CEA388853F828BB913DBBB /* ContaSuspensaViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContaSuspensaViewModelTests.swift; sourceTree = "<group>"; };
 		A1D58F4A56A6A72BE697DB48 /* SaidaDaConta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaidaDaConta.swift; sourceTree = "<group>"; };
+		A325AF6EBB81A586DEFFBB13 /* PublicarVagaEmMinhasVagasUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicarVagaEmMinhasVagasUITests.swift; sourceTree = "<group>"; };
 		A3E6257414B3A5DD6EA2CC29 /* vaga-publicada.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vaga-publicada.json"; sourceTree = "<group>"; };
 		A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrilaApp.swift; sourceTree = "<group>"; };
 		A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogoDesignSystem.swift; sourceTree = "<group>"; };
@@ -515,6 +520,7 @@
 		B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-cadastrar-estabelecimento.json"; sourceTree = "<group>"; };
 		B5A8EAF4481B7F234FFA38CF /* RpcsDaSprint2EmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RpcsDaSprint2EmMemoriaTests.swift; sourceTree = "<group>"; };
 		B60A4C3E1C9933DE5E17492B /* ContratoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContratoTests.swift; sourceTree = "<group>"; };
+		B620455D2C9289049F472DB4 /* PublicarVagaDaCasaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicarVagaDaCasaTests.swift; sourceTree = "<group>"; };
 		B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbienteTests.swift; sourceTree = "<group>"; };
 		B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CadastroEstabelecimentoUITests.swift; sourceTree = "<group>"; };
 		B846214E1DADC0F62827675D /* Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = "<group>"; };
@@ -736,6 +742,7 @@
 				5325BEB3484730A85B852BD0 /* MinhasVagasUITests.swift */,
 				4EC58DADB3C7CEB0B0121D9C /* PermissaoDePushUITests.swift */,
 				878558C7106428386D470E6E /* PresencaUITests.swift */,
+				A325AF6EBB81A586DEFFBB13 /* PublicarVagaEmMinhasVagasUITests.swift */,
 				0CDA6D4EC89C2AE57C274C19 /* PushUITests.swift */,
 				20A03A1715A02A29FB3465B7 /* TurnoDoContratanteUITests.swift */,
 			);
@@ -779,6 +786,7 @@
 				8FF6214806880CD3668E8746 /* PermissaoDePushTests.swift */,
 				37D256A074F8AA6EDAE3F24D /* PontoBasePrivadoTests.swift */,
 				F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */,
+				B620455D2C9289049F472DB4 /* PublicarVagaDaCasaTests.swift */,
 				E3FA4D697A25E8C15E7BEB18 /* PublicarVagaTests.swift */,
 				4FEEDEB6A20B30B0C7F37E43 /* RegistroDePresencaEmMemoriaTests.swift */,
 				FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */,
@@ -868,6 +876,7 @@
 				EF5B72F30D0CCEECEC364061 /* FluxoDoContratante.swift */,
 				E1AE09CAEC931D076D77232C /* MinhasVagas.swift */,
 				5AB20C405232F2FAA4C57C2B /* PublicarVaga.swift */,
+				5074610241B354EA03C570C0 /* PublicarVagaDaCasa.swift */,
 				B3A068E519C2ED7C91F547AA /* RoteadorDoContratante.swift */,
 				28D4338749FB6E2388BE048C /* TelaTurnoDoContratante.swift */,
 			);
@@ -1528,6 +1537,7 @@
 				9854B95115E351CC4D29DF4E /* PermissaoDePushModelo.swift in Sources */,
 				C769C51050DDEA889B5ECAD7 /* PresencaDoTurnoViewModel.swift in Sources */,
 				D48412096593C59680DE365C /* PublicarVaga.swift in Sources */,
+				3CC869800CAFA43AEEC6F43F /* PublicarVagaDaCasa.swift in Sources */,
 				9DEB37F39C112CB2F61515DE /* RoteadorDePush.swift in Sources */,
 				74DF5189A9B8BA7D3D972F43 /* RoteadorDoContratante.swift in Sources */,
 				E6873CC8917F9E7AE9295895 /* SecaoDePresenca.swift in Sources */,
@@ -1571,6 +1581,7 @@
 				BF09B64CFB31CAFCB89111DD /* MinhasVagasUITests.swift in Sources */,
 				F0BAA265506DB404C8A8D841 /* PermissaoDePushUITests.swift in Sources */,
 				D4CB34405F38C50079591B69 /* PresencaUITests.swift in Sources */,
+				419D0914239C7AD7A2592C82 /* PublicarVagaEmMinhasVagasUITests.swift in Sources */,
 				8EC5655DD26C667C6AF16FE2 /* PushUITests.swift in Sources */,
 				277D9343E565B05DF92A4E8F /* TurnoDoContratanteUITests.swift in Sources */,
 			);
@@ -1614,6 +1625,7 @@
 				BA8B595DACAB32D784BAB879 /* PermissaoDePushTests.swift in Sources */,
 				4890D7C9147A3C5C5E9C29FE /* PontoBasePrivadoTests.swift in Sources */,
 				15C4569424D4AC09D70E599C /* PresencaDoTurnoViewModelTests.swift in Sources */,
+				45065DA5DD8DAE9E6E67E3BD /* PublicarVagaDaCasaTests.swift in Sources */,
 				17C8BD0EFAFBA194A1550EF9 /* PublicarVagaTests.swift in Sources */,
 				1FF1265CD5E2DE83DBFF35C9 /* RegistroDePresencaEmMemoriaTests.swift in Sources */,
 				1108F21B4C8976E326E3F7D4 /* RegrasDeVagaEmMemoriaTests.swift in Sources */,

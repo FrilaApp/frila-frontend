@@ -298,13 +298,15 @@ public struct TelaPublicarVaga: View {
     private let api: any ApiCliente
     private let sair: () -> Void
     private let aoPublicar: () -> Void
+    private let aoCancelar: (() -> Void)?
     @State private var mostrandoPerfilEstabelecimento = false
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
-    public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String, sair: @escaping () -> Void = {}, aoPublicar: @escaping () -> Void = {}) {
+    public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String, sair: @escaping () -> Void = {}, aoPublicar: @escaping () -> Void = {}, aoCancelar: (() -> Void)? = nil) {
         self.api = api
         self.sair = sair
         self.aoPublicar = aoPublicar
+        self.aoCancelar = aoCancelar
         _model = State(initialValue: PublicarVagaViewModel(api: api, fila: fila, estabelecimento: estabelecimento))
         _regiaoMapa = State(initialValue: MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: estabelecimento.ponto.latitude, longitude: estabelecimento.ponto.longitude), span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)))
         self.telefoneResponsavel = telefoneResponsavel
@@ -314,6 +316,17 @@ public struct TelaPublicarVaga: View {
         NavigationStack {
             formulario
                 .toolbar {
+                    // Quem veio de Minhas vagas tem para onde voltar; no primeiro acesso, não.
+                    if let aoCancelar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(action: aoCancelar) {
+                                Text("Cancelar", bundle: bundleApresentacao)
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityIdentifier("cancelar-publicacao")
+                        }
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { mostrandoPerfilEstabelecimento = true } label: {
                             Image(systemName: "building.2.crop.circle")

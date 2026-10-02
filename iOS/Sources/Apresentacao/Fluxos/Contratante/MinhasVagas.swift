@@ -37,6 +37,7 @@ private enum TextosMinhasVagas {
     static let ligar = String(localized: "Ligar", bundle: bundleMinhasVagas)
     static let whatsApp = String(localized: "WhatsApp", bundle: bundleMinhasVagas)
     static let periodo = String(localized: "%@ – %@", bundle: bundleMinhasVagas)
+    static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleMinhasVagas)
 }
 
 private func textoPeriodo(_ periodo: Periodo) -> String {
@@ -228,16 +229,19 @@ public struct TelaMinhasVagas: View {
     @State private var acompanhamento: AcompanhamentoViewModel
     @State private var roteador: RoteadorDoContratante
     private let api: any ApiCliente
+    private let publicarVaga: (() -> Void)?
     private let formatador = FormatadorFrila()
 
     /// O roteador vem de fora quando um aviso do push precisa abrir a vaga ou o turno (#8).
-    public init(viewModel: MinhasVagasViewModel, api: any ApiCliente, roteador: RoteadorDoContratante? = nil) {
+    /// `publicarVaga` abre a publicação de uma vaga nova; sem ele, a entrada não aparece.
+    public init(viewModel: MinhasVagasViewModel, api: any ApiCliente, roteador: RoteadorDoContratante? = nil, publicarVaga: (() -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
         _acompanhamento = State(initialValue: AcompanhamentoViewModel(
             api: api, estabelecimentoID: viewModel.estabelecimentoID, aoMudar: { await viewModel.carregar() }
         ))
         _roteador = State(initialValue: roteador ?? RoteadorDoContratante())
         self.api = api
+        self.publicarVaga = publicarVaga
     }
 
     public var body: some View {
@@ -251,6 +255,12 @@ public struct TelaMinhasVagas: View {
                     Text(verbatim: viewModel.nomeEstabelecimento)
                         .font(.headline)
                         .foregroundStyle(FrilaCor.textoSecundario)
+
+                    // Sempre à vista, e não só na lista vazia: é por aqui que se publica a segunda vaga.
+                    if let publicarVaga {
+                        BotaoPrimario(verbatim: TextosMinhasVagas.publicarVaga, acao: publicarVaga)
+                            .accessibilityIdentifier("publicar-vaga-entrada")
+                    }
 
                     AvisoDePermissaoDePush(perfil: .contratante)
 
