@@ -56,4 +56,55 @@ struct PerfisDaContaTests {
         let reputacao = Reputacao(positivas: 1, total: 1, taxaComparecimento: 1, turnosConsiderados: 1, turnosRealizados: 1)
         #expect(SeloReputacao.descricaoComparecimento(reputacao) == "Compareceu a 1 de 1 turno")
     }
+
+    @Test("Constante oficial reúne os endereços de Termos de uso e Política de privacidade (#54)")
+    func constanteDeEnderecosOficiais() {
+        let padrao = EnderecosOficiais.padrao
+        #expect(padrao.termosDeUso.absoluteString == "https://frila.app/termos")
+        #expect(padrao.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+        #expect(padrao.termos == padrao.termosDeUso)
+        #expect(padrao.privacidade == padrao.politicaDePrivacidade)
+        #expect(EnderecosOficiais.termosDeUso == padrao.termosDeUso)
+        #expect(EnderecosOficiais.politicaDePrivacidade == padrao.politicaDePrivacidade)
+        #expect(enderecosOficiais == padrao)
+    }
+
+    @Test("Os dois links de termos e privacidade existem em Meu perfil e apontam para a constante (#54)")
+    func linksDeTermosEPrivacidadeEmMeuPerfil() {
+        let api = ApiClienteEmMemoria()
+        let tela = TelaMeuPerfilProfissional(api: api, sair: {})
+
+        #expect(tela.enderecos == EnderecosOficiais.padrao)
+        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
+        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+
+        let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
+        #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)
+        #expect(ajuda.enderecos.politicaDePrivacidade == EnderecosOficiais.padrao.politicaDePrivacidade)
+    }
+
+    @Test("Os dois links de termos e privacidade existem em Estabelecimento e apontam para a constante (#54)")
+    func linksDeTermosEPrivacidadeEmPerfilEstabelecimento() {
+        let api = ApiClienteEmMemoria()
+        let tela = TelaPerfilEstabelecimento(api: api, sair: {})
+
+        #expect(tela.enderecos == EnderecosOficiais.padrao)
+        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
+        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+
+        let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
+        #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)
+        #expect(ajuda.enderecos.politicaDePrivacidade == EnderecosOficiais.padrao.politicaDePrivacidade)
+    }
+
+    @Test("O cadastro usa a constante e continua com os mesmos endereços oficiais (#54)")
+    func cadastroContinuaComMesmosEnderecos() {
+        let api = ApiClienteEmMemoria()
+        let vm = CadastroViewModel(api: api, email: "novo@frila.app")
+        let tela = TelaCadastro(viewModel: vm, aoVoltar: {}, aoConcluir: { _ in })
+
+        #expect(tela.enderecos == EnderecosOficiais.padrao)
+        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
+        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+    }
 }

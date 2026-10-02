@@ -3,15 +3,18 @@ import SwiftUI
 
 public struct TelaCadastro: View {
     @Bindable var viewModel: CadastroViewModel
+    public let enderecos: EnderecosOficiais
     var aoVoltar: () -> Void
     var aoConcluir: (DestinoAposEntrada) -> Void
 
     public init(
         viewModel: CadastroViewModel,
+        enderecos: EnderecosOficiais = .padrao,
         aoVoltar: @escaping () -> Void,
         aoConcluir: @escaping (DestinoAposEntrada) -> Void
     ) {
         self.viewModel = viewModel
+        self.enderecos = enderecos
         self.aoVoltar = aoVoltar
         self.aoConcluir = aoConcluir
     }
@@ -139,7 +142,7 @@ public struct TelaCadastro: View {
                     .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected] : [])
                     .accessibilityIdentifier("cadastro-termos")
 
-                    Text("Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)", bundle: bundleApresentacao)
+                    Text("Li e aceito os [Termos de uso](\(enderecos.termosDeUso.absoluteString)) e a [Política de privacidade](\(enderecos.politicaDePrivacidade.absoluteString))", bundle: bundleApresentacao)
                         .font(.subheadline)
                         .foregroundStyle(FrilaCor.texto)
                         .padding(.top, 10)

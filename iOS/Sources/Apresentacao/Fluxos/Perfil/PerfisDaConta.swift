@@ -104,11 +104,14 @@ public struct TelaMeuPerfilProfissional: View {
     @State private var model: MeuPerfilProfissionalViewModel
     private let api: any ApiCliente
     private let sair: () -> Void
+    public let enderecos: EnderecosOficiais
     @State private var mostrarExplicacao = false
     @State private var mostrarAjuda = false
 
-    public init(api: any ApiCliente, sair: @escaping () -> Void) {
-        self.api = api; self.sair = sair
+    public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
+        self.api = api
+        self.enderecos = enderecos
+        self.sair = sair
         _model = State(initialValue: MeuPerfilProfissionalViewModel(api: api))
     }
 
@@ -167,7 +170,7 @@ public struct TelaMeuPerfilProfissional: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.carregar() }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
-        .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil() }
+        .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
 
     private func linha(_ titulo: String, _ valor: String) -> some View {
@@ -224,9 +227,12 @@ public struct TelaMeuPerfilProfissional: View {
 public struct TelaPerfilEstabelecimento: View {
     @State private var model: PerfilEstabelecimentoViewModel
     private let sair: () -> Void
+    public let enderecos: EnderecosOficiais
     @State private var mostrarAjuda = false
-    public init(api: any ApiCliente, sair: @escaping () -> Void) {
-        self.sair = sair; _model = State(initialValue: PerfilEstabelecimentoViewModel(api: api))
+    public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
+        self.sair = sair
+        self.enderecos = enderecos
+        _model = State(initialValue: PerfilEstabelecimentoViewModel(api: api))
     }
     public var body: some View {
         ScrollView {
@@ -296,12 +302,18 @@ public struct TelaPerfilEstabelecimento: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosPerfilConta.perfilEstabelecimento))
         .navigationBarTitleDisplayMode(.inline).task { await model.carregar() }
-        .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil() }
+        .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
 }
 
-private struct TelaAjudaPerfil: View {
+struct TelaAjudaPerfil: View {
     @Environment(\.dismiss) private var dismiss
+    let enderecos: EnderecosOficiais
+
+    init(enderecos: EnderecosOficiais = .padrao) {
+        self.enderecos = enderecos
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -312,17 +324,36 @@ private struct TelaAjudaPerfil: View {
                     Text(verbatim: TextosPerfilConta.suporte)
                 }
                 Text(verbatim: TextosPerfilConta.prazoSuporte)
-                // TODO: ligar às páginas oficiais de termos e privacidade.
-                LabeledContent {
-                    Text(verbatim: TextosPerfilConta.linkPendente)
-                } label: {
-                    Text(verbatim: TextosPerfilConta.termos)
+
+                Link(destination: enderecos.termosDeUso) {
+                    HStack {
+                        Text(verbatim: TextosPerfilConta.termos)
+                            .foregroundStyle(FrilaCor.texto)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
                 }
-                LabeledContent {
-                    Text(verbatim: TextosPerfilConta.linkPendente)
-                } label: {
-                    Text(verbatim: TextosPerfilConta.privacidade)
+                .accessibilityLabel(Text(verbatim: TextosPerfilConta.termos))
+                .accessibilityIdentifier("perfil-termos")
+
+                Link(destination: enderecos.politicaDePrivacidade) {
+                    HStack {
+                        Text(verbatim: TextosPerfilConta.privacidade)
+                            .foregroundStyle(FrilaCor.texto)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
                 }
+                .accessibilityLabel(Text(verbatim: TextosPerfilConta.privacidade))
+                .accessibilityIdentifier("perfil-privacidade")
             }
             .navigationTitle(Text(verbatim: TextosPerfilConta.ajuda)).navigationBarTitleDisplayMode(.inline)
             .toolbar {
