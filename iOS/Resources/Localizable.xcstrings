@@ -183,12 +183,102 @@
         }
       }
     },
+    "A seleção desta vaga foi encerrada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção desta vaga foi encerrada"
+          }
+        }
+      }
+    },
+    "A sua candidatura foi encerrada junto com a vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua candidatura foi encerrada junto com a vaga."
+          }
+        }
+      }
+    },
+    "A sua candidatura foi escolhida, e não dá mais para retirá-la. O turno está em Meus turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua candidatura foi escolhida, e não dá mais para retirá-la. O turno está em Meus turnos."
+          }
+        }
+      }
+    },
+    "A vaga fechou sem que a sua candidatura fosse escolhida.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga fechou sem que a sua candidatura fosse escolhida."
+          }
+        }
+      }
+    },
+    "A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida"
+          }
+        }
+      }
+    },
+    "A vaga foi encerrada ou cancelada. Não há mais candidatura para retirar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga foi encerrada ou cancelada. Não há mais candidatura para retirar."
+          }
+        }
+      }
+    },
+    "A vaga foi preenchida, e a sua candidatura não foi escolhida.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga foi preenchida, e a sua candidatura não foi escolhida."
+          }
+        }
+      }
+    },
     "Abre a conversa no WhatsApp com mensagem pré-formatada": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Abre a conversa no WhatsApp com mensagem pré-formatada"
+          }
+        }
+      }
+    },
+    "Abre a vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre a vaga"
+          }
+        }
+      }
+    },
+    "Abre Meus turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre Meus turnos"
           }
         }
       }
@@ -293,6 +383,26 @@
         }
       }
     },
+    "Aguardando a escolha do estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando a escolha do estabelecimento"
+          }
+        }
+      }
+    },
+    "Aguardando resposta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando resposta"
+          }
+        }
+      }
+    },
     "Aguarde o envio da candidatura anterior.": {
       "localizations": {
         "pt-BR": {
@@ -343,6 +453,16 @@
         }
       }
     },
+    "Anteriores": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anteriores"
+          }
+        }
+      }
+    },
     "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
       "localizations": {
         "pt-BR": {
@@ -389,6 +509,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "As notificações estão desativadas. Você não recebe o aviso de vaga nova nem os lembretes dos seus turnos."
+          }
+        }
+      }
+    },
+    "As vagas a que você se candidatar aparecem aqui.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As vagas a que você se candidatar aparecem aqui."
           }
         }
       }
@@ -603,12 +733,62 @@
         }
       }
     },
+    "Candidatura enviada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatura enviada"
+          }
+        }
+      }
+    },
+    "Candidatura retirada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatura retirada"
+          }
+        }
+      }
+    },
+    "Candidatura retirada. Enquanto a vaga aceitar candidaturas, você pode se candidatar de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatura retirada. Enquanto a vaga aceitar candidaturas, você pode se candidatar de novo."
+          }
+        }
+      }
+    },
+    "Candidaturas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidaturas"
+          }
+        }
+      }
+    },
     "Check-in, atraso e vaga que ainda está sem ninguém": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Check-in, atraso e vaga que ainda está sem ninguém"
+          }
+        }
+      }
+    },
+    "Confirmada: o turno está em Meus turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmada: o turno está em Meus turnos"
           }
         }
       }
@@ -999,6 +1179,216 @@
           "stringUnit": {
             "state": "translated",
             "value": "Domingo"
+          }
+        }
+      }
+    },
+    "Esta candidatura já teve resposta e não pode mais ser retirada. Veja a situação em Candidaturas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta candidatura já teve resposta e não pode mais ser retirada. Veja a situação em Candidaturas."
+          }
+        }
+      }
+    },
+    "Nenhuma candidatura": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma candidatura"
+          }
+        }
+      }
+    },
+    "Não encontramos esta candidatura nesta conta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não encontramos esta candidatura nesta conta."
+          }
+        }
+      }
+    },
+    "Não foi possível atualizar. A lista de candidaturas pode estar desatualizada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível atualizar. A lista de candidaturas pode estar desatualizada."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar as candidaturas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar as candidaturas."
+          }
+        }
+      }
+    },
+    "Não foi possível retirar a candidatura. Tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível retirar a candidatura. Tente de novo."
+          }
+        }
+      }
+    },
+    "O estabelecimento cancelou esta vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento cancelou esta vaga"
+          }
+        }
+      }
+    },
+    "O estabelecimento escolhe entre os candidatos, até 24 horas antes do início do turno. O Frila avisa você quando houver resposta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento escolhe entre os candidatos, até 24 horas antes do início do turno. O Frila avisa você quando houver resposta."
+          }
+        }
+      }
+    },
+    "O estabelecimento escolheu outra pessoa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento escolheu outra pessoa"
+          }
+        }
+      }
+    },
+    "O estabelecimento escolheu outra pessoa. Não há mais candidatura para retirar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento escolheu outra pessoa. Não há mais candidatura para retirar."
+          }
+        }
+      }
+    },
+    "O estabelecimento já escolheu quem vai trabalhar nesta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento já escolheu quem vai trabalhar nesta vaga."
+          }
+        }
+      }
+    },
+    "Retirando candidatura…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirando candidatura…"
+          }
+        }
+      }
+    },
+    "Retirar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar"
+          }
+        }
+      }
+    },
+    "Retirar a candidatura?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar a candidatura?"
+          }
+        }
+      }
+    },
+    "Retirar candidatura": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar candidatura"
+          }
+        }
+      }
+    },
+    "Se a sua candidatura for escolhida, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se a sua candidatura for escolhida, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno."
+          }
+        }
+      }
+    },
+    "Sem conexão. A candidatura não foi retirada; tente de novo quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. A candidatura não foi retirada; tente de novo quando a internet voltar."
+          }
+        }
+      }
+    },
+    "Seu telefone e WhatsApp só são mostrados ao estabelecimento se a sua candidatura for escolhida.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu telefone e WhatsApp só são mostrados ao estabelecimento se a sua candidatura for escolhida."
+          }
+        }
+      }
+    },
+    "Ver minhas candidaturas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver minhas candidaturas"
+          }
+        }
+      }
+    },
+    "Você deixa de concorrer a esta vaga. Enquanto ela aceitar candidaturas, dá para se candidatar de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você deixa de concorrer a esta vaga. Enquanto ela aceitar candidaturas, dá para se candidatar de novo."
+          }
+        }
+      }
+    },
+    "Você não concorre mais a esta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não concorre mais a esta vaga."
           }
         }
       }
