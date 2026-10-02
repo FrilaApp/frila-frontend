@@ -974,3 +974,93 @@ public actor ApiClienteEmMemoria: ApiCliente {
         )
     }
 }
+
+// MARK: - Exclusão de Conta (Porta ExclusaoDeContaPorta)
+
+public enum CenarioExclusaoConta: Sendable, Equatable {
+    case padrao
+    case comTurnosCancelados(Int)
+    case administradorUnico
+    case semRede
+    case naoAutenticado
+}
+
+private actor ArmazenamentoCenarioExclusao {
+    static let compartilhado = ArmazenamentoCenarioExclusao()
+    private var cenarios: [ObjectIdentifier: CenarioExclusaoConta] = [:]
+
+    func definir(_ cenario: CenarioExclusaoConta, para cliente: ApiClienteEmMemoria) {
+        cenarios[ObjectIdentifier(cliente)] = cenario
+    }
+
+    func consumir(para cliente: ApiClienteEmMemoria) -> CenarioExclusaoConta {
+        cenarios.removeValue(forKey: ObjectIdentifier(cliente)) ?? .padrao
+    }
+
+    func limpar() {
+        cenarios.removeAll()
+    }
+}
+
+extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
+    public func configurarCenarioExclusao(_ cenario: CenarioExclusaoConta) async {
+        await ArmazenamentoCenarioExclusao.compartilhado.definir(cenario, para: self)
+    }
+
+    public func excluirConta() async throws -> ExclusaoDeConta {
+        let configurado = await ArmazenamentoCenarioExclusao.compartilhado.consumir(para: self)
+
+        let argumentos = ProcessInfo.processInfo.arguments
+        let cenarioEfetivo: CenarioExclusaoConta
+        if configurado != .padrao {
+            cenarioEfetivo = configurado
+        } else if argumentos.contains("-FRILA_EXCLUSAO_ADMIN_UNICO") {
+            cenarioEfetivo = .administradorUnico
+        } else if argumentos.contains("-FRILA_EXCLUSAO_SEM_REDE") {
+            cenarioEfetivo = .semRede
+        } else if argumentos.contains("-FRILA_EXCLUSAO_401") {
+            cenarioEfetivo = .naoAutenticado
+        } else if let idx = argumentos.firstIndex(of: "-FRILA_EXCLUSAO_TURNOS"), argumentos.indices.contains(idx + 1), let n = Int(argumentos[idx + 1]) {
+            cenarioEfetivo = .comTurnosCancelados(n)
+        } else {
+            cenarioEfetivo = .padrao
+        }
+
+        if cenarioEfetivo == .semRede || cenario == .semRede {
+            throw ErroDaApi(codigo: .semRede)
+        }
+        try verificarRede()
+
+        if cenarioEfetivo == .naoAutenticado {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "nao_autenticado")
+        }
+
+        if cenarioEfetivo == .administradorUnico {
+            throw ErroDaApi(codigo: .administradorUnico, codigoOriginal: "administrador_unico")
+        }
+
+        let cancelados: Int
+        switch cenarioEfetivo {
+        case let .comTurnosCancelados(quantidade):
+            cancelados = quantidade
+        default:
+            cancelados = turnos.count
+        }
+
+        turnos.removeAll()
+        conta = nil
+        perfilProfissional = nil
+        estabelecimentos = []
+        sessaoAtiva = false
+        DestinoGuardado.limpar()
+
+        let agora = relogio.agora
+        let dataLimite = DataCivil.deSaoPaulo(agora, somandoDias: 15) ?? (try! DataCivil("2026-10-16"))
+        return ExclusaoDeConta(
+            perfilRemovidoEm: agora,
+            dadosApagadosAte: dataLimite,
+            turnosCancelados: cancelados
+        )
+    }
+}
+
