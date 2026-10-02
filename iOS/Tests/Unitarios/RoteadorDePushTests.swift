@@ -324,6 +324,57 @@ struct RoteadorDePushTests {
         #expect(roteador.tocar(payload: payload("vaga", ["vaga_id": IDs.vaga.uuidString]), entregueEm: depois) == .ignorar(.semSessao))
         #expect(nadaAbriu)
     }
+
+    @Test("Com o app aberto, só é mostrada a notificação que o toque abriria para a conta que está na tela")
+    func mostradaComOAppAberto() {
+        let vaga = payload("vaga", ["vaga_id": IDs.vaga.uuidString])
+        // Abertura a frio: a conta ainda não é conhecida.
+        #expect(!roteador.apresenta(payload: vaga, entregueEm: depois))
+
+        roteador.contaAtiva(conta(.profissional, vinculo: nil))
+        #expect(!roteador.apresenta(payload: vaga, entregueEm: depois))
+
+        roteador.contaAtiva(conta(.profissional, vinculo: VinculoDoAparelho(contaID: IDs.outraConta, desde: desde)))
+        #expect(!roteador.apresenta(payload: vaga, entregueEm: depois))
+
+        roteador.contaAtiva(conta(.profissional))
+        #expect(roteador.apresenta(payload: vaga, entregueEm: desde))
+        #expect(roteador.apresenta(payload: vaga, entregueEm: depois))
+        #expect(!roteador.apresenta(payload: vaga, entregueEm: desde.addingTimeInterval(-1)))
+        // Aviso da casa, sem `tipo` ou sem o id de que a tela precisa: não é desta conta, ou não abre nada.
+        #expect(!roteador.apresenta(payload: payload("vaga_vazia", ["vaga_id": IDs.vaga.uuidString]), entregueEm: depois))
+        #expect(!roteador.apresenta(payload: ["vaga_id": IDs.vaga.uuidString], entregueEm: depois))
+        #expect(!roteador.apresenta(payload: payload("vaga"), entregueEm: depois))
+
+        // A conta sem fluxo montado só vê os avisos da própria conta, que a reavaliam.
+        roteador.contaAtiva(conta(.nenhum))
+        #expect(!roteador.apresenta(payload: vaga, entregueEm: depois))
+        #expect(roteador.apresenta(payload: payload("suspensao"), entregueEm: depois))
+
+        roteador.semSessao()
+        #expect(!roteador.apresenta(payload: vaga, entregueEm: depois))
+        // Decidir se mostra não abre tela nenhuma nem deixa decisão registrada.
+        #expect(nadaAbriu)
+    }
+
+    /// A reprodução da revisão do #70: o servidor mandou o aviso à conta A, a conta B entrou e o
+    /// aviso foi entregue depois. Com a carência da troca de conta no vínculo, ele não é mostrado
+    /// com o app aberto nem abre nada.
+    @Test("Aviso mandado à conta anterior e entregue logo depois da troca não aparece nem abre para quem entrou")
+    func avisoDaContaAnteriorEntregueDepoisDaTroca() {
+        let confirmacaoDoServidor = desde.addingTimeInterval(110)
+        let vinculoDeB = VinculoDoAparelho(contaID: IDs.conta, desde: confirmacaoDoServidor.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta))
+        let avisoDeA = payload("vagas_agrupadas")
+        let entrega = desde.addingTimeInterval(120)
+
+        roteador.contaAtiva(conta(.profissional, vinculo: vinculoDeB))
+
+        #expect(!roteador.apresenta(payload: avisoDeA, entregueEm: entrega))
+        #expect(roteador.tocar(payload: avisoDeA, entregueEm: entrega) == .ignorar(.deOutraConta))
+        #expect(nadaAbriu)
+        // Depois da carência, o aviso é de quem está no aparelho.
+        #expect(roteador.apresenta(payload: avisoDeA, entregueEm: vinculoDeB.desde))
+    }
 }
 
 // MARK: - Telas de destino

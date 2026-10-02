@@ -15,6 +15,17 @@ trap 'rm -rf "$TMPDIR_TESTE"' EXIT
   exit 1
 }
 
+entitlements() {
+  printf '<plist version="1.0">\n<dict>\n\t<key>aps-environment</key>\n\t<string>%s</string>\n</dict>\n</plist>' "$1"
+}
+
+# Compila um executável de verdade com os entitlements na seção em que o Xcode os põe no simulador.
+compilar_com_entitlements() {
+  local destino="$1"
+  entitlements production > "$TMPDIR_TESTE/entitlements.plist"
+  xcrun clang -x c -Wl,-sectcreate,__TEXT,__entitlements,"$TMPDIR_TESTE/entitlements.plist" -o "$destino" -
+}
+
 novo_app_bom() {
   local nome="$1"
   local app="$TMPDIR_TESTE/$nome.app"
@@ -29,7 +40,7 @@ novo_app_bom() {
   plutil -insert UIDeviceFamily -array "$plist"
   plutil -insert UIDeviceFamily.0 -integer 1 "$plist"
   : > "$app/PrivacyInfo.xcprivacy"
-  printf 'binario release limpo\n' > "$app/Frila"
+  printf 'binario release limpo\n%s\n' "$(entitlements production)" > "$app/Frila"
   chmod +x "$app/Frila"
   printf '%s\n' "$app"
 }
@@ -145,14 +156,47 @@ esperar_reprovacao "gancho em framework embutido" "-FRILA_SCENARIO" "$app"
 for simbolo in pelosArgumentos CatalogoDesignSystem; do
   app="$(novo_app_bom "simbolo-$RANDOM")"
   printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
-    xcrun clang -x c -o "$app/Frila" -
+    compilar_com_entitlements "$app/Frila"
   esperar_reprovacao "símbolo no executável: $simbolo" "$simbolo" "$app"
 done
 
 # A tela de licenças é de produto (#178): o símbolo dela no Release não reprova.
 app="$(novo_app_bom simbolo-de-produto)"
 printf 'int TelaLicencas(void) { return 0; }\nint main(void) { return TelaLicencas(); }\n' |
-  xcrun clang -x c -o "$app/Frila" -
+  compilar_com_entitlements "$app/Frila"
 esperar_aprovacao "$app"
+
+# Push (#8): o Release declara aps-environment = production.
+app="$(novo_app_bom aps-de-desenvolvimento)"
+printf 'binario release limpo\n%s\n' "$(entitlements development)" > "$app/Frila"
+esperar_reprovacao "aps-environment de desenvolvimento" "aps-environment deve ser production" "$app"
+
+app="$(novo_app_bom sem-aps)"
+printf 'binario release limpo\n' > "$app/Frila"
+esperar_reprovacao "aps-environment ausente" "não declara aps-environment" "$app"
+
+# No build assinado vale o que está na assinatura, e não o declarado: só production passa, com ou
+# sem get-task-allow (a assinatura de desenvolvimento não abranda a regra).
+assinar_com() {
+  local app="$1" aps="$2" get_task_allow="$3"
+  printf 'int main(void) { return 0; }\n' | compilar_com_entitlements "$app/Frila"
+  plutil -insert CFBundleIdentifier -string com.frila.org.app.teste "$app/Info.plist"
+  printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n\t<key>aps-environment</key>\n\t<string>%s</string>\n\t<key>get-task-allow</key>\n\t<%s/>\n</dict>\n</plist>\n' \
+    "$aps" "$get_task_allow" > "$TMPDIR_TESTE/assinatura.plist"
+  codesign --force --sign - --entitlements "$TMPDIR_TESTE/assinatura.plist" "$app" 2>/dev/null
+}
+
+for get_task_allow in true false; do
+  app="$(novo_app_bom "assinado-production-$get_task_allow")"
+  assinar_com "$app" production "$get_task_allow"
+  esperar_aprovacao "$app"
+
+  for aps in development valor-invalido; do
+    app="$(novo_app_bom "assinado-$aps-$get_task_allow")"
+    assinar_com "$app" "$aps" "$get_task_allow"
+    esperar_reprovacao "assinatura com aps-environment $aps e get-task-allow $get_task_allow" \
+      "aps-environment deve ser production no Release (encontrado: $aps" "$app"
+  done
+done
 
 echo "OK: autoteste de conferir-release.sh passou"

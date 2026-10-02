@@ -10,6 +10,9 @@ public enum RelatorioDeFalhas {
     /// quando a resposta é não, que é justamente o caso normal na primeira chamada.
     private static let configurado = OSAllocatedUnfairLock(initialState: false)
 
+    /// Se o Firebase está configurado neste processo. O push só fala com o FCM quando está.
+    public static var firebaseConfigurado: Bool { configurado.withLock { $0 } }
+
     /// O esquema Local não inclui o plist; assim, seus testes e o dublê permanecem sem Firebase.
     public static func iniciarSeConfigurado(bundle: Bundle = .main) {
         guard bundle.url(forResource: "GoogleService-Info", withExtension: "plist") != nil else { return }

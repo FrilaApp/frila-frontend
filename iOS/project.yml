@@ -118,6 +118,8 @@ targets:
       - target: FrilaDominio
       - package: Firebase
         product: FirebaseCrashlytics
+      - package: Firebase
+        product: FirebaseMessaging
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).infraestrutura

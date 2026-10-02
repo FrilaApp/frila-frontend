@@ -133,4 +133,35 @@ for arquivo in "${arquivos_para_conferir[@]}"; do
   fi
 done
 
+# Push de produção (#8): o aps-environment efetivo do Release é production, e nada além disso
+# passa. No build de simulador o Xcode embute os entitlements declarados na seção
+# __TEXT,__entitlements do executável. No build assinado eles ficam na assinatura, e ali quem
+# decide o valor é o perfil de provisionamento, não o arquivo de entitlements: o Release assinado
+# com perfil de desenvolvimento sai com development e é reprovado, porque não é o build que vai
+# para o TestFlight.
+aps="$(python3 - "$app" "$executavel" <<'PYAPS'
+import plistlib, re, subprocess, sys
+app, executavel = sys.argv[1], sys.argv[2]
+try:
+    saida = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", app], capture_output=True).stdout
+    assinatura = plistlib.loads(saida) if saida.strip() else {}
+except Exception:
+    assinatura = {}
+if "aps-environment" in assinatura:
+    origem = "assinatura de desenvolvimento" if assinatura.get("get-task-allow") is True else "assinatura"
+    print(f"{assinatura['aps-environment']}|{origem}")
+else:
+    with open(executavel, "rb") as arquivo:
+        valores = set(re.findall(rb"<key>aps-environment</key>\s*<string>([^<]*)</string>", arquivo.read()))
+    print((",".join(sorted(valor.decode() for valor in valores)) or "ausente") + "|declarado")
+PYAPS
+)"
+origem_do_aps="${aps#*|}"
+aps="${aps%%|*}"
+case "$aps" in
+  production) ;;
+  ausente) falhar "o bundle não declara aps-environment: sem ele o app não recebe push" ;;
+  *) falhar "aps-environment deve ser production no Release (encontrado: $aps, $origem_do_aps)" ;;
+esac
+
 echo "OK: bundle de Release em conformidade: $app"
