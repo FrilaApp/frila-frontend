@@ -57,6 +57,7 @@ public struct FluxoDoContratante: View {
     private let sair: () -> Void
     private let roteador: RoteadorDoContratante?
     @State private var model: FluxoDoContratanteViewModel
+    @State private var mostrandoPerfilEstabelecimento = false
 
     /// O roteador é a entrada dos avisos da casa (`checkin_manual_pendente`, `atraso_15min` e
     /// `vaga_vazia`), que o push (#8) vai usar.
@@ -72,12 +73,41 @@ public struct FluxoDoContratante: View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
+                if case .vagas = model.estado {
+                    Button {
+                        mostrandoPerfilEstabelecimento = true
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                    .accessibilityIdentifier("abrir-perfil-estabelecimento")
+                }
                 Button(action: sair) { Text("Sair", bundle: bundleApresentacao) }
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("sair-fluxo-contratante")
             }
             .padding(.horizontal, FrilaEspaco.medio)
             conteudo.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
+            NavigationStack {
+                TelaPerfilEstabelecimento(
+                    api: api,
+                    sair: {
+                        mostrandoPerfilEstabelecimento = false
+                        sair()
+                    }
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
+                            mostrandoPerfilEstabelecimento = false
+                        }
+                    }
+                }
+            }
         }
         .task { await model.carregar() }
     }
