@@ -27,9 +27,10 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let responsavel = app.textFields["Quem recebe no local"]
         responsavel.tap()
         responsavel.digitarEEsperar("Marina")
+
         let valor = app.textFields["Valor por posição"]
         valor.tap()
-        valor.digitarEEsperar("18000", esperado: "180")
+        valor.digitarEEsperar("18000", esperado: "180,00")
         app.swipeUp()
         app.buttons["publicar-vaga-botao"].tap()
     }

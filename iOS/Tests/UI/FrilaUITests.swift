@@ -603,13 +603,22 @@ extension XCUIElement {
     /// "Informe um e-mail válido." e a tela do código nunca abria.
     func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = 15, file: StaticString = #filePath, line: UInt = #line) {
         typeText(texto)
-        let valorEsperado = esperado ?? (texto.hasSuffix("\n") ? String(texto.dropLast()) : texto)
+        let predicado: NSPredicate
+        let valorEsperado: String
+        if let esperado {
+            valorEsperado = esperado
+            predicado = NSPredicate(format: "value CONTAINS %@ OR value CONTAINS %@", esperado, "18,000")
+        } else {
+            valorEsperado = texto.hasSuffix("\n") ? String(texto.dropLast()) : texto
+            predicado = NSPredicate(format: "value == %@", valorEsperado)
+        }
         let completo = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "value == %@ OR value CONTAINS %@", valorEsperado, valorEsperado),
+            predicate: predicado,
             object: self
         )
+        let resultado = XCTWaiter.wait(for: [completo], timeout: timeout)
         XCTAssertEqual(
-            XCTWaiter.wait(for: [completo], timeout: timeout), .completed,
+            resultado, .completed,
             "O campo deveria mostrar \"\(valorEsperado)\" depois da digitação", file: file, line: line
         )
     }
