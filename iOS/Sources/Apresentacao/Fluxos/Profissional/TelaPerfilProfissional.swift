@@ -12,6 +12,7 @@ public struct TelaPerfilProfissional: View {
     @State private var inicioNovo: String = "18:00"
     @State private var fimNovo: String = "02:00"
     @State private var erroFormatoJanela: String?
+    @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     public init(viewModel: PerfilProfissionalViewModel, aoSalvar: @escaping () -> Void = {}) {
         self.viewModel = viewModel
@@ -71,6 +72,11 @@ public struct TelaPerfilProfissional: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
+        // Funções e horários salvos é o momento de explicar a notificação a quem trabalha (#8): é
+        // com eles que as vagas passam a chegar.
+        .onChange(of: viewModel.sucesso) { _, salvou in
+            if salvou { Task { await permissaoDePush?.oferecer() } }
+        }
         .accessibilityIdentifier("tela-perfil-profissional")
     }
 
