@@ -24,6 +24,8 @@ novo_app_bom() {
   plutil -create xml1 "$plist"
   plutil -insert CFBundleExecutable -string Frila "$plist"
   plutil -insert ITSAppUsesNonExemptEncryption -bool NO "$plist"
+  plutil -insert NSLocationWhenInUseUsageDescription -string 'localização em uso' "$plist"
+  plutil -insert NSLocationTemporaryUsageDescriptionDictionary -json '{"CheckIn": "precisão no check-in"}' "$plist"
   plutil -insert UIDeviceFamily -array "$plist"
   plutil -insert UIDeviceFamily.0 -integer 1 "$plist"
   : > "$app/PrivacyInfo.xcprivacy"
@@ -103,6 +105,22 @@ esperar_reprovacao "qualquer chave de localização sempre" "NSLocationAlwaysFut
 app="$(novo_app_bom rastreamento)"
 plutil -insert NSUserTrackingUsageDescription -string 'rastreamento' "$app/Info.plist"
 esperar_reprovacao "rastreamento" "NSUserTrackingUsageDescription" "$app"
+
+app="$(novo_app_bom sem-localizacao-em-uso)"
+plutil -remove NSLocationWhenInUseUsageDescription "$app/Info.plist"
+esperar_reprovacao "texto de localização em uso ausente" "NSLocationWhenInUseUsageDescription" "$app"
+
+app="$(novo_app_bom localizacao-em-uso-vazia)"
+plutil -replace NSLocationWhenInUseUsageDescription -string '' "$app/Info.plist"
+esperar_reprovacao "texto de localização em uso vazio" "NSLocationWhenInUseUsageDescription" "$app"
+
+app="$(novo_app_bom sem-precisao-temporaria)"
+plutil -remove NSLocationTemporaryUsageDescriptionDictionary "$app/Info.plist"
+esperar_reprovacao "precisão temporária ausente" "NSLocationTemporaryUsageDescriptionDictionary" "$app"
+
+app="$(novo_app_bom precisao-temporaria-vazia)"
+plutil -replace NSLocationTemporaryUsageDescriptionDictionary -json '{}' "$app/Info.plist"
+esperar_reprovacao "precisão temporária sem motivo" "NSLocationTemporaryUsageDescriptionDictionary" "$app"
 
 app="$(novo_app_bom ipad)"
 plutil -insert UIDeviceFamily.1 -integer 2 "$app/Info.plist"

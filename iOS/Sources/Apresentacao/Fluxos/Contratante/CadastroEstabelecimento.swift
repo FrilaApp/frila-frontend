@@ -3,38 +3,35 @@ import MapKit
 import Observation
 import SwiftUI
 
-private final class MarcadorCadastroEstabelecimento: NSObject {}
-private let bundleCadastro = Bundle(for: MarcadorCadastroEstabelecimento.self)
-
 private enum TextosCadastro {
-    static let titulo = String(localized: "Cadastrar estabelecimento", bundle: bundleCadastro)
-    static let nome = String(localized: "Nome", bundle: bundleCadastro)
-    static let nomeCampo = String(localized: "Nome do estabelecimento", bundle: bundleCadastro)
-    static let documento = String(localized: "Documento", bundle: bundleCadastro)
-    static let documentoCampo = String(localized: "CPF ou CNPJ", bundle: bundleCadastro)
-    static let tipo = String(localized: "Tipo", bundle: bundleCadastro)
-    static let endereco = String(localized: "Endereço", bundle: bundleCadastro)
-    static let buscarEndereco = String(localized: "Buscar endereço", bundle: bundleCadastro)
+    static let titulo = String(localized: "Cadastrar estabelecimento", bundle: bundleApresentacao)
+    static let nome = String(localized: "Nome", bundle: bundleApresentacao)
+    static let nomeCampo = String(localized: "Nome do estabelecimento", bundle: bundleApresentacao)
+    static let documento = String(localized: "Documento", bundle: bundleApresentacao)
+    static let documentoCampo = String(localized: "CPF ou CNPJ", bundle: bundleApresentacao)
+    static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
+    static let endereco = String(localized: "Endereço", bundle: bundleApresentacao)
+    static let buscarEndereco = String(localized: "Buscar endereço", bundle: bundleApresentacao)
     static let regiaoAdministrativa = String(localized: "Região Administrativa", bundle: bundleApresentacao)
     static let regiaoAdministrativaAjuda = String(localized: "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.", bundle: bundleApresentacao)
-    static let ponto = String(localized: "Ponto do estabelecimento", bundle: bundleCadastro)
-    static let mapa = String(localized: "Mapa do estabelecimento", bundle: bundleCadastro)
-    static let dicaMapa = String(localized: "Ajuste o ponto movendo o marcador no mapa.", bundle: bundleCadastro)
-    static let responsavel = String(localized: "Responsável", bundle: bundleCadastro)
-    static let continuar = String(localized: "Continuar", bundle: bundleCadastro)
-    static let estabelecimento = String(localized: "Estabelecimento", bundle: bundleCadastro)
-    static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleCadastro)
-    static let documentoDuplicado = String(localized: "Este documento já está cadastrado.", bundle: bundleCadastro)
-    static let falha = String(localized: "Não foi possível cadastrar o estabelecimento. Tente novamente.", bundle: bundleCadastro)
-    static let confiraCampo = String(localized: "Confira o campo indicado.", bundle: bundleCadastro)
-    static let campoObrigatorio = String(localized: "Preencha este campo.", bundle: bundleCadastro)
-    static let campoInvalido = String(localized: "Confira o valor informado.", bundle: bundleCadastro)
-    static let alimentacao = String(localized: "Alimentação", bundle: bundleCadastro)
-    static let evento = String(localized: "Evento", bundle: bundleCadastro)
-    static let varejo = String(localized: "Varejo", bundle: bundleCadastro)
-    static let logistica = String(localized: "Logística", bundle: bundleCadastro)
-    static let servicoDomestico = String(localized: "Serviço doméstico", bundle: bundleCadastro)
-    static let outro = String(localized: "Outro", bundle: bundleCadastro)
+    static let ponto = String(localized: "Ponto do estabelecimento", bundle: bundleApresentacao)
+    static let mapa = String(localized: "Mapa do estabelecimento", bundle: bundleApresentacao)
+    static let dicaMapa = String(localized: "Ajuste o ponto movendo o marcador no mapa.", bundle: bundleApresentacao)
+    static let responsavel = String(localized: "Responsável", bundle: bundleApresentacao)
+    static let continuar = String(localized: "Continuar", bundle: bundleApresentacao)
+    static let estabelecimento = String(localized: "Estabelecimento", bundle: bundleApresentacao)
+    static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleApresentacao)
+    static let documentoDuplicado = String(localized: "Este documento já está cadastrado.", bundle: bundleApresentacao)
+    static let falha = String(localized: "Não foi possível cadastrar o estabelecimento. Tente novamente.", bundle: bundleApresentacao)
+    static let confiraCampo = String(localized: "Confira o campo indicado.", bundle: bundleApresentacao)
+    static let campoObrigatorio = String(localized: "Preencha este campo.", bundle: bundleApresentacao)
+    static let campoInvalido = String(localized: "Confira o valor informado.", bundle: bundleApresentacao)
+    static let alimentacao = String(localized: "Alimentação", bundle: bundleApresentacao)
+    static let evento = String(localized: "Evento", bundle: bundleApresentacao)
+    static let varejo = String(localized: "Varejo", bundle: bundleApresentacao)
+    static let logistica = String(localized: "Logística", bundle: bundleApresentacao)
+    static let servicoDomestico = String(localized: "Serviço doméstico", bundle: bundleApresentacao)
+    static let outro = String(localized: "Outro", bundle: bundleApresentacao)
 }
 
 @MainActor @Observable
@@ -137,6 +134,10 @@ public enum RegraCampoCadastro: Equatable { case obrigatorio, invalido }
 public struct TelaCadastroEstabelecimento: View {
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
+    @State private var posicaoMarcador: CGPoint?
+    #if DEBUG
+    @State private var regiaoMapa: MKCoordinateRegion?
+    #endif
     private let api: any ApiCliente
     private let responsavelNome: String
     private let responsavelTelefone: String
@@ -192,16 +193,62 @@ public struct TelaCadastroEstabelecimento: View {
                 }
                 if let point = model.ponto {
                     MapReader { proxy in
-                        Map(position: $posicaoMapa) {
-                            Annotation("", coordinate: point, anchor: .bottom) {
-                                Image(systemName: "mappin.and.ellipse").font(.title).foregroundStyle(.red)
-                                    .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
-                                    .highPriorityGesture(DragGesture(coordinateSpace: .named("mapa")).onEnded { valor in
-                                        if let novaCoordenada = proxy.convert(valor.location, from: .named("mapa")) { model.ponto = novaCoordenada }
-                                    })
+                        Map(position: $posicaoMapa) {}
+                        .accessibilityIdentifier("mapa-estabelecimento")
+                        #if DEBUG
+                        // Expõe a câmera aos testes para distinguir mover o ponto de mover o mapa.
+                        .accessibilityValue(regiaoMapa.map {
+                            String(format: "%.6f,%.6f,%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), $0.center.latitude, $0.center.longitude, $0.span.latitudeDelta, $0.span.longitudeDelta)
+                        } ?? "")
+                        #endif
+                        .onMapCameraChange(frequency: .continuous) { contexto in
+                            posicaoMarcador = proxy.convert(point, to: .named("mapa"))
+                            #if DEBUG
+                            regiaoMapa = contexto.region
+                            #endif
+                        }
+                        .overlay(alignment: .topLeading) {
+                            GeometryReader { geometria in
+                                if let posicaoMarcador,
+                                   CGRect(origin: .zero, size: geometria.size).contains(posicaoMarcador) {
+                                    Image(systemName: "mappin.and.ellipse")
+                                        .font(.title)
+                                        .foregroundStyle(FrilaCor.perigo)
+                                        .frame(width: 44, height: 44)
+                                        .contentShape(Rectangle())
+                                        .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
+                                        .accessibilityIdentifier("marcador-mapa")
+                                        .accessibilityValue(String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude))
+                                        .position(x: posicaoMarcador.x, y: posicaoMarcador.y - 15)
+                                        // Só a alça recebe este gesto; o mapa mantém pan e zoom fora dela.
+                                        .highPriorityGesture(
+                                            DragGesture(minimumDistance: 10, coordinateSpace: .named("mapa"))
+                                                .onChanged { valor in
+                                                    if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                                        model.ponto = coordenada
+                                                        self.posicaoMarcador = valor.location
+                                                    }
+                                                }
+                                                .onEnded { valor in
+                                                    if let coordenada = proxy.convert(valor.location, from: .named("mapa")) {
+                                                        model.ponto = coordenada
+                                                        self.posicaoMarcador = valor.location
+                                                    }
+                                                }
+                                        )
+                                }
                             }
                         }
+                        // O recorte limita o desenho, e a forma limita os toques ao quadro do mapa.
+                        .clipped()
+                        .contentShape(Rectangle())
                         .coordinateSpace(.named("mapa"))
+                        .onChange(of: model.ponto?.latitude) { _, _ in
+                            posicaoMarcador = proxy.convert(point, to: .named("mapa"))
+                        }
+                        .onChange(of: model.ponto?.longitude) { _, _ in
+                            posicaoMarcador = proxy.convert(point, to: .named("mapa"))
+                        }
                         .onAppear { centralizarMapa(em: point) }
                         .onChange(of: model.alvoDaCamera?.latitude) { _, _ in
                             if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
@@ -210,18 +257,19 @@ public struct TelaCadastroEstabelecimento: View {
                             if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
                         }
                     }
-                    .frame(height: 220).accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
+                    .frame(height: 220)
+                    .accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
                     Text(verbatim: TextosCadastro.dicaMapa).font(.caption)
                 }
                 campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
                     CampoFrila(verbatim: TextosCadastro.regiaoAdministrativa, texto: $model.regiaoAdministrativa)
                         .textInputAutocapitalization(.words)
                         .accessibilityIdentifier("regiao-administrativa")
-                    Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(.caption).foregroundStyle(.secondary)
+                    Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
                 }
                 VStack(alignment: .leading) {
                     Text(verbatim: TextosCadastro.responsavel).font(.headline)
-                    Text(verbatim: responsavelNome); Text(verbatim: responsavelTelefone).foregroundStyle(.secondary)
+                    Text(verbatim: responsavelNome); Text(verbatim: responsavelTelefone).foregroundStyle(FrilaCor.textoSecundario)
                 }.accessibilityIdentifier("responsavel-conta")
                 if let erro = model.erro { AvisoFrila(verbatim: mensagem(erro), tom: .erro).accessibilityIdentifier("erro-cadastro") }
                 BotaoPrimario(verbatim: TextosCadastro.continuar, carregando: model.enviando) { Task { await model.salvar() } }
@@ -235,7 +283,7 @@ public struct TelaCadastroEstabelecimento: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(verbatim: titulo).font(.headline)
             conteudo()
-            if case let .campo(campoErro, regra)? = model.erro, campoErro == campo { Text(erroCampo(regra)).font(.caption).foregroundStyle(.red).accessibilityIdentifier("erro-campo-\(titulo.lowercased())") }
+            if case let .campo(campoErro, regra)? = model.erro, campoErro == campo { Text(verbatim: erroCampo(regra)).font(.caption).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-campo-\(titulo.lowercased())") }
         }
     }
 

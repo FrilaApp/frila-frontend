@@ -189,6 +189,9 @@ jobs:
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO
 
+      - name: Autoteste da conferência de Release
+        run: Scripts/teste-conferir-release.sh
+
       - name: Build do Frila-Beta (Release apontando para o frila-dev)
         run: |
           xcodebuild build -quiet \
@@ -199,6 +202,9 @@ jobs:
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Conferir o bundle de Release do Frila-Beta
+        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
 
       - name: Build do Frila-Prod (Supabase frila-prod)
         env:
@@ -214,6 +220,9 @@ jobs:
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Conferir o bundle de Release do Frila-Prod
+        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
 
       - name: Apagar segredos e temporários
         if: always()
