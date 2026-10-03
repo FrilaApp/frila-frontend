@@ -127,6 +127,7 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
   - `404` e falha de rede ficam no detalhe, com nova tentativa.
 - **Volta à lista.** As telas de resultado voltam para a lista e a atualizam.
 - **Sessão.** A candidatura não usa a fila de sessão do cliente: um 409 não encerra a sessão.
+- **Contato sem rede (#73).** O contato recebido na confirmação ou por `contato_do_turno` fica no cache por turno, com o prazo `visivel_ate` do servidor. Reabrir Meu turno sem rede conserva o contato e o WhatsApp enquanto os prazos do contato e do turno forem válidos. Relê-lo em `meus_turnos`, cuja resposta não contém contato, não apaga essa reserva. Sair da conta apaga o contato junto com os demais dados locais.
 - **Rota por vaga_id.** `-FRILA_VAGA_ID <uuid>` abre o detalhe, é a mesma entrada que o push do tipo vaga vai usar (S2 #8) e nunca candidata sozinha. Esse argumento e o `-FRILA_ABRIR_CATALOGO` só existem em Debug; um teste confere que ficam dentro de `#if DEBUG`, e o binário de Release não os contém.
 - **Cenários do dublê.** `vaga-preenchida`, `vaga-encerrada`, `inelegivel` (turno sobreposto) e `inelegivel-suspenso`.
 

@@ -89,6 +89,9 @@ public protocol CacheLocal: Sendable {
     func sessao() async throws -> SessaoUsuario?
     func salvar(turnos: [Turno], em instante: Date) async throws
     func turnosValidos(em instante: Date) async throws -> [Turno]
+    func salvar(contato: Contato, doTurno turnoID: UUID) async throws
+    func contato(doTurno turnoID: UUID, em instante: Date) async throws -> Contato?
+    func removerContato(doTurno turnoID: UUID) async throws
     func salvar(funcoes: [Funcao]) async throws
     func funcoes() async throws -> [Funcao]
     func limpar() async throws

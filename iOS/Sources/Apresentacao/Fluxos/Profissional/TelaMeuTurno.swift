@@ -136,6 +136,7 @@ public struct TelaMeuTurno: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("contato-do-turno")
     }
 
@@ -190,6 +191,7 @@ public struct TelaMeuTurno: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("cartao-avaliacao-turno")
     }
 }
