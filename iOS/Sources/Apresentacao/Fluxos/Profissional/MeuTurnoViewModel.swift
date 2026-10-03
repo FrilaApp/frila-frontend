@@ -45,7 +45,7 @@ public final class MeuTurnoViewModel {
     }
 
     private let contaID: UUID?
-    private let api: any ApiCliente
+    public let api: any ApiCliente
     private let filaDeAcoes: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio

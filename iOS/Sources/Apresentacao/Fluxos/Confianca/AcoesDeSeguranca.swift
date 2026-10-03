@@ -5,22 +5,40 @@ struct AcoesDeSeguranca: View {
     @State private var model: SegurancaViewModel
     @State private var denunciando = false
     @State private var confirmandoBloqueio = false
+    private let identificadorDenunciar: String
+    private let identificadorBloquear: String
+    private let identificadorConfirmarBloqueio: String
 
-    init(perfil: PerfilPublico, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
-        _model = State(initialValue: SegurancaViewModel(perfil: perfil, api: api, bloqueios: bloqueios))
+    init(
+        perfil: PerfilPublico,
+        turnoID: UUID? = nil,
+        api: any ApiCliente,
+        bloqueios: BloqueiosDaSessao,
+        identificadorDenunciar: String = "denunciar",
+        identificadorBloquear: String = "bloquear",
+        identificadorConfirmarBloqueio: String = "confirmar-bloqueio"
+    ) {
+        _model = State(initialValue: SegurancaViewModel(perfil: perfil, turnoID: turnoID, api: api, bloqueios: bloqueios))
+        self.identificadorDenunciar = identificadorDenunciar
+        self.identificadorBloquear = identificadorBloquear
+        self.identificadorConfirmarBloqueio = identificadorConfirmarBloqueio
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Button { denunciando = true } label: {
-                Text(verbatim: TextosDaSeguranca.denunciar).frame(minHeight: FrilaMetrica.alvoMinimo)
+                Text(verbatim: TextosDaSeguranca.denunciar)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
             }
-            .accessibilityIdentifier("denunciar")
+            .accessibilityIdentifier(identificadorDenunciar)
             Button { confirmandoBloqueio = true } label: {
-                Text(verbatim: TextosDaSeguranca.bloquear).frame(minHeight: FrilaMetrica.alvoMinimo)
+                Text(verbatim: TextosDaSeguranca.bloquear)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
             }
-            .disabled(model.bloqueando)
-            .accessibilityIdentifier("bloquear")
+            .disabled(model.bloqueando || model.bloqueado)
+            .accessibilityIdentifier(identificadorBloquear)
             if model.bloqueando { ProgressView() }
             if let erro = model.erroBloqueio {
                 AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("erro-bloqueio")
@@ -29,7 +47,7 @@ struct AcoesDeSeguranca: View {
         .alert(TextosDaSeguranca.confirmarBloqueio, isPresented: $confirmandoBloqueio) {
             Button(TextosDaSeguranca.cancelar, role: .cancel) {}
             Button(TextosDaSeguranca.bloquear, role: .destructive) { Task { await model.bloquear() } }
-                .accessibilityIdentifier("confirmar-bloqueio")
+                .accessibilityIdentifier(identificadorConfirmarBloqueio)
         } message: { Text(verbatim: TextosDaSeguranca.efeitoBloqueio) }
         .sheet(isPresented: $denunciando) { FolhaDeDenuncia(model: model) }
     }

@@ -105,8 +105,18 @@ enum TextosDoAcompanhamento {
 struct TelaTurnoDoContratante: View {
     let viewModel: AcompanhamentoViewModel
     let turnoID: UUID
+    let api: (any ApiCliente)?
     @State private var cancelamento: CancelamentoViewModel?
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     private let formatador = FormatadorFrila()
+
+    init(viewModel: AcompanhamentoViewModel, turnoID: UUID, api: (any ApiCliente)? = nil) {
+        self.viewModel = viewModel
+        self.turnoID = turnoID
+        self.api = api ?? viewModel.api
+    }
 
     var body: some View {
         ScrollView {
@@ -169,6 +179,25 @@ struct TelaTurnoDoContratante: View {
         if viewModel.podeCancelar(turno) {
             BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = viewModel.criarCancelamento(de: turno) }
                 .accessibilityIdentifier("cancelar-posicao-\(turno.posicao.id)")
+        }
+
+        rodapeSeguranca(turno)
+    }
+
+    // MARK: - Ações de segurança (#39)
+
+    @ViewBuilder
+    private func rodapeSeguranca(_ turno: TurnoAcompanhado) -> some View {
+        if let profissional = turno.posicao.profissional,
+           let api = viewModel.api ?? api {
+            AcoesDeSeguranca(
+                perfil: profissional,
+                turnoID: turno.posicao.turnoID,
+                api: api,
+                bloqueios: bloqueios,
+                identificadorDenunciar: "denunciar-\(turno.posicao.id)",
+                identificadorBloquear: "bloquear-\(turno.posicao.id)"
+            )
         }
     }
 

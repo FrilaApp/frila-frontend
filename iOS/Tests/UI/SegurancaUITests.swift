@@ -45,8 +45,8 @@ final class SegurancaUITests: XCTestCase {
         XCTAssertTrue(elemento.exists)
     }
 
-    private func conferirAcoes(_ app: XCUIApplication) {
-        for (id, rotulo) in [("denunciar", "Denunciar"), ("bloquear", "Bloquear")] {
+    private func conferirAcoes(_ app: XCUIApplication, idDenunciar: String = "denunciar", idBloquear: String = "bloquear") {
+        for (id, rotulo) in [(idDenunciar, "Denunciar"), (idBloquear, "Bloquear")] {
             let botao = app.buttons[id]
             trazerParaATela(botao, em: app)
             XCTAssertEqual(botao.label, rotulo)
@@ -142,5 +142,108 @@ final class SegurancaUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(vaga.waitForExistence(timeout: 5))
         XCTAssertFalse(vaga.label.contains("Ana Cunha"))
+    }
+
+    func testMeuTurnoDenunciaMostraProtocoloEPrazoEBloqueioComConfirmacao() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "turno-confirmado-perto",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR"
+        ]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["Meus turnos"].tap()
+        let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
+        XCTAssertTrue(turno.waitForExistence(timeout: 10))
+        turno.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
+
+        conferirAcoes(app)
+
+        app.buttons["denunciar"].tap()
+        let enviar = app.buttons["enviar-denuncia"]
+        trazerParaATela(enviar, em: app)
+        XCTAssertFalse(enviar.isEnabled)
+
+        let motivo = app.buttons["motivo-denuncia"]
+        trazerParaATela(motivo, em: app)
+        motivo.tap()
+        app.buttons["Risco à segurança"].tap()
+        let aviso = app.staticTexts["aviso-risco-imediato"]
+        trazerParaATela(aviso, em: app)
+        XCTAssertTrue(aviso.label.contains("190 (Polícia Militar)"))
+
+        let relato = app.descendants(matching: .any)["relato-denuncia"].firstMatch
+        trazerParaATela(relato, em: app)
+        relato.tap()
+        relato.typeText("Relato de incidente durante o turno.")
+        trazerParaATela(enviar, em: app)
+        enviar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
+        app.buttons["Fechar"].tap()
+
+        let bloquear = app.buttons["bloquear"]
+        trazerParaATela(bloquear, em: app)
+        bloquear.tap()
+        XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Vocês não voltam a se cruzar'")).firstMatch.exists)
+        app.alerts.buttons["Cancelar"].tap()
+        XCTAssertTrue(bloquear.isEnabled)
+
+        bloquear.tap()
+        app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
+        trazerParaATela(bloquear, em: app)
+        XCTAssertFalse(bloquear.isEnabled)
+        XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].exists)
+    }
+
+    func testTurnoDoContratanteDenunciaMostraProtocoloEPrazoEBloqueioComConfirmacao() {
+        let app = XCUIApplication()
+        let turnoID = "82000000-0000-0000-0000-000000000001"
+        let posicaoID = "82000000-0000-0000-0000-000000000002"
+        app.launchArguments = [
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "checkin-confirmado",
+            "-FRILA_AVISO", "checkin",
+            "-FRILA_AVISO_ID", turnoID,
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR"
+        ]
+        app.launch()
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
+
+        let idDenunciar = "denunciar-\(posicaoID)"
+        let idBloquear = "bloquear-\(posicaoID)"
+        conferirAcoes(app, idDenunciar: idDenunciar, idBloquear: idBloquear)
+
+        app.buttons[idDenunciar].tap()
+        let enviar = app.buttons["enviar-denuncia"]
+        trazerParaATela(enviar, em: app)
+        XCTAssertFalse(enviar.isEnabled)
+
+        let relato = app.descendants(matching: .any)["relato-denuncia"].firstMatch
+        trazerParaATela(relato, em: app)
+        relato.tap()
+        relato.typeText("Relato de conduta durante o atendimento.")
+        trazerParaATela(enviar, em: app)
+        enviar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
+        app.buttons["Fechar"].tap()
+
+        let bloquear = app.buttons[idBloquear]
+        trazerParaATela(bloquear, em: app)
+        bloquear.tap()
+        XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Vocês não voltam a se cruzar'")).firstMatch.exists)
+        app.alerts.buttons["Cancelar"].tap()
+        XCTAssertTrue(bloquear.isEnabled)
+
+        bloquear.tap()
+        app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
+        trazerParaATela(bloquear, em: app)
+        XCTAssertFalse(bloquear.isEnabled)
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].exists)
     }
 }

@@ -340,7 +340,7 @@ public struct TelaMinhasVagas: View {
                 case let .vaga(vagaID):
                     DestinoDaVagaDoContratante(viewModel: viewModel, acompanhamento: acompanhamento, vagaID: vagaID, api: api, fila: fila)
                 case let .turno(turnoID):
-                    TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID)
+                    TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID, api: api)
                 }
             }
         }

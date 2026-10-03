@@ -6,11 +6,12 @@ import Observation
 /// respostas que estavam em voo quando o bloqueio foi confirmado.
 @MainActor @Observable
 public final class BloqueiosDaSessao {
-    private(set) var alvos: Set<Alvo> = []
+    public private(set) var alvos: Set<Alvo> = []
     public init() {}
-    func registrar(_ alvo: Alvo) { alvos.insert(alvo) }
-    func contem(_ perfil: PerfilPublico) -> Bool { alvos.contains(Alvo(perfil)) }
-    func filtrar(_ vagas: [VagaNaLista]) -> [VagaNaLista] {
+    public func registrar(_ alvo: Alvo) { alvos.insert(alvo) }
+    public func contem(_ perfil: PerfilPublico) -> Bool { alvos.contains(Alvo(perfil)) }
+    public func contem(_ alvo: Alvo) -> Bool { alvos.contains(alvo) }
+    public func filtrar(_ vagas: [VagaNaLista]) -> [VagaNaLista] {
         vagas.filter { !contem($0.estabelecimento) }
     }
 }
@@ -24,13 +25,16 @@ final class SegurancaViewModel {
     private(set) var protocolo: Protocolo?
     private(set) var erroDenuncia: String?
     private(set) var erroBloqueio: String?
+    var bloqueado: Bool { bloqueios.alvos.contains(alvo) }
     private let alvo: Alvo
+    private let turnoID: UUID?
     private let api: any ApiCliente
     private let bloqueios: BloqueiosDaSessao
     private var tentativa: Denuncia?
 
-    init(perfil: PerfilPublico, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
+    init(perfil: PerfilPublico, turnoID: UUID? = nil, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
         alvo = Alvo(perfil)
+        self.turnoID = turnoID
         self.api = api
         self.bloqueios = bloqueios
     }
@@ -44,7 +48,7 @@ final class SegurancaViewModel {
         // Repetir o mesmo envio depois de perder a resposta conserva a chave. Editar o conteúdo
         // inicia outra denúncia: nunca reutiliza uma chave para um corpo diferente.
         if tentativa?.motivo != motivo || tentativa?.relato != texto {
-            tentativa = Denuncia(alvo: alvo, motivo: motivo, relato: texto, chave: UUID())
+            tentativa = Denuncia(alvo: alvo, turnoID: turnoID, motivo: motivo, relato: texto, chave: UUID())
         }
         guard let tentativa else { return }
         enviando = true

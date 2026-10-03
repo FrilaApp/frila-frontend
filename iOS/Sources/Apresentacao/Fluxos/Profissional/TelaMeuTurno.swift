@@ -4,6 +4,9 @@ import SwiftUI
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
     @State private var cancelamento: CancelamentoViewModel?
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     private let formatador = FormatadorFrila()
 
     public init(viewModel: MeuTurnoViewModel) {
@@ -38,6 +41,7 @@ public struct TelaMeuTurno: View {
                 if viewModel.podeCancelar {
                     botaoCancelar
                 }
+                rodapeSeguranca
             }
             .padding(FrilaEspaco.medio)
         }
@@ -49,6 +53,17 @@ public struct TelaMeuTurno: View {
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
         .accessibilityIdentifier("tela-meu-turno")
+    }
+
+    // MARK: - Ações de segurança (#39)
+
+    private var rodapeSeguranca: some View {
+        AcoesDeSeguranca(
+            perfil: viewModel.turno.contraparte,
+            turnoID: viewModel.turno.id,
+            api: viewModel.api,
+            bloqueios: bloqueios
+        )
     }
 
     private var botaoCancelar: some View {
