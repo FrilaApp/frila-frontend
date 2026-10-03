@@ -5,6 +5,8 @@ import SwiftUI
 /// componentes do sistema de design, para trocar quando vier a alta fidelidade da v1.1.
 public struct TelaHistoricoDeTurnos: View {
     @State private var model: HistoricoDeTurnosViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    private static let idDoResultado = "historico-resultado"
 
     public init(api: any ApiCliente, estabelecimentoID: UUID? = nil) {
         _model = State(initialValue: HistoricoDeTurnosViewModel(api: api, estabelecimentoID: estabelecimentoID))
@@ -15,27 +17,41 @@ public struct TelaHistoricoDeTurnos: View {
     }
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-                Text(verbatim: TextosHistoricoDeTurnos.explicacao)
-                    .font(.callout)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .fixedSize(horizontal: false, vertical: true)
-                secaoPeriodo
-                secaoFormato
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    BotaoPrimario(verbatim: TextosHistoricoDeTurnos.exportar, carregando: model.estaCarregando) {
-                        Task { await model.exportar() }
+        ScrollViewReader { rolagem in
+            ScrollView {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                    Text(verbatim: TextosHistoricoDeTurnos.explicacao)
+                        .font(.callout)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                    secaoPeriodo
+                    secaoFormato
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        BotaoPrimario(verbatim: TextosHistoricoDeTurnos.exportar, carregando: model.estaCarregando) {
+                            Task { await model.exportar() }
+                        }
+                        .disabled(model.periodo == nil)
+                        .accessibilityHint(Text(verbatim: TextosHistoricoDeTurnos.dicaExportar))
+                        .accessibilityIdentifier("historico-exportar")
+                        // O respiro de baixo faz a rolagem parar com folga acima da barra de abas.
+                        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { resultado }
+                            .padding(.bottom, FrilaEspaco.medio)
+                            .id(Self.idDoResultado)
                     }
-                    .disabled(model.periodo == nil)
-                    .accessibilityHint(Text(verbatim: TextosHistoricoDeTurnos.dicaExportar))
-                    .accessibilityIdentifier("historico-exportar")
-                    resultado
+                }
+                .padding(FrilaEspaco.medio)
+                .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
+                .frame(maxWidth: .infinity)
+            }
+            // No iPhone SE o aviso nasce abaixo da dobra, atrás da barra de abas: a tela rola até ele.
+            .onChange(of: model.estado) { _, novo in
+                guard novo == .semTurnos || novo.ehErro else { return }
+                if reduzirMovimento {
+                    rolagem.scrollTo(Self.idDoResultado, anchor: .bottom)
+                } else {
+                    withAnimation { rolagem.scrollTo(Self.idDoResultado, anchor: .bottom) }
                 }
             }
-            .padding(FrilaEspaco.medio)
-            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
-            .frame(maxWidth: .infinity)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosHistoricoDeTurnos.titulo))
@@ -59,9 +75,14 @@ public struct TelaHistoricoDeTurnos: View {
             Text(verbatim: TextosHistoricoDeTurnos.periodo)
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
+            // Os três numa linha; no iPhone SE, dois e um; no maior texto, um por linha.
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: FrilaEspaco.pequeno) { atalhos }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { atalhos }
+                HStack(spacing: FrilaEspaco.pequeno) { esteMes; mesPassado; intervalo }
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    HStack(spacing: FrilaEspaco.pequeno) { esteMes; mesPassado }
+                    intervalo
+                }
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { esteMes; mesPassado; intervalo }
             }
             if model.atalho == .intervalo {
                 seletorDeData(TextosHistoricoDeTurnos.de, selecao: inicio, faixa: ...model.fimEscolhido, identificador: "historico-de")
@@ -80,12 +101,17 @@ public struct TelaHistoricoDeTurnos: View {
         .disabled(model.estaCarregando)
     }
 
-    @ViewBuilder
-    private var atalhos: some View {
+    private var esteMes: some View {
         FiltroPill(verbatim: TextosHistoricoDeTurnos.esteMes, selecionado: model.atalho == .esteMes) { model.escolher(.esteMes) }
             .accessibilityIdentifier("historico-este-mes")
+    }
+
+    private var mesPassado: some View {
         FiltroPill(verbatim: TextosHistoricoDeTurnos.mesPassado, selecionado: model.atalho == .mesPassado) { model.escolher(.mesPassado) }
             .accessibilityIdentifier("historico-mes-passado")
+    }
+
+    private var intervalo: some View {
         FiltroPill(verbatim: TextosHistoricoDeTurnos.intervalo, selecionado: model.atalho == .intervalo) { model.escolher(.intervalo) }
             .accessibilityIdentifier("historico-intervalo")
     }

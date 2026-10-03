@@ -40,6 +40,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         let aviso = app.descendants(matching: .any)["historico-sem-turnos"]
         XCTAssertTrue(aviso.waitForExistence(timeout: 5), "O 204 mostra que o período não tem turnos")
         XCTAssertTrue(aviso.label.contains("Nenhum turno nesse período"))
+        verificarAVista(aviso, app)
         XCTAssertFalse(app.otherElements["ActivityListView"].exists, "Sem turnos, nada vai para o compartilhar")
         XCTAssertFalse(app.navigationBars["UIActivityContentView"].exists)
         anexar(app, "historico-sem-turnos")
@@ -57,6 +58,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         let erro = app.descendants(matching: .any)["historico-erro"]
         XCTAssertTrue(erro.waitForExistence(timeout: 5), "Sem rede, a tela explica o erro")
         XCTAssertTrue(app.buttons["historico-tentar-novamente"].exists, "E oferece tentar de novo")
+        verificarAVista(app.buttons["historico-tentar-novamente"], app)
         anexar(app, "historico-erro-de-rede")
     }
 
@@ -97,6 +99,18 @@ final class HistoricoDeTurnosUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["historico-exportar"].waitForExistence(timeout: 5), "A tela do histórico abre com o botão Exportar")
         return app
+    }
+
+    /// `exists` não basta: no iPhone SE o resultado nasce abaixo da dobra, atrás da barra de abas, e
+    /// a tela precisa rolar até ele. Espera a rolagem por até 3 s.
+    private func verificarAVista(_ elemento: XCUIElement, _ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        let barra = app.tabBars.firstMatch
+        let limite = barra.exists ? barra.frame.minY : app.windows.firstMatch.frame.maxY
+        let prazo = Date().addingTimeInterval(3)
+        while elemento.frame.maxY > limite, Date() < prazo {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        }
+        XCTAssertLessThanOrEqual(elemento.frame.maxY, limite, "O resultado precisa ficar à vista, acima da barra de abas", file: file, line: line)
     }
 
     private func folhaDeCompartilharApareceu(_ app: XCUIApplication) -> Bool {

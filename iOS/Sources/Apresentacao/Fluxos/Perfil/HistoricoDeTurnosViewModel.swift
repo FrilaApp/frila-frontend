@@ -20,6 +20,10 @@ public final class HistoricoDeTurnosViewModel {
         case semTurnos
         /// `repetivel` é falso quando tentar de novo não muda nada: sessão vencida ou sem permissão.
         case erro(mensagem: String, repetivel: Bool)
+
+        public var ehErro: Bool {
+            if case .erro = self { true } else { false }
+        }
     }
 
     private let api: any ApiCliente
