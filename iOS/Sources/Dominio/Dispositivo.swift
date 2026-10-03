@@ -8,10 +8,14 @@ public enum Plataforma: String, Codable, Sendable {
 public struct Dispositivo: Codable, Equatable, Sendable {
     public let plataforma: Plataforma
     public let atualizadoEm: Date
+    /// O vínculo deste token com a conta, opaco (contrato 0.2.30). Vem igual em todo push mandado
+    /// a este aparelho para esta conta; o servidor anterior à 0.2.30 não o devolve.
+    public let vinculoID: UUID?
 
-    public init(plataforma: Plataforma, atualizadoEm: Date) {
+    public init(plataforma: Plataforma, atualizadoEm: Date, vinculoID: UUID? = nil) {
         self.plataforma = plataforma
         self.atualizadoEm = atualizadoEm
+        self.vinculoID = vinculoID
     }
 }
 
@@ -29,10 +33,15 @@ public struct VinculoDoAparelho: Codable, Equatable, Sendable {
 
     public let contaID: UUID
     public let desde: Date
+    /// O `vinculo_id` que o servidor devolveu no registro (contrato 0.2.30). É o que o push traz
+    /// para dizer de que vínculo ele é; `nil` com o servidor anterior à 0.2.30, e aí só o relógio
+    /// decide. O guardado antes desta versão decodifica sem o campo.
+    public let vinculoID: UUID?
 
-    public init(contaID: UUID, desde: Date) {
+    public init(contaID: UUID, desde: Date, vinculoID: UUID? = nil) {
         self.contaID = contaID
         self.desde = desde
+        self.vinculoID = vinculoID
     }
 }
 

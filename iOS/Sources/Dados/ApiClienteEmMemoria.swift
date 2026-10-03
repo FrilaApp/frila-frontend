@@ -203,6 +203,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var suspensao: Suspensao?
     /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
     private var dispositivos: [String: UUID] = [:]
+    /// O `vinculo_id` de cada token (contrato 0.2.30): novo quando o token entra ou troca de dono,
+    /// o mesmo no registro repetido pela mesma conta, e fora quando `remover_dispositivo` o tira.
+    private var vinculos: [String: UUID] = [:]
 
     public init(
         cenario: Cenario = .sucesso,
@@ -1363,8 +1366,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty else { throw erro("campo_obrigatorio", detalhes: "token_fcm") }
         guard token.count >= Self.tamanhoMinimoDoToken else { throw erro("campo_invalido", detalhes: "token_fcm") }
+        if dispositivos[token] != conta.id || vinculos[token] == nil { vinculos[token] = UUID() }
         dispositivos[token] = conta.id
-        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora)
+        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora, vinculoID: vinculos[token])
     }
 
     /// Segue `remover_dispositivo` do backend (`20260926070000_ciclo_token_push.sql`): só tira o token
@@ -1373,16 +1377,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarRede()
         guard let conta else { throw erro("nao_autenticado") }
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
-        if dispositivos[token] == conta.id { dispositivos[token] = nil }
+        if dispositivos[token] == conta.id {
+            dispositivos[token] = nil
+            vinculos[token] = nil
+        }
     }
 
     /// A conta dona do token no servidor simulado. Fica fora da porta: serve aos testes.
     public func donoDoDispositivo(tokenFCM: String) -> UUID? { dispositivos[tokenFCM] }
 
+    /// O `vinculo_id` do token no servidor simulado. Fica fora da porta: serve aos testes.
+    public func vinculoDoDispositivo(tokenFCM: String) -> UUID? { vinculos[tokenFCM] }
+
     /// Simula o aparelho que já estava registrado para outra conta. Fica fora da porta: o dublê tem
     /// uma conta só, e a troca de conta no mesmo iPhone precisa da outra.
     public func registrarDispositivo(tokenFCM: String, deOutraConta contaID: UUID) {
         dispositivos[tokenFCM] = contaID
+        vinculos[tokenFCM] = UUID()
     }
 
     public func sair(tokenFCM: String?) async {
