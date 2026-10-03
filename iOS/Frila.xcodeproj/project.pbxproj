@@ -47,6 +47,7 @@
 		25FBEC6CBC689835B6872D99 /* Licencas.json in Resources */ = {isa = PBXBuildFile; fileRef = 6ACC7B6E0084F954334EC572 /* Licencas.json */; };
 		26850F010BFE4BE7CF6C9A4D /* CandidatosDaVaga.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120129DB452F216D870A5F66 /* CandidatosDaVaga.swift */; };
 		277D9343E565B05DF92A4E8F /* TurnoDoContratanteUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20A03A1715A02A29FB3465B7 /* TurnoDoContratanteUITests.swift */; };
+		29E2DF0C44E5BBA6C5D3E307 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
 		29F49F8408BBB2BEA0E4CFD7 /* contract-version.json in Resources */ = {isa = PBXBuildFile; fileRef = D7EABD69C57585AF83655977 /* contract-version.json */; };
 		2AAD5698C016915832263163 /* FluxoDoProfissional.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE0AC842DF3BE306F3FF7A4F /* FluxoDoProfissional.swift */; };
 		2B3125D98F9CE8C14E6FBD89 /* DiaDeSaoPaulo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 822693D3DCCCEAD31BD7BBA1 /* DiaDeSaoPaulo.swift */; };
@@ -80,6 +81,7 @@
 		3F0B6173205A3EEC8582E4E8 /* MedicaoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC55DE31AF837544060C74B /* MedicaoUITests.swift */; };
 		3F90B968051E5A395EAE3F03 /* FluxoDeEntrada.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BACCBA4385723A7D64E8EE /* FluxoDeEntrada.swift */; };
 		45025836682D6D56DD0D6DC7 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		454D07D8572C68E39427AE6D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E9432EEE786041A9003C262A /* PrivacyInfo.xcprivacy */; };
 		45C41EEEC8410A871550C1A0 /* TelaMeuTurno.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF8FF9519F58F6767F2890F /* TelaMeuTurno.swift */; };
 		472879AD43CC6C4077004026 /* MedicaoDeAbertura.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8136C2C473778D210FADF2 /* MedicaoDeAbertura.swift */; };
 		4890D7C9147A3C5C5E9C29FE /* PontoBasePrivadoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D256A074F8AA6EDAE3F24D /* PontoBasePrivadoTests.swift */; };
@@ -151,6 +153,8 @@
 		83CD4512A38D276E3C68DCA0 /* Dispositivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D2FD77BD8C53C3BFED6AAA /* Dispositivo.swift */; };
 		84515F0AEC28BB9059E909CB /* ExclusaoDeContaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA3EC7375F1B4972AECBCF11 /* ExclusaoDeContaViewModel.swift */; };
 		84E6FEBA6AC10A66F4E0B34E /* WhatsAppDoTurnoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F1444D39FB4D5811C1B586 /* WhatsAppDoTurnoTests.swift */; };
+		893E9FC70938466008A3B61C /* FrilaNotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B5AD48A66FFE5867813F4054 /* FrilaNotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		89953F9A20F9557F385FE98C /* VinculoDoPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5D87C2F346CE45EF01E183 /* VinculoDoPush.swift */; };
 		8B35F60187B1175A52D97063 /* ValidacaoClienteAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */; };
 		8C4F622050E1C39AC7A78F14 /* ConfiguracaoAmbienteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */; };
 		8C97FE7579D3C683369CFAD8 /* requisicao-publicar-vaga.json in Resources */ = {isa = PBXBuildFile; fileRef = AC0715D51EC624FFD2754B4B /* requisicao-publicar-vaga.json */; };
@@ -199,6 +203,7 @@
 		B4240286AEADBCD34603FDA7 /* FluxoDoContratante.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF5B72F30D0CCEECEC364061 /* FluxoDoContratante.swift */; };
 		B4CC01BB1805BA468261C2AF /* TelaEntrada.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA800A26D965400E7DD27C89 /* TelaEntrada.swift */; };
 		B588E4E496730CE3ACB5EC44 /* Componentes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F1776455FF3BC99C2521A6 /* Componentes.swift */; };
+		B6FB3AB57843B922BC5A3136 /* NotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39036208ADFBC746FD17AE4C /* NotificationServiceTests.swift */; };
 		B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */; };
 		B8BC8D2D068A921AAA460603 /* requisicao-bloquear.json in Resources */ = {isa = PBXBuildFile; fileRef = 6366C57497AD8122ECB069DE /* requisicao-bloquear.json */; };
 		B906E4209BD1D93DB0B779BB /* MinhasVagasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BC71CEBE7E0A40C16103D7 /* MinhasVagasTests.swift */; };
@@ -217,6 +222,7 @@
 		C4028BAA32FBB5CC060372F7 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
 		C4CC93F533D8DF49C28109BB /* ContaSuspensaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F59B2943A73448CDDA272C7 /* ContaSuspensaViewModel.swift */; };
 		C5E15790C6756E23DBDE2ADE /* TelaExclusaoDeConta.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06B0718A61612A3762B8DF8 /* TelaExclusaoDeConta.swift */; };
+		C61FEA8E1489601AAFDE7C43 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276D098C5761ACEFC0904A69 /* NotificationService.swift */; };
 		C678CDE3F2B636D58389D9B5 /* TurnoContrato0231Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10DFEFDC42B69AE3DDC2AF4D /* TurnoContrato0231Tests.swift */; };
 		C769C51050DDEA889B5ECAD7 /* PresencaDoTurnoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9941A6E64CF5A4D933D14AA /* PresencaDoTurnoViewModel.swift */; };
 		C82912B4B046CB299F74C45F /* candidatura-urgencia.json in Resources */ = {isa = PBXBuildFile; fileRef = 9788C78E942BB63868424B9E /* candidatura-urgencia.json */; };
@@ -302,6 +308,13 @@
 			remoteGlobalIDString = 2D53F81121F391C3E7304CC4;
 			remoteInfo = FrilaApresentacao;
 		};
+		0F46B0D7060CE72B949766E3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9230EC34E08CCD7C3494346E;
+			remoteInfo = FrilaDominio;
+		};
 		39E4D532A2882D1727E5699F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
@@ -315,6 +328,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9230EC34E08CCD7C3494346E;
 			remoteInfo = FrilaDominio;
+		};
+		411C7A5D75AB82A49059A40B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E642AF0B8E4D332748CA9D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4E9089A2529EE9900BD94240;
+			remoteInfo = FrilaNotificationService;
 		};
 		5F7B0CDF1D97E0A188CAF9DC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -382,6 +402,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		37DA57952D3400496F3EC730 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				893E9FC70938466008A3B61C /* FrilaNotificationService.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8F919EA70158EE66BA83925F /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -446,6 +477,7 @@
 		22B09E8CED7013DCD7D059CD /* PerfisDaContaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfisDaContaTests.swift; sourceTree = "<group>"; };
 		22F1776455FF3BC99C2521A6 /* Componentes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Componentes.swift; sourceTree = "<group>"; };
 		2459693498F900D0F3F57540 /* MedicaoDeDesempenho.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicaoDeDesempenho.swift; sourceTree = "<group>"; };
+		276D098C5761ACEFC0904A69 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		287566AB9C576233024D229E /* TextosDaPresenca.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextosDaPresenca.swift; sourceTree = "<group>"; };
 		28D4338749FB6E2388BE048C /* TelaTurnoDoContratante.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaTurnoDoContratante.swift; sourceTree = "<group>"; };
 		29280FDF830FB5FD01A47356 /* Portas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Portas.swift; sourceTree = "<group>"; };
@@ -464,6 +496,7 @@
 		37CC4F79F47950C3871633AC /* CadastroEstabelecimento.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CadastroEstabelecimento.swift; sourceTree = "<group>"; };
 		37D256A074F8AA6EDAE3F24D /* PontoBasePrivadoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PontoBasePrivadoTests.swift; sourceTree = "<group>"; };
 		37FC01A90EEDEF9329B905C2 /* requisicao-retirar-candidatura.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-retirar-candidatura.json"; sourceTree = "<group>"; };
+		39036208ADFBC746FD17AE4C /* NotificationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationServiceTests.swift; sourceTree = "<group>"; };
 		3AA32088E555C10CC772D882 /* FormatadorFrila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatadorFrila.swift; sourceTree = "<group>"; };
 		3B6AB2CF87FE4F8FED8FF891 /* CacheSwiftData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheSwiftData.swift; sourceTree = "<group>"; };
 		3CDB5399BC57C113CCC2D222 /* LimpezaAposExclusaoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimpezaAposExclusaoTests.swift; sourceTree = "<group>"; };
@@ -508,6 +541,7 @@
 		613CDCB34E6B6DABD31BA8CF /* FluxoDoContratanteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoContratanteUITests.swift; sourceTree = "<group>"; };
 		6191A8C563C68D950C05142A /* ValidacaoClienteAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidacaoClienteAPI.swift; sourceTree = "<group>"; };
 		619DFD6BAB27B15FAE110431 /* CandidaturaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidaturaTests.swift; sourceTree = "<group>"; };
+		6202900B32FEAECF98858BAC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6350F07C15F2C061485D1893 /* EnderecosOficiais.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnderecosOficiais.swift; sourceTree = "<group>"; };
 		6366C57497AD8122ECB069DE /* requisicao-bloquear.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-bloquear.json"; sourceTree = "<group>"; };
 		64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
@@ -595,6 +629,7 @@
 		B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-cadastrar-estabelecimento.json"; sourceTree = "<group>"; };
 		B4F7FB83EC1042FE4F8D95BE /* TurnoContrato0231UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurnoContrato0231UITests.swift; sourceTree = "<group>"; };
 		B5A8EAF4481B7F234FFA38CF /* RpcsDaSprint2EmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RpcsDaSprint2EmMemoriaTests.swift; sourceTree = "<group>"; };
+		B5AD48A66FFE5867813F4054 /* FrilaNotificationService.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = FrilaNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B60A4C3E1C9933DE5E17492B /* ContratoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContratoTests.swift; sourceTree = "<group>"; };
 		B7A04CD9E052457835B00607 /* ConfiguracaoAmbienteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracaoAmbienteTests.swift; sourceTree = "<group>"; };
 		B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CadastroEstabelecimentoUITests.swift; sourceTree = "<group>"; };
@@ -658,6 +693,7 @@
 		EA7BA30516CFCE328D736BBD /* ModoSelecaoDoProfissionalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModoSelecaoDoProfissionalUITests.swift; sourceTree = "<group>"; };
 		EABF78FB65090E86872FA535 /* MedidorDeRede.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedidorDeRede.swift; sourceTree = "<group>"; };
 		EB1F8D36504366E0A7CC2BBD /* TelasDaPermissaoDePush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelasDaPermissaoDePush.swift; sourceTree = "<group>"; };
+		EB5AC97A139FCD547378326F /* NotificationService.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NotificationService.entitlements; sourceTree = "<group>"; };
 		EC7474CFC038B7830A07C624 /* Frila.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Frila.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED4681E82BFB78ADC11F0C80 /* LeitorDeLocalizacaoDoSistema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeitorDeLocalizacaoDoSistema.swift; sourceTree = "<group>"; };
 		EE27623A38C03A8D626521E3 /* ExportarDadosUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportarDadosUITests.swift; sourceTree = "<group>"; };
@@ -675,6 +711,7 @@
 		F9EAF9836B7F7238D24691AC /* painel-com-cancelamento.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "painel-com-cancelamento.json"; sourceTree = "<group>"; };
 		FB5A5C9DB12FC9803C45CB03 /* resultado-registro.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-registro.json"; sourceTree = "<group>"; };
 		FB5CDEDA2FFFE72679339F75 /* dispositivo.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dispositivo.json; sourceTree = "<group>"; };
+		FB5D87C2F346CE45EF01E183 /* VinculoDoPush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VinculoDoPush.swift; sourceTree = "<group>"; };
 		FB8B19D37D475A1DDD4B6EAA /* resultado-confirmacao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-confirmacao.json"; sourceTree = "<group>"; };
 		FCB907629D17A01D860FE12A /* ExclusaoDeContaViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaViewModelTests.swift; sourceTree = "<group>"; };
 		FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegrasDeVagaEmMemoriaTests.swift; sourceTree = "<group>"; };
@@ -723,6 +760,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CB11B219B02024AB9D7C2514 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				29E2DF0C44E5BBA6C5D3E307 /* FrilaDominio.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E5E5C7019F2EC508721C81E2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -751,6 +796,7 @@
 				865737B5A4A6B26BB2C8B54B /* Dados */,
 				692623E03EB53807788CFBF5 /* Dominio */,
 				2DB19EF53B8545E74B44AB3B /* Infraestrutura */,
+				6E72EECDD30BF0CF6D52A694 /* NotificationService */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -791,6 +837,7 @@
 				44FCBC781830AFDC791F353D /* FrilaDados.framework */,
 				AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */,
 				67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */,
+				B5AD48A66FFE5867813F4054 /* FrilaNotificationService.appex */,
 				B1A382E13856303D3EF49B4D /* FrilaTests.xctest */,
 				B380F8F29E809E2B842A6C80 /* FrilaUITests.xctest */,
 			);
@@ -896,6 +943,7 @@
 				87BC71CEBE7E0A40C16103D7 /* MinhasVagasTests.swift */,
 				5FB4FDD061007C401AF3724C /* ModoAviaoMeuTurnoTests.swift */,
 				451E3C18176F16F0F7BF1C8A /* ModoSelecaoEmMemoriaTests.swift */,
+				39036208ADFBC746FD17AE4C /* NotificationServiceTests.swift */,
 				7C82E02114780C98AC98BD1A /* OfflineTests.swift */,
 				CB0DAB39F53C66FB25CB0D05 /* PerfilProfissionalViewModelTests.swift */,
 				22B09E8CED7013DCD7D059CD /* PerfisDaContaTests.swift */,
@@ -937,8 +985,19 @@
 				900A311A3730D37606A75AEC /* ObjetosDeValor.swift */,
 				E12F611FDB4358E51957E16F /* PermissaoDePush.swift */,
 				29280FDF830FB5FD01A47356 /* Portas.swift */,
+				FB5D87C2F346CE45EF01E183 /* VinculoDoPush.swift */,
 			);
 			path = Dominio;
+			sourceTree = "<group>";
+		};
+		6E72EECDD30BF0CF6D52A694 /* NotificationService */ = {
+			isa = PBXGroup;
+			children = (
+				6202900B32FEAECF98858BAC /* Info.plist */,
+				EB5AC97A139FCD547378326F /* NotificationService.entitlements */,
+				276D098C5761ACEFC0904A69 /* NotificationService.swift */,
+			);
+			path = NotificationService;
 			sourceTree = "<group>";
 		};
 		86326EB32BC4841CBFD7ADE9 = {
@@ -1234,6 +1293,26 @@
 			productReference = E4EA00DFE266F18C4821FE54 /* FrilaApresentacao.framework */;
 			productType = "com.apple.product-type.framework";
 		};
+		4E9089A2529EE9900BD94240 /* FrilaNotificationService */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BEF185E2F4A36F5E75BE8749 /* Build configuration list for PBXNativeTarget "FrilaNotificationService" */;
+			buildPhases = (
+				FDA7A21396D82B1C2A0F6D26 /* Sources */,
+				FB1C7F108DAF302E9B4A37FF /* Resources */,
+				CB11B219B02024AB9D7C2514 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0F9C9D2BCAE5D588A63B17EE /* PBXTargetDependency */,
+			);
+			name = FrilaNotificationService;
+			packageProductDependencies = (
+			);
+			productName = FrilaNotificationService;
+			productReference = B5AD48A66FFE5867813F4054 /* FrilaNotificationService.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		56B891BA045601DD417DE9DF /* FrilaTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6601C811A1A965DA9FC56FD6 /* Build configuration list for PBXNativeTarget "FrilaTests" */;
@@ -1266,6 +1345,7 @@
 				0199F941333D110F5C548333 /* Sources */,
 				BFFAAC581EACB7A2539D8163 /* Resources */,
 				51709561D2ABEF149BC09667 /* Frameworks */,
+				37DA57952D3400496F3EC730 /* Embed Foundation Extensions */,
 				E513D2C4DB6A071AFF545B79 /* Embed Frameworks */,
 				C71CC6C8D6D9DB5FFC02F37B /* Select Firebase configuration */,
 				6751E66F61352D3233848C52 /* Upload dos símbolos do Crashlytics */,
@@ -1277,6 +1357,7 @@
 				B5AEF9F33A106ECC09E20098 /* PBXTargetDependency */,
 				3504F9F0C0D2E8CDA50FC5C5 /* PBXTargetDependency */,
 				E5D123FA9778E77B6F370CB1 /* PBXTargetDependency */,
+				5DF23767F68504608A0E0ED5 /* PBXTargetDependency */,
 			);
 			name = Frila;
 			packageProductDependencies = (
@@ -1360,6 +1441,10 @@
 						DevelopmentTeam = 8B7F7G3Y2U;
 						ProvisioningStyle = Automatic;
 					};
+					4E9089A2529EE9900BD94240 = {
+						DevelopmentTeam = 8B7F7G3Y2U;
+						ProvisioningStyle = Automatic;
+					};
 					56B891BA045601DD417DE9DF = {
 						DevelopmentTeam = 8B7F7G3Y2U;
 						ProvisioningStyle = Automatic;
@@ -1406,6 +1491,7 @@
 				2405D2EC08C75F83DA977B62 /* FrilaDados */,
 				9230EC34E08CCD7C3494346E /* FrilaDominio */,
 				9B52884096A2C69464BAC70F /* FrilaInfraestrutura */,
+				4E9089A2529EE9900BD94240 /* FrilaNotificationService */,
 				56B891BA045601DD417DE9DF /* FrilaTests */,
 				BD6828F73C5E237563BBB488 /* FrilaUITests */,
 			);
@@ -1515,6 +1601,14 @@
 				25FBEC6CBC689835B6872D99 /* Licencas.json in Resources */,
 				95F55C7ED119121193117E89 /* Localizable.xcstrings in Resources */,
 				6DA49CC0E9B9D381DD4CCE47 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FB1C7F108DAF302E9B4A37FF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				454D07D8572C68E39427AE6D /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1673,6 +1767,7 @@
 				EB109A72EAD656B68AE13C04 /* ObjetosDeValor.swift in Sources */,
 				CC67B7C42B454CBE2F2175D8 /* PermissaoDePush.swift in Sources */,
 				D9F7F328BB7C0EA59C565EFF /* Portas.swift in Sources */,
+				89953F9A20F9557F385FE98C /* VinculoDoPush.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1780,6 +1875,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FDA7A21396D82B1C2A0F6D26 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C61FEA8E1489601AAFDE7C43 /* NotificationService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		FE82A1C95D5EA286A675CA6E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1819,6 +1922,7 @@
 				B906E4209BD1D93DB0B779BB /* MinhasVagasTests.swift in Sources */,
 				A304C31D035E5BA346F454B0 /* ModoAviaoMeuTurnoTests.swift in Sources */,
 				94EE16BDCB8BBEF9B77079D3 /* ModoSelecaoEmMemoriaTests.swift in Sources */,
+				B6FB3AB57843B922BC5A3136 /* NotificationServiceTests.swift in Sources */,
 				9A60DAFA91838AF4F9001278 /* OfflineTests.swift in Sources */,
 				5C81BB40519F54C56BB074EB /* PerfilProfissionalViewModelTests.swift in Sources */,
 				13680E76BFF8E766208AFAC1 /* PerfisDaContaTests.swift in Sources */,
@@ -1844,6 +1948,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0F9C9D2BCAE5D588A63B17EE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9230EC34E08CCD7C3494346E /* FrilaDominio */;
+			targetProxy = 0F46B0D7060CE72B949766E3 /* PBXContainerItemProxy */;
+		};
 		195FFFA8515095D89A3ED96F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9230EC34E08CCD7C3494346E /* FrilaDominio */;
@@ -1868,6 +1977,11 @@
 			isa = PBXTargetDependency;
 			target = 2D53F81121F391C3E7304CC4 /* FrilaApresentacao */;
 			targetProxy = 0B1DEFF83ADFC97693C74E6F /* PBXContainerItemProxy */;
+		};
+		5DF23767F68504608A0E0ED5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4E9089A2529EE9900BD94240 /* FrilaNotificationService */;
+			targetProxy = 411C7A5D75AB82A49059A40B /* PBXContainerItemProxy */;
 		};
 		9D29718AD9568056B8D674E4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1941,7 +2055,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
@@ -1954,7 +2067,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
@@ -2045,6 +2157,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2059,6 +2172,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2109,6 +2223,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2123,6 +2238,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2143,7 +2259,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
@@ -2156,7 +2271,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
@@ -2321,6 +2435,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -2341,6 +2456,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2494,7 +2610,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
@@ -2507,7 +2622,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
@@ -2579,6 +2693,22 @@
 			};
 			name = "Release-Prod";
 		};
+		BD61512DA030F370A53B730B /* Debug-Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/NotificationService/NotificationService.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/NotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).notificationservice";
+				PRODUCT_NAME = FrilaNotificationService;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Debug-Dev";
+		};
 		CB686C2C62E12372E5AEB973 /* Debug-Dev */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 64ABD0FBD390C7B35FC98DDF /* Dev.xcconfig */;
@@ -2615,6 +2745,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 8B7F7G3Y2U;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -2635,6 +2766,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2649,6 +2781,38 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Debug-Dev";
+		};
+		CD0037F219D7E70A71BC0BF3 /* Release-Beta */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/NotificationService/NotificationService.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/NotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).notificationservice";
+				PRODUCT_NAME = FrilaNotificationService;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Release-Beta";
+		};
+		D1AB04A77265B661BA5A189A /* Debug-Local */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/NotificationService/NotificationService.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/NotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).notificationservice";
+				PRODUCT_NAME = FrilaNotificationService;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Debug-Local";
 		};
 		D20E98D17C6F80CE3329954E /* Release-Prod */ = {
 			isa = XCBuildConfiguration;
@@ -2770,13 +2934,28 @@
 			};
 			name = "Debug-Dev";
 		};
+		F79A39202D22B18B9395E893 /* Release-Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/NotificationService/NotificationService.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/NotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Frila;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID).notificationservice";
+				PRODUCT_NAME = FrilaNotificationService;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Release-Prod";
+		};
 		FB7E7D62245B962BCD2E1295 /* Release-Prod */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Sources/App/Frila.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "pt-BR";
@@ -2789,7 +2968,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(FRILA_BUNDLE_ID)";
 				PRODUCT_NAME = Frila;
@@ -2874,6 +3052,17 @@
 				6DDBA0843CD4C0059D9303F1 /* Debug-Local */,
 				7B8C786025357F9F59979348 /* Release-Beta */,
 				62C32421E79D5824B98E92A2 /* Release-Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Debug-Dev";
+		};
+		BEF185E2F4A36F5E75BE8749 /* Build configuration list for PBXNativeTarget "FrilaNotificationService" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BD61512DA030F370A53B730B /* Debug-Dev */,
+				D1AB04A77265B661BA5A189A /* Debug-Local */,
+				CD0037F219D7E70A71BC0BF3 /* Release-Beta */,
+				F79A39202D22B18B9395E893 /* Release-Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = "Debug-Dev";
