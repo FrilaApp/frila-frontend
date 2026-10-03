@@ -126,6 +126,38 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         DEFINES_MODULE: YES
 
+  # Extensão de serviço de notificação (#253): troca o texto do push de outro vínculo antes de o
+  # sistema mostrá-lo, com o app fechado. Só depende do domínio; o framework é o embutido no app
+  # (`embed: false`), alcançado por `@executable_path/../../Frameworks`.
+  #
+  # O build assinado para aparelho exige, no portal da Apple, o App Group `group.com.frila.org.app`
+  # no App ID principal e um App ID novo para `com.frila.org.app.notificationservice` com o mesmo
+  # grupo; simulador e CI sem assinatura não dependem disso.
+  FrilaNotificationService:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Sources/NotificationService
+      - path: Resources/Frameworks/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      - target: FrilaDominio
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).notificationservice
+        PRODUCT_NAME: FrilaNotificationService
+        TARGETED_DEVICE_FAMILY: "1"
+        # As duas versões têm de ser as do app: a App Store recusa a extensão com versão diferente.
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Frila
+        INFOPLIST_FILE: Sources/NotificationService/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/NotificationService/NotificationService.entitlements
+        LD_RUNPATH_SEARCH_PATHS: $(inherited) @executable_path/Frameworks @executable_path/../../Frameworks
+        SKIP_INSTALL: YES
+
   Frila:
     type: application
     platform: iOS
@@ -142,6 +174,7 @@ targets:
       - target: FrilaDados
       - target: FrilaApresentacao
       - target: FrilaInfraestrutura
+      - target: FrilaNotificationService
     preBuildScripts:
       - name: Validate Supabase configuration
         path: Scripts/validate-supabase-config.sh
