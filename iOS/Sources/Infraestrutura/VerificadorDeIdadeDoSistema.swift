@@ -11,6 +11,22 @@ import UIKit
 public struct VerificadorDeIdadeDoSistema: VerificadorDeIdade {
     public init() {}
 
+    /// Interpreta a faixa etária retornada pela Declared Age Range com corte em 18 anos.
+    ///
+    /// Ordem de decisão:
+    /// 1. lowerBound >= 18 -> 18 ou mais (.dezoitoOuMais)
+    /// 2. upperBound presente e < 18 -> abaixo de 18 (.abaixoDe18)
+    /// 3. qualquer outra combinação (bounds ausentes, cruzando o corte, etc.) -> .indisponivel
+    public static func interpretarFaixa(lowerBound: Int?, upperBound: Int?) -> ResultadoVerificacaoIdade {
+        if let lower = lowerBound, lower >= 18 {
+            return .dezoitoOuMais
+        }
+        if let upper = upperBound, upper < 18 {
+            return .abaixoDe18
+        }
+        return .indisponivel
+    }
+
     @MainActor
     public func verificarMaioridade() async -> ResultadoVerificacaoIdade {
         if #available(iOS 26.2, *) {
@@ -27,16 +43,7 @@ public struct VerificadorDeIdadeDoSistema: VerificadorDeIdade {
                 case .declinedSharing:
                     return .recusou
                 case let .sharing(range):
-                    if let upper = range.upperBound, upper <= 18 {
-                        return .abaixoDe18
-                    }
-                    if let lower = range.lowerBound, lower >= 18 {
-                        return .dezoitoOuMais
-                    }
-                    if range.upperBound != nil {
-                        return .abaixoDe18
-                    }
-                    return .dezoitoOuMais
+                    return Self.interpretarFaixa(lowerBound: range.lowerBound, upperBound: range.upperBound)
                 @unknown default:
                     return .indisponivel
                 }

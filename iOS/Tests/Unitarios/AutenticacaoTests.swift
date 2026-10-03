@@ -2,6 +2,7 @@ import Foundation
 import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
+import FrilaInfraestrutura
 import Testing
 
 @MainActor
@@ -312,6 +313,28 @@ struct AutenticacaoTests {
         #expect(vm.erro == nil)
         #expect(verificador.chamadasAVerificar == 1)
         #expect(await api.chamadasACriarConta == 1)
+    }
+
+    @Test("VerificadorDeIdadeDoSistema interpreta limites da faixa etária com corte em 18")
+    func interpretacaoDeLimitesDaFaixaEtaria() {
+        // 1. lowerBound >= 18 -> maior de idade (18 ou mais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 18, upperBound: nil) == .dezoitoOuMais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 21, upperBound: nil) == .dezoitoOuMais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 18, upperBound: 25) == .dezoitoOuMais)
+
+        // 2. upperBound presente e < 18 -> menor de idade (faixa termina em 17 ou menos)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 17) == .abaixoDe18)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 13, upperBound: 17) == .abaixoDe18)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 16) == .abaixoDe18)
+
+        // 3. upperBound == 18 não é tratado como menor (< 18 estrito), vai para indisponível
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 18) == .indisponivel)
+
+        // 4. Ambos nulos não comprovam nada -> indisponível (segue com a data)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: nil) == .indisponivel)
+
+        // 5. Faixa ambígua que cruza o corte (ex: 16 a 20) -> indisponível
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 16, upperBound: 20) == .indisponivel)
     }
 
     @Test("CadastroViewModel trata erro 409 conta_existente da API")
