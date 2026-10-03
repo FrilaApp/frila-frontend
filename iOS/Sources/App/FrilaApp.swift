@@ -58,14 +58,19 @@ struct FrilaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            switch inicializacao {
-            case let .pronta(dependencias):
-                PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: dependencias.api, versaoAtual: versao)) {
-                    EntradaDoApp(dependencias, armazenamento: armazenamento, navegacao: delegado.navegacao)
+            Group {
+                switch inicializacao {
+                case let .pronta(dependencias):
+                    PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: dependencias.api, versaoAtual: versao)) {
+                        EntradaDoApp(dependencias, armazenamento: armazenamento, navegacao: delegado.navegacao)
+                    }
+                case let .configuracaoInvalida(erro):
+                    TelaDeConfiguracaoInvalida(erro: erro)
                 }
-            case let .configuracaoInvalida(erro):
-                TelaDeConfiguracaoInvalida(erro: erro)
             }
+            #if FRILA_ENSAIO_FALHA
+            .overlay(alignment: .bottomLeading) { BotaoDeFalhaDoEnsaio() }
+            #endif
         }
     }
 
@@ -80,6 +85,13 @@ struct FrilaApp: App {
             throw ErroDeConfiguracao(ambiente: ambiente.ambiente, motivo: .simuladoForaDoLocal)
             #endif
         case let .supabase(url, chavePublicavel):
+            #if DEBUG || FRILA_MEDICAO
+            // Medição (#73): a sessão HTTP soma os bytes de cada requisição.
+            if RegistroDeMedicoes.ativo {
+                return SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaCrashlytics(),
+                                          sessaoMedida: MedidorDeRede.sessao())
+            }
+            #endif
             return SupabaseApiCliente(url: url, chavePublicavel: chavePublicavel, telemetria: TelemetriaCrashlytics())
         }
     }
@@ -274,6 +286,11 @@ private struct EntradaDoApp: View {
             fluxoOuTelaSemSessao
             #endif
         }
+        #if DEBUG || FRILA_MEDICAO
+        .overlay(alignment: .bottomTrailing) {
+            if RegistroDeMedicoes.ativo { BotaoDeMedicoes() }
+        }
+        #endif
         .environment(permissaoDePush)
         .sheet(isPresented: $permissaoDePush.explicacaoVisivel) {
             TelaExplicacaoDoPush(modelo: permissaoDePush, perfil: destinoAtual == .contratante ? .contratante : .profissional)

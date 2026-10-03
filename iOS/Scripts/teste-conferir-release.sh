@@ -147,6 +147,12 @@ for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_E
   esperar_reprovacao "gancho no executável: $gancho" "$gancho" "$app"
 done
 
+# Ensaio de falha do TestFlight (#203): o botão reprova no Release comum e passa só no build de ensaio.
+app="$(novo_app_bom ensaio-falha)"
+printf '\n%s\n' 'ensaio-forcar-falha' >> "$app/Frila"
+esperar_reprovacao "botão do ensaio de falha fora do build de ensaio" "ensaio-forcar-falha" "$app"
+(export FRILA_ENSAIO_FALHA=1; esperar_aprovacao "$app")
+
 app="$(novo_app_bom gancho-framework)"
 mkdir -p "$app/Frameworks/Teste.framework"
 printf 'binario com -FRILA_SCENARIO\n' > "$app/Frameworks/Teste.framework/Teste"
@@ -165,6 +171,23 @@ app="$(novo_app_bom simbolo-de-produto)"
 printf 'int TelaLicencas(void) { return 0; }\nint main(void) { return TelaLicencas(); }\n' |
   compilar_com_entitlements "$app/Frila"
 esperar_aprovacao "$app"
+
+# Medição de desempenho (#73): a chave e os tipos reprovam no Release comum e passam só no build de
+# medição.
+for gancho in frila-medicao-de-desempenho -FRILA_MEDICAO medicoes-abrir; do
+  app="$(novo_app_bom "medicao-gancho$gancho")"
+  printf '\n%s\n' "$gancho" >> "$app/Frila"
+  esperar_reprovacao "gancho da medição fora do build de medição: $gancho" "$gancho" "$app"
+  (export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+done
+
+for simbolo in RegistroDeMedicoes MedidorDeRede BotaoDeMedicoes; do
+  app="$(novo_app_bom "medicao-$simbolo")"
+  printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
+    compilar_com_entitlements "$app/Frila"
+  esperar_reprovacao "símbolo da medição fora do build de medição: $simbolo" "$simbolo" "$app"
+  (export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+done
 
 # Push (#8): o Release declara aps-environment = production.
 app="$(novo_app_bom aps-de-desenvolvimento)"

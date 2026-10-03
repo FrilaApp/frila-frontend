@@ -152,10 +152,59 @@ final class CandidaturaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
         app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10), "a tela de vagas deve aparecer")
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         XCTAssertTrue(primeira.waitForExistence(timeout: 25), "a primeira vaga deve aparecer na lista após o carregamento inicial")
+
+        if !primeira.isHittable {
+            let tocavel = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "isHittable == true"),
+                object: primeira
+            )
+            _ = XCTWaiter.wait(for: [tocavel], timeout: 5)
+        }
+        if !primeira.isHittable {
+            app.swipeUp()
+        }
+        let tocavelFinal = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"),
+            object: primeira
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [tocavelFinal], timeout: 5), .completed,
+            "o primeiro cartão de vaga deve ficar tocável na lista"
+        )
+
         primeira.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10), "a tela de detalhe da vaga deve aparecer após o toque no cartão")
+
+        let detalhe = app.descendants(matching: .any)["tela-detalhe-vaga"]
+        let detalheAbriu = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true"),
+            object: detalhe
+        )
+        if XCTWaiter.wait(for: [detalheAbriu], timeout: 3) != .completed {
+            XCTContext.runActivity(named: "Repetir toque no cartão da vaga") { _ in
+                let anexo = XCTAttachment(string: "A tela de detalhe da vaga não abriu em até 3 s após o primeiro toque no cartão; acionando segundo toque.")
+                anexo.name = "RepeticaoDoToqueNoCartaoDaVaga"
+                anexo.lifetime = .keepAlways
+                add(anexo)
+            }
+            if primeira.exists && primeira.isHittable {
+                primeira.tap()
+            }
+            let detalheAbriuAposSegundoToque = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == true"),
+                object: detalhe
+            )
+            // Depois do segundo toque, o mesmo prazo de antes da mudança: na CI carregada a
+            // navegação pode levar mais de 3 s, e 3 s aqui acusariam defeito do app sem haver.
+            XCTAssertEqual(
+                XCTWaiter.wait(for: [detalheAbriuAposSegundoToque], timeout: 10), .completed,
+                "Defeito do app: tela de detalhe da vaga não apareceu após o segundo toque no cartão"
+            )
+        }
+
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
         XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")

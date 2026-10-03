@@ -102,6 +102,13 @@ ganchos_de_desenvolvimento=(
   'forcar-falha-crashlytics'
 )
 
+# O botão do ensaio de falha (#203) só pode estar no build de ensaio, que o enviar-testflight.sh
+# compila com FRILA_ENSAIO_FALHA=1 e manda ao TestFlight só para teste interno. Em qualquer outro
+# Release ele reprova.
+if [[ "${FRILA_ENSAIO_FALHA:-}" != "1" ]]; then
+  ganchos_de_desenvolvimento+=('ensaio-forcar-falha')
+fi
+
 # Strings Swift curtas podem ser materializadas diretamente nas instruções do
 # processador, sem uma sequência de bytes contígua. Esses símbolos só podem
 # existir em Debug; em um bundle de Release indicam um gancho de desenvolvimento.
@@ -111,6 +118,14 @@ simbolos_de_desenvolvimento=(
   'pelosArgumentos'
   'CatalogoDesignSystem'
 )
+
+# A medição de desempenho (#73) só pode estar no build de medição, que o enviar-testflight.sh
+# compila com FRILA_MEDICAO=1 e manda ao TestFlight só para teste interno. Em qualquer outro
+# Release reprovam a chave das medições, o argumento que as liga, o botão e os tipos que medem.
+if [[ "${FRILA_MEDICAO:-}" != "1" ]]; then
+  ganchos_de_desenvolvimento+=('frila-medicao-de-desempenho' '-FRILA_MEDICAO' 'medicoes-abrir')
+  simbolos_de_desenvolvimento+=('RegistroDeMedicoes' 'MedidorDeRede' 'BotaoDeMedicoes')
+fi
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
   for gancho in "${ganchos_de_desenvolvimento[@]}"; do
