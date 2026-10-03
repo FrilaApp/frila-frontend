@@ -131,7 +131,9 @@ uma marca não cromática.
 O app quase não anima. Única animação explícita: `TelaDetalheVaga.swift:60`, `withAnimation` ao
 rolar até os avisos; não consulta `accessibilityReduceMotion`. Fica: arquivo ocupado (#97). Os
 `ProgressView` são o indicador do sistema, que já respeita a preferência. A passada da suíte com
-Reduzir Movimento ligado não mudou os achados (ver "Como rodar").
+Reduzir Movimento ligado (03/10) não trouxe achado novo: o conjunto foi o mesmo da passada sem a
+preferência, menos dois apontamentos que dependem do que estava visível no momento (o texto
+cortado do modo seleção no detalhe da vaga e um contraste em AX5 na exclusão de conta).
 
 ## Fora da auditoria automática (para a parte humana do #71)
 
