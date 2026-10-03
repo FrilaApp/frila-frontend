@@ -42,6 +42,12 @@ struct FrilaApp: App {
             if api is ApiClienteEmMemoria {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
             }
+            if ProcessInfo.processInfo.arguments.contains("-FRILA_SCENARIO")
+                || ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-FRILA_") }) {
+                MainActor.assumeIsolated {
+                    UIView.setAnimationsEnabled(false)
+                }
+            }
             #endif
             let aparelho = Self.aparelhoDePush(para: api)
             inicializacao = .pronta(Dependencias(
@@ -66,6 +72,15 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
+            #if DEBUG
+            .transaction { transaction in
+                let args = ProcessInfo.processInfo.arguments
+                if args.contains("-FRILA_SCENARIO") || args.contains(where: { $0.hasPrefix("-FRILA_") }) {
+                    transaction.disablesAnimations = true
+                    transaction.animation = nil
+                }
+            }
+            #endif
             #if FRILA_ENSAIO_FALHA
             .overlay(alignment: .bottomLeading) { BotaoDeFalhaDoEnsaio() }
             #endif

@@ -40,7 +40,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
 
         for _ in 0..<tentativas {
             guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elemento.frame
@@ -55,19 +55,19 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
             case .nenhuma:
                 break
             case .rolarParaBaixo:
-                app.swipeDown(velocity: .slow)
+                app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
             if direcao == .nenhuma { break }
         }
 
         var anterior = CGRect.null
-        for _ in 0..<10 {
+        for _ in 0..<3 {
             let atual = elemento.frame
             if atual == anterior { break }
             anterior = atual
-            Thread.sleep(forTimeInterval: 0.3)
+            Thread.sleep(forTimeInterval: 0.05)
         }
     }
 
@@ -152,14 +152,14 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     /// Capturas do catálogo em AX5, anexadas ao resultado, para conferir texto cortado.
     func testCapturasDoCatalogoEmAX5() {
         let app = abrirCatalogo(tamanho: Self.ax5)
+        let fim = app.buttons["abrir-licencas"]
         for indice in 0..<12 {
             let captura = XCTAttachment(screenshot: app.screenshot())
             captura.name = String(format: "catalogo-ax5-%02d", indice)
             captura.lifetime = .keepAlways
             add(captura)
-            let antes = app.screenshot().pngRepresentation
+            if fim.exists && fim.isHittable { break }
             app.swipeUp()
-            if app.screenshot().pngRepresentation == antes { break }
         }
     }
 }

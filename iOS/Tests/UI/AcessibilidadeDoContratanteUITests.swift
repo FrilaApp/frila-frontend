@@ -96,15 +96,17 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         // 1.3 Botões Sim/Não dentro da tela
         let botoesSim = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Sim" }
         XCTAssertEqual(botoesSim.count, 3)
-        for (i, sim) in botoesSim.enumerated() {
+        let botoesNao = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Não" }
+        XCTAssertEqual(botoesNao.count, 3)
+
+        for i in 0..<3 {
+            let sim = botoesSim[i]
+            let nao = botoesNao[i]
+
             trazerParaATela(sim, em: app)
             XCTAssertLessThanOrEqual(sim.frame.maxX, larguraTela, "Sim[\(i)] extrapolou a largura")
             XCTAssertTrue(sim.isHittable)
-        }
 
-        let botoesNao = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Não" }
-        XCTAssertEqual(botoesNao.count, 3)
-        for (i, nao) in botoesNao.enumerated() {
             trazerParaATela(nao, em: app)
             XCTAssertLessThanOrEqual(nao.frame.maxX, larguraTela, "Não[\(i)] extrapolou a largura")
             XCTAssertTrue(nao.isHittable)
@@ -201,7 +203,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         for _ in 0..<tentativas {
             guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elemento.frame
@@ -216,9 +218,9 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             case .nenhuma:
                 break
             case .rolarParaBaixo:
-                app.swipeDown(velocity: .slow)
+                app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
             if direcao == .nenhuma { break }
         }

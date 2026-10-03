@@ -196,19 +196,18 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         let botoesSim = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Sim" }
         XCTAssertEqual(botoesSim.count, 3, "Devem existir 3 seletores com botão Sim (refeição, transporte, material)")
+        let botoesNao = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Não" }
+        XCTAssertEqual(botoesNao.count, 3, "Devem existir 3 seletores com botão Não (refeição, transporte, material)")
 
-        for (indice, sim) in botoesSim.enumerated() {
+        for indice in 0..<3 {
+            let sim = botoesSim[indice]
+            let nao = botoesNao[indice]
             trazerParaATela(sim, em: app)
             let quadroSim = sim.frame
             XCTAssertLessThanOrEqual(quadroSim.maxX, larguraTela, "Botão Sim[\(indice)] extrapolou a tela: maxX=\(quadroSim.maxX) > largura=\(larguraTela)")
             XCTAssertGreaterThanOrEqual(quadroSim.minX, 0, "Botão Sim[\(indice)] fora da tela à esquerda: minX=\(quadroSim.minX)")
             XCTAssertTrue(sim.isHittable, "Botão Sim[\(indice)] deve ser tocável")
-        }
 
-        let botoesNao = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Não" }
-        XCTAssertEqual(botoesNao.count, 3, "Devem existir 3 seletores com botão Não (refeição, transporte, material)")
-
-        for (indice, nao) in botoesNao.enumerated() {
             trazerParaATela(nao, em: app)
             let quadroNao = nao.frame
             XCTAssertLessThanOrEqual(quadroNao.maxX, larguraTela, "Botão Não[\(indice)] extrapolou a tela: maxX=\(quadroNao.maxX) > largura=\(larguraTela)")
@@ -268,7 +267,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         for _ in 0..<tentativas {
             guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elemento.frame
@@ -283,9 +282,9 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             case .nenhuma:
                 break
             case .rolarParaBaixo:
-                app.swipeDown(velocity: .slow)
+                app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
             if direcao == .nenhuma { break }
         }

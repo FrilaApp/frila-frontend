@@ -32,6 +32,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUser
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-FRILA_SCENARIO") || args.contains(where: { $0.hasPrefix("-FRILA_") }) {
+            UIView.setAnimationsEnabled(false)
+        }
+        #endif
         // Antes de a abertura terminar: é assim que o toque que abriu o app chega ao delegate.
         UNUserNotificationCenter.current().delegate = self
         return true

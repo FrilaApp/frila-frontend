@@ -13,8 +13,10 @@ final class LicencasUITests: XCTestCase {
         let entrada = app.buttons["abrir-licencas"]
         let janela = app.windows.firstMatch
         for _ in 0..<12 {
-            let areaVisivel = janela.frame.insetBy(dx: 0, dy: entrada.frame.height)
-            if entrada.isHittable && areaVisivel.contains(entrada.frame) { break }
+            if entrada.exists && entrada.isHittable {
+                let areaVisivel = janela.frame.insetBy(dx: 0, dy: entrada.frame.height)
+                if areaVisivel.contains(entrada.frame) { break }
+            }
             app.swipeUp()
         }
         XCTAssertTrue(entrada.isHittable, "a entrada das licenças não apareceu no catálogo")
