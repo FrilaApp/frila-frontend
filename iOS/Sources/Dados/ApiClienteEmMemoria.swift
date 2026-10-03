@@ -94,6 +94,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case servidorAntigo = "servidor-antigo"
         /// Servidor de hoje no lado do profissional: turnos sem estado, avaliacao e cancelamento; candidaturas sem turno_id.
         case profissionalServidorAntigo = "profissional-servidor-antigo"
+        #if DEBUG
+        /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
+        case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
+        #endif
 
         public var isServidorAntigo: Bool {
             self == .servidorAntigo || self == .profissionalServidorAntigo
@@ -221,11 +225,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
             candidatosDeExemplo = try FixturesDoContrato.carregar("candidatos", como: [ContratoAPI.CandidatoDTO].self).map { $0.dominio() }
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
+            #if DEBUG
+            let ehCicloContratante = cenario == .cicloContratanteTurnoConcluido
+            #else
+            let ehCicloContratante = false
+            #endif
             if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -265,18 +274,21 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .checkinManualPendente, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
+                #if DEBUG
+                case .cicloContratanteTurnoConcluido: -10 * 60 * 60
+                #endif
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .vagaEmSelecao, .candidaturaPendente, .retirarSemRede,
                      .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
                 default: 24 * 60 * 60
                 }
-                let baseVaga = cenario == .vagaEncerradaContratante ? Self.copia(vaga, estado: .encerrada) : vaga
+                let baseVaga = (cenario == .vagaEncerradaContratante || ehCicloContratante) ? Self.copia(vaga, estado: .encerrada) : vaga
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
             if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
-                || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo,
+                || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante,
                 let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "82000000-0000-0000-0000-000000000002")!
@@ -289,7 +301,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let turnoExemplo = Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: (cenario == .painelContratante || cenario == .checkinConfirmado || cenario == .servidorAntigo) ? .verificado : .pendente,
+                    verificacao: (cenario == .painelContratante || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
                     valorAcordado: vaga.valor, podeAvaliar: false
                 )
                 if cenario == .posicaoCanceladaComMotivo {
@@ -309,12 +321,18 @@ public actor ApiClienteEmMemoria: ApiCliente {
                             turnoID: turnoID, tipo: .manual, verificacao: .pendente,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
                         )
-                    } else if cenario == .checkinConfirmado {
+                    } else if cenario == .checkinConfirmado || ehCicloContratante {
                         checkins[turnoID] = ResultadoRegistro(
                             turnoID: turnoID, tipo: .manual, verificacao: .verificado,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-5 * 60), distanciaMetros: nil
                         )
                         confirmacoesDeCheckin[turnoID] = vaga.periodo.inicio.addingTimeInterval(2 * 60)
+                        if ehCicloContratante {
+                            checkouts[turnoID] = ResultadoRegistro(
+                                turnoID: turnoID, tipo: .manual, verificacao: .verificado,
+                                registradoEm: vaga.periodo.fim, distanciaMetros: nil
+                            )
+                        }
                     }
                 }
                 self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
@@ -873,7 +891,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let posicaoID = ocuparPosicaoAberta(vagaID)
         let turno = Turno(
             id: UUID(), posicaoID: posicaoID, vaga: vaga.resumo, contraparte: vaga.estabelecimento, contatoVisivelAte: visivelAte,
-            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false
+            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false, contato: contato
         )
         turnos.append(turno)
         contatos[turno.id] = contato
@@ -1003,7 +1021,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
                 contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
                 checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
-                valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
+                valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: contatos[t.id] ?? t.contato,
                 estado: estado, avaliacao: avaliacao, avaliacaoInformada: true, cancelamento: t.cancelamento,
                 avaliacaoLidaEm: Date()
             )
