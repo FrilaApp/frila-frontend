@@ -107,6 +107,7 @@ struct TelaTurnoDoContratante: View {
     let turnoID: UUID
     let api: (any ApiCliente)?
     @State private var cancelamento: CancelamentoViewModel?
+    @State private var suporteTurno: TurnoAcompanhado?
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
@@ -145,6 +146,13 @@ struct TelaTurnoDoContratante: View {
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
+        .sheet(item: $suporteTurno) { turno in
+            FolhaSuporteTurno(
+                viewModel: SuporteTurnoViewModel(
+                    dados: ContextoSuporteTurno(turnoAcompanhado: turno)
+                )
+            )
+        }
         .accessibilityIdentifier("turno-do-contratante")
     }
 
@@ -181,10 +189,30 @@ struct TelaTurnoDoContratante: View {
                 .accessibilityIdentifier("cancelar-posicao-\(turno.posicao.id)")
         }
 
-        rodapeSeguranca(turno)
+        rodapeAcoes(turno)
     }
 
-    // MARK: - Ações de segurança (#39)
+    // MARK: - Ações de suporte e segurança (#21, #39)
+
+    @ViewBuilder
+    private func rodapeAcoes(_ turno: TurnoAcompanhado) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            botaoSuporte(turno)
+            rodapeSeguranca(turno)
+        }
+    }
+
+    private func botaoSuporte(_ turno: TurnoAcompanhado) -> some View {
+        Button {
+            suporteTurno = turno
+        } label: {
+            Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier("botao-ajuda-turno")
+        .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
+    }
 
     @ViewBuilder
     private func rodapeSeguranca(_ turno: TurnoAcompanhado) -> some View {

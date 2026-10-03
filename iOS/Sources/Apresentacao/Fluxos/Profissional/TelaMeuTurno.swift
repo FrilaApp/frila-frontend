@@ -4,6 +4,7 @@ import SwiftUI
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
     @State private var cancelamento: CancelamentoViewModel?
+    @State private var mostrandoSuporte = false
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
@@ -41,7 +42,7 @@ public struct TelaMeuTurno: View {
                 if viewModel.podeCancelar {
                     botaoCancelar
                 }
-                rodapeSeguranca
+                rodapeAcoes
             }
             .padding(FrilaEspaco.medio)
         }
@@ -52,10 +53,36 @@ public struct TelaMeuTurno: View {
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
+        .sheet(isPresented: $mostrandoSuporte) {
+            FolhaSuporteTurno(
+                viewModel: SuporteTurnoViewModel(
+                    dados: ContextoSuporteTurno(turno: viewModel.turno)
+                )
+            )
+        }
         .accessibilityIdentifier("tela-meu-turno")
     }
 
-    // MARK: - Ações de segurança (#39)
+    // MARK: - Ações de suporte e segurança (#21, #39)
+
+    private var rodapeAcoes: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            botaoSuporte
+            rodapeSeguranca
+        }
+    }
+
+    private var botaoSuporte: some View {
+        Button {
+            mostrandoSuporte = true
+        } label: {
+            Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier("botao-ajuda-turno")
+        .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
+    }
 
     private var rodapeSeguranca: some View {
         AcoesDeSeguranca(
