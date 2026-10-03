@@ -32,8 +32,15 @@ public struct TelaMeuTurno: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)
-        .task { await viewModel.carregar() }
+        .task { await medirAbertura(.meuTurno, carregar: viewModel.carregar, pronto: contatoNaTela) }
         .accessibilityIdentifier("tela-meu-turno")
+    }
+
+    /// Fim da medição de abertura (#73): a carga da API encerrada (contato e responsável local), com
+    /// o contato na tela.
+    private var contatoNaTela: @MainActor @Sendable () -> Bool {
+        let viewModel = viewModel
+        return { !viewModel.carregandoContato && viewModel.contato != nil }
     }
 
     private var cabecalho: some View {
