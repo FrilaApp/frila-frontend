@@ -163,6 +163,12 @@ private struct Dependencias {
 /// Limite: `possuiSessao()` pode precisar da rede para renovar; offline com sessão guardada, cai na
 /// tela de antes até a próxima abertura.
 private struct EntradaDoApp: View {
+    #if DEBUG
+    // A tela pode ser reconstruída: a fila e os modelos do teste precisam usar o mesmo banco.
+    private static let armazenamentoDeTeste = try? ArmazenamentoSwiftData(
+        modelContainer: PersistenciaFrila.criarContainer(emMemoria: true)
+    )
+    #endif
     let api: any ApiCliente
     let armazenamento: ArmazenamentoSwiftData?
     let localizacao: any LeitorDeLocalizacao
@@ -202,7 +208,7 @@ private struct EntradaDoApp: View {
         // Reproduz a instalação anterior ao cache de sessão, somente com o dublê Local.
         let armazenamento: ArmazenamentoSwiftData? = if api is ApiClienteEmMemoria,
             ProcessInfo.processInfo.arguments.contains("-FRILA_CACHE_VAZIO_UI_TEST") {
-            try? ArmazenamentoSwiftData(modelContainer: PersistenciaFrila.criarContainer(emMemoria: true))
+            Self.armazenamentoDeTeste
         } else if api is ApiClienteEmMemoria,
                   ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_CACHE_UI_TEST") {
             nil
