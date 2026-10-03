@@ -16,7 +16,9 @@ permissions:
 
 concurrency:
   group: ios-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Também no main: a execução mais nova já cobre os merges anteriores, e com o limite de runners
+  # macOS as antigas só atrasariam a fila dos PRs (Nick Fury, revisão do #102).
+  cancel-in-progress: true
 
 jobs:
   ios:
