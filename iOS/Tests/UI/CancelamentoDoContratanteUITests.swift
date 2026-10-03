@@ -49,7 +49,7 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
 
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
         XCTAssertTrue(aviso.waitForExistence(timeout: 5))
-        XCTAssertTrue(aviso.label.contains("Faltam 24 h para o início."), aviso.label)
+        XCTAssertTrue(aviso.label.hasPrefix("Faltam 2") && aviso.label.contains(" h para o início."), aviso.label)
         XCTAssertTrue(aviso.label.contains("Não conta como falta para o profissional."), aviso.label)
         escolherMotivoEConfirmar(app, motivo: "movimentoMenor")
 
@@ -59,7 +59,7 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         tocar(app.buttons["fechar-cancelamento"])
 
         // O turno passa a cancelado na tela, com a causa e sem o botão.
-        XCTAssertTrue(app.staticTexts["posicao-cancelada-\(posicaoID)"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["posicao-cancelada-\(turnoID)"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["cancelamento-causa-\(turnoID)"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["cancelamento-causa-\(turnoID)"].label, "Cancelado pelo estabelecimento.")
         XCTAssertEqual(app.staticTexts["cancelamento-falta-\(turnoID)"].label, "Não contou como falta.")

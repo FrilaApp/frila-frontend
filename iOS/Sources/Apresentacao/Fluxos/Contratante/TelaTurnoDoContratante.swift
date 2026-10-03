@@ -215,8 +215,9 @@ struct TelaTurnoDoContratante: View {
         case .naoVerificada:
             Text(verbatim: TextosDoAcompanhamento.naoVerificada)
         case .cancelada:
+            // O bloco inteiro usa o id do turno: `turno.id` é o da posição, outro valor.
             Text(verbatim: TextosDoAcompanhamento.cancelada).font(.headline)
-                .accessibilityIdentifier("posicao-cancelada-\(turno.id)")
+                .accessibilityIdentifier("posicao-cancelada-\(turnoID)")
             if let cancelamento = turno.posicao.cancelamento {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: TextosDoAcompanhamento.textoDaCausa(cancelamento.causa))
