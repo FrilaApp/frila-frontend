@@ -84,7 +84,8 @@ public final class RepublicarVagaViewModel {
         self.tentativaRestaurada = fila == nil
         self.agora = agora
         self.aoConcluir = aoConcluir
-        let inicioPadrao = agora().addingTimeInterval(3 * 3600)
+        let antecedencia: TimeInterval = vagaOriginal.modo == .selecao ? 25 * 3600 : 3 * 3600
+        let inicioPadrao = agora().addingTimeInterval(antecedencia)
         self.inicio = inicioPadrao
         self.fim = inicioPadrao.addingTimeInterval(4 * 3600)
         self.republicarAPI = { id, periodo, chave in
@@ -104,7 +105,8 @@ public final class RepublicarVagaViewModel {
         self.tentativaRestaurada = fila == nil
         self.agora = agora
         self.aoConcluir = aoConcluir
-        let inicioPadrao = agora().addingTimeInterval(3 * 3600)
+        let antecedencia: TimeInterval = vagaOriginal.modo == .selecao ? 25 * 3600 : 3 * 3600
+        let inicioPadrao = agora().addingTimeInterval(antecedencia)
         self.inicio = inicioPadrao
         self.fim = inicioPadrao.addingTimeInterval(4 * 3600)
         self.republicarAPI = republicar
