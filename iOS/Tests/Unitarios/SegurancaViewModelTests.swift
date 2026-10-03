@@ -67,17 +67,17 @@ struct SegurancaViewModelTests {
     }
 
     @Test("422 e sem rede preservam formulário e não anunciam sucesso", arguments: [
-        ErroDaApi(codigo: .campoInvalido, detalhes: "relato"),
-        ErroDaApi(codigo: .campoInvalido, detalhes: "alvo_id"),
-        ErroDaApi(codigo: .semRede)
+        (ErroDaApi(codigo: .campoInvalido, detalhes: "relato"), TextosDaSeguranca.relatoMinimo),
+        (ErroDaApi(codigo: .campoInvalido, detalhes: "alvo_id"), TextosDaSeguranca.dadosInvalidos),
+        (ErroDaApi(codigo: .semRede), TextosDaSeguranca.semRede)
     ])
-    func falhas(_ falha: ErroDaApi) async throws {
-        let api = ApiDeSeguranca(falha: falha)
+    func falhas(_ caso: (falha: ErroDaApi, mensagemEsperada: String)) async throws {
+        let api = ApiDeSeguranca(falha: caso.falha)
         let model = SegurancaViewModel(perfil: try await perfil(api), api: api, bloqueios: BloqueiosDaSessao())
         model.relato = "Relato com informação suficiente."
         await model.denunciar()
         #expect(model.protocolo == nil)
-        #expect(model.erroDenuncia != nil)
+        #expect(model.erroDenuncia == caso.mensagemEsperada)
         #expect(!model.enviando)
         #expect(model.relato == "Relato com informação suficiente.")
     }
@@ -138,15 +138,18 @@ struct SegurancaViewModelTests {
         await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) { try await api.perfilPublico(id: perfil.id) }
     }
 
-    @Test("Bloqueio recusado não esconde o perfil", arguments: [ErroDaApi(codigo: .semRede), ErroDaApi(codigo: .campoInvalido)])
-    func bloqueioRecusado(_ falha: ErroDaApi) async throws {
-        let api = ApiDeSeguranca(falha: falha)
+    @Test("Bloqueio recusado não esconde o perfil", arguments: [
+        (ErroDaApi(codigo: .semRede), TextosDaSeguranca.semRede),
+        (ErroDaApi(codigo: .campoInvalido), TextosDaSeguranca.dadosInvalidos)
+    ])
+    func bloqueioRecusado(_ caso: (falha: ErroDaApi, mensagemEsperada: String)) async throws {
+        let api = ApiDeSeguranca(falha: caso.falha)
         let perfil = try await perfil(api)
         let bloqueios = BloqueiosDaSessao()
         let model = SegurancaViewModel(perfil: perfil, api: api, bloqueios: bloqueios)
         await model.bloquear()
         #expect(!bloqueios.contem(perfil))
-        #expect(model.erroBloqueio != nil)
+        #expect(model.erroBloqueio == caso.mensagemEsperada)
         #expect(!model.bloqueando)
     }
 

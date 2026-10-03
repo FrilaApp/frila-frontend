@@ -83,6 +83,7 @@
 		4960BAD0F673063DFFD3A7C0 /* LimpezaAposExclusaoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDB5399BC57C113CCC2D222 /* LimpezaAposExclusaoTests.swift */; };
 		4A169BB24BDBD8649C0389C7 /* requisicao-atualizar-perfil-profissional.json in Resources */ = {isa = PBXBuildFile; fileRef = 5268253D3E9962AAF683E3E3 /* requisicao-atualizar-perfil-profissional.json */; };
 		4A51F1AA8A8BB58B30E5CA52 /* FrilaDominio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB1C9418030D443FD69D9F6 /* FrilaDominio.framework */; };
+		4B17E69F1B2BEDF9E9EA34E2 /* FalhaDoEnsaio.swift in Sources */ = {isa = PBXBuildFile; fileRef = F03620A0E7DF14942A7C5C21 /* FalhaDoEnsaio.swift */; };
 		4B688DCF0EC15B06B423AB97 /* meus-estabelecimentos.json in Resources */ = {isa = PBXBuildFile; fileRef = A086191DC3C779885EE287F4 /* meus-estabelecimentos.json */; };
 		4BAB738FD90B43A571C829C8 /* AparelhoDePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73537BBAEE93EF4D74DA73DC /* AparelhoDePush.swift */; };
 		4BBF0BBD69794290A3625836 /* FrilaDados.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; };
@@ -648,6 +649,7 @@
 		EF29CC4667387305BCA22ACE /* AcessibilidadeDoProfissionalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcessibilidadeDoProfissionalUITests.swift; sourceTree = "<group>"; };
 		EF5B72F30D0CCEECEC364061 /* FluxoDoContratante.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxoDoContratante.swift; sourceTree = "<group>"; };
 		EFFA5C9E0B97FFBEB3C9B9EF /* requisicao-contestar-suspensao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-contestar-suspensao.json"; sourceTree = "<group>"; };
+		F03620A0E7DF14942A7C5C21 /* FalhaDoEnsaio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FalhaDoEnsaio.swift; sourceTree = "<group>"; };
 		F0DA006730D576E939544D91 /* SegurancaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegurancaViewModel.swift; sourceTree = "<group>"; };
 		F0FDB3EB718F49E2C016581D /* CodigoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodigoViewModel.swift; sourceTree = "<group>"; };
 		F18EDC8A8F5B8A3E3AE143CA /* CandidatosDaVagaViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidatosDaVagaViewModelTests.swift; sourceTree = "<group>"; };
@@ -1054,6 +1056,7 @@
 			children = (
 				76B982881F426B2CA442617F /* AppDelegate.swift */,
 				0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */,
+				F03620A0E7DF14942A7C5C21 /* FalhaDoEnsaio.swift */,
 				330A7012F96AEC9C169084D2 /* Frila.entitlements */,
 				A3EA317E9C0EB7474F7C47B5 /* FrilaApp.swift */,
 				4A4761B77D354376319394B1 /* Info.plist */,
@@ -1585,6 +1588,7 @@
 			files = (
 				7AF3C1AD00063EB0CC0ED4CB /* AppDelegate.swift in Sources */,
 				09A0B06C662525A8361F803D /* ConfiguracaoAmbiente.swift in Sources */,
+				4B17E69F1B2BEDF9E9EA34E2 /* FalhaDoEnsaio.swift in Sources */,
 				E37C08338359D5E72F19001B /* FrilaApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

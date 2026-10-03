@@ -453,19 +453,21 @@ public enum EstadoCandidatura: String, Codable, CaseIterable, Sendable {
     case expirada
 }
 
-/// A candidatura como o profissional a vê em `minhas_candidaturas` (`Candidatura` do contrato). Não
-/// traz posição nem turno: o turno da candidatura aceita está em `meus_turnos`, pela vaga.
+/// A candidatura como o profissional a vê em `minhas_candidaturas` (`Candidatura` do contrato).
+/// Traz o `turnoID` (0.2.32) quando a candidatura for aceita.
 public struct Candidatura: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let vaga: VagaResumo
     public let estado: EstadoCandidatura
     public let criadaEm: Date
+    public let turnoID: UUID?
 
-    public init(id: UUID, vaga: VagaResumo, estado: EstadoCandidatura, criadaEm: Date) {
+    public init(id: UUID, vaga: VagaResumo, estado: EstadoCandidatura, criadaEm: Date, turnoID: UUID? = nil) {
         self.id = id
         self.vaga = vaga
         self.estado = estado
         self.criadaEm = criadaEm
+        self.turnoID = turnoID
     }
 }
 

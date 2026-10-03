@@ -4513,16 +4513,6 @@
         }
       }
     },
-    "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
-          }
-        }
-      }
-    },
     "—": {
       "localizations": {
         "pt-BR": {

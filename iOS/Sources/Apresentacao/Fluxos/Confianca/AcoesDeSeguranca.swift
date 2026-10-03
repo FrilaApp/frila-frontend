@@ -102,6 +102,7 @@ private struct FolhaDeDenuncia: View {
             }
             .interactiveDismissDisabled(model.enviando)
             .onChange(of: model.protocolo) { protocoloEmFoco = model.protocolo != nil }
+            .onAppear { if model.protocolo != nil { protocoloEmFoco = true } }
         }
     }
 }

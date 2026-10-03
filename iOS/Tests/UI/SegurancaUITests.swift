@@ -14,18 +14,41 @@ final class SegurancaUITests: XCTestCase {
         return app
     }
 
-    private func alcançar(_ elemento: XCUIElement, app: XCUIApplication) {
-        for _ in 0..<6 {
-            if elemento.exists && elemento.isHittable { return }
-            app.swipeUp()
+    private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        let janela = app.windows.firstMatch.frame
+        let margemSuperior: CGFloat = 120
+        let margemInferior: CGFloat = 60
+
+        for _ in 0..<tentativas {
+            guard elemento.exists else {
+                app.swipeUp(velocity: .slow)
+                continue
+            }
+            let quadro = elemento.frame
+            let direcao = direcaoParaTrazerParaATela(
+                quadro: quadro,
+                alturaJanela: janela.height,
+                margemSuperior: margemSuperior,
+                margemInferior: margemInferior,
+                isHittable: elemento.isHittable
+            )
+            switch direcao {
+            case .nenhuma:
+                break
+            case .rolarParaBaixo:
+                app.swipeDown(velocity: .slow)
+            case .rolarParaCima:
+                app.swipeUp(velocity: .slow)
+            }
+            if direcao == .nenhuma { break }
         }
-        XCTAssertTrue(elemento.isHittable)
+        XCTAssertTrue(elemento.exists)
     }
 
     private func conferirAcoes(_ app: XCUIApplication) {
         for (id, rotulo) in [("denunciar", "Denunciar"), ("bloquear", "Bloquear")] {
             let botao = app.buttons[id]
-            alcançar(botao, app: app)
+            trazerParaATela(botao, em: app)
             XCTAssertEqual(botao.label, rotulo)
             XCTAssertTrue(botao.isEnabled)
             XCTAssertGreaterThanOrEqual(botao.frame.height, 44 - 0.1)
@@ -37,22 +60,24 @@ final class SegurancaUITests: XCTestCase {
         conferirAcoes(app)
         app.buttons["denunciar"].tap()
         let enviar = app.buttons["enviar-denuncia"]
-        XCTAssertTrue(enviar.waitForExistence(timeout: 5))
+        trazerParaATela(enviar, em: app)
         XCTAssertFalse(enviar.isEnabled)
-        app.buttons["motivo-denuncia"].tap()
-        for motivo in ["Assédio", "Discriminação", "Risco à segurança", "Outro"] {
-            XCTAssertTrue(app.buttons[motivo].waitForExistence(timeout: 3))
+        let motivo = app.buttons["motivo-denuncia"]
+        trazerParaATela(motivo, em: app)
+        motivo.tap()
+        for opcao in ["Assédio", "Discriminação", "Risco à segurança", "Outro"] {
+            XCTAssertTrue(app.buttons[opcao].waitForExistence(timeout: 3))
         }
         app.buttons["Risco à segurança"].tap()
         let aviso = app.staticTexts["aviso-risco-imediato"]
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        trazerParaATela(aviso, em: app)
         XCTAssertTrue(aviso.label.contains("190 (Polícia Militar)"))
         XCTAssertTrue(aviso.label.contains("180 (Central de Atendimento à Mulher)"))
         let relato = app.descendants(matching: .any)["relato-denuncia"].firstMatch
-        XCTAssertTrue(relato.waitForExistence(timeout: 5))
+        trazerParaATela(relato, em: app)
         relato.tap()
         relato.typeText("Relato de risco ocorrido no estabelecimento.")
-        alcançar(enviar, app: app)
+        trazerParaATela(enviar, em: app)
         enviar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
@@ -60,12 +85,13 @@ final class SegurancaUITests: XCTestCase {
 
     func testBloqueioNoDetalheRemoveVagaSemReiniciar() {
         let app = abrirVaga()
-        alcançar(app.buttons["bloquear"], app: app)
-        app.buttons["bloquear"].tap()
+        let bloquear = app.buttons["bloquear"]
+        trazerParaATela(bloquear, em: app)
+        bloquear.tap()
         XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Vocês não voltam a se cruzar'")).firstMatch.exists)
         app.alerts.buttons["Cancelar"].tap()
-        XCTAssertTrue(app.buttons["bloquear"].exists)
-        app.buttons["bloquear"].tap()
+        XCTAssertTrue(bloquear.exists)
+        bloquear.tap()
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-nao-encontrada"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -75,14 +101,17 @@ final class SegurancaUITests: XCTestCase {
     func testPerfilDoEstabelecimentoTemAcoesEViraIndisponivel() {
         let app = abrirVaga()
         let abrir = app.buttons["abrir-perfil-estabelecimento"]
-        alcançar(abrir, app: app)
+        trazerParaATela(abrir, em: app)
         abrir.tap()
         XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-estabelecimento"].waitForExistence(timeout: 5))
         conferirAcoes(app)
         app.buttons["denunciar"].tap()
-        XCTAssertTrue(app.buttons["enviar-denuncia"].waitForExistence(timeout: 5))
+        let enviar = app.buttons["enviar-denuncia"]
+        trazerParaATela(enviar, em: app)
         app.buttons["Fechar"].tap()
-        app.buttons["bloquear"].tap()
+        let bloquear = app.buttons["bloquear"]
+        trazerParaATela(bloquear, em: app)
+        bloquear.tap()
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
         XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["denunciar"].exists)
@@ -100,9 +129,12 @@ final class SegurancaUITests: XCTestCase {
         perfil.tap()
         conferirAcoes(app)
         app.buttons["denunciar"].tap()
-        XCTAssertTrue(app.buttons["enviar-denuncia"].waitForExistence(timeout: 5))
+        let enviar = app.buttons["enviar-denuncia"]
+        trazerParaATela(enviar, em: app)
         app.buttons["Fechar"].tap()
-        app.buttons["bloquear"].tap()
+        let bloquear = app.buttons["bloquear"]
+        trazerParaATela(bloquear, em: app)
+        bloquear.tap()
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
         XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()

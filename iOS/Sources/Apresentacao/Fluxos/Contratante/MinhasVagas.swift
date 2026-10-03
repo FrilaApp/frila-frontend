@@ -528,6 +528,7 @@ private struct TelaDetalheVagaContratante: View {
                 ForEach(vaga.posicoes) { posicao in
                     if let perfil = posicao.profissional, bloqueios.contem(perfil) {
                         Text(verbatim: TextosDaSeguranca.indisponivel)
+                            .accessibilityIdentifier("posicao-bloqueada-\(posicao.id)")
                     } else { cartaoPosicao(posicao) }
                 }
             }

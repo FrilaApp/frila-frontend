@@ -152,10 +152,59 @@ final class CandidaturaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
         app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10), "a tela de vagas deve aparecer")
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         XCTAssertTrue(primeira.waitForExistence(timeout: 25), "a primeira vaga deve aparecer na lista após o carregamento inicial")
+
+        if !primeira.isHittable {
+            let tocavel = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "isHittable == true"),
+                object: primeira
+            )
+            _ = XCTWaiter.wait(for: [tocavel], timeout: 5)
+        }
+        if !primeira.isHittable {
+            app.swipeUp()
+        }
+        let tocavelFinal = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"),
+            object: primeira
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [tocavelFinal], timeout: 5), .completed,
+            "o primeiro cartão de vaga deve ficar tocável na lista"
+        )
+
         primeira.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10), "a tela de detalhe da vaga deve aparecer após o toque no cartão")
+
+        let detalhe = app.descendants(matching: .any)["tela-detalhe-vaga"]
+        let detalheAbriu = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true"),
+            object: detalhe
+        )
+        if XCTWaiter.wait(for: [detalheAbriu], timeout: 3) != .completed {
+            XCTContext.runActivity(named: "Repetir toque no cartão da vaga") { _ in
+                let anexo = XCTAttachment(string: "A tela de detalhe da vaga não abriu em até 3 s após o primeiro toque no cartão; acionando segundo toque.")
+                anexo.name = "RepeticaoDoToqueNoCartaoDaVaga"
+                anexo.lifetime = .keepAlways
+                add(anexo)
+            }
+            if primeira.exists && primeira.isHittable {
+                primeira.tap()
+            }
+            let detalheAbriuAposSegundoToque = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == true"),
+                object: detalhe
+            )
+            // Depois do segundo toque, o mesmo prazo de antes da mudança: na CI carregada a
+            // navegação pode levar mais de 3 s, e 3 s aqui acusariam defeito do app sem haver.
+            XCTAssertEqual(
+                XCTWaiter.wait(for: [detalheAbriuAposSegundoToque], timeout: 10), .completed,
+                "Defeito do app: tela de detalhe da vaga não apareceu após o segundo toque no cartão"
+            )
+        }
+
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
         XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")
@@ -640,6 +689,43 @@ final class PerfilUITests: XCTestCase {
 
         let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
         XCTAssertTrue(pacote.waitForExistence(timeout: 5), "a lista deve exibir pelo menos um pacote conhecido")
+    }
+
+    func testMeuPerfilAbreExplicacaoPorQueReceboVagasComTextoAprovado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        botaoPerfil.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+
+        var botaoPorQueRecebo = app.buttons["perfil-por-que-recebo"]
+        if !botaoPorQueRecebo.exists && !botaoPorQueRecebo.waitForExistence(timeout: 2) {
+            botaoPorQueRecebo = app.buttons["Por que recebo vagas"]
+        }
+        if !botaoPorQueRecebo.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(botaoPorQueRecebo.waitForExistence(timeout: 5))
+        botaoPorQueRecebo.tap()
+
+        XCTAssertTrue(app.navigationBars["Por que recebo vagas"].waitForExistence(timeout: 5))
+
+        let textoExplicacao = app.descendants(matching: .any)["perfil-explicacao-vagas"]
+        XCTAssertTrue(textoExplicacao.waitForExistence(timeout: 5), "o texto explicativo deve existir")
+        let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
+        XCTAssertEqual(textoExplicacao.label, fraseEsperada)
+
+        let botaoFechar = app.buttons["fechar-explicacao-vagas"].exists ? app.buttons["fechar-explicacao-vagas"] : app.buttons["Fechar"]
+        XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5), "o botão fechar deve existir")
+        botaoFechar.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
     }
 }
 

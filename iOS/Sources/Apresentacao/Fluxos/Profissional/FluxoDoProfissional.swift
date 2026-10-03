@@ -25,6 +25,12 @@ public enum RotaDoProfissional: Hashable, Sendable {
     case turnoDoAviso(turnoID: UUID)
 }
 
+/// Destinos da pilha de navegação da aba Candidaturas.
+public enum DestinoDaAbaCandidaturas: Hashable, Sendable {
+    case vaga(Candidatura)
+    case turno(Turno)
+}
+
 /// Pilha de navegação do fluxo. É a entrada que a notificação do tipo vaga (S2 #8) vai usar:
 /// `abrirVaga` empilha o detalhe, nunca candidata sozinho.
 @MainActor @Observable
@@ -97,8 +103,8 @@ public struct FluxoDoProfissional<Barra: View>: View {
     @State private var turnosViewModel: MeusTurnosViewModel
     @State private var candidaturasViewModel: MinhasCandidaturasViewModel
     @State private var caminhoTurnos: [Turno] = []
-    /// A pilha da aba Candidaturas: a vaga aberta por ela fica nela, e o voltar cai na lista.
-    @State private var caminhoCandidaturas: [Candidatura] = []
+    /// A pilha da aba Candidaturas: a vaga ou turno aberto por ela fica nela, e o voltar cai na lista.
+    @State private var caminhoCandidaturas: [DestinoDaAbaCandidaturas] = []
     private let barra: () -> Barra
     private let sair: () -> Void
 
@@ -123,7 +129,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
         self.roteador = roteador
         _feed = State(initialValue: FeedVagasViewModel(api: api, relogio: relogio))
         _turnosViewModel = State(initialValue: MeusTurnosViewModel(repositorio: repo))
-        _candidaturasViewModel = State(initialValue: MinhasCandidaturasViewModel(api: api))
+        _candidaturasViewModel = State(initialValue: MinhasCandidaturasViewModel(api: api, repositorioTurnos: repo))
         self.barra = barra
         self.sair = sair
     }
@@ -211,15 +217,20 @@ public struct FluxoDoProfissional<Barra: View>: View {
 
             NavigationStack(path: $caminhoCandidaturas) {
                 TelaMinhasCandidaturas(viewModel: candidaturasViewModel, abrir: abrirCandidatura)
-                    .navigationDestination(for: Candidatura.self) { candidatura in
-                        // A mesma tela do aviso (detalhe com a candidatura enviada, ou a explicação
-                        // de por que a vaga não está mais disponível), mas nesta pilha: quem veio
-                        // da aba Candidaturas volta para ela.
-                        DestinoDaVagaDoAviso(
-                            vagaID: candidatura.vaga.id, api: api, repositorio: repositorioTurnos,
-                            candidatar: candidatarPelaAbaCandidaturas, voltarParaLista: { caminhoCandidaturas = [] },
-                            rotuloDoVoltar: TextosDaCandidaturaEmSelecao.verCandidaturas
-                        ) { destinoDoMeuTurno($0) }
+                    .navigationDestination(for: DestinoDaAbaCandidaturas.self) { destino in
+                        switch destino {
+                        case let .vaga(candidatura):
+                            // A mesma tela do aviso (detalhe com a candidatura enviada, ou a explicação
+                            // de por que a vaga não está mais disponível), mas nesta pilha: quem veio
+                            // da aba Candidaturas volta para ela.
+                            DestinoDaVagaDoAviso(
+                                vagaID: candidatura.vaga.id, api: api, repositorio: repositorioTurnos,
+                                candidatar: candidatarPelaAbaCandidaturas, voltarParaLista: { caminhoCandidaturas = [] },
+                                rotuloDoVoltar: TextosDaCandidaturaEmSelecao.verCandidaturas
+                            ) { destinoDoMeuTurno($0) }
+                        case let .turno(turno):
+                            destinoDoMeuTurno(turno)
+                        }
                     }
             }
             .tabItem {
@@ -281,14 +292,17 @@ extension FluxoDoProfissional {
         }
     }
 
-    /// A candidatura confirmada virou turno, e ele está em Meus turnos. As outras abrem a vaga
-    /// dentro da própria aba: o detalhe com a candidatura enviada, ou a tela que diz por que a
-    /// vaga não está mais disponível. O caminho do toque no push (`roteador.abrir`) não passa aqui.
+    /// A candidatura confirmada com turno abre o turno pelo turnoID. Sem turno_id (servidor
+    /// antigo), vai a Meus turnos. As outras abrem a vaga dentro da própria aba: o detalhe
+    /// com a candidatura enviada, ou a tela que diz por que a vaga não está mais disponível.
     private func abrirCandidatura(_ candidatura: Candidatura) {
-        if candidatura.estado == .aceita {
+        switch candidaturasViewModel.destinoAoTocar(em: candidatura) {
+        case let .turno(turno):
+            caminhoCandidaturas = [.turno(turno)]
+        case .meusTurnos:
             roteador.abrirMeusTurnos()
-        } else {
-            caminhoCandidaturas = [candidatura]
+        case .vaga:
+            caminhoCandidaturas = [.vaga(candidatura)]
         }
     }
 
