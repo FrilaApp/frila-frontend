@@ -319,6 +319,17 @@ private struct EntradaDoApp: View {
     /// que este aparelho guardou da conta. Sem o banco local, o app funciona só com rede.
     private func acompanharOffline() async {
         guard let armazenamento else { return }
+        #if DEBUG
+        // Reproduz o check-in guardado antes do cancelamento, somente no dublê Local.
+        if api is ApiClienteEmMemoria,
+           ProcessInfo.processInfo.arguments.contains("-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"),
+           let turno = try? await api.meusTurnos().first(where: { $0.cancelado }) {
+            try? await armazenamento.enfileirar(AcaoPendente(
+                tipo: .checkin, turnoID: turno.id,
+                instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID()
+            ))
+        }
+        #endif
         let reenvio = ReenvioAoReconectar(
             monitor: MonitorDeConexaoDoSistema(),
             sincronizador: SincronizadorAcoes(fila: armazenamento, api: api, avaliacaoJaRegistrada: { acao in

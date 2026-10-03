@@ -578,18 +578,25 @@ struct RepublicarVagaViewModelTests {
 
     @Test("Recusa definitiva remove republicação da fila real sem registrar sucesso",
            arguments: [CodigoErroAPI.naoEncontrado, .vagaOculta, .horarioInvalido])
+    @MainActor
     func sincronizadorRemoveRecusaDefinitiva(codigo: CodigoErroAPI) async throws {
         let api = ApiRepublicacaoRegistrada(erro: codigo)
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
         let base = Date(timeIntervalSince1970: 1_800_000_000)
         let periodo = try Periodo(inicio: base, fim: base.addingTimeInterval(4 * 3600))
+        let vaga = try criarVagaNoPainel()
         let acao = AcaoPendente(tipo: .republicacaoVaga, instanteDoToque: base, chave: UUID(),
-                                republicacao: RepublicacaoVaga(vagaID: UUID(), periodo: periodo))
+                                republicacao: RepublicacaoVaga(vagaID: vaga.id, periodo: periodo))
         try await fila.enfileirar(acao)
         await SincronizadorAcoes(fila: fila, api: api).sincronizar()
         #expect(try await fila.pendentes().isEmpty)
         #expect(await api.registro.publicadas.isEmpty)
         #expect(await api.registro.recebidas.count == 1)
+        #expect(try await fila.recusadas() == [AcaoRecusada(acao: acao, codigo: codigo)])
+        let model = RepublicarVagaViewModel(vagaOriginal: vaga, api: api, fila: fila)
+        await model.restaurarTentativaPendente()
+        #expect(model.recusaDaFila == AcaoRecusada(acao: acao, codigo: codigo))
+        #expect(!model.camposBloqueados)
     }
 
     @Test("Reabrir bloqueia confirmação até ler tentativa, sem criar outra chave")
@@ -640,6 +647,9 @@ struct RepublicarVagaViewModelTests {
 }
 
 private actor FilaEspia: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     var acoes: [AcaoPendente] = []
     var enfileiradas: [AcaoPendente] = []
     var removidas: [UUID] = []
@@ -725,6 +735,9 @@ private final class ApiRepublicacaoRegistrada: ApiClienteEncaminhador, @unchecke
     }
 }
 private actor FilaLeituraControlada: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     var acoes: [AcaoPendente]
     var lendo = false
     private var continuacao: CheckedContinuation<Void, Never>?
@@ -744,6 +757,9 @@ private actor FilaLeituraControlada: FilaDeAcoes {
     func limpar() { acoes = [] }
 }
 private actor FilaLeituraComErro: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     func pendentes() throws -> [AcaoPendente] { throw ErroDaApi(codigo: .respostaInvalida) }
     func enfileirar(_ acao: AcaoPendente) {}
     func remover(id: UUID) {}

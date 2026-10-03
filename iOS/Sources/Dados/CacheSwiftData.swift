@@ -52,9 +52,38 @@ public final class AcaoPendentePersistida {
     }
 }
 
+@Model
+public final class AcaoRecusadaPersistida {
+    @Attribute(.unique) public var id: UUID
+    public var conteudo: Data
+
+    public init(id: UUID, conteudo: Data) { self.id = id; self.conteudo = conteudo }
+}
+
+public enum EsquemaFrilaV1: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
+    public static var models: [any PersistentModel.Type] {
+        [TurnoPersistido.self, FuncaoPersistida.self, SessaoPersistida.self, AcaoPendentePersistida.self]
+    }
+}
+
+public enum EsquemaFrilaV2: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
+    public static var models: [any PersistentModel.Type] {
+        EsquemaFrilaV1.models + [AcaoRecusadaPersistida.self]
+    }
+}
+
+public enum MigracaoFrila: SchemaMigrationPlan {
+    public static var schemas: [any VersionedSchema.Type] { [EsquemaFrilaV1.self, EsquemaFrilaV2.self] }
+    public static var stages: [MigrationStage] {
+        [.lightweight(fromVersion: EsquemaFrilaV1.self, toVersion: EsquemaFrilaV2.self)]
+    }
+}
+
 public enum PersistenciaFrila {
     public static func criarContainer(emMemoria: Bool = false) throws -> ModelContainer {
-        let esquema = Schema([TurnoPersistido.self, FuncaoPersistida.self, SessaoPersistida.self, AcaoPendentePersistida.self])
+        let esquema = Schema(versionedSchema: EsquemaFrilaV2.self)
         let configuracao: ModelConfiguration
         if emMemoria {
             configuracao = ModelConfiguration(schema: esquema, isStoredInMemoryOnly: true)
@@ -73,7 +102,7 @@ public enum PersistenciaFrila {
             )
             configuracao = ModelConfiguration("Frila", schema: esquema, url: diretorio.appending(path: "Frila.store"))
         }
-        return try ModelContainer(for: esquema, configurations: [configuracao])
+        return try ModelContainer(for: esquema, migrationPlan: MigracaoFrila.self, configurations: [configuracao])
     }
 }
 
@@ -156,6 +185,9 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
     }
 
     public func enfileirar(_ acao: AcaoPendente) throws {
+        let idRecusado = acao.id
+        // Um aviso já gravado é terminal para este envio, mesmo se uma tela antiga guardar a ação.
+        if try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>(predicate: #Predicate { $0.id == idRecusado })).first != nil { return }
         // A fila também protege dois modelos da mesma tela: mantém a primeira resposta por autor/turno.
         if acao.tipo == .avaliacao, let contaID = acao.contaID,
            try pendentes().contains(where: { $0.tipo == .avaliacao && $0.contaID == contaID && $0.turnoID == acao.turnoID }) {
@@ -188,6 +220,28 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         return try modelContext.fetch(descritor).map { try decoder.decode(AcaoPendente.self, from: $0.conteudo) }
     }
 
+    public func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) throws {
+        let id = acao.id
+        // Se a sessão foi encerrada durante o envio, a limpeza já retirou a ação: não recria o aviso.
+        guard try modelContext.fetch(FetchDescriptor<AcaoPendentePersistida>(predicate: #Predicate { $0.id == id })).first != nil else { return }
+        do {
+            let registro = AcaoRecusada(acao: acao, codigo: codigo)
+            modelContext.insert(AcaoRecusadaPersistida(id: id, conteudo: try JSONEncoder().encode(registro)))
+            try modelContext.delete(model: AcaoPendentePersistida.self, where: #Predicate { $0.id == id })
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+        NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
+    }
+
+    public func recusadas() throws -> [AcaoRecusada] {
+        try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>()).map {
+            try JSONDecoder().decode(AcaoRecusada.self, from: $0.conteudo)
+        }
+    }
+
     public func remover(id: UUID) throws {
         try modelContext.delete(model: AcaoPendentePersistida.self, where: #Predicate { $0.id == id })
         try modelContext.save()
@@ -198,6 +252,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         try modelContext.delete(model: FuncaoPersistida.self)
         try modelContext.delete(model: SessaoPersistida.self)
         try modelContext.delete(model: AcaoPendentePersistida.self)
+        try modelContext.delete(model: AcaoRecusadaPersistida.self)
         try modelContext.save()
     }
 }

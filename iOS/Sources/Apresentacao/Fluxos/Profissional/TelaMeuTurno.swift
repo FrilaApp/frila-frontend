@@ -14,6 +14,10 @@ public struct TelaMeuTurno: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoTurno
+                ForEach(viewModel.recusasDaFila) { recusa in
+                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                        .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                }
                 if viewModel.cancelamento != nil {
                     cartaoCancelamento
                 }
@@ -33,6 +37,9 @@ public struct TelaMeuTurno: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await viewModel.carregarRecusasDaFila() }
+        }
         .accessibilityIdentifier("tela-meu-turno")
     }
 

@@ -5,6 +5,7 @@ import Observation
 @MainActor @Observable
 public final class MeuTurnoViewModel {
     public let turno: Turno
+    public private(set) var recusasDaFila: [AcaoRecusada] = []
     public private(set) var contato: Contato?
     public private(set) var contatoExpirado: Bool
     public private(set) var responsavelLocal: String?
@@ -135,14 +136,19 @@ public final class MeuTurnoViewModel {
         return componentes?.url
     }
 
+    public func carregarRecusasDaFila() async {
+        recusasDaFila = (try? await filaDeAcoes?.recusadas().filter { $0.turnoID == turno.id }) ?? []
+        await presenca?.restaurarPendentes()
+    }
+
     public func carregar() async {
+        await carregarRecusasDaFila()
         guard permiteAcoesDoTurno else { return }
         if let contaID, turno.avaliacao == nil {
             respostaPendente = try? await filaDeAcoes?.pendentes().first {
                 $0.tipo == .avaliacao && $0.turnoID == turno.id && $0.contaID == contaID
             }?.resposta
         }
-        await presenca?.restaurarPendentes()
         if !turno.contatoVisivel(em: relogio.agora) {
             contato = nil
             contatoExpirado = true

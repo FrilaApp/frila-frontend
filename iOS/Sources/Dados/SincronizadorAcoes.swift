@@ -57,16 +57,39 @@ public actor SincronizadorAcoes {
                 // A resposta da fila foi recusada: não pode continuar aparecendo como resposta dada.
                 avaliacaoJaRegistrada(acao)
                 try? await fila.remover(id: acao.id)
-            } catch let erro as ErroDaApi where acao.tipo == .publicacaoVaga && erro.codigo.recusaDefinitivaDePublicacao {
-                // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
-                try? await fila.remover(id: acao.id)
-            } catch let erro as ErroDaApi where acao.tipo == .republicacaoVaga && (erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta) {
-                // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
-                try? await fila.remover(id: acao.id)
+            } catch let erro as ErroDaApi {
+                // Sem o registro persistido, a ação continua para não perder o aviso da recusa.
+                if await recusaDefinitiva(erro, acao: acao) {
+                    try? await fila.recusar(acao, codigo: erro.codigo)
+                }
             } catch {
                 // A ação permanece para uma nova tentativa idempotente.
                 continue
             }
+        }
+    }
+
+    private func recusaDefinitiva(_ erro: ErroDaApi, acao: AcaoPendente) async -> Bool {
+        switch acao.tipo {
+        case .checkin, .checkout:
+            if acao.tipo == .checkout, erro.codigo == .checkinPendente {
+                // O check-in pode ter falhado por rede/5xx nesta passagem; não descarta a saída dele.
+                guard let pendentes = try? await fila.pendentes() else { return false }
+                return !pendentes.contains { $0.tipo == .checkin && $0.turnoID == acao.turnoID }
+            }
+            switch erro.codigo {
+            case .semPermissao, .contaSuspensa, .naoEncontrado, .vagaEncerrada,
+                 .campoObrigatorio, .campoInvalido, .foraDaJanela, .registroNoFuturo:
+                return true
+            default:
+                return false
+            }
+        case .publicacaoVaga:
+            return erro.codigo.recusaDefinitivaDePublicacao
+        case .republicacaoVaga:
+            return erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta
+        case .avaliacao:
+            return false
         }
     }
 }
