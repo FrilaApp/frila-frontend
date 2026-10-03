@@ -20,7 +20,9 @@ relatório local que não chegava ao time. O único produto Firebase integrado �
   ele envia só o dSYM do app e descarta a saída do envio em segundo plano. No archive
   (`ACTION=install`) o envio é síncrono, tenta duas vezes e quebra o archive se falhar; nos outros
   builds roda em segundo plano; na CI (`$CI`) não roda, porque o build de simulador da CI não é
-  distribuído e o `upload-symbols` já caiu com Segmentation fault no runner. Sem plist, inclusive
+  distribuído e o `upload-symbols` já caiu com Segmentation fault no runner. O build do TestFlight,
+  que também sai da CI, manda os símbolos pelo `Scripts/enviar-testflight.sh`, depois do archive e
+  antes do envio ([CI](CI.md#mandar-um-build-ao-testflight)). Sem plist, inclusive
   em build de CI sem esse segredo, a fase avisa e sai com sucesso. Um framework novo entra na
   lista do script e nos `inputFiles` da fase, porque o sandbox de scripts só lê o que está
   declarado.
@@ -29,6 +31,8 @@ relatório local que não chegava ao time. O único produto Firebase integrado �
   que toque em `forcar-falha-crashlytics`), porque o Crashlytics ignora falhas com depurador
   anexado; depois abra o app de novo, sem reinstalar, para o relatório ser enviado. Medido em
   30/09: a falha apareceu com símbolos no painel do frila-dev cerca de 2 minutos depois do envio.
+- No build distribuído, a prova é o ensaio de falha do TestFlight: um build só para teste interno
+  com o botão **Forçar falha (ensaio)** ([CI](CI.md#ensaio-de-falha-critério-do-203-antes-de-2010)).
 - Os erros não fatais usam o domínio `frila.api.<codigo>`: uma issue por código de erro no painel.
 
 ## Dados permitidos nos eventos não fatais
