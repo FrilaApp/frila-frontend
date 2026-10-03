@@ -80,6 +80,9 @@ enum TextosDoAcompanhamento {
         case .presencaConfirmada: presencaConfirmada
         case .vagaReaberta: vagaReaberta
         case .faltaSemReabertura: faltaSemReabertura
+        case let .posicaoCancelada(reaberta): reaberta ? TextosDoCancelamento.posicaoCanceladaReaberta : TextosDoCancelamento.posicaoCanceladaDescoberta
+        case .vagaCancelada: TextosDoCancelamento.vagaCancelada
+        case .cancelamentoNaFila: TextosDoCancelamento.naFila
         }
     }
 
@@ -102,6 +105,7 @@ enum TextosDoAcompanhamento {
 struct TelaTurnoDoContratante: View {
     let viewModel: AcompanhamentoViewModel
     let turnoID: UUID
+    @State private var cancelamento: CancelamentoViewModel?
     private let formatador = FormatadorFrila()
 
     var body: some View {
@@ -128,6 +132,9 @@ struct TelaTurnoDoContratante: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { if viewModel.painel == nil { await viewModel.carregar() } }
         .refreshable { await viewModel.carregar() }
+        .sheet(item: $cancelamento) { folha in
+            FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
+        }
         .accessibilityIdentifier("turno-do-contratante")
     }
 
@@ -158,6 +165,11 @@ struct TelaTurnoDoContratante: View {
         .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chegada-do-turno")
+
+        if viewModel.podeCancelar(turno) {
+            BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = viewModel.criarCancelamento(de: turno) }
+                .accessibilityIdentifier("cancelar-posicao-\(turno.posicao.id)")
+        }
     }
 
     @ViewBuilder private func chegada(_ turno: TurnoAcompanhado) -> some View {
@@ -226,7 +238,7 @@ struct TelaTurnoDoContratante: View {
     }
 }
 
-/// O que aconteceu na última confirmação ou reabertura, para a tela do turno e para Minhas vagas.
+/// O que aconteceu na última confirmação, reabertura ou cancelamento, para a tela do turno e para Minhas vagas.
 struct AvisosDoAcompanhamento: View {
     let viewModel: AcompanhamentoViewModel
 

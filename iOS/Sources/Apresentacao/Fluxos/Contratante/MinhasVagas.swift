@@ -243,7 +243,7 @@ public struct TelaMinhasVagas: View {
     ) {
         _viewModel = State(initialValue: viewModel)
         _acompanhamento = State(initialValue: AcompanhamentoViewModel(
-            api: api, estabelecimentoID: viewModel.estabelecimentoID, aoMudar: { await viewModel.carregar() }
+            api: api, estabelecimentoID: viewModel.estabelecimentoID, fila: fila, aoMudar: { await viewModel.carregar() }
         ))
         _roteador = State(initialValue: roteador ?? RoteadorDoContratante())
         self.api = api
@@ -431,6 +431,7 @@ private struct DestinoDaVagaDoContratante: View {
                 api: api,
                 fila: fila,
                 confirmado: viewModel.confirmadas(vaga),
+                acompanhamento: acompanhamento,
                 aoRepublicar: {
                     await viewModel.carregar()
                     await acompanhamento.carregar()
@@ -471,6 +472,8 @@ private struct TelaDetalheVagaContratante: View {
     let api: any ApiCliente
     let fila: (any FilaDeAcoes)?
     let confirmado: Int
+    /// Quem cancela a vaga ou uma posição (#20); `nil` nas prévias.
+    var acompanhamento: AcompanhamentoViewModel? = nil
     var aoRepublicar: (@Sendable () async -> Void)? = nil
     /// Relê o painel depois de uma escolha e devolve a vaga como ficou; `nil` se a leitura falhou (#10).
     var relerVaga: @MainActor () async -> VagaNoPainel? = { nil }
@@ -480,6 +483,7 @@ private struct TelaDetalheVagaContratante: View {
     @State private var perfilSelecionado: PerfilPublico?
     @State private var vagaParaRepublicar: VagaNoPainel?
     @State private var republicacaoConcluida = false
+    @State private var cancelamento: CancelamentoViewModel?
     private let formatador = FormatadorFrila()
 
     var body: some View {
@@ -488,6 +492,9 @@ private struct TelaDetalheVagaContratante: View {
                 if republicacaoConcluida {
                     AvisoFrila(verbatim: TextosRepublicarVaga.sucesso, tom: .informativo)
                         .accessibilityIdentifier("aviso-sucesso-republicacao")
+                }
+                if let acompanhamento {
+                    AvisosDoAcompanhamento(viewModel: acompanhamento)
                 }
                 Text(verbatim: vaga.vaga.funcao).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -516,6 +523,11 @@ private struct TelaDetalheVagaContratante: View {
                     .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
                 }
 
+                if let acompanhamento, acompanhamento.podeCancelarVaga(vaga) {
+                    BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloVaga) { cancelamento = acompanhamento.criarCancelamento(da: vaga) }
+                        .accessibilityIdentifier("cancelar-vaga-\(vaga.vaga.id)")
+                }
+
                 if vaga.modo == .selecao {
                     SecaoDeCandidatos(vaga: vaga, api: api, relerVaga: relerVaga) { perfilSelecionado = $0 }
                 }
@@ -542,6 +554,9 @@ private struct TelaDetalheVagaContratante: View {
                     )
                 )
             }
+        }
+        .sheet(item: $cancelamento) { folha in
+            FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
         .navigationTitle(Text(verbatim: TextosMinhasVagas.detalheTitulo))
         .navigationBarTitleDisplayMode(.inline)
@@ -603,6 +618,11 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .disabled(carregandoContato.contains(posicao.id))
                     .accessibilityIdentifier("ver-contato-\(posicao.id)")
+                }
+                let turno = TurnoAcompanhado(vaga: vaga.vaga, posicao: posicao)
+                if let acompanhamento, acompanhamento.podeCancelar(turno) {
+                    BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = acompanhamento.criarCancelamento(de: turno) }
+                        .accessibilityIdentifier("cancelar-posicao-\(posicao.id)")
                 }
             } else if posicao.estado == .aberta {
                 Text(verbatim: TextosMinhasVagas.posicaoAberta).font(.headline)
