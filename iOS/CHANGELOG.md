@@ -20,6 +20,9 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Check-in e check-out com a localização lida só no toque, e check-in manual quando não dá para
   confirmar pelo GPS (#17).
 - Avaliação de sim ou não depois do turno (#22).
+- Cancelar o turno em Meu turno, com motivo obrigatório e o aviso de que a menos de 24 h o
+  cancelamento conta como falta; sem rede, o cancelamento espera na fila e sai quando a internet
+  volta (#20).
 
 ### Para quem contrata
 - Cadastro do estabelecimento com o ponto marcado no mapa e a região administrativa (#99, #242).

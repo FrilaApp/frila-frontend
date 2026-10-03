@@ -5352,6 +5352,426 @@
           }
         }
       }
+    },
+    "Cancelar turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar turno"
+          }
+        }
+      }
+    },
+    "Cancelar posição": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar posição"
+          }
+        }
+      }
+    },
+    "Cancelar vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar vaga"
+          }
+        }
+      }
+    },
+    "Qual é o motivo?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qual é o motivo?"
+          }
+        }
+      }
+    },
+    "Escolha um motivo para continuar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um motivo para continuar."
+          }
+        }
+      }
+    },
+    "Quer explicar melhor? (opcional)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quer explicar melhor? (opcional)"
+          }
+        }
+      }
+    },
+    "Descreva o motivo (pelo menos 3 caracteres)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descreva o motivo (pelo menos 3 caracteres)"
+          }
+        }
+      }
+    },
+    "Confirmar cancelamento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar cancelamento"
+          }
+        }
+      }
+    },
+    "Enviando o cancelamento…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando o cancelamento…"
+          }
+        }
+      }
+    },
+    "Faltam %@ para o início.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faltam %@ para o início."
+          }
+        }
+      }
+    },
+    "menos de 1 h": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "menos de 1 h"
+          }
+        }
+      }
+    },
+    "%d h": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d h"
+          }
+        }
+      }
+    },
+    "O turno já começou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O turno já começou."
+          }
+        }
+      }
+    },
+    "Este cancelamento conta como falta na sua taxa de comparecimento.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este cancelamento conta como falta na sua taxa de comparecimento."
+          }
+        }
+      }
+    },
+    "Este cancelamento não afeta sua taxa de comparecimento.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este cancelamento não afeta sua taxa de comparecimento."
+          }
+        }
+      }
+    },
+    "A vaga volta a ser oferecida a outros profissionais.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga volta a ser oferecida a outros profissionais."
+          }
+        }
+      }
+    },
+    "A posição não será reaberta, e o estabelecimento ficará sem profissional neste turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A posição não será reaberta, e o estabelecimento ficará sem profissional neste turno."
+          }
+        }
+      }
+    },
+    "Não conta como falta para o profissional.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não conta como falta para o profissional."
+          }
+        }
+      }
+    },
+    "A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado."
+          }
+        }
+      }
+    },
+    "A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado."
+          }
+        }
+      }
+    },
+    "Todas as posições serão canceladas, e os profissionais confirmados serão avisados. Não conta como falta para ninguém.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas as posições serão canceladas, e os profissionais confirmados serão avisados. Não conta como falta para ninguém."
+          }
+        }
+      }
+    },
+    "Todas as posições serão canceladas, sem reabertura, e os profissionais confirmados serão avisados. Não conta como falta para ninguém.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas as posições serão canceladas, sem reabertura, e os profissionais confirmados serão avisados. Não conta como falta para ninguém."
+          }
+        }
+      }
+    },
+    "Turno cancelado. A vaga voltou a ser oferecida a outros profissionais.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno cancelado. A vaga voltou a ser oferecida a outros profissionais."
+          }
+        }
+      }
+    },
+    "Turno cancelado. O turno ficou descoberto, e o estabelecimento foi avisado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno cancelado. O turno ficou descoberto, e o estabelecimento foi avisado."
+          }
+        }
+      }
+    },
+    "Posição cancelada. Ela voltou a ser oferecida a outros profissionais.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição cancelada. Ela voltou a ser oferecida a outros profissionais."
+          }
+        }
+      }
+    },
+    "Posição cancelada. O turno ficou descoberto: depois do início não há reabertura.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição cancelada. O turno ficou descoberto: depois do início não há reabertura."
+          }
+        }
+      }
+    },
+    "Vaga cancelada. Os profissionais confirmados foram avisados.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga cancelada. Os profissionais confirmados foram avisados."
+          }
+        }
+      }
+    },
+    "Sem conexão. O cancelamento será enviado quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. O cancelamento será enviado quando a internet voltar."
+          }
+        }
+      }
+    },
+    "Sem conexão. O cancelamento não foi enviado; tente de novo quando a internet voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. O cancelamento não foi enviado; tente de novo quando a internet voltar."
+          }
+        }
+      }
+    },
+    "Sem conexão, e não foi possível guardar o cancelamento neste aparelho. Tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão, e não foi possível guardar o cancelamento neste aparelho. Tente de novo."
+          }
+        }
+      }
+    },
+    "Não foi possível cancelar. Tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível cancelar. Tente de novo."
+          }
+        }
+      }
+    },
+    "Esta posição não pode mais ser cancelada. Atualize a tela para ver como ela está.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta posição não pode mais ser cancelada. Atualize a tela para ver como ela está."
+          }
+        }
+      }
+    },
+    "Esta vaga já foi cancelada ou encerrada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga já foi cancelada ou encerrada."
+          }
+        }
+      }
+    },
+    "Problema de saúde": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problema de saúde"
+          }
+        }
+      }
+    },
+    "Imprevisto pessoal": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imprevisto pessoal"
+          }
+        }
+      }
+    },
+    "Não consigo chegar ao local": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não consigo chegar ao local"
+          }
+        }
+      }
+    },
+    "Surgiu outro compromisso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surgiu outro compromisso"
+          }
+        }
+      }
+    },
+    "Movimento menor que o esperado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Movimento menor que o esperado"
+          }
+        }
+      }
+    },
+    "A posição foi preenchida de outra forma": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A posição foi preenchida de outra forma"
+          }
+        }
+      }
+    },
+    "O evento ou o turno mudou": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O evento ou o turno mudou"
+          }
+        }
+      }
+    },
+    "Problema no estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problema no estabelecimento"
+          }
+        }
+      }
+    },
+    "Outro motivo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro motivo"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
