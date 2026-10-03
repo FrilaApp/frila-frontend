@@ -137,7 +137,6 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Candidatura.suspensaTitulo,
             TextosDoProfissional.Candidatura.suspensaMensagem,
             TextosDoProfissional.Candidatura.contestar,
-            TextosDoProfissional.Candidatura.contestarEmBreve,
             TextosDoProfissional.Candidatura.naoEncontrada,
             TextosDoProfissional.Candidatura.falha,
             TextosDoProfissional.Candidatura.semConexao,
