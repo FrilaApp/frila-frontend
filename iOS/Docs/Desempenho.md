@@ -135,7 +135,13 @@ operadora e a rede (4G, barras de sinal).
 
 ## Build de medição
 
-PREENCHER: opção do workflow do TestFlight.
+Em Actions > TestFlight > Run workflow: `main`, `Frila-Beta`, a versão atual, "Build de medição" e
+"Enviar ao TestFlight" marcados. O build é o Release-Beta (otimizado, contra o frila-dev) com a
+condição `FRILA_MEDICAO`, e vai ao TestFlight só para teste interno (`testFlightInternalTestingOnly`).
+Detalhes em [Integração contínua](CI.md), "Build de medição".
+
+O Debug não serve para os números do critério. Inferência: ele compila sem otimização (`-Onone`) e
+mediria um app mais lento do que o de verdade.
 
 ## Coleta no simulador
 
@@ -179,9 +185,9 @@ por servidor:
 O detalhe tem 21 medições porque a parte de Meu turno abre mais uma vaga para se candidatar.
 
 **Bytes, contra o frila-dev** (simulador, Debug-Dev com `-FRILA_MEDICAO`, abertura do app sem
-sessão, até a tela de entrada). O frila-dev ainda não tem as migrações da lista nem uma conta de
-teste com entrada automática, então a sessão do critério (lista, três detalhes e candidatura)
-não roda nele.
+sessão, até a tela de entrada). O frila-dev ainda não tem todas as migrações (a
+`configuracao_do_app` respondeu 404 em 03/10) nem uma conta de teste com entrada automática, então
+a sessão do critério (lista, três detalhes e candidatura) não roda nele.
 
 | Abertura | Requisições | Enviados | Recebidos | Total (contador do app) |
 |---|---|---|---|---|
@@ -195,5 +201,5 @@ Na 2ª abertura, o `nettop` do macOS mediu as conexões do processo do app:
 - **com o Google:** 19.115 B, que o contador do app não vê (o `whois` dá Google Argentina SRL).
   Inferência: é o Firebase (Crashlytics e Messaging), o único pacote do Google no `project.yml`.
 
-Inferência: para três respostas pequenas, o transporte custou cerca de 5 vezes o conteúdo
-(17.559 / 3.268 ≈ 5,4).
+Inferência: para três respostas pequenas, a conexão com o frila-dev levou 5,4 vezes o que o
+contador do app somou (17.559 / 3.268); a diferença, 14.291 B, é transporte.

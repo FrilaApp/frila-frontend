@@ -14,6 +14,8 @@
 #   FRILA_NUMERO_DO_BUILD   número do build. Padrão: AAAAMMDD.HHMMSS em UTC, no início da execução.
 #   FRILA_ENSAIO_FALHA=1    build de ensaio: compila o botão "Forçar falha (ensaio)" e marca o build
 #       como só para teste interno (não vai a testador externo nem à App Store).
+#   FRILA_MEDICAO=1         build de medição (#73): compila a medição de desempenho e de dados
+#       (Docs/Desempenho.md) e marca o build como só para teste interno.
 #   FRILA_SAIDA             pasta de trabalho. Padrão: $TMPDIR/frila-testflight.
 #   FRILA_DERIVED_DATA      DerivedData. Padrão: o do Xcode para este projeto.
 #
@@ -61,6 +63,8 @@ fi
 
 ENSAIO="${FRILA_ENSAIO_FALHA:-0}"
 [[ "$ENSAIO" == 0 || "$ENSAIO" == 1 ]] || falhar "FRILA_ENSAIO_FALHA deve ser 0 ou 1 (recebido: $ENSAIO)"
+MEDICAO="${FRILA_MEDICAO:-0}"
+[[ "$MEDICAO" == 0 || "$MEDICAO" == 1 ]] || falhar "FRILA_MEDICAO deve ser 0 ou 1 (recebido: $MEDICAO)"
 
 EQUIPE="$(sed -n 's/^ *DEVELOPMENT_TEAM: *//p' "$RAIZ/project.yml" | head -1)"
 [[ -n "$EQUIPE" ]] || falhar "DEVELOPMENT_TEAM não encontrado no project.yml"
@@ -96,6 +100,7 @@ formatar() {
 
 descricao="$ESQUEMA $VERSAO ($FRILA_NUMERO_DO_BUILD), $AMBIENTE"
 [[ "$ENSAIO" == 0 ]] || descricao="$descricao, ensaio de falha"
+[[ "$MEDICAO" == 0 ]] || descricao="$descricao, medição"
 echo "Frila: $descricao"
 
 # 1. Archive, com a assinatura automática de desenvolvimento do projeto. Com
@@ -106,9 +111,12 @@ ajustes=(
   MARKETING_VERSION="$VERSAO"
   CURRENT_PROJECT_VERSION="$FRILA_NUMERO_DO_BUILD"
 )
-if [[ "$ENSAIO" == 1 ]]; then
+condicoes=''
+[[ "$ENSAIO" == 0 ]] || condicoes+=' FRILA_ENSAIO_FALHA'
+[[ "$MEDICAO" == 0 ]] || condicoes+=' FRILA_MEDICAO'
+if [[ -n "$condicoes" ]]; then
   # shellcheck disable=SC2016 # $(inherited) é do Xcode, não do shell.
-  ajustes+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) FRILA_ENSAIO_FALHA')
+  ajustes+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited)'"$condicoes")
 fi
 CI="${CI:-1}" xcodebuild archive \
   -project "$RAIZ/Frila.xcodeproj" \
@@ -128,7 +136,7 @@ lido() { /usr/libexec/PlistBuddy -c "Print :$1" "$APP_ARQUIVADO/Info.plist" 2>/d
 
 opcoes_de_exportacao() {
   local destino="$1" plist="$SAIDA/ExportOptions-$1.plist" so_interno=NO
-  [[ "$ENSAIO" == 0 ]] || so_interno=YES
+  [[ "$ENSAIO" == 0 && "$MEDICAO" == 0 ]] || so_interno=YES
   rm -f "$plist"
   plutil -create xml1 "$plist"
   plutil -insert method -string app-store-connect "$plist"
@@ -138,7 +146,7 @@ opcoes_de_exportacao() {
   # O número do build é o deste script; o Xcode não pode trocá-lo no envio.
   plutil -insert manageAppVersionAndBuildNumber -bool NO "$plist"
   plutil -insert uploadSymbols -bool YES "$plist"
-  # O build de ensaio nunca chega a testador externo nem à App Store.
+  # Os builds de ensaio e de medição nunca chegam a testador externo nem à App Store.
   plutil -insert testFlightInternalTestingOnly -bool "$so_interno" "$plist"
   printf '%s\n' "$plist"
 }
@@ -160,7 +168,7 @@ IPA="$(find "$EXPORTADO" -maxdepth 1 -name '*.ipa' -print -quit)"
 # produção vêm do conferir-release.sh; get-task-allow falso confirma a assinatura de distribuição.
 ditto -x -k "$IPA" "$IPA_ABERTO"
 APP_ASSINADO="$IPA_ABERTO/Payload/Frila.app"
-FRILA_ENSAIO_FALHA="$ENSAIO" "$RAIZ/Scripts/conferir-release.sh" "$APP_ASSINADO"
+FRILA_ENSAIO_FALHA="$ENSAIO" FRILA_MEDICAO="$MEDICAO" "$RAIZ/Scripts/conferir-release.sh" "$APP_ASSINADO"
 assinatura="$(python3 - "$APP_ASSINADO" <<'PYASSINATURA'
 import plistlib, subprocess, sys
 saida = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", sys.argv[1]], capture_output=True).stdout
