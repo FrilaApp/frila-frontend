@@ -241,8 +241,35 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("inelegivel")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["ver-meu-turno"].exists, "sem link para um turno específico")
+        XCTAssertFalse(app.buttons["ajustar-minhas-funcoes"].exists)
         app.buttons["voltar-para-lista"].tap()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
+    }
+
+    func testFuncaoIncompativelAbreFuncoesESalvarPermiteNovaCandidatura() {
+        let app = abrirDetalheECandidatar("funcao-incompativel")
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-funcao-incompativel"].waitForExistence(timeout: 10))
+        let ajustar = app.buttons["ajustar-minhas-funcoes"]
+        XCTAssertTrue(ajustar.waitForExistence(timeout: 5))
+        XCTAssertEqual(ajustar.label, "Ajustar minhas funções")
+        XCTAssertTrue(app.buttons["voltar-para-lista"].exists)
+        ajustar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(funcao.waitForExistence(timeout: 10))
+        funcao.tap()
+        let salvar = app.buttons["botao-salvar-perfil"]
+        for _ in 0..<5 where !salvar.isHittable { app.swipeUp() }
+        XCTAssertTrue(salvar.isHittable)
+        salvar.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
+        let candidatar = app.buttons["candidatar"]
+        if !candidatar.isHittable { app.swipeUp() }
+        XCTAssertTrue(candidatar.isEnabled)
+        XCTAssertFalse(app.descendants(matching: .any)["resultado-confirmada"].exists)
+        candidatar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
     }
 
     func testContaSuspensaNaCandidaturaAbreContestacaoEEnviaRelato() {
