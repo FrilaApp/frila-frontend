@@ -641,6 +641,43 @@ final class PerfilUITests: XCTestCase {
         let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
         XCTAssertTrue(pacote.waitForExistence(timeout: 5), "a lista deve exibir pelo menos um pacote conhecido")
     }
+
+    func testMeuPerfilAbreExplicacaoPorQueReceboVagasComTextoAprovado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        botaoPerfil.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+
+        var botaoPorQueRecebo = app.buttons["perfil-por-que-recebo"]
+        if !botaoPorQueRecebo.exists && !botaoPorQueRecebo.waitForExistence(timeout: 2) {
+            botaoPorQueRecebo = app.buttons["Por que recebo vagas"]
+        }
+        if !botaoPorQueRecebo.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(botaoPorQueRecebo.waitForExistence(timeout: 5))
+        botaoPorQueRecebo.tap()
+
+        XCTAssertTrue(app.navigationBars["Por que recebo vagas"].waitForExistence(timeout: 5))
+
+        let textoExplicacao = app.descendants(matching: .any)["perfil-explicacao-vagas"]
+        XCTAssertTrue(textoExplicacao.waitForExistence(timeout: 5), "o texto explicativo deve existir")
+        let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
+        XCTAssertEqual(textoExplicacao.label, fraseEsperada)
+
+        let botaoFechar = app.buttons["fechar-explicacao-vagas"].exists ? app.buttons["fechar-explicacao-vagas"] : app.buttons["Fechar"]
+        XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5), "o botão fechar deve existir")
+        botaoFechar.tap()
+
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+    }
 }
 
 extension XCUIElement {

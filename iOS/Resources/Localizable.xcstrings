@@ -4333,16 +4333,6 @@
         }
       }
     },
-    "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você recebe notificação de vagas da sua função, perto de você, nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
-          }
-        }
-      }
-    },
     "—": {
       "localizations": {
         "pt-BR": {
@@ -5513,16 +5503,6 @@
         }
       }
     },
-    "A posição não será reaberta, e o estabelecimento ficará sem profissional neste turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A posição não será reaberta, e o estabelecimento ficará sem profissional neste turno."
-          }
-        }
-      }
-    },
     "Não conta como falta para o profissional.": {
       "localizations": {
         "pt-BR": {
@@ -5769,6 +5749,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Outro motivo"
+          }
+        }
+      }
+    },
+    "A posição não será reaberta: o turno fica descoberto.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A posição não será reaberta: o turno fica descoberto."
           }
         }
       }

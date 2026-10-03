@@ -91,11 +91,24 @@ private final class ChamadaEspiada: @unchecked Sendable {
         #expect(viewModel.aviso.hasPrefix("Faltam 24 h para o início."))
     }
 
-    @Test func horasSaoArredondadasParaCimaEMenosDeUmaHoraTemTextoProprio() throws {
+    @Test func horasSaoInteirasParaBaixoEMenosDeUmaHoraTemTextoProprio() throws {
         let (meiaHora, _) = try modelo(inicioEm: 0.5)
         #expect(meiaHora.aviso.hasPrefix("Faltam menos de 1 h para o início."))
-        let (quebrada, _) = try modelo(inicioEm: 9.2)
-        #expect(quebrada.aviso.hasPrefix("Faltam 10 h para o início."))
+        let (quebrada, _) = try modelo(inicioEm: 9.8)
+        #expect(quebrada.aviso.hasPrefix("Faltam 9 h para o início."))
+    }
+
+    @Test func emVoltaDas24HorasONumeroNuncaContradizAFalta() throws {
+        // A 23 h 30 min conta como falta: o aviso não pode dizer "24 h".
+        let (antes, _) = try modelo(inicioEm: 23.5)
+        #expect(antes.contaComoFalta)
+        #expect(antes.aviso.hasPrefix("Faltam 23 h para o início."))
+        #expect(antes.aviso.contains("conta como falta"))
+        // A 24 h 30 min não conta: "24 h" com "não afeta".
+        let (depois, _) = try modelo(inicioEm: 24.5)
+        #expect(!depois.contaComoFalta)
+        #expect(depois.aviso.hasPrefix("Faltam 24 h para o início."))
+        #expect(depois.aviso.contains("não afeta sua taxa"))
     }
 
     @Test func profissionalDepoisDoInicioAvisaFaltaETurnoDescoberto() throws {
@@ -104,7 +117,7 @@ private final class ChamadaEspiada: @unchecked Sendable {
         #expect(viewModel.contaComoFalta)
         #expect(!viewModel.vaiReabrir)
         #expect(viewModel.aviso.hasPrefix("O turno já começou."))
-        #expect(viewModel.aviso.contains("A posição não será reaberta"))
+        #expect(viewModel.aviso.contains("A posição não será reaberta: o turno fica descoberto."))
     }
 
     @Test func contratanteNuncaAvisaFaltaEDizQueAPosicaoReabre() throws {
