@@ -23,6 +23,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         appAtual = app
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
         if let tamanho { app.launchArguments += ["-UIPreferredContentSizeCategoryName", tamanho] }
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["Continuar"].waitForExistence(timeout: 10))
@@ -131,6 +132,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         let app = XCUIApplication()
         appAtual = app
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "vaga-preenchida"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         let botao = app.buttons["Simular vaga preenchida"]
         XCTAssertTrue(botao.waitForExistence(timeout: 10))

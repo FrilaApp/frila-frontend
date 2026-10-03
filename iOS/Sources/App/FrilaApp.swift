@@ -13,6 +13,11 @@ import SwiftUI
 @main
 struct FrilaApp: App {
     private static let logger = Logger(subsystem: "com.frila.org.app", category: "ambiente")
+    #if DEBUG
+    /// Ativado apenas quando os testes de interface passam `-FRILA_SEM_ANIMACOES`.
+    /// Lido uma vez só no lançamento para não consultar `ProcessInfo` a cada transação SwiftUI (#111).
+    private static let desativarAnimacoes: Bool = ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_ANIMACOES")
+    #endif
     /// O sistema entrega o token do APNs e as notificações ao delegate, que é dono dos roteadores (#8).
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegado
     private let inicializacao: Inicializacao
@@ -42,8 +47,7 @@ struct FrilaApp: App {
             if api is ApiClienteEmMemoria {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
             }
-            if ProcessInfo.processInfo.arguments.contains("-FRILA_SCENARIO")
-                || ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-FRILA_") }) {
+            if Self.desativarAnimacoes {
                 MainActor.assumeIsolated {
                     UIView.setAnimationsEnabled(false)
                 }
@@ -74,8 +78,7 @@ struct FrilaApp: App {
             }
             #if DEBUG
             .transaction { transaction in
-                let args = ProcessInfo.processInfo.arguments
-                if args.contains("-FRILA_SCENARIO") || args.contains(where: { $0.hasPrefix("-FRILA_") }) {
+                if Self.desativarAnimacoes {
                     transaction.disablesAnimations = true
                     transaction.animation = nil
                 }

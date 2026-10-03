@@ -8,10 +8,16 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
     // MARK: - 1. Cadastro do Estabelecimento: Alvos e Acessibilidade
 
-    func testCadastroEstabelecimentoAlvosERotulos() throws {
+    private func abrir(argumentos: [String]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
+        app.launchArguments += argumentos
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
+        return app
+    }
+
+    func testCadastroEstabelecimentoAlvosERotulos() throws {
+        let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
 
@@ -38,9 +44,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     // MARK: - 2. Publicar Vaga no Tamanho Padrão: Alvos e Acessibilidade
 
     func testPublicarVagaAlvosNoTamanhoPadrao() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         app.buttons["continuar-cadastro"].tap()
@@ -78,14 +82,12 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     // MARK: - 3. Publicar Vaga em Dynamic Type XXXL
 
     func testPublicarVagaEmDynamicTypeXXXLMantemControlesNaTela() {
-        let app = XCUIApplication()
-        app.launchArguments += [
+        let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
             "-UIPreferredContentSizeCategoryName",
             Self.ax5
-        ]
-        app.launch()
+        ])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         app.buttons["continuar-cadastro"].tap()
@@ -123,9 +125,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     // MARK: - 4. Perfil do Estabelecimento: Toolbar e Hints de Botões Desabilitados
 
     func testPerfilDoEstabelecimentoToolbarEHintsSemVazamento() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         app.buttons["continuar-cadastro"].tap()
@@ -144,12 +144,10 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     // MARK: - 5. Minhas Vagas: Títulos Acessíveis e Link Ligar (3.1 a 3.4)
 
     func testMinhasVagasAcessibilidadeTitulosELinkLigar() {
-        let app = XCUIApplication()
-        app.launchArguments += [
+        let app = abrir(argumentos: [
             "-FRILA_ABRIR_MINHAS_VAGAS",
             "-FRILA_SCENARIO", "painel-contratante",
-        ]
-        app.launch()
+        ])
 
         // 3.2 NavigationTitle da lista
         let barraLista = app.navigationBars["Minhas vagas"]

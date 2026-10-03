@@ -18,6 +18,7 @@ final class ServidorDeHojeUITests: XCTestCase {
     private func abrir(extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "profissional-servidor-antigo"] + extras
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         return app
     }

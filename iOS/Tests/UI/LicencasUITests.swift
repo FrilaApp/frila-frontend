@@ -7,6 +7,7 @@ final class LicencasUITests: XCTestCase {
     func testCatalogoAbreAListaEOTextoDaLicenca() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
 
@@ -41,6 +42,7 @@ final class LicencasUITests: XCTestCase {
     func testMeuPerfilAjudaAbreLicencasEmAlturaInteira() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))

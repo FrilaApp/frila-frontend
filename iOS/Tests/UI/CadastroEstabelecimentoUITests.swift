@@ -2,10 +2,16 @@ import XCTest
 
 @MainActor
 final class CadastroEstabelecimentoUITests: XCTestCase {
-    func testCadastroSegueParaPublicarVaga() {
+    private func abrir(argumentos: [String] = ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
+        app.launchArguments += argumentos
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
+        return app
+    }
+
+    func testCadastroSegueParaPublicarVaga() {
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Responsável"].exists)
@@ -25,9 +31,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
@@ -90,9 +94,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testArrastarMapaLongeDoMarcadorNaoMudaPonto() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
@@ -138,9 +140,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testToqueNoMarcadorNaoMudaPonto() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
@@ -150,9 +150,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testMarcadorForaDoMapaNaoFicaTocavelSobreOFormulario() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
@@ -179,14 +177,12 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testPublicarVagaEmAccessibilityXXXLControlesDentroDaTelaETocaveis() {
-        let app = XCUIApplication()
-        app.launchArguments += [
+        let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
             "-UIPreferredContentSizeCategoryName",
             "UICTContentSizeCategoryAccessibilityXXXL"
-        ]
-        app.launch()
+        ])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         app.buttons["continuar-cadastro"].tap()
@@ -237,9 +233,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testDatePickersContidosNaLarguraDaTelaNoTamanhoPadrao() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         app.buttons["continuar-cadastro"].tap()
