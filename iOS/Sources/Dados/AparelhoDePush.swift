@@ -20,6 +20,9 @@ public actor AparelhoDePush {
 
     private let api: any ApiCliente
     private let armazenamento: any ArmazenamentoDoAparelho
+    /// Só o `vinculo_id`, no App Group, para a extensão de notificação conferir o push com o app
+    /// fechado (#253). Acompanha o vínculo guardado: entra com ele e sai com ele.
+    private let vinculoCompartilhado: any ArmazenamentoDoVinculoCompartilhado
     private let relogio: any Relogio
     private let carenciaNaTrocaDeConta: TimeInterval
     /// A mesma fila FIFO da sessão do cliente, em outra instância: um `actor` sozinho é reentrante
@@ -32,10 +35,12 @@ public actor AparelhoDePush {
     private var contaAtiva: UUID?
     private var observadores: [UUID: AsyncStream<VinculoDoAparelho?>.Continuation] = [:]
 
-    public init(api: any ApiCliente, armazenamento: any ArmazenamentoDoAparelho, relogio: any Relogio = RelogioDoSistema(),
+    public init(api: any ApiCliente, armazenamento: any ArmazenamentoDoAparelho,
+                vinculoCompartilhado: any ArmazenamentoDoVinculoCompartilhado, relogio: any Relogio = RelogioDoSistema(),
                 carenciaNaTrocaDeConta: TimeInterval = VinculoDoAparelho.carenciaNaTrocaDeConta) {
         self.api = api
         self.armazenamento = armazenamento
+        self.vinculoCompartilhado = vinculoCompartilhado
         self.relogio = relogio
         self.carenciaNaTrocaDeConta = carenciaNaTrocaDeConta
     }
@@ -145,18 +150,21 @@ public actor AparelhoDePush {
     private func registrarNaVez(para contaID: UUID) async -> Registro {
         contaAtiva = contaID
         guard let atual = guardado() else { return .semToken }
+        let dispositivo: Dispositivo
         do {
-            _ = try await api.registrarDispositivo(tokenFCM: atual.token)
+            dispositivo = try await api.registrarDispositivo(tokenFCM: atual.token)
         } catch {
             return .falhou(error as? ErroDaApi ?? ErroDaApi(codigo: .desconhecido))
         }
         // O `desde` é o relógio deste aparelho depois da resposta, o mesmo relógio que data a
-        // entrega de um push: o que chegou antes era de quem estava aqui antes.
-        let vinculo = if let anterior = atual.vinculo, anterior.contaID == contaID {
-            anterior
+        // entrega de um push: o que chegou antes era de quem estava aqui antes. O `vinculo_id` é
+        // sempre o da resposta: o servidor é quem o troca (contrato 0.2.30).
+        let desde = if let anterior = atual.vinculo, anterior.contaID == contaID {
+            anterior.desde
         } else {
-            VinculoDoAparelho(contaID: contaID, desde: relogio.agora.addingTimeInterval(carencia(de: atual, para: contaID)))
+            relogio.agora.addingTimeInterval(carencia(de: atual, para: contaID))
         }
+        let vinculo = VinculoDoAparelho(contaID: contaID, desde: desde, vinculoID: dispositivo.vinculoID)
         guardar(AparelhoGuardado(token: atual.token, vinculo: vinculo))
         return .registrado(vinculo)
     }
@@ -213,7 +221,11 @@ public actor AparelhoDePush {
         aparelho = novo
         carregado = true
         armazenamento.guardar(novo)
-        if mudou { observadores.values.forEach { $0.yield(novo.vinculo) } }
+        guard mudou else { return }
+        // O App Group recebe o `vinculo_id` junto com o vínculo e perde junto com ele (saída,
+        // 401, suspensão): sem vínculo, a extensão trata todo push com `vinculo_id` como de outra conta.
+        vinculoCompartilhado.guardar(novo.vinculo?.vinculoID)
+        observadores.values.forEach { $0.yield(novo.vinculo) }
     }
 
     private func esquecer(_ id: UUID) {
@@ -232,4 +244,17 @@ public final class ArmazenamentoDoAparelhoEmMemoria: ArmazenamentoDoAparelho, @u
 
     public func ler() -> AparelhoGuardado? { trava.withLock { aparelho } }
     public func guardar(_ aparelho: AparelhoGuardado) { trava.withLock { self.aparelho = aparelho } }
+}
+
+/// O `vinculo_id` compartilhado só em memória, para os testes e as prévias.
+public final class ArmazenamentoDoVinculoCompartilhadoEmMemoria: ArmazenamentoDoVinculoCompartilhado, @unchecked Sendable {
+    private let trava = NSLock()
+    private var vinculoID: UUID?
+
+    public init(_ vinculoID: UUID? = nil) {
+        self.vinculoID = vinculoID
+    }
+
+    public func ler() -> UUID? { trava.withLock { vinculoID } }
+    public func guardar(_ vinculoID: UUID?) { trava.withLock { self.vinculoID = vinculoID } }
 }

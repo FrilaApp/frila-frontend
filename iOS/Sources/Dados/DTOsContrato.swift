@@ -1153,14 +1153,16 @@ enum ContratoAPI {
     struct DispositivoDTO: Decodable {
         let plataforma: Plataforma
         let atualizadoEm: Date
+        let vinculoID: UUID?
 
         enum CodingKeys: String, CodingKey {
             case plataforma
             case atualizadoEm = "atualizado_em"
+            case vinculoID = "vinculo_id"
         }
 
         func dominio() -> Dispositivo {
-            Dispositivo(plataforma: plataforma, atualizadoEm: atualizadoEm)
+            Dispositivo(plataforma: plataforma, atualizadoEm: atualizadoEm, vinculoID: vinculoID)
         }
     }
 
