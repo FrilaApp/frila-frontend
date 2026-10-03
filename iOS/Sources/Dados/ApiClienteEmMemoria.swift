@@ -92,6 +92,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case posicaoCanceladaComMotivo = "posicao-cancelada-com-motivo"
         /// Servidor anterior à 0.2.31: não manda os quatro campos opcionais do painel.
         case servidorAntigo = "servidor-antigo"
+        /// Servidor de hoje no lado do profissional: turnos sem estado, avaliacao e cancelamento; candidaturas sem turno_id.
+        case profissionalServidorAntigo = "profissional-servidor-antigo"
+
+        public var isServidorAntigo: Bool {
+            self == .servidorAntigo || self == .profissionalServidorAntigo
+        }
 
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
@@ -103,7 +109,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         var candidaturaDaConta: EstadoCandidatura? {
             switch self {
             case .candidaturaPendente, .retirarSemRede: .pendente
-            case .candidaturaEscolhida, .candidaturaComTurnoCancelado: .aceita
+            case .candidaturaEscolhida, .candidaturaComTurnoCancelado, .profissionalServidorAntigo: .aceita
             case .candidaturaRecusada: .recusada
             case .candidaturaExpirada: .expirada
             default: nil
@@ -379,15 +385,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     }
                 }
             }
-            if (cenario == .turnoEncerrado || cenario == .avaliacaoSemRede || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado), let vaga = self.vagas.first {
+            if (cenario == .turnoEncerrado || cenario == .avaliacaoSemRede || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado || cenario == .profissionalServidorAntigo), let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "22000000-0000-0000-0000-000000000002")!
                 let duracao: TimeInterval = 6 * 3600
                 let fim = relogio.agora.addingTimeInterval(-2 * 3600)
                 let inicio = fim.addingTimeInterval(-duracao)
                 let periodo = try Periodo(inicio: inicio, fim: fim)
+                let vagaPassadaID = (cenario == .profissionalServidorAntigo) ? UUID(uuidString: "20000000-0000-0000-0000-000000000001")! : vaga.id
                 let resumo = VagaResumo(
-                    id: vaga.id,
+                    id: vagaPassadaID,
                     funcao: vaga.funcao.nome,
                     local: vaga.local,
                     regiaoAdministrativa: vaga.regiaoAdministrativa,
@@ -413,7 +420,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     distanciaMetros: 50,
                     confirmadaEm: nil
                 )
-                turnos = [Turno(
+                let turnoEncerrado = Turno(
                     id: turnoID,
                     posicaoID: posicaoID,
                     vaga: resumo,
@@ -426,7 +433,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     valorAcordado: vaga.valor,
                     podeAvaliar: true,
                     contato: contato
-                )]
+                )
+                if cenario == .profissionalServidorAntigo {
+                    turnos.append(turnoEncerrado)
+                } else {
+                    turnos = [turnoEncerrado]
+                }
                 contatos[turnoID] = contato
                 checkins[turnoID] = ResultadoRegistro(
                     turnoID: turnoID,
@@ -951,7 +963,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case .retirada: break
         case .aceita, .recusada, .expirada: throw erro("candidatura_indisponivel")
         }
-        return Self.candidatura(candidaturas[indice], em: vaga)
+        return self.candidatura(candidaturas[indice], em: vaga)
     }
 
     /// Segue `minhas_candidaturas` do backend (`20260929234100_modo_selecao.sql`): da mais nova para
@@ -962,7 +974,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return candidaturas
             .filter { $0.daConta && (estado == nil || $0.estado == estado) }
             .sorted { $0.criadaEm != $1.criadaEm ? $0.criadaEm > $1.criadaEm : $0.id.uuidString < $1.id.uuidString }
-            .compactMap { guardada in vagas.first { $0.id == guardada.vagaID }.map { Self.candidatura(guardada, em: $0) } }
+            .compactMap { guardada in vagas.first { $0.id == guardada.vagaID }.map { self.candidatura(guardada, em: $0) } }
     }
 
     // MARK: Turno
@@ -971,11 +983,22 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func meusTurnos() async throws -> [Turno] {
         try verificarFalhaGeral()
         let agora = relogio.agora
-        return (turnos + turnosCancelados).filter { profissionaisEscolhidos[$0.id] == nil }.map { t in
+        let lista = cenario.isServidorAntigo ? turnos : (turnos + turnosCancelados)
+        return lista.filter { profissionaisEscolhidos[$0.id] == nil }.map { t in
             let fimPassou = t.vaga.periodo.fim <= agora
             let estado: EstadoPosicao = t.cancelado ? .cancelada : (fimPassou && t.checkin != nil ? .cumprida : .confirmada)
             let avaliacao = avaliacoes[t.id]
             let pode = estado != .cancelada && t.verificacao == .verificado && fimPassou && avaliacao == nil
+            if cenario.isServidorAntigo {
+                return Turno(
+                    id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
+                    contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
+                    checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
+                    valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
+                    estado: nil, avaliacao: nil, avaliacaoInformada: nil, cancelamento: nil,
+                    avaliacaoLidaEm: nil
+                )
+            }
             return Turno(
                 id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
                 contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
@@ -1505,8 +1528,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         profissionaisEscolhidos[turno.id] ?? perfilPublicoDeExemplo
     }
 
-    private static func candidatura(_ guardada: CandidaturaGuardada, em vaga: Vaga) -> Candidatura {
-        Candidatura(id: guardada.id, vaga: vaga.resumo, estado: guardada.estado, criadaEm: guardada.criadaEm, turnoID: guardada.turnoID)
+    private func candidatura(_ guardada: CandidaturaGuardada, em vaga: Vaga) -> Candidatura {
+        let turnoID = cenario.isServidorAntigo ? nil : guardada.turnoID
+        return Candidatura(id: guardada.id, vaga: vaga.resumo, estado: guardada.estado, criadaEm: guardada.criadaEm, turnoID: turnoID)
     }
 
     /// O contrato pede `token_fcm` com pelo menos 20 caracteres.
