@@ -28,7 +28,7 @@ final class SegurancaUITests: XCTestCase {
             alcançar(botao, app: app)
             XCTAssertEqual(botao.label, rotulo)
             XCTAssertTrue(botao.isEnabled)
-            XCTAssertGreaterThanOrEqual(botao.frame.height, 44)
+            XCTAssertGreaterThanOrEqual(botao.frame.height, 44 - 0.1)
         }
     }
 

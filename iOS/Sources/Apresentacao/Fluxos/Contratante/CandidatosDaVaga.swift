@@ -506,11 +506,13 @@ private struct ConfirmacaoDaEscolha: ViewModifier {
             } label: {
                 Text(verbatim: TextosDosCandidatos.escolher)
             }
+            .accessibilityIdentifier("confirmar-escolha-botao")
             Button(role: .cancel) {
                 viewModel.desistirDaEscolha()
             } label: {
                 Text(verbatim: TextosDosCandidatos.cancelar)
             }
+            .accessibilityIdentifier("cancelar-escolha-botao")
         } message: { candidato in
             // O `presenting` guarda o candidato enquanto o alerta fecha: o nome não some no meio.
             Text(verbatim: String(

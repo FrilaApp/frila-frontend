@@ -150,7 +150,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
         SeloReputacao(vaga.estabelecimento.reputacao)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()
             .accessibilityIdentifier("detalhe-reputacao")
 
