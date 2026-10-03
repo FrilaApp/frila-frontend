@@ -67,4 +67,45 @@ final class RepublicarVagaUITests: XCTestCase {
                       || app.staticTexts["Hoje"].waitForExistence(timeout: 5)
                       || app.staticTexts["Próximas"].waitForExistence(timeout: 5))
     }
+
+    func testRepublicarVagaCabeNaLarguraNoMaiorDynamicTypeSE() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "vaga-encerrada-contratante",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        let botaoRepublicar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "republicar-vaga-")).firstMatch
+        XCTAssertTrue(botaoRepublicar.waitForExistence(timeout: 10))
+        botaoRepublicar.tap()
+
+        let telaRepublicar = app.descendants(matching: .any)["tela-republicar-vaga"]
+        XCTAssertTrue(telaRepublicar.waitForExistence(timeout: 10))
+
+        let larguraTela: CGFloat = 375.0
+        let elementos: [(String, XCUIElement)] = [
+            ("cartao", app.descendants(matching: .any)["cartao-dados-copiados-republicacao"]),
+            ("campo-inicio", app.descendants(matching: .any)["campo-inicio-republicacao"]),
+            ("campo-fim", app.descendants(matching: .any)["campo-fim-republicacao"]),
+            ("botao-confirmar", app.buttons["botao-confirmar-republicacao"]),
+            ("botao-cancelar", app.buttons["botao-cancelar-republicacao"])
+        ]
+
+        for (nome, elemento) in elementos {
+            XCTAssertTrue(elemento.waitForExistence(timeout: 5), "Elemento \(nome) deve existir")
+            let frame = elemento.frame
+            XCTAssertGreaterThanOrEqual(frame.minX, 0.0, "Elemento \(nome) minX=\(frame.minX) deve iniciar >= 0")
+            XCTAssertLessThanOrEqual(frame.maxX, larguraTela, "Elemento \(nome) maxX=\(frame.maxX) deve caber na largura \(larguraTela)")
+        }
+
+        let seletores = app.buttons.matching(NSPredicate(format: "label == 'Seletor de Data e Hora'")).allElementsBoundByIndex
+        for seletor in seletores {
+            if let valor = seletor.value as? String {
+                XCTAssertFalse(valor.contains("…") || valor.contains("..."), "Valor do seletor '\(valor)' não deve estar truncado com reticências")
+            }
+        }
+    }
 }
+
