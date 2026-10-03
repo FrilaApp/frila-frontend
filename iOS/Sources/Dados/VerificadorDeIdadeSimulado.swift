@@ -19,6 +19,9 @@ public final class VerificadorDeIdadeSimulado: VerificadorDeIdade, @unchecked Se
         }
     }
 
+    #if DEBUG
+    /// Só em Debug, como o `ApiClienteEmMemoria.pelosArgumentos` (#96): o Release não lê argumentos
+    /// de lançamento, e o `conferir-release.sh` reprova o símbolo.
     public static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> VerificadorDeIdadeSimulado {
         guard let indice = argumentos.firstIndex(of: "-FRILA_DECLARED_AGE_RANGE"),
               argumentos.indices.contains(indice + 1) else {
@@ -40,4 +43,5 @@ public final class VerificadorDeIdadeSimulado: VerificadorDeIdade, @unchecked Se
         }
         return VerificadorDeIdadeSimulado(resultado: resultado)
     }
+    #endif
 }

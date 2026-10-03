@@ -97,6 +97,8 @@ ganchos_de_desenvolvimento=(
   '-FRILA_AVISO'
   '-FRILA_PUSH'
   '-FRILA_PERMISSAO_PUSH'
+  '-FRILA_DECLARED_AGE_RANGE'
+  '-FRILA_VERIFICADOR_IDADE'
   'forcar-falha-crashlytics'
 )
 
