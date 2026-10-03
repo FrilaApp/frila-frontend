@@ -119,10 +119,10 @@ simbolos_de_desenvolvimento=(
 
 # A medição de desempenho (#73) só pode estar no build de medição, que o enviar-testflight.sh
 # compila com FRILA_MEDICAO=1 e manda ao TestFlight só para teste interno. Em qualquer outro
-# Release reprovam a chave das medições e os tipos que medem.
+# Release reprovam a chave das medições, o argumento que as liga, o botão e os tipos que medem.
 if [[ "${FRILA_MEDICAO:-}" != "1" ]]; then
-  ganchos_de_desenvolvimento+=('frila-medicao-de-desempenho')
-  simbolos_de_desenvolvimento+=('RegistroDeMedicoes' 'MedidorDeRede')
+  ganchos_de_desenvolvimento+=('frila-medicao-de-desempenho' '-FRILA_MEDICAO' 'medicoes-abrir')
+  simbolos_de_desenvolvimento+=('RegistroDeMedicoes' 'MedidorDeRede' 'BotaoDeMedicoes')
 fi
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
