@@ -447,6 +447,51 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
     }
 
+    func testCadastroComDeclaredAgeRangeAbaixoDe18ExibeRecusa() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ENTRADA",
+            "-FRILA_SCENARIO", "primeiro-acesso",
+            "-FRILA_DECLARED_AGE_RANGE", "abaixo-de-18"
+        ]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.digitarEEsperar("menor.declarado@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        let nome = app.textFields["cadastro-nome"]
+        nome.tap()
+        nome.typeText("Menor Pelo Sistema")
+
+        let telefone = app.textFields["cadastro-telefone"]
+        telefone.tap()
+        telefone.typeText("61988887777")
+
+        let nascimento = app.textFields["cadastro-nascimento"]
+        nascimento.tap()
+        // Data de nascimento indica mais de 18 anos (passa na validação local da data)
+        nascimento.typeText("01/01/2000")
+
+        app.buttons["cadastro-maior-de-idade"].tap()
+        app.buttons["cadastro-termos"].tap()
+
+        app.buttons["cadastro-continuar"].tap()
+
+        // O sinal Declared Age Range diz que é menor de 18: recusa com a mensagem da RN20
+        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
+    }
+
     func testCadastroDesabilitaBotaoSemMaioridadeOuSemTermos() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]

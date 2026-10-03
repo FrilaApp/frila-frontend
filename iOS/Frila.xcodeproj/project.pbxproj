@@ -122,6 +122,7 @@
 		700B16147556546A30FFB2E0 /* CandidaturaEmSelecaoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73A354C19CED2D043DE735A /* CandidaturaEmSelecaoTests.swift */; };
 		701B3A1F6BBCD3B97768450C /* FluxoDoContratanteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34CFCC58D9DFCC6F7EE4C4A6 /* FluxoDoContratanteTests.swift */; };
 		7099E790EA08059ECD1D5185 /* FrilaInfraestrutura.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; };
+		70F62B736ED8596A97E53E11 /* VerificadorDeIdadeDoSistema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BB9E09FBF1D88EEE38FCDD6 /* VerificadorDeIdadeDoSistema.swift */; };
 		714F6541C193F4C1B5E69335 /* ExportarDadosViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D578E10099DFBE8CE1B109C8 /* ExportarDadosViewModelTests.swift */; };
 		723AD6D9A4B4D48C1F93D6C0 /* requisicao-cadastrar-estabelecimento.json in Resources */ = {isa = PBXBuildFile; fileRef = B4DD6E551B95F8CAEC57ED7C /* requisicao-cadastrar-estabelecimento.json */; };
 		73699023A012E6D9CFBF817F /* TelaCadastro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B70FF4F64AE47220B634F0D /* TelaCadastro.swift */; };
@@ -155,6 +156,7 @@
 		91B68B7FE18A1069848227F8 /* FixturesDoContrato.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2AD657929CF7047C53E6806 /* FixturesDoContrato.swift */; };
 		91BA539E80047ABE90AFD6FA /* FeedVagasViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0275932BB983938342E8FC6A /* FeedVagasViewModel.swift */; };
 		929D2C77F807B70B2B6D695E /* ContratoDaSprint2Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA57DD792D852D30F068536 /* ContratoDaSprint2Tests.swift */; };
+		946A2BCB310E5616D061BEAE /* VerificadorDeIdadeSimulado.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB4C5A45074E40130B176728 /* VerificadorDeIdadeSimulado.swift */; };
 		94A26071BE2561B8747A4437 /* TelasDaPermissaoDePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB1F8D36504366E0A7CC2BBD /* TelasDaPermissaoDePush.swift */; };
 		94EE16BDCB8BBEF9B77079D3 /* ModoSelecaoEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 451E3C18176F16F0F7BF1C8A /* ModoSelecaoEmMemoriaTests.swift */; };
 		9544502D8CC50FFF7BC18462 /* SupabaseApiCliente.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAFE23BD5136EB4B368E30A /* SupabaseApiCliente.swift */; };
@@ -169,6 +171,7 @@
 		9CE722BCCBFAAD2894CFC5A9 /* CadastroEstabelecimentoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B99AE90CD8E3B6D44461C678 /* CadastroEstabelecimentoTests.swift */; };
 		9DEB37F39C112CB2F61515DE /* RoteadorDePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BADBF9516A678E5609172EC /* RoteadorDePush.swift */; };
 		9E1C5FBFE68947D014E1FDA5 /* turnos.json in Resources */ = {isa = PBXBuildFile; fileRef = 120490C59760F033206A2EDD /* turnos.json */; };
+		9E5706CEDEB072E175640C6F /* VerificadorDeIdade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7707F51B4B3A23F56BFD8219 /* VerificadorDeIdade.swift */; };
 		9F47535E4B4A035E7681523C /* EntradaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E23D3125A45A01328491C009 /* EntradaViewModel.swift */; };
 		A15D453F5D108FB3392D7188 /* situacao-da-conta-suspensa.json in Resources */ = {isa = PBXBuildFile; fileRef = 1E7FC2C8F77C8DAC2C6C923F /* situacao-da-conta-suspensa.json */; };
 		A1ECBBA8CA338766CB1A8896 /* FrilaInfraestrutura.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 67768D0452FBAD79C4EBF487 /* FrilaInfraestrutura.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -505,6 +508,7 @@
 		73537BBAEE93EF4D74DA73DC /* AparelhoDePush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AparelhoDePush.swift; sourceTree = "<group>"; };
 		74743E2CE1FC42EB7853C2E2 /* LicencasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicencasTests.swift; sourceTree = "<group>"; };
 		76B982881F426B2CA442617F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		7707F51B4B3A23F56BFD8219 /* VerificadorDeIdade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificadorDeIdade.swift; sourceTree = "<group>"; };
 		77974316540827A3BE34F061 /* MeuTurnoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeuTurnoViewModel.swift; sourceTree = "<group>"; };
 		78AFCB78054D6FCF48C55B9E /* TelaLicencas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaLicencas.swift; sourceTree = "<group>"; };
 		7AE720772EBB7848741AC087 /* minhas-candidaturas.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "minhas-candidaturas.json"; sourceTree = "<group>"; };
@@ -540,6 +544,7 @@
 		9AD10D457C0BA33C2707A053 /* Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cache.swift; sourceTree = "<group>"; };
 		9B70FF4F64AE47220B634F0D /* TelaCadastro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaCadastro.swift; sourceTree = "<group>"; };
 		9B8082857D66D392FED756ED /* SecaoDePresenca.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecaoDePresenca.swift; sourceTree = "<group>"; };
+		9BB9E09FBF1D88EEE38FCDD6 /* VerificadorDeIdadeDoSistema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificadorDeIdadeDoSistema.swift; sourceTree = "<group>"; };
 		9D1E01E1C5777E14656527E3 /* AcompanhamentoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcompanhamentoViewModelTests.swift; sourceTree = "<group>"; };
 		9E31499F2DC2276C58FAFE97 /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
 		A077A7E7B2FAF88619408270 /* TextosContaSuspensa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextosContaSuspensa.swift; sourceTree = "<group>"; };
@@ -613,6 +618,7 @@
 		DA3EC7375F1B4972AECBCF11 /* ExclusaoDeContaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaViewModel.swift; sourceTree = "<group>"; };
 		DAA606183AB012F2DB0EC11D /* RepublicarVagaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepublicarVagaUITests.swift; sourceTree = "<group>"; };
 		DB237A09146D796AEECF89A8 /* TelaPerfilProfissional.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaPerfilProfissional.swift; sourceTree = "<group>"; };
+		DB4C5A45074E40130B176728 /* VerificadorDeIdadeSimulado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificadorDeIdadeSimulado.swift; sourceTree = "<group>"; };
 		DC0F814A146893314847DA73 /* TelasDaCandidatura.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelasDaCandidatura.swift; sourceTree = "<group>"; };
 		DCF8FF9519F58F6767F2890F /* TelaMeuTurno.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaMeuTurno.swift; sourceTree = "<group>"; };
 		DD9805305E79A260570B45DC /* AcessibilidadeDoContratanteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcessibilidadeDoContratanteUITests.swift; sourceTree = "<group>"; };
@@ -779,6 +785,7 @@
 				44EEFDC3ABA747665D22A07F /* MonitorDeConexaoDoSistema.swift */,
 				20D789C620FE3A1368A62E41 /* PermissaoDePushDoSistema.swift */,
 				4DE21D78F07B1461627E524E /* TelemetriaCrashlytics.swift */,
+				9BB9E09FBF1D88EEE38FCDD6 /* VerificadorDeIdadeDoSistema.swift */,
 			);
 			path = Infraestrutura;
 			sourceTree = "<group>";
@@ -902,6 +909,7 @@
 				900A311A3730D37606A75AEC /* ObjetosDeValor.swift */,
 				E12F611FDB4358E51957E16F /* PermissaoDePush.swift */,
 				29280FDF830FB5FD01A47356 /* Portas.swift */,
+				7707F51B4B3A23F56BFD8219 /* VerificadorDeIdade.swift */,
 			);
 			path = Dominio;
 			sourceTree = "<group>";
@@ -934,6 +942,7 @@
 				E052D13CFCC12C0A35068658 /* SincronizadorAcoes.swift */,
 				DDAFE23BD5136EB4B368E30A /* SupabaseApiCliente.swift */,
 				B1F45CA229E7E687ADCF92F0 /* TurnosComCache.swift */,
+				DB4C5A45074E40130B176728 /* VerificadorDeIdadeSimulado.swift */,
 			);
 			path = Dados;
 			sourceTree = "<group>";
@@ -1584,6 +1593,7 @@
 				50157284EB98F5B50FD96ACF /* SincronizadorAcoes.swift in Sources */,
 				9544502D8CC50FFF7BC18462 /* SupabaseApiCliente.swift in Sources */,
 				60969818C532D7F87CE785B2 /* TurnosComCache.swift in Sources */,
+				946A2BCB310E5616D061BEAE /* VerificadorDeIdadeSimulado.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1598,6 +1608,7 @@
 				21A1EA161F00EBB126EC5C03 /* MonitorDeConexaoDoSistema.swift in Sources */,
 				1BB09E829170A787969EA8A4 /* PermissaoDePushDoSistema.swift in Sources */,
 				4CA3F67AF2FEC7221A36631E /* TelemetriaCrashlytics.swift in Sources */,
+				70F62B736ED8596A97E53E11 /* VerificadorDeIdadeDoSistema.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1619,6 +1630,7 @@
 				EB109A72EAD656B68AE13C04 /* ObjetosDeValor.swift in Sources */,
 				CC67B7C42B454CBE2F2175D8 /* PermissaoDePush.swift in Sources */,
 				D9F7F328BB7C0EA59C565EFF /* Portas.swift in Sources */,
+				9E5706CEDEB072E175640C6F /* VerificadorDeIdade.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
