@@ -147,6 +147,12 @@ for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_E
   esperar_reprovacao "gancho no executável: $gancho" "$gancho" "$app"
 done
 
+# Ensaio de falha do TestFlight (#203): o botão reprova no Release comum e passa só no build de ensaio.
+app="$(novo_app_bom ensaio-falha)"
+printf '\n%s\n' 'ensaio-forcar-falha' >> "$app/Frila"
+esperar_reprovacao "botão do ensaio de falha fora do build de ensaio" "ensaio-forcar-falha" "$app"
+(export FRILA_ENSAIO_FALHA=1; esperar_aprovacao "$app")
+
 app="$(novo_app_bom gancho-framework)"
 mkdir -p "$app/Frameworks/Teste.framework"
 printf 'binario com -FRILA_SCENARIO\n' > "$app/Frameworks/Teste.framework/Teste"
