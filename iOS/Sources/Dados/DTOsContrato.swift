@@ -597,12 +597,14 @@ enum ContratoAPI {
         let vaga: VagaResumoDTO
         let estado: EstadoCandidatura
         let criadaEm: Date
+        let turnoID: UUID?
         enum CodingKeys: String, CodingKey {
             case id, vaga, estado
             case criadaEm = "criada_em"
+            case turnoID = "turno_id"
         }
         func dominio() throws -> Candidatura {
-            Candidatura(id: id, vaga: try vaga.dominio(), estado: estado, criadaEm: criadaEm)
+            Candidatura(id: id, vaga: try vaga.dominio(), estado: estado, criadaEm: criadaEm, turnoID: turnoID)
         }
     }
 
