@@ -166,6 +166,21 @@ printf 'int TelaLicencas(void) { return 0; }\nint main(void) { return TelaLicenc
   compilar_com_entitlements "$app/Frila"
 esperar_aprovacao "$app"
 
+# Medição de desempenho (#73): a chave e os tipos reprovam no Release comum e passam só no build de
+# medição.
+app="$(novo_app_bom medicao-chave)"
+printf '\n%s\n' 'frila-medicao-de-desempenho' >> "$app/Frila"
+esperar_reprovacao "chave da medição fora do build de medição" "frila-medicao-de-desempenho" "$app"
+(export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+
+for simbolo in RegistroDeMedicoes MedidorDeRede; do
+  app="$(novo_app_bom "medicao-$simbolo")"
+  printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
+    compilar_com_entitlements "$app/Frila"
+  esperar_reprovacao "símbolo da medição fora do build de medição: $simbolo" "$simbolo" "$app"
+  (export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+done
+
 # Push (#8): o Release declara aps-environment = production.
 app="$(novo_app_bom aps-de-desenvolvimento)"
 printf 'binario release limpo\n%s\n' "$(entitlements development)" > "$app/Frila"
