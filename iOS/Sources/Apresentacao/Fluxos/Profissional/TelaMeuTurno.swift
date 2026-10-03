@@ -131,13 +131,15 @@ public struct TelaMeuTurno: View {
                     .accessibilityIdentifier("contato-telefone")
 
                 if let urlWhatsApp = viewModel.urlWhatsApp {
+                    // O alvo de 44 pt fica no rótulo, dentro do link: fora dele, só o texto recebia o toque.
                     Link(destination: urlWhatsApp) {
                         HStack {
                             Image(systemName: "message.fill")
                             Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
                         }
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
                     }
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("botao-whatsapp")
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
                 }
@@ -181,8 +183,9 @@ public struct TelaMeuTurno: View {
                         Image(systemName: "star.fill")
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                     }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
                 }
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("botao-ver-avaliacao")
             } else {
                 Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
@@ -198,8 +201,9 @@ public struct TelaMeuTurno: View {
                         Image(systemName: "star.fill")
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                     }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
                 }
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("botao-abrir-avaliacao")
             }
         }

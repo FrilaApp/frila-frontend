@@ -25,7 +25,7 @@ enum TextosDoCancelamento {
     static let profissionalComFalta = String(localized: "Este cancelamento conta como falta na sua taxa de comparecimento.", bundle: bundleApresentacao)
     static let profissionalSemFalta = String(localized: "Este cancelamento não afeta sua taxa de comparecimento.", bundle: bundleApresentacao)
     static let profissionalReabre = String(localized: "A vaga volta a ser oferecida a outros profissionais.", bundle: bundleApresentacao)
-    static let profissionalNaoReabre = String(localized: "A posição não será reaberta, e o estabelecimento ficará sem profissional neste turno.", bundle: bundleApresentacao)
+    static let profissionalNaoReabre = String(localized: "A posição não será reaberta: o turno fica descoberto.", bundle: bundleApresentacao)
     static let contratanteSemFalta = String(localized: "Não conta como falta para o profissional.", bundle: bundleApresentacao)
     static let contratanteReabre = String(localized: "A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado.", bundle: bundleApresentacao)
     static let contratanteNaoReabre = String(localized: "A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado.", bundle: bundleApresentacao)
@@ -67,10 +67,11 @@ enum TextosDoCancelamento {
         }
     }
 
-    /// Horas inteiras até o início, arredondadas para cima; abaixo de uma hora, "menos de 1 h".
+    /// Horas inteiras até o início, para baixo: a 23 h 30 min o aviso diz "23 h" junto com a falta, e
+    /// nunca "24 h" (RN12). Abaixo de uma hora, "menos de 1 h".
     static func tempoAteOInicio(_ antecedencia: TimeInterval) -> String {
         guard antecedencia >= 60 * 60 else { return menosDeUmaHora }
-        return String(format: horas, Int(ceil(antecedencia / 3600)))
+        return String(format: horas, Int(floor(antecedencia / 3600)))
     }
 
     static func aviso(lado: LadoDoCancelamento, alvo: AlvoDoCancelamento, antecedencia: TimeInterval, contaComoFalta: Bool) -> String {

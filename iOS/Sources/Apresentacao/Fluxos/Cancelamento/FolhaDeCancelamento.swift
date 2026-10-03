@@ -46,11 +46,13 @@ public struct FolhaDeCancelamento: View {
         .accessibilityIdentifier("motivos-do-cancelamento")
 
         if let motivo = viewModel.motivo {
-            Text(verbatim: motivo.exigeDetalhes ? TextosDoCancelamento.detalhesObrigatorios : TextosDoCancelamento.detalhesTitulo)
+            // O rótulo do campo é o mesmo do título: obrigatório em "Outro motivo", opcional nos demais.
+            let rotulo = motivo.exigeDetalhes ? TextosDoCancelamento.detalhesObrigatorios : TextosDoCancelamento.detalhesTitulo
+            Text(verbatim: rotulo)
                 .font(.subheadline)
                 .foregroundStyle(FrilaCor.textoSecundario)
             TextField(text: $viewModel.detalhes, prompt: nil, axis: .vertical) {
-                Text(verbatim: TextosDoCancelamento.detalhesTitulo)
+                Text(verbatim: rotulo)
             }
             .lineLimit(2...5)
             .textFieldStyle(.plain)
@@ -88,8 +90,10 @@ public struct FolhaDeCancelamento: View {
             viewModel.motivo = motivo
         } label: {
             HStack(spacing: FrilaEspaco.pequeno) {
+                // Decorativo: o estado vai pelo traço `.isSelected` do botão.
                 Image(systemName: escolhido ? "largecircle.fill.circle" : "circle")
                     .foregroundStyle(escolhido ? FrilaCor.primaria : FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
                 Text(verbatim: TextosDoCancelamento.motivo(motivo))
                     .foregroundStyle(FrilaCor.texto)
                 Spacer(minLength: 0)
@@ -134,6 +138,7 @@ public struct BotaoDeCancelamento: View {
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
         }
         .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
         .foregroundStyle(FrilaCor.perigo)
         .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.perigo, lineWidth: 1.5))
     }

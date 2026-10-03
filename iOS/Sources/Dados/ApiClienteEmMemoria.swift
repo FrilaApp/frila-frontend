@@ -271,8 +271,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
                 // Os dois lados das 24 h da RN12: a 10 h o cancelamento do profissional é falta; a 48 h, não.
-                case .turnoConfirmadoPerto: 10 * 60 * 60
-                case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60
+                // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
+                case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
+                case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60 + 30 * 60
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .vagaEmSelecao, .candidaturaPendente, .retirarSemRede,
