@@ -138,6 +138,14 @@ public struct TelaMeuPerfilProfissional: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }.accessibilityIdentifier("perfil-funcoes-horarios")
+                    NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
+                        Label {
+                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }.accessibilityIdentifier("perfil-historico-turnos")
                     Button { mostrarExplicacao = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.porQueRecebo)
@@ -266,6 +274,15 @@ public struct TelaPerfilEstabelecimento: View {
                         }
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                     }.cartaoFrila()
+                    NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
+                        Label {
+                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("estabelecimento-historico-turnos")
                     Button { mostrarAjuda = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.ajuda)

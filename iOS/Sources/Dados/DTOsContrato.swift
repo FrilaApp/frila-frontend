@@ -31,6 +31,17 @@ enum ContratoAPI {
         FormatosDeInstante.semFracao.string(from: instante)
     }
 
+    /// O instante em UTC com três casas de fração (`2026-11-01T02:59:59.999Z`). Arredonda para o
+    /// milissegundo mais próximo antes de formatar: o `Date` guarda segundos em `Double`, e
+    /// formatar direto poderia truncar .999 para .998.
+    static func textoComMilissegundos(_ instante: Date) -> String {
+        let milissegundos = Int64((instante.timeIntervalSince1970 * 1000).rounded())
+        let segundos = Int64((Double(milissegundos) / 1000).rounded(.down))
+        let fracao = milissegundos - segundos * 1000
+        let texto = FormatosDeInstante.semFracao.string(from: Date(timeIntervalSince1970: TimeInterval(segundos)))
+        return String(texto.dropLast()) + String(format: ".%03lldZ", fracao)
+    }
+
     // MARK: Conta
 
     struct UsuarioDTO: Decodable {
@@ -1074,6 +1085,30 @@ enum ContratoAPI {
                 estado: estado,
                 suspensao: suspensao.map { Suspensao(motivo: $0.motivo, desde: $0.desde, contestacao: try $0.contestacao?.dominio()) }
             )
+        }
+    }
+
+    // MARK: Exportação de turnos (contrato 0.2.32; a 0.2.33 não muda o endpoint)
+
+    /// Corpo de `POST /exportar-turnos`. Os instantes levam milissegundos: o último é 23:59:59.999
+    /// de São Paulo, e sem a fração o último segundo do período ficaria de fora. Sem estabelecimento,
+    /// a chave não vai, e o servidor usa os turnos de quem chama como profissional.
+    struct ExportarTurnos: Encodable {
+        let de: String
+        let ate: String
+        let formato: FormatoExportacao
+        let estabelecimentoID: UUID?
+
+        enum CodingKeys: String, CodingKey {
+            case de, ate, formato
+            case estabelecimentoID = "estabelecimento_id"
+        }
+
+        init(_ pedido: PedidoExportacaoTurnos) {
+            de = ContratoAPI.textoComMilissegundos(pedido.periodo.inicio)
+            ate = ContratoAPI.textoComMilissegundos(pedido.periodo.fim)
+            formato = pedido.formato
+            estabelecimentoID = pedido.estabelecimentoID
         }
     }
 

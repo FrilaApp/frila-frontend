@@ -84,8 +84,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Conta de profissional cuja candidatura esperava quando a seleção fechou sozinha, 24 h
         /// antes do início: candidatura `expirada` e vaga `encerrada` (critério 2 do #10).
         case candidaturaExpirada = "candidatura-expirada"
+        /// As duas exportações, a dos dados (#219) e a dos turnos (#23), falham sem rede.
         case exportarSemRede = "exportar-sem-rede"
+        /// As duas exportações falham com erro do servidor.
         case exportarErroServidor = "exportar-erro-servidor"
+        /// `/exportar-turnos` responde 204: o período não tem turnos (UC13, 1a).
+        case exportarTurnosSemTurnos = "exportar-turnos-sem-turnos"
         /// Painel com check-in já confirmado (contrato 0.2.31).
         case checkinConfirmado = "checkin-confirmado"
         /// Painel com posição cancelada com motivo informado (contrato 0.2.31).
@@ -167,6 +171,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var chamadasACriarConta = 0
     public private(set) var chamadasAPublicarVaga = 0
     public private(set) var chamadasAExportarMeusDados = 0
+    /// O que chegou a `exportarTurnos`, na ordem: os testes conferem o período, o formato e o estabelecimento.
+    public private(set) var pedidosDeExportacaoDeTurnos: [PedidoExportacaoTurnos] = []
     public private(set) var chavesPublicacaoRecebidas: [UUID] = []
     public private(set) var publicacoesRecebidas: [PublicacaoVaga] = []
     public private(set) var vagasCriadas = 0
@@ -1319,6 +1325,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
             throw ErroDaApi(codigo: .desconhecido)
         }
         return data
+    }
+
+    /// Devolve o CSV ou o PDF de exemplo de `Resources/Fixtures`, que não muda com o período: quem
+    /// confere se os valores batem com os turnos gravados é o backend, com seed. O estabelecimento
+    /// que não é da conta responde 403, como no contrato.
+    public func exportarTurnos(_ pedido: PedidoExportacaoTurnos) async throws -> ResultadoExportacaoTurnos {
+        pedidosDeExportacaoDeTurnos.append(pedido)
+        await Task.yield()
+        try verificarRede()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        if cenario == .exportarSemRede { throw ErroDaApi(codigo: .semRede) }
+        if cenario == .exportarErroServidor { throw ErroDaApi(codigo: .desconhecido) }
+        if let estabelecimentoID = pedido.estabelecimentoID, !estabelecimentos.contains(where: { $0.id == estabelecimentoID }) {
+            throw erro("sem_permissao")
+        }
+        if cenario == .exportarTurnosSemTurnos { return .semTurnos }
+        return .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: pedido.formato.rawValue))
     }
 
     // MARK: Aplicativo e dispositivo
