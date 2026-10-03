@@ -168,7 +168,9 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
         let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
         let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 5), .completed, file: file, line: line)
+        // 10 s, como a espera da existência: no runner da CI o fluxo inteiro leva mais que o dobro
+        // do tempo local, e a animação de volta à lista estourava os 5 s (PR #92, 03/10).
+        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 10), .completed, file: file, line: line)
         elemento.tap()
     }
 
