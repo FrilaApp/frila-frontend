@@ -241,6 +241,8 @@ private struct EntradaDoApp: View {
                 } else {
                     EstadoCarregando()
                 }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_SUPORTE_TURNO") {
+                TelaSuporteTurnoParaTeste()
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
                 catalogo
             } else {
@@ -732,6 +734,28 @@ private struct DestinoDaAvaliacaoParaTeste: View {
 
     var body: some View {
         NavigationStack { TelaAvaliacao(viewModel: viewModel) }
+    }
+}
+
+/// Apresenta a folha de suporte de turno com armazenamento de estado estável para UI test (#21).
+private struct TelaSuporteTurnoParaTeste: View {
+    @State private var viewModel: SuporteTurnoViewModel
+
+    init() {
+        let dados = ContextoSuporteTurno(
+            turnoID: UUID(uuidString: "11111111-2222-3333-4444-555555555555")!,
+            funcao: "Garçom",
+            contratante: "Bar do Lago",
+            profissional: "Lucas Silva",
+            inicio: Date(timeIntervalSince1970: 1775000000),
+            fim: Date(timeIntervalSince1970: 1775014400),
+            endereco: "CLS 405 Bloco C, Asa Sul, Brasília - DF"
+        )
+        _viewModel = State(initialValue: SuporteTurnoViewModel(dados: dados))
+    }
+
+    var body: some View {
+        FolhaSuporteTurno(viewModel: viewModel)
     }
 }
 #endif
