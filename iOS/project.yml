@@ -40,6 +40,11 @@ settings:
     CLANG_ENABLE_MODULES: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: 8B7F7G3Y2U
+    # Versão e build numa fonte só, herdada pelo app e pela extensão de notificação: a App Store
+    # recusa a extensão com versão diferente da do app. O enviar-testflight.sh sobrescreve as duas
+    # pela linha de comando, para todos os alvos.
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
   # dSYM em todos os targets, e não só no app: o código roda nos quatro frameworks, e o
   # Crashlytics segura a falha fatal enquanto falta o dSYM de qualquer binário da pilha. Com
   # dSYM só no app, a falha forçada no catálogo (FrilaApresentacao) nunca apareceu no painel.
@@ -148,9 +153,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).notificationservice
         PRODUCT_NAME: FrilaNotificationService
         TARGETED_DEVICE_FAMILY: "1"
-        # As duas versões têm de ser as do app: a App Store recusa a extensão com versão diferente.
-        MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Frila
         INFOPLIST_FILE: Sources/NotificationService/Info.plist
@@ -275,8 +277,6 @@ targets:
         # O preset de target do XcodeGen usa "1,2" e anula o valor do projeto; sem isto o app
         # declara iPad no UIDeviceFamily e o Xcode passa a exigir as quatro orientações.
         TARGETED_DEVICE_FAMILY: "1"
-        MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Frila
         INFOPLIST_KEY_CFBundleDevelopmentRegion: pt-BR
