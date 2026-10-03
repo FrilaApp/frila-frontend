@@ -143,16 +143,6 @@
         }
       }
     },
-    "A contestação chega numa próxima versão do app.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A contestação chega numa próxima versão do app."
-          }
-        }
-      }
-    },
     "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.": {
       "localizations": {
         "pt-BR": {
@@ -983,16 +973,6 @@
         }
       }
     },
-    "Configuração de funções e horários disponíveis para o profissional (Cartão #98).": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configuração de funções e horários disponíveis para o profissional (Cartão #98)."
-          }
-        }
-      }
-    },
     "Confira o campo indicado.": {
       "localizations": {
         "pt-BR": {
@@ -1579,16 +1559,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta conta já foi cadastrada."
-          }
-        }
-      }
-    },
-    "Esta etapa estará disponível em breve.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta etapa estará disponível em breve."
           }
         }
       }
@@ -3273,16 +3243,6 @@
         }
       }
     },
-    "Sua vaga foi publicada. A lista Minhas vagas estará disponível em breve.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua vaga foi publicada. A lista Minhas vagas estará disponível em breve."
-          }
-        }
-      }
-    },
     "Sábado": {
       "localizations": {
         "pt-BR": {
@@ -4109,26 +4069,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ajuda"
-          }
-        }
-      }
-    },
-    "Disponível no cartão #219": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disponível no cartão #219"
-          }
-        }
-      }
-    },
-    "Disponível no cartão #50": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disponível no cartão #50"
           }
         }
       }

@@ -383,8 +383,6 @@ struct CatalogoStringsTests {
             "Compareceu a %lld de %lld turnos",
             "Termos de uso",
             "Política de privacidade",
-            "Disponível no cartão #219",
-            "Disponível no cartão #50",
             "Endereço de suporte pendente",
             "Link pendente",
             "%lld horários cadastrados",

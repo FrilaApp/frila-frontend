@@ -245,12 +245,21 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
-    func testContaSuspensaMostraOMotivoEContestarDesabilitado() {
+    func testContaSuspensaNaCandidaturaAbreContestacaoEEnviaRelato() {
         let app = abrirDetalheECandidatar("inelegivel-suspenso")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-conta-suspensa"].waitForExistence(timeout: 10))
         let contestar = app.buttons["contestar"]
         XCTAssertTrue(contestar.exists)
-        XCTAssertFalse(contestar.isEnabled)
+        XCTAssertTrue(contestar.isEnabled)
+        contestar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-conta-suspensa"].waitForExistence(timeout: 5))
+        app.buttons["botao-contestar-suspensao"].tap()
+        let relato = app.descendants(matching: .any)["campo-relato-contestacao"].firstMatch
+        XCTAssertTrue(relato.waitForExistence(timeout: 5))
+        relato.tap()
+        relato.typeText("Solicito a revisão da suspensão da minha conta")
+        app.buttons["botao-enviar-contestacao"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-contestacao"].waitForExistence(timeout: 5))
     }
 
     func testResultadoComTamanhoDeAcessibilidadeMantemOBotaoDeVolta() {

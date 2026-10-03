@@ -29,6 +29,22 @@ struct ExportarDadosViewModelTests {
         }
     }
 
+    @Test("Conta suspensa exporta dados usando o mesmo fluxo do perfil")
+    func contaSuspensaExportaDados() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        let diretorio = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let vm = ExportarDadosViewModel(api: api, diretorioTemporario: diretorio)
+        await vm.exportarDados()
+        #expect(vm.mensagemErro == nil)
+        #expect(vm.mostrarFolhaCompartilhamento)
+        let url = try #require(vm.arquivoParaCompartilhar)
+        let dados = try Data(contentsOf: url)
+        #expect(try JSONSerialization.jsonObject(with: dados) is [String: Any])
+        vm.folhaCompartilhamentoFechada()
+    }
+
     @Test("Sucesso: gera arquivo temporário, prepara para compartilhar e limpa estado de erro")
     func sucessoGeraArquivoEPreparaCompartilhamento() async throws {
         let duble = DubleApiExportar()
