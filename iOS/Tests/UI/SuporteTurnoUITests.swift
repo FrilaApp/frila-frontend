@@ -88,7 +88,7 @@ final class SuporteTurnoUITests: XCTestCase {
     func testBotaoAjudaTurnoEmMeuTurno() {
         let app = XCUIApplication()
         let turnoID = "22000000-0000-0000-0000-000000000001"
-        app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_CACHE_VAZIO_UI_TEST"]
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado", "-FRILA_CACHE_VAZIO_UI_TEST"]
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
