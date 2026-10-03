@@ -76,6 +76,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Conta de profissional que a casa escolheu na vaga de seleção: candidatura `aceita`, vaga
         /// `preenchida` e o turno em Meus turnos, com o contato da casa (critério 1 do #10).
         case candidaturaEscolhida = "candidatura-escolhida"
+        /// Conta de profissional cuja candidatura foi aceita na vaga de seleção, mas o turno foi cancelado (#10).
+        case candidaturaComTurnoCancelado = "candidatura-com-turno-cancelado"
         /// Conta de profissional que não foi escolhida: a casa encheu a vaga com outra pessoa, e a
         /// candidatura ficou `recusada`, sem turno (critério 1 do #10).
         case candidaturaRecusada = "candidatura-recusada"
@@ -107,7 +109,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         var candidaturaDaConta: EstadoCandidatura? {
             switch self {
             case .candidaturaPendente, .retirarSemRede: .pendente
-            case .candidaturaEscolhida: .aceita
+            case .candidaturaEscolhida, .candidaturaComTurnoCancelado: .aceita
             case .candidaturaRecusada: .recusada
             case .candidaturaExpirada: .expirada
             default: nil
@@ -136,6 +138,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let daConta: Bool
         var estado: EstadoCandidatura
         var criadaEm: Date
+        var turnoID: UUID? = nil
     }
 
     private var avaliacoes: [UUID: Avaliacao] = [:]
@@ -367,6 +370,20 @@ public actor ApiClienteEmMemoria: ApiCliente {
                             whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: visivelAte
                         )
                         self.vagas[0] = Self.copia(selecao, posicoesAbertas: 0, estado: .preenchida)
+                        if cenario == .candidaturaComTurnoCancelado {
+                            candidaturas[0].turnoID = turnoID
+                            let cancelamento = CancelamentoDoTurno(causa: .estabelecimento, falta: false, canceladaEm: relogio.agora)
+                            turnosCancelados = turnos.map { t in
+                                Turno(
+                                    id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
+                                    contatoVisivelAte: t.contatoVisivelAte, checkin: t.checkin, checkout: t.checkout,
+                                    verificacao: t.verificacao, valorAcordado: t.valorAcordado, podeAvaliar: false,
+                                    estado: .cancelada, avaliacaoInformada: true, cancelamento: cancelamento
+                                )
+                            }
+                            turnos = []
+                            contatos = [:]
+                        }
                     case .recusada:
                         self.vagas[0] = Self.copia(selecao, posicoesAbertas: 0, estado: .preenchida)
                     case .expirada:
@@ -883,7 +900,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         // No modo urgência a candidatura já nasce aceita, e é assim que `minhas_candidaturas` a lista.
         let candidaturaID = UUID()
         candidaturas.append(CandidaturaGuardada(
-            id: candidaturaID, vagaID: vagaID, profissional: perfilPublicoDeExemplo, daConta: true, estado: .aceita, criadaEm: agora
+            id: candidaturaID, vagaID: vagaID, profissional: perfilPublicoDeExemplo, daConta: true, estado: .aceita, criadaEm: agora,
+            turnoID: turno.id
         ))
         return ResultadoCandidatura(estado: .confirmada, candidaturaID: candidaturaID, posicaoID: turno.posicaoID, turnoID: turno.id, contato: contato)
     }
@@ -1465,6 +1483,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             profissionaisEscolhidos[turno.id] = escolhida.profissional
         }
         candidaturas[indice].estado = .aceita
+        candidaturas[indice].turnoID = turno.id
         vagas[daVaga] = Self.comPosicoesAbertas(vaga.posicoesAbertas - 1, em: vaga)
         if vagas[daVaga].posicoesAbertas == 0 {
             for outra in candidaturas.indices where candidaturas[outra].vagaID == vaga.id && candidaturas[outra].estado == .pendente {
@@ -1519,7 +1538,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     private static func candidatura(_ guardada: CandidaturaGuardada, em vaga: Vaga) -> Candidatura {
-        Candidatura(id: guardada.id, vaga: vaga.resumo, estado: guardada.estado, criadaEm: guardada.criadaEm)
+        Candidatura(id: guardada.id, vaga: vaga.resumo, estado: guardada.estado, criadaEm: guardada.criadaEm, turnoID: guardada.turnoID)
     }
 
     /// O contrato pede `token_fcm` com pelo menos 20 caracteres.
