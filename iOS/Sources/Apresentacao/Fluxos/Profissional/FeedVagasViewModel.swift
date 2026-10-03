@@ -43,7 +43,15 @@ public enum FiltroDeDistancia: Hashable, Sendable {
 /// distância. A ordem é do servidor; o app não reordena.
 @MainActor @Observable
 public final class FeedVagasViewModel {
-    public private(set) var estado: EstadoDaLista = .ociosa
+    public let bloqueios = BloqueiosDaSessao()
+    private var estadoRecebido: EstadoDaLista = .ociosa
+    public private(set) var estado: EstadoDaLista {
+        get {
+            if case let .carregada(vagas) = estadoRecebido { return .carregada(bloqueios.filtrar(vagas)) }
+            return estadoRecebido
+        }
+        set { estadoRecebido = newValue }
+    }
     public private(set) var funcoes: [Funcao] = []
     public private(set) var funcaoID: UUID?
     public private(set) var data: FiltroDeData = .qualquer
@@ -111,7 +119,7 @@ public final class FeedVagasViewModel {
 
     /// Próxima página, pedida quando o último cartão aparece.
     public func carregarMais() async {
-        guard haMaisPaginas, !carregandoMais, case let .carregada(atuais) = estado else { return }
+        guard haMaisPaginas, !carregandoMais, case let .carregada(atuais) = estadoRecebido else { return }
         carregandoMais = true
         defer { carregandoMais = false }
         let minha = geracao

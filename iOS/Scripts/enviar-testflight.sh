@@ -134,6 +134,15 @@ lido() { /usr/libexec/PlistBuddy -c "Print :$1" "$APP_ARQUIVADO/Info.plist" 2>/d
 [[ "$(lido CFBundleVersion)" == "$FRILA_NUMERO_DO_BUILD" ]] || falhar "build do archive: $(lido CFBundleVersion); esperado: $FRILA_NUMERO_DO_BUILD"
 [[ "$(lido FRILA_ENVIRONMENT)" == "$AMBIENTE" ]] || falhar "ambiente do archive: $(lido FRILA_ENVIRONMENT); esperado: $AMBIENTE"
 
+# A extensão de notificação (#253) tem de estar no archive com a mesma versão e o mesmo build do
+# app: a App Store recusa o envio em que divergem, e sem ela o push de outro vínculo sai inteiro
+# na tela de bloqueio.
+EXTENSAO_ARQUIVADA="$APP_ARQUIVADO/PlugIns/FrilaNotificationService.appex"
+[[ -d "$EXTENSAO_ARQUIVADA" ]] || falhar "o archive não contém a extensão de notificação: $EXTENSAO_ARQUIVADA"
+lido_da_extensao() { /usr/libexec/PlistBuddy -c "Print :$1" "$EXTENSAO_ARQUIVADA/Info.plist" 2>/dev/null || true; }
+[[ "$(lido_da_extensao CFBundleShortVersionString)" == "$VERSAO" ]] || falhar "versão da extensão de notificação: $(lido_da_extensao CFBundleShortVersionString); esperada: $VERSAO"
+[[ "$(lido_da_extensao CFBundleVersion)" == "$FRILA_NUMERO_DO_BUILD" ]] || falhar "build da extensão de notificação: $(lido_da_extensao CFBundleVersion); esperado: $FRILA_NUMERO_DO_BUILD"
+
 opcoes_de_exportacao() {
   local destino="$1" plist="$SAIDA/ExportOptions-$1.plist" so_interno=NO
   [[ "$ENSAIO" == 0 && "$MEDICAO" == 0 ]] || so_interno=YES

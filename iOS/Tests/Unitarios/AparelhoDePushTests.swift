@@ -18,14 +18,34 @@ private let outraConta = UUID(uuidString: "10000000-0000-0000-0000-0000000000ff"
 struct DispositivoEmMemoriaTests {
     private let agora = Date(timeIntervalSince1970: 1_790_000_000)
 
-    @Test("Registrar devolve a plataforma e a data, e o token passa a ser da conta")
+    @Test("Registrar devolve a plataforma, a data e o vínculo, e o token passa a ser da conta")
     func registra() async throws {
         let api = ApiClienteEmMemoria(relogio: RelogioFixo(agora: agora))
         let dispositivo = try await api.registrarDispositivo(tokenFCM: Tokens.aparelho)
 
         let contaID = try await api.minhaConta().id
-        #expect(dispositivo == Dispositivo(plataforma: .ios, atualizadoEm: agora))
+        let vinculoID = try #require(await api.vinculoDoDispositivo(tokenFCM: Tokens.aparelho))
+        #expect(dispositivo == Dispositivo(plataforma: .ios, atualizadoEm: agora, vinculoID: vinculoID))
         #expect(await api.donoDoDispositivo(tokenFCM: Tokens.aparelho) == contaID)
+    }
+
+    @Test("O vinculo_id segue o contrato 0.2.30: o mesmo no registro repetido, novo na troca de dono e depois de remover")
+    func vinculo() async throws {
+        let api = ApiClienteEmMemoria()
+        let primeiro = try await api.registrarDispositivo(tokenFCM: Tokens.aparelho).vinculoID
+        #expect(primeiro != nil)
+        #expect(try await api.registrarDispositivo(tokenFCM: Tokens.aparelho).vinculoID == primeiro)
+
+        await api.registrarDispositivo(tokenFCM: Tokens.aparelho, deOutraConta: outraConta)
+        let depoisDaTroca = try await api.registrarDispositivo(tokenFCM: Tokens.aparelho).vinculoID
+        #expect(depoisDaTroca != nil)
+        #expect(depoisDaTroca != primeiro)
+
+        try await api.removerDispositivo(tokenFCM: Tokens.aparelho)
+        #expect(await api.vinculoDoDispositivo(tokenFCM: Tokens.aparelho) == nil)
+        let depoisDeRemover = try await api.registrarDispositivo(tokenFCM: Tokens.aparelho).vinculoID
+        #expect(depoisDeRemover != nil)
+        #expect(depoisDeRemover != depoisDaTroca)
     }
 
     @Test("Token em branco é campo obrigatório, e com menos de 20 caracteres, campo inválido", arguments: [
@@ -95,7 +115,15 @@ struct ContratoDoDispositivoTests {
 
         let dispositivo = try FixturesDoContrato.carregar("dispositivo", como: ContratoAPI.DispositivoDTO.self).dominio()
         let atualizadoEm = try #require(ContratoAPI.instante("2026-10-10T01:22:00Z"))
-        #expect(dispositivo == Dispositivo(plataforma: .ios, atualizadoEm: atualizadoEm))
+        let vinculoID = try #require(UUID(uuidString: "4d2f6c1a-9b3e-4e7a-8c5d-2f1b0a9e8d7c"))
+        #expect(dispositivo == Dispositivo(plataforma: .ios, atualizadoEm: atualizadoEm, vinculoID: vinculoID))
+    }
+
+    @Test("O servidor anterior à 0.2.30 não devolve vinculo_id, e a resposta continua legível")
+    func semVinculo() throws {
+        let dados = Data(#"{"plataforma":"ios","atualizado_em":"2026-10-10T01:22:00Z"}"#.utf8)
+        let dispositivo = try ContratoAPI.decodificador().decode(ContratoAPI.DispositivoDTO.self, from: dados).dominio()
+        #expect(dispositivo.vinculoID == nil)
     }
 
     private func cliente(_ protocolo: URLProtocol.Type) throws -> SupabaseApiCliente {
@@ -242,12 +270,18 @@ private final class ApiDoAparelho: ApiClienteEncaminhador, @unchecked Sendable {
     private let trava = NSLock()
     private var _chamadas: [String] = []
     private var _semRede = false
+    private var _semVinculo = false
     private var _portao: Portao?
 
     var chamadas: [String] { trava.withLock { _chamadas } }
     var semRede: Bool {
         get { trava.withLock { _semRede } }
         set { trava.withLock { _semRede = newValue } }
+    }
+    /// O servidor anterior à 0.2.30: a resposta do registro vem sem `vinculo_id`.
+    var semVinculo: Bool {
+        get { trava.withLock { _semVinculo } }
+        set { trava.withLock { _semVinculo = newValue } }
     }
     /// Com portão, `registrarDispositivo` só responde depois de ele abrir.
     var portao: Portao? {
@@ -263,7 +297,9 @@ private final class ApiDoAparelho: ApiClienteEncaminhador, @unchecked Sendable {
         anotar("registrar \(tokenFCM)")
         await portao?.passar()
         try exigirRede()
-        return try await base.registrarDispositivo(tokenFCM: tokenFCM)
+        let dispositivo = try await base.registrarDispositivo(tokenFCM: tokenFCM)
+        guard semVinculo else { return dispositivo }
+        return Dispositivo(plataforma: dispositivo.plataforma, atualizadoEm: dispositivo.atualizadoEm)
     }
 
     override func removerDispositivo(tokenFCM: String) async throws {
@@ -321,10 +357,17 @@ private struct ObservadorDeUmEncerramento: ObservadorDeSessao {
 struct AparelhoDePushTests {
     private let api = ApiDoAparelho()
     private let guardado = ArmazenamentoDoAparelhoEmMemoria()
+    private let compartilhado = ArmazenamentoDoVinculoCompartilhadoEmMemoria()
     private let relogio = RelogioAjustavel(Date(timeIntervalSince1970: 1_790_000_000))
 
     private func aparelho() -> AparelhoDePush {
-        AparelhoDePush(api: api, armazenamento: guardado, relogio: relogio)
+        AparelhoDePush(api: api, armazenamento: guardado, vinculoCompartilhado: compartilhado, relogio: relogio)
+    }
+
+    /// O vínculo como o aparelho o guarda depois do registro: o `vinculo_id` é o que o dublê deu ao
+    /// token (contrato 0.2.30), e `desde` é o relógio daqui.
+    private func vinculo(_ contaID: UUID, desde: Date, token: String = Tokens.aparelho) async -> VinculoDoAparelho {
+        VinculoDoAparelho(contaID: contaID, desde: desde, vinculoID: await api.base.vinculoDoDispositivo(tokenFCM: token))
     }
 
     /// O destino guardado é global (`UserDefaults.standard`): estes testes não o limpam, para não
@@ -353,11 +396,15 @@ struct AparelhoDePushTests {
         #expect(await aparelho.receber(token: Tokens.aparelho) == .semConta)
         #expect(api.chamadas.isEmpty)
 
-        let vinculo = VinculoDoAparelho(contaID: contaID, desde: relogio.agora)
-        #expect(await aparelho.registrar(para: contaID) == .registrado(vinculo))
+        let registro = await aparelho.registrar(para: contaID)
+        let vinculo = await vinculo(contaID, desde: relogio.agora)
+        #expect(vinculo.vinculoID != nil)
+        #expect(registro == .registrado(vinculo))
         #expect(await dono(Tokens.aparelho) == contaID)
         #expect(await aparelho.vinculo() == vinculo)
         #expect(guardado.ler() == AparelhoGuardado(token: Tokens.aparelho, vinculo: vinculo))
+        // O App Group recebe só o vinculo_id, para a extensão de notificação (#253).
+        #expect(compartilhado.ler() == vinculo.vinculoID)
     }
 
     @Test("O token que chega depois da entrada é registrado na hora para quem entrou")
@@ -368,7 +415,7 @@ struct AparelhoDePushTests {
 
         let registro = await aparelho.receber(token: Tokens.aparelho)
 
-        #expect(registro == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        #expect(registro == .registrado(await vinculo(contaID, desde: relogio.agora)))
         #expect(await dono(Tokens.aparelho) == contaID)
     }
 
@@ -383,9 +430,11 @@ struct AparelhoDePushTests {
         // Outra abertura do app: instância nova, o mesmo guardado, e o FCM entrega o mesmo token.
         relogio.avancar(86_400)
         let segunda = aparelho()
-        #expect(await segunda.vinculo() == VinculoDoAparelho(contaID: contaID, desde: desde))
-        #expect(await segunda.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: desde)))
-        #expect(await segunda.receber(token: Tokens.aparelho) == .registrado(VinculoDoAparelho(contaID: contaID, desde: desde)))
+        let vinculo = await vinculo(contaID, desde: desde)
+        #expect(await segunda.vinculo() == vinculo)
+        // O registro repetido pela mesma conta devolve o mesmo vinculo_id (contrato 0.2.30).
+        #expect(await segunda.registrar(para: contaID) == .registrado(vinculo))
+        #expect(await segunda.receber(token: Tokens.aparelho) == .registrado(vinculo))
 
         #expect(api.chamadas == ["registrar \(Tokens.aparelho)", "registrar \(Tokens.aparelho)"])
     }
@@ -404,6 +453,8 @@ struct AparelhoDePushTests {
         #expect(await aparelho.vinculo() == nil)
         // O token é do aparelho: fica guardado para a próxima conta que entrar, com a conta de quem saiu.
         #expect(guardado.ler() == AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: contaID))
+        // Sem vínculo, o App Group fica vazio: a extensão trata o push com vinculo_id como de outra conta.
+        #expect(compartilhado.ler() == nil)
     }
 
     @Test("Troca de conta no mesmo iPhone: quem entra vira a dona do token, com um vínculo que começa na entrada")
@@ -418,7 +469,7 @@ struct AparelhoDePushTests {
         let contaID = try await conta()
         let registro = await aparelho.registrar(para: contaID)
 
-        #expect(registro == .registrado(VinculoDoAparelho(contaID: contaID, desde: antes.addingTimeInterval(600))))
+        #expect(registro == .registrado(await vinculo(contaID, desde: antes.addingTimeInterval(600))))
         #expect(await dono(Tokens.aparelho) == contaID)
     }
 
@@ -438,7 +489,7 @@ struct AparelhoDePushTests {
         api.semRede = false
         // Troca de conta: o vínculo de quem entra só vale depois da carência.
         let desde = relogio.agora.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta)
-        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: desde)))
+        #expect(await aparelho.registrar(para: contaID) == .registrado(await vinculo(contaID, desde: desde)))
     }
 
     @Test("Sair sem rede não segura a saída: o aparelho deixa de ser da conta aqui, e a próxima entrada toma o token")
@@ -509,8 +560,8 @@ struct AparelhoDePushTests {
 
         api.semRede = false
         api.esquecerChamadas()
-        let vinculo = VinculoDoAparelho(contaID: contaID, desde: relogio.agora.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta))
-        #expect(await aparelho.ligar(para: contaID, canal: canal) == .registrado(vinculo))
+        let desde = relogio.agora.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta)
+        #expect(await aparelho.ligar(para: contaID, canal: canal) == .registrado(await vinculo(contaID, desde: desde)))
         #expect(api.chamadas == ["registrar \(Tokens.aparelho)", "canal: ativar"])
         #expect(await dono(Tokens.aparelho) == contaID)
     }
@@ -538,7 +589,8 @@ struct AparelhoDePushTests {
 
         #expect(api.chamadas == ["canal: ativar", "registrar \(Tokens.aparelho)"])
         // Sem conta anterior não há carência.
-        #expect(await aparelho.vinculo() == VinculoDoAparelho(contaID: contaID, desde: relogio.agora))
+        let esperado = await vinculo(contaID, desde: relogio.agora)
+        #expect(await aparelho.vinculo() == esperado)
     }
 
     @Test("Troca de conta depois de uma saída: o vínculo de quem entra só vale depois da carência")
@@ -551,7 +603,7 @@ struct AparelhoDePushTests {
 
         let contaID = try await conta()
         let desde = relogio.agora.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta)
-        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: desde)))
+        #expect(await aparelho.registrar(para: contaID) == .registrado(await vinculo(contaID, desde: desde)))
         // Com o vínculo novo, a conta anterior não precisa mais ficar guardada.
         #expect(guardado.ler()?.contaAnterior == nil)
     }
@@ -565,7 +617,7 @@ struct AparelhoDePushTests {
         await saida(aparelho).sair()
         relogio.avancar(600)
 
-        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        #expect(await aparelho.registrar(para: contaID) == .registrado(await vinculo(contaID, desde: relogio.agora)))
     }
 
     // MARK: A sessão que acaba com o pedido ao sistema em voo, e o descarte da central
@@ -578,7 +630,7 @@ struct AparelhoDePushTests {
         // O 401 chega entre a conferência da conta e o registro no sistema.
         let canal = CanalAnotado(api) { await aparelho.desvincular() }
 
-        #expect(await aparelho.ligar(para: contaID, canal: canal) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        #expect(await aparelho.ligar(para: contaID, canal: canal) == .registrado(await vinculo(contaID, desde: relogio.agora)))
 
         #expect(api.chamadas == ["registrar \(Tokens.aparelho)", "canal: ativar", "canal: suspender"])
         #expect(await aparelho.vinculo() == nil)
@@ -658,7 +710,10 @@ struct AparelhoDePushTests {
 
         let registro = await aparelho.receber(token: Tokens.novo)
 
-        #expect(registro == .registrado(VinculoDoAparelho(contaID: contaID, desde: desde)))
+        // O `desde` continua; o vinculo_id é o do token novo, que o servidor acabou de dar.
+        let vinculo = await vinculo(contaID, desde: desde, token: Tokens.novo)
+        #expect(registro == .registrado(vinculo))
+        #expect(compartilhado.ler() == vinculo.vinculoID)
         #expect(api.chamadas.suffix(2) == ["remover \(Tokens.aparelho)", "registrar \(Tokens.novo)"])
         #expect(await dono(Tokens.aparelho) == nil)
         #expect(await dono(Tokens.novo) == contaID)
@@ -701,7 +756,7 @@ struct AparelhoDePushTests {
         await aparelho.desvincular()
         await aparelho.registrar(para: contaID)
 
-        let vinculo = VinculoDoAparelho(contaID: contaID, desde: relogio.agora)
+        let vinculo = await vinculo(contaID, desde: relogio.agora)
         #expect(await mudancas.next() == .some(vinculo))
         #expect(await mudancas.next() == .some(nil))
         #expect(await mudancas.next() == .some(vinculo))
@@ -719,14 +774,42 @@ struct AparelhoDePushTests {
         #expect(api.chamadas.last == "remover \(Tokens.aparelho)")
         #expect(await dono(Tokens.aparelho) == nil)
         #expect(await aparelho.vinculo() == nil)
+        #expect(compartilhado.ler() == nil)
         // O FCM troca o token com a conta dentro e sem permissão: nada é registrado.
         #expect(await aparelho.receber(token: Tokens.novo) == .semConta)
         #expect(await dono(Tokens.novo) == nil)
 
         // A permissão veio: o registro volta, com um vínculo que começa agora.
         relogio.avancar(120)
-        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        #expect(await aparelho.registrar(para: contaID) == .registrado(await vinculo(contaID, desde: relogio.agora, token: Tokens.novo)))
         #expect(await dono(Tokens.novo) == contaID)
+    }
+
+    // MARK: O vinculo_id no App Group, para a extensão de notificação (#253)
+
+    @Test("Sessão encerrada sem a pessoa pedir apaga o vinculo_id do App Group junto com o vínculo")
+    func encerramentoApagaOCompartilhado() async throws {
+        let aparelho = aparelho()
+        await aparelho.receber(token: Tokens.aparelho)
+        await aparelho.registrar(para: try await conta())
+        #expect(compartilhado.ler() != nil)
+
+        await aparelho.desvincular()
+
+        #expect(compartilhado.ler() == nil)
+    }
+
+    @Test("O servidor anterior à 0.2.30 não devolve vinculo_id: o vínculo fica sem ele e o App Group vazio")
+    func servidorSemVinculo() async throws {
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        compartilhado.guardar(UUID())
+        api.semVinculo = true
+        await aparelho.receber(token: Tokens.aparelho)
+
+        #expect(await aparelho.registrar(para: contaID) == .registrado(VinculoDoAparelho(contaID: contaID, desde: relogio.agora)))
+        // O que estava lá, de uma versão anterior do app ou de outro servidor, sai: sem conferência por vínculo.
+        #expect(compartilhado.ler() == nil)
     }
 
     @Test("Sem permissão e sem vínculo não há o que tirar: nada vai ao servidor")
@@ -814,7 +897,7 @@ struct ArmazenamentoDoAparelhoNoKeychainTests {
         #expect(armazenamento.ler() == nil)
 
         armazenamento.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: nil))
-        let vinculo = VinculoDoAparelho(contaID: outraConta, desde: Date(timeIntervalSince1970: 1_790_000_000))
+        let vinculo = VinculoDoAparelho(contaID: outraConta, desde: Date(timeIntervalSince1970: 1_790_000_000), vinculoID: UUID())
         armazenamento.guardar(AparelhoGuardado(token: Tokens.novo, vinculo: vinculo))
 
         #expect(armazenamento.ler() == AparelhoGuardado(token: Tokens.novo, vinculo: vinculo))
@@ -827,5 +910,12 @@ struct ArmazenamentoDoAparelhoNoKeychainTests {
     func formatoAntigo() throws {
         let antigo = Data(#"{"token":"token-fcm-de-exemplo-0001"}"#.utf8)
         #expect(try JSONDecoder().decode(AparelhoGuardado.self, from: antigo) == AparelhoGuardado(token: Tokens.aparelho))
+    }
+
+    @Test("O vínculo guardado antes do vinculo_id existir continua legível, sem ele")
+    func vinculoSemID() throws {
+        let antigo = Data(#"{"token":"token-fcm-de-exemplo-0001","vinculo":{"contaID":"10000000-0000-0000-0000-0000000000FF","desde":0}}"#.utf8)
+        let guardado = try JSONDecoder().decode(AparelhoGuardado.self, from: antigo)
+        #expect(guardado.vinculo == VinculoDoAparelho(contaID: outraConta, desde: Date(timeIntervalSinceReferenceDate: 0)))
     }
 }
