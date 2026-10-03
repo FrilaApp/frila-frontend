@@ -891,7 +891,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let posicaoID = ocuparPosicaoAberta(vagaID)
         let turno = Turno(
             id: UUID(), posicaoID: posicaoID, vaga: vaga.resumo, contraparte: vaga.estabelecimento, contatoVisivelAte: visivelAte,
-            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false, contato: contato
+            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false
         )
         turnos.append(turno)
         contatos[turno.id] = contato
@@ -1021,7 +1021,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
                 contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
                 checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
-                valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: contatos[t.id] ?? t.contato,
+                valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
                 estado: estado, avaliacao: avaliacao, avaliacaoInformada: true, cancelamento: t.cancelamento,
                 avaliacaoLidaEm: Date()
             )
