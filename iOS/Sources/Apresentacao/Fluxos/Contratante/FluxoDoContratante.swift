@@ -157,7 +157,7 @@ public struct FluxoDoContratante: View {
                 erro(MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido)))
             }
         case let .vagas(estabelecimento):
-            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador)
+            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, sair: sair)
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -171,20 +171,45 @@ public struct FluxoDoContratante: View {
     }
 }
 
+/// Minhas vagas e, a partir dela, a publicação de uma vaga nova. A publicação toma o lugar da
+/// lista, como no primeiro acesso, e não uma folha por cima dela: assim a explicação da
+/// notificação, que é uma folha da raiz do app, pode aparecer depois de publicar (#8).
 private struct DestinoDasVagasDoContratante: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let roteador: RoteadorDoContratante?
+    private let sair: () -> Void
     @State private var model: MinhasVagasViewModel
+    @State private var publicacao: PublicacaoDaCasaViewModel
+    @State private var publicando = false
+    @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
-    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?) {
+    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?, sair: @escaping () -> Void) {
         self.api = api
         self.fila = fila
         self.roteador = roteador
+        self.sair = sair
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
+        _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
     }
 
     var body: some View {
-        TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador)
+        if publicando, let fila {
+            DestinoDePublicarVaga(
+                api: api, fila: fila, modelo: publicacao, sair: sair,
+                cancelar: { publicando = false },
+                aoPublicar: {
+                    // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
+                    // momento de explicar a notificação a quem contrata (#8).
+                    guard publicando else { return }
+                    publicando = false
+                    Task { await permissaoDePush?.oferecer() }
+                }
+            )
+        } else {
+            // Sem o banco local não há fila para a publicação: a entrada não aparece.
+            TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador,
+                            publicarVaga: fila == nil ? nil : { publicando = true })
+        }
     }
 }

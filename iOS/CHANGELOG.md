@@ -23,7 +23,8 @@ Primeira versão da App Store. Atende o Distrito Federal.
 
 ### Para quem contrata
 - Cadastro do estabelecimento com o ponto marcado no mapa e a região administrativa (#99, #242).
-- Publicação de vagas, com reenvio que não duplica a vaga (#100).
+- Publicação de vagas, no primeiro acesso e a partir de Minhas vagas, com reenvio que não duplica
+  a vaga (#100).
 - Minhas vagas, com o painel do estabelecimento (#107).
 - Acompanhamento do turno: confirmar a presença de quem fez check-in manual e reabrir a vaga
   quando o profissional atrasa 15 minutos (#19).
