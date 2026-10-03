@@ -146,6 +146,12 @@ cortado do modo seleção no detalhe da vaga e um contraste em AX5 na exclusão 
 
 ## Como rodar
 
+A suíte é **opcional**: na suíte normal e na CI ela é pulada com `XCTSkip`, porque são 29 casos
+que abrem o app e auditam duas vezes, e o passo de testes da CI já leva de 42 a 53 dos 70 minutos
+do job. Ela só roda com `FRILA_AUDITORIA_DE_ACESSIBILIDADE=1` no ambiente do test runner, que o
+`xcodebuild` recebe com o prefixo `TEST_RUNNER_`. Medida no simulador iPhone 17 (03/10, três
+passadas): 533 s, 512 s e 513 s só de testes, fora a compilação, ou seja, cerca de 9 minutos.
+
 ```sh
 # as três passadas (padrão + AX5 e Reduzir Movimento), com os result bundles numa pasta
 Scripts/auditoria-de-acessibilidade.sh <UDID> [pasta]
@@ -154,8 +160,8 @@ Scripts/auditoria-de-acessibilidade.sh <UDID> [pasta]
 FRILA_AUDITORIA_SO_REGISTRA=1 Scripts/auditoria-de-acessibilidade.sh <UDID>
 
 # uma passada direto
-xcodebuild test -project Frila.xcodeproj -scheme Frila-Local \
-  -destination 'platform=iOS Simulator,id=<UDID>' \
+TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 xcodebuild test -project Frila.xcodeproj \
+  -scheme Frila-Local -destination 'platform=iOS Simulator,id=<UDID>' \
   -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests
 ```
 

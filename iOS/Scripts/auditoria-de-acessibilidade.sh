@@ -4,6 +4,9 @@
 # que é a mesma suíte com a preferência ligada no simulador, porque o XCTest não tem argumento
 # de lançamento para ela. A preferência volta ao que era no fim, mesmo com falha.
 #
+# A suíte é opcional (XCTSkip na suíte normal e na CI): este script a liga com
+# TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1. Cada passada leva cerca de 9 minutos.
+#
 # Uso: Scripts/auditoria-de-acessibilidade.sh <UDID do simulador> [pasta-de-saida]
 #   Com FRILA_AUDITORIA_SO_REGISTRA=1, a suíte só registra os achados (linhas `AUDITORIA|…` no
 #   log), sem falhar: é o modo para levantar o relatório de Docs/Acessibilidade.md.
@@ -23,7 +26,8 @@ trap restaurar EXIT
 rodar() {
   local passada="$1"
   echo "== auditoria: $passada"
-  env TEST_RUNNER_FRILA_AUDITORIA_SO_REGISTRA="${FRILA_AUDITORIA_SO_REGISTRA:-0}" \
+  env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 \
+    TEST_RUNNER_FRILA_AUDITORIA_SO_REGISTRA="${FRILA_AUDITORIA_SO_REGISTRA:-0}" \
     xcodebuild test -project Frila.xcodeproj -scheme Frila-Local \
     -destination "platform=iOS Simulator,id=$UDID" \
     -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests \

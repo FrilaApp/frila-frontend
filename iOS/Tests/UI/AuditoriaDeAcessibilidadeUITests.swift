@@ -22,11 +22,17 @@ import XCTest
 /// de rolagem; os demais ficam não estritos, porque o que a auditoria enxerga depende do tamanho
 /// da tela e do que está visível no momento.
 ///
+/// A suíte é opcional: só roda com `TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1` no ambiente
+/// do `xcodebuild test` (é o que `Scripts/auditoria-de-acessibilidade.sh` passa). Na suíte normal
+/// e na CI ela é pulada com `XCTSkip`: são 29 casos que abrem o app e auditam duas vezes, cerca de
+/// 9 minutos no simulador, e o passo de testes da CI já leva de 42 a 53 dos 70 minutos do job.
+///
 /// Com `TEST_RUNNER_FRILA_AUDITORIA_SO_REGISTRA=1` a suíte só registra os achados, sem falhar:
 /// é o modo usado para levantar o relatório.
 @MainActor
 final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private static let ax5 = "UICTContentSizeCategoryAccessibilityXXXL"
+    private static let ligada = ProcessInfo.processInfo.environment["FRILA_AUDITORIA_DE_ACESSIBILIDADE"] == "1"
     private static let soRegistra = ProcessInfo.processInfo.environment["FRILA_AUDITORIA_SO_REGISTRA"] == "1"
 
     private let vagaID = "40000000-0000-0000-0000-000000000001"
@@ -38,7 +44,11 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private var ax5Atual = false
     private var tamanhoAtual: String { ax5Atual ? "ax5" : "padrao" }
 
-    override func setUp() {
+    override func setUpWithError() throws {
+        try XCTSkipUnless(
+            Self.ligada,
+            "Auditoria de acessibilidade opcional: rode com TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 ou por Scripts/auditoria-de-acessibilidade.sh (cerca de 9 minutos)"
+        )
         continueAfterFailure = true
     }
 
