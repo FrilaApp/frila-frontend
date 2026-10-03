@@ -98,17 +98,13 @@ descricao="$ESQUEMA $VERSAO ($FRILA_NUMERO_DO_BUILD), $AMBIENTE"
 [[ "$ENSAIO" == 0 ]] || descricao="$descricao, ensaio de falha"
 echo "Frila: $descricao"
 
-# 1. Archive. A assinatura local é ad hoc: o archive não precisa de certificado nem de perfil, e a
-# assinatura de distribuição acontece no export, gerenciada na nuvem pela Apple. Os entitlements
-# (aps-environment) ficam na assinatura ad hoc e o export os leva para a de distribuição.
+# 1. Archive, com a assinatura automática de desenvolvimento do projeto. Com
+# -allowProvisioningUpdates o xcodebuild cria o que faltar (perfil e certificado), pela chave da API
+# ou pela conta do Xcode. A assinatura ad hoc não serve: o Xcode exige perfil para o app iOS.
 # CI=1 desliga a fase do Xcode que envia os símbolos ao Crashlytics: o envio é o passo 4 deste script.
 ajustes=(
   MARKETING_VERSION="$VERSAO"
   CURRENT_PROJECT_VERSION="$FRILA_NUMERO_DO_BUILD"
-  CODE_SIGN_STYLE=Manual
-  CODE_SIGN_IDENTITY=-
-  AD_HOC_CODE_SIGNING_ALLOWED=YES
-  PROVISIONING_PROFILE_SPECIFIER=
 )
 if [[ "$ENSAIO" == 1 ]]; then
   # shellcheck disable=SC2016 # $(inherited) é do Xcode, não do shell.
@@ -120,6 +116,7 @@ CI="${CI:-1}" xcodebuild archive \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \
   ${derived[@]+"${derived[@]}"} \
+  "${autenticacao[@]}" \
   "${ajustes[@]}" | formatar
 
 APP_ARQUIVADO="$ARCHIVE/Products/Applications/Frila.app"

@@ -55,12 +55,14 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
    Prod.
 4. Grava a chave `.p8` num arquivo temporário com permissão 600.
 5. Roda o `Scripts/enviar-testflight.sh`:
-   1. **Archive** com a versão e o número do build. A assinatura local é ad hoc, então o archive não
-      precisa de certificado nem de perfil.
-   2. **Export** para o App Store Connect com assinatura automática (`-allowProvisioningUpdates` e a
-      chave). O Xcode cria o perfil de distribuição e usa um certificado gerenciado na nuvem pela
-      Apple. O certificado de distribuição e a chave privada dele não ficam no repositório nem nos
-      segredos; o único segredo novo é a chave da API.
+   1. **Archive** com a versão e o número do build, na assinatura automática de desenvolvimento do
+      projeto. Com `-allowProvisioningUpdates` e a chave, o xcodebuild cria o perfil e o certificado
+      de desenvolvimento que faltarem na máquina da CI. A assinatura ad hoc não serve: o Xcode exige
+      perfil para o app iOS (medido em 03/10).
+   2. **Export** para o App Store Connect com assinatura automática. O Xcode cria o perfil de
+      distribuição e usa um certificado gerenciado na nuvem pela Apple. O certificado de distribuição
+      e a chave privada dele não ficam no repositório nem nos segredos; o único segredo novo é a
+      chave da API.
    3. **Conferência** do app assinado: o `conferir-release.sh` (criptografia, privacidade, ganchos de
       Debug, `aps-environment` de produção) e `get-task-allow` falso.
    4. **Símbolos**: o dSYM do app e o dos quatro frameworks vão ao Crashlytics do ambiente, com duas
