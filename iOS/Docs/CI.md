@@ -19,7 +19,7 @@ Etapas, na ordem:
 13. Gera o `Secrets.xcconfig` de Prod e compila o `Frila-Prod`.
 14. Apaga `Secrets.xcconfig`, plists, produtos de build e temporários, mesmo quando uma etapa falha. O diretório `SourcePackages` fica só até o pós-job de cache salvar os pacotes.
 
-Nenhuma etapa assina código (o simulador usa a assinatura local ad-hoc) nem publica artefato. As fases de script do Xcode não exportam variáveis para o log, e o GitHub mascara os segredos.
+Nenhuma etapa do `ios.yml` assina código (o simulador usa a assinatura local ad-hoc) nem publica artefato. As fases de script do Xcode não exportam variáveis para o log, e o GitHub mascara os segredos.
 
 Desde 24/09 a etapa 12 compila com o `frila-prod` ([Dependências externas](ExternalSetup.md), item 9). Se um dos dois secrets de Prod faltar, ela para em `FRILA_SUPABASE_PROD_URL is not set`, de propósito: Prod sem Supabase não compila em silêncio.
 
@@ -162,6 +162,24 @@ ASC_KEY_PATH=~/caminho/AuthKey.p8 ASC_KEY_ID=... ASC_ISSUER_ID=... \
 
 Sem as três variáveis `ASC_*`, o script usa a conta logada no Xcode da máquina. Sem `--sem-envio`,
 ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio.
+
+### O que a primeira execução real ainda prova
+
+Em 03/10 o caminho rodou numa máquina do time, com `--sem-envio` e a conta do Xcode no lugar da
+chave. Passaram o archive, o export, a conferência do app assinado e os símbolos no Crashlytics. A
+máquina já tinha certificado de distribuição, então quatro coisas só a primeira execução no Actions
+prova:
+- se a chave Admin cria o que falta e assina na nuvem. O runner começa sem certificado nenhum.
+  Inferência: o archive pode criar um certificado Apple Development a cada execução. Se eles se
+  acumularem em Certificates, Identifiers & Profiles, revogue os antigos; o xcodebuild cria outro
+  quando precisar;
+- se o App Store Connect aceita o envio e o número do build;
+- se o `upload-symbols` roda no runner. Ele caiu com Segmentation fault num build de simulador em
+  30/09, e por isso tem duas tentativas;
+- quanto tempo o job leva.
+
+Um disparo manual com "Enviar ao TestFlight" desmarcado prova a assinatura na nuvem e os símbolos
+no runner, sem mandar nada ao TestFlight.
 
 ### Custo
 
