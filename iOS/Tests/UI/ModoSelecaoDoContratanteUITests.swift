@@ -100,13 +100,13 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let aviso = pergunta.staticTexts.element(boundBy: 1).label
         XCTAssertTrue(aviso.contains("Bruno Tavares será confirmado nesta vaga"), aviso)
         XCTAssertTrue(aviso.contains("É a última posição: os outros candidatos serão avisados"), aviso)
-        pergunta.buttons["Cancelar"].tap()
+        pergunta.buttons["cancelar-escolha-botao"].firstMatch.tap()
         XCTAssertTrue(escolher.waitForExistence(timeout: 5))
         XCTAssertFalse(app.descendants(matching: .any)["resultado-da-escolha"].exists)
 
         escolher.tap()
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
-        pergunta.buttons["Escolher"].tap()
+        pergunta.buttons["confirmar-escolha-botao"].firstMatch.tap()
 
         // Só ele foi confirmado: a lista de candidatos some, e a posição mostra quem ficou.
         let resultado = app.descendants(matching: .any)["resultado-da-escolha"]
@@ -140,7 +140,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         escolher.tap()
         let pergunta = app.alerts["Confirmar a escolha?"]
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
-        pergunta.buttons["Escolher"].tap()
+        pergunta.buttons["confirmar-escolha-botao"].firstMatch.tap()
 
         // Outro membro da casa chegou antes: a tela explica e já mostra quem ficou com a posição.
         let falha = app.descendants(matching: .any)["falha-da-escolha"]
@@ -253,8 +253,8 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         escolher.tap()
         let pergunta = app.alerts["Confirmar a escolha?"]
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
-        XCTAssertTrue(pergunta.buttons["Escolher"].isHittable)
-        pergunta.buttons["Cancelar"].tap()
+        XCTAssertTrue(pergunta.buttons["confirmar-escolha-botao"].firstMatch.isHittable)
+        pergunta.buttons["cancelar-escolha-botao"].firstMatch.tap()
         XCTAssertTrue(escolher.waitForExistence(timeout: 5))
     }
 }

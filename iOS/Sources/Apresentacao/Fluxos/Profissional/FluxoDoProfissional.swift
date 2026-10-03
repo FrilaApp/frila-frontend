@@ -249,6 +249,11 @@ public struct FluxoDoProfissional<Barra: View>: View {
             }
             .tag(AbaDoProfissional.candidaturas)
         }
+        .environment(feed.bloqueios)
+        .onChange(of: feed.bloqueios.alvos) {
+            // O servidor também retirou vagas: reinicia os offsets para não pular itens.
+            Task { await feed.atualizar() }
+        }
         .onChange(of: roteador.avisosAbertos) { atualizarListas() }
         .onChange(of: caminhoCandidaturas) { _, caminho in
             // De volta à lista: a candidatura retirada no detalhe aparece como retirada.
