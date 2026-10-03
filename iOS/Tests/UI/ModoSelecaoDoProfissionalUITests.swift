@@ -159,6 +159,30 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(app.buttons["meu-turno-\(turnoID)"].waitForExistence(timeout: 10))
     }
 
+    func testCandidaturaComTurnoCanceladoApareceComoCanceladaNaAbaEAbreODetalheSemAcoes() {
+        let app = abrir("candidatura-com-turno-cancelado")
+
+        let aba = app.tabBars.buttons["Candidaturas"]
+        XCTAssertTrue(aba.waitForExistence(timeout: 15))
+        aba.tap()
+        let cancelada = app.buttons["candidatura-\(candidaturaID)"]
+        XCTAssertTrue(cancelada.waitForExistence(timeout: 10))
+        XCTAssertTrue(cancelada.label.contains("Turno cancelado"), cancelada.label)
+        XCTAssertFalse(cancelada.label.contains("Confirmada"), cancelada.label)
+
+        cancelada.tap()
+        XCTAssertTrue(elemento("tela-meu-turno", em: app).waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
+        XCTAssertTrue(elemento("cancelamento-do-turno", em: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["confirmar-checkin"].exists)
+        XCTAssertFalse(elemento("contato-do-turno", em: app).exists)
+        XCTAssertFalse(elemento("secao-de-presenca", em: app).exists)
+
+        app.navigationBars.buttons["Candidaturas"].tap()
+        XCTAssertTrue(elemento("tela-minhas-candidaturas", em: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(aba.isSelected)
+    }
+
     func testPushDeCandidaturaRecusadaDizQueOutraPessoaFoiEscolhida() {
         let app = abrir("candidatura-recusada", push: "candidatura_recusada", id: vagaID)
 

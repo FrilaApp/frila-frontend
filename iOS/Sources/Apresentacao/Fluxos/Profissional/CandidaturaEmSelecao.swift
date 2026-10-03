@@ -40,8 +40,10 @@ enum TextosDaCandidaturaEmSelecao {
     static let desatualizada = String(localized: "Não foi possível atualizar. A lista de candidaturas pode estar desatualizada.", bundle: bundleApresentacao)
     static let abreAVaga = String(localized: "Abre a vaga", bundle: bundleApresentacao)
     static let abreMeusTurnos = String(localized: "Abre Meus turnos", bundle: bundleApresentacao)
+    static let abreOTurno = String(localized: "Abre o detalhe do turno", bundle: bundleApresentacao)
     static let estadoPendente = String(localized: "Aguardando a escolha do estabelecimento", bundle: bundleApresentacao)
     static let estadoAceita = String(localized: "Confirmada: o turno está em Meus turnos", bundle: bundleApresentacao)
+    static let estadoTurnoCancelado = String(localized: "Turno cancelado", bundle: bundleApresentacao)
     static let estadoRecusada = String(localized: "O estabelecimento escolheu outra pessoa", bundle: bundleApresentacao)
     /// Neutro de propósito: o servidor também passa a `retirada` a candidatura pendente da casa
     /// que foi suspensa ou excluída, e aí não foi a pessoa que a retirou.
@@ -59,13 +61,14 @@ enum TextosDaCandidaturaEmSelecao {
     static let canceladaMensagem = String(localized: "A sua candidatura foi encerrada junto com a vaga.", bundle: bundleApresentacao)
     static let preenchidaEmSelecao = String(localized: "O estabelecimento já escolheu quem vai trabalhar nesta vaga.", bundle: bundleApresentacao)
 
-    static func estado(_ estado: EstadoCandidatura) -> String {
+    static func estado(_ estado: EstadoCandidatura, turnoCancelado: Bool = false) -> String {
+        if turnoCancelado { return estadoTurnoCancelado }
         switch estado {
-        case .pendente: estadoPendente
-        case .aceita: estadoAceita
-        case .recusada: estadoRecusada
-        case .retirada: estadoRetirada
-        case .expirada: estadoExpirada
+        case .pendente: return estadoPendente
+        case .aceita: return estadoAceita
+        case .recusada: return estadoRecusada
+        case .retirada: return estadoRetirada
+        case .expirada: return estadoExpirada
         }
     }
 
@@ -306,6 +309,12 @@ public enum EstadoDasCandidaturas: Equatable, Sendable {
     case falha
 }
 
+public enum DestinoDaCandidatura: Equatable, Sendable {
+    case vaga(VagaResumo)
+    case meusTurnos
+    case turno(Turno)
+}
+
 /// A aba Candidaturas de quem trabalha (#10): o que `minhas_candidaturas` devolve, da mais nova
 /// para a mais antiga, com as que esperam resposta em primeiro lugar.
 @MainActor @Observable
@@ -313,14 +322,24 @@ public final class MinhasCandidaturasViewModel {
     public private(set) var estado = EstadoDasCandidaturas.ociosa
     /// A última releitura falhou com uma lista já na tela: o que aparece pode estar velho.
     public private(set) var desatualizada = false
+    public private(set) var turnosPorID: [UUID: Turno] = [:]
     private let buscar: @Sendable () async throws -> [Candidatura]
+    private let buscarTurnos: (@Sendable () async throws -> [Turno])?
 
-    public convenience init(api: any ApiCliente) {
-        self.init(buscar: { try await api.minhasCandidaturas() })
+    public convenience init(api: any ApiCliente, repositorioTurnos: (any TurnoRepositorio)? = nil) {
+        let repo = repositorioTurnos ?? api
+        self.init(
+            buscar: { try await api.minhasCandidaturas() },
+            buscarTurnos: { (try await repo.ler()).turnos }
+        )
     }
 
-    public init(buscar: @escaping @Sendable () async throws -> [Candidatura]) {
+    public init(
+        buscar: @escaping @Sendable () async throws -> [Candidatura],
+        buscarTurnos: (@Sendable () async throws -> [Turno])? = nil
+    ) {
         self.buscar = buscar
+        self.buscarTurnos = buscarTurnos
     }
 
     public var candidaturas: [Candidatura] {
@@ -332,6 +351,30 @@ public final class MinhasCandidaturasViewModel {
     public var pendentes: [Candidatura] { candidaturas.filter { $0.estado == .pendente } }
     /// As que já tiveram desfecho: confirmada, recusada, retirada ou expirada.
     public var anteriores: [Candidatura] { candidaturas.filter { $0.estado != .pendente } }
+
+    public func turno(de candidatura: Candidatura) -> Turno? {
+        guard let turnoID = candidatura.turnoID else { return nil }
+        return turnosPorID[turnoID]
+    }
+
+    public func turnoCancelado(para candidatura: Candidatura) -> Bool {
+        guard candidatura.estado == .aceita else { return false }
+        return turno(de: candidatura)?.estado == .cancelada
+    }
+
+    public func textoDoEstado(de candidatura: Candidatura) -> String {
+        TextosDaCandidaturaEmSelecao.estado(candidatura.estado, turnoCancelado: turnoCancelado(para: candidatura))
+    }
+
+    public func destinoAoTocar(em candidatura: Candidatura) -> DestinoDaCandidatura {
+        if candidatura.estado == .aceita {
+            if let turno = turno(de: candidatura) {
+                return .turno(turno)
+            }
+            return .meusTurnos
+        }
+        return .vaga(candidatura.vaga)
+    }
 
     /// Uma leitura por vez. O pedido que chega com outra em voo não abre uma segunda chamada.
     private var lendo = false
@@ -368,7 +411,14 @@ public final class MinhasCandidaturasViewModel {
             releituraPedida = false
             if case .carregadas = estado {} else { estado = .carregando }
             do {
-                estado = .carregadas(try await buscar())
+                async let buscaCandidaturas = buscar()
+                async let buscaTurnos: [Turno] = (try? await buscarTurnos?()) ?? []
+                let lista = try await buscaCandidaturas
+                let turnosLidos = await buscaTurnos
+                if !turnosLidos.isEmpty || turnosPorID.isEmpty {
+                    turnosPorID = Dictionary(turnosLidos.map { ($0.id, $0) }, uniquingKeysWith: { _, novo in novo })
+                }
+                estado = .carregadas(lista)
                 desatualizada = false
             } catch {
                 if Task.isCancelled {
@@ -444,19 +494,41 @@ public struct TelaMinhasCandidaturas: View {
         if !candidaturas.isEmpty {
             Text(verbatim: titulo).font(.headline).accessibilityAddTraits(.isHeader)
             ForEach(candidaturas) { candidatura in
-                Button { abrir(candidatura) } label: { CartaoDaCandidatura(candidatura: candidatura) }
-                    .buttonStyle(.plain)
-                    .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
-                    .accessibilityIdentifier("candidatura-\(candidatura.id.uuidString)")
-                    .accessibilityHint(candidatura.estado == .aceita ? Textos.abreMeusTurnos : Textos.abreAVaga)
+                Button { abrir(candidatura) } label: {
+                    CartaoDaCandidatura(candidatura: candidatura, turno: viewModel.turno(de: candidatura))
+                }
+                .buttonStyle(.plain)
+                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                .accessibilityIdentifier("candidatura-\(candidatura.id.uuidString)")
+                .accessibilityHint(dicaDeAcessibilidade(para: candidatura))
             }
+        }
+    }
+
+    private func dicaDeAcessibilidade(para candidatura: Candidatura) -> String {
+        switch viewModel.destinoAoTocar(em: candidatura) {
+        case .turno:
+            return Textos.abreOTurno
+        case .meusTurnos:
+            return Textos.abreMeusTurnos
+        case .vaga:
+            return Textos.abreAVaga
         }
     }
 }
 
 struct CartaoDaCandidatura: View {
     let candidatura: Candidatura
+    var turno: Turno? = nil
     private let formatador = FormatadorFrila()
+
+    private var turnoCancelado: Bool {
+        candidatura.estado == .aceita && turno?.estado == .cancelada
+    }
+
+    private var textoDoEstado: String {
+        TextosDaCandidaturaEmSelecao.estado(candidatura.estado, turnoCancelado: turnoCancelado)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -482,11 +554,11 @@ struct CartaoDaCandidatura: View {
                 Image(systemName: "mappin.and.ellipse")
             }
             Label {
-                Text(verbatim: TextosDaCandidaturaEmSelecao.estado(candidatura.estado)).fontWeight(.semibold)
+                Text(verbatim: textoDoEstado).fontWeight(.semibold)
             } icon: {
                 Image(systemName: icone)
             }
-            .foregroundStyle(candidatura.estado == .pendente || candidatura.estado == .aceita ? FrilaCor.texto : FrilaCor.textoSecundario)
+            .foregroundStyle(candidatura.estado == .pendente || (candidatura.estado == .aceita && !turnoCancelado) ? FrilaCor.texto : FrilaCor.textoSecundario)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
@@ -504,7 +576,7 @@ struct CartaoDaCandidatura: View {
     private var icone: String {
         switch candidatura.estado {
         case .pendente: "hourglass"
-        case .aceita: "checkmark.circle"
+        case .aceita: turnoCancelado ? "xmark.circle" : "checkmark.circle"
         case .recusada, .expirada: "xmark.circle"
         case .retirada: "arrow.uturn.backward.circle"
         }

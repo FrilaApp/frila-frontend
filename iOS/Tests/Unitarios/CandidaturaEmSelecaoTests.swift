@@ -578,6 +578,63 @@ struct CandidaturaEmSelecaoTests {
         #expect(roteador.aba == .candidaturas && roteador.caminho.isEmpty)
     }
 
+    // MARK: Cruzamento da candidatura com o turno (0.2.32)
+
+    @Test("Candidatura aceita com turno confirmado: diz confirmada e tocar nela abre o turno")
+    func candidaturaAceitaComTurnoConfirmado() async throws {
+        let turno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let candidatura = Candidatura(id: Cena.candidaturaID, vaga: turno.vaga, estado: .aceita, criadaEm: .now, turnoID: turno.id)
+        let vm = MinhasCandidaturasViewModel(
+            buscar: { [candidatura] },
+            buscarTurnos: { [turno] }
+        )
+        await vm.carregar()
+
+        #expect(vm.textoDoEstado(de: candidatura) == "Confirmada: o turno está em Meus turnos")
+        #expect(vm.turnoCancelado(para: candidatura) == false)
+        #expect(vm.destinoAoTocar(em: candidatura) == .turno(turno))
+    }
+
+    @Test("Candidatura aceita com turno cancelado: diz turno cancelado e tocar nela abre o detalhe do turno cancelado sem ações")
+    func candidaturaAceitaComTurnoCancelado() async throws {
+        let baseTurno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let turnoCancelado = Turno(
+            id: baseTurno.id, posicaoID: baseTurno.posicaoID, vaga: baseTurno.vaga, contraparte: baseTurno.contraparte,
+            contatoVisivelAte: baseTurno.contatoVisivelAte, verificacao: baseTurno.verificacao, valorAcordado: baseTurno.valorAcordado,
+            podeAvaliar: false, estado: .cancelada,
+            cancelamento: CancelamentoDoTurno(causa: .estabelecimento, falta: false, canceladaEm: .now)
+        )
+        let candidatura = Candidatura(id: Cena.candidaturaID, vaga: baseTurno.vaga, estado: .aceita, criadaEm: .now, turnoID: baseTurno.id)
+        let vm = MinhasCandidaturasViewModel(
+            buscar: { [candidatura] },
+            buscarTurnos: { [turnoCancelado] }
+        )
+        await vm.carregar()
+
+        #expect(vm.textoDoEstado(de: candidatura) == "Turno cancelado")
+        #expect(vm.turnoCancelado(para: candidatura) == true)
+        #expect(vm.destinoAoTocar(em: candidatura) == .turno(turnoCancelado))
+
+        let turnoVM = MeuTurnoViewModel(turno: turnoCancelado, api: ApiClienteEmMemoria(), contaID: UUID())
+        #expect(turnoVM.cancelado == true)
+        #expect(turnoVM.permiteAcoesDoTurno == false)
+    }
+
+    @Test("Candidatura aceita sem turno_id (servidor antigo): diz confirmada e tocar nela abre Meus turnos")
+    func candidaturaAceitaServidorAntigoSemTurnoID() async throws {
+        let turno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let candidatura = Candidatura(id: Cena.candidaturaID, vaga: turno.vaga, estado: .aceita, criadaEm: .now, turnoID: nil)
+        let vm = MinhasCandidaturasViewModel(
+            buscar: { [candidatura] },
+            buscarTurnos: { [turno] }
+        )
+        await vm.carregar()
+
+        #expect(vm.textoDoEstado(de: candidatura) == "Confirmada: o turno está em Meus turnos")
+        #expect(vm.turnoCancelado(para: candidatura) == false)
+        #expect(vm.destinoAoTocar(em: candidatura) == .meusTurnos)
+    }
+
     // MARK: Textos
 
     @Test("Todo texto da candidatura em seleção está no catálogo pt-BR")

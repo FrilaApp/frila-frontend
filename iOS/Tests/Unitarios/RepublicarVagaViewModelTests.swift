@@ -644,6 +644,41 @@ struct RepublicarVagaViewModelTests {
         #expect(await espiao.chamadas == 0)
     }
 
+    @Test("Início padrão de vaga em seleção é 25 h e abre sem erro de validação")
+    @MainActor
+    func selecaoAbreComInicioPadraoValido() throws {
+        let vaga = try criarVagaNoPainel(modo: .selecao)
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let viewModel = RepublicarVagaViewModel(
+            vagaOriginal: vaga,
+            agora: { @Sendable in base },
+            republicar: { _, _, _ in throw ErroDaApi(codigo: .desconhecido) }
+        )
+
+        // Não mexe em início/fim: usa os valores padrão do init
+        #expect(viewModel.inicio == base.addingTimeInterval(25 * 3600))
+        #expect(viewModel.fim == base.addingTimeInterval(29 * 3600))
+        #expect(viewModel.validar())
+        #expect(viewModel.erros.isEmpty)
+    }
+
+    @Test("Início padrão de vaga em urgência continua 3 h")
+    @MainActor
+    func urgenciaContinuaComInicioPadrao3h() throws {
+        let vaga = try criarVagaNoPainel(modo: .urgencia)
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let viewModel = RepublicarVagaViewModel(
+            vagaOriginal: vaga,
+            agora: { @Sendable in base },
+            republicar: { _, _, _ in throw ErroDaApi(codigo: .desconhecido) }
+        )
+
+        #expect(viewModel.inicio == base.addingTimeInterval(3 * 3600))
+        #expect(viewModel.fim == base.addingTimeInterval(7 * 3600))
+        #expect(viewModel.validar())
+        #expect(viewModel.erros.isEmpty)
+    }
+
 }
 
 private actor FilaEspia: FilaDeAcoes {

@@ -56,14 +56,19 @@ struct FrilaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            switch inicializacao {
-            case let .pronta(dependencias):
-                PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: dependencias.api, versaoAtual: versao)) {
-                    EntradaDoApp(dependencias, armazenamento: armazenamento, navegacao: delegado.navegacao)
+            Group {
+                switch inicializacao {
+                case let .pronta(dependencias):
+                    PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: dependencias.api, versaoAtual: versao)) {
+                        EntradaDoApp(dependencias, armazenamento: armazenamento, navegacao: delegado.navegacao)
+                    }
+                case let .configuracaoInvalida(erro):
+                    TelaDeConfiguracaoInvalida(erro: erro)
                 }
-            case let .configuracaoInvalida(erro):
-                TelaDeConfiguracaoInvalida(erro: erro)
             }
+            #if FRILA_ENSAIO_FALHA
+            .overlay(alignment: .bottomLeading) { BotaoDeFalhaDoEnsaio() }
+            #endif
         }
     }
 

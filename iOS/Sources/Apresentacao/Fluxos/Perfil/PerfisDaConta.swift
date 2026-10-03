@@ -2,7 +2,7 @@ import FrilaDominio
 import Observation
 import SwiftUI
 
-private enum TextosPerfilConta {
+enum TextosPerfilConta {
     static let meuPerfil = String(localized: "Meu perfil", bundle: bundleApresentacao)
     static let perfilEstabelecimento = String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao)
     static let nome = String(localized: "Nome", bundle: bundleApresentacao)
@@ -145,6 +145,7 @@ public struct TelaMeuPerfilProfissional: View {
                             Image(systemName: "questionmark.circle")
                         }
                     }
+                    .accessibilityIdentifier("perfil-por-que-recebo")
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     Button { mostrarAjuda = true } label: {
                         Label {
@@ -208,7 +209,10 @@ public struct TelaMeuPerfilProfissional: View {
     private var explicacao: some View {
         NavigationStack {
             ScrollView {
-                Text(verbatim: TextosPerfilConta.explicacaoVagas).frame(maxWidth: .infinity, alignment: .leading).padding()
+                Text(verbatim: TextosPerfilConta.explicacaoVagas)
+                    .accessibilityIdentifier("perfil-explicacao-vagas")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
             }
             .navigationTitle(Text(verbatim: TextosPerfilConta.porQueRecebo)).navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -218,6 +222,7 @@ public struct TelaMeuPerfilProfissional: View {
                     } label: {
                         Text(verbatim: TextosPerfilConta.fechar)
                     }
+                    .accessibilityIdentifier("fechar-explicacao-vagas")
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
