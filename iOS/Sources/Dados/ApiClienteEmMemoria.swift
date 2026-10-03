@@ -889,6 +889,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func perfilPublico(id: UUID) async throws -> PerfilPublico {
         try verificarFalhaGeral()
+        guard !bloqueios.keys.contains(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
         guard let perfil = vagas.map(\.estabelecimento).first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
@@ -1255,7 +1256,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Segue `bloquear` do backend (`20260929100000_denunciar_e_bloquear.sql`): alvo que não existe é
     /// `404`, e bloquear de novo devolve o bloqueio que já existe. A partir daí as vagas da casa
     /// bloqueada saem da lista, e detalhe, candidatura e contato respondem `404`. O `perfil_publico`
-    /// continua respondendo, como no contrato 0.2.27. O alvo é do outro perfil: conta de profissional
+    /// também responde `404`, conforme o contrato 0.2.28. O alvo é do outro perfil: conta de profissional
     /// bloqueia estabelecimento, e conta de contratante, profissional; o contrário é `422
     /// campo_invalido`, com `alvo_tipo`, conferido antes de procurar o alvo.
     public func bloquear(_ alvo: Alvo) async throws -> Bloqueio {
