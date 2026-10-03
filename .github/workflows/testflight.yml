@@ -1,0 +1,191 @@
+name: TestFlight
+
+# Envio do app ao TestFlight (#203). Uma tag vX.Y.Z no main manda o esquema da tag (abaixo) com a
+# versão X.Y.Z; o disparo manual (Actions > TestFlight > Run workflow) escolhe esquema, versão,
+# ensaio de falha e se envia. Quem faz o quê está em iOS/Docs/CI.md, "Mandar um build ao TestFlight".
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      esquema:
+        description: "Esquema: Frila-Beta (frila-dev) ou Frila-Prod (frila-prod)"
+        type: choice
+        options: [Frila-Beta, Frila-Prod]
+        default: Frila-Beta
+      versao:
+        description: "Versão no formato X.Y.Z (ex.: 0.4.0)"
+        type: string
+        required: true
+      ensaio_falha:
+        description: "Ensaio de falha: compila o botão 'Forçar falha (ensaio)' e marca o build só para teste interno"
+        type: boolean
+        default: false
+      enviar:
+        description: "Enviar ao TestFlight (desmarcado: só archive, assinatura, conferência e símbolos)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Um envio por vez, sem cancelar o que já está subindo.
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    name: Archive, assinatura, símbolos e envio
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+        working-directory: iOS
+    env:
+      XCODE_VERSION: "26.6"
+      # Esquema que as tags mandam. O 0.4 e o 0.5 vão com o Frila-Beta (frila-dev), porque o
+      # frila-prod ainda não tem as migrações (frila-backend, docs/ESTADO.md; cartão do ambiente de
+      # produção, 29/10). Quando ele tiver, apague a linha ativa e descomente a de baixo: as tags
+      # passam a mandar o Frila-Prod. O disparo manual continua escolhendo os dois.
+      ESQUEMA_DA_TAG: Frila-Beta
+      # ESQUEMA_DA_TAG: Frila-Prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Histórico inteiro para conferir que a tag está no main.
+          fetch-depth: 0
+
+      - name: Definir esquema, versão e número do build
+        env:
+          ENTRADA_ESQUEMA: ${{ inputs.esquema }}
+          ENTRADA_VERSAO: ${{ inputs.versao }}
+          ENTRADA_ENSAIO: ${{ inputs.ensaio_falha }}
+          ENTRADA_ENVIAR: ${{ inputs.enviar }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            ESQUEMA="$ESQUEMA_DA_TAG"
+            VERSAO="${GITHUB_REF_NAME#v}"
+            ENSAIO=0
+            ENVIAR=1
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::A tag $GITHUB_REF_NAME não aponta para um commit do main. Só o que passou pela revisão vai ao TestFlight."
+              exit 1
+            fi
+          else
+            ESQUEMA="$ENTRADA_ESQUEMA"
+            VERSAO="$ENTRADA_VERSAO"
+            ENSAIO=$([[ "$ENTRADA_ENSAIO" == "true" ]] && echo 1 || echo 0)
+            ENVIAR=$([[ "$ENTRADA_ENVIAR" == "true" ]] && echo 1 || echo 0)
+          fi
+          case "$ESQUEMA" in
+            Frila-Beta|Frila-Prod) ;;
+            *) echo "::error::Esquema inválido: $ESQUEMA"; exit 1 ;;
+          esac
+          if [[ ! "$VERSAO" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::A versão deve ter o formato X.Y.Z; a tag deve ser vX.Y.Z (recebido: $VERSAO)"
+            exit 1
+          fi
+          # Regra do número do build: data e hora UTC do início do job (AAAAMMDD.HHMMSS), única e
+          # crescente entre execuções e reexecuções. O script usa este valor.
+          read -r dia hora < <(date -u '+%Y%m%d %H%M%S')
+          NUMERO="$dia.$((10#$hora))"
+          {
+            echo "FRILA_ESQUEMA=$ESQUEMA"
+            echo "FRILA_VERSAO=$VERSAO"
+            echo "FRILA_NUMERO_DO_BUILD=$NUMERO"
+            echo "FRILA_ENSAIO_FALHA=$ENSAIO"
+            echo "FRILA_ENVIAR=$ENVIAR"
+          } >> "$GITHUB_ENV"
+          {
+            echo "### $ESQUEMA $VERSAO ($NUMERO)"
+            echo "- Ensaio de falha: $([[ $ENSAIO == 1 ]] && echo 'sim, só teste interno' || echo 'não')"
+            echo "- Envio ao TestFlight: $([[ $ENVIAR == 1 ]] && echo 'sim' || echo 'não')"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Selecionar o Xcode 26.6 fixado
+        run: |
+          XCODE="/Applications/Xcode_${XCODE_VERSION}.app"
+          if [[ ! -d "$XCODE" ]]; then
+            echo "::error::Xcode ${XCODE_VERSION} não está disponível neste runner"
+            exit 1
+          fi
+          sudo xcode-select --switch "$XCODE/Contents/Developer"
+          SAIDA="$(xcodebuild -version)"
+          printf '%s\n' "$SAIDA"
+          VERSION="${SAIDA%%$'\n'*}"
+          if [[ "$VERSION" != "Xcode ${XCODE_VERSION}" ]]; then
+            echo "::error::Versão de Xcode inesperada: $VERSION"
+            exit 1
+          fi
+
+      - name: Definir DerivedData e saída temporários
+        run: |
+          echo "FRILA_DERIVED_DATA=$RUNNER_TEMP/DerivedData" >> "$GITHUB_ENV"
+          echo "FRILA_SAIDA=$RUNNER_TEMP/testflight" >> "$GITHUB_ENV"
+
+      - name: Restaurar os pacotes SPM do cache da CI
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/DerivedData/SourcePackages
+          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-spm-${{ hashFiles('iOS/Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
+      - name: Gerar a configuração do ambiente (Supabase e Firebase)
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
+          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
+          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
+        run: |
+          case "$FRILA_ESQUEMA" in
+            Frila-Beta) AMBIENTE=dev ;;
+            Frila-Prod) AMBIENTE=prod ;;
+          esac
+          Scripts/generate-supabase-secrets.sh "$AMBIENTE"
+          Scripts/inject-firebase-config.sh "$AMBIENTE"
+
+      - name: Gravar a chave da App Store Connect API
+        env:
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          falta=()
+          [[ -n "$ASC_KEY_P8" ]] || falta+=(APP_STORE_CONNECT_API_KEY_P8)
+          [[ -n "$ASC_KEY_ID" ]] || falta+=(APP_STORE_CONNECT_API_KEY_ID)
+          [[ -n "$ASC_ISSUER_ID" ]] || falta+=(APP_STORE_CONNECT_API_ISSUER_ID)
+          if (( ${#falta[@]} )); then
+            echo "::error::Faltam os segredos ${falta[*]} (iOS/Docs/CI.md, 'Mandar um build ao TestFlight')"
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc/AuthKey.p8"
+          if ! grep -q -- '-----BEGIN PRIVATE KEY-----' "$RUNNER_TEMP/asc/AuthKey.p8"; then
+            echo "::error::APP_STORE_CONNECT_API_KEY_P8 não é o conteúdo de um arquivo .p8"
+            exit 1
+          fi
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Archive, conferência, símbolos e envio
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          opcoes=()
+          [[ "$FRILA_ENVIAR" == 1 ]] || opcoes+=(--sem-envio)
+          Scripts/enviar-testflight.sh "$FRILA_ESQUEMA" "$FRILA_VERSAO" ${opcoes[@]+"${opcoes[@]}"}
+
+      - name: Apagar chave, segredos e temporários
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: |
+          rm -rf "$RUNNER_TEMP/asc" "$RUNNER_TEMP/testflight" "$RUNNER_TEMP/DerivedData"
+          rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
+          rm -f iOS/Resources/Firebase/*/GoogleService-Info.plist iOS/Resources/Firebase/*/GoogleService-Info.plist.tmp.*
