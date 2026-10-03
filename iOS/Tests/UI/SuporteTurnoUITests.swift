@@ -63,4 +63,49 @@ final class SuporteTurnoUITests: XCTestCase {
         let botaoFechar = app.buttons["botao-fechar-suporte"]
         XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5), "Botão de fechar folha deve estar acessível")
     }
+
+    func testBotaoAjudaTurnoEmTurnoDoContratante() {
+        let app = XCUIApplication()
+        let turnoID = "82000000-0000-0000-0000-000000000001"
+        app.launchArguments = ["-FRILA_SCENARIO", "checkin-manual-pendente"]
+        app.launch()
+
+        let acompanhar = app.buttons["acompanhar-turno-\(turnoID)"]
+        XCTAssertTrue(acompanhar.waitForExistence(timeout: 15))
+        acompanhar.tap()
+
+        app.swipeUp()
+        let botaoAjuda = app.descendants(matching: .any)["botao-ajuda-turno"]
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5), "Botão de ajuda no turno deve estar visível no rodapé do contratante")
+        botaoAjuda.tap()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 5), "Folha de suporte deve abrir ao tocar no botão de ajuda")
+        app.buttons["botao-fechar-suporte"].tap()
+        XCTAssertFalse(folha.exists)
+    }
+
+    func testBotaoAjudaTurnoEmMeuTurno() {
+        let app = XCUIApplication()
+        let turnoID = "22000000-0000-0000-0000-000000000001"
+        app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_CACHE_VAZIO_UI_TEST"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Meus turnos"].tap()
+
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        cartao.tap()
+
+        app.swipeUp()
+        let botaoAjuda = app.descendants(matching: .any)["botao-ajuda-turno"]
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5), "Botão de ajuda no turno deve estar visível no rodapé do profissional")
+        botaoAjuda.tap()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 5), "Folha de suporte deve abrir ao tocar no botão de ajuda")
+        app.buttons["botao-fechar-suporte"].tap()
+        XCTAssertFalse(folha.exists)
+    }
 }
