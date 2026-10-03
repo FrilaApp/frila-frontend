@@ -39,6 +39,9 @@ final class AvisosDoDetalhe {
 /// Detalhe da vaga (#104). Nunca mostra telefone nem documento: o contrato não os devolve aqui, e o
 /// contato só aparece depois da confirmação (RN10). O aviso da RN10 vem antes de Candidatar-me.
 public struct TelaDetalheVaga<Acao: View>: View {
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var viewModel: DetalheVagaViewModel
     @State private var avisosDaAcao = AvisosDoDetalhe()
@@ -69,7 +72,10 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 case .carregando:
                     EstadoCarregando()
                 case let .carregado(vaga):
-                    conteudo(vaga)
+                    if bloqueios.contem(vaga.estabelecimento) {
+                        AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
+                            .accessibilityIdentifier("detalhe-nao-encontrada")
+                    } else { conteudo(vaga) }
                 case .naoEncontrada:
                     AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
                         .accessibilityIdentifier("detalhe-nao-encontrada")
@@ -84,7 +90,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
         .accessibilityIdentifier("tela-detalhe-vaga")
         .safeAreaInset(edge: .bottom) {
-            if dynamicTypeSize.isAccessibilitySize, case let .carregado(vaga) = viewModel.estado {
+            if dynamicTypeSize.isAccessibilitySize, case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
                 acao(vaga)
                     .environment(avisosDaAcao)
                     .padding(FrilaEspaco.medio)
@@ -133,6 +139,15 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
 
+        if let api = viewModel.api {
+            NavigationLink {
+                TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
+            } label: {
+                Text(verbatim: TextosDaSeguranca.verPerfil).frame(minHeight: FrilaMetrica.alvoMinimo)
+            }
+            .accessibilityIdentifier("abrir-perfil-estabelecimento")
+        }
+
         SeloReputacao(vaga.estabelecimento.reputacao)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -155,29 +170,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .id(Self.idDosAvisos)
         }
 
-        // Reservado para o Sprint 2 (Denunciar e Bloquear): ocupa o espaço e fica desabilitado.
-        HStack(spacing: FrilaEspaco.grande) {
-            Button { } label: {
-                Text(verbatim: TextosDoProfissional.Detalhe.denunciar)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-            .accessibilityIdentifier("denunciar")
-            .disabled(true)
-
-            Button { } label: {
-                Text(verbatim: TextosDoProfissional.Detalhe.bloquear)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-            .accessibilityIdentifier("bloquear")
-            .disabled(true)
+        if let api = viewModel.api {
+            AcoesDeSeguranca(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
         }
-        .frame(minHeight: FrilaMetrica.alvoMinimo)
     }
 
     private func campo(_ titulo: String, _ valor: String) -> some View {

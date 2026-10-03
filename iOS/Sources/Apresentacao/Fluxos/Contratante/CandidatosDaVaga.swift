@@ -338,6 +338,7 @@ enum SituacaoDaSelecao: Equatable {
 
 /// A seção "Candidatos" do detalhe da vaga em seleção, em Minhas vagas.
 struct SecaoDeCandidatos: View {
+    @Environment(BloqueiosDaSessao.self) private var bloqueios: BloqueiosDaSessao?
     private let vaga: VagaNoPainel
     private let abrirPerfil: (PerfilPublico) -> Void
     @State private var viewModel: CandidatosDaVagaViewModel
@@ -351,6 +352,13 @@ struct SecaoDeCandidatos: View {
         self.vaga = vaga
         self.abrirPerfil = abrirPerfil
         _viewModel = State(initialValue: CandidatosDaVagaViewModel(vagaID: vaga.vaga.id, api: api, relerVaga: relerVaga))
+    }
+
+    private var estadoVisivel: EstadoDosCandidatos {
+        if case let .carregados(candidatos) = viewModel.estado {
+            return .carregados(candidatos.filter { bloqueios?.contem($0.profissional) != true })
+        }
+        return viewModel.estado
     }
 
     private var situacao: SituacaoDaSelecao { SituacaoDaSelecao(vaga) }
@@ -412,7 +420,7 @@ struct SecaoDeCandidatos: View {
     }
 
     @ViewBuilder private func lista(podeEscolher: Bool) -> some View {
-        switch viewModel.estado {
+        switch estadoVisivel {
         case .carregando:
             EstadoCarregando()
         case .semConexao:
