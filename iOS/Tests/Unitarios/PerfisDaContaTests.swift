@@ -137,4 +137,11 @@ struct PerfisDaContaTests {
         let conteudoCatalogo = try String(contentsOf: caminhoCatalogo, encoding: .utf8)
         #expect(conteudoCatalogo.contains("Licenças de terceiros"), "Localizable.xcstrings deve conter Licenças de terceiros")
     }
+
+    @Test("Texto explicativo de 'Por que recebo vagas' corresponde à redação aprovada (#54)")
+    func explicacaoPorQueReceboVagasTextoAprovado() {
+        let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
+        #expect(TextosPerfilConta.explicacaoVagas == fraseEsperada)
+    }
 }
+
