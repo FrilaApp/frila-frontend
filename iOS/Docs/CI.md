@@ -39,8 +39,9 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
   é o `Frila-Beta` (Release apontando para o frila-dev), o que o cartão pede para o 0.4 e o 0.5. Uma
   tag fora do `main` é recusada.
 - **Disparo manual** (Actions > TestFlight > Run workflow): escolhe o esquema (`Frila-Beta` ou
-  `Frila-Prod`), a versão, o ensaio de falha e se envia. Com "Enviar ao TestFlight" desmarcado, o job
-  faz o archive, a assinatura, a conferência e os símbolos e para antes do envio.
+  `Frila-Prod`), a versão, o ensaio de falha, o build de medição e se envia. Com "Enviar ao
+  TestFlight" desmarcado, o job faz o archive, a assinatura, a conferência e os símbolos e para antes
+  do envio.
 - **Prod como padrão da tag**: no `testflight.yml`, apague a linha `ESQUEMA_DA_TAG: Frila-Beta` e
   descomente a `# ESQUEMA_DA_TAG: Frila-Prod` logo abaixo. Faça isso quando o frila-prod tiver as
   migrações (cartão do ambiente de produção, 29/10). Até lá, um build Prod abriria contra um banco
@@ -150,6 +151,17 @@ O ensaio não afeta o build de produção, por quatro travas:
 - O `conferir-release.sh` reprova o botão em qualquer outro Release, inclusive nos builds da CI de PR.
 - O 0.4 de verdade sai depois, pela tag, com outro número de build e sem o botão.
 
+### Build de medição (#73)
+
+Em Actions > TestFlight > Run workflow, escolha o `main`, o `Frila-Beta` e a versão atual, e marque
+"Build de medição" e "Enviar ao TestFlight". O build compila a medição de desempenho e de dados
+(`FRILA_MEDICAO`) e tem as mesmas travas do ensaio:
+- só o disparo manual liga a condição;
+- o build vai marcado `testFlightInternalTestingOnly`;
+- o `conferir-release.sh` reprova a medição em qualquer outro Release.
+
+O roteiro do aparelho está em [Desempenho e dados](Desempenho.md).
+
 ### Reproduzir na própria máquina
 
 ```sh
@@ -161,7 +173,8 @@ ASC_KEY_PATH=~/caminho/AuthKey.p8 ASC_KEY_ID=... ASC_ISSUER_ID=... \
 ```
 
 Sem as três variáveis `ASC_*`, o script usa a conta logada no Xcode da máquina. Sem `--sem-envio`,
-ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio.
+ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio; com
+`FRILA_MEDICAO=1`, o build de medição.
 
 ### O que a primeira execução real ainda prova
 

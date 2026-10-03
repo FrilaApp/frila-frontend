@@ -260,6 +260,7 @@ public final class RepublicarVagaViewModel {
 }
 
 public struct TelaRepublicarVaga: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel: RepublicarVagaViewModel
     @Environment(\.dismiss) private var dismiss
     private let aoFechar: (@Sendable () -> Void)?
@@ -276,7 +277,7 @@ public struct TelaRepublicarVaga: View {
     }
 
     public var body: some View {
-        ScrollView {
+        ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoDadosCopiados
@@ -297,6 +298,7 @@ public struct TelaRepublicarVaga: View {
                 botoesAcao
             }
             .padding(FrilaEspaco.medio)
+            .containerRelativeFrame(.horizontal)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(TextosRepublicarVaga.titulo)
@@ -317,24 +319,35 @@ public struct TelaRepublicarVaga: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: TextosRepublicarVaga.titulo)
                 .font(.largeTitle.bold())
+                .minimumScaleFactor(0.75)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: TextosRepublicarVaga.subtitulo)
                 .font(.subheadline)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var cartaoDadosCopiados: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
-                    Spacer(minLength: FrilaEspaco.pequeno)
-                    Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
-                }
+            if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
-                    Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                    Text(verbatim: viewModel.vagaOriginal.vaga.funcao)
+                        .font(.headline)
+                    Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor))
+                        .font(.headline)
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
+                        Spacer(minLength: FrilaEspaco.pequeno)
+                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
+                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                    }
                 }
             }
 
@@ -348,12 +361,9 @@ public struct TelaRepublicarVaga: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
 
-            HStack {
-                Text(verbatim: viewModel.vagaOriginal.modo == .selecao ? TextosRepublicarVaga.modoSelecao : TextosRepublicarVaga.modoUrgencia)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(FrilaCor.primaria)
-                Spacer()
-            }
+            Text(verbatim: viewModel.vagaOriginal.modo == .selecao ? TextosRepublicarVaga.modoSelecao : TextosRepublicarVaga.modoUrgencia)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FrilaCor.primaria)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
@@ -369,13 +379,12 @@ public struct TelaRepublicarVaga: View {
                 .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                DatePicker(
-                    TextosRepublicarVaga.dataInicio,
-                    selection: $viewModel.inicio,
-                    displayedComponents: [.date, .hourAndMinute]
+                seletorPeriodo(
+                    titulo: TextosRepublicarVaga.dataInicio,
+                    data: $viewModel.inicio,
+                    campoID: "campo-inicio-republicacao"
                 )
                 .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
-                .accessibilityIdentifier("campo-inicio-republicacao")
 
                 if let erroInicio = viewModel.erros[.inicio] {
                     Text(verbatim: erroInicio)
@@ -386,13 +395,12 @@ public struct TelaRepublicarVaga: View {
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                DatePicker(
-                    TextosRepublicarVaga.dataFim,
-                    selection: $viewModel.fim,
-                    displayedComponents: [.date, .hourAndMinute]
+                seletorPeriodo(
+                    titulo: TextosRepublicarVaga.dataFim,
+                    data: $viewModel.fim,
+                    campoID: "campo-fim-republicacao"
                 )
                 .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
-                .accessibilityIdentifier("campo-fim-republicacao")
 
                 if let erroFim = viewModel.erros[.fim] {
                     Text(verbatim: erroFim)
@@ -405,6 +413,44 @@ public struct TelaRepublicarVaga: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
         .cartaoFrila()
+    }
+
+    @ViewBuilder
+    private func seletorPeriodo(titulo: String, data: Binding<Date>, campoID: String) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                Text(verbatim: titulo)
+                    .font(.headline)
+                DatePicker(
+                    String(localized: "Data", bundle: bundleApresentacao),
+                    selection: data,
+                    displayedComponents: [.date]
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                .accessibilityIdentifier("\(campoID)-data")
+
+                DatePicker(
+                    String(localized: "Horário", bundle: bundleApresentacao),
+                    selection: data,
+                    displayedComponents: [.hourAndMinute]
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                .accessibilityIdentifier("\(campoID)-horario")
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(campoID)
+        } else {
+            DatePicker(
+                titulo,
+                selection: data,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .accessibilityIdentifier(campoID)
+        }
     }
 
     private var botoesAcao: some View {

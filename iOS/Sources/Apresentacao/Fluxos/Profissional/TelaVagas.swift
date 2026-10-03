@@ -26,9 +26,15 @@ public struct TelaVagas: View {
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Lista.titulo))
-        .refreshable { await viewModel.atualizar() }
-        .task { if viewModel.estado == .ociosa { await viewModel.carregar() } }
+        .refreshable { await medirAbertura(.listaDeVagas, carregar: viewModel.atualizar, pronto: listaNaTela) }
+        .task { if viewModel.estado == .ociosa { await medirAbertura(.listaDeVagas, carregar: viewModel.carregar, pronto: listaNaTela) } }
         .accessibilityIdentifier("tela-vagas")
+    }
+
+    /// Fim da medição de abertura (#73): a lista da API publicada.
+    private var listaNaTela: @MainActor @Sendable () -> Bool {
+        let viewModel = viewModel
+        return { if case .carregada = viewModel.estado { true } else { false } }
     }
 
     private var filtros: some View {
