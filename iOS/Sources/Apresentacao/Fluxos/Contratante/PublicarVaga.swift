@@ -572,12 +572,15 @@ public struct TelaPublicarVaga: View {
                         .labelsHidden()
                         .datePickerStyle(.compact)
                         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                        .accessibilityIdentifier("datepicker-\(field.rawValue)-data")
 
                     DatePicker(String(localized: "Horário", bundle: bundlePublicarVaga), selection: date, displayedComponents: [.hourAndMinute])
                         .labelsHidden()
                         .datePickerStyle(.compact)
                         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                        .accessibilityIdentifier("datepicker-\(field.rawValue)-horario")
                 }
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("datepicker-\(field.rawValue)")
             } else {
                 DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])

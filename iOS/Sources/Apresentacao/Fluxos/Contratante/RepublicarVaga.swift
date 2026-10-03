@@ -427,6 +427,7 @@ public struct TelaRepublicarVaga: View {
                 .labelsHidden()
                 .datePickerStyle(.compact)
                 .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                .accessibilityIdentifier("\(campoID)-data")
 
                 DatePicker(
                     String(localized: "Horário", bundle: bundleApresentacao),
@@ -436,6 +437,7 @@ public struct TelaRepublicarVaga: View {
                 .labelsHidden()
                 .datePickerStyle(.compact)
                 .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                .accessibilityIdentifier("\(campoID)-horario")
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier(campoID)

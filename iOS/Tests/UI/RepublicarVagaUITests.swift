@@ -84,7 +84,7 @@ final class RepublicarVagaUITests: XCTestCase {
         let telaRepublicar = app.descendants(matching: .any)["tela-republicar-vaga"]
         XCTAssertTrue(telaRepublicar.waitForExistence(timeout: 10))
 
-        let larguraTela: CGFloat = 375.0
+        let larguraTela = app.windows.firstMatch.frame.width
         let elementos: [(String, XCUIElement)] = [
             ("cartao", app.descendants(matching: .any)["cartao-dados-copiados-republicacao"]),
             ("campo-inicio", app.descendants(matching: .any)["campo-inicio-republicacao"]),
