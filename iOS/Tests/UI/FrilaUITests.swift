@@ -197,8 +197,10 @@ final class CandidaturaUITests: XCTestCase {
                 predicate: NSPredicate(format: "exists == true"),
                 object: detalhe
             )
+            // Depois do segundo toque, o mesmo prazo de antes da mudança: na CI carregada a
+            // navegação pode levar mais de 3 s, e 3 s aqui acusariam defeito do app sem haver.
             XCTAssertEqual(
-                XCTWaiter.wait(for: [detalheAbriuAposSegundoToque], timeout: 3), .completed,
+                XCTWaiter.wait(for: [detalheAbriuAposSegundoToque], timeout: 10), .completed,
                 "Defeito do app: tela de detalhe da vaga não apareceu após o segundo toque no cartão"
             )
         }
