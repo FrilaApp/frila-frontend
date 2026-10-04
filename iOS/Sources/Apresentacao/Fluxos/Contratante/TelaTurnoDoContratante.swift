@@ -192,7 +192,7 @@ struct TelaTurnoDoContratante: View {
            let api = viewModel.api ?? api {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 if bloqueios.contem(profissional) {
-                    Text(verbatim: "Você bloqueou este profissional")
+                    Text(verbatim: TextosDaSeguranca.voceBloqueouProfissional)
                         .font(.caption)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("etiqueta-bloqueio-\(turno.posicao.id)")

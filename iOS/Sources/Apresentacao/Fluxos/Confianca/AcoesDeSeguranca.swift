@@ -154,9 +154,9 @@ private struct FolhaDeDenuncia: View {
                     Button {
                         focoNoRelato = false
                     } label: {
-                        Text(verbatim: "OK")
+                        Text(verbatim: TextosDaSeguranca.ok)
                     }
-                    .accessibilityLabel("Recolher teclado")
+                    .accessibilityLabel(Text(verbatim: TextosDaSeguranca.recolherTeclado))
                     .accessibilityIdentifier("recolher-teclado")
                 }
             }
