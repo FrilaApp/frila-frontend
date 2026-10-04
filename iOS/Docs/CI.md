@@ -9,10 +9,10 @@ Etapas, na ordem:
 3. `Scripts/contrato-em-dia.sh`: o espelho `Contrato/openapi.yaml` bate com a soma gravada; com o secret `FRILA_DOCS_TOKEN`, também com o frila-docs.
 4. `python3 Scripts/validate-fixtures.py`: cada fixture contra o schema do contrato, com tipos, formatos, enums e campos fora do contrato.
 5. Falha se algum arquivo fora de `Sources/Dados` importar o Supabase.
-6. `xcodegen generate` e falha se o `Frila.xcodeproj` versionado divergir do `project.yml`.
+6. `Scripts/gerar-projeto.sh` para gerar o `Frila.xcodeproj` via XcodeGen e restaurar o `Package.resolved` versionado.
 7. Injeta os plists do Firebase Dev e Prod.
 8. Escolhe o simulador de iPhone disponível com o iOS mais novo, sem aparelho fixo.
-9. Restaura `DerivedData/SourcePackages` pelo `Package.resolved` e pela versão do Xcode. Sem cache, resolve os pacotes explicitamente; com cache, a resolução automática fica desabilitada. Produtos de build nunca entram no cache.
+9. Restaura `DerivedData/SourcePackages` pelo hash do `Package.resolved` e pela versão do Xcode. Sem cache, resolve os pacotes explicitamente com `-onlyUsePackageVersionsFromResolvedFile`; com cache, a resolução automática fica desabilitada. Produtos de build nunca entram no cache.
 10. `xcodebuild build-for-testing` e depois `test-without-building` do `Frila-Local`: testes unitários, de contrato e de interface, sem backend.
 11. Gera o `Secrets.xcconfig` de Dev e compila o `Frila-Dev` (pulado se o PR só mexe em testes ou documentação).
 12. Compila o `Frila-Beta` (Release apontando para o frila-dev) e confere o bundle (pulado se o PR só mexe em testes ou documentação).
