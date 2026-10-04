@@ -117,6 +117,22 @@ app="$(novo_app_bom rastreamento)"
 plutil -insert NSUserTrackingUsageDescription -string 'rastreamento' "$app/Info.plist"
 esperar_reprovacao "rastreamento" "NSUserTrackingUsageDescription" "$app"
 
+app="$(novo_app_bom ats-com-excecao)"
+plutil -insert NSAppTransportSecurity -json '{"NSAllowsArbitraryLoads": true}' "$app/Info.plist"
+esperar_reprovacao "exceção no ATS" "NSAppTransportSecurity" "$app"
+
+app="$(novo_app_bom compartilhamento-de-arquivos)"
+plutil -insert UIFileSharingEnabled -bool YES "$app/Info.plist"
+esperar_reprovacao "compartilhamento de arquivos" "UIFileSharingEnabled" "$app"
+
+app="$(novo_app_bom documentos-no-lugar)"
+plutil -insert LSSupportsOpeningDocumentsInPlace -bool YES "$app/Info.plist"
+esperar_reprovacao "documentos abertos no lugar" "LSSupportsOpeningDocumentsInPlace" "$app"
+
+app="$(novo_app_bom esquema-de-url)"
+plutil -insert CFBundleURLTypes -json '[{"CFBundleURLSchemes": ["frila"]}]' "$app/Info.plist"
+esperar_reprovacao "esquema de URL" "CFBundleURLTypes" "$app"
+
 app="$(novo_app_bom sem-localizacao-em-uso)"
 plutil -remove NSLocationWhenInUseUsageDescription "$app/Info.plist"
 esperar_reprovacao "texto de localização em uso ausente" "NSLocationWhenInUseUsageDescription" "$app"

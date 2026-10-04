@@ -221,6 +221,23 @@ private final class ChamadaEspiada: @unchecked Sendable {
         #expect(vaga.estado == .falha(TextosDoCancelamento.vagaJaFechada))
     }
 
+    @Test func motivoRecusadoPeloFiltroPedeParaReescrever() async throws {
+        let recusa = ErroDaApi(codigo: .campoInvalido, detalhes: "motivo")
+        let (posicao, _) = try modelo(inicioEm: 30, resposta: .failure(recusa))
+        posicao.motivo = .saude
+        await posicao.confirmar()
+        #expect(posicao.estado == .falha(TextosDoCancelamento.motivoRecusado))
+        #expect(posicao.podeConfirmar)
+
+        let (vaga, _) = try modelo(lado: .contratante, alvo: .vaga(id: UUID()), inicioEm: 30, resposta: .failure(recusa))
+        vaga.motivo = .movimentoMenor
+        await vaga.confirmar()
+        #expect(vaga.estado == .falha(TextosDoCancelamento.motivoRecusado))
+
+        // O mesmo código em outro campo continua na mensagem geral.
+        #expect(TextosDoCancelamento.falha(ErroDaApi(codigo: .campoInvalido, detalhes: "posicao_id")) != TextosDoCancelamento.motivoRecusado)
+    }
+
     // MARK: Sem rede (critério 5)
 
     @Test func semRedeEntraNaFilaComMotivoEAlvoEADizQueSeraEnviado() async throws {

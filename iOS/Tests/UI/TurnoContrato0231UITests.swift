@@ -28,6 +28,14 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(aviso.waitForExistence(timeout: 10), "a recusa permanece registrada ao reabrir")
     }
 
+    private func iniciarApp(cenario: String, extras: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"] + extras
+        AjudanteDeLancamentoUITests.preparar(app)
+        app.launch()
+        return app
+    }
+
     func testCanceladoApareceNaListaENoDetalheSemAcoes() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado"]
@@ -101,10 +109,7 @@ final class TurnoContrato0231UITests: XCTestCase {
     }
 
     func testRespostaContinuaDepoisDeSairEEntrarNaConta() {
-        let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado"]
-        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
-        app.launch()
+        let app = iniciarApp(cenario: "turno-encerrado")
         abrirTurno(app)
         let avaliar = app.buttons["Avaliar turno"]
         if !avaliar.isHittable { app.swipeUp() }
@@ -181,13 +186,10 @@ final class TurnoContrato0231UITests: XCTestCase {
 
     private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
-        if !elemento.isHittable {
-            // Em transições de navegação ou quando tarefas de fundo estão em execução no runner da CI,
-            // aguarda o elemento ficar tocável antes do tap sem travar o teste com assertion no XCTWaiter
-            // caso o polling do XPC atinja o limite (o tap nativo trata a ativação do elemento).
+        if !elemento.isHittable || !elemento.isEnabled {
             let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
             let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-            _ = XCTWaiter.wait(for: [espera], timeout: 10)
+            _ = XCTWaiter.wait(for: [espera], timeout: 5)
         }
         elemento.tap()
     }

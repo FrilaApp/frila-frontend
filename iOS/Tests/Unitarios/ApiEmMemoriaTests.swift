@@ -250,4 +250,75 @@ struct ApiEmMemoriaTests {
             try await apiErroServidor.exportarMeusDados()
         }
     }
+
+    @Test("O MeusDados do dublê traz toda chave que o contrato espelhado exige")
+    func meusDadosComAsChavesDoContrato() async throws {
+        // Lê o `required` de `MeusDados` no Contrato/openapi.yaml: uma chave nova no contrato sem
+        // par no dublê falha aqui.
+        let contrato = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Contrato/openapi.yaml")
+        let texto = try String(contentsOf: contrato, encoding: .utf8)
+        let bloco = try #require(texto.firstMatch(of: /\n    MeusDados:\n      type: object\n      required: \[([^\]]+)\]/))
+        let obrigatorias = Set(bloco.output.1.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+        #expect(obrigatorias.count >= 13, "o required de MeusDados não foi encontrado inteiro")
+
+        let dados = try await ApiClienteEmMemoria(cenario: .sucesso).exportarMeusDados()
+        let objeto = try #require(try JSONSerialization.jsonObject(with: dados) as? [String: Any])
+        let faltam = obrigatorias.subtracting(objeto.keys).sorted()
+        #expect(faltam.isEmpty, "chaves do contrato que faltam no MeusDados do dublê: \(faltam)")
+        #expect(objeto["pedido_de_exclusao"] is NSNull)
+    }
+
+    // MARK: Avaliar, como o backend
+
+    @Test("Avaliar turno que não é da conta é 403, e não 404: não diz que o turno existe")
+    func avaliarTurnoAlheio() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        await #expect(throws: ErroDaApi(codigo: .semPermissao)) {
+            try await api.avaliar(turnoID: UUID(), resposta: true)
+        }
+    }
+
+    @Test("Avaliar antes do fim previsto é 422 avaliacao_indisponivel com antes_do_fim")
+    func avaliarAntesDoFim() async throws {
+        let (api, turnoID, _) = try await turnoConfirmado()
+        await #expect(throws: ErroDaApi(codigo: .avaliacaoIndisponivel, detalhes: "antes_do_fim")) {
+            try await api.avaliar(turnoID: turnoID, resposta: true)
+        }
+    }
+
+    @Test("Avaliar depois do fim, sem presença verificada, é 422 com sem_presenca_verificada")
+    func avaliarSemPresencaVerificada() async throws {
+        let (api, turnoID, relogio) = try await turnoConfirmado()
+        relogio.agora = relogio.agora.addingTimeInterval(30 * 24 * 60 * 60)
+        await #expect(throws: ErroDaApi(codigo: .avaliacaoIndisponivel, detalhes: "sem_presenca_verificada")) {
+            try await api.avaliar(turnoID: turnoID, resposta: true)
+        }
+    }
+
+    @Test("Turno cancelado continua da conta e fica sem presença verificada, como no backend")
+    func avaliarTurnoCancelado() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoCancelado)
+        let cancelado = try #require(try await api.meusTurnos().first)
+        #expect(cancelado.estado == .cancelada)
+        await #expect(throws: ErroDaApi(codigo: .avaliacaoIndisponivel, detalhes: "sem_presenca_verificada")) {
+            try await api.avaliar(turnoID: cancelado.id, resposta: true)
+        }
+    }
+
+    private final class RelogioQueAnda: Relogio, @unchecked Sendable {
+        var agora: Date
+        init(_ agora: Date) { self.agora = agora }
+    }
+
+    /// Turno confirmado pela candidatura, ainda por vir, com o relógio do dublê na mão do teste.
+    private func turnoConfirmado() async throws -> (ApiClienteEmMemoria, UUID, RelogioQueAnda) {
+        let relogio = RelogioQueAnda(.now)
+        let api = ApiClienteEmMemoria(relogio: relogio)
+        try await api.entrarDemonstracao(email: "revisao@frila.app", codigo: "codigo-da-revisao")
+        let vaga = try #require(try await api.vagasAbertas().first)
+        let turnoID = try #require(try await api.candidatar(vagaID: vaga.id).turnoID)
+        return (api, turnoID, relogio)
+    }
 }

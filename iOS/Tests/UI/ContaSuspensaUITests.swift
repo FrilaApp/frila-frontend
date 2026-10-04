@@ -90,4 +90,26 @@ final class ContaSuspensaUITests: XCTestCase {
         XCTAssertFalse(app.buttons["botao-contestar-suspensao"].exists, "Segunda contestação não deve estar disponível")
         XCTAssertFalse(app.descendants(matching: .any)["campo-relato-contestacao"].exists, "Formulário não deve estar aberto")
     }
+
+    /// Em AX5, "Enviar contestação" e "Cancelar" lado a lado se estrangulavam (QA do #105, achado 3).
+    func testBotoesDaContestacaoEmpilhamEmAX5() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "conta-suspensa", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+
+        let botaoContestar = app.buttons["botao-contestar-suspensao"]
+        XCTAssertTrue(botaoContestar.waitForExistence(timeout: 10))
+        for _ in 0..<8 where !botaoContestar.isHittable { app.swipeUp() }
+        botaoContestar.tap()
+
+        let enviar = app.buttons["botao-enviar-contestacao"]
+        let cancelar = app.buttons["botao-cancelar-contestacao"]
+        XCTAssertTrue(enviar.waitForExistence(timeout: 5))
+        for _ in 0..<8 where !(enviar.isHittable && cancelar.isHittable) { app.swipeUp() }
+        XCTAssertTrue(enviar.isHittable && cancelar.isHittable, "Os dois botões devem ficar tocáveis")
+
+        XCTAssertGreaterThanOrEqual(cancelar.frame.minY, enviar.frame.maxY, "Em AX5, Cancelar fica abaixo de Enviar contestação")
+        // A borda de 1,5 pt do botão secundário entra no frame dele.
+        XCTAssertEqual(cancelar.frame.width, enviar.frame.width, accuracy: 2, "Empilhados, os dois botões têm a largura do cartão")
+    }
 }

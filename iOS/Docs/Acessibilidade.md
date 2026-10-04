@@ -35,10 +35,10 @@ falham a suíte:
 
 O que ainda falha por arquivo ocupado por outro PR ou por decisão de layout fica com
 `XCTExpectFailure` por tela, com o motivo no próprio teste: a CI fica verde e o teste acusa
-quando a tela for corrigida. A falha esperada é estrita quando o achado apareceu nos dois tamanhos
-sem depender de rolagem (lista de vagas, perfil da conta, perfil do estabelecimento); nas outras
-telas fica não estrita, porque o que a auditoria enxerga depende do tamanho da tela do simulador
-(a CI escolhe qualquer iPhone disponível) e do que está visível no momento.
+quando a tela for corrigida. A falha esperada é estrita quando o achado aparece em toda rodada
+sem depender de rolagem (lista de vagas, perfil do estabelecimento, aba Candidaturas no tamanho
+padrão); nas outras telas fica não estrita, porque o que a auditoria enxerga depende do tamanho
+da tela do simulador (a CI escolhe qualquer iPhone disponível) e do que está visível no momento.
 
 ## Resumo
 
@@ -48,9 +48,10 @@ telas fica não estrita, porque o que a auditoria enxerga depende do tamanho da 
 | Situação | Quantos | Onde |
 |---|---|---|
 | Corrigido aqui (estrutura, arquivo livre) | 2 | `TelaExclusaoDeConta.swift`, `Componentes.swift` |
-| Fica para depois: arquivo ocupado por PR aberto | 7 telas | `TelaContaSuspensa`, `PerfisDaConta`, `FluxoDoProfissional`, `FluxoDoContratante`, `TelaMeuTurno`, `TelaDetalheVaga`, `PublicarVaga` |
-| Fica para o design: decisão de layout ou visual | lista de vagas (AX1), aba Candidaturas, contraste em 22 telas | tokens abaixo |
-| Falso positivo do XCTest ou controle do sistema | 15 + 2 + date picker | `TextField`, MapKit, `UIDatePicker` |
+| Corrigido em 04/10, quando os arquivos ficaram livres | 3 telas + 1 achado do QA + movimento | `PerfisDaConta.swift`, `TelaContaSuspensa.swift` (ícone; botões da contestação em AX5), `TelaDetalheVaga.swift` (modo seleção; rolagem com Reduzir Movimento) |
+| Fica para depois: arquivo ocupado por PR aberto | 4 telas | `FluxoDoProfissional`, `FluxoDoContratante`, `TelaMeuTurno`, `PublicarVaga` |
+| Fica para o design: decisão de layout ou visual | lista de vagas (AX1), contraste em 22 telas | tokens abaixo |
+| Falso positivo do XCTest ou controle do sistema | 15 + 2 + date picker + aba Candidaturas | `TextField`, MapKit, `UIDatePicker`, `ViewThatFits` (seção "Rodada de 04/10") |
 
 ## Estrutura: tela × problema × causa × situação
 
@@ -60,15 +61,16 @@ Tipos: rótulo, traço, alvo, texto cortado, Dynamic Type, movimento. Tamanho: P
 |---|---|---|---|---|---|
 | Exclusão de conta | P | rótulo | `clock.badge.xmark` Image: rótulo não legível | `TelaExclusaoDeConta.swift:86`: ícone decorativo da lista de consequências sem `accessibilityHidden` | **corrigido aqui** |
 | Todas com `BotaoPrimario` | — | rótulo | (leitura de código) o botão perde o nome enquanto carrega: o conteúdo vira só o `ProgressView` | `Componentes.swift:24` | **corrigido aqui**: `accessibilityLabel(titulo)` fixo |
-| Conta suspensa | P | rótulo | `clock.badge.exclamationmark` Image: rótulo não legível | `TelaContaSuspensa.swift:66`: ícone decorativo sem `accessibilityHidden(true)` | fica: arquivo ocupado (textos de promessa do Homem-Aranha) |
-| Perfil da conta (profissional) | P, AX5 | rótulo | `ana.cunha@frila.app` StaticText: rótulo não legível | `PerfisDaConta.swift:128`: a linha de e-mail é um `LabeledContent`, e o valor vira elemento solto; falta combinar título e valor (`accessibilityElement(children: .combine)` em `linha(_:_:)`, `PerfisDaConta.swift:179`) | fica: arquivo ocupado (#23 histórico do Tony, textos do Homem-Aranha) |
+| Conta suspensa | P | rótulo | `clock.badge.exclamationmark` Image: rótulo não legível | `TelaContaSuspensa.swift:66`: ícone decorativo sem `accessibilityHidden(true)` | **corrigido em 04/10**: `accessibilityHidden(true)` (`TelaContaSuspensa.swift:69`); o texto ao lado já diz o prazo. A tela saiu da falha esperada |
+| Conta suspensa (contestação) | AX5 | layout | (QA do Steve, 03/10, achado 3) "Enviar contestação" e "Cancelar" lado a lado se estrangulam | `TelaContaSuspensa.swift:192`: `HStack` fixo | **corrigido em 04/10**: empilham nos tamanhos de acessibilidade (`layoutDosBotoes`, `TelaContaSuspensa.swift:214`); teste `ContaSuspensaUITests.testBotoesDaContestacaoEmpilhamEmAX5` |
+| Perfil da conta (profissional) | P, AX5 | rótulo | `ana.cunha@frila.app` StaticText: rótulo não legível | `PerfisDaConta.swift:128`: a linha de e-mail é um `LabeledContent`, e o valor vira elemento solto; falta combinar título e valor (`accessibilityElement(children: .combine)` em `linha(_:_:)`, `PerfisDaConta.swift:179`) | **corrigido em 04/10**: `accessibilityElement(children: .combine)` em `linha(_:_:)` (`PerfisDaConta.swift:192`); o VoiceOver lê "E-mail, ana.cunha@frila.app", e do mesmo jeito Telefone, Funções e Horários disponíveis. A tela saiu da falha esperada |
 | Vagas (lista) | P, AX5 | Dynamic Type | função, valor, estabelecimento, horário, local, inclusos, reputação e "vagas abertas" do cartão não acompanham a fonte | `TelaVagas.swift:108`: `.dynamicTypeSize(...accessibility1)` no cartão; `TelaVagas.swift:172`: o mesmo nas pílulas de filtro. Decisão de layout do #139, para o cartão caber na tela em AX5 (`AcessibilidadeDoProfissionalUITests` mede isso) | fica para o design: a alta fidelidade do #15 decide o cartão; a suíte registra com falha esperada estrita |
 | Vagas (lista) | P, AX5 | Dynamic Type | botão "Catálogo" da barra não acompanha a fonte | `FluxoDoProfissional.swift` (item de toolbar, Debug): item de barra não escala por desenho do sistema; o caminho é `accessibilityShowsLargeContentViewer()` | fica: arquivo ocupado (#97); só existe em Debug |
 | Perfil do estabelecimento | P, AX5 | Dynamic Type | botão "Fechar" da barra não acompanha a fonte | `FluxoDoContratante.swift:116` e `:136`: item de toolbar da folha; mesmo caso acima | fica: arquivo ocupado (#73) |
-| Candidaturas (aba) | P | Dynamic Type | "Garçom" e "R$ 120,00" (função e valor do cartão) "não mudam de tamanho" | `CandidaturaEmSelecao.swift:535`: `ViewThatFits` com duas cópias de função/valor; no padrão vale o `HStack`, em AX5 o `VStack`, e o XCTest não acha o mesmo elemento ao variar a fonte. Inferência: falso positivo do `ViewThatFits`; o texto escala (a passada AX5 não aponta) | fica para conferir com a alta fidelidade; falha esperada não estrita |
-| Candidaturas (aba) | AX5 | texto cortado | elemento sem identificação | `CandidaturaEmSelecao.swift:533-568` (cartão); não encontrado qual texto (a auditoria não devolveu o elemento) | fica: investigar com o Accessibility Inspector no #71 |
+| Candidaturas (aba) | P | Dynamic Type | "Garçom" e "R$ 120,00" (função e valor do cartão) "não mudam de tamanho" | `CandidaturaEmSelecao.swift:535`: `ViewThatFits` com duas cópias de função/valor; no padrão vale o `HStack`, em AX5 o `VStack`, e o XCTest não acha o mesmo elemento ao variar a fonte. Inferência: falso positivo do `ViewThatFits`; o texto escala (a passada AX5 não aponta) | **falso positivo, confirmado em 04/10** (seção "Rodada de 04/10"); falha esperada estrita no tamanho padrão |
+| Candidaturas (aba) | AX5 | texto cortado | elemento sem identificação | `CandidaturaEmSelecao.swift:533-568` (cartão); não encontrado qual texto (a auditoria não devolveu o elemento) | **provável falso positivo (04/10)**: aparece só com o `ViewThatFits` e a captura não mostra corte (seção "Rodada de 04/10"); falha esperada não estrita em AX5 |
 | Publicar vaga | AX5 | Dynamic Type | `_UIDatePickerCompactTimeLabel` e `UILabel` do date picker | `PublicarVaga.swift:571-586`: `DatePicker` compacto do sistema não escala | fica: controle do sistema e arquivo ocupado (#73, #103); o caminho é `.datePickerStyle(.wheel)` ou `.graphical` nos tamanhos de acessibilidade |
-| Detalhe da vaga (seleção) | P | texto cortado | "o estabelecimento escolhe entre os candidatos" | `TelaDetalheVaga.swift:214` (`TextosDoProfissional.Detalhe.selecaoDetalhe`) numa linha que não quebra | fica: arquivo ocupado (#97) |
+| Detalhe da vaga (seleção) | P | texto cortado | "o estabelecimento escolhe entre os candidatos" | `TelaDetalheVaga.swift:214` (`TextosDoProfissional.Detalhe.selecaoDetalhe`) numa linha que não quebra. Medido em 04/10: o texto quebra, mas fica preso à meia coluna do `Grid` (150 pt no padrão, 165 pt em AX5) e parte palavras a partir do AX1 ("estabeleci-mento") | **corrigido em 04/10**: o modo saiu do `Grid` para uma linha de largura inteira (`TelaDetalheVaga.swift:137`); a tela saiu da falha esperada (seção "Rodada de 04/10") |
 | Meu turno | P | texto cortado | "· quem recebe: Marina" | `TelaMeuTurno.swift:71`: texto num `HStack` ao lado do atalho de mapas, sem quebra | fica: arquivo ocupado (#92, #93, #103) |
 | Cadastro do estabelecimento, Publicar vaga | P | alvo | link "Legal" do mapa menor que 44 pt | `MKAttributionLabel` do MapKit (`CadastroEstabelecimento.swift:264`, `PublicarVaga.swift:405`) | sistema: não há API para o app |
 | Entrada, Código, Cadastro, Funções e horários, Cadastro do estabelecimento, Publicar vaga (mais opções) | P, AX5 | texto cortado | "Text of this UITextField may be clipped" | `Componentes.swift` (`CampoFrila`) e `TelaCodigo.swift`: flag do `UITextField` que o SwiftUI não expõe | falso positivo do XCTest; prova em `testCampoDeTextoCresceEmAX5` |
@@ -78,6 +80,48 @@ vaga preenchida, vaga encerrada, conflito de horário, candidatura com conta sus
 avaliação, Funções e horários, Minhas vagas (painel, encerradas, presença a confirmar, turno em
 atraso), detalhe da vaga do contratante (com e sem contato), perfil público, republicar vaga,
 acompanhamento do turno.
+
+## Rodada de 04/10: telas liberadas
+
+Com `PerfisDaConta.swift` e `TelaContaSuspensa.swift` livres, os dois achados de rótulo foram
+corrigidos e as duas telas saíram da falha esperada. A auditoria delas, no padrão e em AX5, não
+aponta mais nada além de contraste (iPhone 17, iOS 26.5).
+
+**Aba Candidaturas: o achado vem do `ViewThatFits`, e não da fonte.** Para separar as causas, o
+cartão da candidatura foi auditado em quatro variantes, numa build de teste que não ficou no
+código: o `ViewThatFits` atual, só o `HStack`, só o `VStack` e um `AnyLayout` que troca o `HStack`
+pelo `VStack` nos tamanhos de acessibilidade. Contagem por rodada da auditoria:
+
+| Variante | Padrão: "Dynamic Type partially unsupported" em Função e Valor | AX5: "texto cortado" sem elemento |
+|---|---|---|
+| `ViewThatFits` (atual) | 4 de 4 | 4 de 5 |
+| só `HStack` | 0 de 2 | não medido |
+| só `VStack` | 0 de 2 | não medido |
+| `AnyLayout` por tamanho de acessibilidade | 0 de 2 | 0 de 4 |
+
+O texto escala: "Garçom" tem 20,3 pt de altura no padrão e 63,3 pt em AX5, e a captura em AX5
+não mostra corte. Inferência: ao variar a fonte, a auditoria procura o mesmo elemento, e o
+`ViewThatFits` troca a cópia do `HStack` pela do `VStack`; a troca é lida como fonte que não
+escala, ou como texto cortado. Por isso a tela fica com falha esperada, estrita no padrão (o
+achado vem em toda rodada) e não estrita em AX5. O `AnyLayout` tira os dois achados, mas empilha
+só nos tamanhos de acessibilidade, enquanto o `ViewThatFits` também empilha uma função longa nos
+tamanhos grandes comuns; essa escolha é da alta fidelidade.
+
+**Botões da contestação (QA do Steve, achado 3).** Empilham com `AnyLayout` por tamanho de
+acessibilidade, e não com `ViewThatFits`: quando "Enviar contestação" vira o indicador de envio,
+mais estreito, o par poderia voltar a caber lado a lado e o layout pularia no meio do envio. Em
+AX5, no iPhone 17, "Enviar contestação" fica em y = 678 (125 pt de altura) e "Cancelar" logo
+abaixo, em y = 811, os dois com a largura do cartão.
+
+**Detalhe da vaga, modo seleção.** O texto "o estabelecimento escolhe entre os candidatos" não
+estava cortado: ele quebra e cresce com a fonte (64 pt de altura no padrão, 204 pt em AX1, 621 pt
+em AX5). Mas, preso à meia coluna do `Grid` (150 pt no padrão, 144 pt em AX1, 165 pt em AX5),
+partia palavras a partir do AX1, e a auditoria acusou "texto cortado" em toda rodada no padrão,
+em XXXL e em AX1 (10 de 10). Variantes medidas numa build de teste: com o modo numa linha de
+largura inteira, abaixo do `Grid`, 0 de 6 (padrão, AX1 e AX5; o texto passa a ter até 331 pt de
+largura); empilhar o `Grid` só nos tamanhos de acessibilidade também zera em AX1 (0 de 2), mas
+no padrão o `Grid` continua o mesmo. Ficou a linha de largura inteira, que vale em todos os
+tamanhos.
 
 ## Visual: contraste e cor (para o design)
 
@@ -129,7 +173,9 @@ uma marca não cromática.
 ## Movimento
 
 O app quase não anima. Única animação explícita: `TelaDetalheVaga.swift:60`, `withAnimation` ao
-rolar até os avisos; não consulta `accessibilityReduceMotion`. Fica: arquivo ocupado (#97). Os
+rolar até os avisos; não consulta `accessibilityReduceMotion`. **Corrigido em 04/10**: com
+Reduzir Movimento, a rolagem até os avisos é imediata (`TelaDetalheVaga.swift:64`), como já faz
+a rolagem do histórico de turnos (`TelaHistoricoDeTurnos.swift:49`). Os
 `ProgressView` são o indicador do sistema, que já respeita a preferência. A passada da suíte com
 Reduzir Movimento ligado (03/10) não trouxe achado novo: o conjunto foi o mesmo da passada sem a
 preferência, menos dois apontamentos que dependem do que estava visível no momento (o texto

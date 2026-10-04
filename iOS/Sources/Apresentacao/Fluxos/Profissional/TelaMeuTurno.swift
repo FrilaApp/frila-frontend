@@ -7,6 +7,9 @@ import Observation
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
     @State private var cancelamento: CancelamentoViewModel?
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     private let formatador = FormatadorFrila()
 
     public init(viewModel: MeuTurnoViewModel) {
@@ -45,6 +48,7 @@ public struct TelaMeuTurno: View {
                 if viewModel.podeCancelar {
                     botaoCancelar
                 }
+                rodapeSeguranca
             }
             .padding(FrilaEspaco.medio)
         }
@@ -66,6 +70,26 @@ public struct TelaMeuTurno: View {
     private var contatoNaTela: @MainActor @Sendable () -> Bool {
         let viewModel = viewModel
         return { !viewModel.carregandoContato && viewModel.contato != nil }
+    }
+
+    // MARK: - Ações de segurança (#39)
+
+    private var rodapeSeguranca: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            if bloqueios.contem(viewModel.turno.contraparte) {
+                Text(verbatim: TextosDaSeguranca.voceBloqueouEstabelecimento)
+                    .font(.caption)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("etiqueta-bloqueio-turno")
+            }
+            AcoesDeSeguranca(
+                perfil: viewModel.turno.contraparte,
+                turnoID: viewModel.turno.id,
+                api: viewModel.api,
+                bloqueios: bloqueios
+            )
+            .id(viewModel.turno.contraparte.id)
+        }
     }
 
     private var botaoCancelar: some View {
