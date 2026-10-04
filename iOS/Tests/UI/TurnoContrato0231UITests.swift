@@ -28,6 +28,25 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(aviso.waitForExistence(timeout: 10), "a recusa permanece registrada ao reabrir")
     }
 
+    func testFecharAvisoDeRecusaNaoVoltaAoReabrirTurnoCancelado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado", "-FRILA_CACHE_VAZIO_UI_TEST", "-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"]
+        app.launch()
+        abrirTurno(app)
+        let aviso = app.descendants(matching: .any)["aviso-acao-recusada-checkin"].firstMatch
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        let fechar = app.buttons["fechar-aviso-acao-recusada-checkin"]
+        XCTAssertTrue(fechar.waitForExistence(timeout: 5))
+        tocar(fechar)
+        let sumiu = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: aviso)
+        XCTAssertEqual(XCTWaiter.wait(for: [sumiu], timeout: 5), .completed)
+        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
+        tocar(app.buttons["meu-turno-\(turnoID)"])
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+        XCTAssertFalse(aviso.exists, "o reconhecimento persiste ao reabrir a tela")
+        XCTAssertFalse(app.buttons["fazer-checkin"].exists)
+    }
+
     private func iniciarApp(cenario: String, extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"] + extras
@@ -169,8 +188,19 @@ final class TurnoContrato0231UITests: XCTestCase {
         let avaliar = app.buttons["Avaliar turno"]
         if !avaliar.isHittable { app.swipeUp() }
         tocar(avaliar)
-        tocar(app.buttons["resposta-nao"])
-        tocar(app.buttons["botao-enviar-avaliacao"])
+        let navBar = app.navigationBars["Avaliar turno"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 10))
+        XCTAssertTrue(navBar.buttons.firstMatch.waitForExistence(timeout: 10))
+        let botaoNao = app.buttons["resposta-nao"]
+        tocar(botaoNao)
+        let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
+        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
+        let habilitado = NSPredicate(format: "enabled == true")
+        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
+        _ = XCTWaiter.wait(for: [espera], timeout: 5)
+        XCTAssertTrue(botaoEnviar.isEnabled)
+        tocar(botaoEnviar)
+
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
         XCTAssertTrue(confirmacao.waitForExistence(timeout: 10))
         if offline {
@@ -180,7 +210,9 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Turno avaliado · Resposta: Não"].waitForExistence(timeout: 10))
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
         XCTAssertTrue(app.navigationBars["Meus turnos"].waitForExistence(timeout: 10))
-        tocar(app.buttons["meu-turno-\(turnoID)"])
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        tocar(cartao)
         conferirAvaliacaoNegativa(app)
     }
 
@@ -195,12 +227,17 @@ final class TurnoContrato0231UITests: XCTestCase {
     }
 
     private func conferirAvaliacaoNegativa(_ app: XCUIApplication) {
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 10))
         let status = app.staticTexts["Turno avaliado · Resposta: Não"]
-        if !status.isHittable { app.swipeUp() }
         XCTAssertTrue(status.waitForExistence(timeout: 10))
+        if !status.isHittable { app.swipeUp() }
+        XCTAssertTrue(status.isHittable)
         XCTAssertTrue(status.label.contains("Não"))
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
-        tocar(app.buttons["Ver avaliação"])
+        let verAvaliacao = app.buttons["Ver avaliação"]
+        if !verAvaliacao.isHittable { app.swipeUp() }
+        tocar(verAvaliacao)
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["resposta-nao"].isSelected)
         XCTAssertFalse(app.buttons["resposta-nao"].isEnabled)

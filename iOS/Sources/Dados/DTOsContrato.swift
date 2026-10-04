@@ -292,6 +292,29 @@ enum ContratoAPI {
         }
     }
 
+    /// `MeuEstabelecimento` do contrato 0.2.29: devolve o estabelecimento sem o `documento`.
+    struct MeuEstabelecimentoDTO: Codable {
+        let id: UUID
+        let nome: String
+        let tipo: TipoEstabelecimento
+        let endereco: String
+        let regiaoAdministrativa: String
+        let ponto: CoordenadaDTO
+        let papel: PapelMembro
+
+        enum CodingKeys: String, CodingKey {
+            case id, nome, tipo, endereco, ponto, papel
+            case regiaoAdministrativa = "regiao_administrativa"
+        }
+
+        func dominio() throws -> Estabelecimento {
+            try Estabelecimento(
+                id: id, nome: nome, documento: "", tipo: tipo, endereco: endereco,
+                regiaoAdministrativa: regiaoAdministrativa, ponto: ponto.dominio(), papel: papel
+            )
+        }
+    }
+
     /// `NovoEstabelecimento` do contrato: `regiao_administrativa` é obrigatória desde a 0.2.20.
     struct CadastroEstabelecimentoDTO: Encodable {
         let nome: String
@@ -925,6 +948,11 @@ enum ContratoAPI {
     }
 
     // MARK: Painel do estabelecimento
+
+    struct EstabelecimentoParametros: Encodable {
+        let estabelecimentoID: UUID
+        enum CodingKeys: String, CodingKey { case estabelecimentoID = "estabelecimento_id" }
+    }
 
     struct PainelParametros: Encodable {
         let estabelecimentoID: UUID

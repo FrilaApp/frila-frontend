@@ -144,6 +144,16 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **GPS simulado.** No esquema Local, `-FRILA_LOCALIZACAO` seguido de `perto` (150 m), `longe` (350 m), `negada`, `sem-sinal`, `imprecisa` ou `aproximada` troca o CoreLocation pelo `LeitorDeLocalizacaoSimulado`, com as distâncias medidas até a vaga das fixtures. Só vale com o dublê em memória; sem o argumento, o esquema Local usa o GPS do simulador (`xcrun simctl location <udid> set <lat>,<lon>`).
 - **Cancelamento e suporte.** O profissional pode cancelar o turno confirmado em "Cancelar turno" (`FolhaDeCancelamento`), informando motivo predefinido ou livre, com aviso de falta a menos de 24 h (#20, #92, #117, #128). No rodapé, o botão "Ajuda no turno" abre e-mail pré-preenchido com dados do turno para suporte direto (#131).
 
+## Publicar vaga em Minhas vagas
+
+O contratante que já tem estabelecimento publica pelas Minhas vagas: o botão "Publicar vaga" fica sempre à vista, no alto da lista.
+
+- **De onde vêm o endereço e o ponto.** `PublicacaoDaCasaViewModel` lê `meu_estabelecimento` (aprovada em 02/10/2026; depende do cartão #250 no backend) e o telefone da conta, e abre o mesmo `TelaPublicarVaga` do primeiro acesso. `meus_estabelecimentos` não traz endereço, região nem ponto, e `publicar_vaga` exige os três.
+- **A publicação toma o lugar da lista**, como no primeiro acesso, em vez de abrir uma folha por cima. Publicada a vaga, a lista volta e é relida. "Cancelar" volta sem publicar.
+- **Explicação da notificação (#8).** Continua aparecendo depois de publicar, para quem o sistema ainda não perguntou.
+- **Sem rede.** A publicação em si segue como antes: fila, campos travados e "Tentar novamente". A leitura do cadastro da casa precisa de rede na primeira vez; depois fica guardada enquanto o app estiver aberto.
+- **Sem o banco local** não há fila para a publicação, e a entrada não aparece.
+
 ## Turno do contratante (#19, visual provisório)
 
 `AcompanhamentoViewModel` lê o `painel_estabelecimento` e cuida das decisões da casa durante o turno. As telas estão em `Sources/Apresentacao/Fluxos/Contratante/`, com componentes base, à espera do design de alta fidelidade.
@@ -250,7 +260,7 @@ O que o dublê não modela no modo seleção:
 - `cancelarPosicao` (`20260926060100_exigir_conta_ativa_escrita.sql`) e `cancelarVaga` (`20260925020000_cancelamentos.sql`): motivo com menos de 3 caracteres é `422 campo_obrigatorio`; posição que não está confirmada, `409 posicao_nao_cancelavel`; vaga já cancelada, `409 vaga_encerrada`. Reenviar não devolve o mesmo resultado: responde esses mesmos 409, que no reenvio querem dizer "já cancelado". A posição cancelada continua no painel como `cancelada`, e a reabertura cria uma posição nova.
 - **O turno cancelado continua em `meusTurnos`**, como em `meus_turnos` do backend (`20260924220000_meus_turnos.sql`), que não filtra pelo estado da posição. O `Turno` do contrato não tem estado: a única marca é a verificação, que passa de `pendente` a `nao_verificado`. A decisão de contrato (estado no `Turno`, ou filtro em `meus_turnos`) está em aberto.
 - `denunciar` e `bloquear` (`20260929100000_denunciar_e_bloquear.sql`): a chave da denúncia decide antes de qualquer validação; o prazo é o quinto dia útil no dia de São Paulo, sem feriados; bloquear de novo devolve o mesmo bloqueio; bloquear alvo do mesmo perfil da conta é `422 campo_invalido`, com `alvo_tipo`. Com a casa bloqueada, as vagas dela saem da lista, e detalhe, candidatura e contato respondem `404`.
-- `situacaoDaConta` e `contestarSuspensao` (`20261001100000_suspensao_da_conta.sql`): só o cenário `conta-suspensa` tem suspensão, e nele essas duas respondem enquanto as outras operações recusam com `conta_suspensa`. No backend, `409 contestacao_ja_aberta` vale também para a contestação já resolvida, que `situacao_da_conta` não mostra: a tela trata o 409 mesmo com `contestacao` nula. O dublê não resolve contestação.
+- `situacaoDaConta` e `contestarSuspensao` (`20261001100000_suspensao_da_conta.sql`): só o cenário `conta-suspensa` tem suspensão, e nele essas duas respondem. `perfilPublico` também permite a leitura pela conta suspensa, como `20261001140000_perfil_publico_bloqueio.sql`; perfil inexistente ou bloqueado continua sendo `404 nao_encontrado`. As operações que exigem conta ativa recusam com `conta_suspensa`. No backend, `409 contestacao_ja_aberta` vale também para a contestação já resolvida, que `situacao_da_conta` não mostra: a tela trata o 409 mesmo com `contestacao` nula. O dublê não resolve contestação.
 
 O que o dublê não modela nessas operações:
 - **Uma conta só.** Ele não distingue quem chama: não recusa o profissional que confirma o próprio check-in (`403`), a conta de profissional em `cancelar_vaga` e `reabrir_por_atraso` (`422 perfil_incompativel`), nem a denúncia de si mesmo. Em `cancelarPosicao`, o perfil da conta decide o lado: profissional leva falta a menos de 24 horas; contratante não gera falta.
@@ -319,6 +329,8 @@ Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contr
 - **0.2.24, modo seleção.** `publicar_vaga` aceita `modo = selecao` com mais de 24 horas de antecedência (`422 selecao_sem_antecedencia` com 24 horas ou menos), e `candidatar` numa vaga de seleção devolve `pendente`. DTO, enum e dublê aceitam o modo. Publicar vaga não o oferece, por decisão de produto em aberto, e o profissional não tem a tela de candidatura pendente: `pendente` segue tratado como falha recuperável no detalhe. Os avisos `candidatura_recusada` e `selecao_encerrada` chegam com o push (S2).
 - **0.2.25, "Estou a caminho".** `avisar_a_caminho` está na porta `ApiCliente`, no cliente Supabase e no dublê, e `a_caminho_em` é lido em `Turno` e em `PosicaoNoPainel`. O botão em Meu turno não existe: a funcionalidade é da v1.1, por decisão de produto.
 - **0.2.26 e 0.2.27, nada para o cliente.** O `422` de `registrar_dispositivo` é de operação que o app ainda não chama, e a 0.2.27 só alinha textos.
+- **0.2.28, bloqueio esconde o perfil público.** `perfil_publico` responde `404 nao_encontrado` entre partes bloqueadas. Nenhum schema muda, e nenhuma tela foi tocada nesta sincronização.
+- **0.2.29, `meu_estabelecimento` (aprovada em 02/10/2026; depende do cartão #250 no backend).** A leitura do cadastro da casa para quem é membro. Está na porta `ApiCliente`, no cliente Supabase e no dublê, e é dela que Publicar vaga em Minhas vagas tira o endereço, a região e o ponto: `meus_estabelecimentos` não os traz.
 
 O `Codable` dos modelos de domínio é o formato do cache do aparelho, e não o da API. Um turno guardado antes da 0.2.20 não tem a região da vaga e continua legível, com a região vazia, até a próxima leitura com rede.
 

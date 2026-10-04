@@ -17,8 +17,20 @@ public actor SincronizadorAcoes {
     }
 
     public func sincronizar() async {
-        guard let acoes = try? await fila.pendentes() else { return }
+        guard let acoes = try? await fila.pendentes(), !acoes.isEmpty else { return }
+        let contaAtualID: UUID?
+        do {
+            contaAtualID = try await api.minhaConta().id
+        } catch let erro as ErroDaApi where erro.codigo == .semRede {
+            return
+        } catch {
+            // Falha de identidade não é recusa da ação: sem conta conhecida, só legados seguem.
+            contaAtualID = nil
+        }
         for acao in acoes {
+            if let contaID = acao.contaID, contaID != contaAtualID { continue }
+            // Legados sem autor conservam o caminho anterior nos builds de desenvolvimento;
+            // não recebem a identidade de quem entrou. Avaliação já exigia autor conhecido.
             do {
                 // Check-in, check-out e avaliação são idempotentes pela chave natural do turno (contrato 0.2.18);
                 // a `chave` da ação fica só na fila local.
@@ -39,8 +51,7 @@ public actor SincronizadorAcoes {
                     )
                 case .avaliacao:
                     guard let turnoID = acao.turnoID, let resposta = acao.resposta,
-                          let contaID = acao.contaID else { continue }
-                    if try await api.minhaConta().id != contaID { continue }
+                          acao.contaID != nil else { continue }
                     _ = try await api.avaliar(turnoID: turnoID, resposta: resposta)
                 case .publicacaoVaga:
                     guard let publicacao = acao.publicacao else { continue }
@@ -59,7 +70,9 @@ public actor SincronizadorAcoes {
                     guard let vagaID = acao.alvoID, let motivo = acao.motivo else { continue }
                     _ = try await api.cancelarVaga(id: vagaID, motivo: motivo)
                 }
+                try await fila.resolverRecusas(acao)
                 try await fila.remover(id: acao.id)
+                NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
             } catch let erro as ErroDaApi where erro.codigo == .semRede {
                 return
             } catch let erro as ErroDaApi where acao.tipo == .avaliacao && erro.codigo == .avaliacaoJaRegistrada {
@@ -75,7 +88,7 @@ public actor SincronizadorAcoes {
                 if await recusaDefinitiva(erro, acao: acao) {
                     do {
                         try await fila.recusar(acao, codigo: erro.codigo)
-                        if acao.tipo == .avaliacao, try await fila.recusadas().contains(where: { $0.id == acao.id }) {
+                        if acao.tipo == .avaliacao, try await fila.recusadas(incluirReconhecidas: true).contains(where: { $0.id == acao.id }) {
                             avaliacaoRecusada(acao)
                             // A tela relê a fila depois de limpar a resposta local recusada.
                             NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)

@@ -157,6 +157,8 @@ public final class AvaliacaoTurnoViewModel {
     private let aoEnfileirar: ((Bool) -> Void)?
     private let aoAvaliar: ((Avaliacao) -> Void)?
     private var acaoOfflineID: UUID?
+    public private(set) var recusaDaFila: AcaoRecusada?
+    private var recusaExibidaID: UUID?
 
     public init(
         turnoID: UUID,
@@ -218,10 +220,11 @@ public final class AvaliacaoTurnoViewModel {
         // A consulta ocorre também com resposta local: pendente não é confirmação do servidor.
         let pendentes = try? await fila?.pendentes()
         let estavaEnfileirado = enfileiradoOffline
-        var acaoRecusada = false
-        if let acaoOfflineID, let fila {
-            acaoRecusada = (try? await fila.recusadas().contains { $0.id == acaoOfflineID }) == true
+        let recusa = try? await fila?.recusadas().first {
+            $0.tipo == .avaliacao && $0.turnoID == turnoID
+                && ($0.contaID == contaID || $0.id == acaoOfflineID)
         }
+        recusaDaFila = recusa
         enfileiradoOffline = false
         if armazenamento.podeUsarReserva(para: turno, contaID: contaID),
            armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
@@ -241,16 +244,15 @@ public final class AvaliacaoTurnoViewModel {
             if armazenamento.resposta(para: turnoID, contaID: contaID) == nil {
                 armazenamento.salvar(resposta: respostaPendente, para: turnoID, contaID: contaID)
             }
-        } else if acaoRecusada {
-            // A notificação da fila pode chegar antes da limpeza da reserva local.
-            // O ID distingue esta tentativa de outra resposta aceita depois.
-            if !armazenamento.jaRegistrada(para: turnoID, contaID: contaID) {
-                acaoOfflineID = nil
-            }
-            respostaAtual = nil
+        } else if let recusa {
+            // A reserva pode ainda aguardar o callback do sincronizador. O recibo vale também
+            // em um modelo novo; reler o mesmo aviso não apaga uma nova seleção da pessoa.
+            if recusaExibidaID != recusa.id { respostaAtual = nil }
+            recusaExibidaID = recusa.id
             jaAvaliado = turno?.podeAvaliar == false
             sucesso = false
             mensagemDeSucesso = nil
+            mensagemDeErro = TextosDaFila.texto(.avaliacao)
         } else if (armazenamento.podeUsarReserva(para: turno, contaID: contaID) || sucesso),
                   let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
             // Reaberta depois do envio, a tela volta ao estado "já registrada": o mesmo modelo
@@ -266,6 +268,19 @@ public final class AvaliacaoTurnoViewModel {
             sucesso = false
             mensagemDeSucesso = nil
         }
+    }
+
+    public func fecharAvisoDaFila() async {
+        guard let recusa = recusaDaFila, let fila else { return }
+        do {
+            try await fila.reconhecerRecusa(id: recusa.id)
+            // Uma reserva da tentativa recusada não volta a parecer aceita ao fechar seu aviso.
+            if !sucesso, turno?.avaliacao == nil {
+                armazenamento.remover(para: turnoID, contaID: contaID)
+            }
+            recusaDaFila = nil
+            mensagemDeErro = nil
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
     }
 
     public func salvar() async -> Bool {
@@ -299,6 +314,11 @@ public final class AvaliacaoTurnoViewModel {
             jaAvaliado = true
             sucesso = true
             mensagemDeSucesso = TextosDoProfissional.Avaliacao.avaliadoSucesso
+            recusaDaFila = nil
+            try? await fila?.resolverRecusas(AcaoPendente(
+                tipo: .avaliacao, turnoID: turnoID, contaID: contaID,
+                instanteDoToque: relogio.agora, chave: UUID()
+            ))
             return true
         } catch let erro as ErroDaApi where erro.codigo == .semRede {
             return await enfileirarOfflineSePossivel(resposta: resposta, erroOriginal: erro)
