@@ -76,7 +76,6 @@ enum TextosDoProfissional {
         static let suspensaTitulo = String(localized: "Sua conta está suspensa", bundle: bundleApresentacao)
         static let suspensaMensagem = String(localized: "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta.", bundle: bundleApresentacao)
         static let contestar = String(localized: "Contestar a suspensão", bundle: bundleApresentacao)
-        static let contestarEmBreve = String(localized: "A contestação chega numa próxima versão do app.", bundle: bundleApresentacao)
 
         static let naoEncontrada = String(localized: "Esta vaga não está mais disponível. Volte para a lista e escolha outra.", bundle: bundleApresentacao)
         static let falha = String(localized: "Não foi possível enviar a candidatura. Tente de novo.", bundle: bundleApresentacao)

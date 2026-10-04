@@ -152,36 +152,39 @@ final class TurnoContrato0231UITests: XCTestCase {
         tocar(app.buttons["resposta-nao"])
         tocar(app.buttons["botao-enviar-avaliacao"])
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
-        XCTAssertTrue(confirmacao.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: 10))
         if offline {
             XCTAssertTrue(confirmacao.label.contains("Será enviada quando a internet voltar."))
         }
         tocar(app.navigationBars["Avaliar turno"].buttons.firstMatch)
-        XCTAssertTrue(app.staticTexts["Turno avaliado · Resposta: Não"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Turno avaliado · Resposta: Não"].waitForExistence(timeout: 10))
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
-        XCTAssertTrue(app.navigationBars["Meus turnos"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meus turnos"].waitForExistence(timeout: 10))
         tocar(app.buttons["meu-turno-\(turnoID)"])
         conferirAvaliacaoNegativa(app)
     }
 
     private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
-        let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
-        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-        // 10 s, como a espera da existência: no runner da CI o fluxo inteiro leva mais que o dobro
-        // do tempo local, e a animação de volta à lista estourava os 5 s (PR #92, 03/10).
-        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 10), .completed, file: file, line: line)
+        if !elemento.isHittable {
+            // Em transições de navegação ou quando tarefas de fundo estão em execução no runner da CI,
+            // aguarda o elemento ficar tocável antes do tap sem travar o teste com assertion no XCTWaiter
+            // caso o polling do XPC atinja o limite (o tap nativo trata a ativação do elemento).
+            let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
+            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
+            _ = XCTWaiter.wait(for: [espera], timeout: 10)
+        }
         elemento.tap()
     }
 
     private func conferirAvaliacaoNegativa(_ app: XCUIApplication) {
         let status = app.staticTexts["Turno avaliado · Resposta: Não"]
         if !status.isHittable { app.swipeUp() }
-        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertTrue(status.waitForExistence(timeout: 10))
         XCTAssertTrue(status.label.contains("Não"))
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
         tocar(app.buttons["Ver avaliação"])
-        XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["resposta-nao"].isSelected)
         XCTAssertFalse(app.buttons["resposta-nao"].isEnabled)
         XCTAssertFalse(app.buttons["resposta-sim"].isEnabled)

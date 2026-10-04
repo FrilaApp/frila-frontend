@@ -13,6 +13,11 @@ import SwiftUI
 @main
 struct FrilaApp: App {
     private static let logger = Logger(subsystem: "com.frila.org.app", category: "ambiente")
+    #if DEBUG
+    /// Ativado apenas quando os testes de interface passam `-FRILA_SEM_ANIMACOES`.
+    /// Lido uma vez só no lançamento para não consultar `ProcessInfo` a cada transação SwiftUI (#111).
+    private static let desativarAnimacoes: Bool = ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_ANIMACOES")
+    #endif
     /// O sistema entrega o token do APNs e as notificações ao delegate, que é dono dos roteadores (#8).
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegado
     private let inicializacao: Inicializacao
@@ -42,11 +47,18 @@ struct FrilaApp: App {
             if api is ApiClienteEmMemoria {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
             }
+            if Self.desativarAnimacoes {
+                MainActor.assumeIsolated {
+                    UIView.setAnimationsEnabled(false)
+                }
+            }
             #endif
             let aparelho = Self.aparelhoDePush(para: api)
+            let verificador = Self.verificadorDeIdade(para: api)
             inicializacao = .pronta(Dependencias(
                 api: api, localizacao: Self.leitorDeLocalizacao(para: api), aparelho: aparelho,
-                permissao: Self.permissaoDePush(para: api), canal: Self.canalDePush(para: api, aparelho: aparelho)
+                permissao: Self.permissaoDePush(para: api), canal: Self.canalDePush(para: api, aparelho: aparelho),
+                verificadorDeIdade: verificador
             ))
         } catch {
             Self.logger.error("inicio configuracao_invalida \(error.description, privacy: .public)")
@@ -66,6 +78,14 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
+            #if DEBUG
+            .transaction { transaction in
+                if Self.desativarAnimacoes {
+                    transaction.disablesAnimations = true
+                    transaction.animation = nil
+                }
+            }
+            #endif
             #if FRILA_ENSAIO_FALHA
             .overlay(alignment: .bottomLeading) { BotaoDeFalhaDoEnsaio() }
             #endif
@@ -150,6 +170,25 @@ struct FrilaApp: App {
         #endif
         return PermissaoDePushDoSistema()
     }
+
+    /// Verificador de maioridade via Declared Age Range (iOS 26.2+, RN20 / Cartão #215).
+    /// No esquema Local com ApiClienteEmMemoria, aceita argumento `-FRILA_DECLARED_AGE_RANGE <abaixo-de-18|18-ou-mais|recusou|indisponivel>`.
+    private static func verificadorDeIdade(para api: any ApiCliente) -> any VerificadorDeIdade {
+        #if DEBUG
+        if api is ApiClienteEmMemoria {
+            let argumentos = ProcessInfo.processInfo.arguments
+            func valor(_ nome: String) -> String? {
+                guard let indice = argumentos.firstIndex(of: nome), argumentos.indices.contains(indice + 1) else { return nil }
+                return argumentos[indice + 1]
+            }
+            if valor("-FRILA_VERIFICADOR_IDADE") == "sistema" {
+                return VerificadorDeIdadeDoSistema()
+            }
+            return VerificadorDeIdadeSimulado.pelosArgumentos(argumentos)
+        }
+        #endif
+        return VerificadorDeIdadeDoSistema()
+    }
 }
 
 private enum Inicializacao {
@@ -164,6 +203,7 @@ private struct Dependencias {
     let aparelho: AparelhoDePush
     let permissao: any PermissaoDePush
     let canal: any CanalDePush
+    let verificadorDeIdade: any VerificadorDeIdade
 }
 
 /// Decide o que o app abre. Com o dublê (esquema Local), ou com sessão guardada no Dev e no Prod, abre
@@ -177,6 +217,7 @@ private struct EntradaDoApp: View {
     let localizacao: any LeitorDeLocalizacao
     let aparelho: AparelhoDePush
     let canal: any CanalDePush
+    let verificadorDeIdade: any VerificadorDeIdade
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador: RoteadorDoProfissional
@@ -200,6 +241,7 @@ private struct EntradaDoApp: View {
         self.api = api
         aparelho = dependencias.aparelho
         canal = dependencias.canal
+        verificadorDeIdade = dependencias.verificadorDeIdade
         _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: dependencias.permissao, abrirAjustes: {
             guard let ajustes = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
             UIApplication.shared.open(ajustes)
@@ -360,7 +402,7 @@ private struct EntradaDoApp: View {
     private var fluxoOuTelaSemSessao: some View {
         #if DEBUG
         if deveAbrirEntrada, destinoAtual == nil {
-            FluxoDeEntrada(api: api) { destino in
+            FluxoDeEntrada(api: api, verificadorDeIdade: verificadorDeIdade) { destino in
                 aplicarDestinoManual(destino)
             }
         } else {
@@ -399,7 +441,7 @@ private struct EntradaDoApp: View {
             case .contratante:
                 fluxoContratanteView
             case let .cadastro(email):
-                FluxoDeEntrada(api: api, rotaInicial: .cadastro(email: email ?? "")) { destino in
+                FluxoDeEntrada(api: api, verificadorDeIdade: verificadorDeIdade, rotaInicial: .cadastro(email: email ?? "")) { destino in
                     aplicarDestinoManual(destino)
                 }
             case let .contaSuspensa(situacao):
@@ -416,7 +458,7 @@ private struct EntradaDoApp: View {
                 )
             }
         } else {
-            FluxoDeEntrada(api: api) { destino in
+            FluxoDeEntrada(api: api, verificadorDeIdade: verificadorDeIdade) { destino in
                 aplicarDestinoManual(destino)
             }
         }

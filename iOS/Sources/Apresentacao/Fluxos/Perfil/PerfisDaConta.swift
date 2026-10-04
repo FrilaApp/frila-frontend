@@ -27,7 +27,6 @@ enum TextosPerfilConta {
     static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
     static let papel = String(localized: "Seu acesso", bundle: bundleApresentacao)
     static let naoInformado = String(localized: "—", bundle: bundleApresentacao)
-    static let todoExportacao = String(localized: "Recurso em desenvolvimento", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
     static let dicaSuporte = String(localized: "Abre o e-mail para enviar mensagem ao suporte", bundle: bundleApresentacao)
     static let linkPendente = String(localized: "Link pendente", bundle: bundleApresentacao)

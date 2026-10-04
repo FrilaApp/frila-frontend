@@ -318,6 +318,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).uitests
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSPrincipalClass: AjudanteDeLancamentoUITests
         TEST_TARGET_NAME: Frila
 
 schemes:
