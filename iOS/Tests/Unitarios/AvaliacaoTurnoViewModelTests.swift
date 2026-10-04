@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 @testable import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
@@ -505,6 +506,73 @@ struct AvaliacaoTurnoViewModelTests {
         await reaberta.carregar()
         #expect(reaberta.jaAvaliado)
         #expect(reaberta.resposta == true)
+    }
+
+    @Test("Avaliação aberta libera nova tentativa quando a recusa chega antes da limpeza da reserva")
+    @MainActor
+    func recusaAntesDaLimpezaDaReserva() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
+        let vm = AvaliacaoTurnoViewModel(turnoID: turno.id, contaID: contaID, turno: turno,
+                                        api: api, fila: fila, armazenamento: armazenamento,
+                                        relogio: RelogioSimulado(agora))
+        api.erroAvaliar = ErroDaApi(codigo: .semRede)
+        vm.resposta = false
+        #expect(await vm.salvar())
+        let acao = try #require(await fila.pendentes().first)
+        try await fila.recusar(acao, codigo: .semPermissao)
+        await vm.carregar()
+        armazenamento.remover(para: turno.id, contaID: contaID)
+        await vm.carregar()
+        #expect(!vm.jaAvaliado)
+        #expect(!vm.sucesso)
+        #expect(!vm.enfileiradoOffline)
+        #expect(vm.resposta == nil)
+
+        api.erroAvaliar = nil
+        vm.resposta = true
+        #expect(await vm.salvar())
+        await vm.carregar()
+        #expect(vm.jaAvaliado)
+        #expect(vm.resposta == true)
+    }
+
+    @Test("Releitura da recusa atualiza a tela mesmo após limpar a reserva fora da observação")
+    @MainActor
+    func recusaAtualizaObservacaoDaTela() async throws {
+        final class Mudancas: @unchecked Sendable {
+            private let trava = NSLock()
+            private var valor = 0
+            var total: Int { trava.withLock { valor } }
+            func registrar() { trava.withLock { valor += 1 } }
+        }
+        let api = ApiClienteAvaliacaoDuble()
+        let autor = try await api.minhaConta().id
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
+        armazenamento.salvar(resposta: true, para: turno.id, contaID: autor)
+        let acao = AcaoPendente(tipo: .avaliacao, turnoID: turno.id, contaID: autor, instanteDoToque: agora, chave: UUID(), resposta: true)
+        try await fila.enfileirar(acao)
+        try await fila.recusar(acao, codigo: .semPermissao)
+        let tela = MeuTurnoViewModel(turno: turno, api: api, contaID: autor, fila: fila,
+                                    armazenamentoAvaliacoes: armazenamento, relogio: RelogioSimulado(agora))
+        // A primeira notificação da persistência pode chegar antes de limpar a reserva.
+        await tela.carregarRecusasDaFila()
+        #expect(tela.jaAvaliado)
+        let mudancas = Mudancas()
+        withObservationTracking {
+            _ = tela.jaAvaliado
+            _ = tela.respostaAvaliacao
+            _ = tela.recusasDaFila
+        } onChange: { mudancas.registrar() }
+        armazenamento.remover(para: turno.id, contaID: autor)
+        await tela.carregarRecusasDaFila()
+        #expect(!tela.jaAvaliado)
+        #expect(tela.respostaAvaliacao == nil)
+        #expect(mudancas.total > 0, "a tela deve redesenhar após a limpeza da reserva")
     }
 
     @Test("409 no reenvio remove a pendente e reabre em estado neutro")

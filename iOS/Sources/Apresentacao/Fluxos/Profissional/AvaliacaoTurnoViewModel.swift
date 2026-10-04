@@ -155,6 +155,7 @@ public final class AvaliacaoTurnoViewModel {
     private let repositorioTurnos: (any TurnoRepositorio)?
     private let aoEnfileirar: ((Bool) -> Void)?
     private let aoAvaliar: ((Avaliacao) -> Void)?
+    private var acaoOfflineID: UUID?
 
     public init(
         turnoID: UUID,
@@ -214,6 +215,10 @@ public final class AvaliacaoTurnoViewModel {
         // A consulta ocorre também com resposta local: pendente não é confirmação do servidor.
         let pendentes = try? await fila?.pendentes()
         let estavaEnfileirado = enfileiradoOffline
+        var acaoRecusada = false
+        if let acaoOfflineID, let fila {
+            acaoRecusada = (try? await fila.recusadas().contains { $0.id == acaoOfflineID }) == true
+        }
         enfileiradoOffline = false
         if armazenamento.podeUsarReserva(para: turno, contaID: contaID),
            armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
@@ -225,6 +230,7 @@ public final class AvaliacaoTurnoViewModel {
         } else if let pendente = pendentes?.first(where: {
             $0.tipo == .avaliacao && $0.turnoID == turnoID && $0.contaID == contaID
         }), let respostaPendente = pendente.resposta {
+            acaoOfflineID = pendente.id
             respostaAtual = respostaPendente
             jaAvaliado = true
             enfileiradoOffline = true
@@ -232,6 +238,16 @@ public final class AvaliacaoTurnoViewModel {
             if armazenamento.resposta(para: turnoID, contaID: contaID) == nil {
                 armazenamento.salvar(resposta: respostaPendente, para: turnoID, contaID: contaID)
             }
+        } else if acaoRecusada {
+            // A notificação da fila pode chegar antes da limpeza da reserva local.
+            // O ID distingue esta tentativa de outra resposta aceita depois.
+            if !armazenamento.jaRegistrada(para: turnoID, contaID: contaID) {
+                acaoOfflineID = nil
+            }
+            respostaAtual = nil
+            jaAvaliado = turno?.podeAvaliar == false
+            sucesso = false
+            mensagemDeSucesso = nil
         } else if (armazenamento.podeUsarReserva(para: turno, contaID: contaID) || sucesso),
                   let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
             respostaAtual = gravada
@@ -270,6 +286,7 @@ public final class AvaliacaoTurnoViewModel {
 
         do {
             let avaliacao = try await api.avaliar(turnoID: turnoID, resposta: resposta)
+            acaoOfflineID = nil
             respostaAtual = avaliacao.resposta
             aoAvaliar?(avaliacao)
             armazenamento.salvar(resposta: avaliacao.resposta, para: turnoID, contaID: contaID)
@@ -320,9 +337,11 @@ public final class AvaliacaoTurnoViewModel {
             )
             try await fila.enfileirar(acao)
             // Se outro modelo enfileirou antes, prevalece a primeira resposta da fila.
-            let primeira = try await fila.pendentes().first(where: {
+            let primeiraAcao = try await fila.pendentes().first(where: {
                 $0.tipo == .avaliacao && $0.turnoID == turnoID && $0.contaID == contaID
-            })?.resposta ?? resposta
+            })
+            let primeira = primeiraAcao?.resposta ?? resposta
+            acaoOfflineID = primeiraAcao?.id ?? acao.id
             respostaAtual = primeira
             aoEnfileirar?(primeira)
             armazenamento.salvar(resposta: primeira, para: turnoID, contaID: contaID)

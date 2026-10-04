@@ -11,6 +11,15 @@ enum FixturesDoContrato {
         return try Data(contentsOf: url)
     }
 
+    /// Arquivo de exemplo que não é JSON, como o CSV e o PDF de `/exportar-turnos`. Fica fora do
+    /// `validate-fixtures.py`: o contrato não descreve as colunas do relatório.
+    static func arquivo(_ nome: String, extensao: String) throws -> Data {
+        guard let url = Bundle(for: MarcadorDoBundle.self).url(forResource: nome, withExtension: extensao) else {
+            throw ErroDeConversao(campo: "fixture \(nome).\(extensao)")
+        }
+        return try Data(contentsOf: url)
+    }
+
     static func carregar<Valor: Decodable>(_ nome: String, como tipo: Valor.Type = Valor.self) throws -> Valor {
         try ContratoAPI.decodificador().decode(Valor.self, from: dados(nome))
     }
