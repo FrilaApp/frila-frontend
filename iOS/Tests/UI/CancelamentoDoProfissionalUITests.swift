@@ -9,6 +9,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
     private func abrirTurno(cenario: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
         tocar(app.tabBars.buttons["Meus turnos"])
@@ -132,9 +133,11 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
 
     private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
-        let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
-        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 5), .completed, file: file, line: line)
+        if !elemento.isHittable || !elemento.isEnabled {
+            let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
+            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
+            XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 5), .completed, file: file, line: line)
+        }
         elemento.tap()
     }
 }

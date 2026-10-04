@@ -14,6 +14,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
     private func abrir(_ argumentos: [String]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = argumentos
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         return app
     }
@@ -42,15 +43,18 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let janela = app.windows.firstMatch.frame
         for _ in 0..<tentativas {
             guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elemento.frame
-            if elemento.isHittable, quadro.minY >= 120, quadro.maxY <= janela.height - 60 { return }
-            if quadro.minY < 120 {
-                app.swipeDown(velocity: .slow)
+            if elemento.isHittable {
+                if quadro.midY >= 100 && quadro.midY <= (janela.height - 40) { return }
+                if quadro.minY >= 100 && quadro.maxY <= (janela.height - 30) { return }
+            }
+            if quadro.minY < 100 {
+                app.swipeDown()
             } else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
         }
     }
@@ -207,7 +211,10 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
 
         // Recusada no aparelho, com a regra no campo do início, e a pessoa continua no formulário.
         let erro = app.staticTexts["erro-publicacao-inicio"]
-        for _ in 0..<8 where !erro.exists { app.swipeDown(velocity: .slow) }
+        for _ in 0..<8 {
+            if erro.exists && erro.isHittable { break }
+            app.swipeDown()
+        }
         XCTAssertTrue(erro.waitForExistence(timeout: 5))
         XCTAssertEqual(erro.label, "Vagas no modo seleção exigem pelo menos 24 horas de antecedência.")
         XCTAssertFalse(app.descendants(matching: .any)["minhas-vagas"].exists)
@@ -234,13 +241,13 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
             XCTAssertLessThanOrEqual(dados.frame.maxX, largura, "os dados de \(nome) passaram da largura da tela")
 
             let perfil = app.buttons["perfil-do-candidato-\(id)"]
-            rolarAte(perfil, em: app)
+            if !perfil.isHittable { rolarAte(perfil, em: app) }
             XCTAssertTrue(perfil.isHittable)
             XCTAssertEqual(perfil.label, "Ver perfil público de \(nome)")
             XCTAssertGreaterThanOrEqual(perfil.frame.height, 44)
 
             let escolher = app.buttons["escolher-candidato-\(id)"]
-            rolarAte(escolher, em: app)
+            if !escolher.isHittable { rolarAte(escolher, em: app) }
             XCTAssertTrue(escolher.isHittable)
             XCTAssertEqual(escolher.label, "Escolher \(nome)")
             XCTAssertGreaterThanOrEqual(escolher.frame.height, 44)
