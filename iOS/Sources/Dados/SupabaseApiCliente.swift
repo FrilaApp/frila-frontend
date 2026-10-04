@@ -326,6 +326,40 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         }
     }
 
+    public func exportarTurnos(_ pedido: PedidoExportacaoTurnos) async throws -> ResultadoExportacaoTurnos {
+        let relogio = ContinuousClock()
+        let inicio = relogio.now
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        do {
+            return try await cliente.functions.invoke(
+                "exportar-turnos",
+                options: FunctionInvokeOptions(body: ContratoAPI.ExportarTurnos(pedido))
+            ) { dados, resposta in
+                try Self.arquivoExportado(dados: dados, resposta: resposta, formato: pedido.formato)
+            }
+        } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
+            let tipado = mapear(error)
+            await telemetria.registrarErroDaApi(codigo: tipado.codigoOriginal, rpc: "exportar-turnos", duracao: inicio.duration(to: relogio.now))
+            throw tipado
+        }
+    }
+
+    /// O 204 é o período sem turnos. No 200, o arquivo só passa se vier no tipo pedido e com
+    /// conteúdo: um JSON de erro com status 200 não pode virar `.pdf` na planilha de compartilhar.
+    static func arquivoExportado(dados: Data, resposta: HTTPURLResponse, formato: FormatoExportacao) throws -> ResultadoExportacaoTurnos {
+        if resposta.statusCode == 204 { return .semTurnos }
+        let esperado = formato == .csv ? "text/csv" : "application/pdf"
+        let recebido = (resposta.value(forHTTPHeaderField: "Content-Type") ?? "")
+            .split(separator: ";").first.map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        guard recebido == esperado, !dados.isEmpty else {
+            throw ErroDaApi(codigo: .respostaInvalida, codigoOriginal: "arquivo_inesperado")
+        }
+        return .arquivo(dados)
+    }
+
     // MARK: Aplicativo e dispositivo
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
