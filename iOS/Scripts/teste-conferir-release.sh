@@ -141,7 +141,7 @@ app="$(novo_app_bom sem-privacidade)"
 rm "$app/PrivacyInfo.xcprivacy"
 esperar_reprovacao "manifesto de privacidade ausente" "PrivacyInfo.xcprivacy" "$app"
 
-for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_ABRIR_MINHAS_VAGAS' '-FRILA_CADASTRO_UI_TEST' '-FRILA_BUSCA_PERFIL_UI_TEST' '-FRILA_ENTRADA' '-FRILA_LOCALIZACAO' '-FRILA_VAGA_ID' '-FRILA_AVISO' '-FRILA_PUSH' '-FRILA_PERMISSAO_PUSH' 'forcar-falha-crashlytics'; do
+for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_ABRIR_MINHAS_VAGAS' '-FRILA_CADASTRO_UI_TEST' '-FRILA_BUSCA_PERFIL_UI_TEST' '-FRILA_CAPTURAR_URL_UI_TEST' '-FRILA_ENTRADA' '-FRILA_LOCALIZACAO' '-FRILA_VAGA_ID' '-FRILA_AVISO' '-FRILA_PUSH' '-FRILA_PERMISSAO_PUSH' 'forcar-falha-crashlytics'; do
   app="$(novo_app_bom "gancho-$RANDOM")"
   printf '\n%s\n' "$gancho" >> "$app/Frila"
   esperar_reprovacao "gancho no executável: $gancho" "$gancho" "$app"
@@ -172,7 +172,7 @@ printf 'binario release limpo\n' > "$app/PlugIns/FrilaNotificationService.appex/
 chmod +x "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
 esperar_aprovacao "$app"
 
-for simbolo in pelosArgumentos CatalogoDesignSystem; do
+for simbolo in pelosArgumentos CatalogoDesignSystem AbridorDeURLParaTeste CapturaDeAberturaDeURLParaTeste; do
   app="$(novo_app_bom "simbolo-$RANDOM")"
   printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
     compilar_com_entitlements "$app/Frila"

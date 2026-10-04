@@ -1,5 +1,8 @@
 import FrilaDominio
 import SwiftUI
+#if DEBUG
+import Observation
+#endif
 
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
@@ -179,6 +182,9 @@ public struct TelaMeuTurno: View {
                     }
                     .accessibilityIdentifier("botao-whatsapp")
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
+                    #if DEBUG
+                    .modifier(CapturaDeAberturaDeURLParaTeste())
+                    #endif
                 }
 
                 Text(verbatim: TextosDoProfissional.Turnos.lembretesEVisibilidade)
@@ -251,3 +257,41 @@ public struct TelaMeuTurno: View {
         .accessibilityIdentifier("cartao-avaliacao-turno")
     }
 }
+
+#if DEBUG
+/// Captura o destino recebido pelo sistema ao tocar no Link, sem sair do app durante o teste.
+@MainActor
+private protocol AbridorDeURL: AnyObject {
+    var urlAberta: URL? { get }
+    func abrir(_ url: URL)
+}
+
+@MainActor
+@Observable
+private final class AbridorDeURLParaTeste: AbridorDeURL {
+    private(set) var urlAberta: URL?
+
+    func abrir(_ url: URL) {
+        urlAberta = url
+    }
+}
+
+@MainActor
+private struct CapturaDeAberturaDeURLParaTeste: ViewModifier {
+    @State private var abridor: any AbridorDeURL = AbridorDeURLParaTeste()
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if ProcessInfo.processInfo.arguments.contains("-FRILA_CAPTURAR_URL_UI_TEST") {
+            content
+                .environment(\.openURL, OpenURLAction { url in
+                    abridor.abrir(url)
+                    return .handled
+                })
+                .accessibilityValue(Text(verbatim: abridor.urlAberta?.absoluteString ?? ""))
+        } else {
+            content
+        }
+    }
+}
+#endif
