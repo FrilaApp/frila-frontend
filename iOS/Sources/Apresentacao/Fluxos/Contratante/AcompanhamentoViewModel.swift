@@ -35,6 +35,18 @@ public enum ResultadoDoAcompanhamento: Equatable, Sendable {
     case vagaReaberta
     /// A menos de 1 hora do fim a falta é registrada, mas não há reabertura.
     case faltaSemReabertura
+    /// A casa cancelou a posição com motivo (#20): antes do início ela é reaberta; depois, não.
+    case posicaoCancelada(reaberta: Bool)
+    /// A casa cancelou a vaga inteira, sem falta para ninguém.
+    case vagaCancelada
+    /// Sem rede, o cancelamento ficou na fila e será enviado quando a internet voltar.
+    case cancelamentoNaFila
+}
+
+/// Relógio sobre a função `agora` do view model, para a folha de cancelamento.
+private struct RelogioDaFuncao: Relogio {
+    let funcao: @Sendable () -> Date
+    var agora: Date { funcao() }
 }
 
 public enum FalhaDoAcompanhamento: Equatable, Sendable {
@@ -61,14 +73,20 @@ public final class AcompanhamentoViewModel {
     private let buscarPainel: @Sendable () async throws -> Painel
     private let confirmar: @Sendable (UUID) async throws -> ResultadoRegistro
     private let reabrir: @Sendable (UUID) async throws -> ResultadoCancelamento
+    private let cancelarPosicao: @Sendable (UUID, String) async throws -> ResultadoCancelamento
+    private let cancelarVaga: @Sendable (UUID, String) async throws -> VagaCancelada
+    private let agora: @Sendable () -> Date
+    private let fila: (any FilaDeAcoes)?
     private let aoMudar: @MainActor () async -> Void
 
-    /// `aoMudar` roda depois de cada confirmação ou reabertura, para a lista de vagas se atualizar.
+    /// `aoMudar` roda depois de cada confirmação, reabertura ou cancelamento, para a lista de vagas
+    /// se atualizar. `fila` recebe o cancelamento feito sem rede (#20).
     public convenience init(
         api: any ApiCliente,
         estabelecimentoID: UUID,
         agora: @escaping @Sendable () -> Date = Date.init,
         calendario: Calendar = MinhasVagasViewModel.calendarioSaoPaulo,
+        fila: (any FilaDeAcoes)? = nil,
         aoMudar: @escaping @MainActor () async -> Void = {}
     ) {
         self.init(
@@ -82,6 +100,10 @@ public final class AcompanhamentoViewModel {
             },
             confirmar: { try await api.confirmarCheckinManual(turnoID: $0) },
             reabrir: { try await api.reabrirPorAtraso(posicaoID: $0) },
+            cancelarPosicao: { try await api.cancelarPosicao(id: $0, motivo: $1) },
+            cancelarVaga: { try await api.cancelarVaga(id: $0, motivo: $1) },
+            agora: agora,
+            fila: fila,
             aoMudar: aoMudar
         )
     }
@@ -90,11 +112,19 @@ public final class AcompanhamentoViewModel {
         buscarPainel: @escaping @Sendable () async throws -> Painel,
         confirmar: @escaping @Sendable (UUID) async throws -> ResultadoRegistro,
         reabrir: @escaping @Sendable (UUID) async throws -> ResultadoCancelamento,
+        cancelarPosicao: @escaping @Sendable (UUID, String) async throws -> ResultadoCancelamento = { _, _ in throw ErroDaApi(codigo: .desconhecido) },
+        cancelarVaga: @escaping @Sendable (UUID, String) async throws -> VagaCancelada = { _, _ in throw ErroDaApi(codigo: .desconhecido) },
+        agora: @escaping @Sendable () -> Date = Date.init,
+        fila: (any FilaDeAcoes)? = nil,
         aoMudar: @escaping @MainActor () async -> Void = {}
     ) {
         self.buscarPainel = buscarPainel
         self.confirmar = confirmar
         self.reabrir = reabrir
+        self.cancelarPosicao = cancelarPosicao
+        self.cancelarVaga = cancelarVaga
+        self.agora = agora
+        self.fila = fila
         self.aoMudar = aoMudar
     }
 
@@ -160,6 +190,7 @@ public final class AcompanhamentoViewModel {
         guard !carregando else { return }
         carregando = true
         defer { carregando = false }
+        await lerCancelamentosNaFila()
         await lerPainel(registrandoFalha: true)
     }
 
@@ -257,6 +288,82 @@ public final class AcompanhamentoViewModel {
         }
     }
 
+    // MARK: Cancelamento (#20)
+
+    /// Só a posição confirmada, antes do fim previsto, e sem cancelamento já na fila deste
+    /// aparelho. Depois do início ainda pode: a folha avisa que o turno fica descoberto.
+    public func podeCancelar(_ turno: TurnoAcompanhado) -> Bool {
+        turno.posicao.estado == .confirmada && turno.vaga.periodo.fim > agora()
+            && !recusadas.contains(turno.id) && !cancelamentosNaFila.contains(turno.posicao.id)
+    }
+
+    /// A vaga que ainda não fechou: nem cancelada, nem encerrada, nem com o fim já passado.
+    public func podeCancelarVaga(_ vaga: VagaNoPainel) -> Bool {
+        vaga.estado != .cancelada && vaga.estado != .encerrada && vaga.vaga.periodo.fim > agora()
+            && !cancelamentosNaFila.contains(vaga.vaga.id)
+    }
+
+    /// A folha de cancelamento de uma posição confirmada. O desfecho volta por `aplicar`.
+    public func criarCancelamento(de turno: TurnoAcompanhado) -> CancelamentoViewModel? {
+        guard let turno = atual(turno), podeCancelar(turno) else { return nil }
+        let chamada = cancelarPosicao
+        let posicaoID = turno.posicao.id
+        return CancelamentoViewModel(
+            lado: .contratante, alvo: .posicao(id: posicaoID, turnoID: turno.posicao.turnoID), periodo: turno.vaga.periodo,
+            relogio: RelogioDaFuncao(funcao: agora), fila: fila,
+            executar: { .posicao(try await chamada(posicaoID, $0)) },
+            aoConcluir: { [weak self] desfecho in self?.aplicar(desfecho, alvoID: posicaoID, vagaID: turno.vaga.id) }
+        )
+    }
+
+    /// A folha de cancelamento da vaga inteira.
+    public func criarCancelamento(da vaga: VagaNoPainel) -> CancelamentoViewModel? {
+        guard let vaga = self.vaga(id: vaga.vaga.id), podeCancelarVaga(vaga) else { return nil }
+        let chamada = cancelarVaga
+        let vagaID = vaga.vaga.id
+        return CancelamentoViewModel(
+            lado: .contratante, alvo: .vaga(id: vagaID), periodo: vaga.vaga.periodo, relogio: RelogioDaFuncao(funcao: agora), fila: fila,
+            executar: { .vaga(try await chamada(vagaID, $0)) },
+            aoConcluir: { [weak self] desfecho in self?.aplicar(desfecho, alvoID: vagaID, vagaID: vagaID) }
+        )
+    }
+
+    /// O que a folha devolveu entra no painel da tela na hora; a releitura só confirma. Sem rede, a
+    /// posição ou a vaga fica marcada para a tela não oferecer cancelar de novo.
+    public func aplicar(_ desfecho: DesfechoDoCancelamento, alvoID: UUID, vagaID: UUID) {
+        falha = nil
+        switch desfecho {
+        case let .posicao(cancelamento):
+            geracao += 1
+            aplicar(cancelamento)
+            resultado = .posicaoCancelada(reaberta: cancelamento.reaberta)
+        case .vaga:
+            geracao += 1
+            aplicarCancelamentoDaVaga(vagaID)
+            resultado = .vagaCancelada
+        case .naFila:
+            cancelamentosNaFila.insert(alvoID)
+            resultado = .cancelamentoNaFila
+            return
+        }
+        releituraAposCancelamento = Task {
+            await lerPainel(registrandoFalha: false)
+            await aoMudar()
+        }
+    }
+
+    /// A releitura disparada pelo último cancelamento aplicado; os testes esperam por ela.
+    public private(set) var releituraAposCancelamento: Task<Void, Never>?
+
+    /// Posições ou vagas cujo cancelamento espera na fila offline deste aparelho.
+    private var cancelamentosNaFila: Set<UUID> = []
+
+    /// Lê a fila: o cancelamento guardado sem rede continua valendo depois que a tela reabre.
+    public func lerCancelamentosNaFila() async {
+        guard let fila, let acoes = try? await fila.pendentes() else { return }
+        cancelamentosNaFila = Set(acoes.filter { $0.tipo == .cancelamentoPosicao || $0.tipo == .cancelamentoVaga }.compactMap(\.alvoID))
+    }
+
     // MARK: Estado local
 
     /// Sobe a cada resposta do servidor a uma ação, aceita ou recusada: as leituras que saíram antes
@@ -306,10 +413,29 @@ public final class AcompanhamentoViewModel {
         )
     }
 
-    private static func copia(_ vaga: VagaNoPainel, posicoes: [PosicaoNoPainel]) -> VagaNoPainel {
+    /// Como `cancelar_vaga` deixa o painel: a vaga `cancelada`, sem alerta nem candidatos pendentes,
+    /// e cada posição aberta ou confirmada passa a `cancelada`, guardando de quem era (RN12).
+    private func aplicarCancelamentoDaVaga(_ vagaID: UUID) {
+        guard let atual = painel else { return }
+        painel = Painel(
+            estabelecimentoID: atual.estabelecimentoID,
+            vagas: atual.vagas.map { vaga in
+                guard vaga.vaga.id == vagaID else { return vaga }
+                let posicoes = vaga.posicoes.map { posicao in
+                    posicao.estado == .aberta || posicao.estado == .confirmada
+                        ? Self.copia(posicao, estado: .cancelada, emAtraso: false) : posicao
+                }
+                return Self.copia(vaga, posicoes: posicoes, estado: .cancelada)
+            },
+            checkinsPendentes: atual.checkinsPendentes
+        )
+    }
+
+    private static func copia(_ vaga: VagaNoPainel, posicoes: [PosicaoNoPainel], estado: EstadoVaga? = nil) -> VagaNoPainel {
         VagaNoPainel(
-            vaga: vaga.vaga, modo: vaga.modo, estado: vaga.estado, oculta: vaga.oculta, alertaVagaVazia: vaga.alertaVagaVazia,
-            candidatosPendentes: vaga.candidatosPendentes, posicoes: posicoes
+            vaga: vaga.vaga, modo: vaga.modo, estado: estado ?? vaga.estado, oculta: vaga.oculta,
+            alertaVagaVazia: estado == .cancelada ? false : vaga.alertaVagaVazia,
+            candidatosPendentes: estado == .cancelada ? 0 : vaga.candidatosPendentes, posicoes: posicoes
         )
     }
 
