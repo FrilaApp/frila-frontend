@@ -12,3 +12,5 @@ Checklist obrigatório para cada fluxo entregue por Design e implementado no iOS
 - Valores monetários, datas, horários e reputação têm leitura natural em pt-BR.
 
 O catálogo de componentes é o ponto de validação conjunta com Design. Fluxos completos devem ser testados com VoiceOver em aparelho antes do aceite.
+
+A auditoria automática de todas as telas (`AuditoriaDeAcessibilidadeUITests`, tamanho padrão, AX5 e Reduzir Movimento) e o relatório tela × problema × causa estão em [Acessibilidade](Acessibilidade.md).
