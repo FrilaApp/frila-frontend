@@ -163,6 +163,19 @@ struct SegurancaViewModelTests {
         #expect(offline.estado == .falha(TextosDaSeguranca.semRede))
     }
 
+    @Test("Tela de perfil público carrega profissional e estabelecimento para conta suspensa")
+    func perfilPublicoComContaSuspensa() async throws {
+        let base = ApiClienteEmMemoria()
+        let profissional = try await base.perfilPublico(id: UUID(uuidString: "80000000-0000-0000-0000-000000000001")!)
+        let estabelecimento = try await perfil(base)
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa, sessaoAtivaInicial: true)
+        for perfil in [profissional, estabelecimento] {
+            let model = PerfilPublicoViewModel(id: perfil.id, api: api)
+            await model.carregar()
+            #expect(model.estado == .carregado(perfil))
+        }
+    }
+
     @Test("Contratante deixa de consultar perfil do profissional após bloquear")
     func profissionalBloqueado() async throws {
         let api = ApiClienteEmMemoria(cenario: .painelContratante)
