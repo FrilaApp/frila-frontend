@@ -235,8 +235,8 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             return
         }
         XCTAssertTrue(mapa.isHittable)
-        XCTAssertGreaterThanOrEqual(mapa.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(mapa.frame.height, 44)
+        XCTAssertAlvoMinimo(mapa.frame.width)
+        XCTAssertAlvoMinimo(mapa.frame.height)
         mapa.tap()
         let mapas = XCUIApplication(bundleIdentifier: "com.apple.Maps")
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
