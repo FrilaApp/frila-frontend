@@ -114,7 +114,7 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Catálogo.** Em Debug, o catálogo de componentes abre pelo botão "Catálogo" da barra, ou direto com `-FRILA_ABRIR_CATALOGO` (usado pelos UI tests do catálogo).
 - **Lista (#104).** Pede `vagas_abertas` sem coordenada, e o servidor usa o ponto base do perfil. A ordem é a do servidor. Os filtros são função, data e distância; a data vai como o dia de São Paulo (`DataCivil.deSaoPaulo`), qualquer que seja o fuso do aparelho. A lista pagina de 30 em 30 e aceita puxar para atualizar.
 - **Estados da lista.** Carregando, vazia, erro, sem conexão e "sem ponto de referência" (`422 campo_obrigatorio/latitude`). Sem conexão é o `ErroDaApi.semRede`, que hoje só cobre `notConnectedToInternet`.
-- **Cartão e detalhe.** Mostram o `local` do contrato como vem, sem extrair bairro. O detalhe nunca tem telefone nem documento; o aviso da RN10 aparece antes de Candidatar-me. Denunciar e Bloquear ficam reservados e desabilitados (Sprint 2).
+- **Cartão e detalhe.** Mostram o `local` do contrato como vem, sem extrair bairro. O detalhe nunca tem telefone nem documento; o aviso da RN10 aparece antes de Candidatar-me. Denunciar e Bloquear estão no rodapé do detalhe e dos perfis públicos; o detalhe também abre o perfil do estabelecimento ([cartão #39, parte 1](Docs/DenunciarEBloquear-39.md)).
 
 **Candidatura (#105).** O botão Candidatar-me fica no detalhe, depois do aviso da RN10, e se desabilita enquanto a chamada está em voo.
 - **Toque duplo.** Um segundo toque durante o envio não chama `candidatar` de novo; o servidor também é idempotente.
@@ -184,6 +184,16 @@ Quem trabalha se candidata, espera a escolha da casa e pode retirar a candidatur
 - **Maior tamanho de texto.** Nos tamanhos de acessibilidade a área de ação do detalhe fica presa ao rodapé, sem rolagem. Os avisos dela (retirada sem conexão, candidatura retirada, candidatura que falhou) vão para dentro da rolagem do detalhe (`AvisosDoDetalhe`, em `TelaDetalheVaga.swift`), e o rodapé fica só com o título e o botão: o aviso cabe inteiro, e a vaga continua legível.
 - **Leitura da aba.** `MinhasCandidaturasViewModel` faz uma leitura por vez: a primeira é da tela, e a releitura pedida com outra em voo espera e lê de novo depois. A leitura cancelada pela saída da tela volta ao estado inicial, e não fica em "carregando".
 - **Turno da vaga do aviso.** A busca (`BuscaDaVagaDoAviso`) cruza `meus_turnos` pelo id da vaga e descarta `Turno.estado == .cancelada`. Assim, um turno cancelado da mesma vaga não toma o lugar de outro válido nem abre como destino. Sem estado, mantém a compatibilidade com o servidor anterior à 0.2.31.
+
+## Histórico e exportação de turnos (#23, visual provisório)
+
+"Histórico de turnos" fica em Meu perfil e no perfil do estabelecimento (`TelaHistoricoDeTurnos`, `HistoricoDeTurnosViewModel`). A tela usa só os componentes do sistema de design, à espera da alta fidelidade da v1.1.
+
+- **Pedido.** `POST /exportar-turnos` com `de`, `ate` e `formato`. Quem trabalha não manda `estabelecimento_id`, e o servidor usa os turnos da conta como profissional; o perfil do estabelecimento manda o id da casa.
+- **Período.** "Este mês" (do dia 1 até hoje), "Mês passado" ou "Escolher datas", com o fim nunca depois de hoje e o início nunca depois do fim. Os dias são os de São Paulo, qualquer que seja o fuso do aparelho: `de` é 00:00:00.000 do primeiro dia e `ate` é 23:59:59.999 do último, em UTC e com milissegundos (`PeriodoDeExportacao`, `ContratoAPI.textoComMilissegundos`).
+- **Resposta.** O 200 vai intacto para a folha de compartilhar, como `frila-turnos-AAAA-MM-DD_AAAA-MM-DD.csv` ou `.pdf`, e o arquivo temporário é apagado quando a folha fecha. O cliente só aceita o arquivo no tipo pedido (`text/csv` ou `application/pdf`) e com conteúdo. O 204 mostra "Nenhum turno nesse período" e não abre o compartilhar. Sem rede e erro do servidor oferecem "Tentar novamente"; o 401 e o 403 não, porque repetir não muda o resultado.
+- **Dublê.** Devolve o CSV e o PDF de exemplo de `Resources/Fixtures/exportar-turnos.*`, os mesmos para qualquer período, e responde `403` ao estabelecimento que não é da conta. Cenários: `exportar-turnos-sem-turnos` (204), e `exportar-sem-rede` e `exportar-erro-servidor`, que valem para as duas exportações.
+- **Limites.** A tela ainda não lista os turnos do período antes de exportar (passo 2 da UC13); a lista espera o design da v1.1. As colunas e os valores do arquivo são do backend.
 
 ## Cenários simulados
 

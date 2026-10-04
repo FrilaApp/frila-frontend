@@ -28,13 +28,28 @@ final class ContaSuspensaUITests: XCTestCase {
         // 3. Ações secundárias que continuam disponíveis (RF24, RN13)
         let botaoExportar = app.buttons["conta-suspensa-exportar-dados"]
         XCTAssertTrue(botaoExportar.waitForExistence(timeout: 5), "Botão de exportar dados deve estar presente")
-        XCTAssertFalse(botaoExportar.isEnabled, "Exportação deve estar desabilitada com aviso de pendência no cartão #219")
+        XCTAssertTrue(botaoExportar.isEnabled, "A conta suspensa pode exportar os próprios dados")
 
         let botaoExcluir = app.buttons["conta-suspensa-excluir-conta"]
         XCTAssertTrue(botaoExcluir.waitForExistence(timeout: 5), "Opção de excluir conta deve estar disponível")
 
         let botaoSair = app.buttons["conta-suspensa-sair"]
         XCTAssertTrue(botaoSair.waitForExistence(timeout: 5), "Opção de sair deve estar disponível")
+    }
+
+    func testContaSuspensaExportaDadosEAbreCompartilhamento() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "conta-suspensa"]
+        app.launch()
+        let exportar = app.buttons["conta-suspensa-exportar-dados"]
+        XCTAssertTrue(exportar.waitForExistence(timeout: 10))
+        if !exportar.isHittable { app.swipeUp() }
+        XCTAssertTrue(exportar.isEnabled)
+        exportar.tap()
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 5)
+                      || app.navigationBars["UIActivityContentView"].waitForExistence(timeout: 5)
+                      || app.collectionViews.firstMatch.waitForExistence(timeout: 5)
+                      || app.sheets.firstMatch.waitForExistence(timeout: 5))
     }
 
     func testContestacaoEnviadaMostraProtocoloESegundaTentativaBloqueada() {

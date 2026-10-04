@@ -338,6 +338,7 @@ enum SituacaoDaSelecao: Equatable {
 
 /// A seção "Candidatos" do detalhe da vaga em seleção, em Minhas vagas.
 struct SecaoDeCandidatos: View {
+    @Environment(BloqueiosDaSessao.self) private var bloqueios: BloqueiosDaSessao?
     private let vaga: VagaNoPainel
     private let abrirPerfil: (PerfilPublico) -> Void
     @State private var viewModel: CandidatosDaVagaViewModel
@@ -351,6 +352,13 @@ struct SecaoDeCandidatos: View {
         self.vaga = vaga
         self.abrirPerfil = abrirPerfil
         _viewModel = State(initialValue: CandidatosDaVagaViewModel(vagaID: vaga.vaga.id, api: api, relerVaga: relerVaga))
+    }
+
+    private var estadoVisivel: EstadoDosCandidatos {
+        if case let .carregados(candidatos) = viewModel.estado {
+            return .carregados(candidatos.filter { bloqueios?.contem($0.profissional) != true })
+        }
+        return viewModel.estado
     }
 
     private var situacao: SituacaoDaSelecao { SituacaoDaSelecao(vaga) }
@@ -412,7 +420,7 @@ struct SecaoDeCandidatos: View {
     }
 
     @ViewBuilder private func lista(podeEscolher: Bool) -> some View {
-        switch viewModel.estado {
+        switch estadoVisivel {
         case .carregando:
             EstadoCarregando()
         case .semConexao:
@@ -498,11 +506,13 @@ private struct ConfirmacaoDaEscolha: ViewModifier {
             } label: {
                 Text(verbatim: TextosDosCandidatos.escolher)
             }
+            .accessibilityIdentifier("confirmar-escolha-botao")
             Button(role: .cancel) {
                 viewModel.desistirDaEscolha()
             } label: {
                 Text(verbatim: TextosDosCandidatos.cancelar)
             }
+            .accessibilityIdentifier("cancelar-escolha-botao")
         } message: { candidato in
             // O `presenting` guarda o candidato enquanto o alerta fecha: o nome não some no meio.
             Text(verbatim: String(

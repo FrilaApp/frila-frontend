@@ -10,6 +10,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case primeiroAcesso = "primeiro-acesso"
         case vagaPreenchida = "vaga-preenchida"
         case inelegivel
+        case funcaoIncompativel = "funcao-incompativel"
         case semRede = "sem-rede"
         case contaSuspensa = "conta-suspensa"
         /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
@@ -84,16 +85,30 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Conta de profissional cuja candidatura esperava quando a seleção fechou sozinha, 24 h
         /// antes do início: candidatura `expirada` e vaga `encerrada` (critério 2 do #10).
         case candidaturaExpirada = "candidatura-expirada"
+        /// As duas exportações, a dos dados (#219) e a dos turnos (#23), falham sem rede.
         case exportarSemRede = "exportar-sem-rede"
+        /// As duas exportações falham com erro do servidor.
         case exportarErroServidor = "exportar-erro-servidor"
+        /// `/exportar-turnos` responde 204: o período não tem turnos (UC13, 1a).
+        case exportarTurnosSemTurnos = "exportar-turnos-sem-turnos"
         /// Painel com check-in já confirmado (contrato 0.2.31).
         case checkinConfirmado = "checkin-confirmado"
         /// Painel com posição cancelada com motivo informado (contrato 0.2.31).
         case posicaoCanceladaComMotivo = "posicao-cancelada-com-motivo"
         /// Servidor anterior à 0.2.31: não manda os quatro campos opcionais do painel.
         case servidorAntigo = "servidor-antigo"
+        /// Conta de profissional com um turno confirmado que começa em 10 h: cancelar conta como falta (#20, RN12).
+        case turnoConfirmadoPerto = "turno-confirmado-perto"
+        /// Como `turnoConfirmadoPerto`, mas o turno começa em 48 h: cancelar não afeta a taxa.
+        case turnoConfirmadoLonge = "turno-confirmado-longe"
+        /// Como `turnoConfirmadoLonge`, mas `cancelar_posicao` é sem rede: o cancelamento vai para a fila.
+        case cancelarSemRede = "cancelar-sem-rede"
         /// Servidor de hoje no lado do profissional: turnos sem estado, avaliacao e cancelamento; candidaturas sem turno_id.
         case profissionalServidorAntigo = "profissional-servidor-antigo"
+        #if DEBUG
+        /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
+        case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
+        #endif
 
         public var isServidorAntigo: Bool {
             self == .servidorAntigo || self == .profissionalServidorAntigo
@@ -120,6 +135,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
         var deTurnoCancelado: Bool {
             self == .turnoCancelado || self == .turnoCanceladoComFalta || self == .turnoCanceladoSemDetalhes || self == .turnoCanceladoOutro
+        }
+
+        /// Os cenários do profissional com um turno confirmado ainda por vir (#20).
+        var deTurnoConfirmado: Bool {
+            self == .turnoConfirmadoPerto || self == .turnoConfirmadoLonge || self == .cancelarSemRede
         }
     }
 
@@ -173,6 +193,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var chamadasACriarConta = 0
     public private(set) var chamadasAPublicarVaga = 0
     public private(set) var chamadasAExportarMeusDados = 0
+    /// O que chegou a `exportarTurnos`, na ordem: os testes conferem o período, o formato e o estabelecimento.
+    public private(set) var pedidosDeExportacaoDeTurnos: [PedidoExportacaoTurnos] = []
     public private(set) var chavesPublicacaoRecebidas: [UUID] = []
     public private(set) var publicacoesRecebidas: [PublicacaoVaga] = []
     public private(set) var vagasCriadas = 0
@@ -203,6 +225,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var suspensao: Suspensao?
     /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
     private var dispositivos: [String: UUID] = [:]
+    /// O `vinculo_id` de cada token (contrato 0.2.30): novo quando o token entra ou troca de dono,
+    /// o mesmo no registro repetido pela mesma conta, e fora quando `remover_dispositivo` o tira.
+    private var vinculos: [String: UUID] = [:]
 
     public init(
         cenario: Cenario = .sucesso,
@@ -221,11 +246,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
             candidatosDeExemplo = try FixturesDoContrato.carregar("candidatos", como: [ContratoAPI.CandidatoDTO].self).map { $0.dominio() }
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
+            #if DEBUG
+            let ehCicloContratante = cenario == .cicloContratanteTurnoConcluido
+            #else
+            let ehCicloContratante = false
+            #endif
             if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -244,6 +274,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
                         perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
                     }
                 }
+            }
+            if cenario == .funcaoIncompativel, let perfil = perfilProfissional {
+                perfilProfissional = PerfilProfissional(
+                    id: perfil.id, usuarioID: perfil.usuarioID,
+                    funcoes: catalogo.filter { $0.nome == "Bartender" }, pontoBase: perfil.pontoBase,
+                    disponibilidades: perfil.disponibilidades, reputacao: perfil.reputacao
+                )
             }
             if cenario == .contaSuspensa, let ativa = conta {
                 conta = Conta(
@@ -265,18 +302,25 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .checkinManualPendente, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
+                // Os dois lados das 24 h da RN12: a 10 h o cancelamento do profissional é falta; a 48 h, não.
+                // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
+                case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
+                case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60 + 30 * 60
+                #if DEBUG
+                case .cicloContratanteTurnoConcluido: -10 * 60 * 60
+                #endif
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .vagaEmSelecao, .candidaturaPendente, .retirarSemRede,
                      .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
                 default: 24 * 60 * 60
                 }
-                let baseVaga = cenario == .vagaEncerradaContratante ? Self.copia(vaga, estado: .encerrada) : vaga
+                let baseVaga = (cenario == .vagaEncerradaContratante || ehCicloContratante) ? Self.copia(vaga, estado: .encerrada) : vaga
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
             if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
-                || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo,
+                || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante,
                 let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "82000000-0000-0000-0000-000000000002")!
@@ -289,7 +333,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let turnoExemplo = Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: (cenario == .painelContratante || cenario == .checkinConfirmado || cenario == .servidorAntigo) ? .verificado : .pendente,
+                    verificacao: (cenario == .painelContratante || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
                     valorAcordado: vaga.valor, podeAvaliar: false
                 )
                 if cenario == .posicaoCanceladaComMotivo {
@@ -309,12 +353,18 @@ public actor ApiClienteEmMemoria: ApiCliente {
                             turnoID: turnoID, tipo: .manual, verificacao: .pendente,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
                         )
-                    } else if cenario == .checkinConfirmado {
+                    } else if cenario == .checkinConfirmado || ehCicloContratante {
                         checkins[turnoID] = ResultadoRegistro(
                             turnoID: turnoID, tipo: .manual, verificacao: .verificado,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-5 * 60), distanciaMetros: nil
                         )
                         confirmacoesDeCheckin[turnoID] = vaga.periodo.inicio.addingTimeInterval(2 * 60)
+                        if ehCicloContratante {
+                            checkouts[turnoID] = ResultadoRegistro(
+                                turnoID: turnoID, tipo: .manual, verificacao: .verificado,
+                                registradoEm: vaga.periodo.fim, distanciaMetros: nil
+                            )
+                        }
                     }
                 }
                 self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
@@ -470,6 +520,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
             }
             if cenario == .turnoAvaliado, let turno = turnos.first {
                 avaliacoes[turno.id] = Avaliacao(turnoID: turno.id, resposta: false, criadaEm: relogio.agora)
+            }
+            if cenario.deTurnoConfirmado, let vaga = self.vagas.first {
+                // O turno que a candidatura confirmou, com o contato da casa liberado (RN10). A vaga
+                // perde uma posição aberta, como no backend; o cancelamento devolve uma nova (RN12).
+                let turnoID = UUID(uuidString: "23000000-0000-0000-0000-000000000001")!
+                let posicaoID = UUID(uuidString: "23000000-0000-0000-0000-000000000002")!
+                let contato = Contato(
+                    nome: vaga.estabelecimento.nome, telefone: contatoDeExemplo.telefone,
+                    whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
+                )
+                turnos = [Turno(
+                    id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo, contraparte: vaga.estabelecimento,
+                    contatoVisivelAte: contato.visivelAte, verificacao: .pendente, valorAcordado: vaga.valor,
+                    podeAvaliar: false, contato: contato
+                )]
+                contatos[turnoID] = contato
+                self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
             }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
@@ -823,9 +890,22 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if cenario == .vagaPreenchida { throw erro("posicao_ja_preenchida") }
         if cenario == .vagaEncerrada { throw erro("vaga_encerrada") }
         if cenario == .inelegivel { throw erro("inelegivel", detalhes: "turno_sobreposto") }
-        if cenario == .inelegivelSuspenso { throw erro("inelegivel", detalhes: "perfil_suspenso") }
+        if cenario == .inelegivelSuspenso {
+            // A suspensão acontece após a entrada, ao tentar se candidatar.
+            if let ativa = conta {
+                conta = Conta(id: ativa.id, perfil: ativa.perfil, nome: ativa.nome, telefone: ativa.telefone,
+                              email: ativa.email, nascimento: ativa.nascimento, estado: .suspensa)
+                suspensao = suspensao ?? Suspensao(motivo: "Denúncia grave confirmada pela Equipe Frila",
+                                                  desde: relogio.agora, contestacao: nil)
+            }
+            throw erro("inelegivel", detalhes: "perfil_suspenso")
+        }
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
+        if cenario == .funcaoIncompativel,
+           perfilProfissional?.funcoes.contains(where: { $0.id == vaga.funcao.id }) != true {
+            throw erro("inelegivel", detalhes: "funcao_incompativel")
+        }
         // Quem a casa já escolheu recebe o próprio turno de volta, antes de qualquer conferência do
         // estado da vaga, como no backend. Só na seleção: no modo urgência o dublê não devolve o mesmo.
         if vaga.modo == .selecao, !bloqueada(vaga), let minha = candidaturaDaConta(na: vagaID), minha.estado == .aceita,
@@ -889,6 +969,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func perfilPublico(id: UUID) async throws -> PerfilPublico {
         try verificarFalhaGeral()
+        guard !bloqueios.keys.contains(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
         guard let perfil = vagas.map(\.estabelecimento).first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
@@ -1191,6 +1272,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// diretriz 1.2 (`422 campo_invalido`, `motivo`) não é modelado.
     public func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento {
         try verificarFalhaGeral()
+        if cenario == .cancelarSemRede { throw ErroDaApi(codigo: .semRede) }
         try validarMotivo(motivo)
         guard let indice = turnos.firstIndex(where: { $0.posicaoID == id }) else {
             throw erro(conhecidaSemTurno(id) ? "posicao_nao_cancelavel" : "nao_encontrado")
@@ -1255,7 +1337,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Segue `bloquear` do backend (`20260929100000_denunciar_e_bloquear.sql`): alvo que não existe é
     /// `404`, e bloquear de novo devolve o bloqueio que já existe. A partir daí as vagas da casa
     /// bloqueada saem da lista, e detalhe, candidatura e contato respondem `404`. O `perfil_publico`
-    /// continua respondendo, como no contrato 0.2.27. O alvo é do outro perfil: conta de profissional
+    /// também responde `404`, conforme o contrato 0.2.28. O alvo é do outro perfil: conta de profissional
     /// bloqueia estabelecimento, e conta de contratante, profissional; o contrário é `422
     /// campo_invalido`, com `alvo_tipo`, conferido antes de procurar o alvo.
     public func bloquear(_ alvo: Alvo) async throws -> Bloqueio {
@@ -1344,6 +1426,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return data
     }
 
+    /// Devolve o CSV ou o PDF de exemplo de `Resources/Fixtures`, que não muda com o período: quem
+    /// confere se os valores batem com os turnos gravados é o backend, com seed. O estabelecimento
+    /// que não é da conta responde 403, como no contrato.
+    public func exportarTurnos(_ pedido: PedidoExportacaoTurnos) async throws -> ResultadoExportacaoTurnos {
+        pedidosDeExportacaoDeTurnos.append(pedido)
+        await Task.yield()
+        try verificarRede()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        if cenario == .exportarSemRede { throw ErroDaApi(codigo: .semRede) }
+        if cenario == .exportarErroServidor { throw ErroDaApi(codigo: .desconhecido) }
+        if let estabelecimentoID = pedido.estabelecimentoID, !estabelecimentos.contains(where: { $0.id == estabelecimentoID }) {
+            throw erro("sem_permissao")
+        }
+        if cenario == .exportarTurnosSemTurnos { return .semTurnos }
+        return .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: pedido.formato.rawValue))
+    }
+
     // MARK: Aplicativo e dispositivo
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
@@ -1362,8 +1461,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty else { throw erro("campo_obrigatorio", detalhes: "token_fcm") }
         guard token.count >= Self.tamanhoMinimoDoToken else { throw erro("campo_invalido", detalhes: "token_fcm") }
+        if dispositivos[token] != conta.id || vinculos[token] == nil { vinculos[token] = UUID() }
         dispositivos[token] = conta.id
-        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora)
+        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora, vinculoID: vinculos[token])
     }
 
     /// Segue `remover_dispositivo` do backend (`20260926070000_ciclo_token_push.sql`): só tira o token
@@ -1372,16 +1472,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarRede()
         guard let conta else { throw erro("nao_autenticado") }
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
-        if dispositivos[token] == conta.id { dispositivos[token] = nil }
+        if dispositivos[token] == conta.id {
+            dispositivos[token] = nil
+            vinculos[token] = nil
+        }
     }
 
     /// A conta dona do token no servidor simulado. Fica fora da porta: serve aos testes.
     public func donoDoDispositivo(tokenFCM: String) -> UUID? { dispositivos[tokenFCM] }
 
+    /// O `vinculo_id` do token no servidor simulado. Fica fora da porta: serve aos testes.
+    public func vinculoDoDispositivo(tokenFCM: String) -> UUID? { vinculos[tokenFCM] }
+
     /// Simula o aparelho que já estava registrado para outra conta. Fica fora da porta: o dublê tem
     /// uma conta só, e a troca de conta no mesmo iPhone precisa da outra.
     public func registrarDispositivo(tokenFCM: String, deOutraConta contaID: UUID) {
         dispositivos[tokenFCM] = contaID
+        vinculos[tokenFCM] = UUID()
     }
 
     public func sair(tokenFCM: String?) async {

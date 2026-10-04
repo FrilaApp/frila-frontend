@@ -10,6 +10,7 @@ public enum RotaEntrada: Hashable, Sendable {
 public struct FluxoDeEntrada: View {
     private let api: any ApiCliente
     private let relogio: any Relogio
+    private let verificadorDeIdade: any VerificadorDeIdade
     private let aoConcluir: (DestinoAposEntrada) -> Void
 
     @State private var rotaAtual: RotaEntrada = .entrada
@@ -20,11 +21,13 @@ public struct FluxoDeEntrada: View {
     public init(
         api: any ApiCliente,
         relogio: any Relogio = RelogioDoSistema(),
+        verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel(),
         rotaInicial: RotaEntrada = .entrada,
         aoConcluir: @escaping (DestinoAposEntrada) -> Void
     ) {
         self.api = api
         self.relogio = relogio
+        self.verificadorDeIdade = verificadorDeIdade
         self.aoConcluir = aoConcluir
         _rotaAtual = State(initialValue: rotaInicial)
         _entradaVM = State(initialValue: EntradaViewModel(api: api))
@@ -46,7 +49,7 @@ public struct FluxoDeEntrada: View {
                         aoConcluir: { destino in
                             switch destino {
                             case let .cadastro(email):
-                                cadastroVM = CadastroViewModel(api: api, email: email, relogio: relogio)
+                                cadastroVM = CadastroViewModel(api: api, email: email, relogio: relogio, verificadorDeIdade: verificadorDeIdade)
                                 rotaAtual = .cadastro(email: email)
                             case let .destino(destinoFinal):
                                 aoConcluir(destinoFinal)
@@ -71,7 +74,7 @@ public struct FluxoDeEntrada: View {
                 } else {
                     EstadoCarregando()
                         .onAppear {
-                            cadastroVM = CadastroViewModel(api: api, email: email, relogio: relogio)
+                            cadastroVM = CadastroViewModel(api: api, email: email, relogio: relogio, verificadorDeIdade: verificadorDeIdade)
                         }
                 }
             }

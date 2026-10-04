@@ -203,7 +203,14 @@ public final class PerfilProfissionalViewModel {
                     pontoBase: pontoBase,
                     disponibilidades: disponibilidades
                 )
-                let perfil = try await api.criarPerfilProfissional(dados)
+                let perfil: PerfilProfissional
+                do {
+                    perfil = try await api.criarPerfilProfissional(dados)
+                } catch let erro as ErroDaApi where erro.codigo == .perfilJaExiste {
+                    // O envio anterior gravou e só a resposta se perdeu. O contrato responde 409 em
+                    // vez de sobrescrever, e o perfil que vale é o gravado.
+                    perfil = try await api.meuPerfilProfissional()
+                }
                 self.perfilSalvo = perfil
                 self.modo = .edicao
                 self.sucesso = true
