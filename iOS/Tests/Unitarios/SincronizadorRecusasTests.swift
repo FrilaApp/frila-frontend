@@ -7,6 +7,7 @@ import SwiftData
 
 private final class ApiPresencaRecusada: ApiClienteEncaminhador, @unchecked Sendable {
     let erro: any Error
+    let erroDaConta: (any Error)?
     private let trava = NSLock()
     private var envios = 0
     private var consultasDaConta = 0
@@ -14,9 +15,14 @@ private final class ApiPresencaRecusada: ApiClienteEncaminhador, @unchecked Send
     var consultas: Int { trava.withLock { consultasDaConta } }
     override func minhaConta() async throws -> Conta {
         trava.withLock { consultasDaConta += 1 }
+        if let erroDaConta { throw erroDaConta }
         return try await base.minhaConta()
     }
-    init(erro: any Error) { self.erro = erro; super.init() }
+    init(erro: any Error, erroDaConta: (any Error)? = nil) {
+        self.erro = erro
+        self.erroDaConta = erroDaConta
+        super.init()
+    }
     override func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         trava.withLock { envios += 1 }
         throw erro
@@ -49,6 +55,43 @@ private final class ApiSaidaRecusada: ApiClienteEncaminhador, @unchecked Sendabl
 
 @Suite("Recusas definitivas da fila")
 struct SincronizadorRecusasTests {
+    @Test("Erro da consulta de conta conserva ação autorada; sem rede interrompe também o legado",
+          arguments: [CodigoErroAPI.naoEncontrado, .semPermissao, .contaSuspensa, .semRede])
+    func falhaDaContaNaoRecusaAcao(codigo: CodigoErroAPI) async throws {
+        let api = ApiPresencaRecusada(erro: ErroDaApi(codigo: .foraDaJanela), erroDaConta: ErroDaApi(codigo: codigo))
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+        let autorada = AcaoPendente(tipo: .checkin, turnoID: UUID(), contaID: UUID(), instanteDoToque: instante, chave: UUID())
+        let legado = AcaoPendente(tipo: .checkin, turnoID: UUID(), instanteDoToque: instante, chave: UUID())
+        try await fila.enfileirar(autorada)
+        try await fila.enfileirar(legado)
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        let pendentes = try await fila.pendentes()
+        let recusadas = try await fila.recusadas()
+        #expect(pendentes.contains(autorada))
+        #expect(!recusadas.contains { $0.id == autorada.id })
+        #expect(api.consultas == 1)
+        #expect(api.total == (codigo == .semRede ? 0 : 1))
+        #expect(pendentes.contains(legado) == (codigo == .semRede))
+        #expect(recusadas.contains { $0.id == legado.id } == (codigo != .semRede))
+    }
+
+    @Test("Três ações do mesmo autor consultam minhaConta uma vez por sincronização")
+    func consultaDaContaUmaVez() async throws {
+        let api = ApiPresencaRecusada(erro: ErroDaApi(codigo: .foraDaJanela))
+        let conta = try await api.base.minhaConta()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        for _ in 0..<3 {
+            try await fila.enfileirar(AcaoPendente(tipo: .checkin, turnoID: UUID(), contaID: conta.id,
+                instanteDoToque: .now, chave: UUID()))
+        }
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(api.consultas == 1)
+        #expect(api.total == 3)
+        #expect(try await fila.pendentes().isEmpty)
+        #expect(try await fila.recusadas().count == 3)
+    }
+
     @Test("Ação de outra conta não é enviada nem recusada", arguments: TipoAcaoPendente.allCases)
     func outroAutor(tipo: TipoAcaoPendente) async throws {
         let api = ApiPresencaRecusada(erro: ErroDaApi(codigo: .semPermissao))
@@ -85,7 +128,7 @@ struct SincronizadorRecusasTests {
         try await fila.salvar(sessao: SessaoUsuario(usuarioID: UUID(), perfil: .profissional))
         await SincronizadorAcoes(fila: fila, api: api).sincronizar()
         #expect(api.total == 1)
-        #expect(api.consultas == 0)
+        #expect(api.consultas == 1)
         #expect(try await fila.recusadas().first?.contaID == nil)
     }
 

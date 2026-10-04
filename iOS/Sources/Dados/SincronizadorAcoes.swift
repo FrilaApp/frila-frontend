@@ -17,12 +17,21 @@ public actor SincronizadorAcoes {
     }
 
     public func sincronizar() async {
-        guard let acoes = try? await fila.pendentes() else { return }
+        guard let acoes = try? await fila.pendentes(), !acoes.isEmpty else { return }
+        let contaAtualID: UUID?
+        do {
+            contaAtualID = try await api.minhaConta().id
+        } catch let erro as ErroDaApi where erro.codigo == .semRede {
+            return
+        } catch {
+            // Falha de identidade não é recusa da ação: sem conta conhecida, só legados seguem.
+            contaAtualID = nil
+        }
         for acao in acoes {
+            if let contaID = acao.contaID, contaID != contaAtualID { continue }
+            // Legados sem autor conservam o caminho anterior nos builds de desenvolvimento;
+            // não recebem a identidade de quem entrou. Avaliação já exigia autor conhecido.
             do {
-                if let contaID = acao.contaID, try await api.minhaConta().id != contaID { continue }
-                // Legados sem autor conservam o caminho anterior nos builds de desenvolvimento;
-                // não recebem a identidade de quem entrou. Avaliação já exigia autor conhecido.
                 // Check-in, check-out e avaliação são idempotentes pela chave natural do turno (contrato 0.2.18);
                 // a `chave` da ação fica só na fila local.
                 switch acao.tipo {
