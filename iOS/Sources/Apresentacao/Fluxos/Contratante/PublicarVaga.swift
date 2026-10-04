@@ -666,21 +666,10 @@ public struct TelaPublicarVaga: View {
     private func datePicker(_ titulo: String, date: Binding<Date>, field: CampoPublicacaoVaga) -> some View {
         campo(field, titulo: titulo) {
             if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    DatePicker(String(localized: "Data", bundle: bundlePublicarVaga), selection: date, displayedComponents: [.date])
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
-                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-                        .accessibilityIdentifier("datepicker-\(field.rawValue)-data")
-
-                    DatePicker(String(localized: "Horário", bundle: bundlePublicarVaga), selection: date, displayedComponents: [.hourAndMinute])
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
-                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-                        .accessibilityIdentifier("datepicker-\(field.rawValue)-horario")
-                }
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("datepicker-\(field.rawValue)")
+                DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
+                    .labelsHidden()
+                    .datePickerStyle(.wheel)
+                    .accessibilityIdentifier("datepicker-\(field.rawValue)")
             } else {
                 DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()

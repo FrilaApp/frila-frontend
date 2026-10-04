@@ -120,6 +120,21 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             trazerParaATela(campoValor, em: app)
             XCTAssertLessThanOrEqual(campoValor.frame.maxX, larguraTela)
         }
+
+        // Seletores de data Início e Fim tocáveis e contidos na tela em AX5
+        let dpInicio = app.datePickers["datepicker-inicio"]
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5), "DatePicker Início deve existir")
+        trazerParaATela(dpInicio, em: app)
+        XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela, "DatePicker Início extrapolou a largura")
+        XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 0, "DatePicker Início fora à esquerda")
+        XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
+
+        let dpFim = app.datePickers["datepicker-fim"]
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5), "DatePicker Fim deve existir")
+        trazerParaATela(dpFim, em: app)
+        XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela, "DatePicker Fim extrapolou a largura")
+        XCTAssertGreaterThanOrEqual(dpFim.frame.minX, 0, "DatePicker Fim fora à esquerda")
+        XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
     }
 
     // MARK: - 4. Perfil do Estabelecimento: Toolbar e Hints de Botões Desabilitados
