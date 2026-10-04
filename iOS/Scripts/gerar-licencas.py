@@ -27,7 +27,9 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-RESOLVIDO = ROOT / "Frila.xcodeproj" / "project.xcworkspace" / "xcshareddata" / "swiftpm" / "Package.resolved"
+RESOLVIDO = ROOT / "Package.resolved"
+if not RESOLVIDO.exists():
+    RESOLVIDO = ROOT / "Frila.xcodeproj" / "project.xcworkspace" / "xcshareddata" / "swiftpm" / "Package.resolved"
 DESTINO = ROOT / "Resources" / "Licencas.json"
 DERIVED_DATA_PADRAO = pathlib.Path.home() / "Library" / "Developer" / "Xcode" / "DerivedData"
 
