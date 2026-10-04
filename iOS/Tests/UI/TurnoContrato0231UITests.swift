@@ -13,6 +13,21 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
     }
 
+    func testCheckinRecusadoSaiDaFilaEMostraAvisoNoTurnoCancelado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado", "-FRILA_CACHE_VAZIO_UI_TEST", "-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"]
+        app.launch()
+        abrirTurno(app)
+        let aviso = app.descendants(matching: .any)["aviso-acao-recusada-checkin"].firstMatch
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        XCTAssertTrue(aviso.label.contains("O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido."))
+        XCTAssertFalse(app.descendants(matching: .any)["presenca-do-turno"].exists)
+        XCTAssertFalse(app.buttons["fazer-checkin"].exists)
+        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
+        tocar(app.buttons["meu-turno-\(turnoID)"])
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10), "a recusa permanece registrada ao reabrir")
+    }
+
     private func iniciarApp(cenario: String, extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"] + extras

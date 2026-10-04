@@ -54,6 +54,7 @@ public final class RepublicarVagaViewModel {
     public private(set) var enviando = false
     public private(set) var resultado: VagaPublicada?
     public private(set) var mensagemErro: String?
+    public private(set) var recusaDaFila: AcaoRecusada?
     public private(set) var erros: [CampoRepublicarVaga: String] = [:]
     public private(set) var chave: UUID?
     public private(set) var camposBloqueados = false
@@ -112,7 +113,17 @@ public final class RepublicarVagaViewModel {
         self.republicarAPI = republicar
     }
 
+    public func carregarRecusaDaFila() async {
+        recusaDaFila = (try? await fila?.recusadas().first { $0.tipo == .republicacaoVaga && $0.vagaID == vagaOriginal.vaga.id }) ?? nil
+        if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
+            acaoPendente = nil
+            republicacaoPendente = nil
+            camposBloqueados = false
+        }
+    }
+
     public func restaurarTentativaPendente() async {
+        await carregarRecusaDaFila()
         guard !tentativaRestaurada, !restaurandoTentativa, let fila else { return }
         restaurandoTentativa = true
         defer { restaurandoTentativa = false }
@@ -282,6 +293,10 @@ public struct TelaRepublicarVaga: View {
                 cabecalho
                 cartaoDadosCopiados
                 secaoPeriodo
+                if let recusa = viewModel.recusaDaFila {
+                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                        .accessibilityIdentifier("aviso-republicacao-recusada")
+                }
                 if let erro = viewModel.mensagemErro {
                     AvisoFrila(verbatim: erro, tom: .erro)
                         .accessibilityIdentifier("aviso-erro-republicacao")
@@ -307,6 +322,9 @@ public struct TelaRepublicarVaga: View {
             if novo != nil {
                 fechar()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await viewModel.carregarRecusaDaFila() }
         }
         .task {
             await viewModel.restaurarTentativaPendente()

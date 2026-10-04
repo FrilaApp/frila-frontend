@@ -25,6 +25,8 @@ private final class FilaQueRecusa: FilaDeAcoes, @unchecked Sendable {
     func pendentes() async throws -> [AcaoPendente] { [] }
     func remover(id: UUID) async throws {}
     func limpar() async throws {}
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() async throws -> [AcaoRecusada] { [] }
 }
 
 private func turnoEmCurso(agora: Date) throws -> Turno {
