@@ -279,4 +279,44 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         add(captura)
     }
 
+    /// Em AX5, Quando e Valor lado a lado no Grid quebravam o valor no meio do número (QA rodada 5).
+    func testDetalheDaVagaEmAX5EmpilhaQuandoEValorSemQuebrarOValor() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_VAGA_ID", "40000000-0000-0000-0000-000000000001", "-UIPreferredContentSizeCategoryName", Self.ax5]
+        app.launch()
+        defer { app.terminate() }
+
+        let quando = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Quando,'")).firstMatch
+        let valor = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Valor,'")).firstMatch
+        let numero = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '120,00' AND NOT (label BEGINSWITH 'Valor')")).firstMatch
+        XCTAssertTrue(quando.waitForExistence(timeout: 10))
+        XCTAssertTrue(valor.exists && numero.exists)
+
+        XCTAssertGreaterThanOrEqual(valor.frame.minY, quando.frame.maxY, "Em AX5 o Valor fica abaixo do Quando")
+        XCTAssertLessThanOrEqual(valor.frame.maxX, app.windows.firstMatch.frame.width)
+        let linha = UIFont.preferredFont(forTextStyle: .body, compatibleWith: UITraitCollection(preferredContentSizeCategory: .accessibilityExtraExtraExtraLarge)).lineHeight
+        XCTAssertLessThan(numero.frame.height, linha * 1.5, "O valor cabe numa linha só, sem quebrar o número")
+    }
+
+    /// Em AX5, o aviso de sem conexão empurrava o Tentar novamente para baixo da barra de abas (QA rodada 5).
+    func testSemConexaoEmAX5DeixaTentarNovamenteAcimaDaBarraDeAbas() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "sem-rede", "-UIPreferredContentSizeCategoryName", Self.ax5]
+        app.launch()
+        defer { app.terminate() }
+
+        XCTAssertTrue(app.descendants(matching: .any)["vagas-sem-conexao"].waitForExistence(timeout: 10))
+        let tentar = app.buttons["vagas-tentar-de-novo"]
+        XCTAssertTrue(tentar.waitForExistence(timeout: 5))
+        XCTAssertTrue(tentar.isHittable, "O Tentar novamente fica tocável sem rolar")
+        let barra = app.tabBars.firstMatch
+        if barra.exists {
+            XCTAssertLessThanOrEqual(tentar.frame.maxY, barra.frame.minY + 1, "O botão fica acima da barra de abas flutuante")
+        }
+        let captura = XCTAttachment(screenshot: app.screenshot())
+        captura.name = "vagas-sem-conexao-AX5"
+        captura.lifetime = .keepAlways
+        add(captura)
+    }
+
 }
