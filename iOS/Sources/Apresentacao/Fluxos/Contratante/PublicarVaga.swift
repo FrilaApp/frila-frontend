@@ -191,9 +191,33 @@ public final class PublicarVagaViewModel {
                }), let publicacao = acao.publicacao {
                 acaoPendente = acao
                 publicacaoPendente = publicacao
+                preencherComPublicacao(publicacao)
             }
         } catch {
             mensagemErro = TextosPublicarVaga.falhaFila
+        }
+    }
+
+    private func preencherComPublicacao(_ publicacao: PublicacaoVaga) {
+        funcaoID = publicacao.funcaoID
+        inicio = publicacao.periodo.inicio
+        fim = publicacao.periodo.fim
+        local = publicacao.local
+        valorTexto = String(publicacao.valor.centavos)
+        posicoesTexto = String(publicacao.posicoes)
+        refeicao = publicacao.inclusos.refeicao
+        transporte = publicacao.inclusos.transporte
+        materialProprio = publicacao.inclusos.exigeMaterialProprio
+        responsavelLocal = publicacao.responsavelLocal
+        traje = publicacao.traje ?? ""
+        participaRateio = publicacao.participaRateio
+        observacoes = publicacao.observacoes ?? ""
+        modo = publicacao.modo
+        if let alerta = publicacao.alertaAntecedenciaMinutos {
+            alertaAntecedenciaMinutos = alerta
+        }
+        if !(publicacao.traje ?? "").isEmpty || !(publicacao.observacoes ?? "").isEmpty || (publicacao.participaRateio == true) {
+            mostrandoMaisOpcoes = true
         }
     }
 
@@ -274,6 +298,8 @@ public final class PublicarVagaViewModel {
         do {
             try await fila.enfileirar(acaoPendente)
         } catch {
+            publicacaoPendente = nil
+            self.acaoPendente = nil
             mensagemErro = TextosPublicarVaga.falhaFila
             return
         }
@@ -285,12 +311,21 @@ public final class PublicarVagaViewModel {
             publicacaoPendente = nil
             self.acaoPendente = nil
         } catch let erro as ErroDaApi {
-            tratar(erro)
-            if erro.codigo.recusaDefinitivaDePublicacao {
-                try? await fila.remover(id: acaoPendente.id)
-                publicacaoPendente = nil
-                self.acaoPendente = nil
+            if erro.codigo == .semRede {
+                // Sem rede: a publicação continua na fila em segundo plano.
+                // Não define mensagemErro para exibir apenas o aviso azul de continuação.
+                mensagemErro = nil
+            } else {
+                tratar(erro)
+                if erro.codigo.recusaDefinitivaDePublicacao {
+                    try? await fila.remover(id: acaoPendente.id)
+                    publicacaoPendente = nil
+                    self.acaoPendente = nil
+                }
             }
+        } catch is URLError {
+            // Falha de rede: continua na fila sem erro vermelho.
+            mensagemErro = nil
         } catch {
             mensagemErro = TextosPublicarVaga.erroPublicar
         }
@@ -316,6 +351,8 @@ public final class PublicarVagaViewModel {
         } else if erro.codigo == .horarioInvalido {
             erros[.inicio] = TextosPublicarVaga.horarioCampo
             erros[.fim] = TextosPublicarVaga.horarioCampo
+        } else if erro.codigo == .semRede {
+            mensagemErro = nil
         } else {
             mensagemErro = TextosPublicarVaga.erroPublicar
         }
@@ -553,7 +590,10 @@ public struct TelaPublicarVaga: View {
                     BotaoSecundario("Fechar") { Task { await model.fecharAvisoDaFila() } }
                         .accessibilityIdentifier("fechar-aviso-publicacao-recusada")
                 }
-                if let erro = model.mensagemErro { AvisoFrila(verbatim: erro, tom: .erro) }
+                if let erro = model.mensagemErro {
+                    AvisoFrila(verbatim: erro, tom: .erro)
+                        .accessibilityIdentifier("aviso-erro-publicacao")
+                }
                 if model.mostraAvisoPublicacaoContinua {
                     AvisoFrila(verbatim: TextosPublicarVaga.publicacaoContinua, tom: .informativo)
                         .accessibilityIdentifier("aviso-publicacao-continua")

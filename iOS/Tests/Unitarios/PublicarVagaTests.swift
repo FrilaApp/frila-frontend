@@ -208,6 +208,12 @@ struct PublicarVagaTests {
         let estabelecimento = try estabelecimento()
         let primeiro = PublicarVagaViewModel(estabelecimento: estabelecimento, funcoes: [funcao], fila: fila, agora: { fixed }) { try await api.publicarVaga($0) }
         preencher(primeiro)
+        primeiro.refeicao = true
+        primeiro.transporte = true
+        primeiro.materialProprio = true
+        primeiro.traje = "Camisa preta"
+        primeiro.participaRateio = true
+        primeiro.observacoes = "Chegar 15 minutos antes"
         await primeiro.publicar()
         let chaveOriginal = try #require(primeiro.publicacaoPendente?.chave)
 
@@ -215,6 +221,25 @@ struct PublicarVagaTests {
         await reaberto.restaurarPublicacaoPendente()
         #expect(reaberto.publicacaoPendente?.chave == chaveOriginal)
         #expect(reaberto.camposBloqueados)
+        #expect(reaberto.funcaoID == funcao.id)
+        #expect(reaberto.inicio == primeiro.inicio)
+        #expect(reaberto.fim == primeiro.fim)
+        #expect(reaberto.local == "Rua das Flores, 10")
+        #expect(reaberto.valorCentavos == 14000)
+        #expect(reaberto.valorTexto == "14000")
+        #expect(reaberto.posicoesTexto == "2")
+        #expect(reaberto.responsavelLocal == "Renata no balcão")
+        #expect(reaberto.refeicao == true)
+        #expect(reaberto.transporte == true)
+        #expect(reaberto.materialProprio == true)
+        #expect(reaberto.modo == .urgencia)
+        #expect(reaberto.traje == "Camisa preta")
+        #expect(reaberto.participaRateio == true)
+        #expect(reaberto.observacoes == "Chegar 15 minutos antes")
+        #expect(reaberto.mostrandoMaisOpcoes == true)
+        #expect(reaberto.mensagemErro == nil)
+        #expect(reaberto.mostraAvisoPublicacaoContinua == true)
+
         await reaberto.publicar()
 
         #expect(await api.chavesPublicacaoRecebidas == [chaveOriginal, chaveOriginal])
@@ -344,6 +369,7 @@ struct PublicarVagaTests {
         #expect(vm.resultado == nil)
         #expect(vm.textoAoFechar == "Voltar")
         #expect(vm.mostraAvisoPublicacaoContinua)
+        #expect(vm.mensagemErro == nil)
 
         // 3. Publicado com sucesso: botão continua "Voltar" e aviso informativo desaparece
         rede.semRede = false
@@ -352,5 +378,21 @@ struct PublicarVagaTests {
         #expect(vm.publicacaoPendente == nil)
         #expect(vm.textoAoFechar == "Voltar")
         #expect(!vm.mostraAvisoPublicacaoContinua)
+    }
+
+    @Test("Publicação sem rede exibe apenas o aviso azul de continuação sem erro vermelho")
+    func publicacaoSemRedeExibeApenasAvisoAzul() async throws {
+        let fila = FilaPublicacaoTeste()
+        let fixed = agora
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { _ in
+            throw ErroDaApi(codigo: .semRede)
+        }
+        preencher(vm)
+        await vm.publicar()
+
+        #expect(vm.camposBloqueados)
+        #expect(vm.publicacaoPendente != nil)
+        #expect(vm.mostraAvisoPublicacaoContinua)
+        #expect(vm.mensagemErro == nil)
     }
 }
