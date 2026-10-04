@@ -78,9 +78,8 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
-            // Fora de `.active` (seletor de apps, central de notificações), uma superfície opaca cobre
-            // o conteúdo: telefone, endereço e relato não vão à foto que o sistema guarda (A4 da
-            // auditoria de segurança).
+            // Ao desativar a cena, uma janela opaca acima das folhas e telas modais cobre
+            // telefone, endereço e relato antes da foto do seletor de apps (A4).
             .cortinaDePrivacidade()
             #if DEBUG
             .transaction { transaction in
