@@ -6052,6 +6052,56 @@
           }
         }
       }
+    },
+    "O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido."
+          }
+        }
+      }
+    },
+    "O check-out guardado neste aparelho não foi registrado. Esse envio não será repetido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O check-out guardado neste aparelho não foi registrado. Esse envio não será repetido."
+          }
+        }
+      }
+    },
+    "A publicação guardada neste aparelho não foi registrada. Esse envio não será repetido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A publicação guardada neste aparelho não foi registrada. Esse envio não será repetido."
+          }
+        }
+      }
+    },
+    "A republicação guardada neste aparelho não foi registrada. Esse envio não será repetido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A republicação guardada neste aparelho não foi registrada. Esse envio não será repetido."
+          }
+        }
+      }
+    },
+    "A avaliação guardada neste aparelho não foi registrada. Você pode tentar novamente quando a avaliação estiver disponível.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A avaliação guardada neste aparelho não foi registrada. Você pode tentar novamente quando a avaliação estiver disponível."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

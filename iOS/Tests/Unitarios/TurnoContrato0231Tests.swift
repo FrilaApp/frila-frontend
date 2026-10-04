@@ -406,6 +406,9 @@ private final class ApiSemRedeAoAvaliar: ApiClienteEncaminhador, @unchecked Send
 }
 
 private actor FilaDoContrato: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     private var itens: [AcaoPendente] = []
     func enfileirar(_ acao: AcaoPendente) { itens.append(acao) }
     func pendentes() -> [AcaoPendente] { itens }

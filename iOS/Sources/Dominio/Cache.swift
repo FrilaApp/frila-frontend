@@ -110,10 +110,36 @@ public protocol FilaDeAcoes: Sendable {
     func enfileirar(_ acao: AcaoPendente) async throws
     func pendentes() async throws -> [AcaoPendente]
     func remover(id: UUID) async throws
+    /// Guarda o aviso e tira a ação dos reenvios na mesma gravação.
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws
+    func recusadas() async throws -> [AcaoRecusada]
     func limpar() async throws
 }
 
 /// Se o aparelho tem conexão agora. O primeiro valor é o estado atual; os seguintes, cada mudança.
 public protocol MonitorDeConexao: Sendable {
     func estados() -> AsyncStream<Bool>
+}
+
+/// Registro mínimo da recusa: não guarda o formulário, a localização nem os detalhes do servidor.
+public struct AcaoRecusada: Codable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public let tipo: TipoAcaoPendente
+    public let turnoID: UUID?
+    public let vagaID: UUID?
+    public let estabelecimentoID: UUID?
+    public let codigo: CodigoErroAPI
+
+    public init(acao: AcaoPendente, codigo: CodigoErroAPI) {
+        id = acao.id
+        tipo = acao.tipo
+        turnoID = acao.turnoID
+        vagaID = acao.republicacao?.vagaID
+        estabelecimentoID = acao.publicacao?.estabelecimentoID
+        self.codigo = codigo
+    }
+}
+
+public extension Notification.Name {
+    static let filaDeAcoesAtualizada = Notification.Name("frila.filaDeAcoesAtualizada")
 }

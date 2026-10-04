@@ -10,6 +10,9 @@ private struct RelogioFixo: Relogio {
 }
 
 private actor FilaDeAcoesMemoria: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     var itens: [AcaoPendente] = []
     func enfileirar(_ acao: AcaoPendente) throws { itens.append(acao) }
     func pendentes() throws -> [AcaoPendente] { itens }
