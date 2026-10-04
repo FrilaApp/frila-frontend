@@ -576,6 +576,25 @@ struct RepublicarVagaViewModelTests {
         #expect(painel.vagas.map(\.id) == [publicada.vagaID])
     }
 
+    @Test("Recusa anterior não impede destravar a republicação atual")
+    @MainActor
+    func duasRecusasDesbloqueiamAtual() async throws {
+        let fila = FilaEspia()
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let model = RepublicarVagaViewModel(vagaOriginal: try criarVagaNoPainel(), fila: fila,
+            agora: { base }, republicar: { _, _, _ in throw ErroDaApi(codigo: .semRede) })
+        await model.republicar()
+        let anterior = try #require(await fila.pendentes().first)
+        try await fila.recusar(anterior, codigo: .horarioInvalido)
+        await model.carregarRecusaDaFila()
+        await model.republicar()
+        let atual = try #require(await fila.pendentes().first)
+        try await fila.recusar(atual, codigo: .semPermissao)
+        await model.carregarRecusaDaFila()
+        #expect(model.recusaDaFila?.id == atual.id)
+        #expect(!model.camposBloqueados)
+    }
+
     @Test("Recusa definitiva remove republicação da fila real sem registrar sucesso",
            arguments: [CodigoErroAPI.naoEncontrado, .vagaOculta, .horarioInvalido])
     @MainActor
@@ -597,6 +616,11 @@ struct RepublicarVagaViewModelTests {
         await model.restaurarTentativaPendente()
         #expect(model.recusaDaFila == AcaoRecusada(acao: acao, codigo: codigo))
         #expect(!model.camposBloqueados)
+        await model.fecharAvisoDaFila()
+        #expect(model.recusaDaFila == nil)
+        #expect(try await fila.recusadas().isEmpty)
+        try await fila.enfileirar(acao)
+        #expect(try await fila.pendentes().isEmpty)
     }
 
     @Test("Reabrir bloqueia confirmação até ler tentativa, sem criar outra chave")
@@ -682,8 +706,12 @@ struct RepublicarVagaViewModelTests {
 }
 
 private actor FilaEspia: FilaDeAcoes {
-    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
-    func recusadas() -> [AcaoRecusada] { [] }
+    private var avisos: [AcaoRecusada] = []
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {
+        avisos.append(AcaoRecusada(acao: acao, codigo: codigo))
+        remover(id: acao.id)
+    }
+    func recusadas() -> [AcaoRecusada] { avisos }
 
     var acoes: [AcaoPendente] = []
     var enfileiradas: [AcaoPendente] = []

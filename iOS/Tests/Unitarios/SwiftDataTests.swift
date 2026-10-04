@@ -146,4 +146,73 @@ struct SwiftDataTests {
             contato: contato
         )
     }
+
+    // MARK: Registro ilegível (robustez: build anterior com outro modelo, ou linha corrompida)
+
+    private func turnoDeExemplo(id: UUID = UUID(), fim: Date) throws -> Turno {
+        let inicio = fim.addingTimeInterval(-6 * 3600)
+        let vaga = VagaResumo(id: UUID(), funcao: "Garçom", local: "Rua A, 1", regiaoAdministrativa: "Plano Piloto",
+                              periodo: try Periodo(inicio: inicio, fim: fim), valor: Dinheiro(centavos: 10_000))
+        let contraparte = PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bistrô",
+                                        reputacao: Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0))
+        return Turno(id: id, posicaoID: UUID(), vaga: vaga, contraparte: contraparte, contatoVisivelAte: fim.addingTimeInterval(7 * 86_400),
+                     verificacao: .pendente, valorAcordado: Dinheiro(centavos: 10_000), podeAvaliar: false)
+    }
+
+    @Test("Turno ilegível no cache sai do banco sozinho, e os outros continuam abrindo em modo avião")
+    func turnoIlegivelSai() async throws {
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let bom = try turnoDeExemplo(fim: agora.addingTimeInterval(86_400))
+        try await armazenamento.salvar(turnos: [bom], em: agora)
+        // Gravado "por um build anterior": o JSON não tem os campos que o modelo de hoje exige.
+        let contexto = ModelContext(container)
+        contexto.insert(TurnoPersistido(id: UUID(), conteudo: Data(#"{"id":"não é um turno"}"#.utf8),
+                                        fim: agora.addingTimeInterval(86_400), contatoVisivelAte: nil, salvoEm: agora))
+        try contexto.save()
+
+        let lidos = try await armazenamento.turnosValidos(em: agora)
+        #expect(lidos.map(\.id) == [bom.id])
+        #expect(try ModelContext(container).fetchCount(FetchDescriptor<TurnoPersistido>()) == 1)
+    }
+
+    @Test("Ação ilegível na fila não trava as outras: sai do banco, e as legíveis seguem para o envio")
+    func acaoIlegivelSai() async throws {
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        let boa = AcaoPendente(tipo: .checkin, turnoID: UUID(), instanteDoToque: Date(timeIntervalSince1970: 1_700_000_100), chave: UUID(), distanciaMetros: 10)
+        try await armazenamento.enfileirar(boa)
+        let contexto = ModelContext(container)
+        contexto.insert(AcaoPendentePersistida(id: UUID(), tipo: "tipo_de_outro_build", conteudo: Data("{}".utf8),
+                                               instanteDoToque: Date(timeIntervalSince1970: 1_700_000_000)))
+        try contexto.save()
+
+        #expect(try await armazenamento.pendentes().map(\.id) == [boa.id])
+        #expect(try ModelContext(container).fetchCount(FetchDescriptor<AcaoPendentePersistida>()) == 1)
+    }
+
+    @Test("Sessão, funções, contato e recusadas ilegíveis saem sem derrubar a leitura")
+    func demaisRegistrosIlegiveis() async throws {
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        let funcao = Funcao(id: UUID(), nome: "Garçom", categoria: "salão")
+        try await armazenamento.salvar(funcoes: [funcao])
+        let contexto = ModelContext(container)
+        contexto.insert(SessaoPersistida(conteudo: Data("[]".utf8)))
+        contexto.insert(FuncaoPersistida(id: UUID(), conteudo: Data("null".utf8)))
+        contexto.insert(ContatoDoTurnoPersistido(turnoID: funcao.id, conteudo: Data("{}".utf8)))
+        contexto.insert(AcaoRecusadaPersistida(id: UUID(), conteudo: Data("{}".utf8)))
+        try contexto.save()
+
+        #expect(try await armazenamento.sessao() == nil)
+        #expect(try await armazenamento.funcoes() == [funcao])
+        #expect(try await armazenamento.contato(doTurno: funcao.id, em: .now) == nil)
+        #expect(try await armazenamento.recusadas().isEmpty)
+        let restante = ModelContext(container)
+        #expect(try restante.fetchCount(FetchDescriptor<SessaoPersistida>()) == 0)
+        #expect(try restante.fetchCount(FetchDescriptor<FuncaoPersistida>()) == 1)
+        #expect(try restante.fetchCount(FetchDescriptor<ContatoDoTurnoPersistido>()) == 0)
+        #expect(try restante.fetchCount(FetchDescriptor<AcaoRecusadaPersistida>()) == 0)
+    }
 }

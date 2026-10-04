@@ -944,4 +944,52 @@ struct AvaliacaoDoContratanteTests {
         #expect(api.chamadas.first?.turnoID == turnoID)
         #expect(api.chamadas.first?.resposta == true)
     }
+
+    // MARK: Revisão pós-merge das telas de turno (04/10)
+
+    private func turnoEncerrado(estado: EstadoPosicao, verificacao: Verificacao = .verificado, fimHaHoras: Double = 2) throws -> TurnoAcompanhado {
+        let resumo = VagaResumo(
+            id: UUID(), funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: agora.addingTimeInterval(-(fimHaHoras + 4) * hora), fim: agora.addingTimeInterval(-fimHaHoras * hora)),
+            valor: Dinheiro(centavos: 12000)
+        )
+        let posicao = PosicaoNoPainel(id: UUID(), estado: estado, profissional: PainelDeTeste.ana, turnoID: UUID(), verificacao: verificacao, emAtraso: false)
+        return TurnoAcompanhado(vaga: resumo, posicao: posicao)
+    }
+
+    private func viewModelDeAvaliacao() -> AcompanhamentoViewModel {
+        AcompanhamentoViewModel(
+            buscarPainel: { Painel(estabelecimentoID: PainelDeTeste.casa, vagas: [], checkinsPendentes: []) },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            api: ApiClienteAvaliarMock(),
+            contaID: contaID,
+            armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria()
+        )
+    }
+
+    @Test("A posição cumprida (o agendador a passa de confirmada minutos depois do fim) continua avaliável; cancelada ou sem presença, não")
+    func cumpridaContinuaAvaliavel() throws {
+        let vm = viewModelDeAvaliacao()
+        #expect(vm.podeAvaliar(try turnoEncerrado(estado: .confirmada)))
+        #expect(vm.podeAvaliar(try turnoEncerrado(estado: .cumprida)))
+        #expect(vm.criarAvaliacaoViewModel(para: try turnoEncerrado(estado: .cumprida)) != nil)
+        #expect(!vm.podeAvaliar(try turnoEncerrado(estado: .cancelada)))
+        #expect(!vm.podeAvaliar(try turnoEncerrado(estado: .cumprida, verificacao: .naoVerificado)))
+        #expect(!vm.podeAvaliar(try turnoEncerrado(estado: .confirmada, fimHaHoras: -1)))
+    }
+
+    @Test("O view model da avaliação é um só por turno: o redesenho da tela não troca o que a pessoa está respondendo")
+    func avaliacaoViewModelEstavel() throws {
+        let vm = viewModelDeAvaliacao()
+        let turno = try turnoEncerrado(estado: .confirmada)
+        let outro = try turnoEncerrado(estado: .confirmada)
+        let primeiro = try #require(vm.criarAvaliacaoViewModel(para: turno))
+        primeiro.resposta = false
+        let segundo = try #require(vm.criarAvaliacaoViewModel(para: turno))
+        #expect(primeiro === segundo)
+        #expect(segundo.resposta == false)
+        #expect(try #require(vm.criarAvaliacaoViewModel(para: outro)) !== primeiro)
+    }
 }

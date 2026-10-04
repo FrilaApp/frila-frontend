@@ -161,8 +161,17 @@ public final class PublicarVagaViewModel {
         publicacaoPendente != nil && resultado == nil && !enviando
     }
 
+    public func fecharAvisoDaFila() async {
+        guard let recusa = recusaDaFila else { return }
+        do {
+            try await fila.reconhecerRecusa(id: recusa.id)
+            await carregarRecusaDaFila()
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
+    }
+
     public func carregarRecusaDaFila() async {
-        recusaDaFila = (try? await fila.recusadas().first { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? nil
+        let recusadas = (try? await fila.recusadas().filter { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? []
+        recusaDaFila = recusadas.first { $0.id == acaoPendente?.id } ?? recusadas.first
         if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
             acaoPendente = nil
             publicacaoPendente = nil
@@ -269,6 +278,8 @@ public final class PublicarVagaViewModel {
         }
         do {
             resultado = try await publicarAPI(publicacao)
+            try? await fila.resolverRecusas(acaoPendente)
+            recusaDaFila = nil
             try? await fila.remover(id: acaoPendente.id)
             publicacaoPendente = nil
             self.acaoPendente = nil
@@ -538,6 +549,8 @@ public struct TelaPublicarVaga: View {
                 if let recusa = model.recusaDaFila {
                     AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
                         .accessibilityIdentifier("aviso-publicacao-recusada")
+                    BotaoSecundario("Fechar") { Task { await model.fecharAvisoDaFila() } }
+                        .accessibilityIdentifier("fechar-aviso-publicacao-recusada")
                 }
                 if let erro = model.mensagemErro { AvisoFrila(verbatim: erro, tom: .erro) }
                 if model.mostraAvisoPublicacaoContinua {

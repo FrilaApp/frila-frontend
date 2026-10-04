@@ -229,4 +229,15 @@ struct SuporteTurnoTests {
         #expect(!vmSemNativo.mostrandoCompositorNativo)
         #expect(urlAberta?.scheme == "mailto")
     }
+
+    @Test("Compositor nativo concluído baixa a bandeira da folha: o botão de e-mail volta a abrir sem fechar a folha")
+    func compositorConcluidoBaixaABandeira() {
+        let vm = SuporteTurnoViewModel(dados: criarContextoExemplo(), verificadorPodeEnviarEmail: { true })
+        vm.abrirEmail()
+        #expect(vm.mostrandoCompositorNativo)
+        vm.compositorConcluido()
+        #expect(!vm.mostrandoCompositorNativo)
+        vm.abrirEmail()
+        #expect(vm.mostrandoCompositorNativo)
+    }
 }
