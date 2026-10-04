@@ -58,6 +58,9 @@ struct ContratoTests {
 
         let casa = try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()
         #expect(casa.regiaoAdministrativa == "Plano Piloto")
+        let meuEstabelecimento = try FixturesDoContrato.carregar("meu-estabelecimento", como: ContratoAPI.MeuEstabelecimentoDTO.self).dominio()
+        #expect(meuEstabelecimento.regiaoAdministrativa == "Plano Piloto")
+        #expect(meuEstabelecimento.documento.isEmpty)
         let casas = try FixturesDoContrato.carregar("meus-estabelecimentos", como: [ContratoAPI.EstabelecimentoDaContaDTO].self)
         #expect(casas.map { $0.dominio().papel } == [.administrador])
     }

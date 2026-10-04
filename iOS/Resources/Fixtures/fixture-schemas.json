@@ -38,6 +38,9 @@
     "schema": "#/components/schemas/Funcao",
     "lista": true
   },
+  "meu-estabelecimento.json": {
+    "schema": "#/components/schemas/MeuEstabelecimento"
+  },
   "meus-estabelecimentos.json": {
     "schema": "#/components/schemas/EstabelecimentoDaConta",
     "lista": true
