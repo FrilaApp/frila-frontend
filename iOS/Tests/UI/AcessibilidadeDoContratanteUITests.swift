@@ -196,6 +196,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        if elemento.isHittable { return }
         let janela = app.windows.firstMatch.frame
         let margemSuperior: CGFloat = 120
         let margemInferior: CGFloat = 60
@@ -215,13 +216,12 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             )
             switch direcao {
             case .nenhuma:
-                break
+                return
             case .rolarParaBaixo:
                 app.swipeDown()
             case .rolarParaCima:
                 app.swipeUp()
             }
-            if direcao == .nenhuma { break }
         }
     }
 }
