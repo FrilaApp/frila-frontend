@@ -971,7 +971,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func perfilPublico(id: UUID) async throws -> PerfilPublico {
-        try verificarFalhaGeral()
+        // `20261001140000_perfil_publico_bloqueio.sql` não exige conta ativa nesta leitura.
+        try verificarRede()
         guard !bloqueios.keys.contains(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
