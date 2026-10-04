@@ -10,6 +10,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case primeiroAcesso = "primeiro-acesso"
         case vagaPreenchida = "vaga-preenchida"
         case inelegivel
+        case funcaoIncompativel = "funcao-incompativel"
         case semRede = "sem-rede"
         case contaSuspensa = "conta-suspensa"
         /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
@@ -84,8 +85,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Conta de profissional cuja candidatura esperava quando a seleção fechou sozinha, 24 h
         /// antes do início: candidatura `expirada` e vaga `encerrada` (critério 2 do #10).
         case candidaturaExpirada = "candidatura-expirada"
+        /// As duas exportações, a dos dados (#219) e a dos turnos (#23), falham sem rede.
         case exportarSemRede = "exportar-sem-rede"
+        /// As duas exportações falham com erro do servidor.
         case exportarErroServidor = "exportar-erro-servidor"
+        /// `/exportar-turnos` responde 204: o período não tem turnos (UC13, 1a).
+        case exportarTurnosSemTurnos = "exportar-turnos-sem-turnos"
         /// Painel com check-in já confirmado (contrato 0.2.31).
         case checkinConfirmado = "checkin-confirmado"
         /// Painel com posição cancelada com motivo informado (contrato 0.2.31).
@@ -188,6 +193,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var chamadasACriarConta = 0
     public private(set) var chamadasAPublicarVaga = 0
     public private(set) var chamadasAExportarMeusDados = 0
+    /// O que chegou a `exportarTurnos`, na ordem: os testes conferem o período, o formato e o estabelecimento.
+    public private(set) var pedidosDeExportacaoDeTurnos: [PedidoExportacaoTurnos] = []
     public private(set) var chavesPublicacaoRecebidas: [UUID] = []
     public private(set) var publicacoesRecebidas: [PublicacaoVaga] = []
     public private(set) var vagasCriadas = 0
@@ -267,6 +274,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
                         perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
                     }
                 }
+            }
+            if cenario == .funcaoIncompativel, let perfil = perfilProfissional {
+                perfilProfissional = PerfilProfissional(
+                    id: perfil.id, usuarioID: perfil.usuarioID,
+                    funcoes: catalogo.filter { $0.nome == "Bartender" }, pontoBase: perfil.pontoBase,
+                    disponibilidades: perfil.disponibilidades, reputacao: perfil.reputacao
+                )
             }
             if cenario == .contaSuspensa, let ativa = conta {
                 conta = Conta(
@@ -891,6 +905,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
+        if cenario == .funcaoIncompativel,
+           perfilProfissional?.funcoes.contains(where: { $0.id == vaga.funcao.id }) != true {
+            throw erro("inelegivel", detalhes: "funcao_incompativel")
+        }
         // Quem a casa já escolheu recebe o próprio turno de volta, antes de qualquer conferência do
         // estado da vaga, como no backend. Só na seleção: no modo urgência o dublê não devolve o mesmo.
         if vaga.modo == .selecao, !bloqueada(vaga), let minha = candidaturaDaConta(na: vagaID), minha.estado == .aceita,
@@ -1180,11 +1198,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         )
     }
 
+    /// Segue `avaliar` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): turno que não
+    /// existe ou não é de quem chama é `403 sem_permissao`, e não `404`, para não dizer a um estranho
+    /// que o turno existe; a avaliação já gravada é conferida antes do prazo; antes do fim previsto é
+    /// `422 avaliacao_indisponivel` com `antes_do_fim`, e sem presença verificada, com
+    /// `sem_presenca_verificada`. O turno cancelado continua sendo de quem chama, e o cancelamento o
+    /// deixa sem presença verificada. Diferença declarada: o backend devolve a avaliação gravada
+    /// quando o reenvio traz a mesma resposta; o dublê responde `409` a qualquer segunda avaliação.
     public func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
         try verificarFalhaGeral()
         if cenario == .avaliacaoSemRede { throw ErroDaApi(codigo: .semRede) }
-        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+        let cancelado = turnosCancelados.first(where: { $0.id == turnoID })
+        guard let turno = turnos.first(where: { $0.id == turnoID }) ?? cancelado else { throw erro("sem_permissao") }
         guard avaliacoes[turnoID] == nil else { throw erro("avaliacao_ja_registrada") }
+        guard turno.vaga.periodo.fim <= relogio.agora else { throw erro("avaliacao_indisponivel", detalhes: "antes_do_fim") }
+        guard cancelado == nil, turno.verificacao == .verificado else {
+            throw erro("avaliacao_indisponivel", detalhes: "sem_presenca_verificada")
+        }
         let avaliacao = Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: relogio.agora)
         avaliacoes[turnoID] = avaliacao
         return avaliacao
@@ -1402,13 +1432,37 @@ public actor ApiClienteEmMemoria: ApiCliente {
           "turnos": [],
           "avaliacoes_dadas": [],
           "avaliacoes_recebidas": [],
-          "dispositivos": []
+          "dispositivos": [],
+          "candidaturas": [],
+          "ocorrencias": [],
+          "bloqueios": [],
+          "notificacoes": [],
+          "despachos": [],
+          "equipe_confianca": [],
+          "pedido_de_exclusao": null
         }
         """
         guard let data = jsonString.data(using: .utf8) else {
             throw ErroDaApi(codigo: .desconhecido)
         }
         return data
+    }
+
+    /// Devolve o CSV ou o PDF de exemplo de `Resources/Fixtures`, que não muda com o período: quem
+    /// confere se os valores batem com os turnos gravados é o backend, com seed. O estabelecimento
+    /// que não é da conta responde 403, como no contrato.
+    public func exportarTurnos(_ pedido: PedidoExportacaoTurnos) async throws -> ResultadoExportacaoTurnos {
+        pedidosDeExportacaoDeTurnos.append(pedido)
+        await Task.yield()
+        try verificarRede()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        if cenario == .exportarSemRede { throw ErroDaApi(codigo: .semRede) }
+        if cenario == .exportarErroServidor { throw ErroDaApi(codigo: .desconhecido) }
+        if let estabelecimentoID = pedido.estabelecimentoID, !estabelecimentos.contains(where: { $0.id == estabelecimentoID }) {
+            throw erro("sem_permissao")
+        }
+        if cenario == .exportarTurnosSemTurnos { return .semTurnos }
+        return .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: pedido.formato.rawValue))
     }
 
     // MARK: Aplicativo e dispositivo

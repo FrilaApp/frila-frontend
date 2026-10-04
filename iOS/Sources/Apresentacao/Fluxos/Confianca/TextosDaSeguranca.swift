@@ -5,6 +5,10 @@ import FrilaDominio
 enum TextosDaSeguranca {
     static let denunciar = String(localized: "Denunciar", bundle: bundleApresentacao)
     static let bloquear = String(localized: "Bloquear", bundle: bundleApresentacao)
+    static let voceBloqueouProfissional = String(localized: "Você bloqueou este profissional", bundle: bundleApresentacao)
+    static let voceBloqueouEstabelecimento = String(localized: "Você bloqueou este estabelecimento", bundle: bundleApresentacao)
+    static let ok = String(localized: "OK", bundle: bundleApresentacao)
+    static let recolherTeclado = String(localized: "Recolher teclado", bundle: bundleApresentacao)
     static let confirmarBloqueio = String(localized: "Bloquear este perfil?", bundle: bundleApresentacao)
     static let efeitoBloqueio = String(localized: "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento.", bundle: bundleApresentacao)
     static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)

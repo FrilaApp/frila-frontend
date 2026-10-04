@@ -579,7 +579,7 @@ private struct TelaDetalheVagaContratante: View {
     @ViewBuilder private func cartaoPosicao(_ posicao: PosicaoNoPainel, bloqueado: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             if bloqueado {
-                Text(verbatim: "Você bloqueou este profissional")
+                Text(verbatim: TextosDaSeguranca.voceBloqueouProfissional)
                     .font(.caption)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("etiqueta-bloqueio-\(posicao.id)")

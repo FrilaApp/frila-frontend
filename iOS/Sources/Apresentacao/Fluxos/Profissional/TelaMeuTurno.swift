@@ -67,7 +67,7 @@ public struct TelaMeuTurno: View {
     private var rodapeSeguranca: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             if bloqueios.contem(viewModel.turno.contraparte) {
-                Text(verbatim: "Você bloqueou este estabelecimento")
+                Text(verbatim: TextosDaSeguranca.voceBloqueouEstabelecimento)
                     .font(.caption)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("etiqueta-bloqueio-turno")
