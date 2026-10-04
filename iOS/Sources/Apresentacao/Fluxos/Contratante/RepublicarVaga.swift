@@ -463,27 +463,14 @@ public struct TelaRepublicarVaga: View {
                 Text(verbatim: titulo)
                     .font(.headline)
                 DatePicker(
-                    String(localized: "Data", bundle: bundleApresentacao),
+                    titulo,
                     selection: data,
-                    displayedComponents: [.date]
+                    displayedComponents: [.date, .hourAndMinute]
                 )
                 .labelsHidden()
-                .datePickerStyle(.compact)
-                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-                .accessibilityIdentifier("\(campoID)-data")
-
-                DatePicker(
-                    String(localized: "Horário", bundle: bundleApresentacao),
-                    selection: data,
-                    displayedComponents: [.hourAndMinute]
-                )
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-                .accessibilityIdentifier("\(campoID)-horario")
+                .datePickerStyle(.wheel)
+                .accessibilityIdentifier(campoID)
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier(campoID)
         } else {
             DatePicker(
                 titulo,

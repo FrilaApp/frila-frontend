@@ -100,10 +100,36 @@ final class RepublicarVagaUITests: XCTestCase {
             XCTAssertLessThanOrEqual(frame.maxX, larguraTela, "Elemento \(nome) maxX=\(frame.maxX) deve caber na largura \(larguraTela)")
         }
 
+        let dpInicio = app.datePickers["campo-inicio-republicacao"]
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5), "DatePicker Início deve existir")
+        trazerParaATela(dpInicio, em: app)
+        XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
+
+        let dpFim = app.datePickers["campo-fim-republicacao"]
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5), "DatePicker Fim deve existir")
+        trazerParaATela(dpFim, em: app)
+        XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
+
         let seletores = app.buttons.matching(NSPredicate(format: "label == 'Seletor de Data e Hora'")).allElementsBoundByIndex
         for seletor in seletores {
             if let valor = seletor.value as? String {
                 XCTAssertFalse(valor.contains("…") || valor.contains("..."), "Valor do seletor '\(valor)' não deve estar truncado com reticências")
+            }
+        }
+    }
+
+    private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        let janela = app.windows.firstMatch.frame
+        for _ in 0..<tentativas {
+            guard elemento.exists else {
+                app.swipeUp()
+                continue
+            }
+            if elemento.isHittable, elemento.frame.minY >= 100, elemento.frame.maxY <= janela.height - 60 { return }
+            if elemento.frame.minY < 100 {
+                app.swipeDown()
+            } else {
+                app.swipeUp()
             }
         }
     }

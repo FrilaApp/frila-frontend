@@ -180,6 +180,30 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertEqual(campoValor.value as? String, "R$ 180,00")
     }
 
+    func testPublicarVagaEmAX5SeletorDeDataETocavel() {
+        let app = abrir(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        XCTAssertTrue(entrada.isHittable)
+        entrada.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+
+        let dpInicio = app.datePickers["datepicker-inicio"]
+        rolarAte(dpInicio, em: app)
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5), "DatePicker Início deve existir")
+        XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
+        XCTAssertGreaterThan(dpInicio.pickerWheels.count, 0, "DatePicker Início deve conter rodas de seleção")
+
+        let dpFim = app.datePickers["datepicker-fim"]
+        rolarAte(dpFim, em: app)
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5), "DatePicker Fim deve existir")
+        XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
+        XCTAssertGreaterThan(dpFim.pickerWheels.count, 0, "DatePicker Fim deve conter rodas de seleção")
+    }
+
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {
         let janela = app.windows.firstMatch.frame
         for _ in 0..<tentativas {
