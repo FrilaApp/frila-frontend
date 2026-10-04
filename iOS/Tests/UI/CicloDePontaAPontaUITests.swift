@@ -52,18 +52,22 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
 
         let maiorDeIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorDeIdade, app: app)
         XCTAssertTrue(maiorDeIdade.waitForExistence(timeout: 10))
         maiorDeIdade.tap()
 
         let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
         XCTAssertTrue(termos.waitForExistence(timeout: 10))
         termos.tap()
 
         let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
         XCTAssertTrue(continuar.waitForExistence(timeout: 10))
         continuar.tap()
 
@@ -340,6 +344,18 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         elemento.tap()
     }
 
+    private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        for _ in 0..<6 {
+            if elemento.isHittable { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+        if !elemento.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(elemento.isHittable)
+    }
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
         let elementoUnico = elemento.firstMatch
         let janela = app.windows.firstMatch.frame

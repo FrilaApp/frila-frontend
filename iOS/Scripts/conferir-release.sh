@@ -77,12 +77,15 @@ fi
 executavel="$app/$nome_executavel"
 [[ -f "$executavel" ]] || falhar "executável do app não encontrado: $executavel"
 
+# Os frameworks embutidos e as extensões (PlugIns, #253) são código do app: o gancho de
+# desenvolvimento reprova em qualquer um deles.
 arquivos_para_conferir=("$executavel")
-if [[ -d "$app/Frameworks" ]]; then
+for pasta in "$app/Frameworks" "$app/PlugIns"; do
+  [[ -d "$pasta" ]] || continue
   while IFS= read -r -d '' arquivo; do
     arquivos_para_conferir+=("$arquivo")
-  done < <(find "$app/Frameworks" -type f -print0)
-fi
+  done < <(find "$pasta" -type f -print0)
+done
 
 ganchos_de_desenvolvimento=(
   '-FRILA_SCENARIO'
@@ -97,6 +100,8 @@ ganchos_de_desenvolvimento=(
   '-FRILA_AVISO'
   '-FRILA_PUSH'
   '-FRILA_PERMISSAO_PUSH'
+  '-FRILA_DECLARED_AGE_RANGE'
+  '-FRILA_VERIFICADOR_IDADE'
   'forcar-falha-crashlytics'
 )
 
@@ -116,6 +121,14 @@ simbolos_de_desenvolvimento=(
   'pelosArgumentos'
   'CatalogoDesignSystem'
 )
+
+# A medição de desempenho (#73) só pode estar no build de medição, que o enviar-testflight.sh
+# compila com FRILA_MEDICAO=1 e manda ao TestFlight só para teste interno. Em qualquer outro
+# Release reprovam a chave das medições, o argumento que as liga, o botão e os tipos que medem.
+if [[ "${FRILA_MEDICAO:-}" != "1" ]]; then
+  ganchos_de_desenvolvimento+=('frila-medicao-de-desempenho' '-FRILA_MEDICAO' 'medicoes-abrir')
+  simbolos_de_desenvolvimento+=('RegistroDeMedicoes' 'MedidorDeRede' 'BotaoDeMedicoes')
+fi
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
   for gancho in "${ganchos_de_desenvolvimento[@]}"; do

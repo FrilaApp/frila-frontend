@@ -772,6 +772,13 @@ struct RoteadorDoContratanteTests {
         #expect(TextosDoAcompanhamento.detalheDoCheckin(em: "20:00", tipo: .manual) == "Check-in manual às 20:00.")
         #expect(TextosDoAcompanhamento.detalheDoCheckin(em: "20:00", tipo: nil) == "Check-in às 20:00.")
     }
+
+    @Test("AcompanhamentoViewModel expõe a api fornecida no inicializador")
+    func exposicaoDaApi() {
+        let api = ApiClienteEmMemoria()
+        let vm = AcompanhamentoViewModel(api: api, estabelecimentoID: UUID())
+        #expect(vm.api != nil)
+    }
 }
 
 @Suite("Textos do acompanhamento no catálogo (#19)")

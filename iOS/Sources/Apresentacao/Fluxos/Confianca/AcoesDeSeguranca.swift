@@ -5,6 +5,8 @@ struct AcoesDeSeguranca: View {
     @State private var model: SegurancaViewModel
     @State private var denunciando = false
     @State private var confirmandoBloqueio = false
+    private let nomeAlvo: String
+    private let perfilID: UUID
     private let identificadorDenunciar: String
     private let identificadorBloquear: String
     private let identificadorConfirmarBloqueio: String
@@ -19,6 +21,8 @@ struct AcoesDeSeguranca: View {
         identificadorConfirmarBloqueio: String = "confirmar-bloqueio"
     ) {
         _model = State(initialValue: SegurancaViewModel(perfil: perfil, turnoID: turnoID, api: api, bloqueios: bloqueios))
+        self.nomeAlvo = perfil.nome
+        self.perfilID = perfil.id
         self.identificadorDenunciar = identificadorDenunciar
         self.identificadorBloquear = identificadorBloquear
         self.identificadorConfirmarBloqueio = identificadorConfirmarBloqueio
@@ -31,19 +35,24 @@ struct AcoesDeSeguranca: View {
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
             }
+            .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.denunciar) \(nomeAlvo)"))
             .accessibilityIdentifier(identificadorDenunciar)
+
             Button { confirmandoBloqueio = true } label: {
                 Text(verbatim: TextosDaSeguranca.bloquear)
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
             }
+            .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.bloquear) \(nomeAlvo)"))
             .disabled(model.bloqueando || model.bloqueado)
             .accessibilityIdentifier(identificadorBloquear)
+
             if model.bloqueando { ProgressView() }
             if let erro = model.erroBloqueio {
                 AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("erro-bloqueio")
             }
         }
+        .id(perfilID)
         .alert(TextosDaSeguranca.confirmarBloqueio, isPresented: $confirmandoBloqueio) {
             Button(TextosDaSeguranca.cancelar, role: .cancel) {}
             Button(TextosDaSeguranca.bloquear, role: .destructive) { Task { await model.bloquear() } }
@@ -57,6 +66,7 @@ private struct FolhaDeDenuncia: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: SegurancaViewModel
     @AccessibilityFocusState private var protocoloEmFoco: Bool
+    @FocusState private var focoNoRelato: Bool
 
     var body: some View {
         NavigationStack {
@@ -87,13 +97,18 @@ private struct FolhaDeDenuncia: View {
                                 Text(verbatim: TextosDaSeguranca.nome(motivo)).tag(motivo)
                             }
                         }
+                        .pickerStyle(.navigationLink)
                         .accessibilityIdentifier("motivo-denuncia")
+
                         TextField(TextosDaSeguranca.relato, text: $model.relato, axis: .vertical)
                             .lineLimit(4...10)
+                            .focused($focoNoRelato)
                             .accessibilityIdentifier("relato-denuncia")
+
                         Text(verbatim: TextosDaSeguranca.relatoMinimo).font(.caption)
                     }
                     .disabled(model.enviando)
+
                     if model.motivo == .riscoSeguranca {
                         Section {
                             Text(verbatim: TextosDaSeguranca.emergencia).accessibilityIdentifier("aviso-risco-imediato")
@@ -101,21 +116,51 @@ private struct FolhaDeDenuncia: View {
                             Link(TextosDaSeguranca.mulher, destination: URL(string: "tel:180")!)
                         }
                     }
+
                     if let erro = model.erroDenuncia {
                         AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("erro-denuncia")
                     }
-                    Button { Task { await model.denunciar() } } label: {
-                        Text(verbatim: TextosDaSeguranca.enviar).frame(minHeight: FrilaMetrica.alvoMinimo)
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom) {
+                if model.protocolo == nil {
+                    VStack(spacing: FrilaEspaco.minimo) {
+                        if model.enviando {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        } else {
+                            Button {
+                                Task { await model.denunciar() }
+                            } label: {
+                                Text(verbatim: TextosDaSeguranca.enviar)
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(FrilaCor.primaria)
+                            .disabled(!model.relatoValido || model.enviando)
+                            .accessibilityIdentifier("enviar-denuncia")
+                        }
                     }
-                    .disabled(!model.relatoValido || model.enviando)
-                    .accessibilityIdentifier("enviar-denuncia")
-                    if model.enviando { ProgressView() }
+                    .padding(FrilaEspaco.medio)
+                    .background(FrilaCor.fundo.opacity(0.95))
                 }
             }
             .navigationTitle(TextosDaSeguranca.denunciar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(TextosDaSeguranca.fechar) { dismiss() }.disabled(model.enviando)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        focoNoRelato = false
+                    } label: {
+                        Text(verbatim: "OK")
+                    }
+                    .accessibilityLabel("Recolher teclado")
+                    .accessibilityIdentifier("recolher-teclado")
                 }
             }
             .interactiveDismissDisabled(model.enviando)

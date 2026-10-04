@@ -159,6 +159,19 @@ printf 'binario com -FRILA_SCENARIO\n' > "$app/Frameworks/Teste.framework/Teste"
 chmod +x "$app/Frameworks/Teste.framework/Teste"
 esperar_reprovacao "gancho em framework embutido" "-FRILA_SCENARIO" "$app"
 
+# A extensão de notificação (#253) é código do app: o gancho nela reprova, e a extensão limpa passa.
+app="$(novo_app_bom gancho-extensao)"
+mkdir -p "$app/PlugIns/FrilaNotificationService.appex"
+printf 'binario com -FRILA_PUSH\n' > "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+chmod +x "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+esperar_reprovacao "gancho em extensão embutida" "-FRILA_PUSH" "$app"
+
+app="$(novo_app_bom extensao-limpa)"
+mkdir -p "$app/PlugIns/FrilaNotificationService.appex"
+printf 'binario release limpo\n' > "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+chmod +x "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+esperar_aprovacao "$app"
+
 for simbolo in pelosArgumentos CatalogoDesignSystem; do
   app="$(novo_app_bom "simbolo-$RANDOM")"
   printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
@@ -171,6 +184,23 @@ app="$(novo_app_bom simbolo-de-produto)"
 printf 'int TelaLicencas(void) { return 0; }\nint main(void) { return TelaLicencas(); }\n' |
   compilar_com_entitlements "$app/Frila"
 esperar_aprovacao "$app"
+
+# Medição de desempenho (#73): a chave e os tipos reprovam no Release comum e passam só no build de
+# medição.
+for gancho in frila-medicao-de-desempenho -FRILA_MEDICAO medicoes-abrir; do
+  app="$(novo_app_bom "medicao-gancho$gancho")"
+  printf '\n%s\n' "$gancho" >> "$app/Frila"
+  esperar_reprovacao "gancho da medição fora do build de medição: $gancho" "$gancho" "$app"
+  (export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+done
+
+for simbolo in RegistroDeMedicoes MedidorDeRede BotaoDeMedicoes; do
+  app="$(novo_app_bom "medicao-$simbolo")"
+  printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
+    compilar_com_entitlements "$app/Frila"
+  esperar_reprovacao "símbolo da medição fora do build de medição: $simbolo" "$simbolo" "$app"
+  (export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+done
 
 # Push (#8): o Release declara aps-environment = production.
 app="$(novo_app_bom aps-de-desenvolvimento)"

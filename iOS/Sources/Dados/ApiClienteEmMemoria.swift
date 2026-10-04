@@ -98,10 +98,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case turnoConfirmadoLonge = "turno-confirmado-longe"
         /// Como `turnoConfirmadoLonge`, mas `cancelar_posicao` é sem rede: o cancelamento vai para a fila.
         case cancelarSemRede = "cancelar-sem-rede"
+        /// Servidor de hoje no lado do profissional: turnos sem estado, avaliacao e cancelamento; candidaturas sem turno_id.
+        case profissionalServidorAntigo = "profissional-servidor-antigo"
         #if DEBUG
         /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
         case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
         #endif
+
+        public var isServidorAntigo: Bool {
+            self == .servidorAntigo || self == .profissionalServidorAntigo
+        }
 
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
@@ -113,7 +119,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         var candidaturaDaConta: EstadoCandidatura? {
             switch self {
             case .candidaturaPendente, .retirarSemRede: .pendente
-            case .candidaturaEscolhida, .candidaturaComTurnoCancelado: .aceita
+            case .candidaturaEscolhida, .candidaturaComTurnoCancelado, .profissionalServidorAntigo: .aceita
             case .candidaturaRecusada: .recusada
             case .candidaturaExpirada: .expirada
             default: nil
@@ -212,6 +218,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var suspensao: Suspensao?
     /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
     private var dispositivos: [String: UUID] = [:]
+    /// O `vinculo_id` de cada token (contrato 0.2.30): novo quando o token entra ou troca de dono,
+    /// o mesmo no registro repetido pela mesma conta, e fora quando `remover_dispositivo` o tira.
+    private var vinculos: [String: UUID] = [:]
 
     public init(
         cenario: Cenario = .sucesso,
@@ -286,6 +295,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
                 case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
                 case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60 + 30 * 60
+                #if DEBUG
+                case .cicloContratanteTurnoConcluido: -10 * 60 * 60
+                #endif
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .vagaEmSelecao, .candidaturaPendente, .retirarSemRede,
@@ -412,15 +424,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     }
                 }
             }
-            if (cenario == .turnoEncerrado || cenario == .avaliacaoSemRede || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado), let vaga = self.vagas.first {
+            if (cenario == .turnoEncerrado || cenario == .avaliacaoSemRede || cenario == .turnoEncerradoVerificado || cenario == .turnoAvaliado || cenario.deTurnoCancelado || cenario == .profissionalServidorAntigo), let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "22000000-0000-0000-0000-000000000002")!
                 let duracao: TimeInterval = 6 * 3600
                 let fim = relogio.agora.addingTimeInterval(-2 * 3600)
                 let inicio = fim.addingTimeInterval(-duracao)
                 let periodo = try Periodo(inicio: inicio, fim: fim)
+                let vagaPassadaID = (cenario == .profissionalServidorAntigo) ? UUID(uuidString: "20000000-0000-0000-0000-000000000001")! : vaga.id
                 let resumo = VagaResumo(
-                    id: vaga.id,
+                    id: vagaPassadaID,
                     funcao: vaga.funcao.nome,
                     local: vaga.local,
                     regiaoAdministrativa: vaga.regiaoAdministrativa,
@@ -446,7 +459,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     distanciaMetros: 50,
                     confirmadaEm: nil
                 )
-                turnos = [Turno(
+                let turnoEncerrado = Turno(
                     id: turnoID,
                     posicaoID: posicaoID,
                     vaga: resumo,
@@ -459,7 +472,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     valorAcordado: vaga.valor,
                     podeAvaliar: true,
                     contato: contato
-                )]
+                )
+                if cenario == .profissionalServidorAntigo {
+                    turnos.append(turnoEncerrado)
+                } else {
+                    turnos = [turnoEncerrado]
+                }
                 contatos[turnoID] = contato
                 checkins[turnoID] = ResultadoRegistro(
                     turnoID: turnoID,
@@ -861,7 +879,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if cenario == .vagaPreenchida { throw erro("posicao_ja_preenchida") }
         if cenario == .vagaEncerrada { throw erro("vaga_encerrada") }
         if cenario == .inelegivel { throw erro("inelegivel", detalhes: "turno_sobreposto") }
-        if cenario == .inelegivelSuspenso { throw erro("inelegivel", detalhes: "perfil_suspenso") }
+        if cenario == .inelegivelSuspenso {
+            // A suspensão acontece após a entrada, ao tentar se candidatar.
+            if let ativa = conta {
+                conta = Conta(id: ativa.id, perfil: ativa.perfil, nome: ativa.nome, telefone: ativa.telefone,
+                              email: ativa.email, nascimento: ativa.nascimento, estado: .suspensa)
+                suspensao = suspensao ?? Suspensao(motivo: "Denúncia grave confirmada pela Equipe Frila",
+                                                  desde: relogio.agora, contestacao: nil)
+            }
+            throw erro("inelegivel", detalhes: "perfil_suspenso")
+        }
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
         // Quem a casa já escolheu recebe o próprio turno de volta, antes de qualquer conferência do
@@ -1002,7 +1029,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case .retirada: break
         case .aceita, .recusada, .expirada: throw erro("candidatura_indisponivel")
         }
-        return Self.candidatura(candidaturas[indice], em: vaga)
+        return self.candidatura(candidaturas[indice], em: vaga)
     }
 
     /// Segue `minhas_candidaturas` do backend (`20260929234100_modo_selecao.sql`): da mais nova para
@@ -1013,7 +1040,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return candidaturas
             .filter { $0.daConta && (estado == nil || $0.estado == estado) }
             .sorted { $0.criadaEm != $1.criadaEm ? $0.criadaEm > $1.criadaEm : $0.id.uuidString < $1.id.uuidString }
-            .compactMap { guardada in vagas.first { $0.id == guardada.vagaID }.map { Self.candidatura(guardada, em: $0) } }
+            .compactMap { guardada in vagas.first { $0.id == guardada.vagaID }.map { self.candidatura(guardada, em: $0) } }
     }
 
     // MARK: Turno
@@ -1022,11 +1049,22 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func meusTurnos() async throws -> [Turno] {
         try verificarFalhaGeral()
         let agora = relogio.agora
-        return (turnos + turnosCancelados).filter { profissionaisEscolhidos[$0.id] == nil }.map { t in
+        let lista = cenario.isServidorAntigo ? turnos : (turnos + turnosCancelados)
+        return lista.filter { profissionaisEscolhidos[$0.id] == nil }.map { t in
             let fimPassou = t.vaga.periodo.fim <= agora
             let estado: EstadoPosicao = t.cancelado ? .cancelada : (fimPassou && t.checkin != nil ? .cumprida : .confirmada)
             let avaliacao = avaliacoes[t.id]
             let pode = estado != .cancelada && t.verificacao == .verificado && fimPassou && avaliacao == nil
+            if cenario.isServidorAntigo {
+                return Turno(
+                    id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
+                    contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
+                    checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
+                    valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
+                    estado: nil, avaliacao: nil, avaliacaoInformada: nil, cancelamento: nil,
+                    avaliacaoLidaEm: nil
+                )
+            }
             return Turno(
                 id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
                 contatoVisivelAte: t.contatoVisivelAte, aCaminhoEm: t.aCaminhoEm,
@@ -1391,8 +1429,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty else { throw erro("campo_obrigatorio", detalhes: "token_fcm") }
         guard token.count >= Self.tamanhoMinimoDoToken else { throw erro("campo_invalido", detalhes: "token_fcm") }
+        if dispositivos[token] != conta.id || vinculos[token] == nil { vinculos[token] = UUID() }
         dispositivos[token] = conta.id
-        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora)
+        return Dispositivo(plataforma: .ios, atualizadoEm: relogio.agora, vinculoID: vinculos[token])
     }
 
     /// Segue `remover_dispositivo` do backend (`20260926070000_ciclo_token_push.sql`): só tira o token
@@ -1401,16 +1440,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarRede()
         guard let conta else { throw erro("nao_autenticado") }
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
-        if dispositivos[token] == conta.id { dispositivos[token] = nil }
+        if dispositivos[token] == conta.id {
+            dispositivos[token] = nil
+            vinculos[token] = nil
+        }
     }
 
     /// A conta dona do token no servidor simulado. Fica fora da porta: serve aos testes.
     public func donoDoDispositivo(tokenFCM: String) -> UUID? { dispositivos[tokenFCM] }
 
+    /// O `vinculo_id` do token no servidor simulado. Fica fora da porta: serve aos testes.
+    public func vinculoDoDispositivo(tokenFCM: String) -> UUID? { vinculos[tokenFCM] }
+
     /// Simula o aparelho que já estava registrado para outra conta. Fica fora da porta: o dublê tem
     /// uma conta só, e a troca de conta no mesmo iPhone precisa da outra.
     public func registrarDispositivo(tokenFCM: String, deOutraConta contaID: UUID) {
         dispositivos[tokenFCM] = contaID
+        vinculos[tokenFCM] = UUID()
     }
 
     public func sair(tokenFCM: String?) async {
@@ -1557,8 +1603,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         profissionaisEscolhidos[turno.id] ?? perfilPublicoDeExemplo
     }
 
-    private static func candidatura(_ guardada: CandidaturaGuardada, em vaga: Vaga) -> Candidatura {
-        Candidatura(id: guardada.id, vaga: vaga.resumo, estado: guardada.estado, criadaEm: guardada.criadaEm, turnoID: guardada.turnoID)
+    private func candidatura(_ guardada: CandidaturaGuardada, em vaga: Vaga) -> Candidatura {
+        let turnoID = cenario.isServidorAntigo ? nil : guardada.turnoID
+        return Candidatura(id: guardada.id, vaga: vaga.resumo, estado: guardada.estado, criadaEm: guardada.criadaEm, turnoID: turnoID)
     }
 
     /// O contrato pede `token_fcm` com pelo menos 20 caracteres.

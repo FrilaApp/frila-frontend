@@ -15,8 +15,13 @@ ALVO="${1:-$PADRAO_DIR}"
   exit 1
 }
 
-python3 - "$ALVO" <<'PYVERIF'
+CATALOGO=""
+if [[ $# -eq 0 ]]; then
+  CATALOGO="$SCRIPT_DIR/../Resources/Localizable.xcstrings"
+fi
+python3 - "$ALVO" "$CATALOGO" <<'PYVERIF'
 import os
+import json
 import re
 import sys
 
@@ -159,6 +164,13 @@ for caminho in arquivos:
     limpo = remover_comentarios(conteudo)
     linhas = conteudo.splitlines()
 
+    # Promessas de recurso e referências internas não são texto de produto.
+    # Comentários são removidos antes da busca, preservando as referências técnicas.
+    for m in re.finditer(r'"(?:\\.|[^"\\])*"', limpo):
+        if re.search(r'cartão\s*#|em breve|próxima versão|em desenvolvimento', m.group(), re.IGNORECASE):
+            num_linha = conteudo[:m.start()].count('\n') + 1
+            problemas.append((caminho, num_linha, "Texto de app com promessa ou cartão interno"))
+
     # 1. String(localized:) sem bundle:
     for m in re.finditer(r'String\s*\(\s*localized\s*:', limpo):
         args, fim = extrair_chamada_balanceada(limpo, m.end())
@@ -251,6 +263,30 @@ for caminho in arquivos:
             num_linha = conteudo[:m.start()].count('\n') + 1
             linha = linhas[num_linha - 1].strip()
             problemas.append((caminho, num_linha, f"Cor fora dos tokens: '{linha}'"))
+
+catalogos = []
+if len(sys.argv) > 2 and sys.argv[2]:
+    catalogos.append(sys.argv[2])
+if os.path.isdir(alvo):
+    for root, dirs, files in os.walk(alvo):
+        catalogos.extend(os.path.join(root, f) for f in files if f.endswith(".xcstrings"))
+
+def conferir_catalogo(valor, caminho):
+    if isinstance(valor, dict):
+        for chave, item in valor.items():
+            if chave == "value" or isinstance(item, (dict, list)):
+                conferir_catalogo(item, caminho)
+    elif isinstance(valor, list):
+        for item in valor:
+            conferir_catalogo(item, caminho)
+    elif isinstance(valor, str) and re.search(r'cartão\s*#|em breve|próxima versão|em desenvolvimento', valor, re.IGNORECASE):
+        problemas.append((caminho, 1, "Texto de app com promessa ou cartão interno"))
+
+for caminho in sorted(set(catalogos)):
+    with open(caminho, encoding="utf-8") as arquivo:
+        for chave, entrada in json.load(arquivo).get("strings", {}).items():
+            conferir_catalogo(chave, caminho)
+            conferir_catalogo(entrada, caminho)
 
 if problemas:
     for arq, linha, desc in problemas:

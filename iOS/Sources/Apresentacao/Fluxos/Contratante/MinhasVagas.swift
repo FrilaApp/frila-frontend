@@ -538,10 +538,13 @@ private struct TelaDetalheVagaContratante: View {
 
                 Text(verbatim: TextosMinhasVagas.posicoes).font(.title2.bold()).accessibilityAddTraits(.isHeader)
                 ForEach(vaga.posicoes) { posicao in
-                    if let perfil = posicao.profissional, bloqueios.contem(perfil) {
+                    let bloqueado = posicao.profissional.map { bloqueios.contem($0) } ?? false
+                    if bloqueado && posicao.estado != .confirmada && posicao.estado != .cumprida {
                         Text(verbatim: TextosDaSeguranca.indisponivel)
                             .accessibilityIdentifier("posicao-bloqueada-\(posicao.id)")
-                    } else { cartaoPosicao(posicao) }
+                    } else {
+                        cartaoPosicao(posicao, bloqueado: bloqueado)
+                    }
                 }
             }
             .padding(FrilaEspaco.medio)
@@ -573,12 +576,18 @@ private struct TelaDetalheVagaContratante: View {
         .accessibilityIdentifier("detalhe-vaga-contratante")
     }
 
-    @ViewBuilder private func cartaoPosicao(_ posicao: PosicaoNoPainel) -> some View {
+    @ViewBuilder private func cartaoPosicao(_ posicao: PosicaoNoPainel, bloqueado: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            if bloqueado {
+                Text(verbatim: "Você bloqueou este profissional")
+                    .font(.caption)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("etiqueta-bloqueio-\(posicao.id)")
+            }
             if posicao.estado == .confirmada || posicao.estado == .cumprida {
                 Text(verbatim: posicao.profissional?.nome ?? TextosMinhasVagas.profissionaisConfirmados)
                     .font(.headline)
-                if let perfil = posicao.profissional {
+                if let perfil = posicao.profissional, !bloqueado {
                     Button { perfilSelecionado = perfil } label: {
                         Text(verbatim: TextosMinhasVagas.perfil)
                             .frame(minHeight: FrilaMetrica.alvoMinimo)
