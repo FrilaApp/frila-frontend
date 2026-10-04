@@ -120,6 +120,20 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         XCTAssertFalse(pilula.isSelected, "o toque na borda de cima da pílula não chegou ao botão")
     }
 
+    /// Pílula de filtro comunica seleção além da cor (#71): expõe valor de acessibilidade e traço (.isSelected).
+    func testPilulaDeFiltroNaoDependeApenasDeCor() {
+        let app = abrirCatalogo()
+        let pilula = app.buttons["Perto de mim"]
+        XCTAssertTrue(pilula.waitForExistence(timeout: 5))
+        XCTAssertTrue(pilula.isSelected, "o catálogo abre com o filtro ligado")
+        XCTAssertEqual(pilula.value as? String, "filtro ativo", "Pílula de filtro selecionada deve comunicar estado ativo")
+
+        pilula.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+
+        XCTAssertFalse(pilula.isSelected)
+        XCTAssertNotEqual(pilula.value as? String, "filtro ativo", "Pílula desmarcada não deve ter valor ativo")
+    }
+
     func testToqueNaBordaDoSimSeleciona() {
         let app = abrirCatalogo()
         let sim = app.buttons["Sim"]

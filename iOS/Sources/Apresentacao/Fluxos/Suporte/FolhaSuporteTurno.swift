@@ -5,6 +5,15 @@ import SwiftUI
 public struct FolhaSuporteTurno: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var sistemaReduzirMovimento
+    private var reduzirMovimento: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-UIAccessibilityReduceMotionEnabled") {
+            return true
+        }
+        #endif
+        return sistemaReduzirMovimento
+    }
     @Bindable private var viewModel: SuporteTurnoViewModel
 
     public init(viewModel: SuporteTurnoViewModel) {
@@ -56,6 +65,7 @@ public struct FolhaSuporteTurno: View {
             Image(systemName: "clock.badge.exclamationmark")
                 .foregroundStyle(FrilaCor.primaria)
                 .font(.title3)
+                .accessibilityIdentifier(reduzirMovimento ? "icone-prazo-sem-movimento" : "icone-prazo")
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosDoSuporte.avisoPrazo)
                     .font(.subheadline)
@@ -77,8 +87,12 @@ public struct FolhaSuporteTurno: View {
             VStack(spacing: FrilaEspaco.minimo) {
                 ForEach(MotivoSuporteTurno.allCases) { motivo in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        if reduzirMovimento {
                             viewModel.motivo = motivo
+                        } else {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.motivo = motivo
+                            }
                         }
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
