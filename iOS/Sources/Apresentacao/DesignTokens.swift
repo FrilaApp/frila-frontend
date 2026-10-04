@@ -12,7 +12,8 @@ public enum FrilaCor {
     public static let fundo = Color("Surface", bundle: recursos)
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
     public static let texto = Color("TextPrimary", bundle: recursos)
-    static let textoUIKit = UIColor(texto)
+    /// O mesmo token para o UIKit, pelo catálogo: segue claro e escuro sozinho.
+    static let textoUIKit = UIColor(named: "TextPrimary", in: recursos, compatibleWith: nil) ?? .label
     public static let textoSecundario = Color("TextSecondary", bundle: recursos)
     public static let sucesso = Color("Success", bundle: recursos)
     public static let alerta = Color("Warning", bundle: recursos)
