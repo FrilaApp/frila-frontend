@@ -1,0 +1,12 @@
+{
+  "id": "30000000-0000-0000-0000-000000000001",
+  "nome": "Bistrô Ipê",
+  "tipo": "food_service",
+  "endereco": "CLS 405, Asa Sul, Brasília - DF",
+  "regiao_administrativa": "Plano Piloto",
+  "ponto": {
+    "latitude": -15.8121,
+    "longitude": -47.8997
+  },
+  "papel": "administrador"
+}
