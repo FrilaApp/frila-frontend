@@ -143,6 +143,45 @@ struct TelaCor: View {
 SWIFT
 esperar_reprovacao "cor fora dos tokens" "Cor fora dos tokens" "$DIR_RUIM_COR"
 
+DIR_RUIM_TINT="$TMPDIR_TESTE/ruim_tint"
+mkdir -p "$DIR_RUIM_TINT"
+cat <<'SWIFT' > "$DIR_RUIM_TINT/TelaTint.swift"
+import SwiftUI
+
+struct TelaTint: View {
+    var body: some View {
+        Button("Ação") {}.tint(.red)
+    }
+}
+SWIFT
+esperar_reprovacao "tint fora dos tokens" "Cor fora dos tokens" "$DIR_RUIM_TINT"
+
+DIR_RUIM_CONSTRUTOR="$TMPDIR_TESTE/ruim_construtor"
+mkdir -p "$DIR_RUIM_CONSTRUTOR"
+cat <<'SWIFT' > "$DIR_RUIM_CONSTRUTOR/TelaConstrutor.swift"
+import SwiftUI
+
+struct TelaConstrutor: View {
+    var body: some View {
+        Color(red: 1, green: 0, blue: 0)
+    }
+}
+SWIFT
+esperar_reprovacao "construtor Color(red:) fora dos tokens" "Cor ou fonte fora dos tokens" "$DIR_RUIM_CONSTRUTOR"
+
+DIR_RUIM_FONTE_CUSTOM="$TMPDIR_TESTE/ruim_fonte_custom"
+mkdir -p "$DIR_RUIM_FONTE_CUSTOM"
+cat <<'SWIFT' > "$DIR_RUIM_FONTE_CUSTOM/TelaFonteCustom.swift"
+import SwiftUI
+
+struct TelaFonteCustom: View {
+    var body: some View {
+        Text(verbatim: "Exemplo").font(Font.custom("MinhaFonte", size: 16))
+    }
+}
+SWIFT
+esperar_reprovacao "Font.custom fora dos tokens" "Cor ou fonte fora dos tokens" "$DIR_RUIM_FONTE_CUSTOM"
+
 # Caso 7: verbatim com palavra fora de interpolação
 DIR_RUIM_VERBATIM="$TMPDIR_TESTE/ruim_verbatim"
 mkdir -p "$DIR_RUIM_VERBATIM"
