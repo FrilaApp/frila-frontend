@@ -190,14 +190,22 @@ struct TelaTurnoDoContratante: View {
     private func rodapeSeguranca(_ turno: TurnoAcompanhado) -> some View {
         if let profissional = turno.posicao.profissional,
            let api = viewModel.api ?? api {
-            AcoesDeSeguranca(
-                perfil: profissional,
-                turnoID: turno.posicao.turnoID,
-                api: api,
-                bloqueios: bloqueios,
-                identificadorDenunciar: "denunciar-\(turno.posicao.id)",
-                identificadorBloquear: "bloquear-\(turno.posicao.id)"
-            )
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                if bloqueios.contem(profissional) {
+                    Text(verbatim: "Você bloqueou este profissional")
+                        .font(.caption)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("etiqueta-bloqueio-\(turno.posicao.id)")
+                }
+                AcoesDeSeguranca(
+                    perfil: profissional,
+                    turnoID: turno.posicao.turnoID,
+                    api: api,
+                    bloqueios: bloqueios,
+                    identificadorDenunciar: "denunciar-\(turno.posicao.id)",
+                    identificadorBloquear: "bloquear-\(turno.posicao.id)"
+                )
+            }
         }
     }
 

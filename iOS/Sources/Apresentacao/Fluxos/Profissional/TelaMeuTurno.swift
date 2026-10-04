@@ -65,12 +65,20 @@ public struct TelaMeuTurno: View {
     // MARK: - Ações de segurança (#39)
 
     private var rodapeSeguranca: some View {
-        AcoesDeSeguranca(
-            perfil: viewModel.turno.contraparte,
-            turnoID: viewModel.turno.id,
-            api: viewModel.api,
-            bloqueios: bloqueios
-        )
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            if bloqueios.contem(viewModel.turno.contraparte) {
+                Text(verbatim: "Você bloqueou este estabelecimento")
+                    .font(.caption)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("etiqueta-bloqueio-turno")
+            }
+            AcoesDeSeguranca(
+                perfil: viewModel.turno.contraparte,
+                turnoID: viewModel.turno.id,
+                api: viewModel.api,
+                bloqueios: bloqueios
+            )
+        }
     }
 
     private var botaoCancelar: some View {
