@@ -68,6 +68,7 @@ enum TextosDoProfissional {
         static let sobrepostoTitulo = String(localized: "Você já tem um turno nesse horário", bundle: bundleApresentacao)
         static let sobrepostoMensagem = String(localized: "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.", bundle: bundleApresentacao)
 
+        static let ajustarFuncoes = String(localized: "Ajustar minhas funções", bundle: bundleApresentacao)
         static let funcaoTitulo = String(localized: "Essa vaga pede outra função", bundle: bundleApresentacao)
         static let funcaoMensagem = String(localized: "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.", bundle: bundleApresentacao)
         static let inelegivelTitulo = String(localized: "Você não pode se candidatar a esta vaga", bundle: bundleApresentacao)
@@ -76,7 +77,6 @@ enum TextosDoProfissional {
         static let suspensaTitulo = String(localized: "Sua conta está suspensa", bundle: bundleApresentacao)
         static let suspensaMensagem = String(localized: "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta.", bundle: bundleApresentacao)
         static let contestar = String(localized: "Contestar a suspensão", bundle: bundleApresentacao)
-        static let contestarEmBreve = String(localized: "A contestação chega numa próxima versão do app.", bundle: bundleApresentacao)
 
         static let naoEncontrada = String(localized: "Esta vaga não está mais disponível. Volte para a lista e escolha outra.", bundle: bundleApresentacao)
         static let falha = String(localized: "Não foi possível enviar a candidatura. Tente de novo.", bundle: bundleApresentacao)

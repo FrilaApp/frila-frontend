@@ -177,6 +177,7 @@ public struct TelaCadastro: View {
             }
             .padding(.horizontal, FrilaEspaco.medio)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(FrilaCor.fundo.ignoresSafeArea())
     }
 

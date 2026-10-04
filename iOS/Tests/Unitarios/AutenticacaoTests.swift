@@ -2,6 +2,7 @@ import Foundation
 import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
+import FrilaInfraestrutura
 import Testing
 
 @MainActor
@@ -231,6 +232,109 @@ struct AutenticacaoTests {
         let destino = await vm.criarConta()
         #expect(destino == nil)
         #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+    }
+
+    // MARK: - Declared Age Range (cartão #215, RN20)
+
+    @Test("CadastroViewModel com Declared Age Range abaixo de 18 recusa no cliente e não chama a API")
+    func cadastroComDeclaredAgeRangeAbaixoDe18RecusaENaoChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .abaixoDe18)
+        let vm = CadastroViewModel(api: api, email: "jovem@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Jovem"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
+    }
+
+    @Test("CadastroViewModel com Declared Age Range 18 ou mais segue e chama a API")
+    func cadastroComDeclaredAgeRangeDezoitoOuMaisSegueEChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .dezoitoOuMais)
+        let vm = CadastroViewModel(api: api, email: "adulto@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Adulto"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+        #expect(vm.erro == nil)
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 1)
+    }
+
+    @Test("CadastroViewModel com Declared Age Range recusado pela pessoa segue só com a data e chama a API")
+    func cadastroComDeclaredAgeRangeRecusadoSegueEChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .recusou)
+        let vm = CadastroViewModel(api: api, email: "recusou@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Privativo"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+        #expect(vm.erro == nil)
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 1)
+    }
+
+    @Test("CadastroViewModel com Declared Age Range indisponível (erro ou iOS antigo) segue só com a data e chama a API")
+    func cadastroComDeclaredAgeRangeIndisponivelSegueEChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .indisponivel)
+        let vm = CadastroViewModel(api: api, email: "legado@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Sistema Antigo"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+        #expect(vm.erro == nil)
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 1)
+    }
+
+    @Test("VerificadorDeIdadeDoSistema interpreta limites da faixa etária com corte em 18")
+    func interpretacaoDeLimitesDaFaixaEtaria() {
+        // 1. lowerBound >= 18 -> maior de idade (18 ou mais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 18, upperBound: nil) == .dezoitoOuMais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 21, upperBound: nil) == .dezoitoOuMais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 18, upperBound: 25) == .dezoitoOuMais)
+
+        // 2. upperBound presente e < 18 -> menor de idade (faixa termina em 17 ou menos)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 17) == .abaixoDe18)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 13, upperBound: 17) == .abaixoDe18)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 16) == .abaixoDe18)
+
+        // 3. upperBound == 18 não é tratado como menor (< 18 estrito), vai para indisponível
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 18) == .indisponivel)
+
+        // 4. Ambos nulos não comprovam nada -> indisponível (segue com a data)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: nil) == .indisponivel)
+
+        // 5. Faixa ambígua que cruza o corte (ex: 16 a 20) -> indisponível
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 16, upperBound: 20) == .indisponivel)
     }
 
     @Test("CadastroViewModel trata erro 409 conta_existente da API")

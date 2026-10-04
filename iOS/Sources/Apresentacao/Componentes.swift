@@ -33,6 +33,8 @@ public struct BotaoPrimario: View {
         .foregroundStyle(FrilaCor.sobrePrimaria)
         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
         .disabled(carregando)
+        // Enquanto carrega, o conteúdo é só o indicador: sem isto o botão perde o nome no VoiceOver.
+        .accessibilityLabel(titulo)
         .accessibilityValue(carregando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
     }
 }

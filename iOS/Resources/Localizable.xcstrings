@@ -11,6 +11,46 @@
         }
       }
     },
+    "Você bloqueou este profissional": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você bloqueou este profissional"
+          }
+        }
+      }
+    },
+    "Você bloqueou este estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você bloqueou este estabelecimento"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Recolher teclado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolher teclado"
+          }
+        }
+      }
+    },
     "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento.": {
       "localizations": {
         "pt-BR": {
@@ -181,6 +221,16 @@
         }
       }
     },
+    "Ajustar minhas funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustar minhas funções"
+          }
+        }
+      }
+    },
     "%@ às %@": {
       "localizations": {
         "pt-BR": {
@@ -319,16 +369,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "A avaliação só fica disponível após o término do turno e com presença confirmada."
-          }
-        }
-      }
-    },
-    "A contestação chega numa próxima versão do app.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A contestação chega numa próxima versão do app."
           }
         }
       }
@@ -1163,16 +1203,6 @@
         }
       }
     },
-    "Configuração de funções e horários disponíveis para o profissional (Cartão #98).": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configuração de funções e horários disponíveis para o profissional (Cartão #98)."
-          }
-        }
-      }
-    },
     "Confira o campo indicado.": {
       "localizations": {
         "pt-BR": {
@@ -1759,16 +1789,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta conta já foi cadastrada."
-          }
-        }
-      }
-    },
-    "Esta etapa estará disponível em breve.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta etapa estará disponível em breve."
           }
         }
       }
@@ -3453,16 +3473,6 @@
         }
       }
     },
-    "Sua vaga foi publicada. A lista Minhas vagas estará disponível em breve.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua vaga foi publicada. A lista Minhas vagas estará disponível em breve."
-          }
-        }
-      }
-    },
     "Sábado": {
       "localizations": {
         "pt-BR": {
@@ -4293,26 +4303,6 @@
         }
       }
     },
-    "Disponível no cartão #219": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disponível no cartão #219"
-          }
-        }
-      }
-    },
-    "Disponível no cartão #50": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disponível no cartão #50"
-          }
-        }
-      }
-    },
     "Endereço de suporte pendente": {
       "localizations": {
         "pt-BR": {
@@ -4339,6 +4329,166 @@
           "stringUnit": {
             "state": "translated",
             "value": "Exportar meus dados"
+          }
+        }
+      }
+    },
+    "Histórico de turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Histórico de turnos"
+          }
+        }
+      }
+    },
+    "Exporte os turnos de um período com data, função, horários registrados, valor acordado e contraparte. O valor é o combinado entre as partes, e não um pagamento feito pelo Frila. Turno não verificado sai marcado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporte os turnos de um período com data, função, horários registrados, valor acordado e contraparte. O valor é o combinado entre as partes, e não um pagamento feito pelo Frila. Turno não verificado sai marcado."
+          }
+        }
+      }
+    },
+    "Período": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Período"
+          }
+        }
+      }
+    },
+    "Este mês": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mês"
+          }
+        }
+      }
+    },
+    "Mês passado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mês passado"
+          }
+        }
+      }
+    },
+    "Escolher datas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher datas"
+          }
+        }
+      }
+    },
+    "De": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De"
+          }
+        }
+      }
+    },
+    "Até": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até"
+          }
+        }
+      }
+    },
+    "A data inicial precisa ser igual ou anterior à final, e nenhuma pode estar no futuro.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A data inicial precisa ser igual ou anterior à final, e nenhuma pode estar no futuro."
+          }
+        }
+      }
+    },
+    "Formato": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formato"
+          }
+        }
+      }
+    },
+    "Exportar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar"
+          }
+        }
+      }
+    },
+    "Gera o arquivo do período e abre o compartilhamento do sistema.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gera o arquivo do período e abre o compartilhamento do sistema."
+          }
+        }
+      }
+    },
+    "Gerando o arquivo…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerando o arquivo…"
+          }
+        }
+      }
+    },
+    "Nenhum turno nesse período. Nenhum arquivo foi gerado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum turno nesse período. Nenhum arquivo foi gerado."
+          }
+        }
+      }
+    },
+    "Em %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em %@"
+          }
+        }
+      }
+    },
+    "De %@ a %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De %@ a %@"
           }
         }
       }
@@ -5839,6 +5989,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta vaga já foi cancelada ou encerrada."
+          }
+        }
+      }
+    },
+    "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo."
           }
         }
       }
