@@ -166,7 +166,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .resultado(vaga, resultado):
                             TelaResultadoDaCandidatura(
                                 vaga: vaga, resultado: resultado, api: api, verCandidaturas: { roteador.abrirCandidaturas() },
-                                voltarParaLista: voltarParaLista
+                                sair: sair, voltarParaLista: voltarParaLista
                             )
                         case let .meuTurno(turno):
                             destinoDoMeuTurno(turno)

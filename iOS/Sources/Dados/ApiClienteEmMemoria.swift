@@ -826,7 +826,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if cenario == .vagaPreenchida { throw erro("posicao_ja_preenchida") }
         if cenario == .vagaEncerrada { throw erro("vaga_encerrada") }
         if cenario == .inelegivel { throw erro("inelegivel", detalhes: "turno_sobreposto") }
-        if cenario == .inelegivelSuspenso { throw erro("inelegivel", detalhes: "perfil_suspenso") }
+        if cenario == .inelegivelSuspenso {
+            // A suspensão acontece após a entrada, ao tentar se candidatar.
+            if let ativa = conta {
+                conta = Conta(id: ativa.id, perfil: ativa.perfil, nome: ativa.nome, telefone: ativa.telefone,
+                              email: ativa.email, nascimento: ativa.nascimento, estado: .suspensa)
+                suspensao = suspensao ?? Suspensao(motivo: "Denúncia grave confirmada pela Equipe Frila",
+                                                  desde: relogio.agora, contestacao: nil)
+            }
+            throw erro("inelegivel", detalhes: "perfil_suspenso")
+        }
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
         // Quem a casa já escolheu recebe o próprio turno de volta, antes de qualquer conferência do
