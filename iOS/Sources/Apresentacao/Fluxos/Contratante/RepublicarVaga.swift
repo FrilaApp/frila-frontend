@@ -114,7 +114,8 @@ public final class RepublicarVagaViewModel {
     }
 
     public func carregarRecusaDaFila() async {
-        recusaDaFila = (try? await fila?.recusadas().first { $0.tipo == .republicacaoVaga && $0.vagaID == vagaOriginal.vaga.id }) ?? nil
+        let recusadas = (try? await fila?.recusadas().filter { $0.tipo == .republicacaoVaga && $0.vagaID == vagaOriginal.vaga.id }) ?? []
+        recusaDaFila = recusadas.first { $0.id == acaoPendente?.id } ?? recusadas.first
         if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
             acaoPendente = nil
             republicacaoPendente = nil
@@ -217,6 +218,8 @@ public final class RepublicarVagaViewModel {
         do {
             let vagaPublicada = try await republicarAPI(rep.vagaID, rep.periodo, acao.chave)
             camposBloqueados = false
+            try? await fila?.resolverRecusas(acao)
+            recusaDaFila = nil
             if let fila {
                 try? await fila.remover(id: acao.id)
             }
@@ -500,4 +503,3 @@ public struct TelaRepublicarVaga: View {
 extension VagaNoPainel: @retroactive Identifiable {
     public var id: UUID { vaga.id }
 }
-

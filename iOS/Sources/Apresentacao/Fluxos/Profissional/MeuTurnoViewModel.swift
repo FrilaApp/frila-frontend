@@ -101,6 +101,7 @@ public final class MeuTurnoViewModel {
         _ = revisaoDaReserva
         if let avaliacao = avaliacaoEnviada ?? turno.avaliacao { return avaliacao.resposta }
         if let respostaPendente { return respostaPendente }
+        if avaliacaoDaFilaRecusada { return nil }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return nil }
         return armazenamentoAvaliacoes.resposta(para: turno.id, contaID: contaID)
     }
@@ -108,8 +109,13 @@ public final class MeuTurnoViewModel {
     public var jaAvaliado: Bool {
         _ = revisaoDaReserva
         if avaliacaoEnviada != nil || turno.avaliacao != nil || respostaPendente != nil { return true }
+        if avaliacaoDaFilaRecusada { return false }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return false }
         return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.servidorInformaAvaliacao && !turno.podeAvaliar && podeAvaliar)
+    }
+
+    private var avaliacaoDaFilaRecusada: Bool {
+        recusasDaFila.contains { $0.tipo == .avaliacao && ($0.contaID == nil || $0.contaID == contaID) }
     }
 
     public func criarAvaliacaoViewModel() -> AvaliacaoTurnoViewModel? {

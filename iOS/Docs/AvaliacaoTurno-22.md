@@ -7,7 +7,7 @@ autenticação invalida o cache da sessão anterior antes de buscar o ID da nova
 
 `UserDefaultsArmazenamentoAvaliacoes` separa as respostas pelo ID da conta e pelo ID do
 turno. Na saída explícita e no encerramento observado da sessão, as respostas locais
-são apagadas. Chaves antigas sem autor não são atribuídas à conta que entrar.
+são apagadas. A avaliação offline ainda não sincronizada se perde ao sair, para que ações e dados da conta anterior não fiquem para a próxima autenticação. Chaves antigas sem autor não são atribuídas à conta que entrar.
 
 O `409 avaliacao_ja_registrada` bloqueia a escolha, limpa a seleção recusada e guarda
 somente a informação de que já existe avaliação. Não guarda Sim ou Não. O mesmo vale

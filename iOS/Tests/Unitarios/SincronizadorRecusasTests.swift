@@ -35,8 +35,40 @@ private final class ApiAvaliacaoRecusada: ApiClienteEncaminhador, @unchecked Sen
     }
 }
 
+private final class ApiSaidaRecusada: ApiClienteEncaminhador, @unchecked Sendable {
+    override func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
+        throw ErroDaApi(codigo: .foraDaJanela)
+    }
+}
+
 @Suite("Recusas definitivas da fila")
 struct SincronizadorRecusasTests {
+    @Test("Ação de outra conta não é enviada nem recusada", arguments: [TipoAcaoPendente.checkin, .checkout])
+    func outroAutor(tipo: TipoAcaoPendente) async throws {
+        let api = ApiPresencaRecusada(erro: ErroDaApi(codigo: .semPermissao))
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let acao = AcaoPendente(tipo: tipo, turnoID: UUID(), contaID: UUID(), instanteDoToque: .now, chave: UUID())
+        try await fila.enfileirar(acao)
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(api.total == 0)
+        #expect(try await fila.pendentes() == [acao])
+        #expect(try await fila.recusadas().isEmpty)
+    }
+
+    @Test("Novas ações recebem autor da sessão; ler legado não atribui autor", arguments: TipoAcaoPendente.allCases)
+    func autorNaGravacao(tipo: TipoAcaoPendente) async throws {
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let legado = AcaoPendente(tipo: tipo, turnoID: UUID(), instanteDoToque: .now, chave: UUID())
+        try await fila.enfileirar(legado)
+        let sessao = try await ApiClienteEmMemoria().minhaConta().sessao
+        try await fila.salvar(sessao: sessao)
+        #expect(try await fila.pendentes().first?.contaID == nil)
+        let nova = AcaoPendente(tipo: tipo, turnoID: UUID(), instanteDoToque: .now, chave: UUID())
+        try await fila.enfileirar(nova)
+        #expect(try await fila.pendentes().first(where: { $0.id == nova.id })?.contaID == sessao.usuarioID)
+        #expect(try await fila.pendentes().first(where: { $0.id == legado.id })?.contaID == nil)
+    }
+
     @Test("Recusa definitiva de presença sai da fila e não volta a ser enviada", arguments: [TipoAcaoPendente.checkin, .checkout], [CodigoErroAPI.vagaEncerrada, .semPermissao, .foraDaJanela, .registroNoFuturo, .campoInvalido, .campoObrigatorio, .naoEncontrado, .contaSuspensa])
     func definitiva(tipo: TipoAcaoPendente, codigo: CodigoErroAPI) async throws {
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
@@ -165,6 +197,30 @@ struct AvisosDaFilaTests {
 
 @Suite("Dependência entre check-in e check-out na fila")
 struct DependenciaDaFilaTests {
+    @Test("Check-in aceito permanece registrado quando o check-out é recusado")
+    @MainActor
+    func entradaAceitaSaidaRecusada() async throws {
+        let api = ApiSaidaRecusada()
+        let vaga = try #require(try await api.vagasAbertas().first)
+        _ = try await api.candidatar(vagaID: vaga.id)
+        let turno = try #require(try await api.meusTurnos().first)
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let instante = Date(timeIntervalSince1970: (Date.now.timeIntervalSince1970 - 1800).rounded(.down))
+        let entrada = AcaoPendente(tipo: .checkin, turnoID: turno.id, instanteDoToque: instante, chave: UUID())
+        let saida = AcaoPendente(tipo: .checkout, turnoID: turno.id, instanteDoToque: instante.addingTimeInterval(600), chave: UUID())
+        try await fila.enfileirar(entrada)
+        try await fila.enfileirar(saida)
+        let tela = PresencaDoTurnoViewModel(turno: turno, api: api,
+            localizacao: LeitorDeLocalizacaoSimulado(resultado: .failure(.semSinal)), fila: fila)
+        await tela.restaurarPendentes()
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        await tela.restaurarPendentes()
+        #expect(tela.checkin == .registrado(.init(instante: instante, distanciaMetros: nil, manual: true)))
+        #expect(tela.aguardandoConfirmacao)
+        #expect(!tela.podeFazerCheckin)
+        #expect(tela.checkout == .naoFeito)
+    }
+
     @Test("Check-out sem check-in na fila recebe recusa definitiva")
     func semCheckinPendente() async throws {
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))

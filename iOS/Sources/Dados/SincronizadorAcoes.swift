@@ -20,6 +20,9 @@ public actor SincronizadorAcoes {
         guard let acoes = try? await fila.pendentes() else { return }
         for acao in acoes {
             do {
+                if let contaID = acao.contaID, try await api.minhaConta().id != contaID { continue }
+                // Legados sem autor conservam o caminho anterior nos builds de desenvolvimento;
+                // não recebem a identidade de quem entrou. Avaliação já exigia autor conhecido.
                 // Check-in, check-out e avaliação são idempotentes pela chave natural do turno (contrato 0.2.18);
                 // a `chave` da ação fica só na fila local.
                 switch acao.tipo {
@@ -39,8 +42,7 @@ public actor SincronizadorAcoes {
                     )
                 case .avaliacao:
                     guard let turnoID = acao.turnoID, let resposta = acao.resposta,
-                          let contaID = acao.contaID else { continue }
-                    if try await api.minhaConta().id != contaID { continue }
+                          acao.contaID != nil else { continue }
                     _ = try await api.avaliar(turnoID: turnoID, resposta: resposta)
                 case .publicacaoVaga:
                     guard let publicacao = acao.publicacao else { continue }
@@ -59,7 +61,9 @@ public actor SincronizadorAcoes {
                     guard let vagaID = acao.alvoID, let motivo = acao.motivo else { continue }
                     _ = try await api.cancelarVaga(id: vagaID, motivo: motivo)
                 }
+                try await fila.resolverRecusas(acao)
                 try await fila.remover(id: acao.id)
+                NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
             } catch let erro as ErroDaApi where erro.codigo == .semRede {
                 return
             } catch let erro as ErroDaApi where acao.tipo == .avaliacao && erro.codigo == .avaliacaoJaRegistrada {

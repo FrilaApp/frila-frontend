@@ -153,7 +153,8 @@ public final class PublicarVagaViewModel {
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
 
     public func carregarRecusaDaFila() async {
-        recusaDaFila = (try? await fila.recusadas().first { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? nil
+        let recusadas = (try? await fila.recusadas().filter { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? []
+        recusaDaFila = recusadas.first { $0.id == acaoPendente?.id } ?? recusadas.first
         if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
             acaoPendente = nil
             publicacaoPendente = nil
@@ -260,6 +261,8 @@ public final class PublicarVagaViewModel {
         }
         do {
             resultado = try await publicarAPI(publicacao)
+            try? await fila.resolverRecusas(acaoPendente)
+            recusaDaFila = nil
             try? await fila.remover(id: acaoPendente.id)
             publicacaoPendente = nil
             self.acaoPendente = nil

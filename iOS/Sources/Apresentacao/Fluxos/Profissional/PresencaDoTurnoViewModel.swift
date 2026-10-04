@@ -117,9 +117,29 @@ public final class PresencaDoTurnoViewModel {
     /// O que ficou na fila num toque anterior volta a aparecer como pendente ao reabrir a tela.
     public func restaurarPendentes() async {
         guard let fila, let pendentes = try? await fila.pendentes() else { return }
-        // Uma recusa retira também o estado pendente da tela que já estava aberta.
-        if case .naFila = checkin { checkin = .naoFeito }
-        if case .naFila = checkout { checkout = .naoFeito }
+        let recusadas = (try? await fila.recusadas()) ?? []
+        let entradaSaiu = !pendentes.contains { $0.tipo == .checkin && $0.turnoID == turno.id }
+        let saidaSaiu = !pendentes.contains { $0.tipo == .checkout && $0.turnoID == turno.id }
+        // Ausência na fila não prova recusa: o servidor pode ter aceitado esse registro.
+        if (entradaSaiu && estaNaFila(checkin)) || (saidaSaiu && estaNaFila(checkout)) {
+            let atualizado = try? await api.meusTurnos().first { $0.id == turno.id }
+            if let atualizado { verificacao = atualizado.verificacao }
+            if entradaSaiu, case .naFila = checkin {
+                if let registro = atualizado?.checkin {
+                    checkin = .registrado(.init(instante: registro.instante, distanciaMetros: registro.distanciaMetros, manual: registro.tipo == .manual))
+                } else if recusadas.contains(where: { $0.tipo == .checkin && $0.turnoID == turno.id }) {
+                    checkin = .naoFeito
+                }
+            }
+            if saidaSaiu, case .naFila = checkout {
+                if let registro = atualizado?.checkout {
+                    checkout = .registrado(.init(instante: registro.instante, distanciaMetros: registro.distanciaMetros, manual: false))
+                } else if recusadas.contains(where: { $0.tipo == .checkout && $0.turnoID == turno.id }) {
+                    checkout = .naoFeito
+                }
+            }
+            // Sem leitura nem recusa confirmada, conserva a indicação local até poder conferir.
+        }
         for acao in pendentes where acao.turnoID == turno.id {
             let feito = RegistroFeito(instante: acao.instanteDoToque, distanciaMetros: acao.distanciaMetros, manual: acao.distanciaMetros == nil)
             switch acao.tipo {
@@ -128,6 +148,11 @@ public final class PresencaDoTurnoViewModel {
             default: break
             }
         }
+    }
+
+    private func estaNaFila(_ situacao: Situacao) -> Bool {
+        if case .naFila = situacao { return true }
+        return false
     }
 
     /// Toque em "Fazer check-in" ou "Fazer check-out". O instante do registro é o deste toque.
@@ -245,6 +270,10 @@ public final class PresencaDoTurnoViewModel {
             case .checkout: checkout = .registrado(RegistroFeito(instante: feito.instante, distanciaMetros: feito.distanciaMetros, manual: false))
             }
             verificacao = resultado.verificacao
+            try? await fila?.resolverRecusas(AcaoPendente(
+                tipo: registro == .checkin ? .checkin : .checkout, turnoID: turno.id,
+                instanteDoToque: toque, chave: UUID()
+            ))
             aoRegistrar()
         } catch let erro as ErroDaApi where erro.codigo == .semRede {
             await guardarNaFila(registro, distanciaMetros: distanciaMetros, toque: toque)

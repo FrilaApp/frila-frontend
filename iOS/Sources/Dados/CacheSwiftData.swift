@@ -235,6 +235,13 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         let idRecusado = acao.id
         // Um aviso já gravado é terminal para este envio, mesmo se uma tela antiga guardar a ação.
         if try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>(predicate: #Predicate { $0.id == idRecusado })).first != nil { return }
+        // Só uma nova gravação recebe a identidade da sessão. A leitura/migração não atribui
+        // ações legadas à conta que entrou; reenfileirar o mesmo ID conserva o autor original.
+        let anterior = try pendentes().first { $0.id == acao.id }
+        let autor: UUID?
+        if let anterior { autor = anterior.contaID }
+        else { autor = try acao.contaID ?? sessao()?.usuarioID }
+        let acao = autor.map { acao.com(contaID: $0) } ?? acao
         // A fila também protege dois modelos da mesma tela: mantém a primeira resposta por autor/turno.
         if acao.tipo == .avaliacao, let contaID = acao.contaID,
            try pendentes().contains(where: { $0.tipo == .avaliacao && $0.contaID == contaID && $0.turnoID == acao.turnoID }) {
@@ -287,6 +294,23 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>()).map {
             try JSONDecoder().decode(AcaoRecusada.self, from: $0.conteudo)
         }
+    }
+
+    public func resolverRecusas(_ acao: AcaoPendente) throws {
+        let autor = try acao.contaID ?? sessao()?.usuarioID
+        let aceita = autor.map { acao.com(contaID: $0) } ?? acao
+        let decoder = JSONDecoder()
+        let registros = try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>())
+        let resolvidas = try registros.filter { try decoder.decode(AcaoRecusada.self, from: $0.conteudo).corresponde(a: aceita) }
+        guard !resolvidas.isEmpty else { return }
+        do {
+            for registro in resolvidas { modelContext.delete(registro) }
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+        NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
     }
 
     public func remover(id: UUID) throws {

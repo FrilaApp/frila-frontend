@@ -15,8 +15,12 @@ private final class ApiPublicacaoRecusada: ApiClienteEncaminhador, @unchecked Se
 }
 
 private actor FilaPublicacaoTeste: FilaDeAcoes {
-    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
-    func recusadas() -> [AcaoRecusada] { [] }
+    private var avisos: [AcaoRecusada] = []
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {
+        avisos.append(AcaoRecusada(acao: acao, codigo: codigo))
+        remover(id: acao.id)
+    }
+    func recusadas() -> [AcaoRecusada] { avisos }
 
     private var itens: [AcaoPendente] = []
     func enfileirar(_ acao: AcaoPendente) { itens.removeAll { $0.id == acao.id }; itens.append(acao) }
@@ -78,6 +82,26 @@ struct PublicarVagaTests {
         let outroModel = PublicarVagaViewModel(estabelecimento: outra, fila: fila) { _ in throw ErroDaApi(codigo: .semRede) }
         await outroModel.carregarRecusaDaFila()
         #expect(outroModel.recusaDaFila == nil)
+    }
+
+    @Test("Aviso antigo não esconde a recusa da publicação atual")
+    func duasRecusasDesbloqueiamAtual() async throws {
+        let fila = FilaPublicacaoTeste()
+        let fixed = agora
+        let model = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { _ in
+            throw ErroDaApi(codigo: .semRede)
+        }
+        preencher(model)
+        await model.publicar()
+        let anterior = try #require(await fila.pendentes().first)
+        try await fila.recusar(anterior, codigo: .horarioInvalido)
+        await model.carregarRecusaDaFila()
+        await model.publicar()
+        let atual = try #require(await fila.pendentes().first)
+        try await fila.recusar(atual, codigo: .semPermissao)
+        await model.carregarRecusaDaFila()
+        #expect(model.recusaDaFila?.id == atual.id)
+        #expect(!model.camposBloqueados)
     }
 
     private func modelo() throws -> PublicarVagaViewModel {
