@@ -34,10 +34,12 @@ public struct FolhaDeCancelamento: View {
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button(TextosDoCancelamento.ok) {
+                    Button {
                         focoNosDetalhes = false
+                    } label: {
+                        Text(verbatim: TextosDoCancelamento.ok)
                     }
-                    .accessibilityLabel(TextosDoCancelamento.recolherTeclado)
+                    .accessibilityLabel(Text(verbatim: TextosDoCancelamento.recolherTeclado))
                     .accessibilityIdentifier("recolher-teclado")
                 }
             }
@@ -96,20 +98,6 @@ public struct FolhaDeCancelamento: View {
         switch viewModel.estado {
         case .pronto, .enviando, .falha:
             VStack(spacing: FrilaEspaco.pequeno) {
-                if focoNosDetalhes {
-                    HStack {
-                        Spacer()
-                        Button {
-                            focoNosDetalhes = false
-                        } label: {
-                            Text(verbatim: TextosDoCancelamento.ok)
-                                .font(.body.weight(.semibold))
-                        }
-                        .accessibilityLabel(TextosDoCancelamento.recolherTeclado)
-                        .accessibilityIdentifier("recolher-teclado")
-                    }
-                }
-
                 BotaoPrimario(verbatim: TextosDoCancelamento.confirmar, carregando: viewModel.estado == .enviando) {
                     Task { await viewModel.confirmar() }
                 }

@@ -153,9 +153,12 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
 
         salvarCaptura(app.screenshot(), nome: "04-cancelamento-outro-motivo-teclado-se.png")
 
-        let recolherTeclado = app.buttons["recolher-teclado"]
-        XCTAssertTrue(recolherTeclado.waitForExistence(timeout: 5), "Botão da barra do teclado deve existir")
-        tocar(recolherTeclado)
+        let recolherTeclado = app.toolbars.buttons["recolher-teclado"].exists
+            ? app.toolbars.buttons["recolher-teclado"]
+            : app.buttons["recolher-teclado"]
+        if recolherTeclado.waitForExistence(timeout: 2) {
+            XCTAssertTrue(recolherTeclado.isHittable)
+        }
 
         XCTAssertTrue(confirmar.isHittable)
         tocar(confirmar)

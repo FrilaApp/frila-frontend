@@ -200,21 +200,23 @@ public struct AvisoFrila: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Image(systemName: icone)
+                        .accessibilityHidden(true)
                     textoView
                 }
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
                     Image(systemName: icone)
+                        .accessibilityHidden(true)
                     textoView
                 }
             }
         }
+        .accessibilityElement(children: .combine)
         .font(.callout)
         .foregroundStyle(cor)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
         .background(cor.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder private var textoView: some View {
