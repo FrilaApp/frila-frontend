@@ -151,6 +151,8 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(confirmar.isEnabled)
         XCTAssertTrue(confirmar.isHittable, "Confirmar cancelamento deve ser hittable com teclado aberto")
 
+        salvarCaptura(app.screenshot(), nome: "04-cancelamento-outro-motivo-teclado-se.png")
+
         let recolherTeclado = app.buttons["recolher-teclado"]
         XCTAssertTrue(recolherTeclado.waitForExistence(timeout: 5), "Botão da barra do teclado deve existir")
         tocar(recolherTeclado)
@@ -184,8 +186,19 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         XCTAssertFalse(aviso.label.contains("cancela-"), "Aviso não deve hifenizar palavras em AX5")
         XCTAssertFalse(aviso.label.contains("compareci-"), "Aviso não deve hifenizar palavras em AX5")
 
+        salvarCaptura(app.screenshot(), nome: "05-cancelamento-aviso-ax5.png")
+
         let confirmar = app.buttons["confirmar-cancelamento"]
         XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
+    }
+
+    private func salvarCaptura(_ screenshot: XCUIScreenshot, nome: String) {
+        let anexo = XCTAttachment(screenshot: screenshot)
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+        let caminho = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/thor/capturas/\(nome)"
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: caminho))
     }
 
     private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
