@@ -166,7 +166,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .resultado(vaga, resultado):
                             TelaResultadoDaCandidatura(
                                 vaga: vaga, resultado: resultado, api: api, verCandidaturas: { roteador.abrirCandidaturas() },
-                                voltarParaLista: voltarParaLista
+                                sair: sair, voltarParaLista: voltarParaLista
                             )
                         case let .meuTurno(turno):
                             destinoDoMeuTurno(turno)
@@ -237,6 +237,11 @@ public struct FluxoDoProfissional<Barra: View>: View {
                 Label(TextosDaCandidaturaEmSelecao.titulo, systemImage: "paperplane")
             }
             .tag(AbaDoProfissional.candidaturas)
+        }
+        .environment(feed.bloqueios)
+        .onChange(of: feed.bloqueios.alvos) {
+            // O servidor também retirou vagas: reinicia os offsets para não pular itens.
+            Task { await feed.atualizar() }
         }
         .onChange(of: roteador.avisosAbertos) { atualizarListas() }
         .onChange(of: caminhoCandidaturas) { _, caminho in

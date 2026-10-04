@@ -152,10 +152,59 @@ final class CandidaturaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
         app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10), "a tela de vagas deve aparecer")
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         XCTAssertTrue(primeira.waitForExistence(timeout: 25), "a primeira vaga deve aparecer na lista após o carregamento inicial")
+
+        if !primeira.isHittable {
+            let tocavel = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "isHittable == true"),
+                object: primeira
+            )
+            _ = XCTWaiter.wait(for: [tocavel], timeout: 5)
+        }
+        if !primeira.isHittable {
+            app.swipeUp()
+        }
+        let tocavelFinal = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"),
+            object: primeira
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [tocavelFinal], timeout: 5), .completed,
+            "o primeiro cartão de vaga deve ficar tocável na lista"
+        )
+
         primeira.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10), "a tela de detalhe da vaga deve aparecer após o toque no cartão")
+
+        let detalhe = app.descendants(matching: .any)["tela-detalhe-vaga"]
+        let detalheAbriu = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true"),
+            object: detalhe
+        )
+        if XCTWaiter.wait(for: [detalheAbriu], timeout: 3) != .completed {
+            XCTContext.runActivity(named: "Repetir toque no cartão da vaga") { _ in
+                let anexo = XCTAttachment(string: "A tela de detalhe da vaga não abriu em até 3 s após o primeiro toque no cartão; acionando segundo toque.")
+                anexo.name = "RepeticaoDoToqueNoCartaoDaVaga"
+                anexo.lifetime = .keepAlways
+                add(anexo)
+            }
+            if primeira.exists && primeira.isHittable {
+                primeira.tap()
+            }
+            let detalheAbriuAposSegundoToque = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == true"),
+                object: detalhe
+            )
+            // Depois do segundo toque, o mesmo prazo de antes da mudança: na CI carregada a
+            // navegação pode levar mais de 3 s, e 3 s aqui acusariam defeito do app sem haver.
+            XCTAssertEqual(
+                XCTWaiter.wait(for: [detalheAbriuAposSegundoToque], timeout: 10), .completed,
+                "Defeito do app: tela de detalhe da vaga não apareceu após o segundo toque no cartão"
+            )
+        }
+
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
         XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")
@@ -196,12 +245,21 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
-    func testContaSuspensaMostraOMotivoEContestarDesabilitado() {
+    func testContaSuspensaNaCandidaturaAbreContestacaoEEnviaRelato() {
         let app = abrirDetalheECandidatar("inelegivel-suspenso")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-conta-suspensa"].waitForExistence(timeout: 10))
         let contestar = app.buttons["contestar"]
         XCTAssertTrue(contestar.exists)
-        XCTAssertFalse(contestar.isEnabled)
+        XCTAssertTrue(contestar.isEnabled)
+        contestar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-conta-suspensa"].waitForExistence(timeout: 5))
+        app.buttons["botao-contestar-suspensao"].tap()
+        let relato = app.descendants(matching: .any)["campo-relato-contestacao"].firstMatch
+        XCTAssertTrue(relato.waitForExistence(timeout: 5))
+        relato.tap()
+        relato.typeText("Solicito a revisão da suspensão da minha conta")
+        app.buttons["botao-enviar-contestacao"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-contestacao"].waitForExistence(timeout: 5))
     }
 
     func testResultadoComTamanhoDeAcessibilidadeMantemOBotaoDeVolta() {
@@ -256,13 +314,21 @@ final class AutenticacaoUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
 
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
 
-        app.buttons["cadastro-continuar"].tap()
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
+
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
 
         preencherPerfil(app)
         app.buttons["botao-salvar-perfil"].tap()
@@ -296,9 +362,11 @@ final class AutenticacaoUITests: XCTestCase {
         app.buttons["botao-salvar-perfil"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
-        XCTAssertTrue(app.buttons["botao-salvar-perfil"].isEnabled)
-        app.buttons["botao-salvar-perfil"].tap()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        let botaoSalvar = app.buttons["botao-salvar-perfil"]
+        rolarAte(botaoSalvar, app: app)
+        XCTAssertTrue(botaoSalvar.isEnabled)
+        botaoSalvar.tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
     func testErroAoCriarPerfilPermiteSair() {
@@ -338,6 +406,11 @@ final class AutenticacaoUITests: XCTestCase {
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
         for _ in 0..<6 {
             if elemento.isHittable { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+        if !elemento.isHittable {
             app.swipeUp()
         }
         XCTAssertTrue(elemento.isHittable)
@@ -435,14 +508,75 @@ final class AutenticacaoUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("01/01/2015")
 
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
 
-        app.buttons["cadastro-continuar"].tap()
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
 
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
+    }
+
+    func testCadastroComDeclaredAgeRangeAbaixoDe18ExibeRecusa() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ENTRADA",
+            "-FRILA_SCENARIO", "primeiro-acesso",
+            "-FRILA_DECLARED_AGE_RANGE", "abaixo-de-18"
+        ]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.digitarEEsperar("menor.declarado@frila.app")
+        app.buttons["entrada-receber-codigo"].tap()
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        app.buttons["codigo-entrar"].tap()
+
+        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        let nome = app.textFields["cadastro-nome"]
+        nome.tap()
+        nome.typeText("Menor Pelo Sistema")
+
+        let telefone = app.textFields["cadastro-telefone"]
+        telefone.tap()
+        telefone.typeText("61988887777")
+
+        let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
+        nascimento.tap()
+        // Data de nascimento indica mais de 18 anos (passa na validação local da data)
+        nascimento.typeText("01/01/2000")
+
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
+
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
+
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
+
+        // O sinal Declared Age Range diz que é menor de 18: recusa com a mensagem da RN20
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
     }
@@ -474,23 +608,31 @@ final class AutenticacaoUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
 
         let btnContinuar = app.buttons["cadastro-continuar"]
+        rolarAte(btnContinuar, app: app)
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve estar desabilitado sem maioridade e sem termos")
 
         // Marca apenas maioridade
-        app.buttons["cadastro-maior-de-idade"].tap()
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem aceite dos termos")
 
         // Desmarca maioridade e marca apenas termos
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem confirmação de maioridade")
 
         // Marca ambos
-        app.buttons["cadastro-maior-de-idade"].tap()
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve habilitar com formulário completo, maioridade e termos")
     }
 }

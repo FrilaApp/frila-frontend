@@ -1,6 +1,186 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "Bloquear este perfil?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear este perfil?"
+          }
+        }
+      }
+    },
+    "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento."
+          }
+        }
+      }
+    },
+    "Motivo da denúncia": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motivo da denúncia"
+          }
+        }
+      }
+    },
+    "Relato": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relato"
+          }
+        }
+      }
+    },
+    "O relato deve conter pelo menos 10 caracteres.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O relato deve conter pelo menos 10 caracteres."
+          }
+        }
+      }
+    },
+    "Enviar denúncia": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar denúncia"
+          }
+        }
+      }
+    },
+    "Em risco imediato, ligue 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em risco imediato, ligue 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher)"
+          }
+        }
+      }
+    },
+    "Ligar 190 — Polícia Militar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligar 190 — Polícia Militar"
+          }
+        }
+      }
+    },
+    "Ligar 180 — Central de Atendimento à Mulher": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligar 180 — Central de Atendimento à Mulher"
+          }
+        }
+      }
+    },
+    "Denúncia enviada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denúncia enviada"
+          }
+        }
+      }
+    },
+    "Número do protocolo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Número do protocolo"
+          }
+        }
+      }
+    },
+    "Resposta por e-mail até": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resposta por e-mail até"
+          }
+        }
+      }
+    },
+    "Perfil indisponível": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil indisponível"
+          }
+        }
+      }
+    },
+    "Sem conexão. Verifique sua internet e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. Verifique sua internet e tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar estes dados. Confira as informações e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar estes dados. Confira as informações e tente novamente."
+          }
+        }
+      }
+    },
+    "Assédio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assédio"
+          }
+        }
+      }
+    },
+    "Discriminação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discriminação"
+          }
+        }
+      }
+    },
+    "Risco à segurança": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risco à segurança"
+          }
+        }
+      }
+    },
     "%@ às %@": {
       "localizations": {
         "pt-BR": {
@@ -139,16 +319,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "A avaliação só fica disponível após o término do turno e com presença confirmada."
-          }
-        }
-      }
-    },
-    "A contestação chega numa próxima versão do app.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A contestação chega numa próxima versão do app."
           }
         }
       }
@@ -983,16 +1153,6 @@
         }
       }
     },
-    "Configuração de funções e horários disponíveis para o profissional (Cartão #98).": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configuração de funções e horários disponíveis para o profissional (Cartão #98)."
-          }
-        }
-      }
-    },
     "Confira o campo indicado.": {
       "localizations": {
         "pt-BR": {
@@ -1579,16 +1739,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta conta já foi cadastrada."
-          }
-        }
-      }
-    },
-    "Esta etapa estará disponível em breve.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta etapa estará disponível em breve."
           }
         }
       }
@@ -3273,16 +3423,6 @@
         }
       }
     },
-    "Sua vaga foi publicada. A lista Minhas vagas estará disponível em breve.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua vaga foi publicada. A lista Minhas vagas estará disponível em breve."
-          }
-        }
-      }
-    },
     "Sábado": {
       "localizations": {
         "pt-BR": {
@@ -4109,26 +4249,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ajuda"
-          }
-        }
-      }
-    },
-    "Disponível no cartão #219": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disponível no cartão #219"
-          }
-        }
-      }
-    },
-    "Disponível no cartão #50": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disponível no cartão #50"
           }
         }
       }
