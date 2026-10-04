@@ -130,6 +130,7 @@ compilação e no `.xcresult`, ~100 MB). Proposta, sem mexer no workflow agora: 
 
 ```sh
 cd iOS
+Scripts/gerar-projeto.sh  # gera o Frila.xcodeproj via XcodeGen e restaura o Package.resolved versionado
 xcodebuild test -project Frila.xcodeproj -scheme Frila-Local \
   -destination 'platform=iOS Simulator,id=<UDID>' -only-testing:FrilaTests \
   -enableCodeCoverage YES -resultBundlePath /tmp/cobertura.xcresult

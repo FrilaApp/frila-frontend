@@ -100,6 +100,9 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
 ## Como repetir
 
 ```sh
+# antes de rodar, se o projeto ainda não foi gerado nesta pasta/branch:
+Scripts/gerar-projeto.sh  # gera o Frila.xcodeproj via XcodeGen e restaura o Package.resolved versionado
+
 # Suíte afetada
 xcodebuild test -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,id=<UDID>' \
   -only-testing:FrilaTests/SegurancaDoCodigoTests -only-testing:FrilaTests/SessaoNoKeychainDoAparelhoTests \

@@ -5,7 +5,7 @@ Fundação nativa em Swift 6.3, SwiftUI e SwiftData, com alvo mínimo iOS 17 e b
 ## Abrir e rodar
 
 1. Instale o XcodeGen 2.45.3 (`brew install xcodegen`; a CI usa essa versão fixada).
-2. Rode `Scripts/gerar-projeto.sh` nesta pasta toda vez que clonar ou der `git pull` (ou trocar de branch). O `Frila.xcodeproj` não é versionado no Git para evitar conflitos constantes de merge no `project.pbxproj`; a estrutura do projeto vem do `project.yml` e as versões fixadas dos pacotes SPM vêm do `Package.resolved` versionado na raiz do iOS, que o script restaura para dentro do projeto gerado.
+2. Rode `Scripts/gerar-projeto.sh` nesta pasta toda vez que clonar ou der `git pull` (ou trocar de branch): ele gera o `Frila.xcodeproj` via XcodeGen a partir de `project.yml` e restaura o `Package.resolved` versionado dentro do projeto. O `Frila.xcodeproj` não é versionado no Git para evitar conflitos constantes de merge no `project.pbxproj`.
 3. Abra `Frila.xcodeproj` e use `Frila-Local` no simulador. Esse esquema usa `ApiClienteEmMemoria` de forma explícita e não precisa de backend, Supabase nem Firebase.
 4. Para `Frila-Dev` e `Frila-Prod`, gere `Configurations/Secrets.xcconfig` (seção abaixo) e injete os plists do Firebase.
 
@@ -80,7 +80,7 @@ Em builds Debug, o catálogo traz a seção **Validação do cliente**. A entrad
 Roteiro do critério 1 com o Supabase local, sem o limite de e-mails do projeto hospedado:
 
 1. No `frila-backend`, `supabase start`. O `config.toml` usa `supabase/templates/codigo-de-entrada.html`, que manda só o código: em 25/09 o e-mail local foi conferido sem link de verificação. Com o CLI 2.75, `supabase start` e `supabase db reset` param no seed `cenarios.sql`; o contorno está no `docs/ESTADO.md` do frila-backend. `supabase status` mostra a chave publicável local e a caixa de e-mail local (porta 54324).
-2. Rode o esquema `Frila-Local` apontado para o Supabase local, sem gravar nada no repositório:
+2. Gere o projeto (`Scripts/gerar-projeto.sh`, se ainda não gerado nesta pasta/branch: ele gera o `Frila.xcodeproj` via XcodeGen e restaura o `Package.resolved` versionado) e rode o esquema `Frila-Local` apontado para o Supabase local, sem gravar nada no repositório:
    `xcodebuild build -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone>' FRILA_API_MODE=supabase FRILA_SUPABASE_PUBLISHABLE_KEY=<chave publicável local>`
    (dica: adicionar `-derivedDataPath build` gera o app de forma previsível em `build/Build/Products/Debug-Local-iphonesimulator/Frila.app`), instale com `xcrun simctl install booted <caminho do Frila.app>` e abra com `xcrun simctl launch booted com.frila.org.app`. O `local` só aceita `http` em `127.0.0.1`/`localhost`.
 3. Na seção **Validação do cliente**, informe um e-mail de teste, toque em **Enviar código**, copie o código de seis dígitos da caixa de e-mail local e toque em **Confirmar código**. A seção passa a mostrar "Sessão ativa neste aparelho.".
@@ -138,11 +138,11 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Leitura.** Tempo-limite de 10 s; para na primeira posição com precisão de até 100 m. Precisão horizontal acima de 100 m não vale.
 - **Não consegui pelo GPS.** Sem permissão, com localização aproximada mantida (depois de pedir a precisa com a chave `CheckIn`), sem sinal, com leitura imprecisa ou, no check-in, a mais de 200 m, a tela oferece o check-in manual. Ele vai sem distância, com o instante do toque no botão do manual, e fica "aguardando confirmação" do contratante.
 - **Check-out.** Mesmo fluxo, sem teto de distância: a 350 m é enviado com a distância. Sem GPS, a saída é registrada sem localização.
-- **Sem rede.** `sem_rede` no envio põe a ação na fila offline (#111) com o instante do toque; ela sobe pelo `ReenvioAoReconectar`. Ao reabrir a tela, o que está na fila aparece como pendente.
+- **Sem rede.** `sem_rede` no envio põe a ação na fila offline (#111) com o instante do toque; ela sobe pelo `ReenvioAoReconectar`. Ao reabrir a tela, o que está na fila aparece como pendente. Sete tipos de ação entram na fila (`TipoAcaoPendente`, `Dominio/Cache.swift:31-41`: check-in, check-out, avaliação, publicação de vaga, republicação de vaga, cancelamento de posição e cancelamento de vaga).
 - **Ponto da vaga.** `meus_turnos` não traz o ponto: ele vem do detalhe da vaga, que a tela já carrega. Com a tela aberta sem rede desde o início, o ponto não chega e o registro sai como manual, mesmo com GPS.
-- **Limites.** A tela aberta não se atualiza sozinha quando a fila sobe. Uma ação da fila recusada em definitivo (por exemplo `fora_da_janela` ou `vaga_encerrada`) sai do reenvio e deixa um aviso no detalhe do turno, mesmo cancelado. Falhas transitórias continuam pendentes. O `meusTurnos` do dublê não reflete o check-in, então reabrir o turno no esquema Local mostra o botão de novo, e o toque devolve o registro já gravado.
+- **Reatividade da fila e recusas (#139).** A tela aberta reage à notificação `.filaDeAcoesAtualizada` (`TelaMeuTurno.swift:62`, `TelaAvaliacao.swift:50`, `PublicarVaga.swift:417`, `RepublicarVaga.swift:339`), relendo recusas e estados sem exigir reabertura manual. Uma ação da fila recusada em definitivo sai do reenvio e deixa um aviso no detalhe do turno (`AcaoRecusada`), que pode ser reconhecido individualmente sem permitir reenvio indevido. O sincronizador isola ações por autor (`contaID`, `SincronizadorAcoes.swift:31`). Falhas transitórias continuam pendentes. O `meusTurnos` do dublê não reflete o check-in, então reabrir o turno no esquema Local mostra o botão de novo, e o toque devolve o registro já gravado.
 - **GPS simulado.** No esquema Local, `-FRILA_LOCALIZACAO` seguido de `perto` (150 m), `longe` (350 m), `negada`, `sem-sinal`, `imprecisa` ou `aproximada` troca o CoreLocation pelo `LeitorDeLocalizacaoSimulado`, com as distâncias medidas até a vaga das fixtures. Só vale com o dublê em memória; sem o argumento, o esquema Local usa o GPS do simulador (`xcrun simctl location <udid> set <lat>,<lon>`).
-- **Cancelamento e suporte.** O profissional pode cancelar o turno confirmado em "Cancelar turno" (`FolhaDeCancelamento`), informando motivo predefinido ou livre, com aviso de falta a menos de 24 h (#20, #92, #117, #128). No rodapé, o botão "Ajuda no turno" abre e-mail pré-preenchido com dados do turno para suporte direto (#131).
+- **Cancelamento e suporte.** O profissional pode cancelar o turno confirmado em "Cancelar turno" (`FolhaDeCancelamento`), informando motivo predefinido ou livre, com aviso de falta a menos de 24 h (#20, #92, #117, #128). No rodapé, o botão "Ajuda no turno" abre e-mail pré-preenchido com dados do turno para suporte direto (#131), com reabertura nativa corrigida (#140).
 
 ## Publicar vaga em Minhas vagas
 
@@ -160,7 +160,7 @@ O contratante que já tem estabelecimento publica pelas Minhas vagas: o botão "
 
 - **Confirmar presença.** O check-in manual pendente aparece em "Presenças a confirmar", no topo de Minhas vagas, e na seção Chegada de "Acompanhar turno". Um toque chama `confirmar_checkin_manual`; a tela muda assim que a chamada responde, sem esperar nova leitura do painel.
 - **Reabrir vaga.** O botão só existe quando o painel marca `em_atraso`. Quem decide os 15 minutos é o servidor, nunca o relógio do aparelho. O toque abre uma pergunta que avisa da falta; só a confirmação chama `reabrir_por_atraso`.
-- **Avaliação do profissional (#126).** Ao término do turno com presença confirmada, a tela oferece a avaliação do profissional com a pergunta única binária "Chamaria este profissional de novo?" (Sim ou Não).
+- **Avaliação do profissional (#126, #140).** Ao término do turno com presença confirmada ou posição cumprida (`AcompanhamentoViewModel.swift:405-414`), a tela oferece a avaliação do profissional com a pergunta única binária "Chamaria este profissional de novo?" (Sim ou Não), com view model de avaliação estável por turno.
 - **Cancelamento (#20, #93, #117).** A casa pode cancelar uma posição específica no painel do turno ou a vaga inteira em Minhas vagas, com motivo obrigatório informado na folha de cancelamento.
 - **Ações de rodapé (#116, #131).** A tela de acompanhamento traz botões dedicados de "Ajuda no turno" (e-mail com identificadores pré-preenchidos), "Denunciar" e "Bloquear".
 - **Avisos da casa.** `RoteadorDoContratante.abrir(_:)` recebe um `AvisoDoContratante`, montado do `tipo` e do `payload` como o backend os envia: `vaga_vazia` abre a vaga; `checkin_manual_pendente` e `atraso_15min` abrem o turno; os outros avisos da casa abrem a vaga ou o turno de que falam. Ele nunca confirma nem reabre sozinho, e o painel é relido a cada aviso. É a entrada do push ([Push](Docs/Push.md)). Em Debug, `-FRILA_AVISO <tipo> -FRILA_AVISO_ID <uuid>` simula só a tela (o id é o `vaga_id` em `vaga_vazia` e o `turno_id` nos outros tipos), e `-FRILA_PUSH` simula o toque inteiro.
@@ -278,6 +278,7 @@ No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso
 `Licencas.json` é gerado, não se edita à mão. Depois de acrescentar, tirar ou atualizar um pacote:
 
 ```sh
+Scripts/gerar-projeto.sh  # se ainda não gerou o projeto nesta pasta/branch
 xcodebuild -resolvePackageDependencies -project Frila.xcodeproj -scheme Frila-Local -derivedDataPath <pasta>
 Scripts/gerar-licencas.py --checkouts <pasta>/SourcePackages/checkouts
 ```

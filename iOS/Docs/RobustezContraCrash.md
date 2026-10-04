@@ -21,8 +21,9 @@ estado ou mensagem incorreta sem fechar nem travar. Situação: **corrigido** ne
   inteira (corrigido). Todos os seis achados estão corrigidos.
 - Concorrência: o projeto já compila em Swift 6 com `SWIFT_STRICT_CONCURRENCY: complete`
   (`project.yml:33-34`); o build de `Frila-Local` tem zero avisos em `Sources` (os 17 avisos são
-  dos alvos de teste). Nenhum `Task.detached`, nenhum `unowned`, nenhum observador de
-  `NotificationCenter`; todos os view models são `@MainActor @Observable`.
+  dos alvos de teste). Nenhum `Task.detached`, nenhum `unowned`, nenhum observador manual de
+  `NotificationCenter` (a apresentação reage a `.filaDeAcoesAtualizada` via `.onReceive` do SwiftUI,
+  cancelado com o ciclo de vida da view); todos os view models são `@MainActor @Observable`.
 - Tamanho e texto: cartões de vaga, turno e candidatura renderizam com texto de 2.000 caracteres,
   emoji composto, escrita RTL e nome vazio (teste novo); as listas de vagas e de turnos são
   `LazyVStack`, e a de vagas é paginada em 30.
@@ -83,7 +84,7 @@ estado ou mensagem incorreta sem fechar nem travar. Situação: **corrigido** ne
 
 - Closures guardadas em view model (`aoAvaliar`, `aoEnfileirar`, `aoConcluir`) capturam
   `[weak self]` (`MeuTurnoViewModel.swift:119-134`, `AcompanhamentoViewModel.swift:315,327`).
-- Nenhum observador de `NotificationCenter`; o push usa o delegate do `UNUserNotificationCenter`.
+- Nenhum observador manual de `NotificationCenter`; o push usa o delegate do `UNUserNotificationCenter`, e a reação a `.filaDeAcoesAtualizada` em telas reativas usa `.onReceive` do SwiftUI, sem ciclos de retenção.
 - `AparelhoDePush.mudancasDoVinculo` remove a continuation no `onTermination` (`[weak self]`).
 
 ## Decodificação

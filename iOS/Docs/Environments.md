@@ -28,7 +28,7 @@ Para cadastrar sem expor o valor: `read -rs VALOR && printf '%s' "$VALOR" | gh s
 
 `Shared.xcconfig` declara as quatro variáveis `FRILA_SUPABASE_*` vazias e inclui o `Secrets.xcconfig` opcional. `Dev.xcconfig` e `Prod.xcconfig` copiam o par do ambiente para `FRILA_SUPABASE_URL` e `FRILA_SUPABASE_PUBLISHABLE_KEY`. `Sources/App/Info.plist` leva essas variáveis ao Info.plist, porque `INFOPLIST_KEY_*` só aceita chaves da Apple. Até o commit `a91176c` as chaves `FRILA_*` não chegavam ao Info.plist, e Dev e Prod rodavam sempre o dublê em memória.
 
-A configuração `Release-Beta` (esquema `Frila-Beta`) é compilada como Release e aponta para o frila-dev: é a do TestFlight antes do frila-prod existir. Ela usa os valores de Dev do `Secrets.xcconfig`, mas não inclui o `Dev.xcconfig`, para não herdar o `DEBUG`. `Release-Prod` aponta para o frila-prod, criado em 24/09 e ainda sem esquema: as migrações de produção entram pelo cartão do ambiente de produção (#76), com a entrega contínua do #207. Cada abertura registra no log o ambiente e a URL, nunca a chave.
+A configuração `Release-Beta` (esquema `Frila-Beta`) é compilada como Release e aponta para o frila-dev: é a do TestFlight antes do frila-prod existir. Ela usa os valores de Dev do `Secrets.xcconfig`, mas não inclui o `Dev.xcconfig`, para não herdar o `DEBUG`. `Release-Prod` aponta para o frila-prod (esquema `Frila-Prod`, configurado no `project.yml` para os builds de produção): as migrações de produção entram pelo cartão do ambiente de produção (#76), com a entrega contínua do #207. Cada abertura registra no log o ambiente e a URL, nunca a chave.
 
 Sem valor, Dev, Beta e Prod não voltam ao simulado: falham na CI e, localmente, avisam no build e abrem na tela de configuração incompleta.
 
