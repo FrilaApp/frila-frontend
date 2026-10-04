@@ -81,7 +81,7 @@ Tipos: rótulo, traço, alvo, texto cortado, Dynamic Type, movimento. Tamanho: P
 | Folha de cancelamento | AX5 | layout | (QA do Steve, rodada 3, achado 2) o `AvisoFrila` hifenizava palavras ("cancela-", "compareci-") | `Componentes.swift` (`AvisoFrila`): ícone e texto lado a lado num `HStack` | **corrigido pelo #128**: o `AvisoFrila` empilha ícone e texto nos tamanhos de acessibilidade, em todas as telas que o usam |
 | Detalhe da vaga (Quando e Valor) | AX5 | layout | (QA do Steve, rodada 5, achado 1) o valor quebra no meio do número ("R$ 120,0" / "0"), no iPhone 17 e no SE | `TelaDetalheVaga.swift`: Quando e Valor lado a lado no `Grid` de duas colunas | **corrigido na rodada 3**: nos tamanhos de acessibilidade, Quando, Valor e Posições ficam um embaixo do outro; teste `AcessibilidadeDoProfissionalUITests.testDetalheDaVagaEmAX5EmpilhaQuandoEValorSemQuebrarOValor` |
 | Vagas (sem conexão) | AX5 | layout | (QA do Steve, rodada 5, achado 2) o aviso empurra o "Tentar novamente" para baixo da barra de abas flutuante | `TelaVagas.swift`: aviso e botão dentro da rolagem | **corrigido na rodada 3**: nos tamanhos de acessibilidade o botão fica preso ao rodapé, acima da barra, e o aviso rola (como a área de ação do detalhe da vaga); teste `AcessibilidadeDoProfissionalUITests.testSemConexaoEmAX5DeixaTentarNovamenteAcimaDaBarraDeAbas` |
-| Minhas vagas (presença a confirmar, turno em atraso) | P | Dynamic Type | (rodada 3) "partially unsupported" nos 7 textos dos cartões: função, valor, nome, data, local, "1 de 2 confirmadas" e "Hoje" | `MinhasVagas.swift:302`: as seções viraram `LazyVStack` no #124 (robustez, para não construir centenas de cartões). Com `VStack` o achado some. Inferência: provável falso positivo, como no `ViewThatFits` (seção "Rodada 3") | fica: arquivo ocupado (#73); falha esperada estrita no padrão. Trocar de volta para `VStack` desfaz a correção de robustez: a escolha é de quem cuida da tela |
+| Minhas vagas (presença a confirmar, turno em atraso) | P | Dynamic Type | (rodada 3) "partially unsupported" nos 7 textos dos cartões: função, valor, nome, data, local, "1 de 2 confirmadas" e "Hoje" | `MinhasVagas.swift:302`: as seções viraram `LazyVStack` no #127 (pendente 6 da robustez do #124, para não construir centenas de cartões). Com `VStack` o achado some. Inferência: provável falso positivo, como no `ViewThatFits` (seção "Rodada 3") | fica: arquivo ocupado (#73); falha esperada estrita no padrão. Trocar de volta para `VStack` desfaz a correção de robustez: a escolha é de quem cuida da tela |
 | Cadastro do estabelecimento, Publicar vaga | P | alvo | link "Legal" do mapa menor que 44 pt | `MKAttributionLabel` do MapKit (`CadastroEstabelecimento.swift:264`, `PublicarVaga.swift:405`) | sistema: não há API para o app |
 | Entrada, Código, Cadastro, Funções e horários, Cadastro do estabelecimento, Publicar vaga (mais opções) | P, AX5 | texto cortado | "Text of this UITextField may be clipped" | `Componentes.swift` (`CampoFrila`) e `TelaCodigo.swift`: flag do `UITextField` que o SwiftUI não expõe | falso positivo do XCTest; prova em `testCampoDeTextoCresceEmAX5` |
 
@@ -144,8 +144,9 @@ que mudou em relação à rodada anterior:
 - **Minhas vagas** (presença a confirmar e turno em atraso): achado novo. No padrão, os 7 textos
   dos cartões saem como Dynamic Type "partially unsupported"; em AX5, nada. A tela não tinha falha
   esperada, então a suíte da auditoria estava vermelha no `main`. A causa é o `LazyVStack` das
-  seções (#124, `decf8fe`). Numa build de teste que não ficou no código, com `VStack` no lugar:
-  0 de 4 rodadas (2 por tela) acusaram, contra 3 de 3 por tela com o `LazyVStack`. Inferência:
+  seções (#127, `decf8fe`, pendente 6 do relatório de robustez do #124). Numa build de teste que
+  não ficou no código, com `VStack` no lugar: 0 de 4 rodadas (2 por tela) acusaram, contra 3 de 3
+  por tela com o `LazyVStack`. Inferência:
   como no `ViewThatFits`, a pilha preguiçosa recria as células quando a fonte muda, e a auditoria
   não acha o mesmo elemento; os textos usam estilos de Dynamic Type. `MinhasVagas.swift` está no
   #73, e a tela ficou com falha esperada estrita no padrão.
