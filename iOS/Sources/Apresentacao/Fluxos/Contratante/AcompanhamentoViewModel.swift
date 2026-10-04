@@ -69,6 +69,7 @@ public final class AcompanhamentoViewModel {
     public private(set) var emAndamento: Set<UUID> = []
     /// O turno cuja reabertura espera a confirmação de quem tocou em "Reabrir vaga".
     public private(set) var reaberturaEmConfirmacao: TurnoAcompanhado?
+    public let api: (any ApiCliente)?
 
     private let buscarPainel: @Sendable () async throws -> Painel
     private let confirmar: @Sendable (UUID) async throws -> ResultadoRegistro
@@ -104,6 +105,7 @@ public final class AcompanhamentoViewModel {
             cancelarVaga: { try await api.cancelarVaga(id: $0, motivo: $1) },
             agora: agora,
             fila: fila,
+            api: api,
             aoMudar: aoMudar
         )
     }
@@ -116,6 +118,7 @@ public final class AcompanhamentoViewModel {
         cancelarVaga: @escaping @Sendable (UUID, String) async throws -> VagaCancelada = { _, _ in throw ErroDaApi(codigo: .desconhecido) },
         agora: @escaping @Sendable () -> Date = Date.init,
         fila: (any FilaDeAcoes)? = nil,
+        api: (any ApiCliente)? = nil,
         aoMudar: @escaping @MainActor () async -> Void = {}
     ) {
         self.buscarPainel = buscarPainel
@@ -125,6 +128,7 @@ public final class AcompanhamentoViewModel {
         self.cancelarVaga = cancelarVaga
         self.agora = agora
         self.fila = fila
+        self.api = api
         self.aoMudar = aoMudar
     }
 
