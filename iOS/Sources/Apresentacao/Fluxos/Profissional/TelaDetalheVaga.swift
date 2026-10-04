@@ -123,13 +123,20 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
 
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Grid(alignment: .leading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.pequeno) {
-                GridRow {
-                    campo(TextosDoProfissional.Detalhe.quando, formatador.intervalo(vaga.periodo))
-                    campo(TextosDoProfissional.Detalhe.valor, formatador.dinheiro(vaga.valor))
-                }
-                GridRow {
-                    campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)", bundle: bundleApresentacao))
+            if dynamicTypeSize.isAccessibilitySize {
+                // Na meia coluna do Grid o valor quebrava no meio do número ("R$ 120,0" / "0") em AX5.
+                campo(TextosDoProfissional.Detalhe.quando, formatador.intervalo(vaga.periodo))
+                campo(TextosDoProfissional.Detalhe.valor, formatador.dinheiro(vaga.valor))
+                campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)", bundle: bundleApresentacao))
+            } else {
+                Grid(alignment: .leading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.pequeno) {
+                    GridRow {
+                        campo(TextosDoProfissional.Detalhe.quando, formatador.intervalo(vaga.periodo))
+                        campo(TextosDoProfissional.Detalhe.valor, formatador.dinheiro(vaga.valor))
+                    }
+                    GridRow {
+                        campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)", bundle: bundleApresentacao))
+                    }
                 }
             }
             // O modo é uma frase: na meia coluna do Grid ela partia palavras a partir do AX1

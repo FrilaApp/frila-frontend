@@ -29,6 +29,16 @@ public struct TelaVagas: View {
         .refreshable { await medirAbertura(.listaDeVagas, carregar: viewModel.atualizar, pronto: listaNaTela) }
         .task { if viewModel.estado == .ociosa { await medirAbertura(.listaDeVagas, carregar: viewModel.carregar, pronto: listaNaTela) } }
         .accessibilityIdentifier("tela-vagas")
+        // Nos tamanhos de acessibilidade o aviso de sem conexão empurrava o Tentar novamente para baixo
+        // da barra de abas flutuante: o botão fica preso ao rodapé, acima dela, e o aviso rola. Fica
+        // depois do identificador da tela, que senão passaria para o botão.
+        .safeAreaInset(edge: .bottom) {
+            if dynamicTypeSize.isAccessibilitySize, viewModel.estado == .falha(.semConexao) {
+                tentarDeNovo
+                    .padding(FrilaEspaco.medio)
+                    .background(FrilaCor.fundo)
+            }
+        }
     }
 
     /// Fim da medição de abertura (#73): a lista da API publicada.
@@ -114,7 +124,7 @@ public struct TelaVagas: View {
         case .falha(.semConexao):
             VStack(spacing: FrilaEspaco.medio) {
                 AvisoFrila(verbatim: TextosDoProfissional.Lista.semConexaoMensagem, tom: .alerta)
-                BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+                if !dynamicTypeSize.isAccessibilitySize { tentarDeNovo }
             }
             .accessibilityIdentifier("vagas-sem-conexao")
         case .falha(.semPontoDeReferencia):
@@ -127,6 +137,11 @@ public struct TelaVagas: View {
             EstadoErro(verbatim: TextosDoProfissional.Lista.erroMensagem) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("vagas-erro")
         }
+    }
+
+    private var tentarDeNovo: some View {
+        BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+            .accessibilityIdentifier("vagas-tentar-de-novo")
     }
 
     private var nomeDaFuncao: String {
