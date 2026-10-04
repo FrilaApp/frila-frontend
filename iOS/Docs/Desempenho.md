@@ -147,6 +147,9 @@ mediria um app mais lento do que o de verdade.
   `TEST_RUNNER_`):
 
   ```sh
+  # antes de rodar, se o projeto ainda não foi gerado nesta pasta/branch:
+  Scripts/gerar-projeto.sh  # gera o Frila.xcodeproj via XcodeGen e restaura o Package.resolved versionado
+
   TEST_RUNNER_FRILA_COLETAR_MEDICOES=1 xcodebuild test -project Frila.xcodeproj -scheme Frila-Local \
     -destination "id=<UDID do seu simulador>" \
     -only-testing:FrilaUITests/MedicaoUITests/testColetaVinteAberturasDeCadaTela \
