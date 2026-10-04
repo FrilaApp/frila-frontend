@@ -5,22 +5,46 @@ struct AcoesDeSeguranca: View {
     @State private var model: SegurancaViewModel
     @State private var denunciando = false
     @State private var confirmandoBloqueio = false
+    private let nomeAlvo: String
+    private let identificadorDenunciar: String
+    private let identificadorBloquear: String
+    private let identificadorConfirmarBloqueio: String
 
-    init(perfil: PerfilPublico, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
-        _model = State(initialValue: SegurancaViewModel(perfil: perfil, api: api, bloqueios: bloqueios))
+    init(
+        perfil: PerfilPublico,
+        turnoID: UUID? = nil,
+        api: any ApiCliente,
+        bloqueios: BloqueiosDaSessao,
+        identificadorDenunciar: String = "denunciar",
+        identificadorBloquear: String = "bloquear",
+        identificadorConfirmarBloqueio: String = "confirmar-bloqueio"
+    ) {
+        _model = State(initialValue: SegurancaViewModel(perfil: perfil, turnoID: turnoID, api: api, bloqueios: bloqueios))
+        self.nomeAlvo = perfil.nome
+        self.identificadorDenunciar = identificadorDenunciar
+        self.identificadorBloquear = identificadorBloquear
+        self.identificadorConfirmarBloqueio = identificadorConfirmarBloqueio
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Button { denunciando = true } label: {
-                Text(verbatim: TextosDaSeguranca.denunciar).frame(minHeight: FrilaMetrica.alvoMinimo)
+                Text(verbatim: TextosDaSeguranca.denunciar)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
             }
-            .accessibilityIdentifier("denunciar")
+            .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.denunciar) \(nomeAlvo)"))
+            .accessibilityIdentifier(identificadorDenunciar)
+
             Button { confirmandoBloqueio = true } label: {
-                Text(verbatim: TextosDaSeguranca.bloquear).frame(minHeight: FrilaMetrica.alvoMinimo)
+                Text(verbatim: TextosDaSeguranca.bloquear)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
             }
-            .disabled(model.bloqueando)
-            .accessibilityIdentifier("bloquear")
+            .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.bloquear) \(nomeAlvo)"))
+            .disabled(model.bloqueando || model.bloqueado)
+            .accessibilityIdentifier(identificadorBloquear)
+
             if model.bloqueando { ProgressView() }
             if let erro = model.erroBloqueio {
                 AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("erro-bloqueio")
@@ -29,7 +53,7 @@ struct AcoesDeSeguranca: View {
         .alert(TextosDaSeguranca.confirmarBloqueio, isPresented: $confirmandoBloqueio) {
             Button(TextosDaSeguranca.cancelar, role: .cancel) {}
             Button(TextosDaSeguranca.bloquear, role: .destructive) { Task { await model.bloquear() } }
-                .accessibilityIdentifier("confirmar-bloqueio")
+                .accessibilityIdentifier(identificadorConfirmarBloqueio)
         } message: { Text(verbatim: TextosDaSeguranca.efeitoBloqueio) }
         .sheet(isPresented: $denunciando) { FolhaDeDenuncia(model: model) }
     }
@@ -39,6 +63,7 @@ private struct FolhaDeDenuncia: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: SegurancaViewModel
     @AccessibilityFocusState private var protocoloEmFoco: Bool
+    @FocusState private var focoNoRelato: Bool
 
     var body: some View {
         NavigationStack {
@@ -69,13 +94,18 @@ private struct FolhaDeDenuncia: View {
                                 Text(verbatim: TextosDaSeguranca.nome(motivo)).tag(motivo)
                             }
                         }
+                        .pickerStyle(.navigationLink)
                         .accessibilityIdentifier("motivo-denuncia")
+
                         TextField(TextosDaSeguranca.relato, text: $model.relato, axis: .vertical)
                             .lineLimit(4...10)
+                            .focused($focoNoRelato)
                             .accessibilityIdentifier("relato-denuncia")
+
                         Text(verbatim: TextosDaSeguranca.relatoMinimo).font(.caption)
                     }
                     .disabled(model.enviando)
+
                     if model.motivo == .riscoSeguranca {
                         Section {
                             Text(verbatim: TextosDaSeguranca.emergencia).accessibilityIdentifier("aviso-risco-imediato")
@@ -83,21 +113,51 @@ private struct FolhaDeDenuncia: View {
                             Link(TextosDaSeguranca.mulher, destination: URL(string: "tel:180")!)
                         }
                     }
+
                     if let erro = model.erroDenuncia {
                         AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("erro-denuncia")
                     }
-                    Button { Task { await model.denunciar() } } label: {
-                        Text(verbatim: TextosDaSeguranca.enviar).frame(minHeight: FrilaMetrica.alvoMinimo)
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom) {
+                if model.protocolo == nil {
+                    VStack(spacing: FrilaEspaco.minimo) {
+                        if model.enviando {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        } else {
+                            Button {
+                                Task { await model.denunciar() }
+                            } label: {
+                                Text(verbatim: TextosDaSeguranca.enviar)
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(FrilaCor.primaria)
+                            .disabled(!model.relatoValido || model.enviando)
+                            .accessibilityIdentifier("enviar-denuncia")
+                        }
                     }
-                    .disabled(!model.relatoValido || model.enviando)
-                    .accessibilityIdentifier("enviar-denuncia")
-                    if model.enviando { ProgressView() }
+                    .padding(FrilaEspaco.medio)
+                    .background(FrilaCor.fundo.opacity(0.95))
                 }
             }
             .navigationTitle(TextosDaSeguranca.denunciar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(TextosDaSeguranca.fechar) { dismiss() }.disabled(model.enviando)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        focoNoRelato = false
+                    } label: {
+                        Text(verbatim: TextosDaSeguranca.ok)
+                    }
+                    .accessibilityLabel(Text(verbatim: TextosDaSeguranca.recolherTeclado))
+                    .accessibilityIdentifier("recolher-teclado")
                 }
             }
             .interactiveDismissDisabled(model.enviando)
@@ -136,6 +196,7 @@ struct TelaPerfilPublico: View {
                         if !perfil.funcoes.isEmpty { Text(verbatim: perfil.funcoes.joined(separator: ", ")) }
                         SeloReputacao(perfil.reputacao)
                         AcoesDeSeguranca(perfil: perfil, api: api, bloqueios: bloqueios)
+                            .id(perfil.id)
                     }
                 }
             }
