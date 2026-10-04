@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 /// Testes de interface para os achados de acessibilidade corrigidos na entrada e no profissional (#139).
 /// Cada controle possui alvo mínimo de 44x44 pt no tamanho padrão; em XXXL, cartão de vaga e filtros
@@ -189,11 +190,10 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
     // MARK: - 7. Meu turno: WhatsApp, Avaliar turno e Ver avaliação (#20, QA do Loki)
 
     /// O alvo de 44 pt fica dentro do `Link`/`NavigationLink`: antes, o frame ficava por fora e só o
-    /// texto (20 pt) recebia o toque. Os botões são achados pelo rótulo: o identificador do cartão
-    /// (`contato-do-turno`, `cartao-avaliacao-turno`) se propaga aos filhos e cobre o deles.
+    /// texto (20 pt) recebia o toque. Os cartões contêm os filhos sem encobrir seus identificadores.
     func testMeuTurnoLinksTemAlvoMinimo() {
         let turnoID = "22000000-0000-0000-0000-000000000001"
-        for (cenario, botoes) in [("turno-encerrado", ["Abrir no WhatsApp", "Avaliar turno"]), ("turno-avaliado", ["Ver avaliação"])] {
+        for (cenario, botoes) in [("turno-encerrado", ["botao-whatsapp", "botao-abrir-avaliacao"]), ("turno-avaliado", ["botao-ver-avaliacao"])] {
             let app = XCUIApplication()
             app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"]
             app.launch()
@@ -203,12 +203,73 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             XCTAssertTrue(cartao.waitForExistence(timeout: 10))
             cartao.tap()
             XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
-            for rotulo in botoes {
-                let botao = app.buttons[rotulo].firstMatch
-                XCTAssertTrue(botao.waitForExistence(timeout: 10), "\(cenario): \(rotulo)")
-                XCTAssertGreaterThanOrEqual(botao.frame.height, 44, "\(cenario): \(rotulo) tem \(botao.frame.height) pt")
+            for identificador in botoes {
+                let botao = app.buttons[identificador].firstMatch
+                XCTAssertTrue(botao.waitForExistence(timeout: 10), "\(cenario): \(identificador)")
+                XCTAssertGreaterThanOrEqual(botao.frame.height, 44, "\(cenario): \(identificador) tem \(botao.frame.height) pt")
             }
             app.terminate()
         }
     }
+
+    private func abrirTurnoCancelado(tamanho: String? = nil) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado", "-FRILA_CACHE_VAZIO_UI_TEST"]
+        if let tamanho { app.launchArguments += ["-UIPreferredContentSizeCategoryName", tamanho] }
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["Meus turnos"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Meus turnos"].tap()
+        let cartao = app.buttons["meu-turno-22000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        cartao.tap()
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+        return app
+    }
+
+    func testMapaDoTurnoCanceladoExisteEPodeSerAcionado() {
+        let app = abrirTurnoCancelado()
+        defer { app.terminate() }
+        let mapa = app.buttons["atalho-mapas"]
+        guard mapa.waitForExistence(timeout: 5) else {
+            XCTFail("o link do mapa precisa estar na árvore de acessibilidade")
+            return
+        }
+        XCTAssertTrue(mapa.isHittable)
+        XCTAssertGreaterThanOrEqual(mapa.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(mapa.frame.height, 44)
+        mapa.tap()
+        let mapas = XCUIApplication(bundleIdentifier: "com.apple.Maps")
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        XCTAssertTrue(mapas.wait(for: .runningForeground, timeout: 10) || safari.wait(for: .runningForeground, timeout: 5), "o toque abre o destino do link")
+    }
+
+    func testEnderecoEQuemRecebeDoTurnoCanceladoNaoCortamEmAX5() {
+        let app = abrirTurnoCancelado(tamanho: Self.ax5)
+        defer { app.terminate() }
+        let endereco = app.staticTexts["endereco-do-turno"]
+        let quemRecebe = app.staticTexts["quem-recebe-no-turno"]
+        let mapa = app.buttons["atalho-mapas"]
+        XCTAssertTrue(endereco.waitForExistence(timeout: 5))
+        XCTAssertTrue(quemRecebe.waitForExistence(timeout: 5))
+        XCTAssertTrue(mapa.waitForExistence(timeout: 5))
+        // No tamanho máximo, quem recebe fica abaixo do endereço e do link.
+        XCTAssertGreaterThanOrEqual(quemRecebe.frame.minY, mapa.frame.maxY)
+        let largura = app.windows.firstMatch.frame.width
+        let fonte = UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: UITraitCollection(preferredContentSizeCategory: .accessibilityExtraExtraExtraLarge))
+        for texto in [endereco, quemRecebe] {
+            XCTAssertGreaterThanOrEqual(texto.frame.minX, 0)
+            XCTAssertLessThanOrEqual(texto.frame.maxX, largura)
+            let medida = UILabel()
+            medida.font = fonte
+            medida.text = texto.label
+            medida.numberOfLines = 0
+            let altura = medida.sizeThatFits(CGSize(width: texto.frame.width, height: .greatestFiniteMagnitude)).height
+            XCTAssertGreaterThanOrEqual(texto.frame.height, altura - 2, "todo o texto tem espaço para suas linhas")
+        }
+        let captura = XCTAttachment(screenshot: app.screenshot())
+        captura.name = "turno-cancelado-AX5"
+        captura.lifetime = .keepAlways
+        add(captura)
+    }
+
 }

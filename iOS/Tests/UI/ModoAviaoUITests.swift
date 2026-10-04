@@ -2,7 +2,7 @@ import XCTest
 
 /// Modo avião (#73, RNF06): o turno confirmado com rede fica no cache do aparelho; aberto de novo sem
 /// rede (o dublê `sem-rede` recusa toda chamada), Meus turnos e o turno continuam na tela, e o
-/// check-in vai para a fila. O contato ainda não (falha esperada, abaixo).
+/// check-in vai para a fila. O contato continua visível dentro do prazo do contrato.
 @MainActor
 final class ModoAviaoUITests: XCTestCase {
     /// O telefone do exemplo do contrato (`Resources/Fixtures/contato.json`), que o dublê entrega como
@@ -52,12 +52,7 @@ final class ModoAviaoUITests: XCTestCase {
         XCTAssertTrue(turno.waitForExistence(timeout: 5), "o turno confirmado com rede está no cache")
         turno.tap()
         XCTAssertTrue(semRede.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
-        // Falha conhecida: `meus_turnos` não traz o contato (contrato 0.2.8), e o app ainda não grava
-        // no cache o que vem de `contato_do_turno`. Estrito: quando o contato aparecer sem rede, este
-        // bloco passa a reprovar, e a expectativa sai.
-        XCTExpectFailure("o contato do turno confirmado ainda não fica no cache (#73)") {
-            XCTAssertTrue(telefone(semRede).waitForExistence(timeout: 5), "o contato do turno confirmado continua visível sem rede")
-        }
+        XCTAssertTrue(telefone(semRede).waitForExistence(timeout: 5), "o contato do turno confirmado continua visível sem rede")
 
         // Sem rede não há o ponto da vaga para medir a distância: o check-in sai manual e vai para a fila.
         let fazerCheckin = semRede.buttons["fazer-checkin"]

@@ -86,25 +86,48 @@ public struct TelaMeuTurno: View {
             Text(verbatim: "\(formatador.intervalo(viewModel.turno.vaga.periodo)) · \(formatador.dinheiro(viewModel.turno.valorAcordado))")
                 .font(.subheadline)
 
-            HStack(spacing: FrilaEspaco.minimo) {
-                Text(verbatim: viewModel.turno.vaga.local)
-                if let urlMapas = viewModel.urlMapas {
-                    Link(destination: urlMapas) {
-                        Image(systemName: "map")
-                            .foregroundStyle(FrilaCor.primaria)
-                    }
-                    .accessibilityIdentifier("atalho-mapas")
-                    .accessibilityLabel(Text(verbatim: TextosDoProfissional.Turnos.verNoMapas))
-                    .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: FrilaEspaco.minimo) {
+                    enderecoEMapa
+                    quemRecebe
                 }
-                Text(verbatim: "· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
+                .fixedSize(horizontal: true, vertical: false)
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    enderecoEMapa
+                    quemRecebe
+                }
             }
             .font(.subheadline)
             .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var enderecoEMapa: some View {
+        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: viewModel.turno.vaga.local)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("endereco-do-turno")
+            if let urlMapas = viewModel.urlMapas {
+                Link(destination: urlMapas) {
+                    Image(systemName: "map")
+                        .foregroundStyle(FrilaCor.primaria)
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("atalho-mapas")
+                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Turnos.verNoMapas))
+                .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
+            }
+        }
+    }
+
+    private var quemRecebe: some View {
+        Text(verbatim: "· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("quem-recebe-no-turno")
     }
 
     private var cartaoCancelamento: some View {
