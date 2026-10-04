@@ -267,7 +267,7 @@ extension FluxoDoProfissional {
         contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
     }
 
-    /// Presença ou avaliação aceita atualiza Meus turnos, que é de onde a tela reabre.
+    /// Presença, avaliação ou cancelamento aceito atualiza Meus turnos, que é de onde a tela reabre.
     private func destinoDoMeuTurno(_ turno: Turno) -> some View {
         let turnos = turnosViewModel
         return DestinoDoMeuTurno(turno: turno, api: api, contaID: contaID, relogio: relogio, localizacao: localizacao, fila: fila) {
@@ -368,7 +368,10 @@ private struct DestinoDoMeuTurno: View {
         let presenca = localizacao.map {
             PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
         }
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca, aoAvaliar: aoRegistrar))
+        _viewModel = State(initialValue: MeuTurnoViewModel(
+            turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca,
+            aoAvaliar: aoRegistrar, aoCancelar: aoRegistrar
+        ))
     }
 
     var body: some View {

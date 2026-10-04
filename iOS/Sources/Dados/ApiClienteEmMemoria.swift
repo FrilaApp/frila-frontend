@@ -92,6 +92,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case posicaoCanceladaComMotivo = "posicao-cancelada-com-motivo"
         /// Servidor anterior à 0.2.31: não manda os quatro campos opcionais do painel.
         case servidorAntigo = "servidor-antigo"
+        /// Conta de profissional com um turno confirmado que começa em 10 h: cancelar conta como falta (#20, RN12).
+        case turnoConfirmadoPerto = "turno-confirmado-perto"
+        /// Como `turnoConfirmadoPerto`, mas o turno começa em 48 h: cancelar não afeta a taxa.
+        case turnoConfirmadoLonge = "turno-confirmado-longe"
+        /// Como `turnoConfirmadoLonge`, mas `cancelar_posicao` é sem rede: o cancelamento vai para a fila.
+        case cancelarSemRede = "cancelar-sem-rede"
         /// Servidor de hoje no lado do profissional: turnos sem estado, avaliacao e cancelamento; candidaturas sem turno_id.
         case profissionalServidorAntigo = "profissional-servidor-antigo"
         #if DEBUG
@@ -124,6 +130,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
         var deTurnoCancelado: Bool {
             self == .turnoCancelado || self == .turnoCanceladoComFalta || self == .turnoCanceladoSemDetalhes || self == .turnoCanceladoOutro
+        }
+
+        /// Os cenários do profissional com um turno confirmado ainda por vir (#20).
+        var deTurnoConfirmado: Bool {
+            self == .turnoConfirmadoPerto || self == .turnoConfirmadoLonge || self == .cancelarSemRede
         }
     }
 
@@ -277,6 +288,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .checkinManualPendente, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
+                // Os dois lados das 24 h da RN12: a 10 h o cancelamento do profissional é falta; a 48 h, não.
+                // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
+                case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
+                case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60 + 30 * 60
                 #if DEBUG
                 case .cicloContratanteTurnoConcluido: -10 * 60 * 60
                 #endif
@@ -491,6 +506,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
             }
             if cenario == .turnoAvaliado, let turno = turnos.first {
                 avaliacoes[turno.id] = Avaliacao(turnoID: turno.id, resposta: false, criadaEm: relogio.agora)
+            }
+            if cenario.deTurnoConfirmado, let vaga = self.vagas.first {
+                // O turno que a candidatura confirmou, com o contato da casa liberado (RN10). A vaga
+                // perde uma posição aberta, como no backend; o cancelamento devolve uma nova (RN12).
+                let turnoID = UUID(uuidString: "23000000-0000-0000-0000-000000000001")!
+                let posicaoID = UUID(uuidString: "23000000-0000-0000-0000-000000000002")!
+                let contato = Contato(
+                    nome: vaga.estabelecimento.nome, telefone: contatoDeExemplo.telefone,
+                    whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
+                )
+                turnos = [Turno(
+                    id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo, contraparte: vaga.estabelecimento,
+                    contatoVisivelAte: contato.visivelAte, verificacao: .pendente, valorAcordado: vaga.valor,
+                    podeAvaliar: false, contato: contato
+                )]
+                contatos[turnoID] = contato
+                self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
             }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
@@ -1222,6 +1254,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// diretriz 1.2 (`422 campo_invalido`, `motivo`) não é modelado.
     public func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento {
         try verificarFalhaGeral()
+        if cenario == .cancelarSemRede { throw ErroDaApi(codigo: .semRede) }
         try validarMotivo(motivo)
         guard let indice = turnos.firstIndex(where: { $0.posicaoID == id }) else {
             throw erro(conhecidaSemTurno(id) ? "posicao_nao_cancelavel" : "nao_encontrado")

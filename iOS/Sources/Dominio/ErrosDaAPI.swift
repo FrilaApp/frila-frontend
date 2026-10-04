@@ -52,6 +52,19 @@ public extension CodigoErroAPI {
             false
         }
     }
+
+    /// Um cancelamento com esses erros não vai mudar com a repetição: a posição já foi cancelada
+    /// (`posicaoNaoCancelavel` no reenvio) ou a vaga já fechou (`vagaEncerrada`), ou o servidor
+    /// recusou o pedido em si.
+    var recusaDefinitivaDeCancelamento: Bool {
+        switch self {
+        case .posicaoNaoCancelavel, .vagaEncerrada, .naoEncontrado, .campoObrigatorio, .campoInvalido,
+             .semPermissao, .perfilIncompativel, .contaSuspensa:
+            true
+        default:
+            false
+        }
+    }
 }
 
 public struct ErroDaApi: Error, Equatable, Sendable {

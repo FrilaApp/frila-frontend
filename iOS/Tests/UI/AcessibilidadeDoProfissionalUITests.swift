@@ -185,4 +185,30 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(contato.waitForExistence(timeout: 10))
         XCTAssertGreaterThanOrEqual(contato.frame.height, 44)
     }
+
+    // MARK: - 7. Meu turno: WhatsApp, Avaliar turno e Ver avaliação (#20, QA do Loki)
+
+    /// O alvo de 44 pt fica dentro do `Link`/`NavigationLink`: antes, o frame ficava por fora e só o
+    /// texto (20 pt) recebia o toque. Os botões são achados pelo rótulo: o identificador do cartão
+    /// (`contato-do-turno`, `cartao-avaliacao-turno`) se propaga aos filhos e cobre o deles.
+    func testMeuTurnoLinksTemAlvoMinimo() {
+        let turnoID = "22000000-0000-0000-0000-000000000001"
+        for (cenario, botoes) in [("turno-encerrado", ["Abrir no WhatsApp", "Avaliar turno"]), ("turno-avaliado", ["Ver avaliação"])] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"]
+            app.launch()
+            XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+            app.tabBars.buttons["Meus turnos"].tap()
+            let cartao = app.buttons["meu-turno-\(turnoID)"]
+            XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+            cartao.tap()
+            XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+            for rotulo in botoes {
+                let botao = app.buttons[rotulo].firstMatch
+                XCTAssertTrue(botao.waitForExistence(timeout: 10), "\(cenario): \(rotulo)")
+                XCTAssertGreaterThanOrEqual(botao.frame.height, 44, "\(cenario): \(rotulo) tem \(botao.frame.height) pt")
+            }
+            app.terminate()
+        }
+    }
 }

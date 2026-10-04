@@ -15,10 +15,26 @@ public final class MeuTurnoViewModel {
     private var avaliacaoEnviada: Avaliacao?
     private var respostaPendente: Bool?
     private let aoAvaliar: (() -> Void)?
+    private let aoCancelar: (() -> Void)?
 
-    public var cancelado: Bool { turno.cancelado }
+    /// O cancelamento feito nesta tela (#20): o turno passa a cancelado sem reler a lista.
+    public private(set) var cancelamentoLocal: CancelamentoDoTurno?
+    /// O que `cancelar_posicao` devolveu agora, para a tela dizer se a vaga reabriu.
+    public private(set) var desfechoDoCancelamento: ResultadoCancelamento?
+    /// O cancelamento ficou na fila offline: a tela avisa e não oferece cancelar de novo.
+    public private(set) var cancelamentoNaFila = false
+
+    public var cancelado: Bool { turno.cancelado || cancelamentoLocal != nil }
     public var permiteAcoesDoTurno: Bool { !cancelado }
-    public var cancelamento: CancelamentoDoTurno? { cancelado ? turno.cancelamento : nil }
+    public var cancelamento: CancelamentoDoTurno? { cancelamentoLocal ?? (cancelado ? turno.cancelamento : nil) }
+
+    /// Só a posição confirmada e antes do fim previsto pode ser cancelada (RN12). Depois do
+    /// início ainda pode: o aviso da folha diz que o turno fica descoberto.
+    public var podeCancelar: Bool {
+        guard permiteAcoesDoTurno, !cancelamentoNaFila else { return false }
+        guard turno.estado == nil || turno.estado == .confirmada else { return false }
+        return turno.vaga.periodo.fim > relogio.agora
+    }
     public var causaDoCancelamento: String? {
         cancelamento.map { TextosDoProfissional.Turnos.causaDoCancelamento($0.causa) }
     }
@@ -42,10 +58,12 @@ public final class MeuTurnoViewModel {
         armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         relogio: any Relogio = RelogioDoSistema(),
         presenca: PresencaDoTurnoViewModel? = nil,
-        aoAvaliar: (() -> Void)? = nil
+        aoAvaliar: (() -> Void)? = nil,
+        aoCancelar: (() -> Void)? = nil
     ) {
         self.turno = turno
         self.aoAvaliar = aoAvaliar
+        self.aoCancelar = aoCancelar
         self.api = api
         self.contaID = contaID
         self.filaDeAcoes = fila
@@ -106,6 +124,30 @@ public final class MeuTurnoViewModel {
         )
     }
 
+    /// A folha de cancelamento deste turno (#20). O desfecho volta para cá: a tela vira "Turno
+    /// cancelado" na hora, e a lista é atualizada por `aoCancelar`.
+    public func criarCancelamentoViewModel() -> CancelamentoViewModel? {
+        guard podeCancelar else { return nil }
+        return CancelamentoViewModel(
+            lado: .profissional, posicaoID: turno.posicaoID, turnoID: turno.id, periodo: turno.vaga.periodo,
+            api: api, relogio: relogio, fila: filaDeAcoes,
+            aoConcluir: { [weak self] desfecho in self?.aplicar(desfecho) }
+        )
+    }
+
+    private func aplicar(_ desfecho: DesfechoDoCancelamento) {
+        switch desfecho {
+        case let .posicao(resultado):
+            desfechoDoCancelamento = resultado
+            cancelamentoLocal = CancelamentoDoTurno(causa: .profissional, falta: resultado.falta, canceladaEm: relogio.agora)
+            aoCancelar?()
+        case .naFila:
+            cancelamentoNaFila = true
+        case .vaga:
+            break
+        }
+    }
+
     public var quemRecebeExibicao: String {
         if let resp = responsavelLocal, !resp.isEmpty {
             return resp
@@ -137,6 +179,9 @@ public final class MeuTurnoViewModel {
 
     public func carregar() async {
         guard permiteAcoesDoTurno else { return }
+        if await CancelamentoViewModel.pendenteNaFila(filaDeAcoes, alvo: .posicao(id: turno.posicaoID, turnoID: turno.id)) {
+            cancelamentoNaFila = true
+        }
         if let contaID, turno.avaliacao == nil {
             respostaPendente = try? await filaDeAcoes?.pendentes().first {
                 $0.tipo == .avaliacao && $0.turnoID == turno.id && $0.contaID == contaID

@@ -49,6 +49,12 @@ public actor SincronizadorAcoes {
                         periodo: republicacao.periodo,
                         chave: acao.chave
                     )
+                case .cancelamentoPosicao:
+                    guard let posicaoID = acao.alvoID, let motivo = acao.motivo else { continue }
+                    _ = try await api.cancelarPosicao(id: posicaoID, motivo: motivo)
+                case .cancelamentoVaga:
+                    guard let vagaID = acao.alvoID, let motivo = acao.motivo else { continue }
+                    _ = try await api.cancelarVaga(id: vagaID, motivo: motivo)
                 }
                 try await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where erro.codigo == .semRede {
@@ -62,6 +68,10 @@ public actor SincronizadorAcoes {
                 try? await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where acao.tipo == .republicacaoVaga && (erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta) {
                 // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
+                try? await fila.remover(id: acao.id)
+            } catch let erro as ErroDaApi where (acao.tipo == .cancelamentoPosicao || acao.tipo == .cancelamentoVaga) && erro.codigo.recusaDefinitivaDeCancelamento {
+                // No reenvio, a posição já cancelada responde `posicaoNaoCancelavel` e a vaga,
+                // `vagaEncerrada`: o cancelamento já está feito, ou nunca será aceito.
                 try? await fila.remover(id: acao.id)
             } catch {
                 // A ação permanece para uma nova tentativa idempotente.
