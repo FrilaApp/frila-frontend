@@ -145,9 +145,9 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private static let listaDeVagasLimitadaAAX1 = "o cartão da vaga, as pílulas de filtro e o botão Catálogo não acompanham o Dynamic Type: TelaVagas.swift limita o cartão e as pílulas a AX1 por decisão de layout do #139 (a alta fidelidade do #15 decide), e o botão Catálogo da barra (FluxoDoProfissional.swift) só existe em Debug"
     private static let abaCandidaturasComViewThatFits = "falso positivo do XCTest: no tamanho padrão, Função e Valor do CartaoDaCandidatura (CandidaturaEmSelecao.swift) saem como Dynamic Type 'partially unsupported', mas o texto escala (função de 20 para 63 pt de altura em AX5) e o achado some quando o ViewThatFits vira um layout só; trocar o layout é decisão da alta fidelidade"
     private static let abaCandidaturasComViewThatFitsEmAX5 = "provável falso positivo do XCTest: em AX5, às vezes, 'texto cortado' sem elemento no CartaoDaCandidatura (CandidaturaEmSelecao.swift); a captura não mostra corte e o achado some quando o ViewThatFits vira um layout só"
-    private static let perfilDoEstabelecimentoOcupado = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift, ocupado pelo #73"
-    private static let minhasVagasComLazyVStack = "provável falso positivo do XCTest: no tamanho padrão, os textos dos cartões de Minhas vagas saem como Dynamic Type 'partially unsupported' desde que as seções viraram LazyVStack (#127); com VStack o achado some. Os textos usam estilos de Dynamic Type. MinhasVagas.swift está no #73"
-    private static let publicarVagaComDatePicker = "o UIDatePicker compacto do sistema não acompanha o Dynamic Type em AX5 (PublicarVaga.swift, ocupado pelo #73)"
+    private static let perfilDoEstabelecimentoOcupado = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift, que estava no #73 na rodada 3 do #71: fica para a próxima"
+    private static let minhasVagasComLazyVStack = "provável falso positivo do XCTest: no tamanho padrão, os textos dos cartões de Minhas vagas saem como Dynamic Type 'partially unsupported' desde que as seções viraram LazyVStack (#127); com VStack o achado some. Os textos usam estilos de Dynamic Type. MinhasVagas.swift estava no #73 na rodada 3 do #71: fica para a próxima"
+    private static let publicarVagaComDatePicker = "o UIDatePicker compacto do sistema não acompanha o Dynamic Type em AX5 (PublicarVaga.swift, que estava no #73 na rodada 3 do #71: fica para a próxima)"
 
     // MARK: - Profissional
 
