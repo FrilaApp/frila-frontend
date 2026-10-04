@@ -2,7 +2,7 @@ name: TestFlight
 
 # Envio do app ao TestFlight (#203). Uma tag vX.Y.Z no main manda o esquema da tag (abaixo) com a
 # versão X.Y.Z; o disparo manual (Actions > TestFlight > Run workflow) escolhe esquema, versão,
-# ensaio de falha e se envia. Quem faz o quê está em iOS/Docs/CI.md, "Mandar um build ao TestFlight".
+# ensaio de falha, build de medição e se envia. Quem faz o quê está em iOS/Docs/CI.md, "Mandar um build ao TestFlight".
 
 on:
   push:
@@ -20,6 +20,10 @@ on:
         required: true
       ensaio_falha:
         description: "Ensaio de falha: compila o botão 'Forçar falha (ensaio)' e marca o build só para teste interno"
+        type: boolean
+        default: false
+      medicao:
+        description: "Build de medição (#73): compila a medição de desempenho e de dados e marca o build só para teste interno"
         type: boolean
         default: false
       enviar:
@@ -65,12 +69,14 @@ jobs:
           ENTRADA_ESQUEMA: ${{ inputs.esquema }}
           ENTRADA_VERSAO: ${{ inputs.versao }}
           ENTRADA_ENSAIO: ${{ inputs.ensaio_falha }}
+          ENTRADA_MEDICAO: ${{ inputs.medicao }}
           ENTRADA_ENVIAR: ${{ inputs.enviar }}
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
             ESQUEMA="$ESQUEMA_DA_TAG"
             VERSAO="${GITHUB_REF_NAME#v}"
             ENSAIO=0
+            MEDICAO=0
             ENVIAR=1
             if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
               echo "::error::A tag $GITHUB_REF_NAME não aponta para um commit do main. Só o que passou pela revisão vai ao TestFlight."
@@ -80,6 +86,7 @@ jobs:
             ESQUEMA="$ENTRADA_ESQUEMA"
             VERSAO="$ENTRADA_VERSAO"
             ENSAIO=$([[ "$ENTRADA_ENSAIO" == "true" ]] && echo 1 || echo 0)
+            MEDICAO=$([[ "$ENTRADA_MEDICAO" == "true" ]] && echo 1 || echo 0)
             ENVIAR=$([[ "$ENTRADA_ENVIAR" == "true" ]] && echo 1 || echo 0)
           fi
           case "$ESQUEMA" in
@@ -99,11 +106,13 @@ jobs:
             echo "FRILA_VERSAO=$VERSAO"
             echo "FRILA_NUMERO_DO_BUILD=$NUMERO"
             echo "FRILA_ENSAIO_FALHA=$ENSAIO"
+            echo "FRILA_MEDICAO=$MEDICAO"
             echo "FRILA_ENVIAR=$ENVIAR"
           } >> "$GITHUB_ENV"
           {
             echo "### $ESQUEMA $VERSAO ($NUMERO)"
             echo "- Ensaio de falha: $([[ $ENSAIO == 1 ]] && echo 'sim, só teste interno' || echo 'não')"
+            echo "- Build de medição: $([[ $MEDICAO == 1 ]] && echo 'sim, só teste interno' || echo 'não')"
             echo "- Envio ao TestFlight: $([[ $ENVIAR == 1 ]] && echo 'sim' || echo 'não')"
           } >> "$GITHUB_STEP_SUMMARY"
 

@@ -100,7 +100,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Detalhe.titulo))
         .navigationBarTitleDisplayMode(.inline)
-        .task { await viewModel.carregar() }
+        .task { await medirAbertura(.detalheDaVaga, carregar: viewModel.carregar, pronto: detalheNaTela) }
+    }
+
+    /// Fim da medição de abertura (#73): a vaga da API publicada.
+    private var detalheNaTela: @MainActor @Sendable () -> Bool {
+        let viewModel = viewModel
+        return { if case .carregado = viewModel.estado { true } else { false } }
     }
 
     @ViewBuilder

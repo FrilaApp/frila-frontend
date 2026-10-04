@@ -27,6 +27,8 @@ Custo: o repositório é privado e cada minuto macOS consome cerca de dez vezes 
 
 Tempo da CI de PR: no PR #66, em 02/10/2026, a execução levou 39m45s. Os testes do `Frila-Local` tomaram 25m45s, a compilação deles 2m35s, e os builds do Dev, do Beta e do Prod, 1m59s, 4m20s e 3m44s. Nada roda duas vezes: o workflow só dispara em pull request e em push no `main`, e um push novo cancela a execução anterior do mesmo PR. O limite subiu de 45 para 70 minutos quando os testes de interface do push (#8) entraram. Separar os três builds num job paralelo encurtaria a espera, mas gastaria mais cota, porque a preparação e a compilação dos pacotes se repetiriam; não foi feito.
 
+Paralelismo de testes no simulador: medido e descartado em 03/10/2026 no PR #102. Tentar rodar os testes em paralelo no xcodebuild (`-parallel-testing-enabled YES -maximum-parallel-testing-workers 2`) subiu o tempo do passo de testes de 42-53 minutos para 67m45s (estourando o limite de 70 minutos do workflow) e causou 8 falhas espúrias por lentidão extrema. O runner `macos-26` do GitHub Actions tem apenas 3 vCPUs; subir e manter dois clones de simulador concorrentes sobrecarrega a CPU (só o boot inicial levou 10m20s) e quebra a sincronização de acessibilidade do XCUITest. O simulador único sequencial é 15 a 25 minutos mais rápido e 100% determinístico. Não ligue paralelismo de simulador na CI sem runners com mais núcleos dedicados.
+
 ## Mandar um build ao TestFlight
 
 O workflow `.github/workflows/testflight.yml` arquiva, assina, confere e manda o app ao TestFlight
@@ -39,8 +41,9 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
   é o `Frila-Beta` (Release apontando para o frila-dev), o que o cartão pede para o 0.4 e o 0.5. Uma
   tag fora do `main` é recusada.
 - **Disparo manual** (Actions > TestFlight > Run workflow): escolhe o esquema (`Frila-Beta` ou
-  `Frila-Prod`), a versão, o ensaio de falha e se envia. Com "Enviar ao TestFlight" desmarcado, o job
-  faz o archive, a assinatura, a conferência e os símbolos e para antes do envio.
+  `Frila-Prod`), a versão, o ensaio de falha, o build de medição e se envia. Com "Enviar ao
+  TestFlight" desmarcado, o job faz o archive, a assinatura, a conferência e os símbolos e para antes
+  do envio.
 - **Prod como padrão da tag**: no `testflight.yml`, apague a linha `ESQUEMA_DA_TAG: Frila-Beta` e
   descomente a `# ESQUEMA_DA_TAG: Frila-Prod` logo abaixo. Faça isso quando o frila-prod tiver as
   migrações (cartão do ambiente de produção, 29/10). Até lá, um build Prod abriria contra um banco
@@ -150,6 +153,17 @@ O ensaio não afeta o build de produção, por quatro travas:
 - O `conferir-release.sh` reprova o botão em qualquer outro Release, inclusive nos builds da CI de PR.
 - O 0.4 de verdade sai depois, pela tag, com outro número de build e sem o botão.
 
+### Build de medição (#73)
+
+Em Actions > TestFlight > Run workflow, escolha o `main`, o `Frila-Beta` e a versão atual, e marque
+"Build de medição" e "Enviar ao TestFlight". O build compila a medição de desempenho e de dados
+(`FRILA_MEDICAO`) e tem as mesmas travas do ensaio:
+- só o disparo manual liga a condição;
+- o build vai marcado `testFlightInternalTestingOnly`;
+- o `conferir-release.sh` reprova a medição em qualquer outro Release.
+
+O roteiro do aparelho está em [Desempenho e dados](Desempenho.md).
+
 ### Reproduzir na própria máquina
 
 ```sh
@@ -161,7 +175,8 @@ ASC_KEY_PATH=~/caminho/AuthKey.p8 ASC_KEY_ID=... ASC_ISSUER_ID=... \
 ```
 
 Sem as três variáveis `ASC_*`, o script usa a conta logada no Xcode da máquina. Sem `--sem-envio`,
-ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio.
+ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio; com
+`FRILA_MEDICAO=1`, o build de medição.
 
 ### O que a primeira execução real ainda prova
 
