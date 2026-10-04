@@ -236,18 +236,28 @@ public final class RepublicarVagaViewModel {
             await aoConcluir?(vagaPublicada)
             resultado = vagaPublicada
         } catch let erro as ErroDaApi {
-            tratarErro(erro)
-            if erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta {
-                camposBloqueados = false
-                if let fila {
-                    try? await fila.remover(id: acao.id)
-                }
-                republicacaoPendente = nil
-                acaoPendente = nil
-            } else {
-                // Erro transitório ou sem rede: campos travados para reenvio idempotente
+            if erro.codigo == .semRede {
+                // Sem rede: campos travados para reenvio e a republicação continua na fila.
+                // Não define mensagemErro para exibir apenas o aviso azul de continuação.
                 camposBloqueados = true
+                mensagemErro = nil
+            } else {
+                tratarErro(erro)
+                if erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta {
+                    camposBloqueados = false
+                    if let fila {
+                        try? await fila.remover(id: acao.id)
+                    }
+                    republicacaoPendente = nil
+                    acaoPendente = nil
+                } else {
+                    // Erro transitório: campos travados para reenvio idempotente
+                    camposBloqueados = true
+                }
             }
+        } catch is URLError {
+            camposBloqueados = true
+            mensagemErro = nil
         } catch {
             mensagemErro = TextosRepublicarVaga.erroGenerico
             camposBloqueados = true
@@ -274,7 +284,7 @@ public final class RepublicarVagaViewModel {
         case .campoObrigatorio, .campoInvalido:
             mensagemErro = TextosRepublicarVaga.horarioInvalido
         case .semRede:
-            mensagemErro = TextosRepublicarVaga.semRede
+            mensagemErro = nil
         default:
             mensagemErro = TextosRepublicarVaga.erroGenerico
         }
