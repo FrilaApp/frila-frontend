@@ -176,7 +176,7 @@ public struct TelaContaSuspensa: View {
             .textFieldStyle(.plain)
             .padding(FrilaEspaco.medio)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
             .accessibilityIdentifier("campo-relato-contestacao")
 
             HStack {
