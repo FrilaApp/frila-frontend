@@ -11,6 +11,46 @@
         }
       }
     },
+    "Você bloqueou este profissional": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você bloqueou este profissional"
+          }
+        }
+      }
+    },
+    "Você bloqueou este estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você bloqueou este estabelecimento"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Recolher teclado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolher teclado"
+          }
+        }
+      }
+    },
     "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento.": {
       "localizations": {
         "pt-BR": {
@@ -5949,6 +5989,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta vaga já foi cancelada ou encerrada."
+          }
+        }
+      }
+    },
+    "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo."
           }
         }
       }
