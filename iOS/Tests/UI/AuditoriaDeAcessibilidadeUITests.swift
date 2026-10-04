@@ -18,9 +18,9 @@ import XCTest
 ///
 /// O que ainda falha por arquivo ocupado por outro PR, ou por decisão de layout que é do design,
 /// fica registrado com `XCTExpectFailure` por tela, com o motivo: a CI fica verde e o teste acusa
-/// quando a tela for corrigida. É estrito quando o achado apareceu nos dois tamanhos, sem depender
-/// de rolagem; os demais ficam não estritos, porque o que a auditoria enxerga depende do tamanho
-/// da tela e do que está visível no momento.
+/// quando a tela for corrigida. É estrito quando o achado aparece em toda rodada, sem depender de
+/// rolagem; os demais ficam não estritos, porque o que a auditoria enxerga depende do tamanho da
+/// tela e do que está visível no momento.
 ///
 /// A suíte é opcional: só roda com `TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1` no ambiente
 /// do `xcodebuild test` (é o que `Scripts/auditoria-de-acessibilidade.sh` passa). Na suíte normal
@@ -143,12 +143,11 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     // MARK: - Motivos das falhas esperadas (o relatório tem o detalhe por arquivo:linha)
 
     private static let listaDeVagasLimitadaAAX1 = "o cartão da vaga, as pílulas de filtro e o botão Catálogo não acompanham o Dynamic Type: TelaVagas.swift limita o cartão e as pílulas a AX1 por decisão de layout do #139 (a alta fidelidade do #15 decide), e o botão da barra está em FluxoDoProfissional.swift, ocupado pelo #97"
-    private static let abaCandidaturasComViewThatFits = "no tamanho padrão o XCTest não consegue variar a fonte de Função e Valor dentro do ViewThatFits de CartaoDaCandidatura (CandidaturaEmSelecao.swift); fica para conferir com a alta fidelidade"
+    private static let abaCandidaturasComViewThatFits = "falso positivo do XCTest: no tamanho padrão, Função e Valor do CartaoDaCandidatura (CandidaturaEmSelecao.swift) saem como Dynamic Type 'partially unsupported', mas o texto escala (função de 20 para 63 pt de altura em AX5) e o achado some quando o ViewThatFits vira um layout só; trocar o layout é decisão da alta fidelidade"
+    private static let abaCandidaturasComViewThatFitsEmAX5 = "provável falso positivo do XCTest: em AX5, às vezes, 'texto cortado' sem elemento no CartaoDaCandidatura (CandidaturaEmSelecao.swift); a captura não mostra corte e o achado some quando o ViewThatFits vira um layout só"
     private static let detalheDaVagaOcupado = "o texto do modo seleção fica cortado no tamanho padrão em TelaDetalheVaga.swift, ocupado pelo #97"
     private static let meuTurnoOcupado = "'quem recebe' fica cortado no tamanho padrão em TelaMeuTurno.swift, ocupado pelos #92, #93 e #103"
-    private static let perfilDaContaOcupado = "o e-mail da conta é lido sem rótulo em PerfisDaConta.swift, ocupado pelo histórico #23 e pelos textos do Homem-Aranha"
     private static let perfilDoEstabelecimentoOcupado = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift, ocupado pelo #73"
-    private static let contaSuspensaOcupada = "o ícone do cabeçalho é lido pelo nome do símbolo em TelaContaSuspensa.swift, ocupado pelos textos do Homem-Aranha"
     private static let publicarVagaComDatePicker = "o UIDatePicker compacto do sistema não acompanha o Dynamic Type em AX5 (PublicarVaga.swift, ocupado pelos #73 e #103)"
 
     // MARK: - Profissional
@@ -235,7 +234,12 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(aba, "A aba Candidaturas deve existir") else { return }
         aba.tap()
         guard esperar(elemento("tela-minhas-candidaturas", em: app), "A aba deve abrir") else { return }
-        auditar(app, tela: "candidaturas", pendente: Self.abaCandidaturasComViewThatFits)
+        // No padrão o achado vem em toda rodada (estrito); em AX5, só às vezes.
+        auditar(
+            app, tela: "candidaturas",
+            pendente: ax5 ? Self.abaCandidaturasComViewThatFitsEmAX5 : Self.abaCandidaturasComViewThatFits,
+            estrito: !ax5
+        )
 
         let pendente = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'candidatura-'")).firstMatch
         guard esperar(pendente, "A candidatura pendente deve estar na lista") else { return }
@@ -294,7 +298,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
         guard esperar(app.buttons["perfil-excluir-conta"], "O perfil deve abrir") else { return }
-        auditar(app, tela: "perfil-profissional", pendente: Self.perfilDaContaOcupado, estrito: true)
+        auditar(app, tela: "perfil-profissional")
 
         tocar(app.buttons["perfil-funcoes-horarios"], em: app)
         guard esperar(elemento("picker-dia-semana", em: app), "Funções e horários deve abrir") else { return }
@@ -312,7 +316,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private func contaSuspensa(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "conta-suspensa"], ax5: ax5)
         guard esperar(elemento("tela-conta-suspensa", em: app), "A conta suspensa deve abrir") else { return }
-        auditar(app, tela: "conta-suspensa", pendente: Self.contaSuspensaOcupada)
+        auditar(app, tela: "conta-suspensa")
     }
 
     func testContaSuspensa() { contaSuspensa(ax5: false) }

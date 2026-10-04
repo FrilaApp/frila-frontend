@@ -4,6 +4,7 @@ import SwiftUI
 public struct TelaContaSuspensa: View {
     @Bindable private var viewModel: ContaSuspensaViewModel
     @State private var exportarModel: ExportarDadosViewModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let api: any ApiCliente
 
     public init(viewModel: ContaSuspensaViewModel, api: any ApiCliente) {
@@ -67,6 +68,7 @@ public struct TelaContaSuspensa: View {
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "clock.badge.exclamationmark")
                     .foregroundStyle(FrilaCor.primaria)
+                    .accessibilityHidden(true)
                 Text(verbatim: TextosContaSuspensa.prazoAnaliseDescricao)
                     .font(.caption)
                     .foregroundStyle(FrilaCor.textoSecundario)
@@ -189,7 +191,7 @@ public struct TelaContaSuspensa: View {
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
             }
 
-            HStack(spacing: FrilaEspaco.pequeno) {
+            layoutDosBotoes {
                 BotaoPrimario(
                     verbatim: TextosContaSuspensa.botaoEnviar,
                     carregando: viewModel.enviandoContestacao
@@ -204,6 +206,15 @@ public struct TelaContaSuspensa: View {
                 .accessibilityIdentifier("botao-cancelar-contestacao")
             }
         }
+    }
+
+    /// Lado a lado, os dois botões se estrangulavam nos tamanhos de acessibilidade (QA do #105).
+    /// `AnyLayout` em vez de `ViewThatFits`: o botão não troca de layout quando o título vira o
+    /// indicador de envio, e a auditoria do XCTest não lê as duas cópias como fonte que não escala.
+    private var layoutDosBotoes: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: FrilaEspaco.pequeno))
+            : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
     }
 
     private var secaoAcoes: some View {
