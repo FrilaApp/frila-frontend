@@ -10,6 +10,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case primeiroAcesso = "primeiro-acesso"
         case vagaPreenchida = "vaga-preenchida"
         case inelegivel
+        case funcaoIncompativel = "funcao-incompativel"
         case semRede = "sem-rede"
         case contaSuspensa = "conta-suspensa"
         /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
@@ -267,6 +268,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
                         perfilProfissional = try FixturesDoContrato.carregar("perfil-profissional", como: ContratoAPI.PerfilProfissionalDTO.self).dominio()
                     }
                 }
+            }
+            if cenario == .funcaoIncompativel, let perfil = perfilProfissional {
+                perfilProfissional = PerfilProfissional(
+                    id: perfil.id, usuarioID: perfil.usuarioID,
+                    funcoes: catalogo.filter { $0.nome == "Bartender" }, pontoBase: perfil.pontoBase,
+                    disponibilidades: perfil.disponibilidades, reputacao: perfil.reputacao
+                )
             }
             if cenario == .contaSuspensa, let ativa = conta {
                 conta = Conta(
@@ -888,6 +896,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
+        if cenario == .funcaoIncompativel,
+           perfilProfissional?.funcoes.contains(where: { $0.id == vaga.funcao.id }) != true {
+            throw erro("inelegivel", detalhes: "funcao_incompativel")
+        }
         // Quem a casa já escolheu recebe o próprio turno de volta, antes de qualquer conferência do
         // estado da vaga, como no backend. Só na seleção: no modo urgência o dublê não devolve o mesmo.
         if vaga.modo == .selecao, !bloqueada(vaga), let minha = candidaturaDaConta(na: vagaID), minha.estado == .aceita,

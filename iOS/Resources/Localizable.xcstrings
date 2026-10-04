@@ -181,6 +181,16 @@
         }
       }
     },
+    "Ajustar minhas funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustar minhas funções"
+          }
+        }
+      }
+    },
     "%@ às %@": {
       "localizations": {
         "pt-BR": {
