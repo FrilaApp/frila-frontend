@@ -305,13 +305,21 @@ final class AutenticacaoUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
 
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
 
-        app.buttons["cadastro-continuar"].tap()
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
+
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
 
         preencherPerfil(app)
         app.buttons["botao-salvar-perfil"].tap()
@@ -345,9 +353,11 @@ final class AutenticacaoUITests: XCTestCase {
         app.buttons["botao-salvar-perfil"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
-        XCTAssertTrue(app.buttons["botao-salvar-perfil"].isEnabled)
-        app.buttons["botao-salvar-perfil"].tap()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        let botaoSalvar = app.buttons["botao-salvar-perfil"]
+        rolarAte(botaoSalvar, app: app)
+        XCTAssertTrue(botaoSalvar.isEnabled)
+        botaoSalvar.tap()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
     func testErroAoCriarPerfilPermiteSair() {
@@ -387,6 +397,11 @@ final class AutenticacaoUITests: XCTestCase {
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
         for _ in 0..<6 {
             if elemento.isHittable { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+        if !elemento.isHittable {
             app.swipeUp()
         }
         XCTAssertTrue(elemento.isHittable)
@@ -484,13 +499,21 @@ final class AutenticacaoUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("01/01/2015")
 
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
 
-        app.buttons["cadastro-continuar"].tap()
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
+
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
@@ -527,14 +550,22 @@ final class AutenticacaoUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         // Data de nascimento indica mais de 18 anos (passa na validação local da data)
         nascimento.typeText("01/01/2000")
 
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
 
-        app.buttons["cadastro-continuar"].tap()
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
+
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
 
         // O sinal Declared Age Range diz que é menor de 18: recusa com a mensagem da RN20
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
@@ -568,23 +599,31 @@ final class AutenticacaoUITests: XCTestCase {
         telefone.typeText("61988887777")
 
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
 
         let btnContinuar = app.buttons["cadastro-continuar"]
+        rolarAte(btnContinuar, app: app)
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve estar desabilitado sem maioridade e sem termos")
 
         // Marca apenas maioridade
-        app.buttons["cadastro-maior-de-idade"].tap()
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem aceite dos termos")
 
         // Desmarca maioridade e marca apenas termos
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem confirmação de maioridade")
 
         // Marca ambos
-        app.buttons["cadastro-maior-de-idade"].tap()
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve habilitar com formulário completo, maioridade e termos")
     }
 }
