@@ -5993,6 +5993,16 @@
         }
       }
     },
+    "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo."
+          }
+        }
+      }
+    },
     "Problema de saúde": {
       "localizations": {
         "pt-BR": {

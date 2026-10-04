@@ -22,7 +22,9 @@ jobs:
   ios:
     name: Testes Local e builds Dev e Prod
     runs-on: macos-26
-    timeout-minutes: 70
+    # A run cancelada no limite joga fora 70 min e volta inteira à fila;
+    # o timeout de 90 min acomoda os testes sequenciais no simulador e economiza minutos no saldo líquido.
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash
@@ -36,6 +38,46 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verificar se o PR exige builds de Release
+        id: filtro
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "Push no branch principal: executa todos os builds e conferências de Release."
+            echo "build_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          if [[ -z "$BASE_SHA" ]]; then
+            echo "SHA base não encontrado; executa todos os builds por segurança."
+            echo "build_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          DIFF_FILES=$(git diff --name-only "$BASE_SHA...HEAD")
+          echo "Arquivos alterados no PR contra o branch base ($BASE_SHA):"
+          printf '%s\n' "$DIFF_FILES"
+
+          PRECISA_BUILD=false
+          while IFS= read -r arquivo; do
+            [[ -z "$arquivo" ]] && continue
+            case "$arquivo" in
+              iOS/Tests/*|iOS/Docs/*|*.md)
+                ;;
+              *)
+                echo "Alteração fora de testes/docs exige builds Dev/Beta/Prod: $arquivo"
+                PRECISA_BUILD=true
+                break
+                ;;
+            esac
+          done <<< "$DIFF_FILES"
+
+          if [[ "$PRECISA_BUILD" == "false" ]]; then
+            echo "PR altera apenas testes ou documentação: builds Dev/Beta/Prod e conferências serão pulados."
+          fi
+          echo "build_release=$PRECISA_BUILD" >> "$GITHUB_OUTPUT"
 
       - name: Selecionar o Xcode 26.6 fixado
         run: |
@@ -175,6 +217,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Build do Frila-Dev (Supabase frila-dev)
+        if: steps.filtro.outputs.build_release == 'true'
         env:
           FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
           FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
@@ -190,9 +233,11 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Autoteste da conferência de Release
+        if: steps.filtro.outputs.build_release == 'true'
         run: Scripts/teste-conferir-release.sh
 
       - name: Build do Frila-Beta (Release apontando para o frila-dev)
+        if: steps.filtro.outputs.build_release == 'true'
         run: |
           xcodebuild build -quiet \
             -project Frila.xcodeproj \
@@ -204,9 +249,11 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Conferir o bundle de Release do Frila-Beta
+        if: steps.filtro.outputs.build_release == 'true'
         run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
 
       - name: Build do Frila-Prod (Supabase frila-prod)
+        if: steps.filtro.outputs.build_release == 'true'
         env:
           FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
           FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
@@ -222,6 +269,7 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Conferir o bundle de Release do Frila-Prod
+        if: steps.filtro.outputs.build_release == 'true'
         run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
 
       - name: Apagar segredos e temporários
