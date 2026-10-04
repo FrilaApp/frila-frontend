@@ -111,20 +111,13 @@ final class AvaliacaoUITests: XCTestCase {
             let espera = XCTNSPredicateExpectation(predicate: pronto, object: sim)
             _ = XCTWaiter.wait(for: [espera], timeout: 5)
         }
+        sim.tap()
 
         let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
         XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
-
         let habilitado = NSPredicate(format: "enabled == true")
-        if !botaoEnviar.isEnabled {
-            sim.tap()
-            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
-            if XCTWaiter.wait(for: [espera], timeout: 3) != .completed {
-                sim.tap()
-                let segundaEspera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
-                _ = XCTWaiter.wait(for: [segundaEspera], timeout: 5)
-            }
-        }
+        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
+        _ = XCTWaiter.wait(for: [espera], timeout: 5)
         XCTAssertTrue(botaoEnviar.isEnabled)
         botaoEnviar.tap()
 

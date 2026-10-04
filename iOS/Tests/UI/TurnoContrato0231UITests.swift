@@ -177,14 +177,8 @@ final class TurnoContrato0231UITests: XCTestCase {
         let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
         XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
         let habilitado = NSPredicate(format: "enabled == true")
-        if !botaoEnviar.isEnabled {
-            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
-            if XCTWaiter.wait(for: [espera], timeout: 3) != .completed {
-                botaoNao.tap()
-                let segundaEspera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
-                _ = XCTWaiter.wait(for: [segundaEspera], timeout: 5)
-            }
-        }
+        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
+        _ = XCTWaiter.wait(for: [espera], timeout: 5)
         XCTAssertTrue(botaoEnviar.isEnabled)
         tocar(botaoEnviar)
 
