@@ -3,11 +3,13 @@ import SwiftUI
 
 public struct TelaContaSuspensa: View {
     @Bindable private var viewModel: ContaSuspensaViewModel
+    @State private var exportarModel: ExportarDadosViewModel
     private let api: any ApiCliente
 
     public init(viewModel: ContaSuspensaViewModel, api: any ApiCliente) {
         self.viewModel = viewModel
         self.api = api
+        _exportarModel = State(initialValue: ExportarDadosViewModel(api: api))
     }
 
     public var body: some View {
@@ -210,17 +212,7 @@ public struct TelaContaSuspensa: View {
                 .font(.headline)
                 .foregroundStyle(FrilaCor.texto)
 
-            Button {} label: {
-                Label {
-                    Text(verbatim: TextosContaSuspensa.exportar)
-                } icon: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-            }
-            .disabled(true)
-            .accessibilityHint(TextosContaSuspensa.todoExportacao)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-            .accessibilityIdentifier("conta-suspensa-exportar-dados")
+            ItemExportarDados(viewModel: exportarModel, identificador: "conta-suspensa-exportar-dados")
 
             NavigationLink {
                 TelaExclusaoDeConta(

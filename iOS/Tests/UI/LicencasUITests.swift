@@ -7,14 +7,17 @@ final class LicencasUITests: XCTestCase {
     func testCatalogoAbreAListaEOTextoDaLicenca() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
 
         let entrada = app.buttons["abrir-licencas"]
         let janela = app.windows.firstMatch
         for _ in 0..<12 {
-            let areaVisivel = janela.frame.insetBy(dx: 0, dy: entrada.frame.height)
-            if entrada.isHittable && areaVisivel.contains(entrada.frame) { break }
+            if entrada.exists && entrada.isHittable {
+                let areaVisivel = janela.frame.insetBy(dx: 0, dy: entrada.frame.height)
+                if areaVisivel.contains(entrada.frame) { break }
+            }
             app.swipeUp()
         }
         XCTAssertTrue(entrada.isHittable, "a entrada das licenças não apareceu no catálogo")
@@ -39,6 +42,7 @@ final class LicencasUITests: XCTestCase {
     func testMeuPerfilAjudaAbreLicencasEmAlturaInteira() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
