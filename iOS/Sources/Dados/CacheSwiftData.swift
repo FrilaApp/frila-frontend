@@ -296,7 +296,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         }
     }
 
-    public func resolverRecusas(_ acao: AcaoPendente) throws {
+    public func resolverRecusas(_ acao: AcaoPendente) async throws {
         let autor = try acao.contaID ?? sessao()?.usuarioID
         let aceita = autor.map { acao.com(contaID: $0) } ?? acao
         let decoder = JSONDecoder()

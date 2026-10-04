@@ -9,7 +9,13 @@ private final class ApiPresencaRecusada: ApiClienteEncaminhador, @unchecked Send
     let erro: any Error
     private let trava = NSLock()
     private var envios = 0
+    private var consultasDaConta = 0
     var total: Int { trava.withLock { envios } }
+    var consultas: Int { trava.withLock { consultasDaConta } }
+    override func minhaConta() async throws -> Conta {
+        trava.withLock { consultasDaConta += 1 }
+        return try await base.minhaConta()
+    }
     init(erro: any Error) { self.erro = erro; super.init() }
     override func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         trava.withLock { envios += 1 }
@@ -43,14 +49,15 @@ private final class ApiSaidaRecusada: ApiClienteEncaminhador, @unchecked Sendabl
 
 @Suite("Recusas definitivas da fila")
 struct SincronizadorRecusasTests {
-    @Test("Ação de outra conta não é enviada nem recusada", arguments: [TipoAcaoPendente.checkin, .checkout])
+    @Test("Ação de outra conta não é enviada nem recusada", arguments: TipoAcaoPendente.allCases)
     func outroAutor(tipo: TipoAcaoPendente) async throws {
         let api = ApiPresencaRecusada(erro: ErroDaApi(codigo: .semPermissao))
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
-        let acao = AcaoPendente(tipo: tipo, turnoID: UUID(), contaID: UUID(), instanteDoToque: .now, chave: UUID())
+        let acao = AcaoPendente(tipo: tipo, turnoID: UUID(), contaID: UUID(), instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID())
         try await fila.enfileirar(acao)
         await SincronizadorAcoes(fila: fila, api: api).sincronizar()
         #expect(api.total == 0)
+        #expect(api.consultas == 1, "todos os tipos conferem autoria antes de despachar")
         #expect(try await fila.pendentes() == [acao])
         #expect(try await fila.recusadas().isEmpty)
     }
@@ -67,6 +74,31 @@ struct SincronizadorRecusasTests {
         try await fila.enfileirar(nova)
         #expect(try await fila.pendentes().first(where: { $0.id == nova.id })?.contaID == sessao.usuarioID)
         #expect(try await fila.pendentes().first(where: { $0.id == legado.id })?.contaID == nil)
+    }
+
+    @Test("Presença legada continua no caminho anterior sem assumir autor da sessão")
+    func legadoSemAutor() async throws {
+        let api = ApiPresencaRecusada(erro: ErroDaApi(codigo: .foraDaJanela))
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let acao = AcaoPendente(tipo: .checkin, turnoID: UUID(), instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID())
+        try await fila.enfileirar(acao)
+        try await fila.salvar(sessao: SessaoUsuario(usuarioID: UUID(), perfil: .profissional))
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(api.total == 1)
+        #expect(api.consultas == 0)
+        #expect(try await fila.recusadas().first?.contaID == nil)
+    }
+
+    @Test("Reenfileirar ação conhecida conserva autor, mesmo após mudança da sessão")
+    func regravacaoConservaAutor() async throws {
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let autor = UUID()
+        try await fila.salvar(sessao: SessaoUsuario(usuarioID: autor, perfil: .profissional))
+        let acao = AcaoPendente(tipo: .checkout, turnoID: UUID(), instanteDoToque: .now, chave: UUID())
+        try await fila.enfileirar(acao)
+        try await fila.salvar(sessao: SessaoUsuario(usuarioID: UUID(), perfil: .profissional))
+        try await fila.enfileirar(acao)
+        #expect(try await fila.pendentes().first?.contaID == autor)
     }
 
     @Test("Recusa definitiva de presença sai da fila e não volta a ser enviada", arguments: [TipoAcaoPendente.checkin, .checkout], [CodigoErroAPI.vagaEncerrada, .semPermissao, .foraDaJanela, .registroNoFuturo, .campoInvalido, .campoObrigatorio, .naoEncontrado, .contaSuspensa])
@@ -147,6 +179,23 @@ struct AvisosDaFilaTests {
         #expect(try await reaberta.pendentes().isEmpty, "a mesma ação recusada não volta para a fila")
         try await reaberta.limpar()
         #expect(try await reaberta.recusadas().isEmpty)
+    }
+
+    @Test("Sucesso resolve apenas avisos da mesma operação, turno e autor")
+    func sucessoResolveSomenteAvisosCorrespondentes() async throws {
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let autor = UUID(), turnoID = UUID()
+        let anterior = AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: autor, instanteDoToque: .now, chave: UUID())
+        let outroAutor = AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: UUID(), instanteDoToque: .now, chave: UUID())
+        let outroTurno = AcaoPendente(tipo: .avaliacao, turnoID: UUID(), contaID: autor, instanteDoToque: .now, chave: UUID())
+        let outroTipo = AcaoPendente(tipo: .checkin, turnoID: turnoID, contaID: autor, instanteDoToque: .now, chave: UUID())
+        for acao in [anterior, outroAutor, outroTurno, outroTipo] {
+            try await fila.enfileirar(acao)
+            try await fila.recusar(acao, codigo: .semPermissao)
+        }
+        try await fila.resolverRecusas(AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: autor, instanteDoToque: .now, chave: UUID()))
+        let restantes = try await fila.recusadas()
+        #expect(Set(restantes.map(\.id)) == Set([outroAutor.id, outroTurno.id, outroTipo.id]))
     }
 
     @Test("Recusa atrasada de uma sessão limpa não recria dados")
