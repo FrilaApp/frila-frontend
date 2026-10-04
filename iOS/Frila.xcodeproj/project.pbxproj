@@ -10,6 +10,7 @@
 		00D0DD92CE352A40D7F55D18 /* RelatorioDeMedicoes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7E64D36B5DD7A5F99440AD /* RelatorioDeMedicoes.swift */; };
 		0111F3457DAC26425492C378 /* DestinoAposEntrada.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B81B5054DEA394A453F96F /* DestinoAposEntrada.swift */; };
 		04055AD7499797428CFEBD35 /* FrilaDados.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 44FCBC781830AFDC791F353D /* FrilaDados.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0474C32F3B757C0BEF2C6E1D /* AjudanteDeLancamentoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AFB2BFB3187E15FC2790B2B /* AjudanteDeLancamentoUITests.swift */; };
 		0614982DC6AABA151649D361 /* DominioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A4AC403161D71F18466D6A /* DominioTests.swift */; };
 		077BD891F4BBE33EEA05F2F3 /* CatalogoDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */; };
 		07F09B4CE154B8494B36A898 /* CandidaturaEmSelecao.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2802282C3FDD7C393BFC7E6 /* CandidaturaEmSelecao.swift */; };
@@ -585,6 +586,7 @@
 		886888F0594C7F50C63C9248 /* CanalDePushTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanalDePushTests.swift; sourceTree = "<group>"; };
 		88AA5E627A514B96950D57DD /* AtualizacaoObrigatoriaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtualizacaoObrigatoriaTests.swift; sourceTree = "<group>"; };
 		89D42C2C9B594238CB01FB57 /* requisicao-cancelar-posicao.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-cancelar-posicao.json"; sourceTree = "<group>"; };
+		8AFB2BFB3187E15FC2790B2B /* AjudanteDeLancamentoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AjudanteDeLancamentoUITests.swift; sourceTree = "<group>"; };
 		8D6C2ADB1633B4F6CFDC5E88 /* resultado-reabertura.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "resultado-reabertura.json"; sourceTree = "<group>"; };
 		8E184F5E4D9098AA3FAEFDA1 /* RepublicarVaga.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepublicarVaga.swift; sourceTree = "<group>"; };
 		8FCF8C477F96387DC7EE8A64 /* LeitorDeLocalizacaoSimulado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeitorDeLocalizacaoSimulado.swift; sourceTree = "<group>"; };
@@ -888,6 +890,7 @@
 				03F483FADDC64C8DA422EB8E /* AcessibilidadeDoCatalogoUITests.swift */,
 				DD9805305E79A260570B45DC /* AcessibilidadeDoContratanteUITests.swift */,
 				EF29CC4667387305BCA22ACE /* AcessibilidadeDoProfissionalUITests.swift */,
+				8AFB2BFB3187E15FC2790B2B /* AjudanteDeLancamentoUITests.swift */,
 				161BA9431373940CB8118510 /* AvaliacaoUITests.swift */,
 				B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */,
 				B92F5406A0FB5B038F00A50E /* ContaSuspensaUITests.swift */,
@@ -1865,6 +1868,7 @@
 				5BE18DD27D48523970902937 /* AcessibilidadeDoCatalogoUITests.swift in Sources */,
 				67C8A2DA65D4BB8201138F69 /* AcessibilidadeDoContratanteUITests.swift in Sources */,
 				7793593D652D4B53A86072A4 /* AcessibilidadeDoProfissionalUITests.swift in Sources */,
+				0474C32F3B757C0BEF2C6E1D /* AjudanteDeLancamentoUITests.swift in Sources */,
 				32BEF1B83849B420385B3F14 /* AvaliacaoUITests.swift in Sources */,
 				B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */,
 				A2E8477D5DA584C478A295CB /* ContaSuspensaUITests.swift in Sources */,
@@ -2340,6 +2344,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = AjudanteDeLancamentoUITests;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2608,6 +2613,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = AjudanteDeLancamentoUITests;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2651,6 +2657,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = AjudanteDeLancamentoUITests;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2915,6 +2922,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = AjudanteDeLancamentoUITests;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
