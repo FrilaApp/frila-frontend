@@ -297,7 +297,9 @@ public struct TelaMinhasVagas: View {
                         ForEach(SecaoMinhasVagas.allCases) { secao in
                             let itens = viewModel.vagas(na: secao)
                             if !itens.isEmpty {
-                                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                                // Lazy: o painel traz as vagas de um ano (±365 dias), e a casa com centenas
+                                // delas construiria todos os cartões a cada abertura.
+                                LazyVStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                                     Text(verbatim: secao.titulo)
                                         .font(.title3.bold())
                                         .accessibilityAddTraits(.isHeader)
