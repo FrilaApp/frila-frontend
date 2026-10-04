@@ -61,7 +61,7 @@ final class SegurancaUITests: XCTestCase {
                 XCTAssertTrue(botao.label.hasPrefix(rotulo))
             }
             XCTAssertTrue(botao.isEnabled)
-            XCTAssertGreaterThanOrEqual(botao.frame.height, 44 - 0.1)
+            XCTAssertAlvoMinimo(botao.frame.height)
         }
     }
 

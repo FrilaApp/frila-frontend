@@ -32,14 +32,14 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         // 3. TelaCadastro: checkboxes com alvos >= 44x44 pt
         let maiorIdade = app.buttons["cadastro-maior-de-idade"]
         XCTAssertTrue(maiorIdade.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(maiorIdade.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(maiorIdade.frame.height, 44)
+        XCTAssertAlvoMinimo(maiorIdade.frame.width)
+        XCTAssertAlvoMinimo(maiorIdade.frame.height)
         XCTAssertTrue(maiorIdade.isHittable)
 
         let termos = app.buttons["cadastro-termos"]
         XCTAssertTrue(termos.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(termos.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(termos.frame.height, 44)
+        XCTAssertAlvoMinimo(termos.frame.width)
+        XCTAssertAlvoMinimo(termos.frame.height)
         XCTAssertTrue(termos.isHittable)
 
         // Alterna opcoes pelo toque
@@ -60,15 +60,15 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         let filtroFuncao = app.descendants(matching: .any)["filtro-funcao"]
         XCTAssertTrue(filtroFuncao.waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(filtroFuncao.frame.height, 44)
+        XCTAssertAlvoMinimo(filtroFuncao.frame.height)
 
         let filtroData = app.descendants(matching: .any)["filtro-data"]
         XCTAssertTrue(filtroData.waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(filtroData.frame.height, 44)
+        XCTAssertAlvoMinimo(filtroData.frame.height)
 
         let filtroDistancia = app.descendants(matching: .any)["filtro-distancia"]
         XCTAssertTrue(filtroDistancia.waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(filtroDistancia.frame.height, 44)
+        XCTAssertAlvoMinimo(filtroDistancia.frame.height)
 
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         XCTAssertTrue(primeira.waitForExistence(timeout: 10))
@@ -116,15 +116,15 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         let denunciar = app.buttons["denunciar"]
         XCTAssertTrue(denunciar.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(denunciar.frame.height, 44)
+        XCTAssertAlvoMinimo(denunciar.frame.height)
 
         let bloquear = app.buttons["bloquear"]
         XCTAssertTrue(bloquear.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(bloquear.frame.height, 44)
+        XCTAssertAlvoMinimo(bloquear.frame.height)
 
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(candidatar.frame.height, 44)
+        XCTAssertAlvoMinimo(candidatar.frame.height)
     }
 
     func testDetalheDaVagaEmTamanhoXXXL() {
@@ -157,16 +157,16 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         let pickerDia = app.descendants(matching: .any)["picker-dia-semana"]
         XCTAssertTrue(pickerDia.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(pickerDia.frame.height, 44)
+        XCTAssertAlvoMinimo(pickerDia.frame.height)
 
         let botaoAdicionar = app.buttons["botao-adicionar-janela"]
         XCTAssertTrue(botaoAdicionar.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(botaoAdicionar.frame.height, 44)
+        XCTAssertAlvoMinimo(botaoAdicionar.frame.height)
 
         let remover = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
         if remover.waitForExistence(timeout: 5) {
-            XCTAssertGreaterThanOrEqual(remover.frame.width, 44)
-            XCTAssertGreaterThanOrEqual(remover.frame.height, 44)
+            XCTAssertAlvoMinimo(remover.frame.width)
+            XCTAssertAlvoMinimo(remover.frame.height)
         }
     }
 
@@ -183,7 +183,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         let contato = app.descendants(matching: .any)["contato-do-turno"]
         XCTAssertTrue(contato.waitForExistence(timeout: 10))
-        XCTAssertGreaterThanOrEqual(contato.frame.height, 44)
+        XCTAssertAlvoMinimo(contato.frame.height)
     }
 
     // MARK: - 7. Meu turno: WhatsApp, Avaliar turno e Ver avaliação (#20, QA do Loki)
@@ -206,7 +206,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             for rotulo in botoes {
                 let botao = app.buttons[rotulo].firstMatch
                 XCTAssertTrue(botao.waitForExistence(timeout: 10), "\(cenario): \(rotulo)")
-                XCTAssertGreaterThanOrEqual(botao.frame.height, 44, "\(cenario): \(rotulo) tem \(botao.frame.height) pt")
+                XCTAssertAlvoMinimo(botao.frame.height, "\(cenario): \(rotulo) tem \(botao.frame.height) pt")
             }
             app.terminate()
         }

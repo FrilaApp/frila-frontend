@@ -48,8 +48,8 @@ da tela do simulador (a CI escolhe qualquer iPhone disponível) e do que está v
 | Situação | Quantos | Onde |
 |---|---|---|
 | Corrigido aqui (estrutura, arquivo livre) | 2 | `TelaExclusaoDeConta.swift`, `Componentes.swift` |
-| Corrigido em 04/10, quando os arquivos ficaram livres | 2 telas + 1 achado do QA | `PerfisDaConta.swift`, `TelaContaSuspensa.swift` (ícone; botões da contestação em AX5) |
-| Fica para depois: arquivo ocupado por PR aberto | 5 telas | `FluxoDoProfissional`, `FluxoDoContratante`, `TelaMeuTurno`, `TelaDetalheVaga`, `PublicarVaga` |
+| Corrigido em 04/10, quando os arquivos ficaram livres | 3 telas + 1 achado do QA + movimento | `PerfisDaConta.swift`, `TelaContaSuspensa.swift` (ícone; botões da contestação em AX5), `TelaDetalheVaga.swift` (modo seleção; rolagem com Reduzir Movimento) |
+| Fica para depois: arquivo ocupado por PR aberto | 4 telas | `FluxoDoProfissional`, `FluxoDoContratante`, `TelaMeuTurno`, `PublicarVaga` |
 | Fica para o design: decisão de layout ou visual | lista de vagas (AX1), contraste em 22 telas | tokens abaixo |
 | Falso positivo do XCTest ou controle do sistema | 15 + 2 + date picker + aba Candidaturas | `TextField`, MapKit, `UIDatePicker`, `ViewThatFits` (seção "Rodada de 04/10") |
 
@@ -70,7 +70,7 @@ Tipos: rótulo, traço, alvo, texto cortado, Dynamic Type, movimento. Tamanho: P
 | Candidaturas (aba) | P | Dynamic Type | "Garçom" e "R$ 120,00" (função e valor do cartão) "não mudam de tamanho" | `CandidaturaEmSelecao.swift:535`: `ViewThatFits` com duas cópias de função/valor; no padrão vale o `HStack`, em AX5 o `VStack`, e o XCTest não acha o mesmo elemento ao variar a fonte. Inferência: falso positivo do `ViewThatFits`; o texto escala (a passada AX5 não aponta) | **falso positivo, confirmado em 04/10** (seção "Rodada de 04/10"); falha esperada estrita no tamanho padrão |
 | Candidaturas (aba) | AX5 | texto cortado | elemento sem identificação | `CandidaturaEmSelecao.swift:533-568` (cartão); não encontrado qual texto (a auditoria não devolveu o elemento) | **provável falso positivo (04/10)**: aparece só com o `ViewThatFits` e a captura não mostra corte (seção "Rodada de 04/10"); falha esperada não estrita em AX5 |
 | Publicar vaga | AX5 | Dynamic Type | `_UIDatePickerCompactTimeLabel` e `UILabel` do date picker | `PublicarVaga.swift:571-586`: `DatePicker` compacto do sistema não escala | fica: controle do sistema e arquivo ocupado (#73, #103); o caminho é `.datePickerStyle(.wheel)` ou `.graphical` nos tamanhos de acessibilidade |
-| Detalhe da vaga (seleção) | P | texto cortado | "o estabelecimento escolhe entre os candidatos" | `TelaDetalheVaga.swift:214` (`TextosDoProfissional.Detalhe.selecaoDetalhe`) numa linha que não quebra | fica: arquivo ocupado (#97) |
+| Detalhe da vaga (seleção) | P | texto cortado | "o estabelecimento escolhe entre os candidatos" | `TelaDetalheVaga.swift:214` (`TextosDoProfissional.Detalhe.selecaoDetalhe`) numa linha que não quebra. Medido em 04/10: o texto quebra, mas fica preso à meia coluna do `Grid` (150 pt no padrão, 165 pt em AX5) e parte palavras a partir do AX1 ("estabeleci-mento") | **corrigido em 04/10**: o modo saiu do `Grid` para uma linha de largura inteira (`TelaDetalheVaga.swift:137`); a tela saiu da falha esperada (seção "Rodada de 04/10") |
 | Meu turno | P | texto cortado | "· quem recebe: Marina" | `TelaMeuTurno.swift:71`: texto num `HStack` ao lado do atalho de mapas, sem quebra | fica: arquivo ocupado (#92, #93, #103) |
 | Cadastro do estabelecimento, Publicar vaga | P | alvo | link "Legal" do mapa menor que 44 pt | `MKAttributionLabel` do MapKit (`CadastroEstabelecimento.swift:264`, `PublicarVaga.swift:405`) | sistema: não há API para o app |
 | Entrada, Código, Cadastro, Funções e horários, Cadastro do estabelecimento, Publicar vaga (mais opções) | P, AX5 | texto cortado | "Text of this UITextField may be clipped" | `Componentes.swift` (`CampoFrila`) e `TelaCodigo.swift`: flag do `UITextField` que o SwiftUI não expõe | falso positivo do XCTest; prova em `testCampoDeTextoCresceEmAX5` |
@@ -112,6 +112,16 @@ acessibilidade, e não com `ViewThatFits`: quando "Enviar contestação" vira o 
 mais estreito, o par poderia voltar a caber lado a lado e o layout pularia no meio do envio. Em
 AX5, no iPhone 17, "Enviar contestação" fica em y = 678 (125 pt de altura) e "Cancelar" logo
 abaixo, em y = 811, os dois com a largura do cartão.
+
+**Detalhe da vaga, modo seleção.** O texto "o estabelecimento escolhe entre os candidatos" não
+estava cortado: ele quebra e cresce com a fonte (64 pt de altura no padrão, 204 pt em AX1, 621 pt
+em AX5). Mas, preso à meia coluna do `Grid` (150 pt no padrão, 144 pt em AX1, 165 pt em AX5),
+partia palavras a partir do AX1, e a auditoria acusou "texto cortado" em toda rodada no padrão,
+em XXXL e em AX1 (10 de 10). Variantes medidas numa build de teste: com o modo numa linha de
+largura inteira, abaixo do `Grid`, 0 de 6 (padrão, AX1 e AX5; o texto passa a ter até 331 pt de
+largura); empilhar o `Grid` só nos tamanhos de acessibilidade também zera em AX1 (0 de 2), mas
+no padrão o `Grid` continua o mesmo. Ficou a linha de largura inteira, que vale em todos os
+tamanhos.
 
 ## Visual: contraste e cor (para o design)
 
@@ -163,7 +173,9 @@ uma marca não cromática.
 ## Movimento
 
 O app quase não anima. Única animação explícita: `TelaDetalheVaga.swift:60`, `withAnimation` ao
-rolar até os avisos; não consulta `accessibilityReduceMotion`. Fica: arquivo ocupado (#97). Os
+rolar até os avisos; não consulta `accessibilityReduceMotion`. **Corrigido em 04/10**: com
+Reduzir Movimento, a rolagem até os avisos é imediata (`TelaDetalheVaga.swift:64`), como já faz
+a rolagem do histórico de turnos (`TelaHistoricoDeTurnos.swift:49`). Os
 `ProgressView` são o indicador do sistema, que já respeita a preferência. A passada da suíte com
 Reduzir Movimento ligado (03/10) não trouxe achado novo: o conjunto foi o mesmo da passada sem a
 preferência, menos dois apontamentos que dependem do que estava visível no momento (o texto
