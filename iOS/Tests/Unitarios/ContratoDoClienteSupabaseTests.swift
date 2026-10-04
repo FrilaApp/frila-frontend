@@ -359,3 +359,156 @@ struct ContratoDoClienteSupabaseTests {
         #expect(BackendDeContrato.requisicoes.contains { $0.rota == "/rest/v1/rpc/remover_dispositivo" } == false)
     }
 }
+
+// MARK: - Rede ruim e valor novo do contrato (robustez antes do TestFlight)
+
+/// A `URLSession` falhando como falha numa rede ruim: a conexão existe, mas o pedido não volta.
+private final class RedeRuim: URLProtocol {
+    nonisolated(unsafe) static var codigo: URLError.Code = .timedOut
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() { client?.urlProtocol(self, didFailWithError: URLError(Self.codigo)) }
+    override func stopLoading() {}
+}
+
+@Suite("Cliente Supabase: rede ruim vira semRede, e item com valor novo sai da lista sem derrubar a resposta", .serialized)
+struct RedeRuimEValorNovoTests {
+    private func cliente(_ protocolo: URLProtocol.Type) throws -> SupabaseApiCliente {
+        let configuracao = URLSessionConfiguration.ephemeral
+        configuracao.protocolClasses = [protocolo]
+        return SupabaseApiCliente(
+            url: try #require(URL(string: "https://frila-teste.supabase.co")),
+            chavePublicavel: "sb_publishable_teste",
+            telemetria: TelemetryNula(),
+            sessaoHTTP: URLSession(configuration: configuracao),
+            armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria()
+        )
+    }
+
+    /// A fixture com o caminho `chave/indice/chave…` trocado por `valor`; `copias` repete o item
+    /// de uma fixture de lista para a troca pegar só um deles.
+    private func fixture(_ nome: String, copias: Int = 1, trocando caminho: String, por valor: Any) throws -> Data {
+        func aplicar(_ no: Any, _ resto: ArraySlice<Substring>) -> Any {
+            guard let passo = resto.first else { return valor }
+            if var lista = no as? [Any], let indice = Int(passo), lista.indices.contains(indice) {
+                lista[indice] = aplicar(lista[indice], resto.dropFirst())
+                return lista
+            }
+            if var objeto = no as? [String: Any] {
+                objeto[String(passo)] = aplicar(objeto[String(passo)] ?? [:], resto.dropFirst())
+                return objeto
+            }
+            return no
+        }
+        var raiz = try JSONSerialization.jsonObject(with: FixturesDoContrato.dados(nome))
+        if copias > 1, let lista = raiz as? [Any], let primeiro = lista.first {
+            raiz = lista + Array(repeating: primeiro, count: copias - lista.count)
+        }
+        return try JSONSerialization.data(withJSONObject: aplicar(raiz, caminho.split(separator: "/")[...]))
+    }
+
+    private func rpc(_ nome: String, _ corpo: Data) {
+        BackendDeContrato.preparar(["/rest/v1/rpc/\(nome)": .init(corpo: corpo)])
+    }
+
+    @Test("Tempo esgotado, conexão perdida, DNS, host e dados móveis bloqueados são semRede, como a rede ausente", arguments: [
+        URLError.Code.notConnectedToInternet, .timedOut, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost,
+        .dnsLookupFailed, .dataNotAllowed, .internationalRoamingOff,
+    ])
+    func redeRuimEhSemRede(codigo: URLError.Code) async throws {
+        RedeRuim.codigo = codigo
+        let erro = await #expect(throws: ErroDaApi.self) { _ = try await cliente(RedeRuim.self).meusTurnos() }
+        #expect(erro?.codigo == .semRede)
+    }
+
+    @Test("Falha de TLS não é falta de rede: continua desconhecida, e não abre o cache")
+    func tlsNaoEhSemRede() async throws {
+        RedeRuim.codigo = .secureConnectionFailed
+        let erro = await #expect(throws: ErroDaApi.self) { _ = try await cliente(RedeRuim.self).meusTurnos() }
+        #expect(erro?.codigo == .desconhecido)
+    }
+
+    @Test("meus_turnos: verificação nova vira pendente e tipo de check-in novo fica sem valor; o turno segue")
+    func turnoComValorNovoTolerado() async throws {
+        rpc("meus_turnos", try fixture("turnos", trocando: "0/verificacao", por: "valor_novo"))
+        var turnos = try await cliente(BackendDeContrato.self).meusTurnos()
+        #expect(turnos.count == 1)
+        #expect(turnos.first?.verificacao == .pendente)
+
+        rpc("meus_turnos", try fixture("turnos", trocando: "0/checkin_tipo", por: "valor_novo"))
+        turnos = try await cliente(BackendDeContrato.self).meusTurnos()
+        #expect(turnos.count == 1)
+        #expect(turnos.first?.checkin?.tipo == nil)
+    }
+
+    @Test("meus_turnos: o turno cuja contraparte tem tipo novo sai da lista, e os outros ficam")
+    func turnoComContraparteNovaSai() async throws {
+        rpc("meus_turnos", try fixture("turnos", copias: 3, trocando: "1/contraparte/tipo", por: "valor_novo"))
+        let turnos = try await cliente(BackendDeContrato.self).meusTurnos()
+        #expect(turnos.count == 2)
+    }
+
+    @Test("vagas_abertas e minhas_candidaturas: o item com modo ou estado novo sai, os outros ficam")
+    func listasComItemNovo() async throws {
+        rpc("vagas_abertas", try fixture("vagas-abertas", copias: 3, trocando: "2/modo", por: "valor_novo"))
+        #expect(try await cliente(BackendDeContrato.self).vagasAbertas(.todas).count == 2)
+
+        rpc("minhas_candidaturas", try fixture("minhas-candidaturas", trocando: "0/estado", por: "valor_novo"))
+        let candidaturas = try await cliente(BackendDeContrato.self).minhasCandidaturas(estado: nil)
+        #expect(candidaturas.map(\.estado) == [.recusada])
+    }
+
+    @Test("vagas_abertas: o item com valor fora do domínio (centavos 0) sai, e a lista não falha")
+    func itemForaDoDominioSai() async throws {
+        rpc("vagas_abertas", try fixture("vagas-abertas", copias: 2, trocando: "0/valor_centavos", por: 0))
+        #expect(try await cliente(BackendDeContrato.self).vagasAbertas(.todas).count == 1)
+    }
+
+    @Test("painel: a posição com estado novo sai da vaga, e a vaga com estado ou modo novo sai do painel")
+    func painelComValorNovo() async throws {
+        rpc("painel_estabelecimento", try fixture("painel", trocando: "vagas/0/posicoes/1/estado", por: "valor_novo"))
+        let periodo = try Periodo(inicio: .distantPast, fim: .distantFuture)
+        var painel = try await cliente(BackendDeContrato.self).painelEstabelecimento(id: UUID(), periodo: periodo)
+        #expect(painel.vagas.count == 1)
+        #expect(painel.vagas.first?.posicoes.count == 1)
+
+        rpc("painel_estabelecimento", try fixture("painel", trocando: "vagas/0/modo", por: "valor_novo"))
+        painel = try await cliente(BackendDeContrato.self).painelEstabelecimento(id: UUID(), periodo: periodo)
+        #expect(painel.vagas.isEmpty)
+        #expect(painel.estabelecimentoID == UUID(uuidString: "30000000-0000-0000-0000-000000000001")) // o resto do painel chega
+    }
+
+    @Test("meus_estabelecimentos: papel novo vira operador e tipo novo vira outro")
+    func estabelecimentoComValorNovo() async throws {
+        rpc("meus_estabelecimentos", try fixture("meus-estabelecimentos", trocando: "0/papel", por: "valor_novo"))
+        #expect(try await cliente(BackendDeContrato.self).meusEstabelecimentos().first?.papel == .operador)
+
+        rpc("meus_estabelecimentos", try fixture("meus-estabelecimentos", trocando: "0/tipo", por: "valor_novo"))
+        #expect(try await cliente(BackendDeContrato.self).meusEstabelecimentos().first?.tipo == .outro)
+    }
+
+    @Test("Protocolo com tipo novo vira denúncia e registro com tipo novo vira manual")
+    func protocoloERegistroComTipoNovo() async throws {
+        rpc("denunciar", try fixture("protocolo", trocando: "tipo", por: "valor_novo"))
+        let alvo = Alvo(tipo: .profissional, id: UUID())
+        let protocolo = try await cliente(BackendDeContrato.self).denunciar(Denuncia(alvo: alvo, turnoID: nil, motivo: .outro, relato: "x", chave: UUID()))
+        #expect(protocolo.tipo == .denuncia)
+
+        rpc("fazer_checkin", try fixture("resultado-registro", trocando: "tipo", por: "valor_novo"))
+        let registro = try await cliente(BackendDeContrato.self).fazerCheckin(turnoID: UUID(), distanciaMetros: nil, registradoEm: .now)
+        #expect(registro.tipo == .manual)
+    }
+
+    @Test("Resposta que não é lista com perfil ou estado da conta novo continua recusada: o app não escolhe fluxo nem presume conta ativa", arguments: [
+        ("minha_conta", "usuario", "perfil"), ("minha_conta", "usuario", "estado"), ("situacao_da_conta", "situacao-da-conta-suspensa", "estado"),
+    ])
+    func contaComValorNovoFechaFechado(rota: String, fixtura: String, campo: String) async throws {
+        rpc(rota, try fixture(fixtura, trocando: campo, por: "valor_novo"))
+        let api = try cliente(BackendDeContrato.self)
+        let erro = await #expect(throws: ErroDaApi.self) {
+            if rota == "minha_conta" { _ = try await api.minhaConta() } else { _ = try await api.situacaoDaConta() }
+        }
+        #expect(erro?.codigo == .respostaInvalida)
+    }
+}
