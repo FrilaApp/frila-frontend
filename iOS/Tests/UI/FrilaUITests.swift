@@ -340,6 +340,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -431,12 +432,20 @@ final class AutenticacaoUITests: XCTestCase {
         rolarAte(app.buttons["botao-salvar-perfil"], app: app)
     }
 
+    private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if app.keyboards.element.exists {
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+    }
+
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
-        if elemento.isHittable { return }
+        if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
-            if elemento.isHittable { return }
-            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
-            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            if elemento.isHittable && !app.keyboards.element.exists { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
             inicio.press(forDuration: 0.05, thenDragTo: fim)
         }
         if !elemento.isHittable {
@@ -535,6 +544,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -586,6 +596,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -635,6 +646,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
