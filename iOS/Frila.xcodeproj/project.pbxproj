@@ -25,6 +25,7 @@
 		0F18BD89A01CA7CA02372058 /* resultado-a-caminho.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D83726938F020261BC04047 /* resultado-a-caminho.json */; };
 		1108F21B4C8976E326E3F7D4 /* RegrasDeVagaEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */; };
 		13680E76BFF8E766208AFAC1 /* PerfisDaContaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B09E8CED7013DCD7D059CD /* PerfisDaContaTests.swift */; };
+		1488F3F669CC21BBF365118C /* CicloDePontaAPontaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F07BCA7416C9AAEB9EE94CC /* CicloDePontaAPontaUITests.swift */; };
 		15C4569424D4AC09D70E599C /* PresencaDoTurnoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */; };
 		1639A058B20DD8B17EDF2A16 /* TextosContaSuspensa.swift in Sources */ = {isa = PBXBuildFile; fileRef = A077A7E7B2FAF88619408270 /* TextosContaSuspensa.swift */; };
 		17C8BD0EFAFBA194A1550EF9 /* PublicarVagaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FA4D697A25E8C15E7BEB18 /* PublicarVagaTests.swift */; };
@@ -539,6 +540,7 @@
 		5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoKeychain.swift; sourceTree = "<group>"; };
 		5D42F9162784D51FF8118379 /* requisicao-denunciar.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-denunciar.json"; sourceTree = "<group>"; };
 		5DA57DD792D852D30F068536 /* ContratoDaSprint2Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContratoDaSprint2Tests.swift; sourceTree = "<group>"; };
+		5F07BCA7416C9AAEB9EE94CC /* CicloDePontaAPontaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CicloDePontaAPontaUITests.swift; sourceTree = "<group>"; };
 		5F59B2943A73448CDDA272C7 /* ContaSuspensaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContaSuspensaViewModel.swift; sourceTree = "<group>"; };
 		5FB4FDD061007C401AF3724C /* ModoAviaoMeuTurnoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModoAviaoMeuTurnoTests.swift; sourceTree = "<group>"; };
 		60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodificadorErroAPI.swift; sourceTree = "<group>"; };
@@ -893,6 +895,7 @@
 				8AFB2BFB3187E15FC2790B2B /* AjudanteDeLancamentoUITests.swift */,
 				161BA9431373940CB8118510 /* AvaliacaoUITests.swift */,
 				B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */,
+				5F07BCA7416C9AAEB9EE94CC /* CicloDePontaAPontaUITests.swift */,
 				B92F5406A0FB5B038F00A50E /* ContaSuspensaUITests.swift */,
 				44760C9078A3626B77CA5EF0 /* ExclusaoDeContaUITests.swift */,
 				EE27623A38C03A8D626521E3 /* ExportarDadosUITests.swift */,
@@ -1871,6 +1874,7 @@
 				0474C32F3B757C0BEF2C6E1D /* AjudanteDeLancamentoUITests.swift in Sources */,
 				32BEF1B83849B420385B3F14 /* AvaliacaoUITests.swift in Sources */,
 				B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */,
+				1488F3F669CC21BBF365118C /* CicloDePontaAPontaUITests.swift in Sources */,
 				A2E8477D5DA584C478A295CB /* ContaSuspensaUITests.swift in Sources */,
 				E1BFE2C26E3F9990368319CA /* ExclusaoDeContaUITests.swift in Sources */,
 				68A064D97D40E4EE22E52829 /* ExportarDadosUITests.swift in Sources */,
