@@ -43,7 +43,8 @@ public struct FolhaSuporteTurno: View {
                 CompositorDeEmailNativo(
                     destinatarios: [viewModel.emailDestino],
                     assunto: viewModel.assuntoEmail,
-                    corpo: viewModel.corpoEmail
+                    corpo: viewModel.corpoEmail,
+                    aoConcluir: { [viewModel] _ in Task { @MainActor in viewModel.compositorConcluido() } }
                 )
             }
             .accessibilityIdentifier("folha-suporte-turno")
@@ -201,18 +202,33 @@ public struct FolhaSuporteTurno: View {
         .accessibilityIdentifier("secao-dados-turno")
     }
 
+    /// Rótulo e valor lado a lado; em tamanho de acessibilidade (AX5) ou valor comprido, um
+    /// embaixo do outro, para o VoiceOver ler o par inteiro e nada ficar espremido.
     private func itemDado(rotulo: String, valor: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(verbatim: "\(rotulo):")
-                .font(.caption.bold())
-                .foregroundStyle(FrilaCor.textoSecundario)
-            Spacer()
-            Text(verbatim: valor)
-                .font(.caption)
-                .foregroundStyle(FrilaCor.texto)
-                .multilineTextAlignment(.trailing)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(verbatim: "\(rotulo):")
+                    .font(.caption.bold())
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                Spacer()
+                Text(verbatim: valor)
+                    .font(.caption)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.trailing)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: "\(rotulo):")
+                    .font(.caption.bold())
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: valor)
+                    .font(.caption)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 
     private var secaoAcoes: some View {

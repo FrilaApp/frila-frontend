@@ -205,6 +205,13 @@ public final class SuporteTurnoViewModel: Identifiable {
         copiadoComSucesso = true
     }
 
+    /// O compositor nativo fechou (enviado, salvo ou cancelado). Sem isto o `.sheet(isPresented:)`
+    /// continuava verdadeiro depois de o UIKit dispensar o compositor, e o botão de e-mail não
+    /// abria de novo até fechar a folha.
+    public func compositorConcluido() {
+        mostrandoCompositorNativo = false
+    }
+
     /// Aciona a abertura de e-mail: se nativo disponível, abre compositor; senão, dispara URL mailto.
     public func abrirEmail(comAbridorURL abrirURL: ((URL) -> Void)? = nil) {
         if podeEnviarEmailNativo {

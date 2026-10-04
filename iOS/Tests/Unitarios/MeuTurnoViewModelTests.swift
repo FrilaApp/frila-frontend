@@ -338,4 +338,21 @@ struct MeuTurnoViewModelTests {
         #expect(contador.valor == 2)
         #expect(vm.turnos.count == 1)
     }
+
+    @Test("O view model da avaliação é um só por turno: o redesenho da tela (contato que chega, fila que muda) não apaga a resposta escolhida")
+    func avaliacaoViewModelEstavel() async throws {
+        let agora = dataReferencia()
+        let base = try criarTurnoExemplo(inicio: agora.addingTimeInterval(-6 * 3600), fim: agora.addingTimeInterval(-3600), contatoVisivelAte: agora.addingTimeInterval(86_400))
+        // Presença verificada e avaliação liberada pelo servidor: é o turno que a tela deixa avaliar.
+        let turno = Turno(id: base.id, posicaoID: base.posicaoID, vaga: base.vaga, contraparte: base.contraparte, contatoVisivelAte: base.contatoVisivelAte,
+                          verificacao: .verificado, valorAcordado: base.valorAcordado, podeAvaliar: true, avaliacaoInformada: true)
+        let vm = MeuTurnoViewModel(turno: turno, api: ApiClienteEmMemoria(), contaID: UUID(),
+                                   armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria(), relogio: RelogioSimulado(agora))
+        let primeiro = try #require(vm.criarAvaliacaoViewModel())
+        primeiro.resposta = true
+        await vm.carregarRecusasDaFila() // o que um redesenho da tela dispara
+        let segundo = try #require(vm.criarAvaliacaoViewModel())
+        #expect(primeiro === segundo)
+        #expect(segundo.resposta == true)
+    }
 }

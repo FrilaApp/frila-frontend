@@ -81,6 +81,9 @@ public final class AcompanhamentoViewModel {
     private let fila: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private var avaliacoesLocais: [UUID: Bool] = [:]
+    /// Um só view model da avaliação por turno (ver `MeuTurnoViewModel.avaliacaoViewModel`): o
+    /// painel é relido com frequência, e cada releitura redesenha a tela do turno.
+    private var avaliacoesViewModels: [UUID: AvaliacaoTurnoViewModel] = [:]
     private let aoMudar: @MainActor () async -> Void
 
     /// `aoMudar` roda depois de cada confirmação, reabertura ou cancelamento, para a lista de vagas
@@ -397,9 +400,11 @@ public final class AcompanhamentoViewModel {
     // MARK: Avaliação (#22)
 
     /// O contratante pode avaliar após o fim previsto do turno e com presença verificada (RN07 / #22).
+    /// A posição vem `confirmada` até o agendador passá-la a `cumprida`, minutos depois do fim
+    /// (contrato, `Turno.estado`): as duas valem, senão a avaliação só existiria nesses minutos.
     public func podeAvaliar(_ turno: TurnoAcompanhado) -> Bool {
         guard turno.posicao.turnoID != nil,
-              turno.posicao.estado == .confirmada,
+              turno.posicao.estado == .confirmada || turno.posicao.estado == .cumprida,
               turno.posicao.cancelamento == nil,
               turno.posicao.verificacao == .verificado,
               turno.vaga.periodo.fim <= agora() else {
@@ -425,7 +430,8 @@ public final class AcompanhamentoViewModel {
     public func criarAvaliacaoViewModel(para turno: TurnoAcompanhado, api clienteAlternativo: (any ApiCliente)? = nil) -> AvaliacaoTurnoViewModel? {
         guard podeAvaliar(turno), let turnoID = turno.posicao.turnoID, let apiCliente = clienteAlternativo ?? api else { return nil }
         guard let idDaConta = contaID else { return nil }
-        return AvaliacaoTurnoViewModel(
+        if let existente = avaliacoesViewModels[turnoID] { return existente }
+        let novo = AvaliacaoTurnoViewModel(
             turnoID: turnoID,
             contaID: idDaConta,
             turno: nil,
@@ -442,6 +448,8 @@ public final class AcompanhamentoViewModel {
                 self?.avaliacoesLocais[turnoID] = resposta
             }
         )
+        avaliacoesViewModels[turnoID] = novo
+        return novo
     }
 
     // MARK: Estado local
