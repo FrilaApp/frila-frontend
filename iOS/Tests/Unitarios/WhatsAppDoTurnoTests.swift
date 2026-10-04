@@ -197,10 +197,35 @@ struct WhatsAppDoTurnoTests {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let dto = try decoder.decode(ContratoAPI.ContatoDTO.self, from: json)
-        let dominio = dto.dominio()
+        let dominio = try dto.dominio()
 
         #expect(dominio.nome == "Choperia Central")
         #expect(dominio.telefone == "+5561988881234")
         #expect(dominio.whatsappURL.absoluteString == "https://wa.me/5561988881234")
+    }
+
+    @Test("whatsapp_url só vira contato se for https no wa.me ou api.whatsapp.com; outro link é resposta inválida (A5)",
+          arguments: [
+              ("https://wa.me/5561988881234", true),
+              ("HTTPS://WA.ME/5561988881234", true),
+              ("https://api.whatsapp.com/send?phone=5561988881234", true),
+              ("http://wa.me/5561988881234", false),
+              ("https://exemplo.com/5561988881234", false),
+              ("https://wa.me.exemplo.com/5561988881234", false),
+              ("whatsapp://send?phone=5561988881234", false),
+              ("javascript:alert(1)", false),
+          ])
+    func whatsappURLSoDoWhatsApp(link: String, aceito: Bool) throws {
+        let json = """
+        {"nome": "Choperia Central", "telefone": "+5561988881234", "whatsapp_url": "\(link)", "visivel_ate": "2026-10-15T22:00:00Z"}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dto = try decoder.decode(ContratoAPI.ContatoDTO.self, from: json)
+        if aceito {
+            #expect(try dto.dominio().whatsappURL.absoluteString == link)
+        } else {
+            #expect(throws: ErroDeConversao(campo: "whatsapp_url")) { try dto.dominio() }
+        }
     }
 }

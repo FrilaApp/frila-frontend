@@ -22,11 +22,12 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         sessaoHTTP: URLSession,
         armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria? = nil
     ) {
-        // A sessão de autenticação fica no Keychain: é o armazenamento padrão do supabase-swift no iOS.
+        // A sessão de autenticação fica no Keychain só deste aparelho (`SessaoNoKeychainDoAparelho`):
+        // o armazenamento padrão do supabase-swift a deixava ir no backup para outro iPhone.
         let auth: SupabaseClientOptions.AuthOptions = if let armazenamentoDaSessao {
             .init(storage: armazenamentoDaSessao, autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
         } else {
-            .init(autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
+            .init(storage: SessaoNoKeychainDoAparelho(), autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
         }
         let options = SupabaseClientOptions(
             db: .init(decoder: ContratoAPI.decodificador()),
@@ -194,7 +195,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     public func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura {
         let resposta: ContratoAPI.CandidaturaDTO = try await rpc("candidatar", params: ContratoAPI.ID("vaga_id", vagaID))
-        return resposta.dominio()
+        return try converter { try resposta.dominio() }
     }
 
     public func perfilPublico(id: UUID) async throws -> PerfilPublico {
@@ -214,7 +215,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             "escolher_candidato",
             params: ContratoAPI.ID("candidatura_id", candidaturaID)
         )
-        return resposta.dominio()
+        return try converter { try resposta.dominio() }
     }
 
     public func retirarCandidatura(id: UUID) async throws -> Candidatura {
@@ -239,7 +240,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     public func contatoDoTurno(id: UUID) async throws -> Contato {
         let resposta: ContratoAPI.ContatoDTO = try await rpc("contato_do_turno", params: ContratoAPI.ID("turno_id", id))
-        return resposta.dominio()
+        return try converter { try resposta.dominio() }
     }
 
     public func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho {

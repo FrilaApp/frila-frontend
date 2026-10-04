@@ -564,13 +564,13 @@ enum ContratoAPI {
             case posicaoID = "posicao_id"
             case turnoID = "turno_id"
         }
-        func dominio() -> ResultadoCandidatura {
+        func dominio() throws -> ResultadoCandidatura {
             ResultadoCandidatura(
                 estado: estado,
                 candidaturaID: candidaturaID,
                 posicaoID: posicaoID,
                 turnoID: turnoID,
-                contato: contato?.dominio()
+                contato: try contato?.dominio()
             )
         }
     }
@@ -585,7 +585,17 @@ enum ContratoAPI {
             case whatsappURL = "whatsapp_url"
             case visivelAte = "visivel_ate"
         }
-        func dominio() -> Contato { Contato(nome: nome, telefone: telefone, whatsappURL: whatsappURL, visivelAte: visivelAte) }
+        /// O app abre o `whatsapp_url` como vem; por isso só aceita o link do WhatsApp em https
+        /// (auditoria de 03/10/2026, A5). Outro esquema ou host não vira contato: é `respostaInvalida`.
+        static let hostsDoWhatsApp: Set<String> = ["wa.me", "api.whatsapp.com"]
+
+        func dominio() throws -> Contato {
+            guard whatsappURL.scheme?.lowercased() == "https",
+                  let host = whatsappURL.host()?.lowercased(), Self.hostsDoWhatsApp.contains(host) else {
+                throw ErroDeConversao(campo: "whatsapp_url")
+            }
+            return Contato(nome: nome, telefone: telefone, whatsappURL: whatsappURL, visivelAte: visivelAte)
+        }
     }
 
     // MARK: Modo seleção (0.2.24)
@@ -636,8 +646,8 @@ enum ContratoAPI {
             case posicaoID = "posicao_id"
             case turnoID = "turno_id"
         }
-        func dominio() -> ResultadoConfirmacao {
-            ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turnoID, contato: contato.dominio())
+        func dominio() throws -> ResultadoConfirmacao {
+            ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turnoID, contato: try contato.dominio())
         }
     }
 
