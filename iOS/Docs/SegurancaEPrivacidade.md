@@ -13,7 +13,7 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
 |---|---|---|---|
 | Alta | 0 | — | — |
 | Média | 3 | 3 (A1, A2, A3) | — |
-| Baixa | 6 | 2 (A4, o modificador; A5) | A4 (ligação), A6; A7–A9 sem ação |
+| Baixa | 6 | 3 (A4, o modificador; A5; A6) | A4 (ligação); A7–A9 sem ação |
 
 ## Achados
 
@@ -24,7 +24,7 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
 | A3 | média | `Sources/Apresentacao/Fluxos/Perfil/HistoricoDeTurnosViewModel.swift` (`:169`, vindo do #106) | O CSV/PDF do histórico de turnos (endereços, valores, nomes) tem o mesmo problema do A1. | **Corrigido** (depois de o #106 entrar no `main`): `HistoricoDeTurnosViewModel.gravar` usa `[.atomic, .completeFileProtection]`; coberto pela conferência estática do `SegurancaDoCodigoTests`. |
 | A4 | baixa | `Sources/App/FrilaApp.swift:59-68` | Telefone da outra parte, endereço do turno, relato de denúncia e a tela de exportação ficam na foto que o sistema tira para o seletor de apps (e grava em disco) quando o app sai de `.active`. | **Modificador pronto e testado:** `Sources/Apresentacao/CortinaDePrivacidade.swift` (superfície opaca fora de `.active`). **Pendente** a ligação, em arquivo ocupado (#111, #103, #95): no `FrilaApp.swift`, logo após o `Group { switch inicializacao … }` (linha 68), acrescentar `.cortinaDePrivacidade()`. Recomendação: ligar; o custo é a tela ficar coberta também com a central de notificações puxada. |
 | A5 | baixa | `Sources/Dados/DTOsContrato.swift:588` (`ContatoDTO.dominio()`); aberto em `TelaMeuTurno.swift:119`, `MinhasVagas.swift:590`, `TelasDaCandidatura.swift:261` | O app abre o `whatsapp_url` como vem do servidor, sem conferir esquema e host. Hoje é `https://wa.me/<telefone>` (contrato 0.2.x); um valor errado numa linha do banco abriria qualquer URL ou esquema de app. | **Corrigido:** `ContatoDTO.dominio()` passa o link só se for `https` em `wa.me` ou `api.whatsapp.com`; fora disso o troca por `https://wa.me/` + dígitos do telefone E.164 e registra `whatsapp_url_saneado` no log (sem número nem link). Sem erro, de propósito: `candidatar` e `escolher_candidato` já gravaram no servidor quando a resposta chega, e um erro faria a ação parecer falha (e a repetição, 409). Testes nas três rotas em `WhatsAppDoTurnoTests`. |
-| A6 | baixa | `Scripts/conferir-release.sh` (ocupado por #95) | O script não confere ATS, compartilhamento de arquivos e esquemas de URL: hoje o bundle não tem nenhum dos três (conferido no `Frila-Beta` deste PR), mas nada impede que entrem. | **Pendente** (#95). Acrescentar, depois da conferência do `NSUserTrackingUsageDescription`: para cada chave em `NSAppTransportSecurity UIFileSharingEnabled LSSupportsOpeningDocumentsInPlace CFBundleURLTypes`, `plutil -extract <chave> raw -o /dev/null "$info_plist" >/dev/null 2>&1 && falhar "Info.plist não pode conter <chave>"`. |
+| A6 | baixa | `Scripts/conferir-release.sh` (ocupado por #95) | O script não confere ATS, compartilhamento de arquivos e esquemas de URL: hoje o bundle não tem nenhum dos três (conferido no `Frila-Beta` deste PR), mas nada impede que entrem. | **Corrigido** (depois de o #95 entrar no `main`): o script reprova `NSAppTransportSecurity`, `UIFileSharingEnabled`, `LSSupportsOpeningDocumentsInPlace` e `CFBundleURLTypes`; quatro casos novos no `teste-conferir-release.sh`. |
 | A7 | baixa | `Sources/App/FrilaApp.swift:39`, `Sources/App/ConfiguracaoAmbiente.swift:116` | O log de início imprime a URL do projeto Supabase com `privacy: .public`. | Sem ação: a URL já está no `Info.plist` do bundle, não é segredo; a chave nunca vai ao log (`ConfiguracaoAmbiente.swift:112`). |
 | A8 | baixa | `Sources/Dados/AparelhoDePush.swift:208` | Depois da saída, o Keychain do push guarda `contaAnterior` (id da conta que saiu) para a carência da troca de conta (#162). | Sem ação: id opaco, no Keychain só deste aparelho, apagado no próximo registro de outra conta; é o que impede o push de quem saiu de abrir para quem entrou. |
 | A9 | baixa | `Sources/NotificationService/NotificationService.swift:29` | A extensão loga o `tipo` do payload com `.public`. | Sem ação: o payload vem do servidor pelo APNs e `tipo` é um de dezoito valores fixos (`AvisoDePush.swift:4`); nenhum id, texto ou `vinculo_id` vai ao log. |
@@ -74,7 +74,7 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
 6. **Release.** `conferir-release.sh` rodado no `Frila-Beta` deste PR: OK. Os ganchos de desenvolvimento
    estão em `#if DEBUG`, o dublê em memória não chega ao Release (`FrilaApp.swift:78-84`), os logs não
    têm nível verboso em Release (não há `debug`/`trace`). Segredos fora do git (`iOS/.gitignore:1-2`),
-   nenhum `Secrets.xcconfig`/`.p8` no bundle, scripts sem `set -x` e sem `echo` de chave. Faltas: A6.
+   nenhum `Secrets.xcconfig`/`.p8` no bundle, scripts sem `set -x` e sem `echo` de chave. Faltas: nenhuma (A6 corrigida).
 7. **Privacidade declarada** (`Resources/PrivacyInfo.xcprivacy`, para o App Privacy do #81):
 
    | Tipo declarado | De onde vem no código | Vinculado | Rastreio |
