@@ -69,7 +69,8 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         let maisOpcoes = app.buttons["mais-opcoes-botao"]
         XCTAssertTrue(maisOpcoes.waitForExistence(timeout: 5))
         trazerParaATela(maisOpcoes, em: app)
-        XCTAssertGreaterThanOrEqual(maisOpcoes.frame.height, 44, "Botão Mais opções deve ter altura >= 44 pt")
+        // O frame vem com erro de ponto flutuante (43,999999…): a tolerância de 0,01 pt evita a falha espúria.
+        XCTAssertGreaterThanOrEqual(maisOpcoes.frame.height, 44 - 0.01, "Botão Mais opções deve ter altura >= 44 pt")
         maisOpcoes.tap()
 
         // 2.6 Campo de Observações: altura >= 44 pt mesmo vazio
