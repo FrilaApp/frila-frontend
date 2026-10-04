@@ -12,7 +12,7 @@ App -> Infraestrutura -> Dominio
 - `FrilaDados`: cliente Supabase, DTOs, dublê em memória, fixtures, cache SwiftData e fila offline.
 - `FrilaApresentacao`: views SwiftUI, componentes e view models `@Observable` isolados no `MainActor`.
 - `FrilaInfraestrutura`: Keychain auxiliar e integrações de plataforma. O CoreLocation fica aqui (`LeitorDeLocalizacaoDoSistema`), atrás da porta `LeitorDeLocalizacao` do domínio; a apresentação só conhece a porta. O MetricKit foi substituído pelo Firebase Crashlytics (#198).
-- `Frila`: composição das dependências e ciclo de vida. A cortina de privacidade (`.cortinaDePrivacidade()`, #137) é ligada na raiz da cena (`FrilaApp.swift:76`), cobrindo a interface fora de `.active` (proteção no seletor de tarefas do sistema).
+- `Frila`: composição das dependências e ciclo de vida. A cortina de privacidade (`.cortinaDePrivacidade()`, #137) é ligada na raiz da cena (`FrilaApp.swift:84`), cobrindo a interface fora de `.active` (proteção no seletor de tarefas do sistema).
 
 `DespachoService`, `NotificacaoService` e `ElegibilidadeSpec` não entram no app na v1.0. Elegibilidade, despacho, teto e agrupamento são regras críticas do backend; o cliente apenas consome vagas e recebe push. Isso resolve a divergência entre os diagramas antigos e o cartão mais recente da Sprint 0.
 
@@ -32,7 +32,7 @@ O banco local é um `ModelContainer` do SwiftData em `Application Support/Frila/
 - **Autoria e isolamento por conta (#139):** novas ações na fila gravam o `contaID` da sessão ativa (`Dominio/Cache.swift:62`, `Dados/CacheSwiftData.swift:189`). Ações de outra conta permanecem na fila sem envio indevido.
 - **Recusas, avisos e reatividade (#139):** recusas definitivas saem da fila de reenvio e geram registros persistidos de aviso (`AcaoRecusada`, `CacheSwiftData.swift:239-340`). Fechar um aviso reconhece a recusa (`reconhecerRecusa`) mantendo a ação impedida de voltar a ser reenviada; uma nova tentativa aceita resolve as recusas anteriores da mesma operação (`resolverRecusas`). O `NotificationCenter` emite `.filaDeAcoesAtualizada` (`Cache.swift:183`, `SincronizadorAcoes.swift:75,94`), atualizando as telas reativas (`TelaMeuTurno.swift:62`, `TelaAvaliacao.swift:50`, `PublicarVaga.swift:417`, `RepublicarVaga.swift:339`).
 - **Tolerância a registros ilegíveis (#137):** a leitura do SwiftData (`CacheSwiftData.swift:125-150`) decodifica item a item; registros ilegíveis são descartados individualmente com log, sem inutilizar o cache ou travar a fila.
-- **Prazo na abertura (#137):** `PrazoDaAbertura.padrao` (8 s) corre a avaliação da sessão e da identidade (`DestinoAposEntrada.swift:18-35`, `IdentidadeDaAvaliacao.swift:8-21`); vencido o prazo, cancela a chamada e aciona o fallback offline (sessão do cache e destino guardado).
+- **Prazo na abertura (#137):** `PrazoDaAbertura.padrao` (8 s) corre a avaliação da sessão e da identidade (`DestinoAposEntrada.swift:66-69, 102-103`, `IdentidadeDaAvaliacao.swift:8-21`); vencido o prazo, cancela a chamada e aciona o fallback offline (sessão do cache e destino guardado).
 
 **Evolução pós-#111:**
 - Meus turnos lê o cache e conserva dados e contato offline (`TelaMeuTurno`, `MeuTurnoViewModel`, #73, #133);
