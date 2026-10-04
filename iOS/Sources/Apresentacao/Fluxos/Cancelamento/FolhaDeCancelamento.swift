@@ -8,6 +8,7 @@ import SwiftUI
 public struct FolhaDeCancelamento: View {
     @Bindable private var viewModel: CancelamentoViewModel
     private let fechar: () -> Void
+    @FocusState private var focoNosDetalhes: Bool
 
     public init(viewModel: CancelamentoViewModel, fechar: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -25,9 +26,25 @@ public struct FolhaDeCancelamento: View {
                 }
             }
         }
+        .accessibilityIdentifier("folha-de-cancelamento")
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            botoesDeAcao
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button {
+                    focoNosDetalhes = false
+                } label: {
+                    Text(verbatim: TextosDoCancelamento.ok)
+                }
+                .accessibilityLabel(Text(verbatim: TextosDoCancelamento.recolherTeclado))
+                .accessibilityIdentifier("recolher-teclado")
+            }
+        }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .interactiveDismissDisabled(viewModel.estado == .enviando)
-        .accessibilityIdentifier("folha-de-cancelamento")
     }
 
     @ViewBuilder private var formulario: some View {
@@ -55,6 +72,7 @@ public struct FolhaDeCancelamento: View {
                 Text(verbatim: rotulo)
             }
             .lineLimit(2...5)
+            .focused($focoNosDetalhes)
             .textFieldStyle(.plain)
             .padding(FrilaEspaco.medio)
             .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -72,16 +90,32 @@ public struct FolhaDeCancelamento: View {
             AvisoFrila(verbatim: mensagem, tom: .erro)
                 .accessibilityIdentifier("falha-do-cancelamento")
         }
+    }
 
-        BotaoPrimario(verbatim: TextosDoCancelamento.confirmar, carregando: viewModel.estado == .enviando) {
-            Task { await viewModel.confirmar() }
+    @ViewBuilder private var botoesDeAcao: some View {
+        switch viewModel.estado {
+        case .pronto, .enviando, .falha:
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoPrimario(verbatim: TextosDoCancelamento.confirmar, carregando: viewModel.estado == .enviando) {
+                    Task { await viewModel.confirmar() }
+                }
+                .disabled(!viewModel.podeConfirmar)
+                .accessibilityIdentifier("confirmar-cancelamento")
+
+                BotaoSecundario(verbatim: TextosDoCancelamento.voltar, acao: fechar)
+                    .disabled(viewModel.estado == .enviando)
+                    .accessibilityIdentifier("voltar-do-cancelamento")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo.opacity(0.95))
+        case .concluido:
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
+                    .accessibilityIdentifier("fechar-cancelamento")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo.opacity(0.95))
         }
-        .disabled(!viewModel.podeConfirmar)
-        .accessibilityIdentifier("confirmar-cancelamento")
-
-        BotaoSecundario(verbatim: TextosDoCancelamento.voltar, acao: fechar)
-            .disabled(viewModel.estado == .enviando)
-            .accessibilityIdentifier("voltar-do-cancelamento")
     }
 
     private func opcao(_ motivo: MotivoDeCancelamento) -> some View {
@@ -116,8 +150,6 @@ public struct FolhaDeCancelamento: View {
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("falta-do-cancelamento")
         }
-        BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
-            .accessibilityIdentifier("fechar-cancelamento")
     }
 }
 

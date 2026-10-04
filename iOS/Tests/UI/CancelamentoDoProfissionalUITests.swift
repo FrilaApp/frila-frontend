@@ -91,9 +91,8 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         tocar(detalhes)
         detalhes.typeText("Viagem marcada de última hora")
         XCTAssertTrue(confirmar.isEnabled)
-        // Com o teclado aberto, o XCUITest não dá o botão como "hittable" embora ele esteja visível;
-        // o toque direto rola até ele se preciso.
-        confirmar.tap()
+        // Com botões no safeAreaInset, o botão fica visível e tocável acima do teclado.
+        tocar(confirmar)
 
         let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
         XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
@@ -128,6 +127,61 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(naFila.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["cancelar-turno"].exists)
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Você está confirmado")
+    }
+
+    func testCancelamentoComOutroMotivoNoSEMantemConfirmarHittableERecolheTeclado() {
+        let app = abrirTurno(cenario: "turno-confirmado-longe")
+        let folha = abrirFolha(app)
+
+        tocar(app.buttons["motivo-outro"])
+        let detalhes = app.textFields["detalhes-do-cancelamento"]
+        XCTAssertTrue(detalhes.waitForExistence(timeout: 5))
+        if !detalhes.isHittable { folha.swipeUp() }
+        tocar(detalhes)
+        detalhes.typeText("Imprevisto urgente")
+
+        let confirmar = app.buttons["confirmar-cancelamento"]
+        XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmar.isEnabled)
+        XCTAssertTrue(confirmar.isHittable, "Confirmar cancelamento deve ser hittable com teclado aberto")
+
+        let recolherTeclado = app.buttons["recolher-teclado"]
+        XCTAssertTrue(recolherTeclado.waitForExistence(timeout: 5), "Botão da barra do teclado deve existir")
+        tocar(recolherTeclado)
+
+        XCTAssertTrue(confirmar.isHittable)
+        tocar(confirmar)
+
+        let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
+        XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
+    }
+
+    func testFolhaDeCancelamentoEmAX5ExibeAvisoSemQuebraSilabica() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "turno-confirmado-longe",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
+        tocar(app.tabBars.buttons["Meus turnos"])
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        tocar(cartao)
+
+        tocar(app.buttons["cancelar-turno"])
+        let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
+        XCTAssertTrue(folha.waitForExistence(timeout: 5))
+
+        let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.isHittable)
+        XCTAssertFalse(aviso.label.contains("cancela-"), "Aviso não deve hifenizar palavras em AX5")
+        XCTAssertFalse(aviso.label.contains("compareci-"), "Aviso não deve hifenizar palavras em AX5")
+
+        let confirmar = app.buttons["confirmar-cancelamento"]
+        XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
     }
 
     private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {

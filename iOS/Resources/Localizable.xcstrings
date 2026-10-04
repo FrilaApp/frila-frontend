@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "OK": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Recolher teclado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolher teclado"
+          }
+        }
+      }
+    },
     "Bloquear este perfil?": {
       "localizations": {
         "pt-BR": {
