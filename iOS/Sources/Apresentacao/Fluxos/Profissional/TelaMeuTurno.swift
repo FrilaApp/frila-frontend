@@ -78,6 +78,7 @@ public struct TelaMeuTurno: View {
                 api: viewModel.api,
                 bloqueios: bloqueios
             )
+            .id(viewModel.turno.contraparte.id)
         }
     }
 
