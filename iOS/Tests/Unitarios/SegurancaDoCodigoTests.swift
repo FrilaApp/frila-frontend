@@ -40,7 +40,7 @@ struct SegurancaDoCodigoTests {
         #expect(achados.isEmpty, "saída fora do Logger em \(achados)")
     }
 
-    @Test("A raiz do app liga a cortina de privacidade, fora de qualquer #if (A4)")
+    @Test("A raiz liga a janela de privacidade acima das apresentações, também em Release (A4)")
     func cortinaLigadaNaRaiz() throws {
         let app = try #require(try Self.arquivosSwift().first { $0.nome == "Sources/App/FrilaApp.swift" })
         var pilha = 0
@@ -51,6 +51,15 @@ struct SegurancaDoCodigoTests {
             if pilha == 0, codigo.hasPrefix(".cortinaDePrivacidade()") { ligadaForaDeIf = true }
         }
         #expect(ligadaForaDeIf, "FrilaApp.swift precisa aplicar .cortinaDePrivacidade() na raiz, em Release também")
+        let cortina = try #require(try Self.arquivosSwift().first { $0.nome == "Sources/Apresentacao/CortinaDePrivacidade.swift" })
+        let codigo = cortina.linhas.joined(separator: "\n")
+        #expect(codigo.contains("JanelaDaCortina(windowScene: novaCena)"))
+        #expect(codigo.contains("janela.windowLevel = .alert + 1"), "A janela precisa ficar acima das apresentações UIKit")
+        #expect(codigo.contains("UIScene.willDeactivateNotification"), "Cobrir antes da captura, sem aguardar o SwiftUI")
+        #expect(codigo.contains("UIScene.didActivateNotification"))
+        #expect(codigo.contains("override var canBecomeKey: Bool { false }"))
+        #expect(!codigo.contains("makeKeyAndVisible"))
+        #expect(!codigo.contains("#if"), "A proteção das folhas também precisa existir em Release")
     }
 
     @Test("Argumentos de rota e de catálogo só existem dentro de #if DEBUG")

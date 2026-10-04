@@ -10,6 +10,8 @@ public enum FrilaCor {
     public static let primaria = Color("BrandPrimary", bundle: recursos)
     public static let sobrePrimaria = Color("BrandOnPrimary", bundle: recursos)
     public static let fundo = Color("Surface", bundle: recursos)
+    /// A cortina UIKit usa o mesmo fundo das telas SwiftUI, inclusive no modo escuro.
+    static let fundoUIKit = UIColor(fundo)
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
     public static let texto = Color("TextPrimary", bundle: recursos)
     /// O mesmo token para o UIKit, pelo catálogo: segue claro e escuro sozinho.
