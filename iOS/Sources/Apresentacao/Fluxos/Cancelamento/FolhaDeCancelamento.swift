@@ -31,8 +31,17 @@ public struct FolhaDeCancelamento: View {
             .safeAreaInset(edge: .bottom) {
                 botoesDeAcao
             }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(TextosDoCancelamento.ok) {
+                        focoNosDetalhes = false
+                    }
+                    .accessibilityLabel(TextosDoCancelamento.recolherTeclado)
+                    .accessibilityIdentifier("recolher-teclado")
+                }
+            }
             .background(FrilaCor.fundo.ignoresSafeArea())
-            .toolbar(.hidden, for: .navigationBar)
         }
         .accessibilityIdentifier("folha-de-cancelamento")
         .interactiveDismissDisabled(viewModel.estado == .enviando)
@@ -70,18 +79,6 @@ public struct FolhaDeCancelamento: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
             .accessibilityIdentifier("detalhes-do-cancelamento")
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button {
-                        focoNosDetalhes = false
-                    } label: {
-                        Text(verbatim: TextosDoCancelamento.ok)
-                    }
-                    .accessibilityLabel(Text(verbatim: TextosDoCancelamento.recolherTeclado))
-                    .accessibilityIdentifier("recolher-teclado")
-                }
-            }
         } else {
             Text(verbatim: TextosDoCancelamento.motivoObrigatorio)
                 .font(.subheadline)
@@ -99,6 +96,20 @@ public struct FolhaDeCancelamento: View {
         switch viewModel.estado {
         case .pronto, .enviando, .falha:
             VStack(spacing: FrilaEspaco.pequeno) {
+                if focoNosDetalhes {
+                    HStack {
+                        Spacer()
+                        Button {
+                            focoNosDetalhes = false
+                        } label: {
+                            Text(verbatim: TextosDoCancelamento.ok)
+                                .font(.body.weight(.semibold))
+                        }
+                        .accessibilityLabel(TextosDoCancelamento.recolherTeclado)
+                        .accessibilityIdentifier("recolher-teclado")
+                    }
+                }
+
                 BotaoPrimario(verbatim: TextosDoCancelamento.confirmar, carregando: viewModel.estado == .enviando) {
                     Task { await viewModel.confirmar() }
                 }
