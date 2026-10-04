@@ -79,6 +79,7 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func situacaoDaConta() async throws -> SituacaoDaConta { try await base.situacaoDaConta() }
     func contestarSuspensao(relato: String) async throws -> Protocolo { try await base.contestarSuspensao(relato: relato) }
     func exportarMeusDados() async throws -> Data { try await base.exportarMeusDados() }
+    func exportarTurnos(_ pedido: PedidoExportacaoTurnos) async throws -> ResultadoExportacaoTurnos { try await base.exportarTurnos(pedido) }
 
     // Aplicativo e dispositivo
     func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }

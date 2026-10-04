@@ -58,24 +58,25 @@ public enum DestinoDaConta: Equatable, Sendable {
         }
     }
 
-    public static func avaliarComRecuperacaoOffline(api: any ApiCliente) async throws -> DestinoDaConta {
+    @MainActor
+    public static func avaliarComRecuperacaoOffline(api: any ApiCliente, defaults: UserDefaults = .standard) async throws -> DestinoDaConta {
         do {
             let destino = try await avaliar(api: api)
             switch destino {
             case .cadastro:
-                DestinoGuardado.limpar()
+                DestinoGuardado.limpar(em: defaults)
             case .contaSuspensa:
                 // Não altera o destino guardado: sem rede na abertura futura,
                 // mantém o comportamento do destino guardado prévio (RF24, RN13).
                 break
             default:
                 if let tipo = destino.tipoGuardavel {
-                    DestinoGuardado.salvar(tipo)
+                    DestinoGuardado.salvar(tipo, em: defaults)
                 }
             }
             return destino
         } catch let erroApi as ErroDaApi where erroApi.codigo == .semRede {
-            if let guardado = DestinoGuardado.obter() {
+            if let guardado = DestinoGuardado.obter(de: defaults) {
                 return DestinoDaConta(tipo: guardado)
             }
             throw erroApi

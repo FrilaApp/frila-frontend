@@ -2,7 +2,7 @@ import FrilaDominio
 import Observation
 import SwiftUI
 
-private enum TextosPerfilConta {
+enum TextosPerfilConta {
     static let meuPerfil = String(localized: "Meu perfil", bundle: bundleApresentacao)
     static let perfilEstabelecimento = String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao)
     static let nome = String(localized: "Nome", bundle: bundleApresentacao)
@@ -27,9 +27,8 @@ private enum TextosPerfilConta {
     static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
     static let papel = String(localized: "Seu acesso", bundle: bundleApresentacao)
     static let naoInformado = String(localized: "—", bundle: bundleApresentacao)
-    static let todoExportacao = String(localized: "Recurso em desenvolvimento", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
-    static let suportePendente = String(localized: "Endereço de suporte pendente", bundle: bundleApresentacao)
+    static let dicaSuporte = String(localized: "Abre o e-mail para enviar mensagem ao suporte", bundle: bundleApresentacao)
     static let linkPendente = String(localized: "Link pendente", bundle: bundleApresentacao)
 }
 
@@ -138,6 +137,14 @@ public struct TelaMeuPerfilProfissional: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }.accessibilityIdentifier("perfil-funcoes-horarios")
+                    NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
+                        Label {
+                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }.accessibilityIdentifier("perfil-historico-turnos")
                     Button { mostrarExplicacao = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.porQueRecebo)
@@ -145,6 +152,7 @@ public struct TelaMeuPerfilProfissional: View {
                             Image(systemName: "questionmark.circle")
                         }
                     }
+                    .accessibilityIdentifier("perfil-por-que-recebo")
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     Button { mostrarAjuda = true } label: {
                         Label {
@@ -181,6 +189,7 @@ public struct TelaMeuPerfilProfissional: View {
         } label: {
             Text(verbatim: titulo)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var placeholders: some View {
@@ -208,7 +217,10 @@ public struct TelaMeuPerfilProfissional: View {
     private var explicacao: some View {
         NavigationStack {
             ScrollView {
-                Text(verbatim: TextosPerfilConta.explicacaoVagas).frame(maxWidth: .infinity, alignment: .leading).padding()
+                Text(verbatim: TextosPerfilConta.explicacaoVagas)
+                    .accessibilityIdentifier("perfil-explicacao-vagas")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
             }
             .navigationTitle(Text(verbatim: TextosPerfilConta.porQueRecebo)).navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -218,6 +230,7 @@ public struct TelaMeuPerfilProfissional: View {
                     } label: {
                         Text(verbatim: TextosPerfilConta.fechar)
                     }
+                    .accessibilityIdentifier("fechar-explicacao-vagas")
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
@@ -261,6 +274,15 @@ public struct TelaPerfilEstabelecimento: View {
                         }
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                     }.cartaoFrila()
+                    NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
+                        Label {
+                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("estabelecimento-historico-turnos")
                     Button { mostrarAjuda = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.ajuda)
@@ -324,13 +346,42 @@ struct TelaAjudaPerfil: View {
     var body: some View {
         NavigationStack {
             List {
-                // TODO: inserir o endereço oficial de suporte quando o produto publicar o canal.
-                LabeledContent {
-                    Text(verbatim: TextosPerfilConta.suportePendente)
-                } label: {
-                    Text(verbatim: TextosPerfilConta.suporte)
+                Section {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        if let url = enderecos.urlSuporte {
+                            Link(destination: url) {
+                                HStack {
+                                    Text(verbatim: TextosPerfilConta.suporte)
+                                        .foregroundStyle(FrilaCor.texto)
+                                    Spacer()
+                                    Image(systemName: "envelope")
+                                        .font(.footnote)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                }
+                                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel(Text(verbatim: TextosPerfilConta.suporte))
+                            .accessibilityHint(Text(verbatim: TextosPerfilConta.dicaSuporte))
+                            .accessibilityAddTraits(.isLink)
+                            .accessibilityIdentifier("perfil-suporte")
+                        } else {
+                            Text(verbatim: TextosPerfilConta.suporte)
+                                .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                                .accessibilityIdentifier("perfil-suporte")
+                        }
+
+                        Text(verbatim: enderecos.emailSuporte)
+                            .font(.footnote)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier("perfil-suporte-email")
+
+                        Text(verbatim: TextosPerfilConta.prazoSuporte)
+                            .font(.footnote)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
                 }
-                Text(verbatim: TextosPerfilConta.prazoSuporte)
 
                 Link(destination: enderecos.termosDeUso) {
                     HStack {

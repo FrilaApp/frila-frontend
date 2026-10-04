@@ -68,3 +68,23 @@ extension TextosDoProfissional {
         static let falhaAoEnviar = String(localized: "Não foi possível enviar o registro. Tente de novo.", bundle: bundleApresentacao)
     }
 }
+
+// Textos provisórios para validação pelo Cauê.
+enum TextosDaFila {
+    static func texto(_ tipo: TipoAcaoPendente) -> String {
+        switch tipo {
+        case .checkin:
+            String(localized: "O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido.", bundle: bundleApresentacao)
+        case .checkout:
+            String(localized: "O check-out guardado neste aparelho não foi registrado. Esse envio não será repetido.", bundle: bundleApresentacao)
+        case .publicacaoVaga:
+            String(localized: "A publicação guardada neste aparelho não foi registrada. Esse envio não será repetido.", bundle: bundleApresentacao)
+        case .republicacaoVaga:
+            String(localized: "A republicação guardada neste aparelho não foi registrada. Esse envio não será repetido.", bundle: bundleApresentacao)
+        case .avaliacao:
+            String(localized: "A avaliação guardada neste aparelho não foi registrada. Você pode tentar novamente quando a avaliação estiver disponível.", bundle: bundleApresentacao)
+        case .cancelamentoPosicao, .cancelamentoVaga:
+            "" // O cancelamento trata o desfecho no próprio fluxo.
+        }
+    }
+}

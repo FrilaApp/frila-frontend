@@ -54,6 +54,7 @@ public final class RepublicarVagaViewModel {
     public private(set) var enviando = false
     public private(set) var resultado: VagaPublicada?
     public private(set) var mensagemErro: String?
+    public private(set) var recusaDaFila: AcaoRecusada?
     public private(set) var erros: [CampoRepublicarVaga: String] = [:]
     public private(set) var chave: UUID?
     public private(set) var camposBloqueados = false
@@ -84,7 +85,8 @@ public final class RepublicarVagaViewModel {
         self.tentativaRestaurada = fila == nil
         self.agora = agora
         self.aoConcluir = aoConcluir
-        let inicioPadrao = agora().addingTimeInterval(3 * 3600)
+        let antecedencia: TimeInterval = vagaOriginal.modo == .selecao ? 25 * 3600 : 3 * 3600
+        let inicioPadrao = agora().addingTimeInterval(antecedencia)
         self.inicio = inicioPadrao
         self.fim = inicioPadrao.addingTimeInterval(4 * 3600)
         self.republicarAPI = { id, periodo, chave in
@@ -104,13 +106,24 @@ public final class RepublicarVagaViewModel {
         self.tentativaRestaurada = fila == nil
         self.agora = agora
         self.aoConcluir = aoConcluir
-        let inicioPadrao = agora().addingTimeInterval(3 * 3600)
+        let antecedencia: TimeInterval = vagaOriginal.modo == .selecao ? 25 * 3600 : 3 * 3600
+        let inicioPadrao = agora().addingTimeInterval(antecedencia)
         self.inicio = inicioPadrao
         self.fim = inicioPadrao.addingTimeInterval(4 * 3600)
         self.republicarAPI = republicar
     }
 
+    public func carregarRecusaDaFila() async {
+        recusaDaFila = (try? await fila?.recusadas().first { $0.tipo == .republicacaoVaga && $0.vagaID == vagaOriginal.vaga.id }) ?? nil
+        if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
+            acaoPendente = nil
+            republicacaoPendente = nil
+            camposBloqueados = false
+        }
+    }
+
     public func restaurarTentativaPendente() async {
+        await carregarRecusaDaFila()
         guard !tentativaRestaurada, !restaurandoTentativa, let fila else { return }
         restaurandoTentativa = true
         defer { restaurandoTentativa = false }
@@ -258,6 +271,7 @@ public final class RepublicarVagaViewModel {
 }
 
 public struct TelaRepublicarVaga: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel: RepublicarVagaViewModel
     @Environment(\.dismiss) private var dismiss
     private let aoFechar: (@Sendable () -> Void)?
@@ -274,11 +288,15 @@ public struct TelaRepublicarVaga: View {
     }
 
     public var body: some View {
-        ScrollView {
+        ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoDadosCopiados
                 secaoPeriodo
+                if let recusa = viewModel.recusaDaFila {
+                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                        .accessibilityIdentifier("aviso-republicacao-recusada")
+                }
                 if let erro = viewModel.mensagemErro {
                     AvisoFrila(verbatim: erro, tom: .erro)
                         .accessibilityIdentifier("aviso-erro-republicacao")
@@ -295,6 +313,7 @@ public struct TelaRepublicarVaga: View {
                 botoesAcao
             }
             .padding(FrilaEspaco.medio)
+            .containerRelativeFrame(.horizontal)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(TextosRepublicarVaga.titulo)
@@ -303,6 +322,9 @@ public struct TelaRepublicarVaga: View {
             if novo != nil {
                 fechar()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await viewModel.carregarRecusaDaFila() }
         }
         .task {
             await viewModel.restaurarTentativaPendente()
@@ -315,24 +337,35 @@ public struct TelaRepublicarVaga: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: TextosRepublicarVaga.titulo)
                 .font(.largeTitle.bold())
+                .minimumScaleFactor(0.75)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: TextosRepublicarVaga.subtitulo)
                 .font(.subheadline)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var cartaoDadosCopiados: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
-                    Spacer(minLength: FrilaEspaco.pequeno)
-                    Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
-                }
+            if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
-                    Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                    Text(verbatim: viewModel.vagaOriginal.vaga.funcao)
+                        .font(.headline)
+                    Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor))
+                        .font(.headline)
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
+                        Spacer(minLength: FrilaEspaco.pequeno)
+                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
+                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                    }
                 }
             }
 
@@ -346,12 +379,9 @@ public struct TelaRepublicarVaga: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
 
-            HStack {
-                Text(verbatim: viewModel.vagaOriginal.modo == .selecao ? TextosRepublicarVaga.modoSelecao : TextosRepublicarVaga.modoUrgencia)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(FrilaCor.primaria)
-                Spacer()
-            }
+            Text(verbatim: viewModel.vagaOriginal.modo == .selecao ? TextosRepublicarVaga.modoSelecao : TextosRepublicarVaga.modoUrgencia)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FrilaCor.primaria)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
@@ -367,13 +397,12 @@ public struct TelaRepublicarVaga: View {
                 .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                DatePicker(
-                    TextosRepublicarVaga.dataInicio,
-                    selection: $viewModel.inicio,
-                    displayedComponents: [.date, .hourAndMinute]
+                seletorPeriodo(
+                    titulo: TextosRepublicarVaga.dataInicio,
+                    data: $viewModel.inicio,
+                    campoID: "campo-inicio-republicacao"
                 )
                 .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
-                .accessibilityIdentifier("campo-inicio-republicacao")
 
                 if let erroInicio = viewModel.erros[.inicio] {
                     Text(verbatim: erroInicio)
@@ -384,13 +413,12 @@ public struct TelaRepublicarVaga: View {
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                DatePicker(
-                    TextosRepublicarVaga.dataFim,
-                    selection: $viewModel.fim,
-                    displayedComponents: [.date, .hourAndMinute]
+                seletorPeriodo(
+                    titulo: TextosRepublicarVaga.dataFim,
+                    data: $viewModel.fim,
+                    campoID: "campo-fim-republicacao"
                 )
                 .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
-                .accessibilityIdentifier("campo-fim-republicacao")
 
                 if let erroFim = viewModel.erros[.fim] {
                     Text(verbatim: erroFim)
@@ -403,6 +431,44 @@ public struct TelaRepublicarVaga: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
         .cartaoFrila()
+    }
+
+    @ViewBuilder
+    private func seletorPeriodo(titulo: String, data: Binding<Date>, campoID: String) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                Text(verbatim: titulo)
+                    .font(.headline)
+                DatePicker(
+                    String(localized: "Data", bundle: bundleApresentacao),
+                    selection: data,
+                    displayedComponents: [.date]
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                .accessibilityIdentifier("\(campoID)-data")
+
+                DatePicker(
+                    String(localized: "Horário", bundle: bundleApresentacao),
+                    selection: data,
+                    displayedComponents: [.hourAndMinute]
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                .accessibilityIdentifier("\(campoID)-horario")
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(campoID)
+        } else {
+            DatePicker(
+                titulo,
+                selection: data,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .accessibilityIdentifier(campoID)
+        }
     }
 
     private var botoesAcao: some View {

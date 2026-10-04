@@ -18,6 +18,10 @@ public struct CartaoMeuTurno: View {
                     .font(.headline)
                     .foregroundStyle(FrilaCor.primaria)
             }
+            if turno.cancelado {
+                Label(TextosDoProfissional.Turnos.canceladoTitulo, systemImage: "xmark.circle")
+                    .font(.subheadline.weight(.semibold))
+            }
             Text(verbatim: turno.contraparte.nome)
                 .font(.subheadline)
                 .foregroundStyle(FrilaCor.textoSecundario)

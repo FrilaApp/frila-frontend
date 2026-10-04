@@ -45,6 +45,15 @@ if plutil -extract NSUserTrackingUsageDescription raw -o /dev/null "$info_plist"
   falhar "Info.plist não pode conter NSUserTrackingUsageDescription"
 fi
 
+# Auditoria de segurança (03/10/2026, A6): o app só fala HTTPS pelo ATS padrão, não expõe a pasta
+# Documents no Finder/Arquivos e não registra esquema de URL (não há deep link). Qualquer uma destas
+# chaves abriria uma superfície que o código não trata.
+for chave in NSAppTransportSecurity UIFileSharingEnabled LSSupportsOpeningDocumentsInPlace CFBundleURLTypes; do
+  if plutil -extract "$chave" raw -o /dev/null "$info_plist" >/dev/null 2>&1; then
+    falhar "Info.plist não pode conter $chave"
+  fi
+done
+
 # O app lê a localização em uso e pede a precisão temporária no check-in: sem estes dois textos o
 # sistema não mostra o pedido.
 localizacao="$(python3 - "$info_plist" <<'PYLOCALIZACAO'
@@ -77,12 +86,15 @@ fi
 executavel="$app/$nome_executavel"
 [[ -f "$executavel" ]] || falhar "executável do app não encontrado: $executavel"
 
+# Os frameworks embutidos e as extensões (PlugIns, #253) são código do app: o gancho de
+# desenvolvimento reprova em qualquer um deles.
 arquivos_para_conferir=("$executavel")
-if [[ -d "$app/Frameworks" ]]; then
+for pasta in "$app/Frameworks" "$app/PlugIns"; do
+  [[ -d "$pasta" ]] || continue
   while IFS= read -r -d '' arquivo; do
     arquivos_para_conferir+=("$arquivo")
-  done < <(find "$app/Frameworks" -type f -print0)
-fi
+  done < <(find "$pasta" -type f -print0)
+done
 
 ganchos_de_desenvolvimento=(
   '-FRILA_SCENARIO'
@@ -91,14 +103,24 @@ ganchos_de_desenvolvimento=(
   '-FRILA_ABRIR_MINHAS_VAGAS'
   '-FRILA_CADASTRO_UI_TEST'
   '-FRILA_BUSCA_PERFIL_UI_TEST'
+  '-FRILA_CAPTURAR_URL_UI_TEST'
   '-FRILA_ENTRADA'
   '-FRILA_LOCALIZACAO'
   '-FRILA_VAGA_ID'
   '-FRILA_AVISO'
   '-FRILA_PUSH'
   '-FRILA_PERMISSAO_PUSH'
+  '-FRILA_DECLARED_AGE_RANGE'
+  '-FRILA_VERIFICADOR_IDADE'
   'forcar-falha-crashlytics'
 )
+
+# O botão do ensaio de falha (#203) só pode estar no build de ensaio, que o enviar-testflight.sh
+# compila com FRILA_ENSAIO_FALHA=1 e manda ao TestFlight só para teste interno. Em qualquer outro
+# Release ele reprova.
+if [[ "${FRILA_ENSAIO_FALHA:-}" != "1" ]]; then
+  ganchos_de_desenvolvimento+=('ensaio-forcar-falha')
+fi
 
 # Strings Swift curtas podem ser materializadas diretamente nas instruções do
 # processador, sem uma sequência de bytes contígua. Esses símbolos só podem
@@ -108,7 +130,17 @@ ganchos_de_desenvolvimento=(
 simbolos_de_desenvolvimento=(
   'pelosArgumentos'
   'CatalogoDesignSystem'
+  'AbridorDeURLParaTeste'
+  'CapturaDeAberturaDeURLParaTeste'
 )
+
+# A medição de desempenho (#73) só pode estar no build de medição, que o enviar-testflight.sh
+# compila com FRILA_MEDICAO=1 e manda ao TestFlight só para teste interno. Em qualquer outro
+# Release reprovam a chave das medições, o argumento que as liga, o botão e os tipos que medem.
+if [[ "${FRILA_MEDICAO:-}" != "1" ]]; then
+  ganchos_de_desenvolvimento+=('frila-medicao-de-desempenho' '-FRILA_MEDICAO' 'medicoes-abrir')
+  simbolos_de_desenvolvimento+=('RegistroDeMedicoes' 'MedidorDeRede' 'BotaoDeMedicoes')
+fi
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
   for gancho in "${ganchos_de_desenvolvimento[@]}"; do

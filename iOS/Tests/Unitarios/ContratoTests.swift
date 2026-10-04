@@ -3,7 +3,7 @@ import Foundation
 import FrilaDominio
 import Testing
 
-@Suite("Contrato 0.2.31")
+@Suite("Contrato 0.2.34")
 struct ContratoTests {
     static func objeto(_ valor: some Encodable) throws -> NSDictionary {
         let dados = try JSONEncoder().encode(valor)
@@ -20,7 +20,7 @@ struct ContratoTests {
     @Test("As fixtures declaram a versão do contrato espelhado")
     func versao() throws {
         struct Versao: Decodable { let version: String }
-        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.31")
+        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.34")
     }
 
     @Test("Fixtures da 0.2.31 cobrem turno cancelado, avaliação dada e servidor anterior")
@@ -281,5 +281,45 @@ struct ContratoTests {
         #expect(throws: ErroDeConversao(campo: "nascimento")) {
             try ContratoAPI.decodificador().decode(ContratoAPI.UsuarioDTO.self, from: usuario).dominio()
         }
+    }
+
+    @Test("Centavos fora do contrato viram erro de conversão, e não o precondition do Dinheiro", arguments: [0, -1])
+    func centavosForaDoContrato(centavos: Int) throws {
+        let decodificador = ContratoAPI.decodificador()
+        let vaga = try Self.fixture("vaga", trocandoNoPrimeiro: { $0["valor_centavos"] = centavos })
+        #expect(throws: ErroDeConversao(campo: "valor_centavos")) {
+            try decodificador.decode(ContratoAPI.VagaDTO.self, from: vaga).dominio()
+        }
+        let lista = try Self.fixture("vagas-abertas", trocandoNoPrimeiro: { $0["valor_centavos"] = centavos })
+        #expect(throws: ErroDeConversao(campo: "valor_centavos")) {
+            try decodificador.decode([ContratoAPI.VagaNaListaDTO].self, from: lista).map { try $0.dominio() }
+        }
+        let acordado = try Self.fixture("turnos", trocandoNoPrimeiro: { $0["valor_acordado_centavos"] = centavos })
+        #expect(throws: ErroDeConversao(campo: "valor_acordado_centavos")) {
+            try decodificador.decode([ContratoAPI.TurnoDTO].self, from: acordado).map { try $0.dominio() }
+        }
+        // A vaga resumida dentro do turno é o `VagaResumoDTO`.
+        let resumo = try Self.fixture("turnos", trocandoNoPrimeiro: { turno in
+            var vaga = turno["vaga"] as? [String: Any] ?? [:]
+            vaga["valor_centavos"] = centavos
+            turno["vaga"] = vaga
+        })
+        #expect(throws: ErroDeConversao(campo: "valor_centavos")) {
+            try decodificador.decode([ContratoAPI.TurnoDTO].self, from: resumo).map { try $0.dominio() }
+        }
+    }
+
+    /// A fixture com um campo trocado no objeto, ou no primeiro item quando ela é uma lista.
+    static func fixture(_ nome: String, trocandoNoPrimeiro troca: (inout [String: Any]) -> Void) throws -> Data {
+        let json = try JSONSerialization.jsonObject(with: FixturesDoContrato.dados(nome))
+        if var lista = json as? [[String: Any]] {
+            var primeiro = try #require(lista.first)
+            troca(&primeiro)
+            lista[0] = primeiro
+            return try JSONSerialization.data(withJSONObject: lista)
+        }
+        var objeto = try #require(json as? [String: Any])
+        troca(&objeto)
+        return try JSONSerialization.data(withJSONObject: objeto)
     }
 }

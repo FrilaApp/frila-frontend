@@ -117,6 +117,22 @@ app="$(novo_app_bom rastreamento)"
 plutil -insert NSUserTrackingUsageDescription -string 'rastreamento' "$app/Info.plist"
 esperar_reprovacao "rastreamento" "NSUserTrackingUsageDescription" "$app"
 
+app="$(novo_app_bom ats-com-excecao)"
+plutil -insert NSAppTransportSecurity -json '{"NSAllowsArbitraryLoads": true}' "$app/Info.plist"
+esperar_reprovacao "exceção no ATS" "NSAppTransportSecurity" "$app"
+
+app="$(novo_app_bom compartilhamento-de-arquivos)"
+plutil -insert UIFileSharingEnabled -bool YES "$app/Info.plist"
+esperar_reprovacao "compartilhamento de arquivos" "UIFileSharingEnabled" "$app"
+
+app="$(novo_app_bom documentos-no-lugar)"
+plutil -insert LSSupportsOpeningDocumentsInPlace -bool YES "$app/Info.plist"
+esperar_reprovacao "documentos abertos no lugar" "LSSupportsOpeningDocumentsInPlace" "$app"
+
+app="$(novo_app_bom esquema-de-url)"
+plutil -insert CFBundleURLTypes -json '[{"CFBundleURLSchemes": ["frila"]}]' "$app/Info.plist"
+esperar_reprovacao "esquema de URL" "CFBundleURLTypes" "$app"
+
 app="$(novo_app_bom sem-localizacao-em-uso)"
 plutil -remove NSLocationWhenInUseUsageDescription "$app/Info.plist"
 esperar_reprovacao "texto de localização em uso ausente" "NSLocationWhenInUseUsageDescription" "$app"
@@ -141,11 +157,17 @@ app="$(novo_app_bom sem-privacidade)"
 rm "$app/PrivacyInfo.xcprivacy"
 esperar_reprovacao "manifesto de privacidade ausente" "PrivacyInfo.xcprivacy" "$app"
 
-for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_ABRIR_MINHAS_VAGAS' '-FRILA_CADASTRO_UI_TEST' '-FRILA_BUSCA_PERFIL_UI_TEST' '-FRILA_ENTRADA' '-FRILA_LOCALIZACAO' '-FRILA_VAGA_ID' '-FRILA_AVISO' '-FRILA_PUSH' '-FRILA_PERMISSAO_PUSH' 'forcar-falha-crashlytics'; do
+for gancho in '-FRILA_SCENARIO' '-FRILA_ABRIR_CATALOGO' '-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO' '-FRILA_ABRIR_MINHAS_VAGAS' '-FRILA_CADASTRO_UI_TEST' '-FRILA_BUSCA_PERFIL_UI_TEST' '-FRILA_CAPTURAR_URL_UI_TEST' '-FRILA_ENTRADA' '-FRILA_LOCALIZACAO' '-FRILA_VAGA_ID' '-FRILA_AVISO' '-FRILA_PUSH' '-FRILA_PERMISSAO_PUSH' 'forcar-falha-crashlytics'; do
   app="$(novo_app_bom "gancho-$RANDOM")"
   printf '\n%s\n' "$gancho" >> "$app/Frila"
   esperar_reprovacao "gancho no executável: $gancho" "$gancho" "$app"
 done
+
+# Ensaio de falha do TestFlight (#203): o botão reprova no Release comum e passa só no build de ensaio.
+app="$(novo_app_bom ensaio-falha)"
+printf '\n%s\n' 'ensaio-forcar-falha' >> "$app/Frila"
+esperar_reprovacao "botão do ensaio de falha fora do build de ensaio" "ensaio-forcar-falha" "$app"
+(export FRILA_ENSAIO_FALHA=1; esperar_aprovacao "$app")
 
 app="$(novo_app_bom gancho-framework)"
 mkdir -p "$app/Frameworks/Teste.framework"
@@ -153,7 +175,20 @@ printf 'binario com -FRILA_SCENARIO\n' > "$app/Frameworks/Teste.framework/Teste"
 chmod +x "$app/Frameworks/Teste.framework/Teste"
 esperar_reprovacao "gancho em framework embutido" "-FRILA_SCENARIO" "$app"
 
-for simbolo in pelosArgumentos CatalogoDesignSystem; do
+# A extensão de notificação (#253) é código do app: o gancho nela reprova, e a extensão limpa passa.
+app="$(novo_app_bom gancho-extensao)"
+mkdir -p "$app/PlugIns/FrilaNotificationService.appex"
+printf 'binario com -FRILA_PUSH\n' > "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+chmod +x "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+esperar_reprovacao "gancho em extensão embutida" "-FRILA_PUSH" "$app"
+
+app="$(novo_app_bom extensao-limpa)"
+mkdir -p "$app/PlugIns/FrilaNotificationService.appex"
+printf 'binario release limpo\n' > "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+chmod +x "$app/PlugIns/FrilaNotificationService.appex/FrilaNotificationService"
+esperar_aprovacao "$app"
+
+for simbolo in pelosArgumentos CatalogoDesignSystem AbridorDeURLParaTeste CapturaDeAberturaDeURLParaTeste; do
   app="$(novo_app_bom "simbolo-$RANDOM")"
   printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
     compilar_com_entitlements "$app/Frila"
@@ -165,6 +200,23 @@ app="$(novo_app_bom simbolo-de-produto)"
 printf 'int TelaLicencas(void) { return 0; }\nint main(void) { return TelaLicencas(); }\n' |
   compilar_com_entitlements "$app/Frila"
 esperar_aprovacao "$app"
+
+# Medição de desempenho (#73): a chave e os tipos reprovam no Release comum e passam só no build de
+# medição.
+for gancho in frila-medicao-de-desempenho -FRILA_MEDICAO medicoes-abrir; do
+  app="$(novo_app_bom "medicao-gancho$gancho")"
+  printf '\n%s\n' "$gancho" >> "$app/Frila"
+  esperar_reprovacao "gancho da medição fora do build de medição: $gancho" "$gancho" "$app"
+  (export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+done
+
+for simbolo in RegistroDeMedicoes MedidorDeRede BotaoDeMedicoes; do
+  app="$(novo_app_bom "medicao-$simbolo")"
+  printf 'int %s(void) { return 0; }\nint main(void) { return %s(); }\n' "$simbolo" "$simbolo" |
+    compilar_com_entitlements "$app/Frila"
+  esperar_reprovacao "símbolo da medição fora do build de medição: $simbolo" "$simbolo" "$app"
+  (export FRILA_MEDICAO=1; esperar_aprovacao "$app")
+done
 
 # Push (#8): o Release declara aps-environment = production.
 app="$(novo_app_bom aps-de-desenvolvimento)"

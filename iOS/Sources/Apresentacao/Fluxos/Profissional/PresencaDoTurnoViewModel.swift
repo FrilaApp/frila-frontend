@@ -117,6 +117,9 @@ public final class PresencaDoTurnoViewModel {
     /// O que ficou na fila num toque anterior volta a aparecer como pendente ao reabrir a tela.
     public func restaurarPendentes() async {
         guard let fila, let pendentes = try? await fila.pendentes() else { return }
+        // Uma recusa retira também o estado pendente da tela que já estava aberta.
+        if case .naFila = checkin { checkin = .naoFeito }
+        if case .naFila = checkout { checkout = .naoFeito }
         for acao in pendentes where acao.turnoID == turno.id {
             let feito = RegistroFeito(instante: acao.instanteDoToque, distanciaMetros: acao.distanciaMetros, manual: acao.distanciaMetros == nil)
             switch acao.tipo {

@@ -16,10 +16,12 @@ public enum EstadoDoDetalhe: Equatable, Sendable {
 public final class DetalheVagaViewModel {
     public let vagaID: UUID
     public private(set) var estado: EstadoDoDetalhe = .carregando
+    private(set) var api: (any ApiCliente)?
     private let buscarVaga: @Sendable (UUID) async throws -> Vaga
 
     public convenience init(vagaID: UUID, api: any ApiCliente) {
         self.init(vagaID: vagaID, buscarVaga: { try await api.detalheDaVaga(id: $0) })
+        self.api = api
     }
 
     public init(vagaID: UUID, buscarVaga: @escaping @Sendable (UUID) async throws -> Vaga) {

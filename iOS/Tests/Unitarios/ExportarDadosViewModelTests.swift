@@ -29,6 +29,22 @@ struct ExportarDadosViewModelTests {
         }
     }
 
+    @Test("Conta suspensa exporta dados usando o mesmo fluxo do perfil")
+    func contaSuspensaExportaDados() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        let diretorio = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let vm = ExportarDadosViewModel(api: api, diretorioTemporario: diretorio)
+        await vm.exportarDados()
+        #expect(vm.mensagemErro == nil)
+        #expect(vm.mostrarFolhaCompartilhamento)
+        let url = try #require(vm.arquivoParaCompartilhar)
+        let dados = try Data(contentsOf: url)
+        #expect(try JSONSerialization.jsonObject(with: dados) is [String: Any])
+        vm.folhaCompartilhamentoFechada()
+    }
+
     @Test("Sucesso: gera arquivo temporário, prepara para compartilhar e limpa estado de erro")
     func sucessoGeraArquivoEPreparaCompartilhamento() async throws {
         let duble = DubleApiExportar()
@@ -59,6 +75,31 @@ struct ExportarDadosViewModelTests {
         let conteudo = try Data(contentsOf: url)
         #expect(conteudo == Data("{\"gerado_em\":\"2026-10-02T12:00:00Z\"}".utf8))
         #expect(duble.chamadasExportar == 1)
+
+        vm.folhaCompartilhamentoFechada()
+    }
+
+    @Test("Arquivo exportado fica na classe de proteção completa: cifrado com o aparelho bloqueado")
+    func arquivoExportadoTemProtecaoCompleta() async throws {
+        let duble = DubleApiExportar()
+        let relogio = RelogioFixo(agora: Date(timeIntervalSince1970: 1_790_000_000))
+        let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorioTeste) }
+
+        let vm = ExportarDadosViewModel(api: duble, relogio: relogio, diretorioTemporario: diretorioTeste)
+        await vm.exportarDados()
+
+        let url = try #require(vm.arquivoParaCompartilhar)
+        let atributos = try FileManager.default.attributesOfItem(atPath: url.path)
+        let classe = atributos[.protectionKey] as? FileProtectionType
+        #if targetEnvironment(simulator)
+        // O simulador não tem proteção de dados e não devolve o atributo; a classe só é observável no
+        // aparelho. A opção de gravação é conferida no código pelo `SegurancaDoCodigoTests`.
+        #expect(classe == nil || classe == .complete)
+        #else
+        #expect(classe == .complete)
+        #endif
 
         vm.folhaCompartilhamentoFechada()
     }

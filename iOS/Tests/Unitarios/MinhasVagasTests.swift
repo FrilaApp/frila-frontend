@@ -2,6 +2,7 @@ import Foundation
 @testable import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
+import SwiftUI
 import Testing
 
 @MainActor
@@ -206,5 +207,26 @@ struct MinhasVagasTests {
         await vm.carregar()
 
         #expect(vm.vagas(na: .proximas).first?.vaga.id == publicada.vagaID)
+    }
+
+    @Test("Painel de um ano com 500 vagas: as seções somam todas, ordenadas, e a tela as lista em LazyVStack")
+    func painelGrande() async throws {
+        var vagas: [VagaNoPainel] = []
+        for indice in 0..<500 {
+            // Metade já encerrada no passado, metade espalhada pelos próximos 300 dias.
+            let deslocamento: TimeInterval = indice.isMultiple(of: 2) ? -Double(indice + 1) * 86_400 : Double(indice) * 86_400 * 0.6 + 7_200
+            vagas.append(try vaga(id: String(format: "73000000-0000-0000-0000-%012d", indice + 100), inicioEm: deslocamento))
+        }
+        let vm = try viewModel(vagas.shuffled())
+        await vm.carregar()
+
+        let porSecao = SecaoMinhasVagas.allCases.map { vm.vagas(na: $0) }
+        #expect(porSecao.map(\.count).reduce(0, +) == 500)
+        for secao in porSecao {
+            #expect(secao == secao.sorted { $0.vaga.periodo.inicio < $1.vaga.periodo.inicio })
+        }
+
+        let tela = TelaMinhasVagas(viewModel: vm, api: ApiClienteEmMemoria())
+        #expect(String(reflecting: type(of: tela.body)).contains("LazyVStack"), "as seções do painel precisam ser lazy")
     }
 }

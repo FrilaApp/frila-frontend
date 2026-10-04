@@ -80,6 +80,9 @@ enum TextosDoAcompanhamento {
         case .presencaConfirmada: presencaConfirmada
         case .vagaReaberta: vagaReaberta
         case .faltaSemReabertura: faltaSemReabertura
+        case let .posicaoCancelada(reaberta): reaberta ? TextosDoCancelamento.posicaoCanceladaReaberta : TextosDoCancelamento.posicaoCanceladaDescoberta
+        case .vagaCancelada: TextosDoCancelamento.vagaCancelada
+        case .cancelamentoNaFila: TextosDoCancelamento.naFila
         }
     }
 
@@ -102,7 +105,18 @@ enum TextosDoAcompanhamento {
 struct TelaTurnoDoContratante: View {
     let viewModel: AcompanhamentoViewModel
     let turnoID: UUID
+    let api: (any ApiCliente)?
+    @State private var cancelamento: CancelamentoViewModel?
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     private let formatador = FormatadorFrila()
+
+    init(viewModel: AcompanhamentoViewModel, turnoID: UUID, api: (any ApiCliente)? = nil) {
+        self.viewModel = viewModel
+        self.turnoID = turnoID
+        self.api = api ?? viewModel.api
+    }
 
     var body: some View {
         ScrollView {
@@ -126,8 +140,11 @@ struct TelaTurnoDoContratante: View {
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(TextosDoAcompanhamento.titulo)
         .navigationBarTitleDisplayMode(.inline)
-        .task { if viewModel.painel == nil { await viewModel.carregar() } }
+        .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .refreshable { await viewModel.carregar() }
+        .sheet(item: $cancelamento) { folha in
+            FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
+        }
         .accessibilityIdentifier("turno-do-contratante")
     }
 
@@ -158,6 +175,106 @@ struct TelaTurnoDoContratante: View {
         .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chegada-do-turno")
+
+        if viewModel.podeCancelar(turno) {
+            BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = viewModel.criarCancelamento(de: turno) }
+                .accessibilityIdentifier("cancelar-posicao-\(turno.posicao.id)")
+        }
+
+        cartaoAvaliacao(turno)
+
+        rodapeSeguranca(turno)
+    }
+
+    // MARK: - Avaliação (#22)
+
+    @ViewBuilder
+    private func cartaoAvaliacao(_ turno: TurnoAcompanhado) -> some View {
+        if viewModel.podeAvaliar(turno) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityAddTraits(.isHeader)
+
+                if viewModel.jaAvaliado(turno) {
+                    if let resposta = viewModel.respostaAvaliacao(turno) {
+                        Text(verbatim: TextosDoProfissional.Avaliacao.statusResposta(resposta))
+                            .font(.body.weight(.semibold))
+                            .accessibilityIdentifier("texto-status-avaliacao")
+                    } else {
+                        Text(verbatim: TextosDoProfissional.Avaliacao.statusAvaliado)
+                            .font(.body.weight(.semibold))
+                            .accessibilityIdentifier("texto-status-avaliacao")
+                    }
+
+                    NavigationLink {
+                        if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
+                            TelaAvaliacao(viewModel: avaliacao)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "star.fill")
+                            Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
+                        }
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
+                    }
+                    .accessibilityIdentifier("botao-ver-avaliacao")
+                } else {
+                    Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
+                        .font(.subheadline)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+
+                    NavigationLink {
+                        if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
+                            TelaAvaliacao(viewModel: avaliacao)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "star.fill")
+                            Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
+                        }
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
+                    }
+                    .accessibilityIdentifier("botao-abrir-avaliacao")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(FrilaEspaco.medio)
+            .cartaoFrila()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("cartao-avaliacao-turno")
+        }
+    }
+
+    // MARK: - Ações de segurança (#39)
+
+    @ViewBuilder
+    private func rodapeSeguranca(_ turno: TurnoAcompanhado) -> some View {
+        if let profissional = turno.posicao.profissional,
+           let api = viewModel.api ?? api {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                if bloqueios.contem(profissional) {
+                    Text(verbatim: TextosDaSeguranca.voceBloqueouProfissional)
+                        .font(.caption)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("etiqueta-bloqueio-\(turno.posicao.id)")
+                }
+                AcoesDeSeguranca(
+                    perfil: profissional,
+                    turnoID: turno.posicao.turnoID,
+                    api: api,
+                    bloqueios: bloqueios,
+                    identificadorDenunciar: "denunciar-\(turno.posicao.id)",
+                    identificadorBloquear: "bloquear-\(turno.posicao.id)"
+                )
+                // O @State do modelo nasce no init: identidade pelo alvo, para a posição reatribuída
+                // não denunciar nem bloquear o profissional anterior.
+                .id(profissional.id)
+            }
+        }
     }
 
     @ViewBuilder private func chegada(_ turno: TurnoAcompanhado) -> some View {
@@ -203,8 +320,9 @@ struct TelaTurnoDoContratante: View {
         case .naoVerificada:
             Text(verbatim: TextosDoAcompanhamento.naoVerificada)
         case .cancelada:
+            // O bloco inteiro usa o id do turno: `turno.id` é o da posição, outro valor.
             Text(verbatim: TextosDoAcompanhamento.cancelada).font(.headline)
-                .accessibilityIdentifier("posicao-cancelada-\(turno.id)")
+                .accessibilityIdentifier("posicao-cancelada-\(turnoID)")
             if let cancelamento = turno.posicao.cancelamento {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: TextosDoAcompanhamento.textoDaCausa(cancelamento.causa))
@@ -226,7 +344,7 @@ struct TelaTurnoDoContratante: View {
     }
 }
 
-/// O que aconteceu na última confirmação ou reabertura, para a tela do turno e para Minhas vagas.
+/// O que aconteceu na última confirmação, reabertura ou cancelamento, para a tela do turno e para Minhas vagas.
 struct AvisosDoAcompanhamento: View {
     let viewModel: AcompanhamentoViewModel
 

@@ -1,9 +1,35 @@
 import Foundation
 import FrilaDominio
+import OSLog
 
 /// Valor que chegou no formato do contrato, mas não cabe no domínio (dia da semana 9, hora 25:00…).
 struct ErroDeConversao: Error, Equatable {
     let campo: String
+}
+
+/// Item de uma lista do contrato que pode não decodificar (enum com valor novo, campo fora do
+/// formato). Em vez de a resposta inteira falhar, o item sai da lista e os outros seguem: um estado
+/// novo numa vaga não pode esconder as demais. Quem lê conta os descartados e registra só a
+/// quantidade e a rota, nunca o conteúdo.
+struct ItemTolerante<Valor: Decodable>: Decodable {
+    let valor: Valor?
+
+    init(from decoder: Decoder) throws {
+        valor = try? Valor(from: decoder)
+    }
+}
+
+extension Array {
+    /// Os itens que decodificaram e converteram; o que falhou em qualquer das duas etapas sai.
+    func validos<Valor, Dominio>(_ converter: (Valor) throws -> Dominio) -> (itens: [Dominio], descartados: Int)
+    where Element == ItemTolerante<Valor> {
+        var descartados = 0
+        let itens = compactMap { item -> Dominio? in
+            guard let valor = item.valor, let dominio = try? converter(valor) else { descartados += 1; return nil }
+            return dominio
+        }
+        return (itens, descartados)
+    }
 }
 
 /// Tipos do contrato 0.2.27 (`Contrato/openapi.yaml`), um para cada schema usado pelo app.
@@ -29,6 +55,17 @@ enum ContratoAPI {
 
     static func texto(_ instante: Date) -> String {
         FormatosDeInstante.semFracao.string(from: instante)
+    }
+
+    /// O instante em UTC com três casas de fração (`2026-11-01T02:59:59.999Z`). Arredonda para o
+    /// milissegundo mais próximo antes de formatar: o `Date` guarda segundos em `Double`, e
+    /// formatar direto poderia truncar .999 para .998.
+    static func textoComMilissegundos(_ instante: Date) -> String {
+        let milissegundos = Int64((instante.timeIntervalSince1970 * 1000).rounded())
+        let segundos = Int64((Double(milissegundos) / 1000).rounded(.down))
+        let fracao = milissegundos - segundos * 1000
+        let texto = FormatosDeInstante.semFracao.string(from: Date(timeIntervalSince1970: TimeInterval(segundos)))
+        return String(texto.dropLast()) + String(format: ".%03lldZ", fracao)
     }
 
     // MARK: Conta
@@ -316,6 +353,14 @@ enum ContratoAPI {
 
     // MARK: Vagas
 
+    /// `Centavos` do contrato tem `minimum: 1`. O `Dinheiro` do domínio para no `precondition`
+    /// com valor negativo: vindo do servidor, o valor fora do contrato é resposta inválida, e não
+    /// motivo para fechar o app.
+    static func dinheiro(_ centavos: Int, campo: String) throws -> Dinheiro {
+        guard centavos >= 1 else { throw ErroDeConversao(campo: campo) }
+        return Dinheiro(centavos: centavos)
+    }
+
     struct InclusosDTO: Codable {
         let incluiRefeicao: Bool
         let incluiTransporte: Bool
@@ -378,7 +423,7 @@ enum ContratoAPI {
                 regiaoAdministrativa: regiaoAdministrativa,
                 ponto: ponto.dominio(),
                 distanciaKm: distanciaKm,
-                valor: Dinheiro(centavos: valorCentavos),
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos"),
                 posicoes: posicoes,
                 posicoesAbertas: posicoesAbertas,
                 inclusos: inclusos.dominio(),
@@ -427,7 +472,7 @@ enum ContratoAPI {
                 local: local,
                 regiaoAdministrativa: regiaoAdministrativa,
                 distanciaKm: distanciaKm,
-                valor: Dinheiro(centavos: valorCentavos),
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos"),
                 posicoesAbertas: posicoesAbertas,
                 inclusos: inclusos.dominio(),
                 modo: modo
@@ -455,7 +500,8 @@ enum ContratoAPI {
         func dominio() throws -> VagaResumo {
             try VagaResumo(
                 id: id, funcao: funcao, local: local, regiaoAdministrativa: regiaoAdministrativa,
-                periodo: Periodo(inicio: inicioEm, fim: fimEm), valor: Dinheiro(centavos: valorCentavos)
+                periodo: Periodo(inicio: inicioEm, fim: fimEm),
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos")
             )
         }
     }
@@ -608,7 +654,28 @@ enum ContratoAPI {
             case whatsappURL = "whatsapp_url"
             case visivelAte = "visivel_ate"
         }
-        func dominio() -> Contato { Contato(nome: nome, telefone: telefone, whatsappURL: whatsappURL, visivelAte: visivelAte) }
+        /// O app abre o `whatsapp_url` como vem; por isso só passa o link do WhatsApp em https
+        /// (auditoria de 03/10/2026, A5). Outro esquema ou host é trocado pelo `wa.me` montado do
+        /// telefone, sem erro: `candidatar` e `escolher_candidato` já gravaram no servidor quando a
+        /// resposta chega, e um erro aqui faria a ação bem-sucedida parecer falha (e a repetição, 409).
+        static let hostsDoWhatsApp: Set<String> = ["wa.me", "api.whatsapp.com"]
+        private static let log = Logger(subsystem: "com.frila.org.app", category: "contrato")
+
+        func dominio() -> Contato {
+            Contato(nome: nome, telefone: telefone, whatsappURL: Self.linkSeguro(whatsappURL, telefone: telefone), visivelAte: visivelAte)
+        }
+
+        /// O link como veio, se é do WhatsApp em https; senão, `https://wa.me/` + os dígitos do
+        /// telefone E.164 (`+5561999990000` → `https://wa.me/5561999990000`, como no contrato).
+        static func linkSeguro(_ url: URL, telefone: String) -> URL {
+            if url.scheme?.lowercased() == "https", let host = url.host()?.lowercased(), hostsDoWhatsApp.contains(host) {
+                return url
+            }
+            // Só o fato, nunca o link nem o número.
+            log.notice("whatsapp_url_saneado")
+            let digitos = telefone.filter(\.isNumber)
+            return URL(string: "https://wa.me/\(digitos)") ?? URL(string: "https://wa.me/")!
+        }
     }
 
     // MARK: Modo seleção (0.2.24)
@@ -620,12 +687,14 @@ enum ContratoAPI {
         let vaga: VagaResumoDTO
         let estado: EstadoCandidatura
         let criadaEm: Date
+        let turnoID: UUID?
         enum CodingKeys: String, CodingKey {
             case id, vaga, estado
             case criadaEm = "criada_em"
+            case turnoID = "turno_id"
         }
         func dominio() throws -> Candidatura {
-            Candidatura(id: id, vaga: try vaga.dominio(), estado: estado, criadaEm: criadaEm)
+            Candidatura(id: id, vaga: try vaga.dominio(), estado: estado, criadaEm: criadaEm, turnoID: turnoID)
         }
     }
 
@@ -667,6 +736,21 @@ enum ContratoAPI {
         let estado: EstadoCandidatura?
     }
 
+    struct CancelamentoDoTurnoDTO: Decodable {
+        let causa: CausaDoCancelamento
+        let falta: Bool
+        let canceladaEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case causa, falta
+            case canceladaEm = "cancelada_em"
+        }
+
+        func dominio() -> CancelamentoDoTurno {
+            CancelamentoDoTurno(causa: causa, falta: falta, canceladaEm: canceladaEm)
+        }
+    }
+
     struct TurnoDTO: Decodable {
         let id: UUID
         let posicaoID: UUID
@@ -683,9 +767,13 @@ enum ContratoAPI {
         let verificacao: Verificacao
         let valorAcordadoCentavos: Int
         let podeAvaliar: Bool
+        let estado: EstadoPosicao?
+        let avaliacao: AvaliacaoDTO?
+        let avaliacaoInformada: Bool
+        let cancelamento: CancelamentoDoTurnoDTO?
 
         enum CodingKeys: String, CodingKey {
-            case id, vaga, contraparte, verificacao
+            case id, vaga, contraparte, verificacao, estado, avaliacao, cancelamento
             case posicaoID = "posicao_id"
             case contatoVisivelAte = "contato_visivel_ate"
             case aCaminhoEm = "a_caminho_em"
@@ -697,6 +785,31 @@ enum ContratoAPI {
             case checkoutDistanciaM = "checkout_distancia_m"
             case valorAcordadoCentavos = "valor_acordado_centavos"
             case podeAvaliar = "pode_avaliar"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            posicaoID = try container.decode(UUID.self, forKey: .posicaoID)
+            vaga = try container.decode(VagaResumoDTO.self, forKey: .vaga)
+            contraparte = try container.decode(PerfilPublicoDTO.self, forKey: .contraparte)
+            contatoVisivelAte = try container.decode(Date.self, forKey: .contatoVisivelAte)
+            aCaminhoEm = try container.decodeIfPresent(Date.self, forKey: .aCaminhoEm)
+            checkinEm = try container.decodeIfPresent(Date.self, forKey: .checkinEm)
+            // Como no painel: um tipo de check-in novo fica sem valor, e o turno segue.
+            checkinTipo = try container.decodeIfPresent(String.self, forKey: .checkinTipo).flatMap(TipoRegistro.init(rawValue:))
+            checkinDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkinDistanciaM)
+            checkinConfirmadoEm = try container.decodeIfPresent(Date.self, forKey: .checkinConfirmadoEm)
+            checkoutEm = try container.decodeIfPresent(Date.self, forKey: .checkoutEm)
+            checkoutDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkoutDistanciaM)
+            verificacao = try container.decode(Verificacao.self, forKey: .verificacao)
+            valorAcordadoCentavos = try container.decode(Int.self, forKey: .valorAcordadoCentavos)
+            podeAvaliar = try container.decode(Bool.self, forKey: .podeAvaliar)
+            // Um estado novo não invalida a lista inteira. Ausente ou desconhecido fica sem estado.
+            estado = try container.decodeIfPresent(String.self, forKey: .estado).flatMap(EstadoPosicao.init(rawValue:))
+            avaliacaoInformada = container.contains(.avaliacao)
+            avaliacao = try container.decodeIfPresent(AvaliacaoDTO.self, forKey: .avaliacao)
+            cancelamento = try container.decodeIfPresent(CancelamentoDoTurnoDTO.self, forKey: .cancelamento)
         }
 
         func dominio() throws -> Turno {
@@ -712,8 +825,12 @@ enum ContratoAPI {
                 },
                 checkout: checkoutEm.map { Presenca(instante: $0, distanciaMetros: checkoutDistanciaM) },
                 verificacao: verificacao,
-                valorAcordado: Dinheiro(centavos: valorAcordadoCentavos),
-                podeAvaliar: podeAvaliar
+                valorAcordado: ContratoAPI.dinheiro(valorAcordadoCentavos, campo: "valor_acordado_centavos"),
+                podeAvaliar: podeAvaliar,
+                estado: estado,
+                avaliacao: avaliacao?.dominio(),
+                avaliacaoInformada: avaliacaoInformada,
+                cancelamento: cancelamento?.dominio(), avaliacaoLidaEm: Date()
             )
         }
     }
@@ -920,11 +1037,26 @@ enum ContratoAPI {
         let alertaVagaVazia: Bool
         let candidatosPendentes: Int
         let posicoes: [PosicaoNoPainelDTO]
+        /// Posições que vieram com valor que este app não conhece (estado novo, por exemplo) e saíram.
+        let posicoesDescartadas: Int
 
         enum CodingKeys: String, CodingKey {
             case vaga, modo, estado, oculta, posicoes
             case alertaVagaVazia = "alerta_vaga_vazia"
             case candidatosPendentes = "candidatos_pendentes"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            vaga = try container.decode(VagaResumoDTO.self, forKey: .vaga)
+            modo = try container.decode(ModoPreenchimento.self, forKey: .modo)
+            estado = try container.decode(EstadoVaga.self, forKey: .estado)
+            oculta = try container.decode(Bool.self, forKey: .oculta)
+            alertaVagaVazia = try container.decode(Bool.self, forKey: .alertaVagaVazia)
+            candidatosPendentes = try container.decode(Int.self, forKey: .candidatosPendentes)
+            let lidas = try container.decode([ItemTolerante<PosicaoNoPainelDTO>].self, forKey: .posicoes)
+            posicoes = lidas.compactMap(\.valor)
+            posicoesDescartadas = lidas.count - posicoes.count
         }
 
         func dominio() throws -> VagaNoPainel {
@@ -940,10 +1072,14 @@ enum ContratoAPI {
         }
     }
 
+    /// O painel é uma resposta só com duas listas dentro: uma vaga ou posição com valor novo do
+    /// contrato sai da lista, e o resto do painel segue. `descartados` soma vagas e posições que
+    /// saíram, para o cliente registrar a quantidade.
     struct PainelDTO: Decodable {
         let estabelecimentoID: UUID
         let vagas: [VagaNoPainelDTO]
         let checkinsPendentes: [UUID]
+        let descartados: Int
 
         enum CodingKeys: String, CodingKey {
             case vagas
@@ -951,8 +1087,19 @@ enum ContratoAPI {
             case checkinsPendentes = "checkins_pendentes"
         }
 
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            estabelecimentoID = try container.decode(UUID.self, forKey: .estabelecimentoID)
+            checkinsPendentes = try container.decode([UUID].self, forKey: .checkinsPendentes)
+            let lidas = try container.decode([ItemTolerante<VagaNoPainelDTO>].self, forKey: .vagas)
+            vagas = lidas.compactMap(\.valor)
+            descartados = (lidas.count - vagas.count) + vagas.reduce(0) { $0 + $1.posicoesDescartadas }
+        }
+
+        /// A vaga cujo conteúdo não cabe no domínio (valor fora do contrato) também sai, em vez de
+        /// derrubar o painel.
         func dominio() throws -> Painel {
-            try Painel(estabelecimentoID: estabelecimentoID, vagas: vagas.map { try $0.dominio() }, checkinsPendentes: checkinsPendentes)
+            Painel(estabelecimentoID: estabelecimentoID, vagas: vagas.compactMap { try? $0.dominio() }, checkinsPendentes: checkinsPendentes)
         }
     }
 
@@ -1056,6 +1203,30 @@ enum ContratoAPI {
         }
     }
 
+    // MARK: Exportação de turnos (contrato 0.2.32; a 0.2.33 não muda o endpoint)
+
+    /// Corpo de `POST /exportar-turnos`. Os instantes levam milissegundos: o último é 23:59:59.999
+    /// de São Paulo, e sem a fração o último segundo do período ficaria de fora. Sem estabelecimento,
+    /// a chave não vai, e o servidor usa os turnos de quem chama como profissional.
+    struct ExportarTurnos: Encodable {
+        let de: String
+        let ate: String
+        let formato: FormatoExportacao
+        let estabelecimentoID: UUID?
+
+        enum CodingKeys: String, CodingKey {
+            case de, ate, formato
+            case estabelecimentoID = "estabelecimento_id"
+        }
+
+        init(_ pedido: PedidoExportacaoTurnos) {
+            de = ContratoAPI.textoComMilissegundos(pedido.periodo.inicio)
+            ate = ContratoAPI.textoComMilissegundos(pedido.periodo.fim)
+            formato = pedido.formato
+            estabelecimentoID = pedido.estabelecimentoID
+        }
+    }
+
     // MARK: Aplicativo
 
     struct ConfiguracaoDoAppDTO: Decodable {
@@ -1097,14 +1268,16 @@ enum ContratoAPI {
     struct DispositivoDTO: Decodable {
         let plataforma: Plataforma
         let atualizadoEm: Date
+        let vinculoID: UUID?
 
         enum CodingKeys: String, CodingKey {
             case plataforma
             case atualizadoEm = "atualizado_em"
+            case vinculoID = "vinculo_id"
         }
 
         func dominio() -> Dispositivo {
-            Dispositivo(plataforma: plataforma, atualizadoEm: atualizadoEm)
+            Dispositivo(plataforma: plataforma, atualizadoEm: atualizadoEm, vinculoID: vinculoID)
         }
     }
 

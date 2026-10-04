@@ -1,0 +1,427 @@
+import XCTest
+
+/// Auditoria automática de acessibilidade (base do #71): percorre as telas principais dos dois
+/// perfis, nos cenários do dublê, e chama `performAccessibilityAudit` em cada uma, no tamanho
+/// padrão e em AX5. O relatório tela × problema × causa está em `Docs/Acessibilidade.md`.
+///
+/// O que a auditoria do XCTest cobre no iOS: contraste, detecção de elemento, área de toque,
+/// descrição suficiente, Dynamic Type, texto cortado e traços. Movimento ela não cobre: a passada
+/// com Reduzir Movimento é a mesma suíte com a preferência ligada no simulador
+/// (`Scripts/auditoria-de-acessibilidade.sh`), e os achados de movimento vêm de leitura do código.
+///
+/// Três classes de achado não falham o teste, e ficam só registradas no log e no relatório:
+/// - contraste: é do design (tokens), e a medição é por pixel, variável com o aparelho;
+/// - "texto cortado" em `TextField`: o XCTest olha a flag `adjustsFontForContentSizeCategory`
+///   do `UITextField` que o SwiftUI cria, que fica falsa mesmo com a fonte acompanhando o
+///   tamanho; a medida do campo em AX5 (`testCampoDeTextoCresceEmAX5`) é a prova;
+/// - "alvo pequeno" no link "Legal" do MapKit: controle do sistema, fora do app.
+///
+/// O que ainda falha por arquivo ocupado por outro PR, ou por decisão de layout que é do design,
+/// fica registrado com `XCTExpectFailure` por tela, com o motivo: a CI fica verde e o teste acusa
+/// quando a tela for corrigida. É estrito quando o achado aparece em toda rodada, sem depender de
+/// rolagem; os demais ficam não estritos, porque o que a auditoria enxerga depende do tamanho da
+/// tela e do que está visível no momento.
+///
+/// A suíte é opcional: só roda com `TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1` no ambiente
+/// do `xcodebuild test` (é o que `Scripts/auditoria-de-acessibilidade.sh` passa). Na suíte normal
+/// e na CI ela é pulada com `XCTSkip`: são 29 casos que abrem o app e auditam duas vezes, cerca de
+/// 9 minutos no simulador, e o passo de testes da CI já leva de 42 a 53 dos 70 minutos do job.
+///
+/// Com `TEST_RUNNER_FRILA_AUDITORIA_SO_REGISTRA=1` a suíte só registra os achados, sem falhar:
+/// é o modo usado para levantar o relatório.
+@MainActor
+final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
+    private static let ax5 = "UICTContentSizeCategoryAccessibilityXXXL"
+    private static let ligada = ProcessInfo.processInfo.environment["FRILA_AUDITORIA_DE_ACESSIBILIDADE"] == "1"
+    private static let soRegistra = ProcessInfo.processInfo.environment["FRILA_AUDITORIA_SO_REGISTRA"] == "1"
+
+    private let vagaID = "40000000-0000-0000-0000-000000000001"
+    private let turnoEncerradoID = "22000000-0000-0000-0000-000000000001"
+    private let turnoDoContratanteID = "82000000-0000-0000-0000-000000000001"
+    private let posicaoDoContratanteID = "82000000-0000-0000-0000-000000000002"
+
+    private var appAtual: XCUIApplication?
+    private var ax5Atual = false
+    private var tamanhoAtual: String { ax5Atual ? "ax5" : "padrao" }
+
+    override func setUpWithError() throws {
+        try XCTSkipUnless(
+            Self.ligada,
+            "Auditoria de acessibilidade opcional: rode com TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 ou por Scripts/auditoria-de-acessibilidade.sh (cerca de 9 minutos)"
+        )
+        continueAfterFailure = true
+    }
+
+    override func tearDown() {
+        if let appAtual, let testRun, testRun.failureCount > 0 {
+            let anexo = XCTAttachment(screenshot: appAtual.screenshot())
+            anexo.name = "falha-\(name)"
+            anexo.lifetime = .keepAlways
+            add(anexo)
+        }
+        appAtual = nil
+        super.tearDown()
+    }
+
+    // MARK: - Suporte
+
+    private func abrir(_ argumentos: [String], ax5: Bool) -> XCUIApplication {
+        let app = XCUIApplication()
+        appAtual = app
+        ax5Atual = ax5
+        app.launchArguments = argumentos
+        if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
+        app.launch()
+        return app
+    }
+
+    private func elemento(_ id: String, em app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any)[id]
+    }
+
+    /// Rola até o elemento ficar tocável e toca. Em AX5 quase tudo sai da primeira tela.
+    private func tocar(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        for _ in 0..<tentativas where !(elemento.exists && elemento.isHittable) {
+            app.swipeUp(velocity: .fast)
+        }
+        XCTAssertTrue(elemento.exists && elemento.isHittable, "\(elemento) não ficou tocável")
+        elemento.tap()
+    }
+
+    private func esperar(_ elemento: XCUIElement, _ mensagem: String, timeout: TimeInterval = 15) -> Bool {
+        let existe = elemento.waitForExistence(timeout: timeout)
+        XCTAssertTrue(existe, mensagem)
+        return existe
+    }
+
+    /// Achado que não falha o teste (veja o cabeçalho), com a classe para o relatório.
+    private func classeIgnorada(_ achado: XCUIAccessibilityAuditIssue) -> String? {
+        let elemento = achado.element.map { "\($0)" } ?? ""
+        switch achado.auditType {
+        case .contrast:
+            return "design"
+        case .textClipped where elemento.contains("TextField"):
+            return "falso-positivo-textfield"
+        case .hitRegion where achado.detailedDescription.contains("MKAttributionLabel"):
+            return "sistema-mapkit"
+        default:
+            return nil
+        }
+    }
+
+    /// Roda a auditoria numa tela. Cada achado vira uma linha
+    /// `AUDITORIA|tela|tamanho|tipo|classe|descrição|elemento|detalhe` no log, para o relatório.
+    private func auditar(_ app: XCUIApplication, tela: String) {
+        var linhas: [String] = []
+        do {
+            try app.performAccessibilityAudit(for: .all) { achado in
+                let classe = self.classeIgnorada(achado)
+                let elemento = achado.element.map { "\($0)" } ?? "-"
+                let detalhe = achado.detailedDescription.replacingOccurrences(of: "\n", with: " ")
+                let linha = "AUDITORIA|\(tela)|\(self.tamanhoAtual)|\(achado.auditType.nome)|\(classe ?? "falha")|\(achado.compactDescription)|\(elemento)|\(detalhe)"
+                linhas.append(linha)
+                print(linha)
+                return Self.soRegistra || classe != nil
+            }
+        } catch {
+            XCTFail("A auditoria de \(tela) não rodou: \(error)")
+        }
+        let anexo = XCTAttachment(string: linhas.isEmpty ? "sem achados" : linhas.joined(separator: "\n"))
+        anexo.name = "auditoria-\(tela)-\(tamanhoAtual)"
+        anexo.lifetime = .keepAlways
+        add(anexo)
+    }
+
+    /// Auditoria de tela com achado conhecido e ainda não corrigido: falha esperada, com o motivo.
+    private func auditar(_ app: XCUIApplication, tela: String, pendente motivo: String, estrito: Bool = false) {
+        if Self.soRegistra { auditar(app, tela: tela); return }
+        let opcoes = XCTExpectedFailure.Options()
+        opcoes.isStrict = estrito
+        XCTExpectFailure("\(tela): \(motivo)", options: opcoes) { auditar(app, tela: tela) }
+    }
+
+    // MARK: - Motivos das falhas esperadas (o relatório tem o detalhe por arquivo:linha)
+
+    private static let listaDeVagasLimitadaAAX1 = "o cartão da vaga, as pílulas de filtro e o botão Catálogo não acompanham o Dynamic Type: TelaVagas.swift limita o cartão e as pílulas a AX1 por decisão de layout do #139 (a alta fidelidade do #15 decide), e o botão da barra está em FluxoDoProfissional.swift, ocupado pelo #97"
+    private static let abaCandidaturasComViewThatFits = "falso positivo do XCTest: no tamanho padrão, Função e Valor do CartaoDaCandidatura (CandidaturaEmSelecao.swift) saem como Dynamic Type 'partially unsupported', mas o texto escala (função de 20 para 63 pt de altura em AX5) e o achado some quando o ViewThatFits vira um layout só; trocar o layout é decisão da alta fidelidade"
+    private static let abaCandidaturasComViewThatFitsEmAX5 = "provável falso positivo do XCTest: em AX5, às vezes, 'texto cortado' sem elemento no CartaoDaCandidatura (CandidaturaEmSelecao.swift); a captura não mostra corte e o achado some quando o ViewThatFits vira um layout só"
+    private static let meuTurnoOcupado = "'quem recebe' fica cortado no tamanho padrão em TelaMeuTurno.swift, ocupado pelos #92, #93 e #103"
+    private static let perfilDoEstabelecimentoOcupado = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift, ocupado pelo #73"
+    private static let publicarVagaComDatePicker = "o UIDatePicker compacto do sistema não acompanha o Dynamic Type em AX5 (PublicarVaga.swift, ocupado pelos #73 e #103)"
+
+    // MARK: - Profissional
+
+    private func entradaCodigoECadastro(ax5: Bool) {
+        let app = abrir(["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"], ax5: ax5)
+
+        let email = app.textFields["entrada-email"]
+        guard esperar(email, "A entrada deve abrir") else { return }
+        auditar(app, tela: "entrada")
+
+        email.tap()
+        email.digitarEEsperar("novo@frila.app")
+        tocar(app.buttons["entrada-receber-codigo"], em: app)
+
+        let codigo = app.textFields["Código de acesso"]
+        guard esperar(codigo, "A tela do código deve abrir") else { return }
+        auditar(app, tela: "codigo")
+
+        codigo.tap()
+        codigo.typeText("123456")
+        tocar(app.buttons["codigo-entrar"], em: app)
+
+        guard esperar(app.buttons["cadastro-maior-de-idade"], "O cadastro deve abrir") else { return }
+        auditar(app, tela: "cadastro")
+    }
+
+    func testEntradaCodigoECadastro() { entradaCodigoECadastro(ax5: false) }
+    func testEntradaCodigoECadastroEmAX5() { entradaCodigoECadastro(ax5: true) }
+
+    /// Prova de que o "texto cortado" que o XCTest aponta em todo `TextField` é falso positivo: o
+    /// campo de e-mail cresce com o tamanho do texto. No tamanho padrão ele tem o mínimo de 44 pt.
+    func testCampoDeTextoCresceEmAX5() {
+        let app = abrir(["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"], ax5: true)
+        let email = app.textFields["entrada-email"]
+        guard esperar(email, "A entrada deve abrir") else { return }
+        print("MEDIDA|entrada-email|ax5|altura=\(email.frame.height)")
+        XCTAssertGreaterThan(email.frame.height, 44 + 8, "Em AX5 o campo deve crescer além do mínimo de 44 pt")
+    }
+
+    private func listaDetalheECandidatura(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
+
+        guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
+        auditar(app, tela: "vagas", pendente: Self.listaDeVagasLimitadaAAX1, estrito: true)
+
+        let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
+        guard esperar(primeira, "A lista deve ter vaga") else { return }
+        primeira.tap()
+        guard esperar(elemento("tela-detalhe-vaga", em: app), "O detalhe deve abrir") else { return }
+        auditar(app, tela: "detalhe-vaga")
+
+        tocar(app.buttons["candidatar"], em: app)
+        guard esperar(elemento("resultado-confirmada", em: app), "A confirmação deve abrir") else { return }
+        auditar(app, tela: "candidatura-confirmada")
+    }
+
+    func testListaDetalheECandidatura() { listaDetalheECandidatura(ax5: false) }
+    func testListaDetalheECandidaturaEmAX5() { listaDetalheECandidatura(ax5: true) }
+
+    private func resultadosDaCandidatura(ax5: Bool) {
+        for (cenario, tela, marca) in [
+            ("vaga-preenchida", "vaga-preenchida", "resultado-vaga-preenchida"),
+            ("vaga-encerrada", "vaga-encerrada", "resultado-vaga-encerrada"),
+            ("inelegivel", "conflito-de-horario", "resultado-turno-sobreposto"),
+            ("inelegivel-suspenso", "candidatura-conta-suspensa", "resultado-conta-suspensa"),
+        ] {
+            let app = abrir(["-FRILA_SCENARIO", cenario, "-FRILA_VAGA_ID", vagaID], ax5: ax5)
+            guard esperar(app.buttons["candidatar"], "O detalhe de \(cenario) deve abrir") else { continue }
+            tocar(app.buttons["candidatar"], em: app)
+            guard esperar(elemento(marca, em: app), "O resultado \(marca) deve abrir") else { continue }
+            auditar(app, tela: tela)
+        }
+    }
+
+    func testResultadosDaCandidatura() { resultadosDaCandidatura(ax5: false) }
+    func testResultadosDaCandidaturaEmAX5() { resultadosDaCandidatura(ax5: true) }
+
+    private func candidaturasEmSelecao(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "candidatura-pendente"], ax5: ax5)
+        guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
+
+        let aba = app.tabBars.buttons["Candidaturas"]
+        guard esperar(aba, "A aba Candidaturas deve existir") else { return }
+        aba.tap()
+        guard esperar(elemento("tela-minhas-candidaturas", em: app), "A aba deve abrir") else { return }
+        // No padrão o achado vem em toda rodada (estrito); em AX5, só às vezes.
+        auditar(
+            app, tela: "candidaturas",
+            pendente: ax5 ? Self.abaCandidaturasComViewThatFitsEmAX5 : Self.abaCandidaturasComViewThatFits,
+            estrito: !ax5
+        )
+
+        let pendente = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'candidatura-'")).firstMatch
+        guard esperar(pendente, "A candidatura pendente deve estar na lista") else { return }
+        pendente.tap()
+        guard esperar(elemento("candidatura-enviada", em: app), "O detalhe com a candidatura enviada deve abrir") else { return }
+        auditar(app, tela: "detalhe-vaga-candidatura-enviada")
+    }
+
+    func testCandidaturasEmSelecao() { candidaturasEmSelecao(ax5: false) }
+    func testCandidaturasEmSelecaoEmAX5() { candidaturasEmSelecao(ax5: true) }
+
+    private func meusTurnosMeuTurnoEAvaliacao(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "turno-encerrado"], ax5: ax5)
+        guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
+
+        let aba = app.tabBars.buttons["Meus turnos"]
+        guard esperar(aba, "A aba Meus turnos deve existir") else { return }
+        aba.tap()
+        guard esperar(app.navigationBars["Meus turnos"], "Meus turnos deve abrir") else { return }
+        auditar(app, tela: "meus-turnos")
+
+        let turno = app.buttons["meu-turno-\(turnoEncerradoID)"]
+        guard esperar(turno, "O turno encerrado deve estar na lista") else { return }
+        turno.tap()
+        guard esperar(app.navigationBars["Meu turno"], "Meu turno deve abrir") else { return }
+        auditar(app, tela: "meu-turno", pendente: Self.meuTurnoOcupado)
+
+        tocar(app.buttons["Avaliar turno"], em: app)
+        guard esperar(app.navigationBars["Avaliar turno"], "A avaliação deve abrir") else { return }
+        auditar(app, tela: "avaliacao")
+    }
+
+    func testMeusTurnosMeuTurnoEAvaliacao() { meusTurnosMeuTurnoEAvaliacao(ax5: false) }
+    func testMeusTurnosMeuTurnoEAvaliacaoEmAX5() { meusTurnosMeuTurnoEAvaliacao(ax5: true) }
+
+    private func meuTurnoComPresenca(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "candidatura-escolhida"], ax5: ax5)
+        guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
+
+        let aba = app.tabBars.buttons["Meus turnos"]
+        guard esperar(aba, "A aba Meus turnos deve existir") else { return }
+        aba.tap()
+        let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
+        guard esperar(turno, "O turno confirmado deve estar na lista") else { return }
+        turno.tap()
+        guard esperar(elemento("tela-meu-turno", em: app), "Meu turno deve abrir") else { return }
+        auditar(app, tela: "meu-turno-com-presenca", pendente: Self.meuTurnoOcupado)
+    }
+
+    func testMeuTurnoComPresenca() { meuTurnoComPresenca(ax5: false) }
+    func testMeuTurnoComPresencaEmAX5() { meuTurnoComPresenca(ax5: true) }
+
+    private func perfilEExclusaoDeConta(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
+        let perfil = app.buttons["abrir-meu-perfil"]
+        guard esperar(perfil, "O botão do perfil deve existir") else { return }
+        perfil.tap()
+        guard esperar(app.buttons["perfil-excluir-conta"], "O perfil deve abrir") else { return }
+        auditar(app, tela: "perfil-profissional")
+
+        tocar(app.buttons["perfil-funcoes-horarios"], em: app)
+        guard esperar(elemento("picker-dia-semana", em: app), "Funções e horários deve abrir") else { return }
+        auditar(app, tela: "perfil-funcoes-e-horarios")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        tocar(app.buttons["perfil-excluir-conta"], em: app)
+        guard esperar(elemento("tela-exclusao-de-conta", em: app), "A exclusão deve abrir") else { return }
+        auditar(app, tela: "exclusao-de-conta")
+    }
+
+    func testPerfilEExclusaoDeConta() { perfilEExclusaoDeConta(ax5: false) }
+    func testPerfilEExclusaoDeContaEmAX5() { perfilEExclusaoDeConta(ax5: true) }
+
+    private func contaSuspensa(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "conta-suspensa"], ax5: ax5)
+        guard esperar(elemento("tela-conta-suspensa", em: app), "A conta suspensa deve abrir") else { return }
+        auditar(app, tela: "conta-suspensa")
+    }
+
+    func testContaSuspensa() { contaSuspensa(ax5: false) }
+    func testContaSuspensaEmAX5() { contaSuspensa(ax5: true) }
+
+    // MARK: - Contratante
+
+    private func cadastroDoEstabelecimentoEPublicarVaga(ax5: Bool) {
+        let app = abrir(["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"], ax5: ax5)
+        guard esperar(app.staticTexts["Cadastrar estabelecimento"], "O cadastro deve abrir") else { return }
+        auditar(app, tela: "cadastro-estabelecimento")
+
+        tocar(app.buttons["continuar-cadastro"], em: app)
+        guard esperar(app.staticTexts["Publicar vaga"], "Publicar vaga deve abrir") else { return }
+        auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker)
+
+        tocar(app.buttons["mais-opcoes-botao"], em: app)
+        guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
+        auditar(app, tela: "publicar-vaga-mais-opcoes")
+    }
+
+    func testCadastroDoEstabelecimentoEPublicarVaga() { cadastroDoEstabelecimentoEPublicarVaga(ax5: false) }
+    func testCadastroDoEstabelecimentoEPublicarVagaEmAX5() { cadastroDoEstabelecimentoEPublicarVaga(ax5: true) }
+
+    private func minhasVagasDetalheEPerfilPublico(ax5: Bool) {
+        let app = abrir(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "painel-contratante"], ax5: ax5)
+        guard esperar(app.navigationBars["Minhas vagas"], "Minhas vagas deve abrir") else { return }
+        auditar(app, tela: "minhas-vagas")
+
+        tocar(app.buttons["vaga-contratante-\(vagaID)"], em: app)
+        guard esperar(elemento("detalhe-vaga-contratante", em: app), "O detalhe deve abrir") else { return }
+        auditar(app, tela: "detalhe-vaga-contratante")
+
+        tocar(app.buttons["ver-contato-\(posicaoDoContratanteID)"], em: app)
+        guard esperar(elemento("contato-liberado-\(turnoDoContratanteID)", em: app), "O contato deve aparecer") else { return }
+        auditar(app, tela: "detalhe-vaga-contratante-com-contato")
+
+        tocar(app.buttons["perfil-publico-\(posicaoDoContratanteID)"], em: app)
+        guard esperar(app.navigationBars["Perfil público"], "O perfil público deve abrir") else { return }
+        auditar(app, tela: "perfil-publico")
+    }
+
+    func testMinhasVagasDetalheEPerfilPublico() { minhasVagasDetalheEPerfilPublico(ax5: false) }
+    func testMinhasVagasDetalheEPerfilPublicoEmAX5() { minhasVagasDetalheEPerfilPublico(ax5: true) }
+
+    private func republicarVaga(ax5: Bool) {
+        let app = abrir(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "vaga-encerrada-contratante"], ax5: ax5)
+        guard esperar(app.navigationBars["Minhas vagas"], "Minhas vagas deve abrir") else { return }
+        auditar(app, tela: "minhas-vagas-encerradas")
+
+        let republicar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'republicar-vaga-'")).firstMatch
+        tocar(republicar, em: app)
+        guard esperar(elemento("tela-republicar-vaga", em: app), "Republicar deve abrir") else { return }
+        auditar(app, tela: "republicar-vaga")
+    }
+
+    func testRepublicarVaga() { republicarVaga(ax5: false) }
+    func testRepublicarVagaEmAX5() { republicarVaga(ax5: true) }
+
+    private func acompanhamentoDoTurno(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "checkin-manual-pendente"], ax5: ax5)
+        guard esperar(elemento("presencas-a-confirmar", em: app), "Minhas vagas com presença a confirmar deve abrir") else { return }
+        auditar(app, tela: "minhas-vagas-presenca-a-confirmar")
+
+        tocar(app.buttons["acompanhar-turno-\(turnoDoContratanteID)"], em: app)
+        guard esperar(elemento("turno-do-contratante", em: app), "O acompanhamento deve abrir") else { return }
+        auditar(app, tela: "acompanhamento-do-turno")
+    }
+
+    func testAcompanhamentoDoTurno() { acompanhamentoDoTurno(ax5: false) }
+    func testAcompanhamentoDoTurnoEmAX5() { acompanhamentoDoTurno(ax5: true) }
+
+    private func turnoEmAtraso(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "atraso-no-turno"], ax5: ax5)
+        let reabrir = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'reabrir-vaga-'")).firstMatch
+        guard esperar(reabrir, "Minhas vagas com turno em atraso deve abrir") else { return }
+        auditar(app, tela: "minhas-vagas-turno-em-atraso")
+    }
+
+    func testTurnoEmAtraso() { turnoEmAtraso(ax5: false) }
+    func testTurnoEmAtrasoEmAX5() { turnoEmAtraso(ax5: true) }
+
+    private func perfilDoEstabelecimento(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "contratante"], ax5: ax5)
+        let perfil = app.buttons["abrir-perfil-estabelecimento"]
+        guard esperar(perfil, "O botão do perfil do estabelecimento deve existir") else { return }
+        perfil.tap()
+        guard esperar(app.buttons["estabelecimento-excluir-conta"], "O perfil do estabelecimento deve abrir") else { return }
+        auditar(app, tela: "perfil-estabelecimento", pendente: Self.perfilDoEstabelecimentoOcupado, estrito: true)
+    }
+
+    func testPerfilDoEstabelecimento() { perfilDoEstabelecimento(ax5: false) }
+    func testPerfilDoEstabelecimentoEmAX5() { perfilDoEstabelecimento(ax5: true) }
+}
+
+private extension XCUIAccessibilityAuditType {
+    var nome: String {
+        switch self {
+        case .contrast: "contraste"
+        case .elementDetection: "deteccao"
+        case .hitRegion: "alvo"
+        case .sufficientElementDescription: "rotulo"
+        case .dynamicType: "dynamic-type"
+        case .textClipped: "texto-cortado"
+        case .trait: "traco"
+        default: "outro(\(rawValue))"
+        }
+    }
+}

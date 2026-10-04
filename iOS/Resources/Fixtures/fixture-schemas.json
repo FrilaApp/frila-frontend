@@ -106,6 +106,9 @@
   "requisicao-escolher-candidato.json": {
     "schema": "#/paths/~1rpc~1escolher_candidato/post/requestBody/content/application~1json/schema"
   },
+  "requisicao-exportar-turnos.json": {
+    "schema": "#/paths/~1exportar-turnos/post/requestBody/content/application~1json/schema"
+  },
   "requisicao-publicar-vaga.json": {
     "schema": "#/components/schemas/NovaVaga"
   },
@@ -153,6 +156,14 @@
     "lista": true
   },
   "turnos-cancelados.json": {
+    "schema": "#/components/schemas/Turno",
+    "lista": true
+  },
+  "turnos-com-cancelamento.json": {
+    "schema": "#/components/schemas/Turno",
+    "lista": true
+  },
+  "turnos-com-falta.json": {
     "schema": "#/components/schemas/Turno",
     "lista": true
   },

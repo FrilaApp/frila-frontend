@@ -14,6 +14,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
     private func abrir(_ argumentos: [String]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = argumentos
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         return app
     }
@@ -42,15 +43,18 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let janela = app.windows.firstMatch.frame
         for _ in 0..<tentativas {
             guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elemento.frame
-            if elemento.isHittable, quadro.minY >= 120, quadro.maxY <= janela.height - 60 { return }
-            if quadro.minY < 120 {
-                app.swipeDown(velocity: .slow)
+            if elemento.isHittable {
+                if quadro.midY >= 100 && quadro.midY <= (janela.height - 40) { return }
+                if quadro.minY >= 100 && quadro.maxY <= (janela.height - 30) { return }
+            }
+            if quadro.minY < 100 {
+                app.swipeDown()
             } else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
         }
     }
@@ -100,13 +104,13 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let aviso = pergunta.staticTexts.element(boundBy: 1).label
         XCTAssertTrue(aviso.contains("Bruno Tavares será confirmado nesta vaga"), aviso)
         XCTAssertTrue(aviso.contains("É a última posição: os outros candidatos serão avisados"), aviso)
-        pergunta.buttons["Cancelar"].tap()
+        pergunta.buttons["cancelar-escolha-botao"].firstMatch.tap()
         XCTAssertTrue(escolher.waitForExistence(timeout: 5))
         XCTAssertFalse(app.descendants(matching: .any)["resultado-da-escolha"].exists)
 
         escolher.tap()
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
-        pergunta.buttons["Escolher"].tap()
+        pergunta.buttons["confirmar-escolha-botao"].firstMatch.tap()
 
         // Só ele foi confirmado: a lista de candidatos some, e a posição mostra quem ficou.
         let resultado = app.descendants(matching: .any)["resultado-da-escolha"]
@@ -140,7 +144,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         escolher.tap()
         let pergunta = app.alerts["Confirmar a escolha?"]
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
-        pergunta.buttons["Escolher"].tap()
+        pergunta.buttons["confirmar-escolha-botao"].firstMatch.tap()
 
         // Outro membro da casa chegou antes: a tela explica e já mostra quem ficou com a posição.
         let falha = app.descendants(matching: .any)["falha-da-escolha"]
@@ -207,7 +211,10 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
 
         // Recusada no aparelho, com a regra no campo do início, e a pessoa continua no formulário.
         let erro = app.staticTexts["erro-publicacao-inicio"]
-        for _ in 0..<8 where !erro.exists { app.swipeDown(velocity: .slow) }
+        for _ in 0..<8 {
+            if erro.exists && erro.isHittable { break }
+            app.swipeDown()
+        }
         XCTAssertTrue(erro.waitForExistence(timeout: 5))
         XCTAssertEqual(erro.label, "Vagas no modo seleção exigem pelo menos 24 horas de antecedência.")
         XCTAssertFalse(app.descendants(matching: .any)["minhas-vagas"].exists)
@@ -234,17 +241,17 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
             XCTAssertLessThanOrEqual(dados.frame.maxX, largura, "os dados de \(nome) passaram da largura da tela")
 
             let perfil = app.buttons["perfil-do-candidato-\(id)"]
-            rolarAte(perfil, em: app)
+            if !perfil.isHittable { rolarAte(perfil, em: app) }
             XCTAssertTrue(perfil.isHittable)
             XCTAssertEqual(perfil.label, "Ver perfil público de \(nome)")
-            XCTAssertGreaterThanOrEqual(perfil.frame.height, 44)
+            XCTAssertAlvoMinimo(perfil.frame.height)
 
             let escolher = app.buttons["escolher-candidato-\(id)"]
-            rolarAte(escolher, em: app)
+            if !escolher.isHittable { rolarAte(escolher, em: app) }
             XCTAssertTrue(escolher.isHittable)
             XCTAssertEqual(escolher.label, "Escolher \(nome)")
-            XCTAssertGreaterThanOrEqual(escolher.frame.height, 44)
-            XCTAssertGreaterThanOrEqual(escolher.frame.width, 44)
+            XCTAssertAlvoMinimo(escolher.frame.height)
+            XCTAssertAlvoMinimo(escolher.frame.width)
             XCTAssertLessThanOrEqual(escolher.frame.maxX, largura)
         }
 
@@ -253,8 +260,8 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         escolher.tap()
         let pergunta = app.alerts["Confirmar a escolha?"]
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
-        XCTAssertTrue(pergunta.buttons["Escolher"].isHittable)
-        pergunta.buttons["Cancelar"].tap()
+        XCTAssertTrue(pergunta.buttons["confirmar-escolha-botao"].firstMatch.isHittable)
+        pergunta.buttons["cancelar-escolha-botao"].firstMatch.tap()
         XCTAssertTrue(escolher.waitForExistence(timeout: 5))
     }
 }

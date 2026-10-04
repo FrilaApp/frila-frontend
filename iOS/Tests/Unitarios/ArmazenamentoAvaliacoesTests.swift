@@ -6,6 +6,25 @@ import Testing
 
 @Suite("Avaliações por conta no aparelho (#22)")
 struct ArmazenamentoAvaliacoesTests {
+    @Test("Limpar resposta recusada preserva outros turnos e contas")
+    func removerRespostaRecusada() throws {
+        let suite = "teste-avaliacao-recusa-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let armazenamentos: [any ArmazenamentoAvaliacoes] = [UserDefaultsArmazenamentoAvaliacoes(defaults: defaults), ArmazenamentoAvaliacoesEmMemoria()]
+        for armazenamento in armazenamentos {
+            let conta = UUID(), outraConta = UUID(), turno = UUID(), outroTurno = UUID()
+            armazenamento.salvar(resposta: false, para: turno, contaID: conta)
+            armazenamento.salvar(resposta: true, para: turno, contaID: outraConta)
+            armazenamento.salvar(resposta: true, para: outroTurno, contaID: conta)
+            armazenamento.remover(para: turno, contaID: conta)
+            #expect(!armazenamento.jaRegistrada(para: turno, contaID: conta))
+            #expect(armazenamento.registradaEm(para: turno, contaID: conta) == nil)
+            #expect(armazenamento.resposta(para: turno, contaID: outraConta) == true)
+            #expect(armazenamento.resposta(para: outroTurno, contaID: conta) == true)
+        }
+    }
+
     @Test("Duas contas no mesmo turno têm respostas independentes e sobrevivem à reabertura")
     func respostasPorTurnoEConta() throws {
         let suite = "avaliacoes-tests-\(UUID())"

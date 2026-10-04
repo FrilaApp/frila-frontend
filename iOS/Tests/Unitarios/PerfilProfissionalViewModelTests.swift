@@ -72,6 +72,27 @@ struct PerfilProfissionalViewModelTests {
         #expect(try await DestinoDaConta.avaliar(api: api) == .profissional)
     }
 
+    @Test("Resposta perdida: o 409 perfil_ja_existe da repetição lê o perfil gravado e segue para as vagas")
+    func criacaoComRespostaPerdidaUsaOPerfilGravado() async throws {
+        let api = ApiClienteEmMemoria(cenario: .semPerfilProfissional)
+        let vm = PerfilProfissionalViewModel(api: api)
+        await vm.carregar()
+        let funcaoID = try #require(vm.funcoesDisponiveis.first).id
+        let ponto = try Coordenada(latitude: -15.8, longitude: -47.9)
+        vm.alternarFuncao(funcaoID)
+        vm.definirPontoBase(ponto)
+        // O primeiro envio chegou ao servidor e gravou; só a resposta se perdeu no caminho.
+        let gravado = try await api.criarPerfilProfissional(
+            DadosPerfilProfissional(funcoes: [funcaoID], pontoBase: ponto, disponibilidades: [])
+        )
+
+        #expect(await vm.salvar())
+        #expect(vm.perfilSalvo == gravado)
+        #expect(vm.modo == .edicao)
+        #expect(vm.mensagemDeErro == nil)
+        #expect(try await DestinoDaConta.avaliar(api: api) == .profissional)
+    }
+
     @Test("Erro ao criar preserva formulário e permite nova tentativa (#97)",
           arguments: [CodigoErroAPI.semRede, .perfilIncompativel])
     func criacaoComErroPermiteTentarNovamente(codigo: CodigoErroAPI) async throws {

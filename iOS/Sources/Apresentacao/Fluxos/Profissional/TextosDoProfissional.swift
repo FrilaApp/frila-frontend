@@ -68,6 +68,7 @@ enum TextosDoProfissional {
         static let sobrepostoTitulo = String(localized: "Você já tem um turno nesse horário", bundle: bundleApresentacao)
         static let sobrepostoMensagem = String(localized: "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.", bundle: bundleApresentacao)
 
+        static let ajustarFuncoes = String(localized: "Ajustar minhas funções", bundle: bundleApresentacao)
         static let funcaoTitulo = String(localized: "Essa vaga pede outra função", bundle: bundleApresentacao)
         static let funcaoMensagem = String(localized: "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.", bundle: bundleApresentacao)
         static let inelegivelTitulo = String(localized: "Você não pode se candidatar a esta vaga", bundle: bundleApresentacao)
@@ -76,7 +77,6 @@ enum TextosDoProfissional {
         static let suspensaTitulo = String(localized: "Sua conta está suspensa", bundle: bundleApresentacao)
         static let suspensaMensagem = String(localized: "Enquanto a suspensão durar, você não pode se candidatar a vagas. O motivo e o caminho para contestar ficam na área da sua conta.", bundle: bundleApresentacao)
         static let contestar = String(localized: "Contestar a suspensão", bundle: bundleApresentacao)
-        static let contestarEmBreve = String(localized: "A contestação chega numa próxima versão do app.", bundle: bundleApresentacao)
 
         static let naoEncontrada = String(localized: "Esta vaga não está mais disponível. Volte para a lista e escolha outra.", bundle: bundleApresentacao)
         static let falha = String(localized: "Não foi possível enviar a candidatura. Tente de novo.", bundle: bundleApresentacao)
@@ -87,6 +87,25 @@ enum TextosDoProfissional {
     enum Turnos {
         static let tituloMeusTurnos = String(localized: "Meus turnos", bundle: bundleApresentacao)
         static let tituloMeuTurno = String(localized: "Meu turno", bundle: bundleApresentacao)
+        static let canceladoTitulo = String(localized: "Turno cancelado", bundle: bundleApresentacao)
+        static let cancelamentoTitulo = String(localized: "Cancelamento", bundle: bundleApresentacao)
+        static let cancelamentoComFalta = String(localized: "Este cancelamento contou como falta.", bundle: bundleApresentacao)
+        static let cancelamentoSemFalta = String(localized: "Este cancelamento não contou como falta.", bundle: bundleApresentacao)
+
+        static func causaDoCancelamento(_ causa: CausaDoCancelamento) -> String {
+            switch causa {
+            case .profissional:
+                String(localized: "Você cancelou este turno.", bundle: bundleApresentacao)
+            case .estabelecimento:
+                String(localized: "O estabelecimento cancelou este turno.", bundle: bundleApresentacao)
+            case .reaberturaPorAtraso:
+                String(localized: "O estabelecimento reabriu a posição por atraso.", bundle: bundleApresentacao)
+            case .noShowSemCheckin:
+                String(localized: "O turno terminou sem check-in.", bundle: bundleApresentacao)
+            case .outro:
+                String(localized: "Cancelamento registrado.", bundle: bundleApresentacao)
+            }
+        }
         static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
         static let avisoCache = String(localized: "Modo offline: exibindo dados salvos anteriormente.", bundle: bundleApresentacao)
         static let vazioTitulo = String(localized: "Nenhum turno confirmado", bundle: bundleApresentacao)
@@ -148,9 +167,13 @@ enum TextosDoProfissional {
     public enum Avaliacao {
         public static let titulo = String(localized: "Avaliar turno", bundle: bundleApresentacao)
         public static let perguntaProfissional = String(localized: "Você trabalharia nesse local de novo?", bundle: bundleApresentacao)
-        public static let perguntaContratante = String(localized: "Você chamaria essa pessoa de novo?", bundle: bundleApresentacao)
+        public static let perguntaContratante = String(localized: "Chamaria este profissional de novo?", bundle: bundleApresentacao)
         public static let explicacao = String(
             localized: "Sua resposta é anônima e compõe a reputação do estabelecimento no Frila. Cada turno concluído conta para o índice de recomendação.",
+            bundle: bundleApresentacao
+        )
+        public static let explicacaoContratante = String(
+            localized: "Sua resposta é anônima e compõe a reputação do profissional no Frila. Cada turno concluído conta para o índice de recomendação.",
             bundle: bundleApresentacao
         )
         public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)

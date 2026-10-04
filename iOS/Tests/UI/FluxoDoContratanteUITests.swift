@@ -41,12 +41,24 @@ final class FluxoDoContratanteUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
+
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
-        app.buttons["cadastro-continuar"].tap()
+
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
+
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
+
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
 
         XCTAssertTrue(app.buttons["continuar-cadastro"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Responsável do Café"].exists)
@@ -89,12 +101,24 @@ final class FluxoDoContratanteUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
+
         let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
-        app.buttons["cadastro-maior-de-idade"].tap()
-        app.buttons["cadastro-termos"].tap()
-        app.buttons["cadastro-continuar"].tap()
+
+        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
+        rolarAte(maiorIdade, app: app)
+        maiorIdade.tap()
+
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        termos.tap()
+
+        let continuar = app.buttons["cadastro-continuar"]
+        rolarAte(continuar, app: app)
+        continuar.tap()
 
         // 1. Tela de Cadastro do Estabelecimento
         let continuarCadastro = app.buttons["continuar-cadastro"]
@@ -141,5 +165,27 @@ final class FluxoDoContratanteUITests: XCTestCase {
             }
             if direcao == .nenhuma { break }
         }
+    }
+
+    private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if app.keyboards.element.exists {
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+    }
+
+    private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        if elemento.isHittable && !app.keyboards.element.exists { return }
+        for _ in 0..<6 {
+            if elemento.isHittable && !app.keyboards.element.exists { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+        if !elemento.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(elemento.isHittable)
     }
 }

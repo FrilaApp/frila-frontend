@@ -16,6 +16,45 @@ private func falhando(_ erro: ErroDaApi) -> @Sendable (UUID) async throws -> Res
 @MainActor
 @Suite("Candidatura (#105): resultados, toque duplo e erro tipado")
 struct CandidaturaViewModelTests {
+    @Test("Somente função incompatível oferece o destino de ajuste de funções")
+    func ajusteDeFuncoesSomenteParaFuncaoIncompativel() {
+        let vagaID = UUID()
+        let resultados: [ResultadoDaCandidatura] = [
+            .confirmada(turnoID: nil, contato: nil), .pendente(candidaturaID: UUID()),
+            .vagaPreenchida, .vagaEncerrada, .inelegivel(.turnoSobreposto),
+            .inelegivel(.funcaoIncompativel), .inelegivel(.outro(detalhes: nil)),
+            .contaSuspensa, .naoEncontrada, .falha(ErroDaApi(codigo: .semRede)), .outraEmAndamento
+        ]
+        for resultado in resultados {
+            let roteador = RoteadorDoProfissional()
+            roteador.ajustarFuncoes(vagaID: vagaID, resultado: resultado)
+            #expect(roteador.caminho == (resultado == .inelegivel(.funcaoIncompativel)
+                                       ? [.ajustarFuncoes(vagaID: vagaID)] : []))
+        }
+    }
+
+    @Test("Após salvar a função exigida, uma nova tentativa manual pode confirmar a candidatura")
+    func ajustarFuncaoPermiteTentarNovamente() async throws {
+        let api = ApiClienteEmMemoria(cenario: .funcaoIncompativel)
+        let vaga = try await vagaDoDuble(api)
+        let primeira = CandidaturaViewModel(vaga: vaga, api: api)
+        await primeira.candidatar()
+        #expect(primeira.estado == .concluida(.inelegivel(.funcaoIncompativel)))
+
+        let perfil = PerfilProfissionalViewModel(api: api, modo: .edicao)
+        await perfil.carregar()
+        #expect(!perfil.funcoesSelecionadas.contains(vaga.funcao.id))
+        perfil.alternarFuncao(vaga.funcao.id)
+        #expect(await perfil.salvar())
+        #expect(await api.chamadasACandidatar == 1, "salvar o perfil não envia candidatura")
+
+        let novaTentativa = CandidaturaViewModel(vaga: vaga, api: api)
+        await novaTentativa.candidatar()
+        guard case .concluida(.confirmada) = novaTentativa.estado else {
+            Issue.record("A nova tentativa deveria confirmar: \(novaTentativa.estado)"); return
+        }
+    }
+
     @Test("Confirmada: devolve o turno e o contato da confirmação")
     func confirmada() async throws {
         let api = ApiClienteEmMemoria()

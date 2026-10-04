@@ -4,7 +4,20 @@ import FrilaDados
 import FrilaDominio
 import Testing
 
+private final class ApiPublicacaoRecusada: ApiClienteEncaminhador, @unchecked Sendable {
+    private let trava = NSLock()
+    private var envios = 0
+    var total: Int { trava.withLock { envios } }
+    override func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
+        trava.withLock { envios += 1 }
+        throw ErroDaApi(codigo: .horarioInvalido)
+    }
+}
+
 private actor FilaPublicacaoTeste: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     private var itens: [AcaoPendente] = []
     func enfileirar(_ acao: AcaoPendente) { itens.removeAll { $0.id == acao.id }; itens.append(acao) }
     func pendentes() -> [AcaoPendente] { itens }
@@ -13,6 +26,9 @@ private actor FilaPublicacaoTeste: FilaDeAcoes {
 }
 
 private actor FilaPublicacaoQueFalhaNaLeitura: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     func enfileirar(_ acao: AcaoPendente) async throws {}
     func pendentes() async throws -> [AcaoPendente] { throw ErroDaApi(codigo: .desconhecido) }
     func remover(id: UUID) async throws {}
@@ -36,6 +52,32 @@ struct PublicarVagaTests {
             id: idEstabelecimento, nome: "Bistrô", tipo: .foodService, endereco: "Rua das Flores, 10",
             regiaoAdministrativa: "Águas Claras", ponto: try Coordenada(latitude: -15.78, longitude: -47.93)
         )
+    }
+
+    @Test("Publicação recusada no reenvio deixa aviso no estabelecimento correspondente")
+    func avisoDePublicacaoRecusada() async throws {
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let fixed = agora
+        let model = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { _ in
+            throw ErroDaApi(codigo: .semRede)
+        }
+        preencher(model)
+        await model.publicar()
+        let acao = try #require(try await fila.pendentes().first)
+        #expect(model.camposBloqueados)
+        let api = ApiPublicacaoRecusada()
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+        await sincronizador.sincronizar()
+        await model.carregarRecusaDaFila()
+        #expect(api.total == 1)
+        #expect(try await fila.pendentes().isEmpty)
+        #expect(model.recusaDaFila == AcaoRecusada(acao: acao, codigo: .horarioInvalido))
+        #expect(!model.camposBloqueados)
+        let outra = Estabelecimento(id: UUID(), nome: "Outro", tipo: .foodService, endereco: "Outro endereço", regiaoAdministrativa: "Águas Claras", ponto: try Coordenada(latitude: -15.78, longitude: -47.93))
+        let outroModel = PublicarVagaViewModel(estabelecimento: outra, fila: fila) { _ in throw ErroDaApi(codigo: .semRede) }
+        await outroModel.carregarRecusaDaFila()
+        #expect(outroModel.recusaDaFila == nil)
     }
 
     private func modelo() throws -> PublicarVagaViewModel {

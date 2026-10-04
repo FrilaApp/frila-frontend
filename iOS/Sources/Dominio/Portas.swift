@@ -327,6 +327,10 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func contestarSuspensao(relato: String) async throws -> Protocolo
     /// Portabilidade da LGPD (cartão #219, US25, RF25): devolve o JSON dos dados pessoais no corpo da resposta.
     func exportarMeusDados() async throws -> Data
+    /// Relatório dos turnos do período em CSV ou PDF (cartão #23, US20, RF22, RN17), no corpo da
+    /// resposta. `.semTurnos` é o 204: o período não tem turnos e não há arquivo (UC13, 1a). O
+    /// estabelecimento que não é de quem chama é `semPermissao` (403).
+    func exportarTurnos(_ pedido: PedidoExportacaoTurnos) async throws -> ResultadoExportacaoTurnos
 
     // Aplicativo e dispositivo
     func configuracaoDoApp() async throws -> ConfiguracaoApp

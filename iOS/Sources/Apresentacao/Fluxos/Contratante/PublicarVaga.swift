@@ -105,6 +105,7 @@ public final class PublicarVagaViewModel {
     public private(set) var enviando = false
     public private(set) var erros: [CampoPublicacaoVaga: String] = [:]
     public private(set) var mensagemErro: String?
+    public private(set) var recusaDaFila: AcaoRecusada?
     public private(set) var resultado: VagaPublicada?
     public private(set) var publicacaoPendente: PublicacaoVaga?
     public private(set) var restaurandoPublicacao: Bool
@@ -160,7 +161,16 @@ public final class PublicarVagaViewModel {
         publicacaoPendente != nil && resultado == nil && !enviando
     }
 
+    public func carregarRecusaDaFila() async {
+        recusaDaFila = (try? await fila.recusadas().first { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? nil
+        if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
+            acaoPendente = nil
+            publicacaoPendente = nil
+        }
+    }
+
     public func restaurarPublicacaoPendente() async {
+        await carregarRecusaDaFila()
         restaurandoPublicacao = true
         defer { restaurandoPublicacao = false }
         do {
@@ -393,6 +403,9 @@ public struct TelaPublicarVaga: View {
         .onChange(of: model.resultado != nil) { _, publicou in
             if publicou { Task { await permissaoDePush?.oferecer() } }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await model.carregarRecusaDaFila() }
+        }
         .task {
             await model.restaurarPublicacaoPendente()
             await model.carregarFuncoes()
@@ -522,6 +535,10 @@ public struct TelaPublicarVaga: View {
                     AvisoFrila(verbatim: TextosPublicarVaga.avisoRN10, tom: .informativo)
                     Text(verbatim: telefoneResponsavel).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
                 }
+                if let recusa = model.recusaDaFila {
+                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                        .accessibilityIdentifier("aviso-publicacao-recusada")
+                }
                 if let erro = model.mensagemErro { AvisoFrila(verbatim: erro, tom: .erro) }
                 if model.mostraAvisoPublicacaoContinua {
                     AvisoFrila(verbatim: TextosPublicarVaga.publicacaoContinua, tom: .informativo)
@@ -596,12 +613,30 @@ public struct TelaPublicarVaga: View {
 
     private func datePicker(_ titulo: String, date: Binding<Date>, field: CampoPublicacaoVaga) -> some View {
         campo(field, titulo: titulo) {
-            DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .minimumScaleFactor(0.7)
-                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    DatePicker(String(localized: "Data", bundle: bundlePublicarVaga), selection: date, displayedComponents: [.date])
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                        .accessibilityIdentifier("datepicker-\(field.rawValue)-data")
+
+                    DatePicker(String(localized: "Horário", bundle: bundlePublicarVaga), selection: date, displayedComponents: [.hourAndMinute])
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                        .accessibilityIdentifier("datepicker-\(field.rawValue)-horario")
+                }
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("datepicker-\(field.rawValue)")
+            } else {
+                DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .minimumScaleFactor(0.7)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                    .accessibilityIdentifier("datepicker-\(field.rawValue)")
+            }
         }
     }
 

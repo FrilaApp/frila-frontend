@@ -2,6 +2,7 @@ import Foundation
 import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
+import FrilaInfraestrutura
 import Testing
 
 @MainActor
@@ -233,6 +234,109 @@ struct AutenticacaoTests {
         #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
     }
 
+    // MARK: - Declared Age Range (cartão #215, RN20)
+
+    @Test("CadastroViewModel com Declared Age Range abaixo de 18 recusa no cliente e não chama a API")
+    func cadastroComDeclaredAgeRangeAbaixoDe18RecusaENaoChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .abaixoDe18)
+        let vm = CadastroViewModel(api: api, email: "jovem@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Jovem"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 0)
+        await #expect(throws: ErroDaApi.self) {
+            _ = try await api.minhaConta()
+        }
+    }
+
+    @Test("CadastroViewModel com Declared Age Range 18 ou mais segue e chama a API")
+    func cadastroComDeclaredAgeRangeDezoitoOuMaisSegueEChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .dezoitoOuMais)
+        let vm = CadastroViewModel(api: api, email: "adulto@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Adulto"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+        #expect(vm.erro == nil)
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 1)
+    }
+
+    @Test("CadastroViewModel com Declared Age Range recusado pela pessoa segue só com a data e chama a API")
+    func cadastroComDeclaredAgeRangeRecusadoSegueEChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .recusou)
+        let vm = CadastroViewModel(api: api, email: "recusou@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Privativo"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+        #expect(vm.erro == nil)
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 1)
+    }
+
+    @Test("CadastroViewModel com Declared Age Range indisponível (erro ou iOS antigo) segue só com a data e chama a API")
+    func cadastroComDeclaredAgeRangeIndisponivelSegueEChamaAPI() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .indisponivel)
+        let vm = CadastroViewModel(api: api, email: "legado@frila.app", verificadorDeIdade: verificador)
+
+        vm.nome = "Candidato Sistema Antigo"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "15/05/1995"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+        #expect(vm.erro == nil)
+        #expect(verificador.chamadasAVerificar == 1)
+        #expect(await api.chamadasACriarConta == 1)
+    }
+
+    @Test("VerificadorDeIdadeDoSistema interpreta limites da faixa etária com corte em 18")
+    func interpretacaoDeLimitesDaFaixaEtaria() {
+        // 1. lowerBound >= 18 -> maior de idade (18 ou mais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 18, upperBound: nil) == .dezoitoOuMais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 21, upperBound: nil) == .dezoitoOuMais)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 18, upperBound: 25) == .dezoitoOuMais)
+
+        // 2. upperBound presente e < 18 -> menor de idade (faixa termina em 17 ou menos)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 17) == .abaixoDe18)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 13, upperBound: 17) == .abaixoDe18)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 16) == .abaixoDe18)
+
+        // 3. upperBound == 18 não é tratado como menor (< 18 estrito), vai para indisponível
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: 18) == .indisponivel)
+
+        // 4. Ambos nulos não comprovam nada -> indisponível (segue com a data)
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: nil, upperBound: nil) == .indisponivel)
+
+        // 5. Faixa ambígua que cruza o corte (ex: 16 a 20) -> indisponível
+        #expect(VerificadorDeIdadeDoSistema.interpretarFaixa(lowerBound: 16, upperBound: 20) == .indisponivel)
+    }
+
     @Test("CadastroViewModel trata erro 409 conta_existente da API")
     func contaExistenteTrataErroDaAPI() async throws {
         let api = ApiClienteEmMemoria(cenario: .contaExistente)
@@ -383,11 +487,20 @@ struct AutenticacaoTests {
         #expect(destino == .profissional)
     }
 
+    private func criarUserDefaultsIsolado() -> (UserDefaults, String) {
+        let nome = "AutenticacaoTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: nome)!
+        return (defaults, nome)
+    }
+
     @Test("DestinoDaConta: sem rede na abertura mantém destino guardado prévio (Critério 5)")
     func destinoSemRedeComContaSuspensaMantemDestinoGuardado() async throws {
-        DestinoGuardado.salvar(.profissional)
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.salvar(.profissional, em: defaults)
         let api = ApiClienteEmMemoria(cenario: .semRede)
-        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api, defaults: defaults)
         #expect(destino == .profissional)
     }
 
@@ -455,21 +568,26 @@ struct AutenticacaoTests {
 
     @Test("DestinoDaConta: semRede com destino guardado recupera o destino")
     func destinoSemRedeComDestinoGuardado() async throws {
-        DestinoGuardado.salvar(.profissional)
-        defer { DestinoGuardado.limpar() }
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.salvar(.profissional, em: defaults)
 
         let api = ApiClienteEmMemoria(cenario: .semRede)
-        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api, defaults: defaults)
         #expect(destino == .profissional)
     }
 
     @Test("DestinoDaConta: semRede sem destino guardado lança erro")
     func destinoSemRedeSemDestinoGuardado() async throws {
-        DestinoGuardado.limpar()
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.limpar(em: defaults)
 
         let api = ApiClienteEmMemoria(cenario: .semRede)
         do {
-            _ = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api)
+            _ = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: api, defaults: defaults)
             Issue.record("Deveria ter lançado erro de rede quando não há destino guardado")
         } catch let erro as ErroDaApi {
             #expect(erro.codigo == .semRede)
@@ -478,8 +596,11 @@ struct AutenticacaoTests {
 
     @Test("SaidaDaConta: ao sair da conta, o destino guardado é apagado")
     func saidaDaContaLimpaDestinoGuardado() async throws {
-        DestinoGuardado.salvar(.profissional)
-        #expect(DestinoGuardado.obter() == .profissional)
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        DestinoGuardado.salvar(.profissional, em: defaults)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
 
         let container = try PersistenciaFrila.criarContainer(emMemoria: true)
         let local = ArmazenamentoSwiftData(modelContainer: container)
@@ -507,11 +628,19 @@ struct AutenticacaoTests {
         try await local.enfileirar(AcaoPendente(tipo: .checkin, turnoID: turno.id, instanteDoToque: instante, chave: UUID(), distanciaMetros: 20))
         #expect(try await local.turnosValidos(em: instante).first?.contato?.telefone == "+5561999990000")
         #expect(try await local.pendentes().count == 1)
-        let saida = SaidaDaConta(api: api, armazenamento: local)
+        let saida = SaidaDaConta(
+            api: api,
+            armazenamento: local,
+            limparDestino: {
+                if let defs = UserDefaults(suiteName: suiteName) {
+                    DestinoGuardado.limpar(em: defs)
+                }
+            }
+        )
 
         await saida.sair(tokenFCM: nil)
 
-        #expect(DestinoGuardado.obter() == nil)
+        #expect(DestinoGuardado.obter(de: defaults) == nil)
         #expect(try await local.sessao() == nil)
         #expect(try await local.turnosValidos(em: instante).isEmpty)
         #expect(try await local.funcoes().isEmpty)

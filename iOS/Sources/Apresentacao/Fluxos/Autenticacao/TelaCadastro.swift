@@ -177,6 +177,7 @@ public struct TelaCadastro: View {
             }
             .padding(.horizontal, FrilaEspaco.medio)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(FrilaCor.fundo.ignoresSafeArea())
     }
 
@@ -205,7 +206,7 @@ public struct TelaCadastro: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
             .overlay(
                 RoundedRectangle(cornerRadius: FrilaRaio.medio)
-                    .stroke(selecionado ? FrilaCor.primaria : FrilaCor.textoSecundario.opacity(0.35), lineWidth: selecionado ? 2 : 1)
+                    .stroke(selecionado ? FrilaCor.primaria : FrilaCor.borda, lineWidth: selecionado ? 2 : 1)
             )
         }
         .buttonStyle(.plain)
