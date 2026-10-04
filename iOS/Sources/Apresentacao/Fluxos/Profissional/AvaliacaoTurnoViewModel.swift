@@ -253,8 +253,11 @@ public final class AvaliacaoTurnoViewModel {
             mensagemDeSucesso = nil
         } else if (armazenamento.podeUsarReserva(para: turno, contaID: contaID) || sucesso),
                   let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
+            // Reaberta depois do envio, a tela volta ao estado "já registrada": o mesmo modelo
+            // é reaproveitado pela tela do turno, e sem isto ela ficava sem aviso nenhum.
             respostaAtual = gravada
             jaAvaliado = true
+            sucesso = false
             mensagemDeSucesso = nil
         } else if !armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
                   estavaEnfileirado || !sucesso {
