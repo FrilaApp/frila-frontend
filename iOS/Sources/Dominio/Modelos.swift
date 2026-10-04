@@ -138,11 +138,23 @@ public enum TipoEstabelecimento: String, Codable, CaseIterable, Sendable {
     case logistica
     case servicoDomestico = "servico_domestico"
     case outro
+
+    /// Tipo novo do contrato cai em `outro`, que é o que ele significa para este app.
+    public init(from decoder: Decoder) throws {
+        let valor = try decoder.singleValueContainer().decode(String.self)
+        self = TipoEstabelecimento(rawValue: valor) ?? .outro
+    }
 }
 
 public enum PapelMembro: String, Codable, CaseIterable, Sendable {
     case administrador
     case operador
+
+    /// Papel novo do contrato cai em `operador`, o de menos permissão: a tela nunca libera mais do que o servidor liberaria.
+    public init(from decoder: Decoder) throws {
+        let valor = try decoder.singleValueContainer().decode(String.self)
+        self = PapelMembro(rawValue: valor) ?? .operador
+    }
 }
 
 public struct Estabelecimento: Codable, Hashable, Identifiable, Sendable {
@@ -416,11 +428,23 @@ public enum Verificacao: String, Codable, Sendable {
     case pendente
     case verificado
     case naoVerificado = "nao_verificado"
+
+    /// Verificação nova do contrato cai em `pendente`: a tela não afirma nem nega a presença.
+    public init(from decoder: Decoder) throws {
+        let valor = try decoder.singleValueContainer().decode(String.self)
+        self = Verificacao(rawValue: valor) ?? .pendente
+    }
 }
 
 public enum TipoRegistro: String, Codable, Sendable {
     case geolocalizado
     case manual
+
+    /// Tipo novo de registro cai em `manual`, o que menos afirma: a tela o trata como registro que ainda espera confirmação.
+    public init(from decoder: Decoder) throws {
+        let valor = try decoder.singleValueContainer().decode(String.self)
+        self = TipoRegistro(rawValue: valor) ?? .manual
+    }
 }
 
 public struct Contato: Codable, Hashable, Sendable {
@@ -835,6 +859,12 @@ public enum TipoDeProtocolo: String, Codable, Sendable {
     case denuncia
     case contestacao
     case revisaoDespacho = "revisao_despacho"
+
+    /// Tipo novo de protocolo cai em `denuncia`: o tipo é informativo, nenhuma tela decide nada por ele; o número e o prazo é que importam.
+    public init(from decoder: Decoder) throws {
+        let valor = try decoder.singleValueContainer().decode(String.self)
+        self = TipoDeProtocolo(rawValue: valor) ?? .denuncia
+    }
 }
 
 /// Registro de algo que a Equipe Frila responde por e-mail em até 5 dias úteis.

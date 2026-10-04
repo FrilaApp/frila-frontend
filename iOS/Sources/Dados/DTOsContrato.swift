@@ -7,6 +7,31 @@ struct ErroDeConversao: Error, Equatable {
     let campo: String
 }
 
+/// Item de uma lista do contrato que pode não decodificar (enum com valor novo, campo fora do
+/// formato). Em vez de a resposta inteira falhar, o item sai da lista e os outros seguem: um estado
+/// novo numa vaga não pode esconder as demais. Quem lê conta os descartados e registra só a
+/// quantidade e a rota, nunca o conteúdo.
+struct ItemTolerante<Valor: Decodable>: Decodable {
+    let valor: Valor?
+
+    init(from decoder: Decoder) throws {
+        valor = try? Valor(from: decoder)
+    }
+}
+
+extension Array {
+    /// Os itens que decodificaram e converteram; o que falhou em qualquer das duas etapas sai.
+    func validos<Valor, Dominio>(_ converter: (Valor) throws -> Dominio) -> (itens: [Dominio], descartados: Int)
+    where Element == ItemTolerante<Valor> {
+        var descartados = 0
+        let itens = compactMap { item -> Dominio? in
+            guard let valor = item.valor, let dominio = try? converter(valor) else { descartados += 1; return nil }
+            return dominio
+        }
+        return (itens, descartados)
+    }
+}
+
 /// Tipos do contrato 0.2.27 (`Contrato/openapi.yaml`), um para cada schema usado pelo app.
 enum ContratoAPI {
     /// Instantes em ISO-8601 com ou sem fração de segundo, com `Z` ou `+00:00`, como o Postgres
@@ -748,7 +773,8 @@ enum ContratoAPI {
             contatoVisivelAte = try container.decode(Date.self, forKey: .contatoVisivelAte)
             aCaminhoEm = try container.decodeIfPresent(Date.self, forKey: .aCaminhoEm)
             checkinEm = try container.decodeIfPresent(Date.self, forKey: .checkinEm)
-            checkinTipo = try container.decodeIfPresent(TipoRegistro.self, forKey: .checkinTipo)
+            // Como no painel: um tipo de check-in novo fica sem valor, e o turno segue.
+            checkinTipo = try container.decodeIfPresent(String.self, forKey: .checkinTipo).flatMap(TipoRegistro.init(rawValue:))
             checkinDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkinDistanciaM)
             checkinConfirmadoEm = try container.decodeIfPresent(Date.self, forKey: .checkinConfirmadoEm)
             checkoutEm = try container.decodeIfPresent(Date.self, forKey: .checkoutEm)
@@ -983,11 +1009,26 @@ enum ContratoAPI {
         let alertaVagaVazia: Bool
         let candidatosPendentes: Int
         let posicoes: [PosicaoNoPainelDTO]
+        /// Posições que vieram com valor que este app não conhece (estado novo, por exemplo) e saíram.
+        let posicoesDescartadas: Int
 
         enum CodingKeys: String, CodingKey {
             case vaga, modo, estado, oculta, posicoes
             case alertaVagaVazia = "alerta_vaga_vazia"
             case candidatosPendentes = "candidatos_pendentes"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            vaga = try container.decode(VagaResumoDTO.self, forKey: .vaga)
+            modo = try container.decode(ModoPreenchimento.self, forKey: .modo)
+            estado = try container.decode(EstadoVaga.self, forKey: .estado)
+            oculta = try container.decode(Bool.self, forKey: .oculta)
+            alertaVagaVazia = try container.decode(Bool.self, forKey: .alertaVagaVazia)
+            candidatosPendentes = try container.decode(Int.self, forKey: .candidatosPendentes)
+            let lidas = try container.decode([ItemTolerante<PosicaoNoPainelDTO>].self, forKey: .posicoes)
+            posicoes = lidas.compactMap(\.valor)
+            posicoesDescartadas = lidas.count - posicoes.count
         }
 
         func dominio() throws -> VagaNoPainel {
@@ -1003,10 +1044,14 @@ enum ContratoAPI {
         }
     }
 
+    /// O painel é uma resposta só com duas listas dentro: uma vaga ou posição com valor novo do
+    /// contrato sai da lista, e o resto do painel segue. `descartados` soma vagas e posições que
+    /// saíram, para o cliente registrar a quantidade.
     struct PainelDTO: Decodable {
         let estabelecimentoID: UUID
         let vagas: [VagaNoPainelDTO]
         let checkinsPendentes: [UUID]
+        let descartados: Int
 
         enum CodingKeys: String, CodingKey {
             case vagas
@@ -1014,8 +1059,19 @@ enum ContratoAPI {
             case checkinsPendentes = "checkins_pendentes"
         }
 
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            estabelecimentoID = try container.decode(UUID.self, forKey: .estabelecimentoID)
+            checkinsPendentes = try container.decode([UUID].self, forKey: .checkinsPendentes)
+            let lidas = try container.decode([ItemTolerante<VagaNoPainelDTO>].self, forKey: .vagas)
+            vagas = lidas.compactMap(\.valor)
+            descartados = (lidas.count - vagas.count) + vagas.reduce(0) { $0 + $1.posicoesDescartadas }
+        }
+
+        /// A vaga cujo conteúdo não cabe no domínio (valor fora do contrato) também sai, em vez de
+        /// derrubar o painel.
         func dominio() throws -> Painel {
-            try Painel(estabelecimentoID: estabelecimentoID, vagas: vagas.map { try $0.dominio() }, checkinsPendentes: checkinsPendentes)
+            Painel(estabelecimentoID: estabelecimentoID, vagas: vagas.compactMap { try? $0.dominio() }, checkinsPendentes: checkinsPendentes)
         }
     }
 

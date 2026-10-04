@@ -1,11 +1,14 @@
 import Foundation
 import FrilaDominio
+import OSLog
 import Supabase
 
 public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecked Sendable {
     private let cliente: SupabaseClient
     private let decodificador = ContratoAPI.decodificador()
     private let telemetria: any TelemetryReporter
+    /// Só a rota e a quantidade de itens descartados vão ao log; nunca o conteúdo da resposta.
+    private static let log = Logger(subsystem: "com.frila.org.app", category: "contrato")
     /// Entrada, demonstração, saída e encerramento por 401 passam por aqui, um de cada vez.
     private let filaDeSessao = FilaDeSessao()
 
@@ -132,8 +135,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] {
-        let resposta: [ContratoAPI.EstabelecimentoDaContaDTO] = try await rpc("meus_estabelecimentos")
-        return resposta.map { $0.dominio() }
+        try await lista("meus_estabelecimentos") { (item: ContratoAPI.EstabelecimentoDaContaDTO) in item.dominio() }
     }
 
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
@@ -143,6 +145,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             ate: ContratoAPI.texto(periodo.fim)
         )
         let resposta: ContratoAPI.PainelDTO = try await rpc("painel_estabelecimento", params: params)
+        Self.registrarDescartados(resposta.descartados, rpc: "painel_estabelecimento")
         return try converter { try resposta.dominio() }
     }
 
@@ -184,8 +187,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] {
-        let resposta: [ContratoAPI.VagaNaListaDTO] = try await rpc("vagas_abertas", params: ContratoAPI.FiltroVagasDTO(filtro))
-        return try converter { try resposta.map { try $0.dominio() } }
+        try await lista("vagas_abertas", params: ContratoAPI.FiltroVagasDTO(filtro)) { (item: ContratoAPI.VagaNaListaDTO) in try item.dominio() }
     }
 
     public func detalheDaVaga(id: UUID) async throws -> Vaga {
@@ -206,8 +208,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     // MARK: Modo seleção (contrato 0.2.24)
 
     public func candidatosDaVaga(id: UUID) async throws -> [Candidato] {
-        let resposta: [ContratoAPI.CandidatoDTO] = try await rpc("candidatos_da_vaga", params: ContratoAPI.ID("vaga_id", id))
-        return resposta.map { $0.dominio() }
+        try await lista("candidatos_da_vaga", params: ContratoAPI.ID("vaga_id", id)) { (item: ContratoAPI.CandidatoDTO) in item.dominio() }
     }
 
     public func escolherCandidato(candidaturaID: UUID) async throws -> ResultadoConfirmacao {
@@ -224,18 +225,15 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func minhasCandidaturas(estado: EstadoCandidatura?) async throws -> [Candidatura] {
-        let resposta: [ContratoAPI.MinhaCandidaturaDTO] = try await rpc(
-            "minhas_candidaturas",
-            params: ContratoAPI.MinhasCandidaturasParametros(estado: estado)
-        )
-        return try converter { try resposta.map { try $0.dominio() } }
+        try await lista("minhas_candidaturas", params: ContratoAPI.MinhasCandidaturasParametros(estado: estado)) {
+            (item: ContratoAPI.MinhaCandidaturaDTO) in try item.dominio()
+        }
     }
 
     // MARK: Turno
 
     public func meusTurnos() async throws -> [Turno] {
-        let resposta: [ContratoAPI.TurnoDTO] = try await rpc("meus_turnos")
-        return try converter { try resposta.map { try $0.dominio() } }
+        try await lista("meus_turnos") { (item: ContratoAPI.TurnoDTO) in try item.dominio() }
     }
 
     public func contatoDoTurno(id: UUID) async throws -> Contato {
@@ -497,6 +495,23 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         }
     }
 
+    /// Lista do contrato em que um item com valor que este app não conhece (enum novo, campo fora
+    /// do formato ou do domínio) sai da lista em vez de derrubar a resposta inteira. A resposta que
+    /// não é uma lista continua falhando por inteiro: `respostaInvalida`.
+    private func lista<Item: Decodable, Dominio>(
+        _ nome: String, params: some Encodable = SemParametros(), converter: (Item) throws -> Dominio
+    ) async throws -> [Dominio] {
+        let resposta: [ItemTolerante<Item>] = try await rpc(nome, params: params)
+        let (itens, descartados) = resposta.validos(converter)
+        Self.registrarDescartados(descartados, rpc: nome)
+        return itens
+    }
+
+    private static func registrarDescartados(_ quantidade: Int, rpc: String) {
+        guard quantidade > 0 else { return }
+        log.warning("itens_fora_do_contrato rpc=\(rpc, privacy: .public) descartados=\(quantidade, privacy: .public)")
+    }
+
     private func converter<Valor>(_ conversao: () throws -> Valor) throws -> Valor {
         do {
             return try conversao()
@@ -506,6 +521,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             throw ErroDaApi(codigo: .respostaInvalida)
         }
     }
+
+    /// O que a `URLSession` devolve quando a rede não serve, e não só quando ela não existe: tempo
+    /// esgotado, conexão que caiu no meio, DNS e host inalcançáveis, dados móveis bloqueados. Para o
+    /// app é tudo `semRede`: Meus turnos abre do cache, a tela inicial vem do destino guardado e a
+    /// fila espera a conexão voltar. Erro de TLS fica de fora: não é falta de rede, e esconder isso
+    /// atrás do cache mascararia um problema de verdade.
+    static let codigosDeRedeIndisponivel: Set<URLError.Code> = [
+        .notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost, .cannotConnectToHost,
+        .dnsLookupFailed, .dataNotAllowed, .internationalRoamingOff,
+    ]
 
     private func mapear(_ error: Error) -> ErroDaApi {
         if let erro = error as? ErroDaApi { return erro }
@@ -519,7 +544,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         if error is DecodingError {
             return ErroDaApi(codigo: .respostaInvalida)
         }
-        if let urlError = error as? URLError, urlError.code == .notConnectedToInternet {
+        if let urlError = error as? URLError, Self.codigosDeRedeIndisponivel.contains(urlError.code) {
             return ErroDaApi(codigo: .semRede)
         }
         return ErroDaApi(codigo: .desconhecido, codigoOriginal: String(reflecting: type(of: error)))
