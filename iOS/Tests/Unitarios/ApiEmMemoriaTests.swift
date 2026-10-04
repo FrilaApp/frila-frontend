@@ -133,6 +133,29 @@ struct ApiEmMemoriaTests {
         }
     }
 
+    @Test("Conta suspensa pode consultar perfis públicos de profissional e estabelecimento")
+    func perfilPublicoDaContaSuspensa() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa, sessaoAtivaInicial: true)
+        let profissional = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
+        let estabelecimento = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio().estabelecimento
+
+        #expect(try await api.minhaConta().estado == .suspensa)
+        for perfil in [profissional, estabelecimento] {
+            #expect(try await api.perfilPublico(id: perfil.id) == perfil)
+        }
+        await #expect(throws: ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa")) {
+            try await api.funcoes()
+        }
+    }
+
+    @Test("Perfil inexistente continua sendo 404 para conta suspensa")
+    func perfilPublicoInexistenteDaContaSuspensa() async {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa, sessaoAtivaInicial: true)
+        await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) {
+            try await api.perfilPublico(id: UUID())
+        }
+    }
+
     /// Antes das vagas de teste, que são de 01 e 02/10/2026: desde o contrato 0.2.19 a lista esconde
     /// vaga que já começou, e sem relógio fixo estes testes passariam a depender do dia em que rodam.
     private static let antesDasVagasDeTeste = RelogioFixo(agora: Date(timeIntervalSince1970: 1_790_000_000))

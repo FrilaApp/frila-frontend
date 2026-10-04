@@ -91,6 +91,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case exportarErroServidor = "exportar-erro-servidor"
         /// `/exportar-turnos` responde 204: o período não tem turnos (UC13, 1a).
         case exportarTurnosSemTurnos = "exportar-turnos-sem-turnos"
+        /// Falha ao ler meu_estabelecimento (simula 404 do backend ou erro do servidor ao buscar o cadastro da casa).
+        case erroAoLerMeuEstabelecimento = "erro-ao-ler-meu-estabelecimento"
+        /// Publicação de vaga falha por falta de rede (#73).
+        case publicarSemRede = "publicar-sem-rede"
         /// Painel com check-in já confirmado (contrato 0.2.31).
         case checkinConfirmado = "checkin-confirmado"
         /// Painel com posição cancelada com motivo informado (contrato 0.2.31).
@@ -255,7 +259,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -688,6 +692,28 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return estabelecimentos.map { EstabelecimentoDaConta(id: $0.id, nome: $0.nome, papel: $0.papel, tipo: $0.tipo, reputacao: perfilDo($0).reputacao) }
     }
 
+    public func meuEstabelecimento(id: UUID) async throws -> Estabelecimento {
+        try verificarFalhaGeral()
+        if cenario == .erroAoLerMeuEstabelecimento {
+            throw ErroDaApi(codigo: .desconhecido, codigoOriginal: "PGRST202")
+        }
+        // O contrato 0.2.29 manda 403 sem_permissao para conta de profissional.
+        guard conta?.perfil == .contratante else { throw erro("sem_permissao") }
+        // Como no backend: o id que não existe responde igual ao da casa de outra conta.
+        guard let estabelecimento = estabelecimentos.first(where: { $0.id == id }) else { throw erro("sem_permissao") }
+        // Como no contrato 0.2.29: MeuEstabelecimento não devolve documento.
+        return Estabelecimento(
+            id: estabelecimento.id,
+            nome: estabelecimento.nome,
+            documento: "",
+            tipo: estabelecimento.tipo,
+            endereco: estabelecimento.endereco,
+            regiaoAdministrativa: estabelecimento.regiaoAdministrativa,
+            ponto: estabelecimento.ponto,
+            papel: estabelecimento.papel
+        )
+    }
+
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
         try verificarFalhaGeral()
         guard estabelecimentos.contains(where: { $0.id == id }) else { throw erro("sem_permissao") }
@@ -788,6 +814,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         publicacoesRecebidas.append(publicacao)
         if let resposta = publicacoesPorChave[publicacao.chave] { return resposta }
         try verificarFalhaGeral()
+        if cenario == .publicarSemRede { throw ErroDaApi(codigo: .semRede) }
         guard let estabelecimento = estabelecimentos.first(where: { $0.id == publicacao.estabelecimentoID }) else { throw erro("sem_permissao") }
         let regiao = publicacao.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !regiao.isEmpty else { throw erro("campo_obrigatorio", detalhes: "regiao_administrativa") }
@@ -971,7 +998,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     public func perfilPublico(id: UUID) async throws -> PerfilPublico {
-        try verificarFalhaGeral()
+        // `20261001140000_perfil_publico_bloqueio.sql` não exige conta ativa nesta leitura.
+        try verificarRede()
         guard !bloqueios.keys.contains(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }

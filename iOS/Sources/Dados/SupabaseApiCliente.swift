@@ -138,6 +138,14 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         try await lista("meus_estabelecimentos") { (item: ContratoAPI.EstabelecimentoDaContaDTO) in item.dominio() }
     }
 
+    public func meuEstabelecimento(id: UUID) async throws -> Estabelecimento {
+        let resposta: ContratoAPI.MeuEstabelecimentoDTO = try await rpc(
+            "meu_estabelecimento",
+            params: ContratoAPI.EstabelecimentoParametros(estabelecimentoID: id)
+        )
+        return try converter { try resposta.dominio() }
+    }
+
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
         let params = ContratoAPI.PainelParametros(
             estabelecimentoID: id,

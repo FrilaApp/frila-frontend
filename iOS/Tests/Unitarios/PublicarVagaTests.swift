@@ -15,8 +15,12 @@ private final class ApiPublicacaoRecusada: ApiClienteEncaminhador, @unchecked Se
 }
 
 private actor FilaPublicacaoTeste: FilaDeAcoes {
-    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
-    func recusadas() -> [AcaoRecusada] { [] }
+    private var avisos: [AcaoRecusada] = []
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {
+        avisos.append(AcaoRecusada(acao: acao, codigo: codigo))
+        remover(id: acao.id)
+    }
+    func recusadas() -> [AcaoRecusada] { avisos }
 
     private var itens: [AcaoPendente] = []
     func enfileirar(_ acao: AcaoPendente) { itens.removeAll { $0.id == acao.id }; itens.append(acao) }
@@ -78,6 +82,31 @@ struct PublicarVagaTests {
         let outroModel = PublicarVagaViewModel(estabelecimento: outra, fila: fila) { _ in throw ErroDaApi(codigo: .semRede) }
         await outroModel.carregarRecusaDaFila()
         #expect(outroModel.recusaDaFila == nil)
+        await model.fecharAvisoDaFila()
+        #expect(model.recusaDaFila == nil)
+        #expect(try await fila.recusadas().isEmpty)
+        try await fila.enfileirar(acao)
+        #expect(try await fila.pendentes().isEmpty)
+    }
+
+    @Test("Aviso antigo não esconde a recusa da publicação atual")
+    func duasRecusasDesbloqueiamAtual() async throws {
+        let fila = FilaPublicacaoTeste()
+        let fixed = agora
+        let model = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { _ in
+            throw ErroDaApi(codigo: .semRede)
+        }
+        preencher(model)
+        await model.publicar()
+        let anterior = try #require(await fila.pendentes().first)
+        try await fila.recusar(anterior, codigo: .horarioInvalido)
+        await model.carregarRecusaDaFila()
+        await model.publicar()
+        let atual = try #require(await fila.pendentes().first)
+        try await fila.recusar(atual, codigo: .semPermissao)
+        await model.carregarRecusaDaFila()
+        #expect(model.recusaDaFila?.id == atual.id)
+        #expect(!model.camposBloqueados)
     }
 
     private func modelo() throws -> PublicarVagaViewModel {
@@ -283,5 +312,45 @@ struct PublicarVagaTests {
         let vagaID = try #require(vm.resultado?.vagaID)
         #expect(await api.publicacoesRecebidas.last?.regiaoAdministrativa == "Águas Claras")
         #expect(try await api.detalheDaVaga(id: vagaID).regiaoAdministrativa == "Águas Claras")
+    }
+
+    @Test("Rótulo de fechamento e aviso informativo nos três estados: nada enviado, na fila e publicado")
+    func rotuloEAvisoNosTresEstados() async throws {
+        final class EstadoRede: @unchecked Sendable {
+            var semRede = false
+        }
+        let rede = EstadoRede()
+        let api = ApiClienteEmMemoria()
+        let fila = FilaPublicacaoTeste()
+        let fixed = agora
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { publicacao in
+            if rede.semRede {
+                throw ErroDaApi(codigo: .semRede)
+            }
+            return try await api.publicarVaga(publicacao)
+        }
+        preencher(vm)
+
+        // 1. Nada enviado: botão é "Cancelar" e aviso informativo não aparece
+        #expect(vm.publicacaoPendente == nil)
+        #expect(vm.resultado == nil)
+        #expect(vm.textoAoFechar == "Cancelar")
+        #expect(!vm.mostraAvisoPublicacaoContinua)
+
+        // 2. Na fila (após envio sem rede): botão passa a "Voltar" e aviso informativo aparece
+        rede.semRede = true
+        await vm.publicar()
+        #expect(vm.publicacaoPendente != nil)
+        #expect(vm.resultado == nil)
+        #expect(vm.textoAoFechar == "Voltar")
+        #expect(vm.mostraAvisoPublicacaoContinua)
+
+        // 3. Publicado com sucesso: botão continua "Voltar" e aviso informativo desaparece
+        rede.semRede = false
+        await vm.publicar()
+        #expect(vm.resultado != nil)
+        #expect(vm.publicacaoPendente == nil)
+        #expect(vm.textoAoFechar == "Voltar")
+        #expect(!vm.mostraAvisoPublicacaoContinua)
     }
 }

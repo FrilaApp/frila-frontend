@@ -125,6 +125,33 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(api.chamadasAvaliar.first?.resposta == true)
     }
 
+    @Test("Reaberto o mesmo modelo depois do envio, a tela volta a 'já registrada' com a resposta dada")
+    @MainActor
+    func mesmoModeloReabertoDepoisDoEnvio() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
+        let vm = AvaliacaoTurnoViewModel(
+            turnoID: turno.id,
+            contaID: contaID,
+            turno: turno,
+            api: api,
+            armazenamento: armazenamento,
+            relogio: RelogioSimulado(agora)
+        )
+        vm.resposta = true
+        #expect(await vm.salvar())
+
+        // A tela do turno guarda um só modelo por turno; "Ver avaliação" reabre este mesmo.
+        await vm.carregar()
+
+        #expect(vm.jaAvaliado == true)
+        #expect(vm.resposta == true)
+        #expect(vm.sucesso == false)
+        #expect(vm.mensagemDeSucesso == nil)
+        #expect(api.chamadasAvaliar.count == 1)
+    }
+
     @Test("Erro 422: avaliacao_indisponivel exibe mensagem explicativa")
     @MainActor
     func erro422AvaliacaoIndisponivel() async throws {
@@ -539,6 +566,57 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(vm.resposta == true)
     }
 
+    @Test("Reabrir avaliação recusada mostra aviso e libera resposta; sucesso remove aviso persistido")
+    @MainActor
+    func reabrirRecusaESuperarAviso() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
+        let acao = AcaoPendente(tipo: .avaliacao, turnoID: turno.id, contaID: contaID, instanteDoToque: agora, chave: UUID(), resposta: false)
+        try await fila.enfileirar(acao)
+        try await fila.recusar(acao, codigo: .semPermissao)
+        armazenamento.salvar(resposta: false, para: turno.id, contaID: contaID)
+        let vm = AvaliacaoTurnoViewModel(turnoID: turno.id, contaID: contaID, turno: turno,
+            api: api, fila: fila, armazenamento: armazenamento, relogio: RelogioSimulado(agora))
+        await vm.carregar()
+        #expect(!vm.jaAvaliado)
+        #expect(vm.resposta == nil)
+        #expect(vm.mensagemDeErro == TextosDaFila.texto(.avaliacao))
+        vm.resposta = true
+        #expect(await vm.salvar())
+        #expect(try await fila.recusadas().isEmpty)
+        await vm.carregar()
+        #expect(vm.jaAvaliado)
+        #expect(vm.resposta == true)
+        #expect(vm.mensagemDeErro == nil)
+    }
+
+    @Test("Fechar aviso da avaliação não recupera a resposta recusada da reserva")
+    @MainActor
+    func fecharRecusaNaoRestauraResposta() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
+        let acao = AcaoPendente(tipo: .avaliacao, turnoID: turno.id, contaID: contaID, instanteDoToque: agora, chave: UUID(), resposta: false)
+        try await fila.enfileirar(acao)
+        try await fila.recusar(acao, codigo: .semPermissao)
+        armazenamento.salvar(resposta: false, para: turno.id, contaID: contaID)
+        let vm = AvaliacaoTurnoViewModel(turnoID: turno.id, contaID: contaID, turno: turno,
+            api: api, fila: fila, armazenamento: armazenamento, relogio: RelogioSimulado(agora))
+        await vm.carregar()
+        await vm.fecharAvisoDaFila()
+        await vm.carregar()
+        #expect(vm.recusaDaFila == nil)
+        #expect(vm.mensagemDeErro == nil)
+        #expect(!vm.jaAvaliado)
+        #expect(vm.resposta == nil)
+        vm.resposta = true
+        #expect(await vm.salvar())
+        #expect(vm.resposta == true)
+    }
+
     @Test("Releitura da recusa atualiza a tela mesmo após limpar a reserva fora da observação")
     @MainActor
     func recusaAtualizaObservacaoDaTela() async throws {
@@ -561,7 +639,8 @@ struct AvaliacaoTurnoViewModelTests {
                                     armazenamentoAvaliacoes: armazenamento, relogio: RelogioSimulado(agora))
         // A primeira notificação da persistência pode chegar antes de limpar a reserva.
         await tela.carregarRecusasDaFila()
-        #expect(tela.jaAvaliado)
+        #expect(!tela.jaAvaliado)
+        #expect(tela.respostaAvaliacao == nil)
         let mudancas = Mudancas()
         withObservationTracking {
             _ = tela.jaAvaliado

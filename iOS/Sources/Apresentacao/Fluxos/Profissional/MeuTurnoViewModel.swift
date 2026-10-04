@@ -15,6 +15,10 @@ public final class MeuTurnoViewModel {
 
     private var avaliacaoEnviada: Avaliacao?
     private var respostaPendente: Bool?
+    /// Um só view model da avaliação por turno. O destino do `NavigationLink` é reavaliado a cada
+    /// redesenho desta tela (contato que chega, fila que muda), e um view model novo a cada redesenho
+    /// perdia a resposta escolhida e desabilitava o "Enviar" enquanto a pessoa ainda estava na tela.
+    private var avaliacaoViewModel: AvaliacaoTurnoViewModel?
     /// UserDefaults não participa de Observation: a releitura invalida os derivados da reserva.
     private var revisaoDaReserva = 0
     private let aoAvaliar: (() -> Void)?
@@ -101,6 +105,7 @@ public final class MeuTurnoViewModel {
         _ = revisaoDaReserva
         if let avaliacao = avaliacaoEnviada ?? turno.avaliacao { return avaliacao.resposta }
         if let respostaPendente { return respostaPendente }
+        if avaliacaoDaFilaRecusada { return nil }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return nil }
         return armazenamentoAvaliacoes.resposta(para: turno.id, contaID: contaID)
     }
@@ -108,13 +113,19 @@ public final class MeuTurnoViewModel {
     public var jaAvaliado: Bool {
         _ = revisaoDaReserva
         if avaliacaoEnviada != nil || turno.avaliacao != nil || respostaPendente != nil { return true }
+        if avaliacaoDaFilaRecusada { return false }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return false }
         return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.servidorInformaAvaliacao && !turno.podeAvaliar && podeAvaliar)
     }
 
+    private var avaliacaoDaFilaRecusada: Bool {
+        recusasDaFila.contains { $0.tipo == .avaliacao && ($0.contaID == nil || $0.contaID == contaID) }
+    }
+
     public func criarAvaliacaoViewModel() -> AvaliacaoTurnoViewModel? {
         guard permiteAcoesDoTurno, let contaID else { return nil }
-        return AvaliacaoTurnoViewModel(
+        if let avaliacaoViewModel { return avaliacaoViewModel }
+        let novo = AvaliacaoTurnoViewModel(
             turnoID: turno.id,
             contaID: contaID,
             turno: avaliacaoEnviada.map { turno.com(avaliacao: $0) } ?? turno,
@@ -128,6 +139,8 @@ public final class MeuTurnoViewModel {
             },
             aoEnfileirar: { [weak self] resposta in self?.respostaPendente = resposta }
         )
+        avaliacaoViewModel = novo
+        return novo
     }
 
     /// A folha de cancelamento deste turno (#20). O desfecho volta para cá: a tela vira "Turno
@@ -181,6 +194,19 @@ public final class MeuTurnoViewModel {
         var componentes = URLComponents(string: "https://maps.apple.com/")
         componentes?.queryItems = [URLQueryItem(name: "q", value: turno.vaga.local)]
         return componentes?.url
+    }
+
+    public func fecharAvisoDaFila(id: UUID) async {
+        guard let filaDeAcoes else { return }
+        do {
+            let recusa = recusasDaFila.first { $0.id == id }
+            try await filaDeAcoes.reconhecerRecusa(id: id)
+            if recusa?.tipo == .avaliacao, let contaID, recusa?.contaID == contaID,
+               avaliacaoEnviada == nil, turno.avaliacao == nil, respostaPendente == nil {
+                armazenamentoAvaliacoes.remover(para: turno.id, contaID: contaID)
+            }
+            await carregarRecusasDaFila()
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
     }
 
     public func carregarRecusasDaFila() async {
