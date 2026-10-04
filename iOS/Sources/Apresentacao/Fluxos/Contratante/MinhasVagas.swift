@@ -225,6 +225,7 @@ public final class MinhasVagasViewModel {
 }
 
 public struct TelaMinhasVagas: View {
+    @State private var bloqueios = BloqueiosDaSessao()
     @State private var viewModel: MinhasVagasViewModel
     @State private var acompanhamento: AcompanhamentoViewModel
     @State private var roteador: RoteadorDoContratante
@@ -359,6 +360,7 @@ public struct TelaMinhasVagas: View {
             }
         }
         .modifier(ConfirmacaoDeReabertura(viewModel: acompanhamento))
+        .environment(bloqueios)
         .task { await carregar() }
         // O aviso do push diz que algo mudou na casa: o painel é relido para a tela que ele abre.
         .onChange(of: roteador.avisosAbertos) { Task { await carregar() } }
@@ -405,6 +407,7 @@ public struct TelaMinhasVagas: View {
 
     private func nomesConfirmados(_ vaga: VagaNoPainel) -> String {
         vaga.posicoes.compactMap { posicao in
+            if let perfil = posicao.profissional, bloqueios.contem(perfil) { return nil }
             guard posicao.estado == .confirmada || posicao.estado == .cumprida else { return nil }
             return posicao.profissional?.nome
         }.joined(separator: ", ")
@@ -467,6 +470,7 @@ private struct DestinoDaVagaDoContratante: View {
 }
 
 private struct TelaDetalheVagaContratante: View {
+    @Environment(BloqueiosDaSessao.self) private var bloqueios
     let vaga: VagaNoPainel
     let api: any ApiCliente
     let fila: (any FilaDeAcoes)?
@@ -522,7 +526,10 @@ private struct TelaDetalheVagaContratante: View {
 
                 Text(verbatim: TextosMinhasVagas.posicoes).font(.title2.bold()).accessibilityAddTraits(.isHeader)
                 ForEach(vaga.posicoes) { posicao in
-                    cartaoPosicao(posicao)
+                    if let perfil = posicao.profissional, bloqueios.contem(perfil) {
+                        Text(verbatim: TextosDaSeguranca.indisponivel)
+                            .accessibilityIdentifier("posicao-bloqueada-\(posicao.id)")
+                    } else { cartaoPosicao(posicao) }
                 }
             }
             .padding(FrilaEspaco.medio)
@@ -546,7 +553,7 @@ private struct TelaDetalheVagaContratante: View {
         .navigationTitle(Text(verbatim: TextosMinhasVagas.detalheTitulo))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $perfilSelecionado) { perfil in
-            TelaPerfilPublicoContratante(perfil: perfil)
+            TelaPerfilPublico(perfil: perfil, api: api, bloqueios: bloqueios)
         }
         .accessibilityIdentifier("detalhe-vaga-contratante")
     }
@@ -652,33 +659,5 @@ private struct TelaDetalheVagaContratante: View {
 
     private func periodo(_ periodo: Periodo) -> String {
         textoPeriodo(periodo)
-    }
-}
-
-private struct TelaPerfilPublicoContratante: View {
-    let perfil: PerfilPublico
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(verbatim: perfil.nome).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
-                if !perfil.funcoes.isEmpty {
-                    Text(verbatim: perfil.funcoes.joined(separator: ", "))
-                }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosMinhasVagas.perfilTitulo).font(.headline)
-                    SeloReputacao(perfil.reputacao)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
-                .cartaoFrila()
-                .accessibilityElement(children: .combine)
-            }
-            .padding(FrilaEspaco.medio)
-        }
-        .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle(Text(verbatim: TextosMinhasVagas.perfilTitulo))
-        .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("perfil-publico-contratante")
     }
 }

@@ -77,12 +77,15 @@ fi
 executavel="$app/$nome_executavel"
 [[ -f "$executavel" ]] || falhar "executável do app não encontrado: $executavel"
 
+# Os frameworks embutidos e as extensões (PlugIns, #253) são código do app: o gancho de
+# desenvolvimento reprova em qualquer um deles.
 arquivos_para_conferir=("$executavel")
-if [[ -d "$app/Frameworks" ]]; then
+for pasta in "$app/Frameworks" "$app/PlugIns"; do
+  [[ -d "$pasta" ]] || continue
   while IFS= read -r -d '' arquivo; do
     arquivos_para_conferir+=("$arquivo")
-  done < <(find "$app/Frameworks" -type f -print0)
-fi
+  done < <(find "$pasta" -type f -print0)
+done
 
 ganchos_de_desenvolvimento=(
   '-FRILA_SCENARIO'

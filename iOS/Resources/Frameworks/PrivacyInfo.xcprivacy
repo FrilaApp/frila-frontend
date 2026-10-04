@@ -16,6 +16,9 @@
             <key>NSPrivacyAccessedAPITypeReasons</key>
             <array>
                 <string>CA92.1</string>
+                <!-- 1C8F.1: o vinculo_id do push no UserDefaults do App Group, lido pela extensão
+                     de notificação (FrilaDominio, #253). -->
+                <string>1C8F.1</string>
             </array>
         </dict>
     </array>

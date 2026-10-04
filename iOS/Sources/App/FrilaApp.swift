@@ -109,15 +109,17 @@ struct FrilaApp: App {
 
     /// Um por app: o token de push e a conta a que o aparelho está entregue (#162), no Keychain. O
     /// dublê em memória (esquema Local) guarda num item separado: o vínculo precisa sobreviver ao
-    /// app fechado, que é quando o toque numa notificação o abre.
+    /// app fechado, que é quando o toque numa notificação o abre. O `vinculo_id` vai também ao App
+    /// Group, de onde a extensão de notificação o lê (#253); ali é um só para os três esquemas,
+    /// porque a extensão não sabe em qual deles o app está.
     private static func aparelhoDePush(para api: any ApiCliente) -> AparelhoDePush {
         guard api is ApiClienteEmMemoria else {
-            return AparelhoDePush(api: api, armazenamento: ArmazenamentoDoAparelhoNoKeychain())
+            return AparelhoDePush(api: api, armazenamento: ArmazenamentoDoAparelhoNoKeychain(), vinculoCompartilhado: VinculoNoGrupoDoApp())
         }
         // Sem carência na troca de conta: o dublê não tem servidor nem aviso a caminho, e as contas
         // dele se revezam no mesmo simulador a cada cenário.
         return AparelhoDePush(api: api, armazenamento: ArmazenamentoDoAparelhoNoKeychain(servico: "com.frila.org.app.push.local"),
-                              carenciaNaTrocaDeConta: 0)
+                              vinculoCompartilhado: VinculoNoGrupoDoApp(), carenciaNaTrocaDeConta: 0)
     }
 
     /// O token chega pelo FCM. No esquema Local não há Firebase: o dublê recebe um token simulado, e
