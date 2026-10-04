@@ -247,13 +247,22 @@ public struct FolhaSuporteTurno: View {
 
     private var secaoAcoes: some View {
         VStack(spacing: FrilaEspaco.medio) {
+            if viewModel.falhaAoAbrirEmail {
+                AvisoFrila(verbatim: TextosDoSuporte.falhaAoAbrirEmail, tom: .alerta)
+                    .accessibilityIdentifier("aviso-falha-email-suporte")
+            }
+
             BotaoPrimario(verbatim: TextosDoSuporte.botaoEnviarEmail) {
                 if viewModel.podeEnviarEmailNativo {
                     viewModel.mostrandoCompositorNativo = true
                 } else if let url = viewModel.urlMailto {
-                    openURL(url)
+                    openURL(url) { aceito in
+                        if !aceito {
+                            viewModel.registrarFalhaAoAbrirEmail()
+                        }
+                    }
                 } else {
-                    viewModel.copiarDadosParaTransferencia()
+                    viewModel.registrarFalhaAoAbrirEmail()
                 }
             }
             .accessibilityIdentifier("botao-enviar-email-suporte")

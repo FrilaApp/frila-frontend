@@ -143,6 +143,9 @@ struct TelaTurnoDoContratante: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .refreshable { await viewModel.carregar() }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await viewModel.carregarDaFila(para: turnoID) }
+        }
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
@@ -167,6 +170,13 @@ struct TelaTurnoDoContratante: View {
         .padding(FrilaEspaco.medio)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
+
+        ForEach(viewModel.recusasDaFila) { recusa in
+            AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
+            BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila(id: recusa.id) } }
+                .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
+        }
 
         AvisosDoAcompanhamento(viewModel: viewModel)
 
@@ -237,9 +247,7 @@ struct TelaTurnoDoContratante: View {
                     }
 
                     NavigationLink {
-                        if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
-                            TelaAvaliacao(viewModel: avaliacao)
-                        }
+                        DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
                     } label: {
                         HStack {
                             Image(systemName: "star.fill")
@@ -255,9 +263,7 @@ struct TelaTurnoDoContratante: View {
                         .foregroundStyle(FrilaCor.textoSecundario)
 
                     NavigationLink {
-                        if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
-                            TelaAvaliacao(viewModel: avaliacao)
-                        }
+                        DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
                     } label: {
                         HStack {
                             Image(systemName: "star.fill")
@@ -488,3 +494,44 @@ struct PendenciasDoContratante: View {
         .accessibilityElement(children: .contain)
     }
 }
+
+/// Destino da avaliação do contratante. Se o view model ainda não puder ser criado (ex.: falha ao ler a conta),
+/// exibe tela com botão de tentar novamente em vez de uma tela vazia.
+public struct DestinoAvaliacaoDoContratante: View {
+    let viewModel: AcompanhamentoViewModel
+    let turno: TurnoAcompanhado
+    let api: (any ApiCliente)?
+
+    public init(viewModel: AcompanhamentoViewModel, turno: TurnoAcompanhado, api: (any ApiCliente)? = nil) {
+        self.viewModel = viewModel
+        self.turno = turno
+        self.api = api
+    }
+
+    public var body: some View {
+        if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
+            TelaAvaliacao(viewModel: avaliacao)
+        } else {
+            VStack(spacing: FrilaEspaco.medio) {
+                EstadoErro(verbatim: TextosDoProfissional.Avaliacao.erroSemRede) {
+                    Task {
+                        await viewModel.carregarIdentidadeEEAvaliacoes()
+                        if viewModel.contaID == nil {
+                            await viewModel.carregar()
+                        }
+                    }
+                }
+                .disabled(viewModel.carregando)
+            }
+            .padding(FrilaEspaco.medio)
+            .navigationTitle(TextosDoProfissional.Avaliacao.titulo)
+            .accessibilityIdentifier("avaliacao-sem-conexao")
+            .task {
+                if viewModel.contaID == nil {
+                    await viewModel.carregarIdentidadeEEAvaliacoes()
+                }
+            }
+        }
+    }
+}
+

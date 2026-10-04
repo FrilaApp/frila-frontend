@@ -131,7 +131,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         let app = iniciarApp(cenario: "turno-encerrado")
         abrirTurno(app)
         let avaliar = app.buttons["Avaliar turno"]
-        if !avaliar.isHittable { app.swipeUp() }
+        for _ in 0..<5 where !avaliar.isHittable { app.swipeUp() }
         XCTAssertTrue(avaliar.waitForExistence(timeout: 5))
         tocar(avaliar)
         XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 5))
@@ -143,7 +143,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         tocar(app.tabBars.buttons["Vagas no DF"])
         tocar(app.buttons["abrir-meu-perfil"])
         let sair = app.buttons["Sair"]
-        if !sair.isHittable { app.swipeUp() }
+        for _ in 0..<5 where !sair.isHittable { app.swipeUp() }
         XCTAssertTrue(sair.waitForExistence(timeout: 5))
         tocar(sair)
         let email = app.textFields["entrada-email"]
@@ -186,7 +186,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         app.launch()
         abrirTurno(app)
         let avaliar = app.buttons["Avaliar turno"]
-        if !avaliar.isHittable { app.swipeUp() }
+        for _ in 0..<5 where !avaliar.isHittable { app.swipeUp() }
         tocar(avaliar)
         let navBar = app.navigationBars["Avaliar turno"]
         XCTAssertTrue(navBar.waitForExistence(timeout: 10))
@@ -230,12 +230,12 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 10))
         let status = app.staticTexts["Turno avaliado · Resposta: Não"]
         XCTAssertTrue(status.waitForExistence(timeout: 10))
-        if !status.isHittable { app.swipeUp() }
+        for _ in 0..<5 where !status.isHittable { app.swipeUp() }
         XCTAssertTrue(status.isHittable)
         XCTAssertTrue(status.label.contains("Não"))
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
         let verAvaliacao = app.buttons["Ver avaliação"]
-        if !verAvaliacao.isHittable { app.swipeUp() }
+        for _ in 0..<5 where !verAvaliacao.isHittable { app.swipeUp() }
         tocar(verAvaliacao)
         XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 10))

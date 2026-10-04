@@ -36,6 +36,7 @@ public enum TextosDoSuporte {
     public static let botaoCopiarDados = String(localized: "Copiar dados do e-mail", bundle: bundleApresentacao)
     public static let dicaCopiarDados = String(localized: "Copia o assunto e o corpo formatados para colar no seu aplicativo de e-mail", bundle: bundleApresentacao)
     public static let dadosCopiados = String(localized: "Dados copiados para a área de transferência.", bundle: bundleApresentacao)
+    public static let falhaAoAbrirEmail = String(localized: "Não foi possível abrir o aplicativo de e-mail. Você pode copiar os dados abaixo e enviá-los de outro aplicativo.", bundle: bundleApresentacao)
     public static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
     public static let emailSuporteRotulo = String(localized: "Destinatário oficial: %@", bundle: bundleApresentacao)
 }

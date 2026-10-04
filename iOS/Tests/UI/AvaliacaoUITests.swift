@@ -81,16 +81,16 @@ final class AvaliacaoUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
 
         let cartaoAvaliacao = app.descendants(matching: .any)["cartao-avaliacao-turno"]
-        if !cartaoAvaliacao.isHittable {
+        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 10), "o cartão de avaliação deve aparecer no turno encerrado e verificado")
+        for _ in 0..<5 where !cartaoAvaliacao.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 5), "o cartão de avaliação deve aparecer no turno encerrado e verificado")
 
         let botaoAvaliar = app.buttons["Avaliar turno"]
-        if !botaoAvaliar.isHittable {
+        XCTAssertTrue(botaoAvaliar.waitForExistence(timeout: 5))
+        for _ in 0..<5 where !botaoAvaliar.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoAvaliar.waitForExistence(timeout: 5))
         XCTAssertTrue(botaoAvaliar.isHittable)
         botaoAvaliar.tap()
 
