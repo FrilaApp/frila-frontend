@@ -17,37 +17,9 @@ struct GuardaTokensDesignTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
-    /// Lista de exceções explícitas (arquivo + motivo) para arquivos ocupados por PRs abertos.
-    /// O Nick Fury remove cada entrada após o merge do PR correspondente (#139).
-    static let excecoesOcupadas: [String: String] = [
-        "Componentes.swift": "Ocupado pelo PR #110 (auditoria de acessibilidade)",
-        "TelaExclusaoDeConta.swift": "Ocupado pelo PR #110 (auditoria de acessibilidade)",
-        "CortinaDePrivacidade.swift": "Ocupado pelo PR #112 (auditoria de segurança)",
-        "ExportarDadosViewModel.swift": "Ocupado pelo PR #112 (auditoria de segurança)",
-        "TelaHistoricoDeTurnos.swift": "Ocupado pelo PR #106 (histórico e exportação)",
-        "PerfisDaConta.swift": "Ocupado pelo PR #106 (histórico e exportação)",
-        "HistoricoDeTurnosViewModel.swift": "Ocupado pelo PR #106 (histórico e exportação)",
-        "TextosHistoricoDeTurnos.swift": "Ocupado pelo PR #106 (histórico e exportação)",
-        "TelaMeuTurno.swift": "Ocupado pelo PR #103 e branch #39",
-        "PublicarVaga.swift": "Ocupado pelos PRs #73 e #103",
-        "RepublicarVaga.swift": "Ocupado pelo PR #103",
-        "MeuTurnoViewModel.swift": "Ocupado pelo PR #103 e branch #39",
-        "PresencaDoTurnoViewModel.swift": "Ocupado pelo PR #103",
-        "TextosDaPresenca.swift": "Ocupado pelo PR #103",
-        "MinhasVagas.swift": "Ocupado pelo PR #73 e branch #39",
-        "PublicarVagaDaCasa.swift": "Ocupado pelo PR #73",
-        "FluxoDoContratante.swift": "Ocupado pelo PR #73",
-        "FluxoDoProfissional.swift": "Ocupado pelo PR #114 e branch #39",
-        "TelasDaCandidatura.swift": "Ocupado pelo PR #114",
-        "TextosDoProfissional.swift": "Ocupado pelo PR #114",
-        "TelaTurnoDoContratante.swift": "Ocupado pela branch #39",
-        "FolhaDeCancelamento.swift": "Ocupado pela branch #39",
-        "CancelamentoViewModel.swift": "Ocupado pela branch #39",
-        "TextosDoCancelamento.swift": "Ocupado pela branch #39",
-        "AcoesDeSeguranca.swift": "Ocupado pela branch #39",
-        "SegurancaViewModel.swift": "Ocupado pela branch #39",
-        "AcompanhamentoViewModel.swift": "Ocupado pela branch #39"
-    ]
+    /// Exceções explícitas (arquivo: motivo), só para arquivo que tem a ocorrência e não pode ser
+    /// corrigido agora. Vazia: em 04/10/2026 nenhum arquivo da Apresentação tinha ocorrência.
+    static let excecoesOcupadas: [String: String] = [:]
 
     private static func arquivosApresentacao() throws -> [(nome: String, url: URL, linhas: [Substring])] {
         let apresentacao = raiz.appending(path: "Sources").appending(path: "Apresentacao")

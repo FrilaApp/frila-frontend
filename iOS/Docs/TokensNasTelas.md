@@ -63,7 +63,7 @@ Em todas as telas e componentes da camada `Sources/Apresentacao`:
 
 ## 5. Arquivos Ocupados por PRs Abertos
 
-Conforme instrução expressa da missão, nenhum arquivo ocupado por PR aberto ou trabalho em andamento foi modificado. Todos constam na lista de exceções explícitas do teste de guarda `GuardaTokensDesignTests.swift` e serão esvaziados pelo Nick Fury após os respectivos merges:
+Nenhum arquivo ocupado por PR aberto ou trabalho em andamento foi modificado. Conferidos um a um, nenhum tinha ocorrência (tabela abaixo); por isso a lista de exceções da guarda `GuardaTokensDesignTests.swift` ficou vazia e a guarda vale para todos os arquivos da Apresentação desde já (revisão do Nick Fury, 04/10).
 
 | Arquivo Ocupado | Motivo / Vínculo | Estado de Cores e Fontes |
 |---|---|---|
