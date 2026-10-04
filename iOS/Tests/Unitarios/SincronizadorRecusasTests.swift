@@ -214,7 +214,7 @@ struct MigracaoRecusasTests {
             context.insert(AcaoPendentePersistida(id: acao.id, tipo: acao.tipo.rawValue, conteudo: try encoder.encode(acao), instanteDoToque: acao.instanteDoToque))
             try context.save()
         }
-        let esquema = Schema(versionedSchema: EsquemaFrilaV2.self)
+        let esquema = Schema(versionedSchema: EsquemaFrilaV3.self)
         let config = ModelConfiguration("Teste", schema: esquema, url: url)
         do {
             let container = try ModelContainer(for: esquema, migrationPlan: MigracaoFrila.self, configurations: [config])

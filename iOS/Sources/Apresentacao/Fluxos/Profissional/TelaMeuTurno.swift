@@ -1,5 +1,8 @@
 import FrilaDominio
 import SwiftUI
+#if DEBUG
+import Observation
+#endif
 
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
@@ -110,25 +113,48 @@ public struct TelaMeuTurno: View {
             Text(verbatim: "\(formatador.intervalo(viewModel.turno.vaga.periodo)) · \(formatador.dinheiro(viewModel.turno.valorAcordado))")
                 .font(.subheadline)
 
-            HStack(spacing: FrilaEspaco.minimo) {
-                Text(verbatim: viewModel.turno.vaga.local)
-                if let urlMapas = viewModel.urlMapas {
-                    Link(destination: urlMapas) {
-                        Image(systemName: "map")
-                            .foregroundStyle(FrilaCor.primaria)
-                    }
-                    .accessibilityIdentifier("atalho-mapas")
-                    .accessibilityLabel(Text(verbatim: TextosDoProfissional.Turnos.verNoMapas))
-                    .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: FrilaEspaco.minimo) {
+                    enderecoEMapa
+                    quemRecebe
                 }
-                Text(verbatim: "· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
+                .fixedSize(horizontal: true, vertical: false)
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    enderecoEMapa
+                    quemRecebe
+                }
             }
             .font(.subheadline)
             .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var enderecoEMapa: some View {
+        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: viewModel.turno.vaga.local)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("endereco-do-turno")
+            if let urlMapas = viewModel.urlMapas {
+                Link(destination: urlMapas) {
+                    Image(systemName: "map")
+                        .foregroundStyle(FrilaCor.primaria)
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("atalho-mapas")
+                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Turnos.verNoMapas))
+                .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
+            }
+        }
+    }
+
+    private var quemRecebe: some View {
+        Text(verbatim: "· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("quem-recebe-no-turno")
     }
 
     private var cartaoCancelamento: some View {
@@ -180,6 +206,9 @@ public struct TelaMeuTurno: View {
                     }
                     .accessibilityIdentifier("botao-whatsapp")
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
+                    #if DEBUG
+                    .modifier(CapturaDeAberturaDeURLParaTeste())
+                    #endif
                 }
 
                 Text(verbatim: TextosDoProfissional.Turnos.lembretesEVisibilidade)
@@ -191,6 +220,7 @@ public struct TelaMeuTurno: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("contato-do-turno")
     }
 
@@ -247,6 +277,45 @@ public struct TelaMeuTurno: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("cartao-avaliacao-turno")
     }
 }
+
+#if DEBUG
+/// Captura o destino recebido pelo sistema ao tocar no Link, sem sair do app durante o teste.
+@MainActor
+private protocol AbridorDeURL: AnyObject {
+    var urlAberta: URL? { get }
+    func abrir(_ url: URL)
+}
+
+@MainActor
+@Observable
+private final class AbridorDeURLParaTeste: AbridorDeURL {
+    private(set) var urlAberta: URL?
+
+    func abrir(_ url: URL) {
+        urlAberta = url
+    }
+}
+
+@MainActor
+private struct CapturaDeAberturaDeURLParaTeste: ViewModifier {
+    @State private var abridor: any AbridorDeURL = AbridorDeURLParaTeste()
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if ProcessInfo.processInfo.arguments.contains("-FRILA_CAPTURAR_URL_UI_TEST") {
+            content
+                .environment(\.openURL, OpenURLAction { url in
+                    abridor.abrir(url)
+                    return .handled
+                })
+                .accessibilityValue(Text(verbatim: abridor.urlAberta?.absoluteString ?? ""))
+        } else {
+            content
+        }
+    }
+}
+#endif

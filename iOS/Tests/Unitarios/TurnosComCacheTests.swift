@@ -12,6 +12,9 @@ private final class CacheDeTeste: CacheLocal, @unchecked Sendable {
 
     func salvar(sessao: SessaoUsuario) async throws {}
     func sessao() async throws -> SessaoUsuario? { nil }
+    func salvar(contato: Contato, doTurno turnoID: UUID) async throws {}
+    func contato(doTurno turnoID: UUID, em instante: Date) async throws -> Contato? { nil }
+    func removerContato(doTurno turnoID: UUID) async throws {}
     func salvar(funcoes: [Funcao]) async throws {}
     func funcoes() async throws -> [Funcao] { [] }
     func limpar() async throws { trava.withLock { guardados = [] } }

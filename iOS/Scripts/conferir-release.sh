@@ -103,6 +103,7 @@ ganchos_de_desenvolvimento=(
   '-FRILA_ABRIR_MINHAS_VAGAS'
   '-FRILA_CADASTRO_UI_TEST'
   '-FRILA_BUSCA_PERFIL_UI_TEST'
+  '-FRILA_CAPTURAR_URL_UI_TEST'
   '-FRILA_ENTRADA'
   '-FRILA_LOCALIZACAO'
   '-FRILA_VAGA_ID'
@@ -129,6 +130,8 @@ fi
 simbolos_de_desenvolvimento=(
   'pelosArgumentos'
   'CatalogoDesignSystem'
+  'AbridorDeURLParaTeste'
+  'CapturaDeAberturaDeURLParaTeste'
 )
 
 # A medição de desempenho (#73) só pode estar no build de medição, que o enviar-testflight.sh

@@ -60,6 +60,14 @@ public final class AcaoRecusadaPersistida {
     public init(id: UUID, conteudo: Data) { self.id = id; self.conteudo = conteudo }
 }
 
+@Model
+public final class ContatoDoTurnoPersistido {
+    @Attribute(.unique) public var turnoID: UUID
+    public var conteudo: Data
+
+    public init(turnoID: UUID, conteudo: Data) { self.turnoID = turnoID; self.conteudo = conteudo }
+}
+
 public enum EsquemaFrilaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
     public static var models: [any PersistentModel.Type] {
@@ -75,15 +83,23 @@ public enum EsquemaFrilaV2: VersionedSchema {
 }
 
 public enum MigracaoFrila: SchemaMigrationPlan {
-    public static var schemas: [any VersionedSchema.Type] { [EsquemaFrilaV1.self, EsquemaFrilaV2.self] }
+    public static var schemas: [any VersionedSchema.Type] { [EsquemaFrilaV1.self, EsquemaFrilaV2.self, EsquemaFrilaV3.self] }
     public static var stages: [MigrationStage] {
-        [.lightweight(fromVersion: EsquemaFrilaV1.self, toVersion: EsquemaFrilaV2.self)]
+        [.lightweight(fromVersion: EsquemaFrilaV1.self, toVersion: EsquemaFrilaV2.self),
+         .lightweight(fromVersion: EsquemaFrilaV2.self, toVersion: EsquemaFrilaV3.self)]
+    }
+}
+
+public enum EsquemaFrilaV3: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
+    public static var models: [any PersistentModel.Type] {
+        EsquemaFrilaV2.models + [ContatoDoTurnoPersistido.self]
     }
 }
 
 public enum PersistenciaFrila {
     public static func criarContainer(emMemoria: Bool = false) throws -> ModelContainer {
-        let esquema = Schema(versionedSchema: EsquemaFrilaV2.self)
+        let esquema = Schema(versionedSchema: EsquemaFrilaV3.self)
         let configuracao: ModelConfiguration
         if emMemoria {
             configuracao = ModelConfiguration(schema: esquema, isStoredInMemoryOnly: true)
@@ -159,8 +175,39 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         decoder.dateDecodingStrategy = .iso8601
         return try todos.filter { $0.fim > limite }.map { registro in
             let turno = try decoder.decode(Turno.self, from: registro.conteudo)
-            return turno.contatoVisivel(em: instante) ? turno : turno.com(contato: nil)
+            guard !turno.cancelado, turno.contatoVisivel(em: instante) else { return turno.com(contato: nil) }
+            let guardado = try contato(doTurno: turno.id, em: instante) ?? turno.contato
+            return turno.com(contato: guardado?.estaVisivel(em: instante) == true ? guardado : nil)
         }
+    }
+
+    public func salvar(contato: Contato, doTurno turnoID: UUID) throws {
+        // Conserva também as frações de segundo do prazo recebido do servidor.
+        let dados = try JSONEncoder().encode(contato)
+        let descritor = FetchDescriptor<ContatoDoTurnoPersistido>(predicate: #Predicate { $0.turnoID == turnoID })
+        if let existente = try modelContext.fetch(descritor).first {
+            existente.conteudo = dados
+        } else {
+            modelContext.insert(ContatoDoTurnoPersistido(turnoID: turnoID, conteudo: dados))
+        }
+        try modelContext.save()
+    }
+
+    public func contato(doTurno turnoID: UUID, em instante: Date) throws -> Contato? {
+        let descritor = FetchDescriptor<ContatoDoTurnoPersistido>(predicate: #Predicate { $0.turnoID == turnoID })
+        guard let registro = try modelContext.fetch(descritor).first else { return nil }
+        let contato = try JSONDecoder().decode(Contato.self, from: registro.conteudo)
+        guard contato.estaVisivel(em: instante) else {
+            modelContext.delete(registro)
+            try modelContext.save()
+            return nil
+        }
+        return contato
+    }
+
+    public func removerContato(doTurno turnoID: UUID) throws {
+        try modelContext.delete(model: ContatoDoTurnoPersistido.self, where: #Predicate { $0.turnoID == turnoID })
+        try modelContext.save()
     }
 
     public func salvar(funcoes: [Funcao]) throws {
@@ -253,6 +300,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         try modelContext.delete(model: SessaoPersistida.self)
         try modelContext.delete(model: AcaoPendentePersistida.self)
         try modelContext.delete(model: AcaoRecusadaPersistida.self)
+        try modelContext.delete(model: ContatoDoTurnoPersistido.self)
         try modelContext.save()
     }
 }

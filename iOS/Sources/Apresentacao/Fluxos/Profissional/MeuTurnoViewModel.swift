@@ -52,6 +52,7 @@ public final class MeuTurnoViewModel {
     private let filaDeAcoes: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
+    private var cacheLocal: (any CacheLocal)? { filaDeAcoes as? any CacheLocal }
 
     public init(
         turno: Turno,
@@ -213,6 +214,7 @@ public final class MeuTurnoViewModel {
             if novoContato.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora) {
                 self.contato = novoContato
                 self.contatoExpirado = false
+                try? await cacheLocal?.salvar(contato: novoContato, doTurno: turno.id)
             } else {
                 self.contato = nil
                 self.contatoExpirado = true
@@ -220,9 +222,11 @@ public final class MeuTurnoViewModel {
         } catch let erro as ErroDaApi where erro.codigo == .contatoExpirado {
             self.contato = nil
             self.contatoExpirado = true
+            try? await cacheLocal?.removerContato(doTurno: turno.id)
         } catch let erro as ErroDaApi where erro.codigo == .semRede {
             // Em modo avião, mantém o contato se ainda estiver dentro do prazo (RN10 / RNF06).
-            if let c = self.contato ?? turno.contato, c.estaVisivel(em: relogio.agora), turno.contatoVisivel(em: relogio.agora) {
+            let guardado = try? await cacheLocal?.contato(doTurno: turno.id, em: relogio.agora)
+            if let c = self.contato ?? guardado ?? turno.contato, c.estaVisivel(em: relogio.agora), turno.contatoVisivel(em: relogio.agora) {
                 self.contato = c
                 self.contatoExpirado = false
             } else {
