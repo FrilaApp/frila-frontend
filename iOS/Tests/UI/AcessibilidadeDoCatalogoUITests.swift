@@ -89,7 +89,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
                     && controle.placeholderValue?.isEmpty != false {
                     problemas.append("sem rótulo: \(controle.elementType) \(controle.identifier)")
                 }
-                if quadro.height < 44 || quadro.width < 44 {
+                if !AlvoMinimo.atende(quadro.height) || !AlvoMinimo.atende(quadro.width) {
                     problemas.append("alvo \(Int(quadro.width))×\(Int(quadro.height)) pt: \(controle.label)")
                 }
             }

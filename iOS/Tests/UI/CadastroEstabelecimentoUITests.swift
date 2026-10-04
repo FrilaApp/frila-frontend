@@ -54,8 +54,8 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         }
         let cameraInicial = try XCTUnwrap(mapa.value as? String)
         XCTAssertEqual(cameraInicial.split(separator: ",").count, 4, "O teste precisa ler o centro e a escala da câmera.")
-        XCTAssertGreaterThanOrEqual(marcador.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(marcador.frame.height, 44)
+        XCTAssertAlvoMinimo(marcador.frame.width)
+        XCTAssertAlvoMinimo(marcador.frame.height)
 
         let coordenadaInicial = marcador.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         let pontoInicial = coordenadaInicial.screenPoint

@@ -237,14 +237,14 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
             rolarAte(perfil, em: app)
             XCTAssertTrue(perfil.isHittable)
             XCTAssertEqual(perfil.label, "Ver perfil público de \(nome)")
-            XCTAssertGreaterThanOrEqual(perfil.frame.height, 44)
+            XCTAssertAlvoMinimo(perfil.frame.height)
 
             let escolher = app.buttons["escolher-candidato-\(id)"]
             rolarAte(escolher, em: app)
             XCTAssertTrue(escolher.isHittable)
             XCTAssertEqual(escolher.label, "Escolher \(nome)")
-            XCTAssertGreaterThanOrEqual(escolher.frame.height, 44)
-            XCTAssertGreaterThanOrEqual(escolher.frame.width, 44)
+            XCTAssertAlvoMinimo(escolher.frame.height)
+            XCTAssertAlvoMinimo(escolher.frame.width)
             XCTAssertLessThanOrEqual(escolher.frame.maxX, largura)
         }
 
