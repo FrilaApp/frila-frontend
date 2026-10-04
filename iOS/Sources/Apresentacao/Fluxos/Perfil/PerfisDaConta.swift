@@ -27,7 +27,6 @@ enum TextosPerfilConta {
     static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
     static let papel = String(localized: "Seu acesso", bundle: bundleApresentacao)
     static let naoInformado = String(localized: "—", bundle: bundleApresentacao)
-    static let todoExportacao = String(localized: "Recurso em desenvolvimento", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
     static let dicaSuporte = String(localized: "Abre o e-mail para enviar mensagem ao suporte", bundle: bundleApresentacao)
     static let linkPendente = String(localized: "Link pendente", bundle: bundleApresentacao)
@@ -138,6 +137,14 @@ public struct TelaMeuPerfilProfissional: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }.accessibilityIdentifier("perfil-funcoes-horarios")
+                    NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
+                        Label {
+                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }.accessibilityIdentifier("perfil-historico-turnos")
                     Button { mostrarExplicacao = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.porQueRecebo)
@@ -266,6 +273,15 @@ public struct TelaPerfilEstabelecimento: View {
                         }
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                     }.cartaoFrila()
+                    NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
+                        Label {
+                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("estabelecimento-historico-turnos")
                     Button { mostrarAjuda = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.ajuda)

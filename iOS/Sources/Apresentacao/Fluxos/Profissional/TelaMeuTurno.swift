@@ -3,6 +3,7 @@ import SwiftUI
 
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
+    @State private var cancelamento: CancelamentoViewModel?
     private let formatador = FormatadorFrila()
 
     public init(viewModel: MeuTurnoViewModel) {
@@ -14,6 +15,14 @@ public struct TelaMeuTurno: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 cabecalho
                 cartaoTurno
+                if let desfecho = viewModel.desfechoDoCancelamento {
+                    AvisoFrila(verbatim: TextosDoCancelamento.desfecho(.posicao(desfecho), lado: .profissional), tom: .informativo)
+                        .accessibilityIdentifier("desfecho-do-cancelamento-no-turno")
+                }
+                if viewModel.cancelamentoNaFila {
+                    AvisoFrila(verbatim: TextosDoCancelamento.naFila, tom: .alerta)
+                        .accessibilityIdentifier("cancelamento-na-fila")
+                }
                 if viewModel.cancelamento != nil {
                     cartaoCancelamento
                 }
@@ -26,6 +35,9 @@ public struct TelaMeuTurno: View {
                 if viewModel.podeAvaliar {
                     cartaoAvaliacao
                 }
+                if viewModel.podeCancelar {
+                    botaoCancelar
+                }
             }
             .padding(FrilaEspaco.medio)
         }
@@ -33,6 +45,9 @@ public struct TelaMeuTurno: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)
         .task { await medirAbertura(.meuTurno, carregar: viewModel.carregar, pronto: contatoNaTela) }
+        .sheet(item: $cancelamento) { folha in
+            FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
+        }
         .accessibilityIdentifier("tela-meu-turno")
     }
 
@@ -41,6 +56,13 @@ public struct TelaMeuTurno: View {
     private var contatoNaTela: @MainActor @Sendable () -> Bool {
         let viewModel = viewModel
         return { !viewModel.carregandoContato && viewModel.contato != nil }
+    }
+
+    private var botaoCancelar: some View {
+        BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloTurno) {
+            cancelamento = viewModel.criarCancelamentoViewModel()
+        }
+        .accessibilityIdentifier("cancelar-turno")
     }
 
     private var cabecalho: some View {
@@ -116,13 +138,15 @@ public struct TelaMeuTurno: View {
                     .accessibilityIdentifier("contato-telefone")
 
                 if let urlWhatsApp = viewModel.urlWhatsApp {
+                    // O alvo de 44 pt fica no rótulo, dentro do link: fora dele, só o texto recebia o toque.
                     Link(destination: urlWhatsApp) {
                         HStack {
                             Image(systemName: "message.fill")
                             Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
                         }
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
                     }
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("botao-whatsapp")
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
                 }
@@ -166,8 +190,9 @@ public struct TelaMeuTurno: View {
                         Image(systemName: "star.fill")
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                     }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
                 }
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("botao-ver-avaliacao")
             } else {
                 Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
@@ -183,8 +208,9 @@ public struct TelaMeuTurno: View {
                         Image(systemName: "star.fill")
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                     }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
                 }
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("botao-abrir-avaliacao")
             }
         }

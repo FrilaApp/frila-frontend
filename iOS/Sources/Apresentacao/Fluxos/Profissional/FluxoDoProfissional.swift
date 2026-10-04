@@ -15,6 +15,7 @@ public enum AbaDoProfissional: Hashable, Sendable {
 /// Destinos do fluxo de quem procura turno.
 public enum RotaDoProfissional: Hashable, Sendable {
     case meuPerfil
+    case ajustarFuncoes(vagaID: UUID)
     case detalhe(vagaID: UUID)
     case resultado(vaga: Vaga, resultado: ResultadoDaCandidatura)
     case meuTurno(turno: Turno)
@@ -67,6 +68,11 @@ public final class RoteadorDoProfissional {
 
     public func voltarParaLista() {
         caminho = []
+    }
+
+    public func ajustarFuncoes(vagaID: UUID, resultado: ResultadoDaCandidatura) {
+        guard case .inelegivel(.funcaoIncompativel) = resultado else { return }
+        caminho.append(.ajustarFuncoes(vagaID: vagaID))
     }
 
     public func candidatar(viewModel: CandidaturaViewModel) async {
@@ -161,12 +167,17 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         switch rota {
                         case .meuPerfil:
                             TelaMeuPerfilProfissional(api: api, sair: sair)
+                        case let .ajustarFuncoes(vagaID):
+                            TelaPerfilProfissional(api: api, modo: .edicao) {
+                                roteador.abrirVaga(id: vagaID)
+                            }
                         case let .detalhe(vagaID):
                             DestinoDoDetalhe(vagaID: vagaID, api: api, candidatar: roteador.candidatar)
                         case let .resultado(vaga, resultado):
                             TelaResultadoDaCandidatura(
                                 vaga: vaga, resultado: resultado, api: api, verCandidaturas: { roteador.abrirCandidaturas() },
-                                voltarParaLista: voltarParaLista
+                                ajustarFuncoes: { roteador.ajustarFuncoes(vagaID: vaga.id, resultado: resultado) },
+                                sair: sair, voltarParaLista: voltarParaLista
                             )
                         case let .meuTurno(turno):
                             destinoDoMeuTurno(turno)
@@ -267,7 +278,7 @@ extension FluxoDoProfissional {
         contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
     }
 
-    /// Presença ou avaliação aceita atualiza Meus turnos, que é de onde a tela reabre.
+    /// Presença, avaliação ou cancelamento aceito atualiza Meus turnos, que é de onde a tela reabre.
     private func destinoDoMeuTurno(_ turno: Turno) -> some View {
         let turnos = turnosViewModel
         return DestinoDoMeuTurno(turno: turno, api: api, contaID: contaID, relogio: relogio, localizacao: localizacao, fila: fila) {
@@ -368,7 +379,10 @@ private struct DestinoDoMeuTurno: View {
         let presenca = localizacao.map {
             PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
         }
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca, aoAvaliar: aoRegistrar))
+        _viewModel = State(initialValue: MeuTurnoViewModel(
+            turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca,
+            aoAvaliar: aoRegistrar, aoCancelar: aoRegistrar
+        ))
     }
 
     var body: some View {
