@@ -58,6 +58,9 @@ private enum TextosPublicarVaga {
     static let modoUrgenciaExplicacao = String(localized: "O primeiro profissional que aceitar é confirmado na hora.", bundle: bundlePublicarVaga)
     static let modoSelecaoExplicacao = String(localized: "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.", bundle: bundlePublicarVaga)
     static let modoIndisponivel = String(localized: "O modo seleção ainda não está disponível. Publique no modo urgência.", bundle: bundlePublicarVaga)
+    static let voltar = String(localized: "Voltar", bundle: bundleApresentacao)
+    static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+    static let publicacaoContinua = String(localized: "A publicação continua e será concluída quando a conexão voltar.", bundle: bundleApresentacao)
 }
 
 public enum CampoPublicacaoVaga: String, CaseIterable, Sendable {
@@ -151,6 +154,12 @@ public final class PublicarVagaViewModel {
 
     public var camposBloqueados: Bool { publicacaoPendente != nil }
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
+    public var textoAoFechar: String {
+        (publicacaoPendente != nil || resultado != nil) ? TextosPublicarVaga.voltar : TextosPublicarVaga.cancelar
+    }
+    public var mostraAvisoPublicacaoContinua: Bool {
+        publicacaoPendente != nil && resultado == nil && !enviando
+    }
 
     public func carregarRecusaDaFila() async {
         recusaDaFila = (try? await fila.recusadas().first { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? nil
@@ -333,13 +342,15 @@ public struct TelaPublicarVaga: View {
     private let api: any ApiCliente
     private let sair: () -> Void
     private let aoPublicar: () -> Void
+    private let aoCancelar: (() -> Void)?
     @State private var mostrandoPerfilEstabelecimento = false
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
-    public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String, sair: @escaping () -> Void = {}, aoPublicar: @escaping () -> Void = {}) {
+    public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String, sair: @escaping () -> Void = {}, aoPublicar: @escaping () -> Void = {}, aoCancelar: (() -> Void)? = nil) {
         self.api = api
         self.sair = sair
         self.aoPublicar = aoPublicar
+        self.aoCancelar = aoCancelar
         _model = State(initialValue: PublicarVagaViewModel(api: api, fila: fila, estabelecimento: estabelecimento))
         _regiaoMapa = State(initialValue: MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: estabelecimento.ponto.latitude, longitude: estabelecimento.ponto.longitude), span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)))
         self.telefoneResponsavel = telefoneResponsavel
@@ -349,12 +360,26 @@ public struct TelaPublicarVaga: View {
         NavigationStack {
             formulario
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { mostrandoPerfilEstabelecimento = true } label: {
-                            Image(systemName: "building.2.crop.circle")
-                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    // Quem veio de Minhas vagas tem para onde voltar; no primeiro acesso, não.
+                    if let aoCancelar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(action: aoCancelar) {
+                                Text(verbatim: model.textoAoFechar)
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                                    .contentShape(Rectangle())
+                            }
+                            .disabled(model.enviando || model.restaurandoPublicacao)
+                            .accessibilityIdentifier("cancelar-publicacao")
                         }
-                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                    }
+                    if aoCancelar == nil {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { mostrandoPerfilEstabelecimento = true } label: {
+                                Image(systemName: "building.2.crop.circle")
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            }
+                            .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                        }
                     }
                 }
         }
@@ -515,6 +540,10 @@ public struct TelaPublicarVaga: View {
                         .accessibilityIdentifier("aviso-publicacao-recusada")
                 }
                 if let erro = model.mensagemErro { AvisoFrila(verbatim: erro, tom: .erro) }
+                if model.mostraAvisoPublicacaoContinua {
+                    AvisoFrila(verbatim: TextosPublicarVaga.publicacaoContinua, tom: .informativo)
+                        .accessibilityIdentifier("aviso-publicacao-continua")
+                }
                 BotaoPrimario(verbatim: model.camposBloqueados ? TextosPublicarVaga.tentarNovamente : TextosPublicarVaga.publicar, carregando: model.enviando) {
                     Task {
                         await model.publicar()
@@ -531,6 +560,7 @@ public struct TelaPublicarVaga: View {
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(Text(verbatim: TextosPublicarVaga.titulo))
+        .interactiveDismissDisabled(model.enviando || model.restaurandoPublicacao)
         .accessibilityIdentifier("publicar-vaga-formulario")
     }
 

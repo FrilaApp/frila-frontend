@@ -868,14 +868,37 @@ extension XCUIElement {
     ///
     /// Com o teclado recém-aberto, `typeText` devolve antes de o teclado entregar todas as teclas
     /// ao campo. O toque seguinte chegava com o e-mail pela metade: a Entrada respondia
-    /// "Informe um e-mail válido." e a tela do código nunca abria.
-    func digitarEEsperar(_ texto: String, file: StaticString = #filePath, line: UInt = #line) {
+    /// "Informe um e-mail válido." e a tela do código nunca abria. Para campos com máscara onde
+    /// a formatação intermediária varia durante a edição, informe `esperado` para validar
+    /// contenção do texto ou equivalência dos dígitos numéricos.
+    func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = 15, file: StaticString = #filePath, line: UInt = #line) {
         typeText(texto)
-        if (value as? String) == texto { return }
-        let completo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", texto), object: self)
+        let valorEsperado = esperado ?? (texto.hasSuffix("\n") ? String(texto.dropLast()) : texto)
+        let limite = Date().addingTimeInterval(timeout)
+        while Date() < limite {
+            if let atual = value as? String {
+                if let esperado {
+                    if atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber)) {
+                        return
+                    }
+                } else if atual == valorEsperado {
+                    return
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        if let atual = value as? String {
+            if let esperado {
+                if atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber)) {
+                    return
+                }
+            } else if atual == valorEsperado {
+                return
+            }
+        }
         XCTAssertEqual(
-            XCTWaiter.wait(for: [completo], timeout: 10), .completed,
-            "O campo deveria mostrar \"\(texto)\" depois da digitação", file: file, line: line
+            value as? String, valorEsperado,
+            "O campo deveria mostrar \"\(valorEsperado)\" depois da digitação", file: file, line: line
         )
     }
 }
