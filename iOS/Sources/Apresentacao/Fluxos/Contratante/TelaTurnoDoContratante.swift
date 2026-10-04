@@ -107,6 +107,7 @@ struct TelaTurnoDoContratante: View {
     let turnoID: UUID
     let api: (any ApiCliente)?
     @State private var cancelamento: CancelamentoViewModel?
+    @State private var suporteModel: SuporteTurnoViewModel?
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
@@ -144,6 +145,9 @@ struct TelaTurnoDoContratante: View {
         .refreshable { await viewModel.carregar() }
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
+        }
+        .sheet(item: $suporteModel) { model in
+            FolhaSuporteTurno(viewModel: model)
         }
         .accessibilityIdentifier("turno-do-contratante")
     }
@@ -183,7 +187,31 @@ struct TelaTurnoDoContratante: View {
 
         cartaoAvaliacao(turno)
 
-        rodapeSeguranca(turno)
+        rodapeAcoes(turno)
+    }
+
+    // MARK: - Ações de suporte e segurança (#21, #39)
+
+    @ViewBuilder
+    private func rodapeAcoes(_ turno: TurnoAcompanhado) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            botaoSuporte(turno)
+            rodapeSeguranca(turno)
+        }
+    }
+
+    private func botaoSuporte(_ turno: TurnoAcompanhado) -> some View {
+        Button {
+            suporteModel = SuporteTurnoViewModel(
+                dados: ContextoSuporteTurno(turnoAcompanhado: turno)
+            )
+        } label: {
+            Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier("botao-ajuda-turno")
+        .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
     }
 
     // MARK: - Avaliação (#22)

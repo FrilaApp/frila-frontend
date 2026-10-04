@@ -7,6 +7,7 @@ import Observation
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
     @State private var cancelamento: CancelamentoViewModel?
+    @State private var suporteModel: SuporteTurnoViewModel?
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
@@ -48,7 +49,7 @@ public struct TelaMeuTurno: View {
                 if viewModel.podeCancelar {
                     botaoCancelar
                 }
-                rodapeSeguranca
+                rodapeAcoes
             }
             .padding(FrilaEspaco.medio)
         }
@@ -62,6 +63,9 @@ public struct TelaMeuTurno: View {
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
+        .sheet(item: $suporteModel) { model in
+            FolhaSuporteTurno(viewModel: model)
+        }
         .accessibilityIdentifier("tela-meu-turno")
     }
 
@@ -72,7 +76,28 @@ public struct TelaMeuTurno: View {
         return { !viewModel.carregandoContato && viewModel.contato != nil }
     }
 
-    // MARK: - Ações de segurança (#39)
+    // MARK: - Ações de suporte e segurança (#21, #39)
+
+    private var rodapeAcoes: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            botaoSuporte
+            rodapeSeguranca
+        }
+    }
+
+    private var botaoSuporte: some View {
+        Button {
+            suporteModel = SuporteTurnoViewModel(
+                dados: ContextoSuporteTurno(turno: viewModel.turno)
+            )
+        } label: {
+            Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier("botao-ajuda-turno")
+        .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
+    }
 
     private var rodapeSeguranca: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {

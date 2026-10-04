@@ -1,0 +1,232 @@
+import Foundation
+@testable import FrilaApresentacao
+import FrilaDominio
+import Testing
+
+private final class CaixaCopia: @unchecked Sendable {
+    var texto: String = ""
+}
+
+@MainActor
+@Suite("Suporte no Turno: View Model e Montador de E-mail (#21)")
+struct SuporteTurnoTests {
+
+    private func criarContextoExemplo() -> ContextoSuporteTurno {
+        let turnoID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let agora = Date(timeIntervalSince1970: 1775000000)
+        let fim = agora.addingTimeInterval(4 * 3600)
+
+        return ContextoSuporteTurno(
+            turnoID: turnoID,
+            funcao: "Garçom",
+            contratante: "Bar do Lago",
+            profissional: "Lucas Silva",
+            inicio: agora,
+            fim: fim,
+            endereco: "CLS 405 Bloco C, Asa Sul, Brasília - DF"
+        )
+    }
+
+    private func criarTurno(
+        id: UUID = UUID(),
+        funcao: String = "Cozinheiro",
+        contraparte: String = "Restaurante Central",
+        local: String = "CLN 202 Bloco B, Asa Norte"
+    ) throws -> Turno {
+        let inicio = Date(timeIntervalSince1970: 1775000000)
+        let fim = inicio.addingTimeInterval(5 * 3600)
+        let vaga = VagaResumo(
+            id: UUID(),
+            funcao: funcao,
+            local: local,
+            regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: inicio, fim: fim),
+            valor: Dinheiro(centavos: 18000)
+        )
+        let reputacao = Reputacao(positivas: 10, total: 10, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+        let perfilContraparte = PerfilPublico(
+            id: UUID(),
+            tipo: .estabelecimento,
+            nome: contraparte,
+            reputacao: reputacao
+        )
+        return Turno(
+            id: id,
+            posicaoID: UUID(),
+            vaga: vaga,
+            contraparte: perfilContraparte,
+            contatoVisivelAte: fim,
+            verificacao: .pendente,
+            valorAcordado: Dinheiro(centavos: 18000),
+            podeAvaliar: false
+        )
+    }
+
+    @Test("Cenário 1: Contexto a partir de Turno (Profissional)")
+    func contextoDoProfissional() throws {
+        let turno = try criarTurno(
+            funcao: "Cozinheiro",
+            contraparte: "Restaurante Central",
+            local: "CLN 202 Bloco B, Asa Norte"
+        )
+
+        let contexto = ContextoSuporteTurno(turno: turno, nomeProfissional: "Lucas")
+
+        #expect(contexto.turnoID == turno.id)
+        #expect(contexto.funcao == "Cozinheiro")
+        #expect(contexto.contratante == "Restaurante Central")
+        #expect(contexto.profissional == "Lucas")
+        #expect(contexto.endereco == "CLN 202 Bloco B, Asa Norte")
+        #expect(!contexto.horarioFormatado.isEmpty)
+    }
+
+    @Test("Cenário 2: Contexto a partir de TurnoAcompanhado (Contratante)")
+    func contextoDoContratante() throws {
+        let turnoID = UUID(uuidString: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")!
+        let inicio = Date(timeIntervalSince1970: 1775000000)
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let vaga = VagaResumo(
+            id: UUID(),
+            funcao: "Recepcionista",
+            local: "Águas Claras Shopping",
+            regiaoAdministrativa: "Águas Claras",
+            periodo: try Periodo(inicio: inicio, fim: fim),
+            valor: Dinheiro(centavos: 15000)
+        )
+        let reputacao = Reputacao(positivas: 5, total: 5, taxaComparecimento: 1.0, turnosConsiderados: 5, turnosRealizados: 5)
+        let profissional = PerfilPublico(
+            id: UUID(),
+            tipo: .profissional,
+            nome: "Ana Santos",
+            reputacao: reputacao
+        )
+        let posicao = PosicaoNoPainel(
+            id: UUID(),
+            estado: .confirmada,
+            profissional: profissional,
+            turnoID: turnoID,
+            verificacao: .verificado,
+            emAtraso: false
+        )
+        let acompanhado = TurnoAcompanhado(vaga: vaga, posicao: posicao)
+
+        let contexto = ContextoSuporteTurno(turnoAcompanhado: acompanhado, nomeContratante: "Boutique Flores")
+
+        #expect(contexto.turnoID == turnoID)
+        #expect(contexto.funcao == "Recepcionista")
+        #expect(contexto.contratante == "Boutique Flores")
+        #expect(contexto.profissional == "Ana Santos")
+        #expect(contexto.endereco == "Águas Claras Shopping")
+    }
+
+    @Test("Cenário 3: Assunto estruturado com [Turno <uuid>]")
+    func assuntoEmailPadronizado() {
+        let contexto = criarContextoExemplo()
+        let vm = SuporteTurnoViewModel(dados: contexto)
+
+        let assuntoEsperado = "[Turno 11111111-2222-3333-4444-555555555555] Garçom"
+        #expect(vm.assuntoEmail == assuntoEsperado)
+        #expect(vm.assuntoEmail.hasPrefix("[Turno 11111111-2222-3333-4444-555555555555]"))
+    }
+
+    @Test("Cenário 4: Corpo do e-mail estruturado com dados completos e relato")
+    func corpoEmailEstruturado() {
+        let contexto = criarContextoExemplo()
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            motivoInicial: .atrasoOuImprevisto,
+            relatoInicial: "Houve um acidente na via e vou atrasar 20 minutos."
+        )
+
+        let corpo = vm.corpoEmail
+
+        #expect(corpo.contains("11111111-2222-3333-4444-555555555555"))
+        #expect(corpo.contains("Função: Garçom"))
+        #expect(corpo.contains("Contratante: Bar do Lago"))
+        #expect(corpo.contains("Profissional: Lucas Silva"))
+        #expect(corpo.contains("Local: CLS 405 Bloco C, Asa Sul, Brasília - DF"))
+        #expect(corpo.contains("Atraso ou imprevisto no comparecimento"))
+        #expect(corpo.contains("Houve um acidente na via e vou atrasar 20 minutos."))
+    }
+
+    @Test("Cenário 5: Risco à segurança ativa alerta e números 190 e 180")
+    func riscoSegurancaAtivaAlerta() {
+        let contexto = criarContextoExemplo()
+        let vm = SuporteTurnoViewModel(dados: contexto, motivoInicial: .problemaNoLocal)
+
+        #expect(!vm.ehRiscoSeguranca)
+
+        vm.motivo = .riscoSeguranca
+        #expect(vm.ehRiscoSeguranca)
+
+        vm.motivo = .outro
+        #expect(!vm.ehRiscoSeguranca)
+    }
+
+    @Test("Cenário 6: URL mailto de fallback contém destinatário, assunto e corpo codificados")
+    func urlMailtoFallback() {
+        let contexto = criarContextoExemplo()
+        let vm = SuporteTurnoViewModel(dados: contexto, emailDestino: "suportefrila@gmail.com")
+
+        guard let url = vm.urlMailto else {
+            Issue.record("A URL mailto deve ser gerada com sucesso")
+            return
+        }
+
+        #expect(url.scheme == "mailto")
+        #expect(url.path == "suportefrila@gmail.com")
+
+        let componentes = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let assuntoParam = componentes?.queryItems?.first(where: { $0.name == "subject" })?.value
+        let corpoParam = componentes?.queryItems?.first(where: { $0.name == "body" })?.value
+
+        #expect(assuntoParam == vm.assuntoEmail)
+        #expect(corpoParam == vm.corpoEmail)
+    }
+
+    @Test("Cenário 7: Copiar dados para a área de transferência com sucesso")
+    func copiarDadosSuporte() {
+        let contexto = criarContextoExemplo()
+        let caixa = CaixaCopia()
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            copiador: { texto in caixa.texto = texto }
+        )
+
+        #expect(!vm.copiadoComSucesso)
+        vm.copiarDadosParaTransferencia()
+
+        #expect(vm.copiadoComSucesso)
+        #expect(caixa.texto.contains("Assunto: [Turno 11111111-2222-3333-4444-555555555555] Garçom"))
+        #expect(caixa.texto.contains("Para: suportefrila@gmail.com"))
+        #expect(caixa.texto.contains(contexto.endereco))
+    }
+
+    @Test("Cenário 8: Fallback ao abrir e-mail nativo vs mailto")
+    func fallbackAberturaEmail() {
+        let contexto = criarContextoExemplo()
+
+        // 8a: Com e-mail nativo configurado
+        let vmNativo = SuporteTurnoViewModel(
+            dados: contexto,
+            verificadorPodeEnviarEmail: { true }
+        )
+        #expect(vmNativo.podeEnviarEmailNativo)
+        #expect(!vmNativo.mostrandoCompositorNativo)
+
+        vmNativo.abrirEmail()
+        #expect(vmNativo.mostrandoCompositorNativo)
+
+        // 8b: Sem e-mail nativo -> chama abridor de URL (mailto)
+        var urlAberta: URL?
+        let vmSemNativo = SuporteTurnoViewModel(
+            dados: contexto,
+            verificadorPodeEnviarEmail: { false }
+        )
+        #expect(!vmSemNativo.podeEnviarEmailNativo)
+
+        vmSemNativo.abrirEmail(comAbridorURL: { url in urlAberta = url })
+        #expect(!vmSemNativo.mostrandoCompositorNativo)
+        #expect(urlAberta?.scheme == "mailto")
+    }
+}
