@@ -10,6 +10,13 @@ final class PresencaUITests: XCTestCase {
         app.launch()
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         XCTAssertTrue(primeira.waitForExistence(timeout: 10))
+        if !primeira.isHittable {
+            let tocavel = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "isHittable == true"),
+                object: primeira
+            )
+            _ = XCTWaiter.wait(for: [tocavel], timeout: 5)
+        }
         primeira.tap()
         XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
         let candidatar = app.buttons["candidatar"]

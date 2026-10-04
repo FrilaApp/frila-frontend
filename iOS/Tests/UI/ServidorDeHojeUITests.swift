@@ -96,8 +96,8 @@ final class ServidorDeHojeUITests: XCTestCase {
         tocar(app.navigationBars["Avaliar turno"].buttons.firstMatch)
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
         let statusAvaliacao = app.staticTexts["Turno avaliado · Resposta: Sim"]
-        if !statusAvaliacao.isHittable { app.swipeUp() }
         XCTAssertTrue(statusAvaliacao.waitForExistence(timeout: 10))
+        if !statusAvaliacao.isHittable { app.swipeUp() }
 
         // Voltar para "Meus turnos"
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
@@ -110,8 +110,8 @@ final class ServidorDeHojeUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
         let statusReaberto = app.staticTexts["Turno avaliado · Resposta: Sim"]
-        if !statusReaberto.isHittable { app.swipeUp() }
         XCTAssertTrue(statusReaberto.waitForExistence(timeout: 10))
+        if !statusReaberto.isHittable { app.swipeUp() }
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
         XCTAssertTrue(app.buttons["Ver avaliação"].exists)
     }
