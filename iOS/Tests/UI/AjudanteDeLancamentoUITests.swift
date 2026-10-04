@@ -19,6 +19,7 @@ public final class AjudanteDeLancamentoUITests: NSObject, XCTestObservation {
     @MainActor
     public static func preparar(_ app: XCUIApplication) {
         if !app.launchArguments.contains("-FRILA_MEDICAO") &&
+           !app.launchArguments.contains("-UIAccessibilityReduceMotionEnabled") &&
            !app.launchArguments.contains(argumentoSemAnimacoes) {
             app.launchArguments.append(argumentoSemAnimacoes)
         }
@@ -114,6 +115,13 @@ final class AjudanteDeLancamentoUITestsInternos: XCTestCase {
     func testPreservaAnimacoesComArgumentoDeMedicao() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_MEDICAO"]
+        AjudanteDeLancamentoUITests.preparar(app)
+        XCTAssertFalse(app.launchArguments.contains("-FRILA_SEM_ANIMACOES"))
+    }
+
+    func testPreservaAnimacoesComArgumentoDeReduzirMovimento() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success", "-UIAccessibilityReduceMotionEnabled", "YES"]
         AjudanteDeLancamentoUITests.preparar(app)
         XCTAssertFalse(app.launchArguments.contains("-FRILA_SEM_ANIMACOES"))
     }

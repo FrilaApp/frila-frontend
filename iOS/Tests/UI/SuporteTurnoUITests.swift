@@ -64,6 +64,30 @@ final class SuporteTurnoUITests: XCTestCase {
         XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5), "Botão de fechar folha deve estar acessível")
     }
 
+    /// Critério 4 do #71: Com Reduzir Movimento ligado, nenhuma animação de deslocamento.
+    func testFolhaDeSuporteComReduzirMovimentoNaoAnimaDeslocamento() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ABRIR_SUPORTE_TURNO",
+            "-FRILA_SCENARIO", "success",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-UIAccessibilityReduceMotionEnabled", "YES"
+        ]
+        app.launch()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 10), "A folha de suporte deve abrir")
+        let iconeSemMovimento = app.descendants(matching: .any)["icone-prazo-sem-movimento"]
+        XCTAssertTrue(iconeSemMovimento.waitForExistence(timeout: 5), "A folha deve reconhecer a preferência de Reduzir Movimento")
+
+        let opcaoRisco = app.descendants(matching: .any)["opcao-motivo-risco_seguranca"]
+        XCTAssertTrue(opcaoRisco.waitForExistence(timeout: 5))
+        opcaoRisco.tap()
+
+        let avisoSeguranca = app.descendants(matching: .any)["aviso-seguranca-suporte"]
+        XCTAssertTrue(avisoSeguranca.waitForExistence(timeout: 5), "Aviso de segurança aparece imediatamente sem animação de deslocamento")
+    }
+
     func testBotaoAjudaTurnoEmTurnoDoContratante() {
         let app = XCUIApplication()
         let turnoID = "82000000-0000-0000-0000-000000000001"
