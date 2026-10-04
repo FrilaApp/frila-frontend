@@ -84,7 +84,6 @@ public struct TelaExclusaoDeConta: View {
         }
         .background(FrilaCor.fundo)
         .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium])
-        .accessibilityIdentifier("confirmacao-exclusao")
     }
 
     private var avisoPrincipal: some View {

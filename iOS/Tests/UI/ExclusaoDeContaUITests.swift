@@ -178,11 +178,22 @@ final class ExclusaoDeContaUITests: XCTestCase {
         rolarAte(irParaExclusao, em: app)
         irParaExclusao.tap()
         XCTAssertTrue(app.descendants(matching: .any)["tela-exclusao-de-conta"].waitForExistence(timeout: 5))
+        anexar(app, "ExclusaoEmAX5Topo")
+        // Captura do item de consequência em AX5: o ícone vai acima do texto, sem invadi-lo.
+        let consequencia = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Os turnos futuros'")).firstMatch
+        let janela = app.windows.firstMatch.frame
+        for _ in 0..<10 where !(consequencia.exists && consequencia.frame.minY > janela.minY && consequencia.frame.minY < janela.midY) {
+            app.swipeUp()
+        }
+        anexar(app, "ExclusaoEmAX5Consequencias")
 
+        // Em AX5 o elemento do Toggle é quase todo rótulo, e o toque no rótulo não alterna: vai no interruptor.
         let toggle = app.switches["toggle-confirmar-consequencias"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
-        rolarAte(toggle, em: app)
-        toggle.tap()
+        let interruptor = toggle.switches.firstMatch
+        rolarAte(interruptor, em: app)
+        anexar(app, "ExclusaoEmAX5Rolada")
+        interruptor.tap()
 
         let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
         let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: botaoExcluir)
@@ -193,10 +204,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
         let confirmar = app.buttons["botao-confirmar-exclusao-dialogo"]
         XCTAssertTrue(cancelar.waitForExistence(timeout: 5), "A confirmação deve ter o Cancelar")
-        let anexo = XCTAttachment(screenshot: app.screenshot())
-        anexo.name = "ConfirmacaoDeExclusaoEmAX5"
-        anexo.lifetime = .keepAlways
-        add(anexo)
+        anexar(app, "ConfirmacaoDeExclusaoEmAX5")
         XCTAssertTrue(cancelar.isHittable, "Em AX5, o Cancelar fica tocável sem rolar")
         XCTAssertTrue(confirmar.isHittable, "Em AX5, o Confirmar fica tocável sem rolar")
 
@@ -210,6 +218,13 @@ final class ExclusaoDeContaUITests: XCTestCase {
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication) {
         for _ in 0..<10 where !elemento.isHittable { app.swipeUp() }
         XCTAssertTrue(elemento.isHittable, "\(elemento) não ficou tocável")
+    }
+
+    private func anexar(_ app: XCUIApplication, _ nome: String) {
+        let anexo = XCTAttachment(screenshot: app.screenshot())
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
     }
 
     private func confirmarExclusaoNoDialogo(no app: XCUIApplication) {
