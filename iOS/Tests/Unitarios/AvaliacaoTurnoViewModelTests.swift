@@ -463,6 +463,50 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(try await fila.pendentes() == [primeira])
     }
 
+    @Test("Recusa definitiva libera o turno e a avaliação aberta para nova tentativa", arguments: [CodigoErroAPI.semPermissao, .contaSuspensa, .avaliacaoIndisponivel, .campoObrigatorio])
+    @MainActor
+    func recusaDefinitivaNoReenvio(codigo: CodigoErroAPI) async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let autor = try await api.minhaConta().id
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
+        let tela = MeuTurnoViewModel(turno: turno, api: api, contaID: autor, fila: fila,
+                                    armazenamentoAvaliacoes: armazenamento, relogio: RelogioSimulado(agora))
+        let avaliacao = try #require(tela.criarAvaliacaoViewModel())
+        api.erroAvaliar = ErroDaApi(codigo: .semRede)
+        avaliacao.resposta = false
+        #expect(await avaliacao.salvar())
+        #expect(tela.jaAvaliado)
+        #expect(avaliacao.enfileiradoOffline)
+
+        api.erroAvaliar = ErroDaApi(codigo: codigo)
+        await SincronizadorAcoes(fila: fila, api: api, avaliacaoRecusada: { acao in
+            armazenamento.remover(para: acao.turnoID!, contaID: acao.contaID!)
+        }).sincronizar()
+        await tela.carregarRecusasDaFila()
+        await avaliacao.carregar()
+        #expect(tela.podeAvaliar)
+        #expect(!tela.jaAvaliado)
+        #expect(tela.respostaAvaliacao == nil)
+        #expect(!avaliacao.jaAvaliado)
+        #expect(!avaliacao.enfileiradoOffline)
+        #expect(avaliacao.resposta == nil)
+        #expect(!avaliacao.sucesso)
+        #expect(avaliacao.mensagemDeSucesso == nil)
+        #expect(armazenamento.resposta(para: turno.id, contaID: autor) == nil)
+        #expect(tela.recusasDaFila.first?.codigo == codigo)
+
+        // Uma nova resposta aceita não é apagada pelo recibo anterior.
+        api.erroAvaliar = nil
+        avaliacao.resposta = true
+        #expect(await avaliacao.salvar())
+        let reaberta = try #require(tela.criarAvaliacaoViewModel())
+        await reaberta.carregar()
+        #expect(reaberta.jaAvaliado)
+        #expect(reaberta.resposta == true)
+    }
+
     @Test("409 no reenvio remove a pendente e reabre em estado neutro")
     @MainActor
     func conflitoNoReenvio() async throws {

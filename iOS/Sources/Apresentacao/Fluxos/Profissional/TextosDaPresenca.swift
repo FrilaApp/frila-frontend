@@ -82,7 +82,9 @@ enum TextosDaFila {
         case .republicacaoVaga:
             String(localized: "A republicação guardada neste aparelho não foi registrada. Esse envio não será repetido.", bundle: bundleApresentacao)
         case .avaliacao:
-            "" // O tratamento da avaliação permanece no fluxo existente.
+            String(localized: "A avaliação guardada neste aparelho não foi registrada. Você pode tentar novamente quando a avaliação estiver disponível.", bundle: bundleApresentacao)
+        case .cancelamentoPosicao, .cancelamentoVaga:
+            "" // O cancelamento trata o desfecho no próprio fluxo.
         }
     }
 }

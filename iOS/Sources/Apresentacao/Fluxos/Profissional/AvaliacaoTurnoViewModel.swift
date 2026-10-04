@@ -10,6 +10,7 @@ public protocol ArmazenamentoAvaliacoes: Sendable {
     func salvar(resposta: Bool, para turnoID: UUID, contaID: UUID)
     func jaRegistrada(para turnoID: UUID, contaID: UUID) -> Bool
     func registrarSemResposta(para turnoID: UUID, contaID: UUID)
+    func remover(para turnoID: UUID, contaID: UUID)
     func limpar()
 }
 
@@ -57,6 +58,12 @@ public final class UserDefaultsArmazenamentoAvaliacoes: ArmazenamentoAvaliacoes,
         defaults.set(Date(), forKey: chave + "_instante")
     }
 
+    public func remover(para turnoID: UUID, contaID: UUID) {
+        let chave = prefixo + contaID.uuidString + "_" + turnoID.uuidString
+        defaults.removeObject(forKey: chave)
+        defaults.removeObject(forKey: chave + "_instante")
+    }
+
     public func limpar() {
         for chave in defaults.dictionaryRepresentation().keys where chave.hasPrefix(prefixo) {
             defaults.removeObject(forKey: chave)
@@ -99,6 +106,14 @@ public final class ArmazenamentoAvaliacoesEmMemoria: ArmazenamentoAvaliacoes, @u
             valores[contaID]?[turnoID] = nil
             semResposta[contaID, default: []].insert(turnoID)
             instantes[contaID, default: [:]][turnoID] = Date()
+        }
+    }
+
+    public func remover(para turnoID: UUID, contaID: UUID) {
+        trava.withLock {
+            valores[contaID]?[turnoID] = nil
+            instantes[contaID]?[turnoID] = nil
+            semResposta[contaID]?.remove(turnoID)
         }
     }
 
@@ -198,6 +213,7 @@ public final class AvaliacaoTurnoViewModel {
         }
         // A consulta ocorre também com resposta local: pendente não é confirmação do servidor.
         let pendentes = try? await fila?.pendentes()
+        let estavaEnfileirado = enfileiradoOffline
         enfileiradoOffline = false
         if armazenamento.podeUsarReserva(para: turno, contaID: contaID),
            armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
@@ -220,6 +236,12 @@ public final class AvaliacaoTurnoViewModel {
                   let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
             respostaAtual = gravada
             jaAvaliado = true
+            mensagemDeSucesso = nil
+        } else if !armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
+                  estavaEnfileirado || !sucesso {
+            if estavaEnfileirado { respostaAtual = nil }
+            jaAvaliado = turno?.podeAvaliar == false
+            sucesso = false
             mensagemDeSucesso = nil
         }
     }

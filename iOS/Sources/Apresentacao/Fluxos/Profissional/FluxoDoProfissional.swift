@@ -166,7 +166,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .resultado(vaga, resultado):
                             TelaResultadoDaCandidatura(
                                 vaga: vaga, resultado: resultado, api: api, verCandidaturas: { roteador.abrirCandidaturas() },
-                                voltarParaLista: voltarParaLista
+                                sair: sair, voltarParaLista: voltarParaLista
                             )
                         case let .meuTurno(turno):
                             destinoDoMeuTurno(turno)
@@ -238,6 +238,11 @@ public struct FluxoDoProfissional<Barra: View>: View {
             }
             .tag(AbaDoProfissional.candidaturas)
         }
+        .environment(feed.bloqueios)
+        .onChange(of: feed.bloqueios.alvos) {
+            // O servidor também retirou vagas: reinicia os offsets para não pular itens.
+            Task { await feed.atualizar() }
+        }
         .onChange(of: roteador.avisosAbertos) { atualizarListas() }
         .onChange(of: caminhoCandidaturas) { _, caminho in
             // De volta à lista: a candidatura retirada no detalhe aparece como retirada.
@@ -266,7 +271,7 @@ extension FluxoDoProfissional {
         contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
     }
 
-    /// Presença ou avaliação aceita atualiza Meus turnos, que é de onde a tela reabre.
+    /// Presença, avaliação ou cancelamento aceito atualiza Meus turnos, que é de onde a tela reabre.
     private func destinoDoMeuTurno(_ turno: Turno) -> some View {
         let turnos = turnosViewModel
         return DestinoDoMeuTurno(turno: turno, api: api, contaID: contaID, relogio: relogio, localizacao: localizacao, fila: fila) {
@@ -367,7 +372,10 @@ private struct DestinoDoMeuTurno: View {
         let presenca = localizacao.map {
             PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
         }
-        _viewModel = State(initialValue: MeuTurnoViewModel(turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca, aoAvaliar: aoRegistrar))
+        _viewModel = State(initialValue: MeuTurnoViewModel(
+            turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca,
+            aoAvaliar: aoRegistrar, aoCancelar: aoRegistrar
+        ))
     }
 
     var body: some View {

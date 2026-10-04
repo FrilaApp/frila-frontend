@@ -28,7 +28,6 @@ public enum TextosContaSuspensa {
     public static let contaReativada = String(localized: "Sua conta foi reativada.", bundle: bundleApresentacao)
     public static let secaoAcoes = String(localized: "Outras ações", bundle: bundleApresentacao)
     public static let exportar = String(localized: "Exportar meus dados", bundle: bundleApresentacao)
-    public static let todoExportacao = String(localized: "Disponível no cartão #219", bundle: bundleApresentacao)
     public static let excluir = String(localized: "Excluir conta", bundle: bundleApresentacao)
     public static let sair = String(localized: "Sair da conta", bundle: bundleApresentacao)
     public static let erroSemRede = String(localized: "Sem conexão. Verifique sua internet e tente novamente.", bundle: bundleApresentacao)

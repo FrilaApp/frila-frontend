@@ -8,6 +8,26 @@ import Testing
 @Suite("Conta Suspensa: View Model (#41)")
 struct ContaSuspensaViewModelTests {
 
+    @Test("Suspensão durante a candidatura permite enviar a contestação existente")
+    func suspensaoNaCandidaturaPermiteContestar() async throws {
+        let api = ApiClienteEmMemoria(cenario: .inelegivelSuspenso)
+        do {
+            _ = try await api.candidatar(vagaID: UUID())
+            Issue.record("A candidatura deveria recusar a conta suspensa")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .inelegivel)
+        }
+        let vm = ContaSuspensaViewModel(api: api)
+        await vm.carregar()
+        #expect(vm.situacao?.estado == .suspensa)
+        #expect(!vm.contaReativada)
+        vm.abrirFormularioContestacao()
+        vm.relato = "Solicito revisão da suspensão da minha conta"
+        await vm.enviarContestacao()
+        #expect(vm.protocolo != nil)
+        #expect(vm.mensagemErro == nil)
+    }
+
     @Test("Cenário 1: Conta suspensa carrega motivo, data e estado de contestação")
     func contaSuspensaCarregaDadosIniciais() async throws {
         let api = ApiClienteEmMemoria(cenario: .contaSuspensa)

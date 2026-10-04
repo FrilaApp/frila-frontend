@@ -34,6 +34,10 @@ public enum TipoAcaoPendente: String, Codable, CaseIterable, Sendable {
     case avaliacao
     case publicacaoVaga
     case republicacaoVaga
+    /// `cancelar_posicao` e `cancelar_vaga` entram na fila sem rede (contrato 0.2.17, RN12). O
+    /// motivo vai junto; o id da posição ou da vaga fica em `alvoID`.
+    case cancelamentoPosicao
+    case cancelamentoVaga
 }
 
 public struct RepublicacaoVaga: Codable, Equatable, Sendable {
@@ -58,6 +62,10 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
     public let contaID: UUID?
     public let publicacao: PublicacaoVaga?
     public let republicacao: RepublicacaoVaga?
+    /// A posição (`cancelamentoPosicao`) ou a vaga (`cancelamentoVaga`) que o cancelamento mira.
+    public let alvoID: UUID?
+    /// O motivo do cancelamento, já no texto que vai ao servidor (pelo menos 3 caracteres).
+    public let motivo: String?
 
     public init(
         id: UUID = UUID(),
@@ -69,7 +77,9 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         distanciaMetros: Int? = nil,
         resposta: Bool? = nil,
         publicacao: PublicacaoVaga? = nil,
-        republicacao: RepublicacaoVaga? = nil
+        republicacao: RepublicacaoVaga? = nil,
+        alvoID: UUID? = nil,
+        motivo: String? = nil
     ) {
         self.id = id
         self.tipo = tipo
@@ -81,6 +91,8 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         self.resposta = resposta
         self.publicacao = publicacao
         self.republicacao = republicacao
+        self.alvoID = alvoID
+        self.motivo = motivo
     }
 }
 

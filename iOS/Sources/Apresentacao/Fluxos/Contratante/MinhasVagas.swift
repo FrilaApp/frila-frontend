@@ -225,6 +225,7 @@ public final class MinhasVagasViewModel {
 }
 
 public struct TelaMinhasVagas: View {
+    @State private var bloqueios = BloqueiosDaSessao()
     @State private var viewModel: MinhasVagasViewModel
     @State private var acompanhamento: AcompanhamentoViewModel
     @State private var roteador: RoteadorDoContratante
@@ -243,7 +244,7 @@ public struct TelaMinhasVagas: View {
     ) {
         _viewModel = State(initialValue: viewModel)
         _acompanhamento = State(initialValue: AcompanhamentoViewModel(
-            api: api, estabelecimentoID: viewModel.estabelecimentoID, aoMudar: { await viewModel.carregar() }
+            api: api, estabelecimentoID: viewModel.estabelecimentoID, fila: fila, aoMudar: { await viewModel.carregar() }
         ))
         _roteador = State(initialValue: roteador ?? RoteadorDoContratante())
         self.api = api
@@ -359,6 +360,7 @@ public struct TelaMinhasVagas: View {
             }
         }
         .modifier(ConfirmacaoDeReabertura(viewModel: acompanhamento))
+        .environment(bloqueios)
         .task { await carregar() }
         // O aviso do push diz que algo mudou na casa: o painel é relido para a tela que ele abre.
         .onChange(of: roteador.avisosAbertos) { Task { await carregar() } }
@@ -405,6 +407,7 @@ public struct TelaMinhasVagas: View {
 
     private func nomesConfirmados(_ vaga: VagaNoPainel) -> String {
         vaga.posicoes.compactMap { posicao in
+            if let perfil = posicao.profissional, bloqueios.contem(perfil) { return nil }
             guard posicao.estado == .confirmada || posicao.estado == .cumprida else { return nil }
             return posicao.profissional?.nome
         }.joined(separator: ", ")
@@ -431,6 +434,7 @@ private struct DestinoDaVagaDoContratante: View {
                 api: api,
                 fila: fila,
                 confirmado: viewModel.confirmadas(vaga),
+                acompanhamento: acompanhamento,
                 aoRepublicar: {
                     await viewModel.carregar()
                     await acompanhamento.carregar()
@@ -467,10 +471,13 @@ private struct DestinoDaVagaDoContratante: View {
 }
 
 private struct TelaDetalheVagaContratante: View {
+    @Environment(BloqueiosDaSessao.self) private var bloqueios
     let vaga: VagaNoPainel
     let api: any ApiCliente
     let fila: (any FilaDeAcoes)?
     let confirmado: Int
+    /// Quem cancela a vaga ou uma posição (#20); `nil` nas prévias.
+    var acompanhamento: AcompanhamentoViewModel? = nil
     var aoRepublicar: (@Sendable () async -> Void)? = nil
     /// Relê o painel depois de uma escolha e devolve a vaga como ficou; `nil` se a leitura falhou (#10).
     var relerVaga: @MainActor () async -> VagaNoPainel? = { nil }
@@ -480,6 +487,7 @@ private struct TelaDetalheVagaContratante: View {
     @State private var perfilSelecionado: PerfilPublico?
     @State private var vagaParaRepublicar: VagaNoPainel?
     @State private var republicacaoConcluida = false
+    @State private var cancelamento: CancelamentoViewModel?
     private let formatador = FormatadorFrila()
 
     var body: some View {
@@ -488,6 +496,9 @@ private struct TelaDetalheVagaContratante: View {
                 if republicacaoConcluida {
                     AvisoFrila(verbatim: TextosRepublicarVaga.sucesso, tom: .informativo)
                         .accessibilityIdentifier("aviso-sucesso-republicacao")
+                }
+                if let acompanhamento {
+                    AvisosDoAcompanhamento(viewModel: acompanhamento)
                 }
                 Text(verbatim: vaga.vaga.funcao).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -516,13 +527,21 @@ private struct TelaDetalheVagaContratante: View {
                     .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
                 }
 
+                if let acompanhamento, acompanhamento.podeCancelarVaga(vaga) {
+                    BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloVaga) { cancelamento = acompanhamento.criarCancelamento(da: vaga) }
+                        .accessibilityIdentifier("cancelar-vaga-\(vaga.vaga.id)")
+                }
+
                 if vaga.modo == .selecao {
                     SecaoDeCandidatos(vaga: vaga, api: api, relerVaga: relerVaga) { perfilSelecionado = $0 }
                 }
 
                 Text(verbatim: TextosMinhasVagas.posicoes).font(.title2.bold()).accessibilityAddTraits(.isHeader)
                 ForEach(vaga.posicoes) { posicao in
-                    cartaoPosicao(posicao)
+                    if let perfil = posicao.profissional, bloqueios.contem(perfil) {
+                        Text(verbatim: TextosDaSeguranca.indisponivel)
+                            .accessibilityIdentifier("posicao-bloqueada-\(posicao.id)")
+                    } else { cartaoPosicao(posicao) }
                 }
             }
             .padding(FrilaEspaco.medio)
@@ -543,10 +562,13 @@ private struct TelaDetalheVagaContratante: View {
                 )
             }
         }
+        .sheet(item: $cancelamento) { folha in
+            FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
+        }
         .navigationTitle(Text(verbatim: TextosMinhasVagas.detalheTitulo))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $perfilSelecionado) { perfil in
-            TelaPerfilPublicoContratante(perfil: perfil)
+            TelaPerfilPublico(perfil: perfil, api: api, bloqueios: bloqueios)
         }
         .accessibilityIdentifier("detalhe-vaga-contratante")
     }
@@ -604,6 +626,11 @@ private struct TelaDetalheVagaContratante: View {
                     .disabled(carregandoContato.contains(posicao.id))
                     .accessibilityIdentifier("ver-contato-\(posicao.id)")
                 }
+                let turno = TurnoAcompanhado(vaga: vaga.vaga, posicao: posicao)
+                if let acompanhamento, acompanhamento.podeCancelar(turno) {
+                    BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = acompanhamento.criarCancelamento(de: turno) }
+                        .accessibilityIdentifier("cancelar-posicao-\(posicao.id)")
+                }
             } else if posicao.estado == .aberta {
                 Text(verbatim: TextosMinhasVagas.posicaoAberta).font(.headline)
             } else if posicao.estado == .cancelada, let nome = posicao.profissional?.nome {
@@ -652,33 +679,5 @@ private struct TelaDetalheVagaContratante: View {
 
     private func periodo(_ periodo: Periodo) -> String {
         textoPeriodo(periodo)
-    }
-}
-
-private struct TelaPerfilPublicoContratante: View {
-    let perfil: PerfilPublico
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(verbatim: perfil.nome).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
-                if !perfil.funcoes.isEmpty {
-                    Text(verbatim: perfil.funcoes.joined(separator: ", "))
-                }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosMinhasVagas.perfilTitulo).font(.headline)
-                    SeloReputacao(perfil.reputacao)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
-                .cartaoFrila()
-                .accessibilityElement(children: .combine)
-            }
-            .padding(FrilaEspaco.medio)
-        }
-        .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle(Text(verbatim: TextosMinhasVagas.perfilTitulo))
-        .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("perfil-publico-contratante")
     }
 }

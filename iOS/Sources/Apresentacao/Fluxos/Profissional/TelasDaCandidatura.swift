@@ -102,18 +102,22 @@ public struct TelaResultadoDaCandidatura: View {
     private let api: (any ApiCliente)?
     private let verCandidaturas: (() -> Void)?
     private let voltarParaLista: () -> Void
+    private let sair: () -> Void
+    @State private var mostrarContestacao = false
+    @State private var contestacaoModel: ContaSuspensaViewModel?
 
     /// `api` e `verCandidaturas` servem à candidatura pendente da vaga de seleção (#10): a retirada
     /// e o caminho para a aba em que ela fica.
     public init(
         vaga: Vaga, resultado: ResultadoDaCandidatura, api: (any ApiCliente)? = nil, verCandidaturas: (() -> Void)? = nil,
-        voltarParaLista: @escaping () -> Void
+        sair: @escaping () -> Void = {}, voltarParaLista: @escaping () -> Void
     ) {
         self.vaga = vaga
         self.resultado = resultado
         self.api = api
         self.verCandidaturas = verCandidaturas
         self.voltarParaLista = voltarParaLista
+        self.sair = sair
     }
 
     public var body: some View {
@@ -137,6 +141,11 @@ public struct TelaResultadoDaCandidatura: View {
             }
         }
         .onAppear { AccessibilityNotification.Announcement(titulo).post() }
+        .sheet(isPresented: $mostrarContestacao) {
+            if let api, let contestacaoModel {
+                TelaContaSuspensa(viewModel: contestacaoModel, api: api)
+            }
+        }
     }
 
     @ViewBuilder
@@ -176,12 +185,20 @@ public struct TelaResultadoDaCandidatura: View {
             voltar
         case .contaSuspensa:
             mensagem(Textos.suspensaTitulo, Textos.suspensaMensagem, id: "resultado-conta-suspensa")
-            // Caminho para contestar: stub desabilitado até o cartão de contestação (S2 #41).
-            BotaoSecundario(verbatim: Textos.contestar) {}
-                .disabled(true)
-                .accessibilityHint(Textos.contestarEmBreve)
+            if let api {
+                BotaoSecundario(verbatim: Textos.contestar) {
+                    contestacaoModel = ContaSuspensaViewModel(
+                        api: api,
+                        aoReativar: {
+                            mostrarContestacao = false
+                            voltarParaLista()
+                        },
+                        sair: sair
+                    )
+                    mostrarContestacao = true
+                }
                 .accessibilityIdentifier("contestar")
-            Text(verbatim: Textos.contestarEmBreve).font(.footnote).foregroundStyle(FrilaCor.textoSecundario)
+            }
             voltar
         case .naoEncontrada, .falha, .outraEmAndamento:
             // Esses ficam no detalhe; se chegarem aqui, a pessoa volta para a lista.

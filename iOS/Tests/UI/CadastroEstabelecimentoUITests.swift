@@ -2,10 +2,16 @@ import XCTest
 
 @MainActor
 final class CadastroEstabelecimentoUITests: XCTestCase {
-    func testCadastroSegueParaPublicarVaga() {
+    private func abrir(argumentos: [String] = ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
+        app.launchArguments += argumentos
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
+        return app
+    }
+
+    func testCadastroSegueParaPublicarVaga() {
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Responsável"].exists)
@@ -25,9 +31,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
@@ -90,9 +94,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testArrastarMapaLongeDoMarcadorNaoMudaPonto() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
@@ -138,9 +140,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testToqueNoMarcadorNaoMudaPonto() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
@@ -150,9 +150,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testMarcadorForaDoMapaNaoFicaTocavelSobreOFormulario() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
@@ -179,14 +177,12 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testPublicarVagaEmAccessibilityXXXLControlesDentroDaTelaETocaveis() {
-        let app = XCUIApplication()
-        app.launchArguments += [
+        let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
             "-UIPreferredContentSizeCategoryName",
             "UICTContentSizeCategoryAccessibilityXXXL"
-        ]
-        app.launch()
+        ])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         app.buttons["continuar-cadastro"].tap()
@@ -196,19 +192,18 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         let botoesSim = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Sim" }
         XCTAssertEqual(botoesSim.count, 3, "Devem existir 3 seletores com botão Sim (refeição, transporte, material)")
+        let botoesNao = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Não" }
+        XCTAssertEqual(botoesNao.count, 3, "Devem existir 3 seletores com botão Não (refeição, transporte, material)")
 
-        for (indice, sim) in botoesSim.enumerated() {
+        for indice in 0..<3 {
+            let sim = botoesSim[indice]
+            let nao = botoesNao[indice]
             trazerParaATela(sim, em: app)
             let quadroSim = sim.frame
             XCTAssertLessThanOrEqual(quadroSim.maxX, larguraTela, "Botão Sim[\(indice)] extrapolou a tela: maxX=\(quadroSim.maxX) > largura=\(larguraTela)")
             XCTAssertGreaterThanOrEqual(quadroSim.minX, 0, "Botão Sim[\(indice)] fora da tela à esquerda: minX=\(quadroSim.minX)")
             XCTAssertTrue(sim.isHittable, "Botão Sim[\(indice)] deve ser tocável")
-        }
 
-        let botoesNao = app.descendants(matching: .button).allElementsBoundByIndex.filter { $0.label == "Não" }
-        XCTAssertEqual(botoesNao.count, 3, "Devem existir 3 seletores com botão Não (refeição, transporte, material)")
-
-        for (indice, nao) in botoesNao.enumerated() {
             trazerParaATela(nao, em: app)
             let quadroNao = nao.frame
             XCTAssertLessThanOrEqual(quadroNao.maxX, larguraTela, "Botão Não[\(indice)] extrapolou a tela: maxX=\(quadroNao.maxX) > largura=\(larguraTela)")
@@ -238,9 +233,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     }
 
     func testDatePickersContidosNaLarguraDaTelaNoTamanhoPadrao() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"]
-        app.launch()
+        let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
         app.buttons["continuar-cadastro"].tap()
@@ -268,7 +261,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         for _ in 0..<tentativas {
             guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elemento.frame
@@ -283,9 +276,9 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             case .nenhuma:
                 break
             case .rolarParaBaixo:
-                app.swipeDown(velocity: .slow)
+                app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
             if direcao == .nenhuma { break }
         }
