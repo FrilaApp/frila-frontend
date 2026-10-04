@@ -150,6 +150,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let avisoContinua = app.descendants(matching: .any)["aviso-publicacao-continua"]
         XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "o aviso informativo de que a publicação continua deve aparecer")
         XCTAssertTrue(app.staticTexts["A publicação continua e será concluída quando a conexão voltar."].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-erro-publicacao"].exists, "não deve exibir banner vermelho de erro sem rede")
         XCTAssertEqual(botaoFechar.label, "Voltar", "o botão de fechar passa a ser 'Voltar' quando a publicação ficou na fila")
 
         // 4. Toca em "Voltar" e volta para Minhas vagas
@@ -159,11 +160,24 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
         XCTAssertEqual(vagas(app).count, antes, "a vaga não foi criada no servidor, continua pendente na fila")
 
-        // 5. Ao abrir o formulário novamente, a vaga continua pendente (restaurada da fila)
+        // 5. Ao abrir o formulário novamente, a vaga continua pendente (restaurada da fila com os campos preenchidos)
         entrada.tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
         XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "a vaga pendente na fila reabre com o aviso de continuação")
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-erro-publicacao"].exists, "não deve exibir aviso vermelho ao reabrir pendência")
         XCTAssertEqual(botaoFechar.label, "Voltar")
+
+        let botaoTentarNovamente = app.buttons["publicar-vaga-botao"]
+        XCTAssertTrue(botaoTentarNovamente.waitForExistence(timeout: 5))
+        XCTAssertEqual(botaoTentarNovamente.label, "Tentar novamente")
+
+        let campoResponsavel = app.textFields["Quem recebe no local"]
+        XCTAssertTrue(campoResponsavel.exists)
+        XCTAssertEqual(campoResponsavel.value as? String, "Marina")
+
+        let campoValor = app.textFields["Valor por posição"]
+        XCTAssertTrue(campoValor.exists)
+        XCTAssertEqual(campoValor.value as? String, "R$ 180,00")
     }
 
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {

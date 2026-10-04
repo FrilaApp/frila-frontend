@@ -272,7 +272,7 @@ struct RepublicarVagaViewModelTests {
         #expect(!viewModel.camposBloqueados)
     }
 
-    @Test("Sem rede: trava campos, gera chave, guarda erro e permite reenviar")
+    @Test("Sem rede: trava campos, gera chave, mantém pendência e permite reenviar sem erro vermelho")
     @MainActor
     func semRedeBloqueiaCamposEGuardaChave() async throws {
         let vaga = try criarVagaNoPainel()
@@ -288,7 +288,8 @@ struct RepublicarVagaViewModelTests {
         await viewModel.republicar()
 
         #expect(viewModel.camposBloqueados)
-        #expect(viewModel.mensagemErro == TextosRepublicarVaga.semRede)
+        #expect(viewModel.republicacaoPendente != nil)
+        #expect(viewModel.mensagemErro == nil)
         #expect(viewModel.chave != nil)
     }
 
