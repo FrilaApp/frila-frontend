@@ -182,6 +182,7 @@ private struct DestinoDasVagasDoContratante: View {
     @State private var model: MinhasVagasViewModel
     @State private var publicacao: PublicacaoDaCasaViewModel
     @State private var publicando = false
+    @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?, sair: @escaping () -> Void) {
         self.api = api
@@ -198,8 +199,11 @@ private struct DestinoDasVagasDoContratante: View {
                 api: api, fila: fila, modelo: publicacao, sair: sair,
                 cancelar: { publicando = false },
                 aoPublicar: {
+                    // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
+                    // momento de explicar a notificação a quem contrata (#8).
                     guard publicando else { return }
                     publicando = false
+                    Task { await permissaoDePush?.oferecer() }
                 }
             )
         } else {

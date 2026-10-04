@@ -305,6 +305,8 @@ private actor FilaSimples: FilaDeAcoes {
     func enfileirar(_ acao: AcaoPendente) {}
     func pendentes() -> [AcaoPendente] { [] }
     func remover(id: UUID) {}
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {}
+    func recusadas() -> [AcaoRecusada] { [] }
     func limpar() {}
 }
 

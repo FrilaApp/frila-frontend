@@ -30,6 +30,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         let valor = app.textFields["Valor por posição"]
         valor.tap()
+        Thread.sleep(forTimeInterval: 0.5)
         valor.digitarEEsperar("18000", esperado: "180,00")
         app.swipeUp()
         app.buttons["publicar-vaga-botao"].tap()

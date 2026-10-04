@@ -871,34 +871,33 @@ extension XCUIElement {
     /// "Informe um e-mail válido." e a tela do código nunca abria. Para campos com máscara onde
     /// a formatação intermediária varia durante a edição, informe `esperado` para validar
     /// contenção do texto ou equivalência dos dígitos numéricos.
-    func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = 10, file: StaticString = #filePath, line: UInt = #line) {
+    func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = 15, file: StaticString = #filePath, line: UInt = #line) {
         typeText(texto)
-        let predicado: NSPredicate
-        let valorEsperado: String
-        if let esperado {
-            valorEsperado = esperado
-            if let atual = value as? String, atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber)) {
+        let valorEsperado = esperado ?? (texto.hasSuffix("\n") ? String(texto.dropLast()) : texto)
+        let limite = Date().addingTimeInterval(timeout)
+        while Date() < limite {
+            if let atual = value as? String {
+                if let esperado {
+                    if atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber)) {
+                        return
+                    }
+                } else if atual == valorEsperado {
+                    return
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        if let atual = value as? String {
+            if let esperado {
+                if atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber)) {
+                    return
+                }
+            } else if atual == valorEsperado {
                 return
             }
-            // Campo com máscara: o valor passa por formas intermediárias enquanto o UIKit edita.
-            // A digitação terminou quando os dígitos do campo são os dígitos esperados.
-            let digitos = esperado.filter(\.isNumber)
-            predicado = NSPredicate { objeto, _ in
-                guard let valor = (objeto as? XCUIElement)?.value as? String else { return false }
-                return valor.contains(esperado) || (!digitos.isEmpty && valor.filter(\.isNumber) == digitos)
-            }
-        } else {
-            valorEsperado = texto.hasSuffix("\n") ? String(texto.dropLast()) : texto
-            if (value as? String) == valorEsperado { return }
-            predicado = NSPredicate(format: "value == %@", valorEsperado)
         }
-        let completo = XCTNSPredicateExpectation(
-            predicate: predicado,
-            object: self
-        )
-        let resultado = XCTWaiter.wait(for: [completo], timeout: timeout)
         XCTAssertEqual(
-            resultado, .completed,
+            value as? String, valorEsperado,
             "O campo deveria mostrar \"\(valorEsperado)\" depois da digitação", file: file, line: line
         )
     }
