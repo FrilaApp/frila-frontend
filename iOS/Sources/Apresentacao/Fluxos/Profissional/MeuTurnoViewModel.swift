@@ -15,6 +15,8 @@ public final class MeuTurnoViewModel {
 
     private var avaliacaoEnviada: Avaliacao?
     private var respostaPendente: Bool?
+    /// UserDefaults não participa de Observation: a releitura invalida os derivados da reserva.
+    private var revisaoDaReserva = 0
     private let aoAvaliar: (() -> Void)?
     private let aoCancelar: (() -> Void)?
 
@@ -95,6 +97,7 @@ public final class MeuTurnoViewModel {
     }
 
     public var respostaAvaliacao: Bool? {
+        _ = revisaoDaReserva
         if let avaliacao = avaliacaoEnviada ?? turno.avaliacao { return avaliacao.resposta }
         if let respostaPendente { return respostaPendente }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return nil }
@@ -102,6 +105,7 @@ public final class MeuTurnoViewModel {
     }
 
     public var jaAvaliado: Bool {
+        _ = revisaoDaReserva
         if avaliacaoEnviada != nil || turno.avaliacao != nil || respostaPendente != nil { return true }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return false }
         return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.servidorInformaAvaliacao && !turno.podeAvaliar && podeAvaliar)
@@ -186,6 +190,7 @@ public final class MeuTurnoViewModel {
             }?.resposta
         }
         await presenca?.restaurarPendentes()
+        revisaoDaReserva += 1
     }
 
     public func carregar() async {
