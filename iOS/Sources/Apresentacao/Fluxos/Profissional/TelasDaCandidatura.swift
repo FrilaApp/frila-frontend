@@ -104,7 +104,6 @@ public struct TelaResultadoDaCandidatura: View {
     private let voltarParaLista: () -> Void
     private let sair: () -> Void
     private let ajustarFuncoes: (() -> Void)?
-    @State private var mostrarContestacao = false
     @State private var contestacaoModel: ContaSuspensaViewModel?
 
     /// `api` e `verCandidaturas` servem à candidatura pendente da vaga de seleção (#10): a retirada
@@ -143,8 +142,8 @@ public struct TelaResultadoDaCandidatura: View {
             }
         }
         .onAppear { AccessibilityNotification.Announcement(titulo).post() }
-        .sheet(isPresented: $mostrarContestacao) {
-            if let api, let contestacaoModel {
+        .sheet(item: $contestacaoModel) { contestacaoModel in
+            if let api {
                 TelaContaSuspensa(viewModel: contestacaoModel, api: api)
             }
         }
@@ -196,12 +195,11 @@ public struct TelaResultadoDaCandidatura: View {
                     contestacaoModel = ContaSuspensaViewModel(
                         api: api,
                         aoReativar: {
-                            mostrarContestacao = false
+                            contestacaoModel = nil
                             voltarParaLista()
                         },
                         sair: sair
                     )
-                    mostrarContestacao = true
                 }
                 .accessibilityIdentifier("contestar")
             }
