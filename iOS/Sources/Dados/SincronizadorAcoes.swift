@@ -79,7 +79,7 @@ public actor SincronizadorAcoes {
                 if await recusaDefinitiva(erro, acao: acao) {
                     do {
                         try await fila.recusar(acao, codigo: erro.codigo)
-                        if acao.tipo == .avaliacao, try await fila.recusadas().contains(where: { $0.id == acao.id }) {
+                        if acao.tipo == .avaliacao, try await fila.recusadas(incluirReconhecidas: true).contains(where: { $0.id == acao.id }) {
                             avaliacaoRecusada(acao)
                             // A tela relê a fila depois de limpar a resposta local recusada.
                             NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)

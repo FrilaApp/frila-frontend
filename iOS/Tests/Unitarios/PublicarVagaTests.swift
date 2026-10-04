@@ -82,6 +82,11 @@ struct PublicarVagaTests {
         let outroModel = PublicarVagaViewModel(estabelecimento: outra, fila: fila) { _ in throw ErroDaApi(codigo: .semRede) }
         await outroModel.carregarRecusaDaFila()
         #expect(outroModel.recusaDaFila == nil)
+        await model.fecharAvisoDaFila()
+        #expect(model.recusaDaFila == nil)
+        #expect(try await fila.recusadas().isEmpty)
+        try await fila.enfileirar(acao)
+        #expect(try await fila.pendentes().isEmpty)
     }
 
     @Test("Aviso antigo não esconde a recusa da publicação atual")

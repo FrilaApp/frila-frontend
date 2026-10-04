@@ -152,6 +152,14 @@ public final class PublicarVagaViewModel {
     public var camposBloqueados: Bool { publicacaoPendente != nil }
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
 
+    public func fecharAvisoDaFila() async {
+        guard let recusa = recusaDaFila else { return }
+        do {
+            try await fila.reconhecerRecusa(id: recusa.id)
+            await carregarRecusaDaFila()
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
+    }
+
     public func carregarRecusaDaFila() async {
         let recusadas = (try? await fila.recusadas().filter { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? []
         recusaDaFila = recusadas.first { $0.id == acaoPendente?.id } ?? recusadas.first
@@ -516,6 +524,8 @@ public struct TelaPublicarVaga: View {
                 if let recusa = model.recusaDaFila {
                     AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
                         .accessibilityIdentifier("aviso-publicacao-recusada")
+                    BotaoSecundario("Fechar") { Task { await model.fecharAvisoDaFila() } }
+                        .accessibilityIdentifier("fechar-aviso-publicacao-recusada")
                 }
                 if let erro = model.mensagemErro { AvisoFrila(verbatim: erro, tom: .erro) }
                 BotaoPrimario(verbatim: model.camposBloqueados ? TextosPublicarVaga.tentarNovamente : TextosPublicarVaga.publicar, carregando: model.enviando) {

@@ -113,6 +113,14 @@ public final class RepublicarVagaViewModel {
         self.republicarAPI = republicar
     }
 
+    public func fecharAvisoDaFila() async {
+        guard let recusa = recusaDaFila else { return }
+        do {
+            try await fila?.reconhecerRecusa(id: recusa.id)
+            await carregarRecusaDaFila()
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
+    }
+
     public func carregarRecusaDaFila() async {
         let recusadas = (try? await fila?.recusadas().filter { $0.tipo == .republicacaoVaga && $0.vagaID == vagaOriginal.vaga.id }) ?? []
         recusaDaFila = recusadas.first { $0.id == acaoPendente?.id } ?? recusadas.first
@@ -299,6 +307,8 @@ public struct TelaRepublicarVaga: View {
                 if let recusa = viewModel.recusaDaFila {
                     AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
                         .accessibilityIdentifier("aviso-republicacao-recusada")
+                    BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila() } }
+                        .accessibilityIdentifier("fechar-aviso-republicacao-recusada")
                 }
                 if let erro = viewModel.mensagemErro {
                     AvisoFrila(verbatim: erro, tom: .erro)

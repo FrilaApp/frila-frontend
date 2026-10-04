@@ -157,6 +157,7 @@ public final class AvaliacaoTurnoViewModel {
     private let aoEnfileirar: ((Bool) -> Void)?
     private let aoAvaliar: ((Avaliacao) -> Void)?
     private var acaoOfflineID: UUID?
+    public private(set) var recusaDaFila: AcaoRecusada?
     private var recusaExibidaID: UUID?
 
     public init(
@@ -223,6 +224,7 @@ public final class AvaliacaoTurnoViewModel {
             $0.tipo == .avaliacao && $0.turnoID == turnoID
                 && ($0.contaID == contaID || $0.id == acaoOfflineID)
         }
+        recusaDaFila = recusa
         enfileiradoOffline = false
         if armazenamento.podeUsarReserva(para: turno, contaID: contaID),
            armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
@@ -265,6 +267,19 @@ public final class AvaliacaoTurnoViewModel {
         }
     }
 
+    public func fecharAvisoDaFila() async {
+        guard let recusa = recusaDaFila, let fila else { return }
+        do {
+            try await fila.reconhecerRecusa(id: recusa.id)
+            // Uma reserva da tentativa recusada não volta a parecer aceita ao fechar seu aviso.
+            if !sucesso, turno?.avaliacao == nil {
+                armazenamento.remover(para: turnoID, contaID: contaID)
+            }
+            recusaDaFila = nil
+            mensagemDeErro = nil
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
+    }
+
     public func salvar() async -> Bool {
         guard !salvando else { return false }
         salvando = true
@@ -296,6 +311,7 @@ public final class AvaliacaoTurnoViewModel {
             jaAvaliado = true
             sucesso = true
             mensagemDeSucesso = TextosDoProfissional.Avaliacao.avaliadoSucesso
+            recusaDaFila = nil
             try? await fila?.resolverRecusas(AcaoPendente(
                 tipo: .avaliacao, turnoID: turnoID, contaID: contaID,
                 instanteDoToque: relogio.agora, chave: UUID()

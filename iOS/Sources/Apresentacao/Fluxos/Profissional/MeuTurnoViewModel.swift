@@ -189,6 +189,19 @@ public final class MeuTurnoViewModel {
         return componentes?.url
     }
 
+    public func fecharAvisoDaFila(id: UUID) async {
+        guard let filaDeAcoes else { return }
+        do {
+            let recusa = recusasDaFila.first { $0.id == id }
+            try await filaDeAcoes.reconhecerRecusa(id: id)
+            if recusa?.tipo == .avaliacao, let contaID, recusa?.contaID == contaID,
+               avaliacaoEnviada == nil, turno.avaliacao == nil, respostaPendente == nil {
+                armazenamentoAvaliacoes.remover(para: turno.id, contaID: contaID)
+            }
+            await carregarRecusasDaFila()
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
+    }
+
     public func carregarRecusasDaFila() async {
         recusasDaFila = (try? await filaDeAcoes?.recusadas().filter { $0.turnoID == turno.id }) ?? []
         if let contaID, turno.avaliacao == nil {

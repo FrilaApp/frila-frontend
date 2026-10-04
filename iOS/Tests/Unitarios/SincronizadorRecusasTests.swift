@@ -181,6 +181,27 @@ struct AvisosDaFilaTests {
         #expect(try await reaberta.recusadas().isEmpty)
     }
 
+    @Test("Fechar recusa persiste ao reabrir sem apagar outra recusa nem permitir reenvio")
+    func fecharAvisoConservaRecusaTerminal() async throws {
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let fila = ArmazenamentoSwiftData(modelContainer: container)
+        let acao = AcaoPendente(tipo: .checkin, turnoID: UUID(), instanteDoToque: .now, chave: UUID())
+        let outra = AcaoPendente(tipo: .checkout, turnoID: acao.turnoID, instanteDoToque: .now, chave: UUID())
+        for item in [acao, outra] {
+            try await fila.enfileirar(item)
+            try await fila.recusar(item, codigo: .vagaEncerrada)
+        }
+        try await fila.reconhecerRecusa(id: acao.id)
+        let reaberta = ArmazenamentoSwiftData(modelContainer: container)
+        #expect(try await reaberta.recusadas().map(\.id) == [outra.id])
+        #expect(try await reaberta.recusadas(incluirReconhecidas: true).count == 2)
+        try await reaberta.enfileirar(acao)
+        #expect(try await reaberta.pendentes().isEmpty)
+        try await reaberta.limpar()
+        try await reaberta.enfileirar(acao)
+        #expect(try await reaberta.pendentes().count == 1, "o reconhecimento continua sujeito à limpeza da sessão")
+    }
+
     @Test("Sucesso resolve apenas avisos da mesma operação, turno e autor")
     func sucessoResolveSomenteAvisosCorrespondentes() async throws {
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
@@ -194,6 +215,8 @@ struct AvisosDaFilaTests {
             try await fila.recusar(acao, codigo: .semPermissao)
         }
         try await fila.resolverRecusas(AcaoPendente(tipo: .avaliacao, turnoID: turnoID, contaID: autor, instanteDoToque: .now, chave: UUID()))
+        try await fila.enfileirar(anterior)
+        #expect(try await fila.pendentes().isEmpty, "sucesso posterior não reativa o envio definitivamente recusado")
         let restantes = try await fila.recusadas()
         #expect(Set(restantes.map(\.id)) == Set([outroAutor.id, outroTurno.id, outroTipo.id]))
     }
@@ -223,6 +246,10 @@ struct AvisosDaFilaTests {
         #expect(tela.cancelado)
         #expect(tela.presenca == nil)
         #expect(tela.recusasDaFila == [AcaoRecusada(acao: acao, codigo: .vagaEncerrada)])
+        await tela.fecharAvisoDaFila(id: acao.id)
+        #expect(tela.recusasDaFila.isEmpty)
+        try await fila.enfileirar(acao)
+        #expect(try await fila.pendentes().isEmpty)
     }
 
     @Test("Tela aberta remove o estado pendente quando o servidor recusa o envio")
@@ -239,6 +266,7 @@ struct AvisosDaFilaTests {
         await presenca.restaurarPendentes()
         #expect(presenca.checkin != .naoFeito)
         try await fila.recusar(acao, codigo: .foraDaJanela)
+        try await fila.reconhecerRecusa(id: acao.id)
         await presenca.restaurarPendentes()
         #expect(presenca.checkin == .naoFeito)
     }

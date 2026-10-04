@@ -616,6 +616,11 @@ struct RepublicarVagaViewModelTests {
         await model.restaurarTentativaPendente()
         #expect(model.recusaDaFila == AcaoRecusada(acao: acao, codigo: codigo))
         #expect(!model.camposBloqueados)
+        await model.fecharAvisoDaFila()
+        #expect(model.recusaDaFila == nil)
+        #expect(try await fila.recusadas().isEmpty)
+        try await fila.enfileirar(acao)
+        #expect(try await fila.pendentes().isEmpty)
     }
 
     @Test("Reabrir bloqueia confirmação até ler tentativa, sem criar outra chave")

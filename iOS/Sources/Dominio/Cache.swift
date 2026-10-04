@@ -123,14 +123,20 @@ public protocol FilaDeAcoes: Sendable {
     /// Guarda o aviso e tira a ação dos reenvios na mesma gravação.
     func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws
     func recusadas() async throws -> [AcaoRecusada]
+    /// A reconciliação precisa saber da recusa mesmo depois de fechar o aviso.
+    func recusadas(incluirReconhecidas: Bool) async throws -> [AcaoRecusada]
     /// Uma tentativa aceita encerra os avisos anteriores da mesma operação e conta.
     func resolverRecusas(_ acao: AcaoPendente) async throws
+    /// Fecha somente o aviso; o ID continua impedido de voltar aos reenvios.
+    func reconhecerRecusa(id: UUID) async throws
     func limpar() async throws
 }
 
 public extension FilaDeAcoes {
+    func recusadas(incluirReconhecidas: Bool) async throws -> [AcaoRecusada] { try await recusadas() }
     // Filas sem persistência de avisos (dublês) não têm recusas a resolver.
     func resolverRecusas(_ acao: AcaoPendente) async throws {}
+    func reconhecerRecusa(id: UUID) async throws { throw ErroDaApi(codigo: .respostaInvalida) }
 }
 
 /// Se o aparelho tem conexão agora. O primeiro valor é o estado atual; os seguintes, cada mudança.
@@ -147,6 +153,8 @@ public struct AcaoRecusada: Codable, Equatable, Identifiable, Sendable {
     public let estabelecimentoID: UUID?
     public let contaID: UUID?
     public let codigo: CodigoErroAPI
+    /// Ausente no JSON anterior: o aviso ainda deve aparecer.
+    public private(set) var avisoReconhecido: Bool?
 
     public init(acao: AcaoPendente, codigo: CodigoErroAPI) {
         id = acao.id
@@ -156,6 +164,12 @@ public struct AcaoRecusada: Codable, Equatable, Identifiable, Sendable {
         estabelecimentoID = acao.publicacao?.estabelecimentoID
         contaID = acao.contaID
         self.codigo = codigo
+    }
+
+    public func comAvisoReconhecido() -> AcaoRecusada {
+        var reconhecida = self
+        reconhecida.avisoReconhecido = true
+        return reconhecida
     }
 
     public func corresponde(a acao: AcaoPendente) -> Bool {

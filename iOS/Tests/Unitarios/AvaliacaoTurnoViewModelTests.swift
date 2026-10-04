@@ -565,6 +565,31 @@ struct AvaliacaoTurnoViewModelTests {
         #expect(vm.mensagemDeErro == nil)
     }
 
+    @Test("Fechar aviso da avaliação não recupera a resposta recusada da reserva")
+    @MainActor
+    func fecharRecusaNaoRestauraResposta() async throws {
+        let api = ApiClienteAvaliacaoDuble()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        let turno = try criarTurno(fim: agora.addingTimeInterval(-3600))
+        let acao = AcaoPendente(tipo: .avaliacao, turnoID: turno.id, contaID: contaID, instanteDoToque: agora, chave: UUID(), resposta: false)
+        try await fila.enfileirar(acao)
+        try await fila.recusar(acao, codigo: .semPermissao)
+        armazenamento.salvar(resposta: false, para: turno.id, contaID: contaID)
+        let vm = AvaliacaoTurnoViewModel(turnoID: turno.id, contaID: contaID, turno: turno,
+            api: api, fila: fila, armazenamento: armazenamento, relogio: RelogioSimulado(agora))
+        await vm.carregar()
+        await vm.fecharAvisoDaFila()
+        await vm.carregar()
+        #expect(vm.recusaDaFila == nil)
+        #expect(vm.mensagemDeErro == nil)
+        #expect(!vm.jaAvaliado)
+        #expect(vm.resposta == nil)
+        vm.resposta = true
+        #expect(await vm.salvar())
+        #expect(vm.resposta == true)
+    }
+
     @Test("Releitura da recusa atualiza a tela mesmo após limpar a reserva fora da observação")
     @MainActor
     func recusaAtualizaObservacaoDaTela() async throws {

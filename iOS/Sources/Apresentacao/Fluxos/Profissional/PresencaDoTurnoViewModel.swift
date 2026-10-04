@@ -117,7 +117,7 @@ public final class PresencaDoTurnoViewModel {
     /// O que ficou na fila num toque anterior volta a aparecer como pendente ao reabrir a tela.
     public func restaurarPendentes() async {
         guard let fila, let pendentes = try? await fila.pendentes() else { return }
-        let recusadas = (try? await fila.recusadas()) ?? []
+        let recusadas = (try? await fila.recusadas(incluirReconhecidas: true)) ?? []
         let entradaSaiu = !pendentes.contains { $0.tipo == .checkin && $0.turnoID == turno.id }
         let saidaSaiu = !pendentes.contains { $0.tipo == .checkout && $0.turnoID == turno.id }
         // Ausência na fila não prova recusa: o servidor pode ter aceitado esse registro.

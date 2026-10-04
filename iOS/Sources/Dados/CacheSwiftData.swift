@@ -291,9 +291,38 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
     }
 
     public func recusadas() throws -> [AcaoRecusada] {
+        try lerRecusas().filter { $0.avisoReconhecido != true }
+    }
+
+    public func recusadas(incluirReconhecidas: Bool) async throws -> [AcaoRecusada] {
+        let todas = try lerRecusas()
+        return incluirReconhecidas ? todas : todas.filter { $0.avisoReconhecido != true }
+    }
+
+    private func lerRecusas() throws -> [AcaoRecusada] {
         try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>()).map {
             try JSONDecoder().decode(AcaoRecusada.self, from: $0.conteudo)
         }
+    }
+
+    public func reconhecerRecusa(id: UUID) async throws {
+        let registros = try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>(predicate: #Predicate { $0.id == id }))
+        try reconhecer(registros)
+    }
+
+    private func reconhecer(_ registros: [AcaoRecusadaPersistida]) throws {
+        guard !registros.isEmpty else { return }
+        do {
+            for registro in registros {
+                let recusa = try JSONDecoder().decode(AcaoRecusada.self, from: registro.conteudo)
+                registro.conteudo = try JSONEncoder().encode(recusa.comAvisoReconhecido())
+            }
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+        NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
     }
 
     public func resolverRecusas(_ acao: AcaoPendente) async throws {
@@ -302,15 +331,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         let decoder = JSONDecoder()
         let registros = try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>())
         let resolvidas = try registros.filter { try decoder.decode(AcaoRecusada.self, from: $0.conteudo).corresponde(a: aceita) }
-        guard !resolvidas.isEmpty else { return }
-        do {
-            for registro in resolvidas { modelContext.delete(registro) }
-            try modelContext.save()
-        } catch {
-            modelContext.rollback()
-            throw error
-        }
-        NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
+        try reconhecer(resolvidas)
     }
 
     public func remover(id: UUID) throws {
