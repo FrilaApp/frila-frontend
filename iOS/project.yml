@@ -40,6 +40,11 @@ settings:
     CLANG_ENABLE_MODULES: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: 8B7F7G3Y2U
+    # Versão e build numa fonte só, herdada pelo app e pela extensão de notificação: a App Store
+    # recusa a extensão com versão diferente da do app. O enviar-testflight.sh sobrescreve as duas
+    # pela linha de comando, para todos os alvos.
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
   # dSYM em todos os targets, e não só no app: o código roda nos quatro frameworks, e o
   # Crashlytics segura a falha fatal enquanto falta o dSYM de qualquer binário da pilha. Com
   # dSYM só no app, a falha forçada no catálogo (FrilaApresentacao) nunca apareceu no painel.
@@ -126,6 +131,35 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         DEFINES_MODULE: YES
 
+  # Extensão de serviço de notificação (#253): troca o texto do push de outro vínculo antes de o
+  # sistema mostrá-lo, com o app fechado. Só depende do domínio; o framework é o embutido no app
+  # (`embed: false`), alcançado por `@executable_path/../../Frameworks`.
+  #
+  # O build assinado para aparelho exige, no portal da Apple, o App Group `group.com.frila.org.app`
+  # no App ID principal e um App ID novo para `com.frila.org.app.notificationservice` com o mesmo
+  # grupo; simulador e CI sem assinatura não dependem disso.
+  FrilaNotificationService:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Sources/NotificationService
+      - path: Resources/Frameworks/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      - target: FrilaDominio
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).notificationservice
+        PRODUCT_NAME: FrilaNotificationService
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Frila
+        INFOPLIST_FILE: Sources/NotificationService/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/NotificationService/NotificationService.entitlements
+        LD_RUNPATH_SEARCH_PATHS: $(inherited) @executable_path/Frameworks @executable_path/../../Frameworks
+        SKIP_INSTALL: YES
+
   Frila:
     type: application
     platform: iOS
@@ -142,6 +176,7 @@ targets:
       - target: FrilaDados
       - target: FrilaApresentacao
       - target: FrilaInfraestrutura
+      - target: FrilaNotificationService
     preBuildScripts:
       - name: Validate Supabase configuration
         path: Scripts/validate-supabase-config.sh
@@ -242,8 +277,6 @@ targets:
         # O preset de target do XcodeGen usa "1,2" e anula o valor do projeto; sem isto o app
         # declara iPad no UIDeviceFamily e o Xcode passa a exigir as quatro orientações.
         TARGETED_DEVICE_FAMILY: "1"
-        MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Frila
         INFOPLIST_KEY_CFBundleDevelopmentRegion: pt-BR
@@ -285,6 +318,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(FRILA_BUNDLE_ID).uitests
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSPrincipalClass: AjudanteDeLancamentoUITests
         TEST_TARGET_NAME: Frila
 
 schemes:

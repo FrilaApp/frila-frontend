@@ -21,6 +21,20 @@ private final class ApiPresencaRecusada: ApiClienteEncaminhador, @unchecked Send
     }
 }
 
+private final class ApiAvaliacaoRecusada: ApiClienteEncaminhador, @unchecked Sendable {
+    let erro: ErroDaApi
+    let conta: Conta
+    private let trava = NSLock()
+    private var envios = 0
+    var total: Int { trava.withLock { envios } }
+    init(erro: ErroDaApi, conta: Conta) { self.erro = erro; self.conta = conta; super.init() }
+    override func minhaConta() async throws -> Conta { conta }
+    override func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
+        trava.withLock { envios += 1 }
+        throw erro
+    }
+}
+
 @Suite("Recusas definitivas da fila")
 struct SincronizadorRecusasTests {
     @Test("Recusa definitiva de presença sai da fila e não volta a ser enviada", arguments: [TipoAcaoPendente.checkin, .checkout], [CodigoErroAPI.vagaEncerrada, .semPermissao, .foraDaJanela, .registroNoFuturo, .campoInvalido, .campoObrigatorio, .naoEncontrado, .contaSuspensa])
@@ -35,6 +49,36 @@ struct SincronizadorRecusasTests {
         #expect(try await fila.pendentes().isEmpty)
         #expect(api.total == 1)
         #expect(try await fila.recusadas() == [AcaoRecusada(acao: acao, codigo: codigo)])
+    }
+
+    @Test("Avaliação recusada definitivamente sai da fila e guarda aviso", arguments: [CodigoErroAPI.semPermissao, .contaSuspensa, .avaliacaoIndisponivel, .campoObrigatorio])
+    func avaliacaoDefinitiva(codigo: CodigoErroAPI) async throws {
+        let conta = try await ApiClienteEmMemoria().minhaConta()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let api = ApiAvaliacaoRecusada(erro: ErroDaApi(codigo: codigo), conta: conta)
+        let acao = AcaoPendente(tipo: .avaliacao, turnoID: UUID(), contaID: conta.id, instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID(), resposta: true)
+        try await fila.enfileirar(acao)
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+        await sincronizador.sincronizar()
+        #expect(try await fila.pendentes().isEmpty)
+        #expect(api.total == 1)
+        #expect(try await fila.recusadas() == [AcaoRecusada(acao: acao, codigo: codigo)])
+    }
+
+    @Test("Avaliação com falha transitória continua na fila", arguments: [CodigoErroAPI.semRede, .desconhecido, .limiteExcedido, .naoAutenticado])
+    func avaliacaoTransitoria(codigo: CodigoErroAPI) async throws {
+        let conta = try await ApiClienteEmMemoria().minhaConta()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let api = ApiAvaliacaoRecusada(erro: ErroDaApi(codigo: codigo), conta: conta)
+        let acao = AcaoPendente(tipo: .avaliacao, turnoID: UUID(), contaID: conta.id, instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID(), resposta: false)
+        try await fila.enfileirar(acao)
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+        await sincronizador.sincronizar()
+        #expect(try await fila.pendentes() == [acao])
+        #expect(try await fila.recusadas().isEmpty)
+        #expect(api.total == 2)
     }
 
     @Test("Falhas transitórias mantêm a ação e a chave para nova tentativa", arguments: [TipoAcaoPendente.checkin, .checkout])

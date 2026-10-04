@@ -293,6 +293,14 @@ enum ContratoAPI {
 
     // MARK: Vagas
 
+    /// `Centavos` do contrato tem `minimum: 1`. O `Dinheiro` do domínio para no `precondition`
+    /// com valor negativo: vindo do servidor, o valor fora do contrato é resposta inválida, e não
+    /// motivo para fechar o app.
+    static func dinheiro(_ centavos: Int, campo: String) throws -> Dinheiro {
+        guard centavos >= 1 else { throw ErroDeConversao(campo: campo) }
+        return Dinheiro(centavos: centavos)
+    }
+
     struct InclusosDTO: Codable {
         let incluiRefeicao: Bool
         let incluiTransporte: Bool
@@ -355,7 +363,7 @@ enum ContratoAPI {
                 regiaoAdministrativa: regiaoAdministrativa,
                 ponto: ponto.dominio(),
                 distanciaKm: distanciaKm,
-                valor: Dinheiro(centavos: valorCentavos),
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos"),
                 posicoes: posicoes,
                 posicoesAbertas: posicoesAbertas,
                 inclusos: inclusos.dominio(),
@@ -404,7 +412,7 @@ enum ContratoAPI {
                 local: local,
                 regiaoAdministrativa: regiaoAdministrativa,
                 distanciaKm: distanciaKm,
-                valor: Dinheiro(centavos: valorCentavos),
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos"),
                 posicoesAbertas: posicoesAbertas,
                 inclusos: inclusos.dominio(),
                 modo: modo
@@ -432,7 +440,8 @@ enum ContratoAPI {
         func dominio() throws -> VagaResumo {
             try VagaResumo(
                 id: id, funcao: funcao, local: local, regiaoAdministrativa: regiaoAdministrativa,
-                periodo: Periodo(inicio: inicioEm, fim: fimEm), valor: Dinheiro(centavos: valorCentavos)
+                periodo: Periodo(inicio: inicioEm, fim: fimEm),
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos")
             )
         }
     }
@@ -734,7 +743,7 @@ enum ContratoAPI {
                 },
                 checkout: checkoutEm.map { Presenca(instante: $0, distanciaMetros: checkoutDistanciaM) },
                 verificacao: verificacao,
-                valorAcordado: Dinheiro(centavos: valorAcordadoCentavos),
+                valorAcordado: ContratoAPI.dinheiro(valorAcordadoCentavos, campo: "valor_acordado_centavos"),
                 podeAvaliar: podeAvaliar,
                 estado: estado,
                 avaliacao: avaliacao?.dominio(),
@@ -1118,14 +1127,16 @@ enum ContratoAPI {
     struct DispositivoDTO: Decodable {
         let plataforma: Plataforma
         let atualizadoEm: Date
+        let vinculoID: UUID?
 
         enum CodingKeys: String, CodingKey {
             case plataforma
             case atualizadoEm = "atualizado_em"
+            case vinculoID = "vinculo_id"
         }
 
         func dominio() -> Dispositivo {
-            Dispositivo(plataforma: plataforma, atualizadoEm: atualizadoEm)
+            Dispositivo(plataforma: plataforma, atualizadoEm: atualizadoEm, vinculoID: vinculoID)
         }
     }
 
