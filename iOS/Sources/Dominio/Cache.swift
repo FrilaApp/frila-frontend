@@ -58,7 +58,7 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
     public let chave: UUID
     public let distanciaMetros: Int?
     public let resposta: Bool?
-    /// Autor da avaliação local; nil nos registros legados e nas outras ações.
+    /// Conta da sessão que criou a ação; nil nos registros legados de desenvolvimento.
     public let contaID: UUID?
     public let publicacao: PublicacaoVaga?
     public let republicacao: RepublicacaoVaga?
@@ -94,6 +94,13 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         self.alvoID = alvoID
         self.motivo = motivo
     }
+
+    public func com(contaID: UUID) -> AcaoPendente {
+        AcaoPendente(id: id, tipo: tipo, turnoID: turnoID, contaID: contaID,
+                     instanteDoToque: instanteDoToque, chave: chave, distanciaMetros: distanciaMetros,
+                     resposta: resposta, publicacao: publicacao, republicacao: republicacao,
+                     alvoID: alvoID, motivo: motivo)
+    }
 }
 
 public protocol CacheLocal: Sendable {
@@ -116,7 +123,20 @@ public protocol FilaDeAcoes: Sendable {
     /// Guarda o aviso e tira a ação dos reenvios na mesma gravação.
     func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws
     func recusadas() async throws -> [AcaoRecusada]
+    /// A reconciliação precisa saber da recusa mesmo depois de fechar o aviso.
+    func recusadas(incluirReconhecidas: Bool) async throws -> [AcaoRecusada]
+    /// Uma tentativa aceita encerra os avisos anteriores da mesma operação e conta.
+    func resolverRecusas(_ acao: AcaoPendente) async throws
+    /// Fecha somente o aviso; o ID continua impedido de voltar aos reenvios.
+    func reconhecerRecusa(id: UUID) async throws
     func limpar() async throws
+}
+
+public extension FilaDeAcoes {
+    func recusadas(incluirReconhecidas: Bool) async throws -> [AcaoRecusada] { try await recusadas() }
+    // Filas sem persistência de avisos (dublês) não têm recusas a resolver.
+    func resolverRecusas(_ acao: AcaoPendente) async throws {}
+    func reconhecerRecusa(id: UUID) async throws { throw ErroDaApi(codigo: .respostaInvalida) }
 }
 
 /// Se o aparelho tem conexão agora. O primeiro valor é o estado atual; os seguintes, cada mudança.
@@ -131,7 +151,10 @@ public struct AcaoRecusada: Codable, Equatable, Identifiable, Sendable {
     public let turnoID: UUID?
     public let vagaID: UUID?
     public let estabelecimentoID: UUID?
+    public let contaID: UUID?
     public let codigo: CodigoErroAPI
+    /// Ausente no JSON anterior: o aviso ainda deve aparecer.
+    public private(set) var avisoReconhecido: Bool?
 
     public init(acao: AcaoPendente, codigo: CodigoErroAPI) {
         id = acao.id
@@ -139,7 +162,20 @@ public struct AcaoRecusada: Codable, Equatable, Identifiable, Sendable {
         turnoID = acao.turnoID
         vagaID = acao.republicacao?.vagaID
         estabelecimentoID = acao.publicacao?.estabelecimentoID
+        contaID = acao.contaID
         self.codigo = codigo
+    }
+
+    public func comAvisoReconhecido() -> AcaoRecusada {
+        var reconhecida = self
+        reconhecida.avisoReconhecido = true
+        return reconhecida
+    }
+
+    public func corresponde(a acao: AcaoPendente) -> Bool {
+        tipo == acao.tipo && turnoID == acao.turnoID && vagaID == acao.republicacao?.vagaID
+            && estabelecimentoID == acao.publicacao?.estabelecimentoID
+            && (contaID == nil || contaID == acao.contaID)
     }
 }
 

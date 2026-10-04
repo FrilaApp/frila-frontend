@@ -113,8 +113,17 @@ public final class RepublicarVagaViewModel {
         self.republicarAPI = republicar
     }
 
+    public func fecharAvisoDaFila() async {
+        guard let recusa = recusaDaFila else { return }
+        do {
+            try await fila?.reconhecerRecusa(id: recusa.id)
+            await carregarRecusaDaFila()
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
+    }
+
     public func carregarRecusaDaFila() async {
-        recusaDaFila = (try? await fila?.recusadas().first { $0.tipo == .republicacaoVaga && $0.vagaID == vagaOriginal.vaga.id }) ?? nil
+        let recusadas = (try? await fila?.recusadas().filter { $0.tipo == .republicacaoVaga && $0.vagaID == vagaOriginal.vaga.id }) ?? []
+        recusaDaFila = recusadas.first { $0.id == acaoPendente?.id } ?? recusadas.first
         if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
             acaoPendente = nil
             republicacaoPendente = nil
@@ -217,6 +226,8 @@ public final class RepublicarVagaViewModel {
         do {
             let vagaPublicada = try await republicarAPI(rep.vagaID, rep.periodo, acao.chave)
             camposBloqueados = false
+            try? await fila?.resolverRecusas(acao)
+            recusaDaFila = nil
             if let fila {
                 try? await fila.remover(id: acao.id)
             }
@@ -296,6 +307,8 @@ public struct TelaRepublicarVaga: View {
                 if let recusa = viewModel.recusaDaFila {
                     AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
                         .accessibilityIdentifier("aviso-republicacao-recusada")
+                    BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila() } }
+                        .accessibilityIdentifier("fechar-aviso-republicacao-recusada")
                 }
                 if let erro = viewModel.mensagemErro {
                     AvisoFrila(verbatim: erro, tom: .erro)
@@ -500,4 +513,3 @@ public struct TelaRepublicarVaga: View {
 extension VagaNoPainel: @retroactive Identifiable {
     public var id: UUID { vaga.id }
 }
-

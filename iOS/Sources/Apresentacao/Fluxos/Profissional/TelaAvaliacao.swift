@@ -105,6 +105,10 @@ public struct TelaAvaliacao: View {
         if let erro = viewModel.mensagemDeErro {
             AvisoFrila(verbatim: erro, tom: .erro)
                 .accessibilityIdentifier("aviso-erro-avaliacao")
+            if viewModel.recusaDaFila != nil {
+                BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila() } }
+                    .accessibilityIdentifier("fechar-aviso-avaliacao-recusada")
+            }
         }
     }
 

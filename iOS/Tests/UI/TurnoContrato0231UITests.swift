@@ -28,6 +28,25 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(aviso.waitForExistence(timeout: 10), "a recusa permanece registrada ao reabrir")
     }
 
+    func testFecharAvisoDeRecusaNaoVoltaAoReabrirTurnoCancelado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado", "-FRILA_CACHE_VAZIO_UI_TEST", "-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"]
+        app.launch()
+        abrirTurno(app)
+        let aviso = app.descendants(matching: .any)["aviso-acao-recusada-checkin"].firstMatch
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        let fechar = app.buttons["fechar-aviso-acao-recusada-checkin"]
+        XCTAssertTrue(fechar.waitForExistence(timeout: 5))
+        tocar(fechar)
+        let sumiu = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: aviso)
+        XCTAssertEqual(XCTWaiter.wait(for: [sumiu], timeout: 5), .completed)
+        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
+        tocar(app.buttons["meu-turno-\(turnoID)"])
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+        XCTAssertFalse(aviso.exists, "o reconhecimento persiste ao reabrir a tela")
+        XCTAssertFalse(app.buttons["fazer-checkin"].exists)
+    }
+
     private func iniciarApp(cenario: String, extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"] + extras
