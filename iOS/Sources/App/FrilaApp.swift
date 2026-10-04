@@ -563,6 +563,7 @@ private struct EntradaDoApp: View {
         #if DEBUG
         FluxoDoProfissional(api: api, contaID: contaID, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair) {
             Button("Catálogo") { mostrandoCatalogo = true }
+                .accessibilityShowsLargeContentViewer()
                 .accessibilityHint("Abre o catálogo de componentes, só em Debug")
         }
         .id(contaID)
@@ -769,6 +770,7 @@ private struct CriacaoDoPerfilProfissional: View {
                         Button(action: sair) {
                             Text("Sair", bundle: bundleApresentacao)
                         }
+                        .accessibilityShowsLargeContentViewer()
                         .accessibilityIdentifier("criacao-perfil-sair")
                     }
                 }

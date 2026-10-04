@@ -85,25 +85,29 @@ public struct DestinoDePublicarVaga: View {
         Group {
             switch modelo.estado {
             case .carregando:
-                VStack(spacing: FrilaEspaco.medio) {
-                    EstadoCarregando()
-                    BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
-                        .accessibilityIdentifier("voltar-para-minhas-vagas")
+                ScrollView {
+                    VStack(spacing: FrilaEspaco.medio) {
+                        EstadoCarregando()
+                        BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
+                            .accessibilityIdentifier("voltar-para-minhas-vagas")
+                    }
+                    .padding(FrilaEspaco.medio)
                 }
-                .padding(FrilaEspaco.medio)
             case let .pronta(estabelecimento, telefone):
                 TelaPublicarVaga(
                     api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
                     sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar
                 )
             case let .erro(mensagem):
-                VStack(spacing: FrilaEspaco.medio) {
-                    EstadoErro(verbatim: mensagem) { Task { await modelo.carregar() } }
-                        .accessibilityIdentifier("publicar-vaga-erro")
-                    BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
-                        .accessibilityIdentifier("voltar-para-minhas-vagas")
+                ScrollView {
+                    VStack(spacing: FrilaEspaco.medio) {
+                        EstadoErro(verbatim: mensagem) { Task { await modelo.carregar() } }
+                            .accessibilityIdentifier("publicar-vaga-erro")
+                        BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
+                            .accessibilityIdentifier("voltar-para-minhas-vagas")
+                    }
+                    .padding(FrilaEspaco.medio)
                 }
-                .padding(FrilaEspaco.medio)
             }
         }
         .task { await modelo.carregar() }

@@ -230,6 +230,7 @@ public struct TelaMeuPerfilProfissional: View {
                     } label: {
                         Text(verbatim: TextosPerfilConta.fechar)
                     }
+                    .accessibilityShowsLargeContentViewer()
                     .accessibilityIdentifier("fechar-explicacao-vagas")
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
@@ -433,6 +434,7 @@ struct TelaAjudaPerfil: View {
                     } label: {
                         Text(verbatim: TextosPerfilConta.fechar)
                     }
+                    .accessibilityShowsLargeContentViewer()
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
