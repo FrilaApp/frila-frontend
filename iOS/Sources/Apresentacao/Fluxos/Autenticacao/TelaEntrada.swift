@@ -19,6 +19,7 @@ public struct TelaEntrada: View {
                     Text("Frila", bundle: bundleApresentacao)
                         .font(.largeTitle.bold())
                         .foregroundStyle(FrilaCor.texto)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text("Turnos avulsos no DF, perto de você.", bundle: bundleApresentacao)
                         .font(.title3)

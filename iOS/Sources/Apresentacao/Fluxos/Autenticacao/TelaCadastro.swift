@@ -41,6 +41,7 @@ public struct TelaCadastro: View {
                 Text("Como você vai usar o Frila?", bundle: bundleApresentacao)
                     .font(.title2.bold())
                     .foregroundStyle(FrilaCor.texto)
+                    .accessibilityAddTraits(.isHeader)
 
                 // Escolha de perfil
                 VStack(spacing: FrilaEspaco.pequeno) {

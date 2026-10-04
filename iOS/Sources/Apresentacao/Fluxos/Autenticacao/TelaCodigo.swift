@@ -42,6 +42,7 @@ public struct TelaCodigo: View {
                     Text("Digite o código", bundle: bundleApresentacao)
                         .font(.title.bold())
                         .foregroundStyle(FrilaCor.texto)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text("Enviamos um código de 6 dígitos para \(viewModel.email). Ele vale por pouco tempo.", bundle: bundleApresentacao)
                         .font(.body)
