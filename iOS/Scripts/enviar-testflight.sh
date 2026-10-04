@@ -118,12 +118,20 @@ if [[ -n "$condicoes" ]]; then
   # shellcheck disable=SC2016 # $(inherited) é do Xcode, não do shell.
   ajustes+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited)'"$condicoes")
 fi
+
+if [[ ! -d "$RAIZ/Frila.xcodeproj" ]]; then
+  echo "Frila.xcodeproj não encontrado. Gerando com Scripts/gerar-projeto.sh..."
+  "$RAIZ/Scripts/gerar-projeto.sh"
+fi
+
 CI="${CI:-1}" xcodebuild archive \
   -project "$RAIZ/Frila.xcodeproj" \
   -scheme "$ESQUEMA" \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \
   ${derived[@]+"${derived[@]}"} \
+  -disableAutomaticPackageResolution \
+  -onlyUsePackageVersionsFromResolvedFile \
   "${autenticacao[@]}" \
   "${ajustes[@]}" | formatar
 
