@@ -27,6 +27,8 @@ private final class FilaQueRecusa: FilaDeAcoes, @unchecked Sendable {
     func pendentes() async throws -> [AcaoPendente] { [] }
     func remover(id: UUID) async throws {}
     func limpar() async throws {}
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() async throws -> [AcaoRecusada] { [] }
 }
 
 private final class FilaEmMemoria: FilaDeAcoes, @unchecked Sendable {
@@ -36,6 +38,8 @@ private final class FilaEmMemoria: FilaDeAcoes, @unchecked Sendable {
     func pendentes() async throws -> [AcaoPendente] { trava.withLock { itens } }
     func remover(id: UUID) async throws { trava.withLock { itens.removeAll { $0.id == id } } }
     func limpar() async throws { trava.withLock { itens.removeAll() } }
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() async throws -> [AcaoRecusada] { [] }
 }
 
 private final class ArmazenamentoEmMemoria: ArmazenamentoAvaliacoes, @unchecked Sendable {
