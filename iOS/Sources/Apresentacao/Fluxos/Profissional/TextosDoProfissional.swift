@@ -68,6 +68,7 @@ enum TextosDoProfissional {
         static let sobrepostoTitulo = String(localized: "Você já tem um turno nesse horário", bundle: bundleApresentacao)
         static let sobrepostoMensagem = String(localized: "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.", bundle: bundleApresentacao)
 
+        static let ajustarFuncoes = String(localized: "Ajustar minhas funções", bundle: bundleApresentacao)
         static let funcaoTitulo = String(localized: "Essa vaga pede outra função", bundle: bundleApresentacao)
         static let funcaoMensagem = String(localized: "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.", bundle: bundleApresentacao)
         static let inelegivelTitulo = String(localized: "Você não pode se candidatar a esta vaga", bundle: bundleApresentacao)

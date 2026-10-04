@@ -103,6 +103,7 @@ public struct TelaResultadoDaCandidatura: View {
     private let verCandidaturas: (() -> Void)?
     private let voltarParaLista: () -> Void
     private let sair: () -> Void
+    private let ajustarFuncoes: (() -> Void)?
     @State private var mostrarContestacao = false
     @State private var contestacaoModel: ContaSuspensaViewModel?
 
@@ -110,7 +111,7 @@ public struct TelaResultadoDaCandidatura: View {
     /// e o caminho para a aba em que ela fica.
     public init(
         vaga: Vaga, resultado: ResultadoDaCandidatura, api: (any ApiCliente)? = nil, verCandidaturas: (() -> Void)? = nil,
-        sair: @escaping () -> Void = {}, voltarParaLista: @escaping () -> Void
+        ajustarFuncoes: (() -> Void)? = nil, sair: @escaping () -> Void = {}, voltarParaLista: @escaping () -> Void
     ) {
         self.vaga = vaga
         self.resultado = resultado
@@ -118,6 +119,7 @@ public struct TelaResultadoDaCandidatura: View {
         self.verCandidaturas = verCandidaturas
         self.voltarParaLista = voltarParaLista
         self.sair = sair
+        self.ajustarFuncoes = ajustarFuncoes
     }
 
     public var body: some View {
@@ -179,6 +181,10 @@ public struct TelaResultadoDaCandidatura: View {
             voltar
         case .inelegivel(.funcaoIncompativel):
             mensagem(Textos.funcaoTitulo, Textos.funcaoMensagem, id: "resultado-funcao-incompativel")
+            if let ajustarFuncoes {
+                BotaoPrimario(verbatim: Textos.ajustarFuncoes, acao: ajustarFuncoes)
+                    .accessibilityIdentifier("ajustar-minhas-funcoes")
+            }
             voltar
         case .inelegivel(.outro):
             mensagem(Textos.inelegivelTitulo, Textos.inelegivelMensagem, id: "resultado-inelegivel")
