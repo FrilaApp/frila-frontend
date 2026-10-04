@@ -38,6 +38,19 @@ struct SegurancaDoCodigoTests {
         #expect(achados.isEmpty, "saída fora do Logger em \(achados)")
     }
 
+    @Test("A raiz do app liga a cortina de privacidade, fora de qualquer #if (A4)")
+    func cortinaLigadaNaRaiz() throws {
+        let app = try #require(try Self.arquivosSwift().first { $0.nome == "Sources/App/FrilaApp.swift" })
+        var pilha = 0
+        var ligadaForaDeIf = false
+        for linha in app.linhas {
+            let codigo = linha.trimmingCharacters(in: .whitespaces)
+            if codigo.hasPrefix("#if") { pilha += 1 } else if codigo.hasPrefix("#endif") { pilha -= 1 }
+            if pilha == 0, codigo.hasPrefix(".cortinaDePrivacidade()") { ligadaForaDeIf = true }
+        }
+        #expect(ligadaForaDeIf, "FrilaApp.swift precisa aplicar .cortinaDePrivacidade() na raiz, em Release também")
+    }
+
     @Test("Argumentos de rota e de catálogo só existem dentro de #if DEBUG")
     func argumentosSoEmDebug() throws {
         let argumentosDeDebug = ["-FRILA_VAGA_ID", "-FRILA_ABRIR_CATALOGO"]

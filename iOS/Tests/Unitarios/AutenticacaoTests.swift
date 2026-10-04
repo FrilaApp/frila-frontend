@@ -578,6 +578,51 @@ struct AutenticacaoTests {
         #expect(destino == .profissional)
     }
 
+    @Test("DestinoDaConta: rede ruim (servidor que não responde) vence o prazo e abre o destino guardado, como sem rede")
+    func destinoComRedeRuimAbreODestinoGuardado() async throws {
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        DestinoGuardado.salvar(.contratante, em: defaults)
+
+        let relogio = ContinuousClock()
+        let inicio = relogio.now
+        let destino = try await DestinoDaConta.avaliarComRecuperacaoOffline(
+            api: ApiQueNaoResponde(), defaults: defaults, prazo: .milliseconds(150)
+        )
+        #expect(destino == .contratante)
+        #expect(relogio.now - inicio < .seconds(5), "a abertura não pode esperar a URLSession desistir")
+    }
+
+    @Test("DestinoDaConta: rede ruim sem destino guardado vira semRede (com o código do prazo), e não fica no indicador")
+    func destinoComRedeRuimSemGuardadoEhSemRede() async throws {
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        DestinoGuardado.limpar(em: defaults)
+
+        let erro = await #expect(throws: ErroDaApi.self) {
+            _ = try await DestinoDaConta.avaliarComRecuperacaoOffline(api: ApiQueNaoResponde(), defaults: defaults, prazo: .milliseconds(150))
+        }
+        #expect(erro?.codigo == .semRede)
+        #expect(erro?.codigoOriginal == PrazoDaAbertura.codigoOriginal)
+    }
+
+    @Test("IdentidadeDaAvaliacao: rede ruim vence o prazo e usa a sessão do cache")
+    func identidadeComRedeRuimUsaOCache() async throws {
+        let contaID = UUID()
+        let cache = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        try await cache.salvar(sessao: SessaoUsuario(usuarioID: contaID, perfil: .profissional))
+        #expect(try await IdentidadeDaAvaliacao.obter(api: ApiQueNaoResponde(), cache: cache, prazo: .milliseconds(150)) == contaID)
+    }
+
+    @Test("PrazoDaAbertura: a resposta que chega antes do prazo passa, e o prazo não espera")
+    func prazoNaoAtrasaRespostaRapida() async throws {
+        let relogio = ContinuousClock()
+        let inicio = relogio.now
+        let valor = try await PrazoDaAbertura.esperar(.seconds(30)) { 42 }
+        #expect(valor == 42)
+        #expect(relogio.now - inicio < .seconds(5))
+    }
+
     @Test("DestinoDaConta: semRede sem destino guardado lança erro")
     func destinoSemRedeSemDestinoGuardado() async throws {
         let (defaults, suiteName) = criarUserDefaultsIsolado()
@@ -718,3 +763,16 @@ private final class ApiDubleReentradaCodigo: ApiClienteEncaminhador, @unchecked 
     }
 }
 
+
+// MARK: - Dublê de rede ruim: a chamada nunca volta (até ser cancelada)
+
+private final class ApiQueNaoResponde: ApiClienteEncaminhador, @unchecked Sendable {
+    private func esperarParaSempre() async throws {
+        try await Task.sleep(for: .seconds(60))
+    }
+
+    override func minhaConta() async throws -> Conta {
+        try await esperarParaSempre()
+        return try await base.minhaConta()
+    }
+}
