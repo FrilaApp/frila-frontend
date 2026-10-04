@@ -177,6 +177,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
         if let api = viewModel.api {
             AcoesDeSeguranca(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
+                .id(vaga.estabelecimento.id)
         }
     }
 

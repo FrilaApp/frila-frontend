@@ -174,4 +174,32 @@ struct SegurancaViewModelTests {
         await model.carregar()
         #expect(model.estado == .indisponivel)
     }
+
+    @Test("Denúncia originada no turno propaga o turnoID na requisição")
+    func denunciaComTurnoID() async throws {
+        let api = ApiDeSeguranca()
+        let perfil = try await perfil(api)
+        let turnoID = UUID()
+        let model = SegurancaViewModel(perfil: perfil, turnoID: turnoID, api: api, bloqueios: BloqueiosDaSessao())
+        model.motivo = .outro
+        model.relato = "Ocorrência registrada durante o turno."
+        await model.denunciar()
+        let enviada = try #require(api.denuncias.first)
+        #expect(enviada.turnoID == turnoID)
+        #expect(enviada.alvo == Alvo(perfil))
+    }
+
+    @Test("Bloquear atualiza model.bloqueado e registra o alvo nos bloqueios da sessão")
+    func estadoBloqueadoAtualizado() async throws {
+        let api = ApiDeSeguranca()
+        let perfil = try await perfil(api)
+        let bloqueios = BloqueiosDaSessao()
+        let model = SegurancaViewModel(perfil: perfil, api: api, bloqueios: bloqueios)
+        #expect(!model.bloqueado)
+        #expect(!bloqueios.contem(Alvo(perfil)))
+        await model.bloquear()
+        #expect(model.bloqueado)
+        #expect(bloqueios.contem(perfil))
+        #expect(bloqueios.contem(Alvo(perfil)))
+    }
 }
