@@ -18,6 +18,7 @@ final class ServidorDeHojeUITests: XCTestCase {
     private func abrir(extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "profissional-servidor-antigo"] + extras
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         return app
     }
@@ -26,7 +27,9 @@ final class ServidorDeHojeUITests: XCTestCase {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
         let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
         let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 5), .completed, file: file, line: line)
+        // 10 s, como a espera da existência e no TurnoContrato0231UITests: no runner lento da CI
+        // a transição de telas pode demorar mais que os 5 s.
+        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 10), .completed, file: file, line: line)
         elemento.tap()
     }
 
@@ -47,14 +50,14 @@ final class ServidorDeHojeUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
         let cabecalho = app.staticTexts["estado-do-turno"]
-        XCTAssertTrue(cabecalho.waitForExistence(timeout: 5))
+        XCTAssertTrue(cabecalho.waitForExistence(timeout: 10))
         XCTAssertEqual(cabecalho.label, "Você está confirmado")
 
         // Ações de sempre de um turno confirmado
         XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Abrir no WhatsApp"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Ver no Mapas"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Fazer check-in"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Abrir no WhatsApp"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Ver no Mapas"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Fazer check-in"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["cancelamento-do-turno"].exists)
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
     }
@@ -79,22 +82,22 @@ final class ServidorDeHojeUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
         let sim = app.buttons["resposta-sim"]
-        XCTAssertTrue(sim.waitForExistence(timeout: 5))
+        XCTAssertTrue(sim.waitForExistence(timeout: 10))
         tocar(sim)
 
         let enviar = app.buttons["botao-enviar-avaliacao"]
-        XCTAssertTrue(enviar.waitForExistence(timeout: 5))
+        XCTAssertTrue(enviar.waitForExistence(timeout: 10))
         tocar(enviar)
 
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
-        XCTAssertTrue(confirmacao.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: 10))
 
         // Voltar para "Meu turno"
         tocar(app.navigationBars["Avaliar turno"].buttons.firstMatch)
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
         let statusAvaliacao = app.staticTexts["Turno avaliado · Resposta: Sim"]
         if !statusAvaliacao.isHittable { app.swipeUp() }
-        XCTAssertTrue(statusAvaliacao.waitForExistence(timeout: 5))
+        XCTAssertTrue(statusAvaliacao.waitForExistence(timeout: 10))
 
         // Voltar para "Meus turnos"
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
@@ -108,7 +111,7 @@ final class ServidorDeHojeUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
         let statusReaberto = app.staticTexts["Turno avaliado · Resposta: Sim"]
         if !statusReaberto.isHittable { app.swipeUp() }
-        XCTAssertTrue(statusReaberto.waitForExistence(timeout: 5))
+        XCTAssertTrue(statusReaberto.waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
         XCTAssertTrue(app.buttons["Ver avaliação"].exists)
     }
@@ -143,7 +146,7 @@ final class ServidorDeHojeUITests: XCTestCase {
         // encontra o turno (pois nil != .cancelada) e abre diretamente a tela do turno.
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 15))
         let cabecalho = app.staticTexts["estado-do-turno"]
-        XCTAssertTrue(cabecalho.waitForExistence(timeout: 5))
+        XCTAssertTrue(cabecalho.waitForExistence(timeout: 10))
         XCTAssertEqual(cabecalho.label, "Você está confirmado")
         XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].waitForExistence(timeout: 10))
     }

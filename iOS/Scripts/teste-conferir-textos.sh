@@ -538,4 +538,32 @@ struct TelaSectionBoa: View {
 SWIFT
 esperar_aprovacao "$DIR_BOM_SECTION"
 
+# Promessas e cartões são recusados em literais, chaves e traduções, mas não em comentários.
+for texto in 'Disponível no cartão #219' 'Em breve' 'Na próxima versão' 'Em desenvolvimento'; do
+  cat > "$TMPDIR_TESTE/promessa.swift" <<SWIFT
+let texto = String(localized: "$texto", bundle: bundleLocal)
+SWIFT
+  esperar_reprovacao "texto de app incompleto" "Texto de app com promessa ou cartão interno" "$TMPDIR_TESTE/promessa.swift"
+done
+cat > "$TMPDIR_TESTE/comentarios.swift" <<'SWIFT'
+// Disponível no cartão #219, em breve.
+/* próxima versão, em desenvolvimento */
+let texto = String(localized: "Disponível", bundle: bundleLocal)
+SWIFT
+esperar_aprovacao "$TMPDIR_TESTE/comentarios.swift"
+mkdir -p "$TMPDIR_TESTE/catalogo"
+cp "$TMPDIR_TESTE/comentarios.swift" "$TMPDIR_TESTE/catalogo/Tela.swift"
+cat > "$TMPDIR_TESTE/catalogo/Localizable.xcstrings" <<'JSON'
+{"strings":{"Título":{"comment":"Implementado no cartão #50","localizations":{"pt-BR":{"stringUnit":{"value":"Disponível"}}}}}}
+JSON
+esperar_aprovacao "$TMPDIR_TESTE/catalogo"
+cat > "$TMPDIR_TESTE/catalogo/Localizable.xcstrings" <<'JSON'
+{"strings":{"Título":{"localizations":{"pt-BR":{"stringUnit":{"value":"Em desenvolvimento"}}}}}}
+JSON
+esperar_reprovacao "tradução incompleta" "Texto de app com promessa ou cartão interno" "$TMPDIR_TESTE/catalogo"
+cat > "$TMPDIR_TESTE/catalogo/Localizable.xcstrings" <<'JSON'
+{"strings":{"Disponível no cartão #50":{}}}
+JSON
+esperar_reprovacao "chave interna" "Texto de app com promessa ou cartão interno" "$TMPDIR_TESTE/catalogo"
+
 echo "OK: autoteste de conferir-textos.sh passou"
