@@ -43,6 +43,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Bindable private var viewModel: DetalheVagaViewModel
     @State private var avisosDaAcao = AvisosDoDetalhe()
     private let acao: (Vaga) -> Acao
@@ -60,7 +61,11 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 // O aviso novo entra na rolagem, que pode estar em outro ponto: a tela vai até ele.
                 .onChange(of: avisosDaAcao.avisos) { _, avisos in
                     guard !avisos.isEmpty else { return }
-                    withAnimation { rolagem.scrollTo(Self.idDosAvisos, anchor: .top) }
+                    if reduzirMovimento {
+                        rolagem.scrollTo(Self.idDosAvisos, anchor: .top)
+                    } else {
+                        withAnimation { rolagem.scrollTo(Self.idDosAvisos, anchor: .top) }
+                    }
                 }
         }
     }
@@ -125,9 +130,11 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 }
                 GridRow {
                     campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)", bundle: bundleApresentacao))
-                    campo(modoTitulo(vaga.modo), modoDetalhe(vaga.modo))
                 }
             }
+            // O modo é uma frase: na meia coluna do Grid ela partia palavras a partir do AX1
+            // ("estabeleci-mento"), e a auditoria do XCTest a dava como texto cortado.
+            campo(modoTitulo(vaga.modo), modoDetalhe(vaga.modo))
             Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

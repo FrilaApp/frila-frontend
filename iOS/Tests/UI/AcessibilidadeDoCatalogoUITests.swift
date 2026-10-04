@@ -79,17 +79,22 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         var problemas: [String] = []
         let fim = app.buttons["abrir-licencas"]
 
+        let janela = app.windows.firstMatch.frame
         for _ in 0..<20 {
             let controles = app.buttons.allElementsBoundByIndex + app.textFields.allElementsBoundByIndex
-            for controle in controles where controle.exists && controle.isHittable {
-                let chave = "\(controle.elementType.rawValue)|\(controle.identifier)|\(controle.label)"
-                guard conferidos.insert(chave).inserted else { continue }
+            for controle in controles {
+                guard controle.exists else { continue }
                 let quadro = controle.frame
+                guard janela.intersects(quadro) else { continue }
+                let chave = "\(controle.elementType.rawValue)|\(controle.identifier)|\(controle.label)"
+                guard !conferidos.contains(chave) else { continue }
+                guard controle.isHittable else { continue }
+                conferidos.insert(chave)
                 if controle.label.trimmingCharacters(in: .whitespaces).isEmpty
                     && controle.placeholderValue?.isEmpty != false {
                     problemas.append("sem rótulo: \(controle.elementType) \(controle.identifier)")
                 }
-                if quadro.height < 44 || quadro.width < 44 {
+                if !AlvoMinimo.atende(quadro.height) || !AlvoMinimo.atende(quadro.width) {
                     problemas.append("alvo \(Int(quadro.width))×\(Int(quadro.height)) pt: \(controle.label)")
                 }
             }

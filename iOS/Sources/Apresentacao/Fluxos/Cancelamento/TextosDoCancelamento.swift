@@ -15,6 +15,8 @@ enum TextosDoCancelamento {
     static let confirmar = String(localized: "Confirmar cancelamento", bundle: bundleApresentacao)
     static let voltar = String(localized: "Voltar", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
+    static let ok = String(localized: "OK", bundle: bundleApresentacao)
+    static let recolherTeclado = String(localized: "Recolher teclado", bundle: bundleApresentacao)
     static let enviando = String(localized: "Enviando o cancelamento…", bundle: bundleApresentacao)
 
     // Avisos antes do toque, pela antecedência (RN12)

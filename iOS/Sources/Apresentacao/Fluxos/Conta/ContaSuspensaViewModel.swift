@@ -3,7 +3,7 @@ import FrilaDominio
 import Observation
 
 @MainActor @Observable
-public final class ContaSuspensaViewModel {
+public final class ContaSuspensaViewModel: Identifiable {
     public private(set) var situacao: SituacaoDaConta?
     public private(set) var protocolo: Protocolo?
     public private(set) var carregando = false
