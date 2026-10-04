@@ -794,3 +794,147 @@ struct TextosDoAcompanhamentoTests {
         #expect(fora.isEmpty, "textos fora do catálogo: \(fora)")
     }
 }
+
+private final class ApiClienteAvaliarMock: ApiClienteEncaminhador, @unchecked Sendable {
+    private let trava = NSLock()
+    private var _chamadas: [(turnoID: UUID, resposta: Bool)] = []
+    var chamadas: [(turnoID: UUID, resposta: Bool)] { trava.withLock { _chamadas } }
+
+    override func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
+        trava.withLock { _chamadas.append((turnoID, resposta)) }
+        return Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: Date())
+    }
+}
+
+@MainActor
+@Suite("Avaliação do profissional pelo contratante (#22)")
+struct AvaliacaoDoContratanteTests {
+    private let contaID = UUID()
+    private let agora = agoraDoTeste
+
+    @Test("podeAvaliar só é verdadeiro quando turno está confirmado, presença verificada e fim passou")
+    func podeAvaliarCriterios() throws {
+        let inicioPassado = agora.addingTimeInterval(-6 * hora)
+        let fimPassado = agora.addingTimeInterval(-2 * hora)
+        let resumo = VagaResumo(
+            id: UUID(), funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: inicioPassado, fim: fimPassado), valor: Dinheiro(centavos: 12000)
+        )
+
+        // Turno concluído e verificado
+        let posicaoConcluida = PosicaoNoPainel(
+            id: UUID(), estado: .confirmada, profissional: PainelDeTeste.ana, turnoID: UUID(), verificacao: .verificado, emAtraso: false
+        )
+        let turnoConcluido = TurnoAcompanhado(vaga: resumo, posicao: posicaoConcluida)
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { Painel(estabelecimentoID: PainelDeTeste.casa, vagas: [], checkinsPendentes: []) },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            contaID: contaID
+        )
+
+        #expect(vm.podeAvaliar(turnoConcluido) == true)
+
+        // Presença pendente
+        let posicaoPendente = PosicaoNoPainel(
+            id: UUID(), estado: .confirmada, profissional: PainelDeTeste.ana, turnoID: UUID(), verificacao: .pendente, emAtraso: false
+        )
+        let turnoPendente = TurnoAcompanhado(vaga: resumo, posicao: posicaoPendente)
+        #expect(vm.podeAvaliar(turnoPendente) == false)
+
+        // Posição cancelada
+        let posicaoCancelada = PosicaoNoPainel(
+            id: UUID(), estado: .cancelada, profissional: PainelDeTeste.ana, turnoID: UUID(), verificacao: .verificado, emAtraso: false
+        )
+        let turnoCancelado = TurnoAcompanhado(vaga: resumo, posicao: posicaoCancelada)
+        #expect(vm.podeAvaliar(turnoCancelado) == false)
+
+        // Fim ainda não passou
+        let inicioFuturo = agora.addingTimeInterval(-1 * hora)
+        let fimFuturo = agora.addingTimeInterval(3 * hora)
+        let resumoEmAndamento = VagaResumo(
+            id: UUID(), funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: inicioFuturo, fim: fimFuturo), valor: Dinheiro(centavos: 12000)
+        )
+        let turnoEmAndamento = TurnoAcompanhado(vaga: resumoEmAndamento, posicao: posicaoConcluida)
+        #expect(vm.podeAvaliar(turnoEmAndamento) == false)
+    }
+
+    @Test("jaAvaliado e respostaAvaliacao refletem resposta gravada no armazenamento")
+    func jaAvaliadoComArmazenamento() throws {
+        let turnoID = UUID()
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        armazenamento.salvar(resposta: true, para: turnoID, contaID: contaID)
+
+        let inicioPassado = agora.addingTimeInterval(-6 * hora)
+        let fimPassado = agora.addingTimeInterval(-2 * hora)
+        let resumo = VagaResumo(
+            id: UUID(), funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: inicioPassado, fim: fimPassado), valor: Dinheiro(centavos: 12000)
+        )
+        let posicao = PosicaoNoPainel(
+            id: UUID(), estado: .confirmada, profissional: PainelDeTeste.ana, turnoID: turnoID, verificacao: .verificado, emAtraso: false
+        )
+        let turno = TurnoAcompanhado(vaga: resumo, posicao: posicao)
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { Painel(estabelecimentoID: PainelDeTeste.casa, vagas: [], checkinsPendentes: []) },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            contaID: contaID,
+            armazenamentoAvaliacoes: armazenamento
+        )
+
+        #expect(vm.jaAvaliado(turno) == true)
+        #expect(vm.respostaAvaliacao(turno) == true)
+    }
+
+    @Test("criarAvaliacaoViewModel instancia view model com pergunta do contratante e atualiza estado ao avaliar")
+    func criarAvaliacaoEFluxo() async throws {
+        let turnoID = UUID()
+        let api = ApiClienteAvaliarMock()
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+
+        let inicioPassado = agora.addingTimeInterval(-6 * hora)
+        let fimPassado = agora.addingTimeInterval(-2 * hora)
+        let resumo = VagaResumo(
+            id: UUID(), funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: inicioPassado, fim: fimPassado), valor: Dinheiro(centavos: 12000)
+        )
+        let posicao = PosicaoNoPainel(
+            id: UUID(), estado: .confirmada, profissional: PainelDeTeste.ana, turnoID: turnoID, verificacao: .verificado, emAtraso: false
+        )
+        let turno = TurnoAcompanhado(vaga: resumo, posicao: posicao)
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { Painel(estabelecimentoID: PainelDeTeste.casa, vagas: [], checkinsPendentes: []) },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            api: api,
+            contaID: contaID,
+            armazenamentoAvaliacoes: armazenamento
+        )
+
+        #expect(vm.jaAvaliado(turno) == false)
+        #expect(vm.respostaAvaliacao(turno) == nil)
+
+        let avaliacaoVM = try #require(vm.criarAvaliacaoViewModel(para: turno))
+        #expect(avaliacaoVM.pergunta == "Chamaria este profissional de novo?")
+        #expect(avaliacaoVM.explicacao == TextosDoProfissional.Avaliacao.explicacaoContratante)
+
+        avaliacaoVM.resposta = true
+        let salvou = await avaliacaoVM.salvar()
+        #expect(salvou == true)
+
+        #expect(vm.jaAvaliado(turno) == true)
+        #expect(vm.respostaAvaliacao(turno) == true)
+        #expect(armazenamento.resposta(para: turnoID, contaID: contaID) == true)
+        #expect(api.chamadas.count == 1)
+        #expect(api.chamadas.first?.turnoID == turnoID)
+        #expect(api.chamadas.first?.resposta == true)
+    }
+}

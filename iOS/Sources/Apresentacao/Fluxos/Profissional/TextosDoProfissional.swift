@@ -167,9 +167,13 @@ enum TextosDoProfissional {
     public enum Avaliacao {
         public static let titulo = String(localized: "Avaliar turno", bundle: bundleApresentacao)
         public static let perguntaProfissional = String(localized: "Você trabalharia nesse local de novo?", bundle: bundleApresentacao)
-        public static let perguntaContratante = String(localized: "Você chamaria essa pessoa de novo?", bundle: bundleApresentacao)
+        public static let perguntaContratante = String(localized: "Chamaria este profissional de novo?", bundle: bundleApresentacao)
         public static let explicacao = String(
             localized: "Sua resposta é anônima e compõe a reputação do estabelecimento no Frila. Cada turno concluído conta para o índice de recomendação.",
+            bundle: bundleApresentacao
+        )
+        public static let explicacaoContratante = String(
+            localized: "Sua resposta é anônima e compõe a reputação do profissional no Frila. Cada turno concluído conta para o índice de recomendação.",
             bundle: bundleApresentacao
         )
         public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)

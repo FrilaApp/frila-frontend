@@ -117,6 +117,7 @@ public final class AvaliacaoTurnoViewModel {
     public let contaID: UUID
     public private(set) var turno: Turno?
     public let pergunta: String
+    public let explicacao: String
 
     private var respostaAtual: Bool?
     public var resposta: Bool? {
@@ -150,6 +151,7 @@ public final class AvaliacaoTurnoViewModel {
         armazenamento: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         relogio: any Relogio = RelogioDoSistema(),
         pergunta: String? = nil,
+        explicacao: String? = nil,
         aoAvaliar: ((Avaliacao) -> Void)? = nil,
         aoEnfileirar: ((Bool) -> Void)? = nil,
         repositorioTurnos: (any TurnoRepositorio)? = nil
@@ -165,6 +167,7 @@ public final class AvaliacaoTurnoViewModel {
         self.aoEnfileirar = aoEnfileirar
         self.repositorioTurnos = repositorioTurnos
         self.pergunta = pergunta ?? TextosDoProfissional.Avaliacao.perguntaProfissional
+        self.explicacao = explicacao ?? TextosDoProfissional.Avaliacao.explicacao
 
         if let avaliacao = turno?.avaliacao {
             self.respostaAtual = avaliacao.resposta

@@ -12,8 +12,8 @@
 		0614982DC6AABA151649D361 /* DominioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A4AC403161D71F18466D6A /* DominioTests.swift */; };
 		077BD891F4BBE33EEA05F2F3 /* CatalogoDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A640C68D12E5B196EDCA89B2 /* CatalogoDesignSystem.swift */; };
 		07F09B4CE154B8494B36A898 /* CandidaturaEmSelecao.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2802282C3FDD7C393BFC7E6 /* CandidaturaEmSelecao.swift */; };
-		08BD1F44B7D0261C9B6ABAD5 /* FolhaDeCancelamento.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148F978D346F3DA2D17F2AFF /* FolhaDeCancelamento.swift */; };
 		083B607D5295D718C7A5AD65 /* TextosDaSeguranca.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64D20D2BBF55801E9AAFC35F /* TextosDaSeguranca.swift */; };
+		08BD1F44B7D0261C9B6ABAD5 /* FolhaDeCancelamento.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148F978D346F3DA2D17F2AFF /* FolhaDeCancelamento.swift */; };
 		09A0B06C662525A8361F803D /* ConfiguracaoAmbiente.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF18324340B880D1F8642BE /* ConfiguracaoAmbiente.swift */; };
 		0A28D4C62093AE41DBA6309B /* AparelhoDePushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A18BC29951A84F0423C53CF /* AparelhoDePushTests.swift */; };
 		0B1584363C1DE0FA44C6D850 /* requisicao-avisar-a-caminho.json in Resources */ = {isa = PBXBuildFile; fileRef = 7BC76B02923AFFCF1F576C1E /* requisicao-avisar-a-caminho.json */; };
@@ -24,6 +24,7 @@
 		0F18BD89A01CA7CA02372058 /* resultado-a-caminho.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D83726938F020261BC04047 /* resultado-a-caminho.json */; };
 		1108F21B4C8976E326E3F7D4 /* RegrasDeVagaEmMemoriaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE551ECA8DB1C5113D5319DC /* RegrasDeVagaEmMemoriaTests.swift */; };
 		13680E76BFF8E766208AFAC1 /* PerfisDaContaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B09E8CED7013DCD7D059CD /* PerfisDaContaTests.swift */; };
+		1488F3F669CC21BBF365118C /* CicloDePontaAPontaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F07BCA7416C9AAEB9EE94CC /* CicloDePontaAPontaUITests.swift */; };
 		15C4569424D4AC09D70E599C /* PresencaDoTurnoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A6AFDA24F68AABC4654BD6 /* PresencaDoTurnoViewModelTests.swift */; };
 		1639A058B20DD8B17EDF2A16 /* TextosContaSuspensa.swift in Sources */ = {isa = PBXBuildFile; fileRef = A077A7E7B2FAF88619408270 /* TextosContaSuspensa.swift */; };
 		17C8BD0EFAFBA194A1550EF9 /* PublicarVagaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FA4D697A25E8C15E7BEB18 /* PublicarVagaTests.swift */; };
@@ -502,6 +503,7 @@
 		5D11D91CE2A367536010F42B /* ArmazenamentoKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArmazenamentoKeychain.swift; sourceTree = "<group>"; };
 		5D42F9162784D51FF8118379 /* requisicao-denunciar.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "requisicao-denunciar.json"; sourceTree = "<group>"; };
 		5DA57DD792D852D30F068536 /* ContratoDaSprint2Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContratoDaSprint2Tests.swift; sourceTree = "<group>"; };
+		5F07BCA7416C9AAEB9EE94CC /* CicloDePontaAPontaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CicloDePontaAPontaUITests.swift; sourceTree = "<group>"; };
 		5F59B2943A73448CDDA272C7 /* ContaSuspensaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContaSuspensaViewModel.swift; sourceTree = "<group>"; };
 		5FB4FDD061007C401AF3724C /* ModoAviaoMeuTurnoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModoAviaoMeuTurnoTests.swift; sourceTree = "<group>"; };
 		60183F18346EAC49E4C88DFC /* DecodificadorErroAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecodificadorErroAPI.swift; sourceTree = "<group>"; };
@@ -846,6 +848,7 @@
 				B7CE0AAFC28096644FA3AF94 /* CadastroEstabelecimentoUITests.swift */,
 				3E458A373FA74A5B630B9EF5 /* CancelamentoDoContratanteUITests.swift */,
 				74FAD56CD9D319D1C88CAED0 /* CancelamentoDoProfissionalUITests.swift */,
+				5F07BCA7416C9AAEB9EE94CC /* CicloDePontaAPontaUITests.swift */,
 				B92F5406A0FB5B038F00A50E /* ContaSuspensaUITests.swift */,
 				44760C9078A3626B77CA5EF0 /* ExclusaoDeContaUITests.swift */,
 				EE27623A38C03A8D626521E3 /* ExportarDadosUITests.swift */,
@@ -1745,8 +1748,8 @@
 				94A26071BE2561B8747A4437 /* TelasDaPermissaoDePush.swift in Sources */,
 				1639A058B20DD8B17EDF2A16 /* TextosContaSuspensa.swift in Sources */,
 				ABE4178CEC067E14CACB2DE9 /* TextosDaPresenca.swift in Sources */,
-				BED32C1176092468684C5BD6 /* TextosDoCancelamento.swift in Sources */,
 				083B607D5295D718C7A5AD65 /* TextosDaSeguranca.swift in Sources */,
+				BED32C1176092468684C5BD6 /* TextosDoCancelamento.swift in Sources */,
 				980217CB8A6C6A639F99B767 /* TextosDoProfissional.swift in Sources */,
 				6CB61C7F29A60C7723A65812 /* TextosDoPush.swift in Sources */,
 				DC62CA4C0A046147A18BB16B /* TextosExclusaoDeConta.swift in Sources */,
@@ -1766,6 +1769,7 @@
 				B7FF49E816EE481F12283174 /* CadastroEstabelecimentoUITests.swift in Sources */,
 				34E46048EF0AB73E397E9039 /* CancelamentoDoContratanteUITests.swift in Sources */,
 				FCBEB8E77C65C4D4A36FB4B9 /* CancelamentoDoProfissionalUITests.swift in Sources */,
+				1488F3F669CC21BBF365118C /* CicloDePontaAPontaUITests.swift in Sources */,
 				A2E8477D5DA584C478A295CB /* ContaSuspensaUITests.swift in Sources */,
 				E1BFE2C26E3F9990368319CA /* ExclusaoDeContaUITests.swift in Sources */,
 				68A064D97D40E4EE22E52829 /* ExportarDadosUITests.swift in Sources */,
