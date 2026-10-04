@@ -53,6 +53,17 @@ struct MinhasVagasTests {
         ) { painel }
     }
 
+    @Test("Republicação no detalhe usa o relógio recebido pelo painel")
+    func podeRepublicarComRelogioInjetado() throws {
+        let futura = try vaga(id: "73000000-0000-0000-0000-000000000011", inicioEm: 3600)
+        let terminada = try vaga(id: "73000000-0000-0000-0000-000000000012", inicioEm: -3600)
+        let cancelada = try vaga(id: "73000000-0000-0000-0000-000000000013", inicioEm: 3600, estado: .cancelada)
+        let vm = try viewModel([futura, terminada, cancelada])
+        #expect(!vm.podeRepublicar(futura))
+        #expect(vm.podeRepublicar(terminada))
+        #expect(vm.podeRepublicar(cancelada))
+    }
+
     @Test("Separa vagas em alerta, hoje, próximas e encerradas")
     func classificaQuatroSecoes() async throws {
         let alerta = try vaga(id: "73000000-0000-0000-0000-000000000011", inicioEm: 2 * 3_600, alerta: true)

@@ -187,6 +187,10 @@ public final class MinhasVagasViewModel {
         }
     }
 
+    public func podeRepublicar(_ vaga: VagaNoPainel) -> Bool {
+        vaga.estado == .encerrada || vaga.estado == .cancelada || vaga.vaga.periodo.fim <= agora()
+    }
+
     public func vagas(na secao: SecaoMinhasVagas) -> [VagaNoPainel] {
         vagas
             .filter { classificar($0) == secao }
@@ -447,6 +451,7 @@ private struct DestinoDaVagaDoContratante: View {
                 api: api,
                 fila: fila,
                 confirmado: viewModel.confirmadas(vaga),
+                podeRepublicar: { viewModel.podeRepublicar(vaga) },
                 acompanhamento: acompanhamento,
                 aoRepublicar: {
                     await viewModel.carregar()
@@ -489,6 +494,7 @@ private struct TelaDetalheVagaContratante: View {
     let api: any ApiCliente
     let fila: (any FilaDeAcoes)?
     let confirmado: Int
+    let podeRepublicar: @MainActor () -> Bool
     /// Quem cancela a vaga ou uma posição (#20); `nil` nas prévias.
     var acompanhamento: AcompanhamentoViewModel? = nil
     var aoRepublicar: (@Sendable () async -> Void)? = nil
@@ -524,7 +530,7 @@ private struct TelaDetalheVagaContratante: View {
                 .padding(FrilaEspaco.medio)
                 .cartaoFrila()
 
-                if vaga.estado == .encerrada || vaga.estado == .cancelada || vaga.vaga.periodo.fim <= Date() {
+                if podeRepublicar() {
                     Button {
                         vagaParaRepublicar = vaga
                     } label: {

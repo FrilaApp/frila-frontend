@@ -2,6 +2,7 @@ import FrilaDominio
 import MapKit
 import Observation
 import SwiftUI
+import UIKit
 
 private final class MarcadorPublicarVaga: NSObject {}
 private let bundlePublicarVaga = Bundle(for: MarcadorPublicarVaga.self)
@@ -579,9 +580,7 @@ public struct TelaPublicarVaga: View {
 
     private var campoValor: some View {
         campo(.valor, titulo: TextosPublicarVaga.valor) {
-            TextField(TextosPublicarVaga.valorExemplo, text: Binding(get: { Self.formatarCentavos(model.valorCentavos) }, set: { model.valorTexto = String($0.filter(\.isNumber)) }))
-                .keyboardType(.numberPad)
-                .textFieldStyle(.plain)
+            CampoValorVaga(texto: $model.valorTexto)
                 .padding(.horizontal, FrilaEspaco.medio)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
@@ -686,7 +685,54 @@ public struct TelaPublicarVaga: View {
         }
     }
 
-    private static func formatarCentavos(_ centavos: Int) -> String {
+}
+
+/// Máscara usada no formulário de publicar, inclusive ao abrir por Minhas vagas.
+struct CampoValorVaga: UIViewRepresentable {
+    @Binding var texto: String
+    @Environment(\.isEnabled) private var habilitado
+
+    func makeCoordinator() -> Coordenador { Coordenador(texto: $texto) }
+
+    func makeUIView(context: Context) -> UITextField {
+        let campo = UITextField()
+        campo.keyboardType = .numberPad
+        campo.borderStyle = .none
+        campo.font = .preferredFont(forTextStyle: .body)
+        campo.adjustsFontForContentSizeCategory = true
+        campo.textColor = FrilaCor.textoUIKit
+        campo.placeholder = TextosPublicarVaga.valorExemplo
+        campo.accessibilityLabel = TextosPublicarVaga.valor
+        campo.accessibilityIdentifier = "valor-vaga-campo"
+        campo.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        campo.addTarget(context.coordinator, action: #selector(Coordenador.editar(_:)), for: .editingChanged)
+        return campo
+    }
+
+    func updateUIView(_ campo: UITextField, context: Context) {
+        context.coordinator.texto = $texto
+        campo.isEnabled = habilitado
+        let formatado = Self.formatarCentavos(Int(texto.filter(\.isNumber)) ?? 0)
+        if campo.text != formatado { campo.text = formatado }
+    }
+
+    @MainActor
+    final class Coordenador: NSObject {
+        var texto: Binding<String>
+
+        init(texto: Binding<String>) { self.texto = texto }
+
+        @objc func editar(_ campo: UITextField) {
+            let centavos = Int((campo.text ?? "").filter(\.isNumber)) ?? 0
+            // Reescreve no próprio evento, antes da próxima tecla. Um binding formatado depende
+            // da renderização do SwiftUI e pode sobrescrever teclas rápidas com um valor antigo.
+            campo.text = CampoValorVaga.formatarCentavos(centavos)
+            campo.selectedTextRange = campo.textRange(from: campo.endOfDocument, to: campo.endOfDocument)
+            texto.wrappedValue = String(centavos)
+        }
+    }
+
+    static func formatarCentavos(_ centavos: Int) -> String {
         let reais = centavos / 100
         let resto = centavos % 100
         return String(format: TextosPublicarVaga.formatoValor, reais, resto)
