@@ -103,7 +103,7 @@ public enum MotivoSuporteTurno: String, CaseIterable, Identifiable, Hashable, Eq
 
 /// View model para a folha de acionamento do suporte no turno (US22, RF23).
 @MainActor @Observable
-public final class SuporteTurnoViewModel {
+public final class SuporteTurnoViewModel: Identifiable {
     public let dados: ContextoSuporteTurno
     public let emailDestino: String
     public var motivo: MotivoSuporteTurno

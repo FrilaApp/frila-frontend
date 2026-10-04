@@ -4,7 +4,7 @@ import SwiftUI
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
     @State private var cancelamento: CancelamentoViewModel?
-    @State private var mostrandoSuporte = false
+    @State private var suporteModel: SuporteTurnoViewModel?
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
@@ -53,12 +53,8 @@ public struct TelaMeuTurno: View {
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
-        .sheet(isPresented: $mostrandoSuporte) {
-            FolhaSuporteTurno(
-                viewModel: SuporteTurnoViewModel(
-                    dados: ContextoSuporteTurno(turno: viewModel.turno)
-                )
-            )
+        .sheet(item: $suporteModel) { model in
+            FolhaSuporteTurno(viewModel: model)
         }
         .accessibilityIdentifier("tela-meu-turno")
     }
@@ -81,7 +77,9 @@ public struct TelaMeuTurno: View {
 
     private var botaoSuporte: some View {
         Button {
-            mostrandoSuporte = true
+            suporteModel = SuporteTurnoViewModel(
+                dados: ContextoSuporteTurno(turno: viewModel.turno)
+            )
         } label: {
             Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)

@@ -107,7 +107,7 @@ struct TelaTurnoDoContratante: View {
     let turnoID: UUID
     let api: (any ApiCliente)?
     @State private var cancelamento: CancelamentoViewModel?
-    @State private var suporteTurno: TurnoAcompanhado?
+    @State private var suporteModel: SuporteTurnoViewModel?
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
@@ -146,12 +146,8 @@ struct TelaTurnoDoContratante: View {
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
         }
-        .sheet(item: $suporteTurno) { turno in
-            FolhaSuporteTurno(
-                viewModel: SuporteTurnoViewModel(
-                    dados: ContextoSuporteTurno(turnoAcompanhado: turno)
-                )
-            )
+        .sheet(item: $suporteModel) { model in
+            FolhaSuporteTurno(viewModel: model)
         }
         .accessibilityIdentifier("turno-do-contratante")
     }
@@ -204,7 +200,9 @@ struct TelaTurnoDoContratante: View {
 
     private func botaoSuporte(_ turno: TurnoAcompanhado) -> some View {
         Button {
-            suporteTurno = turno
+            suporteModel = SuporteTurnoViewModel(
+                dados: ContextoSuporteTurno(turnoAcompanhado: turno)
+            )
         } label: {
             Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
