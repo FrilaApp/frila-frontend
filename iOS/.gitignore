@@ -2,6 +2,7 @@ Configurations/Secrets.xcconfig
 Resources/Firebase/**/GoogleService-Info.plist
 Secrets/
 *.p8
+Frila.xcodeproj/
 DerivedData/
 build/
 .build/

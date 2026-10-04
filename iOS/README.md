@@ -5,7 +5,7 @@ Fundação nativa em Swift 6.3, SwiftUI e SwiftData, com alvo mínimo iOS 17 e b
 ## Abrir e rodar
 
 1. Instale o XcodeGen 2.45.3 (`brew install xcodegen`; a CI usa essa versão fixada).
-2. Rode `xcodegen generate` nesta pasta. O projeto gerado é versionado e a CI falha se ele divergir do `project.yml`.
+2. Rode `Scripts/gerar-projeto.sh` nesta pasta toda vez que clonar ou der `git pull` (ou trocar de branch). O `Frila.xcodeproj` não é versionado no Git para evitar conflitos constantes de merge no `project.pbxproj`; a estrutura do projeto vem do `project.yml` e as versões fixadas dos pacotes SPM vêm do `Package.resolved` versionado na raiz do iOS, que o script restaura para dentro do projeto gerado.
 3. Abra `Frila.xcodeproj` e use `Frila-Local` no simulador. Esse esquema usa `ApiClienteEmMemoria` de forma explícita e não precisa de backend, Supabase nem Firebase.
 4. Para `Frila-Dev` e `Frila-Prod`, gere `Configurations/Secrets.xcconfig` (seção abaixo) e injete os plists do Firebase.
 
@@ -51,7 +51,7 @@ O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources
 
 - Permitido no app: URL do projeto e chave publicável do Supabase.
 - Proibido no app e no Git: `service_role`, `sb_secret_`, SMTP, conta de serviço FCM, segredo do agendador e chave APNs `.p8`.
-- Nunca versionados (ver `.gitignore`): `Configurations/Secrets.xcconfig`, `Resources/Firebase/**/GoogleService-Info.plist`, `Secrets/`, `*.p8`, `DerivedData/`, `build/`, `.build/`, `xcuserdata/` e `.DS_Store`.
+- Nunca versionados (ver `.gitignore`): `Frila.xcodeproj/`, `Configurations/Secrets.xcconfig`, `Resources/Firebase/**/GoogleService-Info.plist`, `Secrets/`, `*.p8`, `DerivedData/`, `build/`, `.build/`, `xcuserdata/` e `.DS_Store`.
 - As fases de script do app não exportam as variáveis de build para o log (`showEnvVars: false`), para a chave não aparecer em log local nem da CI.
 - A sessão do Supabase usa o `KeychainLocalStorage` padrão do SDK e renovação automática. Nunca é gravada em `UserDefaults`.
 
@@ -59,7 +59,7 @@ O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources
 
 ```sh
 python3 Scripts/validate-fixtures.py
-xcodegen generate
+Scripts/gerar-projeto.sh
 Scripts/contrato-em-dia.sh
 xcodebuild test  -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone disponível>'
 xcodebuild build -project Frila.xcodeproj -scheme Frila-Dev  -destination 'generic/platform=iOS Simulator'
@@ -113,8 +113,8 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Depois de entrar pela validação (Debug).** No Dev sem sessão, quem entra pela seção "Validação do cliente" do catálogo continua no catálogo: o observador de sessão só avisa encerramento. A entrada confere a sessão de novo quando o app volta a ficar ativo (depois de ir para segundo plano) ou na próxima abertura, e aí abre a lista. A entrada por código de verdade é de outro cartão. Sem teste automatizado: a transição Dev + validação + segundo plano não roda no dublê e foi conferida por leitura.
 - **Catálogo.** Em Debug, o catálogo de componentes abre pelo botão "Catálogo" da barra, ou direto com `-FRILA_ABRIR_CATALOGO` (usado pelos UI tests do catálogo).
 - **Lista (#104).** Pede `vagas_abertas` sem coordenada, e o servidor usa o ponto base do perfil. A ordem é a do servidor. Os filtros são função, data e distância; a data vai como o dia de São Paulo (`DataCivil.deSaoPaulo`), qualquer que seja o fuso do aparelho. A lista pagina de 30 em 30 e aceita puxar para atualizar.
-- **Estados da lista.** Carregando, vazia, erro, sem conexão e "sem ponto de referência" (`422 campo_obrigatorio/latitude`). Sem conexão é o `ErroDaApi.semRede`, que hoje só cobre `notConnectedToInternet`.
-- **Cartão e detalhe.** Mostram o `local` do contrato como vem, sem extrair bairro. O detalhe nunca tem telefone nem documento; o aviso da RN10 aparece antes de Candidatar-me. Denunciar e Bloquear estão no rodapé do detalhe e dos perfis públicos; o detalhe também abre o perfil do estabelecimento ([cartão #39, parte 1](Docs/DenunciarEBloquear-39.md)).
+- **Estados da lista.** Carregando, vazia, erro, sem conexão e "sem ponto de referência" (`422 campo_obrigatorio/latitude`). Sem conexão é o `ErroDaApi.semRede`, que cobre os códigos de rede indisponível (`timedOut`, `networkConnectionLost`, etc., em `codigosDeRedeIndisponivel`).
+- **Cartão e detalhe.** Mostram o `local` do contrato como vem, sem extrair bairro. O detalhe nunca tem telefone nem documento; o aviso da RN10 aparece antes de Candidatar-me. Denunciar e Bloquear estão no rodapé do detalhe, dos perfis públicos e no rodapé das telas de turno ativo para ambas as partes (`TelaMeuTurno` e `TelaTurnoDoContratante`), com telefones de emergência (190 e 180) e protocolo ([cartão #39](Docs/DenunciarEBloquear-39.md), #116); o detalhe também abre o perfil do estabelecimento.
 
 **Candidatura (#105).** O botão Candidatar-me fica no detalhe, depois do aviso da RN10, e se desabilita enquanto a chamada está em voo.
 - **Toque duplo.** Um segundo toque durante o envio não chama `candidatar` de novo; o servidor também é idempotente.
@@ -123,7 +123,7 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
   - `409 posicao_ja_preenchida` leva à tela "Vaga preenchida" (é o C2 do #53);
   - `409 vaga_encerrada` leva a uma tela própria, nunca à de vaga preenchida;
   - `422 inelegivel/turno_sobreposto` leva a uma tela de conflito de horário, com mensagem genérica e sem link para um turno específico: o servidor não diz qual turno conflita, e `meus_turnos` também traz turnos de posições canceladas sem estado no app;
-  - `perfil_suspenso` ou `403 sem_permissao/conta_suspensa` levam à tela de conta suspensa, com Contestar desabilitado (S2 #41);
+  - `perfil_suspenso` ou `403 sem_permissao/conta_suspensa` levam à tela de conta suspensa, com formulário de contestação habilitado e vinculado à conta (#105, #121);
   - `404` e falha de rede ficam no detalhe, com nova tentativa.
 - **Volta à lista.** As telas de resultado voltam para a lista e a atualizam.
 - **Sessão.** A candidatura não usa a fila de sessão do cliente: um 409 não encerra a sessão.
@@ -142,6 +142,7 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Ponto da vaga.** `meus_turnos` não traz o ponto: ele vem do detalhe da vaga, que a tela já carrega. Com a tela aberta sem rede desde o início, o ponto não chega e o registro sai como manual, mesmo com GPS.
 - **Limites.** A tela aberta não se atualiza sozinha quando a fila sobe. Uma ação da fila recusada em definitivo (por exemplo `fora_da_janela` ou `vaga_encerrada`) sai do reenvio e deixa um aviso no detalhe do turno, mesmo cancelado. Falhas transitórias continuam pendentes. O `meusTurnos` do dublê não reflete o check-in, então reabrir o turno no esquema Local mostra o botão de novo, e o toque devolve o registro já gravado.
 - **GPS simulado.** No esquema Local, `-FRILA_LOCALIZACAO` seguido de `perto` (150 m), `longe` (350 m), `negada`, `sem-sinal`, `imprecisa` ou `aproximada` troca o CoreLocation pelo `LeitorDeLocalizacaoSimulado`, com as distâncias medidas até a vaga das fixtures. Só vale com o dublê em memória; sem o argumento, o esquema Local usa o GPS do simulador (`xcrun simctl location <udid> set <lat>,<lon>`).
+- **Cancelamento e suporte.** O profissional pode cancelar o turno confirmado em "Cancelar turno" (`FolhaDeCancelamento`), informando motivo predefinido ou livre, com aviso de falta a menos de 24 h (#20, #92, #117, #128). No rodapé, o botão "Ajuda no turno" abre e-mail pré-preenchido com dados do turno para suporte direto (#131).
 
 ## Publicar vaga em Minhas vagas
 
@@ -155,10 +156,13 @@ O contratante que já tem estabelecimento publica pelas Minhas vagas: o botão "
 
 ## Turno do contratante (#19, visual provisório)
 
-`AcompanhamentoViewModel` lê o `painel_estabelecimento` e cuida das duas decisões da casa durante o turno. As telas estão em `Sources/Apresentacao/Fluxos/Contratante/`, com componentes base, à espera do design de alta fidelidade.
+`AcompanhamentoViewModel` lê o `painel_estabelecimento` e cuida das decisões da casa durante o turno. As telas estão em `Sources/Apresentacao/Fluxos/Contratante/`, com componentes base, à espera do design de alta fidelidade.
 
 - **Confirmar presença.** O check-in manual pendente aparece em "Presenças a confirmar", no topo de Minhas vagas, e na seção Chegada de "Acompanhar turno". Um toque chama `confirmar_checkin_manual`; a tela muda assim que a chamada responde, sem esperar nova leitura do painel.
 - **Reabrir vaga.** O botão só existe quando o painel marca `em_atraso`. Quem decide os 15 minutos é o servidor, nunca o relógio do aparelho. O toque abre uma pergunta que avisa da falta; só a confirmação chama `reabrir_por_atraso`.
+- **Avaliação do profissional (#126).** Ao término do turno com presença confirmada, a tela oferece a avaliação do profissional com a pergunta única binária "Chamaria este profissional de novo?" (Sim ou Não).
+- **Cancelamento (#20, #93, #117).** A casa pode cancelar uma posição específica no painel do turno ou a vaga inteira em Minhas vagas, com motivo obrigatório informado na folha de cancelamento.
+- **Ações de rodapé (#116, #131).** A tela de acompanhamento traz botões dedicados de "Ajuda no turno" (e-mail com identificadores pré-preenchidos), "Denunciar" e "Bloquear".
 - **Avisos da casa.** `RoteadorDoContratante.abrir(_:)` recebe um `AvisoDoContratante`, montado do `tipo` e do `payload` como o backend os envia: `vaga_vazia` abre a vaga; `checkin_manual_pendente` e `atraso_15min` abrem o turno; os outros avisos da casa abrem a vaga ou o turno de que falam. Ele nunca confirma nem reabre sozinho, e o painel é relido a cada aviso. É a entrada do push ([Push](Docs/Push.md)). Em Debug, `-FRILA_AVISO <tipo> -FRILA_AVISO_ID <uuid>` simula só a tela (o id é o `vaga_id` em `vaga_vazia` e o `turno_id` nos outros tipos), e `-FRILA_PUSH` simula o toque inteiro.
 - **Leitura e ação não se atropelam.** Toda resposta do servidor a uma ação, aceita ou recusada, invalida as leituras do painel que saíram antes dela: a resposta antiga é descartada e o painel é lido de novo. Sem isso, uma releitura lenta traria de volta a pendência que a tela acabou de tirar.
 - **Recusa e tela desatualizada.** Quando o servidor recusa (`checkin_ja_confirmado`, `posicao_nao_cancelavel`, `reabertura_antes_da_tolerancia`), o painel da tela estava velho e é relido. Se a releitura falhar, a tela diz que pode estar desatualizada, oferece "Tentar novamente" e não oferece a mesma ação de novo até uma leitura dar certo. Falha de leitura nunca vira "não encontramos".
@@ -198,7 +202,7 @@ Quem trabalha se candidata, espera a escolha da casa e pode retirar a candidatur
 
 ## Histórico e exportação de turnos (#23, visual provisório)
 
-"Histórico de turnos" fica em Meu perfil e no perfil do estabelecimento (`TelaHistoricoDeTurnos`, `HistoricoDeTurnosViewModel`). A tela usa só os componentes do sistema de design, à espera da alta fidelidade da v1.1.
+"Histórico de turnos" fica em Meu perfil e no perfil do estabelecimento (`TelaHistoricoDeTurnos`, `HistoricoDeTurnosViewModel`), com seleção de períodos ("Este mês", "Mês passado", "Escolher datas"), seleção de formato em pílulas escaláveis para Dynamic Type AX5 (`FiltroPill`, #129) e exportação nativa via compartilhamento de CSV e PDF (#106).
 
 - **Pedido.** `POST /exportar-turnos` com `de`, `ate` e `formato`. Quem trabalha não manda `estabelecimento_id`, e o servidor usa os turnos da conta como profissional; o perfil do estabelecimento manda o id da casa.
 - **Período.** "Este mês" (do dia 1 até hoje), "Mês passado" ou "Escolher datas", com o fim nunca depois de hoje e o início nunca depois do fim. Os dias são os de São Paulo, qualquer que seja o fuso do aparelho: `de` é 00:00:00.000 do primeiro dia e `ate` é 23:59:59.999 do último, em UTC e com milissegundos (`PeriodoDeExportacao`, `ContratoAPI.textoComMilissegundos`).
@@ -284,16 +288,37 @@ Scripts/gerar-licencas.py --checkouts <pasta>/SourcePackages/checkouts
 - **Guarda.** `LicencasTests` falha se um pacote do `Package.resolved` ficar sem entrada, se a entrada for de outra revisão ou se sobrar entrada de pacote que saiu.
 - **Limite.** Licenças de código de terceiros embutido dentro de um pacote (pastas `third_party`) só aparecem quando o próprio pacote as reproduz no arquivo de licença da raiz, como faz o GoogleUtilities.
 
+### Dependências SPM e como atualizar
+
+As versões fixadas dos pacotes SPM (Firebase, Supabase etc.) ficam versionadas na raiz do iOS em `Package.resolved`. O `Scripts/gerar-projeto.sh` restaura esse arquivo dentro de `Frila.xcodeproj` ao gerar o projeto, e a CI valida com `-onlyUsePackageVersionsFromResolvedFile` para garantir que nenhuma versão seja resolvida sem revisão prévia.
+
+Para atualizar uma dependência:
+1. Altere a restrição ou versão exata no `project.yml`.
+2. Rode `Scripts/gerar-projeto.sh`.
+3. Abra o `Frila.xcodeproj` no Xcode e atualize os pacotes (**File > Packages > Update to Latest Package Versions** ou **Resolve Package Versions**), ou rode:
+   ```sh
+   xcodebuild -resolvePackageDependencies -project Frila.xcodeproj -scheme Frila-Local
+   ```
+4. Copie o arquivo resolvido de volta para a raiz do iOS:
+   ```sh
+   cp Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
+   ```
+5. Atualize o arquivo de licenças e execute os testes:
+   ```sh
+   Scripts/gerar-licencas.py
+   ```
+6. Faça commit de `project.yml`, `Package.resolved` e `Resources/Licencas.json`.
+
 ## Contrato
 
-O app segue o contrato `0.2.27`, espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.
+O app segue o contrato `0.2.34` (sincronização inicial na 0.2.27, atualizado até 0.2.34 no PR #113), espelhado byte a byte em `Contrato/openapi.yaml` a partir de `FrilaApp/frila-docs` (`api/openapi.yaml`), com a soma em `Contrato/openapi.yaml.sha256`, no mesmo esquema do frila-backend. O espelho não se edita à mão: o contrato muda no frila-docs.
 
 - `Sources/Dados/DTOsContrato.swift` tem um tipo por schema usado pelo app; `SupabaseApiCliente` chama as operações do Sprint 1, inclusive `meus_turnos`, e mais check-in, check-out e avaliação.
 - `Resources/Fixtures` guarda uma resposta ou requisição por arquivo, e `fixture-schemas.json` diz contra qual schema do contrato cada uma é validada. `ApiClienteEmMemoria` lê essas fixtures pelos mesmos DTOs do cliente real, e os testes conferem que cada requisição que o app monta é igual à fixture.
 - `Scripts/validate-fixtures.py` valida tipos, formatos, enums, obrigatórios e campos fora do contrato. Palavra-chave de schema que ele não conhece é erro, não aprovação.
 - `Scripts/contrato-em-dia.sh` confere a integridade do espelho e, com `FRILA_DOCS_TOKEN`, se ele ainda é igual ao do frila-docs.
 
-Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contrato/`, regrave a soma (`shasum -a 256 Contrato/openapi.yaml | awk '{print $1}' > Contrato/openapi.yaml.sha256`), atualize `contract-version.json`, DTOs e fixtures somente quando os schemas mudarem, e rode a validação e os testes. A atualização para 0.2.11 acrescentou os códigos `checkin_pendente`, `checkin_ja_confirmado` e `posicao_nao_cancelavel`, já tipados no app. Da 0.2.12 à 0.2.17 nenhum schema, payload ou código de erro usado pelo cliente mudou; o que entrou foram regras documentadas. A que toca o app é a da 0.2.16: `configuracao_do_app` responde `404 nao_encontrado` para plataforma sem loja, e a checagem de versão mínima hoje libera o app em qualquer falha (falha aberta), o que a própria 0.2.16 aponta como problema. O comportamento não muda aqui; a decisão é do cartão #201. A 0.2.18 não traz schema, payload nem código de erro novo para o cliente: `nao_autenticado` entra na linha do 401 e já é caso de `CodigoErroAPI`. Ela fixa duas coisas que o app ainda não faz: encerrar a sessão local ao receber `401` (conta encerrada) e chamar `excluir-conta`. As duas ficam para mudanças próprias, fora desta sincronização.
+Para trazer uma versão nova: copie `api/openapi.yaml` do frila-docs para `Contrato/`, regrave a soma (`shasum -a 256 Contrato/openapi.yaml | awk '{print $1}' > Contrato/openapi.yaml.sha256`), atualize `contract-version.json`, DTOs e fixtures somente quando os schemas mudarem, e rode a validação e os testes. A atualização para 0.2.11 acrescentou os códigos `checkin_pendente`, `checkin_ja_confirmado` e `posicao_nao_cancelavel`, já tipados no app. Da 0.2.12 à 0.2.17 nenhum schema, payload ou código de erro usado pelo cliente mudou; o que entrou foram regras documentadas. A que toca o app é a da 0.2.16: `configuracao_do_app` responde `404 nao_encontrado` para plataforma sem loja, e a checagem de versão mínima hoje libera o app em qualquer falha (falha aberta), o que a própria 0.2.16 aponta como problema. O comportamento não muda aqui; a decisão é do cartão #201. A 0.2.18 fixou o encerramento da sessão local ao receber `401` e a chamada a `excluir-conta` (integrados no app, #96).
 
 **Da 0.2.19 à 0.2.27 (#242).** Foi a primeira sincronização em que mudaram schemas que o app usa. O que cada versão traz para o cliente, e o que o app faz com ela:
 

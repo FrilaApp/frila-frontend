@@ -88,6 +88,7 @@ Proposta para decisão do Cauê: acrescentar `avaliacao_dada: Avaliacao | null` 
 `null` quando esse lado ainda não avaliou. O contrato deve mudar no `frila-docs` e ser
 implementado no backend antes de chegar ao app. A exportação de dados não foi integrada.
 
-A implementação e os testes cobrem o profissional. A avaliação do contratante continua
-fora desta missão; o contrato vigente determina um voto por lado do turno, não um voto
-por membro de estabelecimento (`Contrato/openapi.yaml`, `/rpc/avaliar`).
+A implementação inicial cobriu o profissional. Em 04/10/2026, a avaliação pelo contratante
+foi integrada pelo PR #126 (`AcompanhamentoViewModel`, `TelaTurnoDoContratante` e
+`TelaAvaliacao`), permitindo ao contratante responder com Sim ou Não à pergunta objetiva
+"Chamaria este profissional de novo?" após o encerramento do turno com presença confirmada.

@@ -30,6 +30,6 @@ O banco local é um `ModelContainer` do SwiftData em `Application Support/Frila/
 - **`ReenvioAoReconectar`:** manda a fila na passagem para conectado (`NWPathMonitor`) e ao abrir o app já com rede. Cada ação sai com o instante do toque, em ISO-8601 com precisão de segundo.
 - **`SaidaDaConta`:** apaga cache e fila ao sair e também quando a sessão é encerrada sem pedido (401 de conta excluída ou suspensa).
 
-**Fora do #111:**
-- as telas que leem o cache (Meus turnos, #109);
-- o indicador discreto de "sem conexão" e de ação pendente, que depende dos padrões de estado do design (#172).
+**Evolução pós-#111:**
+- Meus turnos lê o cache e conserva dados e contato offline (`TelaMeuTurno`, `MeuTurnoViewModel`, #73, #133);
+- indicadores discretos de "sem conexão" e de lista vinda do cache foram integrados com `AvisoFrila` (`aviso-cache-turnos`, #130).
