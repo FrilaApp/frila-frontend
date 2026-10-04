@@ -193,14 +193,23 @@ public struct TelaCadastro: View {
         Button {
             viewModel.perfil = perfil
         } label: {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: titulo)
-                    .font(.headline)
-                    .foregroundStyle(FrilaCor.texto)
+            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: titulo)
+                        .font(.headline)
+                        .foregroundStyle(FrilaCor.texto)
 
-                Text(verbatim: descricao)
-                    .font(.footnote)
-                    .foregroundStyle(FrilaCor.textoSecundario)
+                    Text(verbatim: descricao)
+                        .font(.footnote)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                Spacer(minLength: FrilaEspaco.minimo)
+                if selecionado {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(FrilaCor.primaria)
+                        .accessibilityHidden(true)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(FrilaEspaco.medio)

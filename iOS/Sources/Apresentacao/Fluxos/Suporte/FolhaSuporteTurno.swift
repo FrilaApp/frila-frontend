@@ -45,6 +45,7 @@ public struct FolhaSuporteTurno: View {
                     Button(TextosDoSuporte.fechar) {
                         dismiss()
                     }
+                    .accessibilityShowsLargeContentViewer()
                     .accessibilityIdentifier("botao-fechar-suporte")
                 }
             }

@@ -142,12 +142,11 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     // MARK: - Motivos das falhas esperadas (o relatório tem o detalhe por arquivo:linha)
 
-    private static let listaDeVagasLimitadaAAX1 = "o cartão da vaga, as pílulas de filtro e o botão Catálogo não acompanham o Dynamic Type: TelaVagas.swift limita o cartão e as pílulas a AX1 por decisão de layout do #139 (a alta fidelidade do #15 decide), e o botão Catálogo da barra (FluxoDoProfissional.swift) só existe em Debug"
+    private static let listaDeVagasLimitadaAAX1 = "o cartão da vaga e as pílulas de filtro não acompanham o Dynamic Type: TelaVagas.swift limita o cartão e as pílulas a AX1 por decisão de layout do #139 (a alta fidelidade do #15 decide)"
     private static let abaCandidaturasComViewThatFits = "falso positivo do XCTest: no tamanho padrão, Função e Valor do CartaoDaCandidatura (CandidaturaEmSelecao.swift) saem como Dynamic Type 'partially unsupported', mas o texto escala (função de 20 para 63 pt de altura em AX5) e o achado some quando o ViewThatFits vira um layout só; trocar o layout é decisão da alta fidelidade"
     private static let abaCandidaturasComViewThatFitsEmAX5 = "provável falso positivo do XCTest: em AX5, às vezes, 'texto cortado' sem elemento no CartaoDaCandidatura (CandidaturaEmSelecao.swift); a captura não mostra corte e o achado some quando o ViewThatFits vira um layout só"
-    private static let perfilDoEstabelecimentoOcupado = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift, que estava no #73 na rodada 3 do #71: fica para a próxima"
-    private static let minhasVagasComLazyVStack = "provável falso positivo do XCTest: no tamanho padrão, os textos dos cartões de Minhas vagas saem como Dynamic Type 'partially unsupported' desde que as seções viraram LazyVStack (#127); com VStack o achado some. Os textos usam estilos de Dynamic Type. MinhasVagas.swift estava no #73 na rodada 3 do #71: fica para a próxima"
-    private static let publicarVagaComDatePicker = "o UIDatePicker compacto do sistema não acompanha o Dynamic Type em AX5 (PublicarVaga.swift, que estava no #73 na rodada 3 do #71: fica para a próxima)"
+    private static let perfilDoEstabelecimentoBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
+    private static let publicarVagaComDatePicker = "o UIDatePicker compacto do sistema não acompanha o Dynamic Type em AX5 (PublicarVaga.swift: fica para depois do PR do Thor)"
 
     // MARK: - Profissional
 
@@ -291,6 +290,32 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     func testMeuTurnoComPresenca() { meuTurnoComPresenca(ax5: false) }
     func testMeuTurnoComPresencaEmAX5() { meuTurnoComPresenca(ax5: true) }
 
+    private func turnoComAvisoDeRecusa(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "turno-cancelado",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"
+        ], ax5: ax5)
+        guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
+
+        let aba = app.tabBars.buttons["Meus turnos"]
+        guard esperar(aba, "A aba Meus turnos deve existir") else { return }
+        aba.tap()
+        guard esperar(app.navigationBars["Meus turnos"], "Meus turnos deve abrir") else { return }
+
+        let turno = app.buttons["meu-turno-\(turnoEncerradoID)"]
+        guard esperar(turno, "O turno cancelado deve estar na lista") else { return }
+        turno.tap()
+        guard esperar(app.navigationBars["Meu turno"], "Meu turno deve abrir") else { return }
+        guard esperar(elemento("aviso-acao-recusada-checkin", em: app), "O aviso de recusa deve aparecer") else { return }
+        guard esperar(app.buttons["fechar-aviso-acao-recusada-checkin"], "O botão Fechar da recusa deve existir") else { return }
+
+        auditar(app, tela: "meu-turno-aviso-recusa")
+    }
+
+    func testTurnoComAvisoDeRecusa() { turnoComAvisoDeRecusa(ax5: false) }
+    func testTurnoComAvisoDeRecusaEmAX5() { turnoComAvisoDeRecusa(ax5: true) }
+
     private func perfilEExclusaoDeConta(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
         let perfil = app.buttons["abrir-meu-perfil"]
@@ -375,13 +400,8 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     func testRepublicarVaga() { republicarVaga(ax5: false) }
     func testRepublicarVagaEmAX5() { republicarVaga(ax5: true) }
 
-    /// Minhas vagas com seções em `LazyVStack`: o achado vem em toda rodada no padrão e nunca em AX5.
     private func auditarMinhasVagas(_ app: XCUIApplication, tela: String, ax5: Bool) {
-        if ax5 {
-            auditar(app, tela: tela)
-        } else {
-            auditar(app, tela: tela, pendente: Self.minhasVagasComLazyVStack, estrito: true)
-        }
+        auditar(app, tela: tela)
     }
 
     private func acompanhamentoDoTurno(ax5: Bool) {
@@ -413,11 +433,41 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(perfil, "O botão do perfil do estabelecimento deve existir") else { return }
         perfil.tap()
         guard esperar(app.buttons["estabelecimento-excluir-conta"], "O perfil do estabelecimento deve abrir") else { return }
-        auditar(app, tela: "perfil-estabelecimento", pendente: Self.perfilDoEstabelecimentoOcupado, estrito: true)
+        auditar(app, tela: "perfil-estabelecimento", pendente: Self.perfilDoEstabelecimentoBotaoBarra, estrito: true)
     }
 
     func testPerfilDoEstabelecimento() { perfilDoEstabelecimento(ax5: false) }
     func testPerfilDoEstabelecimentoEmAX5() { perfilDoEstabelecimento(ax5: true) }
+
+    private func publicarVagaEmMinhasVagas(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "contratante"], ax5: ax5)
+        guard esperar(app.navigationBars["Minhas vagas"], "Minhas vagas deve abrir") else { return }
+
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        guard esperar(entrada, "O botão Publicar vaga deve existir") else { return }
+        tocar(entrada, em: app)
+        guard esperar(elemento("publicar-vaga-formulario", em: app), "O formulário de publicar vaga deve abrir") else { return }
+
+        auditar(app, tela: "publicar-vaga-em-minhas-vagas", pendente: Self.publicarVagaComDatePicker)
+    }
+
+    func testPublicarVagaEmMinhasVagas() { publicarVagaEmMinhasVagas(ax5: false) }
+    func testPublicarVagaEmMinhasVagasEmAX5() { publicarVagaEmMinhasVagas(ax5: true) }
+
+    private func publicarVagaErroAoLerCasa(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "erro-ao-ler-meu-estabelecimento"], ax5: ax5)
+        guard esperar(app.navigationBars["Minhas vagas"], "Minhas vagas deve abrir") else { return }
+
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        guard esperar(entrada, "O botão Publicar vaga deve existir") else { return }
+        tocar(entrada, em: app)
+        guard esperar(elemento("publicar-vaga-erro", em: app), "A tela de erro ao publicar deve abrir") else { return }
+
+        auditar(app, tela: "publicar-vaga-erro")
+    }
+
+    func testPublicarVagaErroAoLerCasa() { publicarVagaErroAoLerCasa(ax5: false) }
+    func testPublicarVagaErroAoLerCasaEmAX5() { publicarVagaErroAoLerCasa(ax5: true) }
 }
 
 private extension XCUIAccessibilityAuditType {

@@ -230,6 +230,7 @@ public final class MinhasVagasViewModel {
 }
 
 public struct TelaMinhasVagas: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var bloqueios = BloqueiosDaSessao()
     @State private var viewModel: MinhasVagasViewModel
     @State private var acompanhamento: AcompanhamentoViewModel
@@ -312,34 +313,15 @@ public struct TelaMinhasVagas: View {
                         ForEach(SecaoMinhasVagas.allCases) { secao in
                             let itens = viewModel.vagas(na: secao)
                             if !itens.isEmpty {
-                                // Lazy: o painel traz as vagas de um ano (±365 dias), e a casa com centenas
-                                // delas construiria todos os cartões a cada abertura.
-                                LazyVStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                                    Text(verbatim: secao.titulo)
-                                        .font(.title3.bold())
-                                        .accessibilityAddTraits(.isHeader)
-                                    ForEach(itens, id: \.vaga.id) { vaga in
-                                        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                                            NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) { cartao(vaga, secao: secao) }
-                                                .buttonStyle(.plain)
-                                                .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
-                                                .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
-                                            if secao == .encerradas {
-                                                Button {
-                                                    vagaParaRepublicar = vaga
-                                                } label: {
-                                                    HStack(spacing: FrilaEspaco.pequeno) {
-                                                        Image(systemName: "arrow.clockwise")
-                                                        Text(verbatim: TextosMinhasVagas.republicar)
-                                                    }
-                                                    .font(.subheadline.weight(.semibold))
-                                                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                                                }
-                                                .buttonStyle(.borderedProminent)
-                                                .tint(FrilaCor.primaria)
-                                                .accessibilityIdentifier("republicar-vaga-\(vaga.vaga.id)")
-                                            }
-                                        }
+                                // Lazy apenas nas encerradas: o painel traz as vagas de um ano (±365 dias).
+                                // As seções ativas têm poucas vagas e usam VStack para o Dynamic Type escalar sem recriar células.
+                                if secao == .encerradas {
+                                    LazyVStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                                        conteudoSecao(secao: secao, itens: itens)
+                                    }
+                                } else {
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                                        conteudoSecao(secao: secao, itens: itens)
                                     }
                                 }
                             }
@@ -389,13 +371,51 @@ public struct TelaMinhasVagas: View {
         await acompanhamento.carregar()
     }
 
+    @ViewBuilder
+    private func conteudoSecao(secao: SecaoMinhasVagas, itens: [VagaNoPainel]) -> some View {
+        Text(verbatim: secao.titulo)
+            .font(.title3.bold())
+            .accessibilityAddTraits(.isHeader)
+        ForEach(itens, id: \.vaga.id) { vaga in
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) { cartao(vaga, secao: secao) }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
+                    .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
+                if secao == .encerradas {
+                    Button {
+                        vagaParaRepublicar = vaga
+                    } label: {
+                        HStack(spacing: FrilaEspaco.pequeno) {
+                            Image(systemName: "arrow.clockwise")
+                            Text(verbatim: TextosMinhasVagas.republicar)
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(FrilaCor.primaria)
+                    .accessibilityIdentifier("republicar-vaga-\(vaga.vaga.id)")
+                }
+            }
+        }
+    }
+
     private func cartao(_ vaga: VagaNoPainel, secao: SecaoMinhasVagas) -> some View {
         let confirmadas = viewModel.confirmadas(vaga)
+        let layoutAlerta = (secao == .emAlerta && dynamicTypeSize.isAccessibilitySize)
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.minimo))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
         return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            HStack(alignment: .firstTextBaseline) {
+            layoutAlerta {
                 Text(verbatim: vaga.vaga.funcao).font(.headline)
-                Spacer(minLength: FrilaEspaco.pequeno)
+                if secao != .emAlerta {
+                    Spacer(minLength: FrilaEspaco.pequeno)
+                }
                 if secao == .emAlerta {
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Spacer(minLength: FrilaEspaco.pequeno)
+                    }
                     let tempo = String(format: TextosMinhasVagas.alertaComeca, viewModel.tempoAteInicio(vaga))
                     Label { Text(verbatim: tempo) } icon: { Image(systemName: "clock") }
                         .font(.caption.weight(.semibold))

@@ -151,14 +151,19 @@ public struct FluxoDoProfissional<Barra: View>: View {
                             } label: {
                                 Label(TextosDoProfissional.Turnos.tituloMeusTurnos, systemImage: "calendar")
                             }
+                            .accessibilityShowsLargeContentViewer()
                             .accessibilityIdentifier("abrir-meus-turnos")
                         }
-                        ToolbarItem(placement: .topBarTrailing) { barra() }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            barra()
+                                .accessibilityShowsLargeContentViewer()
+                        }
                         ToolbarItem(placement: .topBarTrailing) {
                             NavigationLink(value: RotaDoProfissional.meuPerfil) {
                                 Image(systemName: "person.crop.circle")
                                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .accessibilityShowsLargeContentViewer()
                             .accessibilityLabel(String(localized: "Meu perfil", bundle: bundleApresentacao))
                             .accessibilityIdentifier("abrir-meu-perfil")
                         }
