@@ -53,6 +53,9 @@ private final class ArmazenamentoEmMemoria: ArmazenamentoAvaliacoes, @unchecked 
         trava.withLock { respostas[chave(turnoID, contaID)] != nil || semResposta.contains(chave(turnoID, contaID)) }
     }
     func registrarSemResposta(para turnoID: UUID, contaID: UUID) { _ = trava.withLock { semResposta.insert(chave(turnoID, contaID)) } }
+    func remover(para turnoID: UUID, contaID: UUID) {
+        trava.withLock { respostas[chave(turnoID, contaID)] = nil; semResposta.remove(chave(turnoID, contaID)) }
+    }
     func limpar() { trava.withLock { respostas = [:]; semResposta = [] } }
 }
 
