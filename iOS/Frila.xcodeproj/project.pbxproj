@@ -517,8 +517,8 @@
 		2185475DA6A9B6D3BC1DF77C /* ExclusaoDeContaDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusaoDeContaDTO.swift; sourceTree = "<group>"; };
 		22B09E8CED7013DCD7D059CD /* PerfisDaContaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfisDaContaTests.swift; sourceTree = "<group>"; };
 		22F1776455FF3BC99C2521A6 /* Componentes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Componentes.swift; sourceTree = "<group>"; };
-		245E898207995BDE90BC4C60 /* SincronizadorRecusasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SincronizadorRecusasTests.swift; sourceTree = "<group>"; };
 		2459693498F900D0F3F57540 /* MedicaoDeDesempenho.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicaoDeDesempenho.swift; sourceTree = "<group>"; };
+		245E898207995BDE90BC4C60 /* SincronizadorRecusasTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SincronizadorRecusasTests.swift; sourceTree = "<group>"; };
 		276D098C5761ACEFC0904A69 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		287566AB9C576233024D229E /* TextosDaPresenca.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextosDaPresenca.swift; sourceTree = "<group>"; };
 		28D4338749FB6E2388BE048C /* TelaTurnoDoContratante.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelaTurnoDoContratante.swift; sourceTree = "<group>"; };
@@ -1064,8 +1064,8 @@
 				B0CEA618E93B600FF93A6773 /* RoteadorDePushTests.swift */,
 				B5A8EAF4481B7F234FFA38CF /* RpcsDaSprint2EmMemoriaTests.swift */,
 				BDCD65257F314605356F4842 /* SegurancaDoCodigoTests.swift */,
-				245E898207995BDE90BC4C60 /* SincronizadorRecusasTests.swift */,
 				32FB72E0E6DDEB23DBA2A59D /* SegurancaViewModelTests.swift */,
+				245E898207995BDE90BC4C60 /* SincronizadorRecusasTests.swift */,
 				B41B867B134F94D5FFF24940 /* SupabaseApiClienteTests.swift */,
 				C5AB836C22721632CB647259 /* SwiftDataTests.swift */,
 				2C3AA2E62F2D56F0234D482F /* TelasDoProfissionalBordasTests.swift */,
@@ -2090,8 +2090,8 @@
 				22A692AB254EB517DA2857BB /* RoteadorDePushTests.swift in Sources */,
 				68501EF4E0C6F79B60917356 /* RpcsDaSprint2EmMemoriaTests.swift in Sources */,
 				FB7A719CB5DC43A1229C05B9 /* SegurancaDoCodigoTests.swift in Sources */,
-				91D37FB4EF83F118C981991D /* SincronizadorRecusasTests.swift in Sources */,
 				1A949DCA7AC93057F7B912D7 /* SegurancaViewModelTests.swift in Sources */,
+				91D37FB4EF83F118C981991D /* SincronizadorRecusasTests.swift in Sources */,
 				4EA5E1C133FBD6A347F74651 /* SupabaseApiClienteTests.swift in Sources */,
 				DA7A8C61156468C3F8E0E12E /* SwiftDataTests.swift in Sources */,
 				FDF9E9BA8B45E2AB0B3D9356 /* TelasDoProfissionalBordasTests.swift in Sources */,
