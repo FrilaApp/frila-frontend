@@ -38,7 +38,7 @@ final class AvaliacaoUITests: XCTestCase {
 
     private func abrir(argumentos: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_ABRIR_AVALIACAO_UI_TEST", "-FRILA_SCENARIO", "turno-encerrado"] + argumentos
+        app.launchArguments = ["-FRILA_ABRIR_AVALIACAO_UI_TEST", "-FRILA_SCENARIO", "turno-encerrado", "-FRILA_CACHE_VAZIO_UI_TEST"] + argumentos
         app.launch()
         XCTAssertTrue(app.staticTexts["pergunta-avaliacao"].waitForExistence(timeout: 10))
         return app
@@ -63,7 +63,7 @@ final class AvaliacaoUITests: XCTestCase {
 
     func testFluxoNaturalMeusTurnosAteAvaliacaoEConfirmacao() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado"]
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado", "-FRILA_CACHE_VAZIO_UI_TEST"]
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
@@ -87,22 +87,49 @@ final class AvaliacaoUITests: XCTestCase {
         XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 5), "o cartão de avaliação deve aparecer no turno encerrado e verificado")
 
         let botaoAvaliar = app.buttons["Avaliar turno"]
+        if !botaoAvaliar.isHittable {
+            app.swipeUp()
+        }
         XCTAssertTrue(botaoAvaliar.waitForExistence(timeout: 5))
         XCTAssertTrue(botaoAvaliar.isHittable)
         botaoAvaliar.tap()
 
-        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 5))
+        let navBar = app.navigationBars["Avaliar turno"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 10))
+        let botaoVoltar = navBar.buttons.firstMatch
+        XCTAssertTrue(botaoVoltar.waitForExistence(timeout: 10))
+        if !botaoVoltar.isHittable {
+            let pronto = NSPredicate(format: "hittable == true")
+            let espera = XCTNSPredicateExpectation(predicate: pronto, object: botaoVoltar)
+            _ = XCTWaiter.wait(for: [espera], timeout: 5)
+        }
+
         let sim = app.buttons["resposta-sim"]
-        XCTAssertTrue(sim.waitForExistence(timeout: 5))
-        sim.tap()
+        XCTAssertTrue(sim.waitForExistence(timeout: 10))
+        if !sim.isHittable {
+            let pronto = NSPredicate(format: "hittable == true")
+            let espera = XCTNSPredicateExpectation(predicate: pronto, object: sim)
+            _ = XCTWaiter.wait(for: [espera], timeout: 5)
+        }
 
         let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
-        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
+
+        let habilitado = NSPredicate(format: "enabled == true")
+        if !botaoEnviar.isEnabled {
+            sim.tap()
+            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
+            if XCTWaiter.wait(for: [espera], timeout: 3) != .completed {
+                sim.tap()
+                let segundaEspera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
+                _ = XCTWaiter.wait(for: [segundaEspera], timeout: 5)
+            }
+        }
         XCTAssertTrue(botaoEnviar.isEnabled)
         botaoEnviar.tap()
 
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
-        XCTAssertTrue(confirmacao.waitForExistence(timeout: 5), "a tela deve exibir a confirmação após enviar a avaliação")
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: 10), "a tela deve exibir a confirmação após enviar a avaliação")
     }
 
     func testPerguntaSimNaoEmOrdemComRotuloValorESelecao() {

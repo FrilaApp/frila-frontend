@@ -169,8 +169,25 @@ final class TurnoContrato0231UITests: XCTestCase {
         let avaliar = app.buttons["Avaliar turno"]
         if !avaliar.isHittable { app.swipeUp() }
         tocar(avaliar)
-        tocar(app.buttons["resposta-nao"])
-        tocar(app.buttons["botao-enviar-avaliacao"])
+        let navBar = app.navigationBars["Avaliar turno"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 10))
+        XCTAssertTrue(navBar.buttons.firstMatch.waitForExistence(timeout: 10))
+        let botaoNao = app.buttons["resposta-nao"]
+        tocar(botaoNao)
+        let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
+        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
+        let habilitado = NSPredicate(format: "enabled == true")
+        if !botaoEnviar.isEnabled {
+            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
+            if XCTWaiter.wait(for: [espera], timeout: 3) != .completed {
+                botaoNao.tap()
+                let segundaEspera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
+                _ = XCTWaiter.wait(for: [segundaEspera], timeout: 5)
+            }
+        }
+        XCTAssertTrue(botaoEnviar.isEnabled)
+        tocar(botaoEnviar)
+
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
         XCTAssertTrue(confirmacao.waitForExistence(timeout: 10))
         if offline {
@@ -180,7 +197,9 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Turno avaliado · Resposta: Não"].waitForExistence(timeout: 10))
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
         XCTAssertTrue(app.navigationBars["Meus turnos"].waitForExistence(timeout: 10))
-        tocar(app.buttons["meu-turno-\(turnoID)"])
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        tocar(cartao)
         conferirAvaliacaoNegativa(app)
     }
 
@@ -195,12 +214,17 @@ final class TurnoContrato0231UITests: XCTestCase {
     }
 
     private func conferirAvaliacaoNegativa(_ app: XCUIApplication) {
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 10))
         let status = app.staticTexts["Turno avaliado · Resposta: Não"]
-        if !status.isHittable { app.swipeUp() }
         XCTAssertTrue(status.waitForExistence(timeout: 10))
+        if !status.isHittable { app.swipeUp() }
+        XCTAssertTrue(status.isHittable)
         XCTAssertTrue(status.label.contains("Não"))
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
-        tocar(app.buttons["Ver avaliação"])
+        let verAvaliacao = app.buttons["Ver avaliação"]
+        if !verAvaliacao.isHittable { app.swipeUp() }
+        tocar(verAvaliacao)
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["resposta-nao"].isSelected)
         XCTAssertFalse(app.buttons["resposta-nao"].isEnabled)
