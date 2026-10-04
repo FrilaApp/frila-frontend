@@ -284,4 +284,44 @@ struct PublicarVagaTests {
         #expect(await api.publicacoesRecebidas.last?.regiaoAdministrativa == "Águas Claras")
         #expect(try await api.detalheDaVaga(id: vagaID).regiaoAdministrativa == "Águas Claras")
     }
+
+    @Test("Rótulo de fechamento e aviso informativo nos três estados: nada enviado, na fila e publicado")
+    func rotuloEAvisoNosTresEstados() async throws {
+        final class EstadoRede: @unchecked Sendable {
+            var semRede = false
+        }
+        let rede = EstadoRede()
+        let api = ApiClienteEmMemoria()
+        let fila = FilaPublicacaoTeste()
+        let fixed = agora
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { fixed }) { publicacao in
+            if rede.semRede {
+                throw ErroDaApi(codigo: .semRede)
+            }
+            return try await api.publicarVaga(publicacao)
+        }
+        preencher(vm)
+
+        // 1. Nada enviado: botão é "Cancelar" e aviso informativo não aparece
+        #expect(vm.publicacaoPendente == nil)
+        #expect(vm.resultado == nil)
+        #expect(vm.textoAoFechar == "Cancelar")
+        #expect(!vm.mostraAvisoPublicacaoContinua)
+
+        // 2. Na fila (após envio sem rede): botão passa a "Voltar" e aviso informativo aparece
+        rede.semRede = true
+        await vm.publicar()
+        #expect(vm.publicacaoPendente != nil)
+        #expect(vm.resultado == nil)
+        #expect(vm.textoAoFechar == "Voltar")
+        #expect(vm.mostraAvisoPublicacaoContinua)
+
+        // 3. Publicado com sucesso: botão continua "Voltar" e aviso informativo desaparece
+        rede.semRede = false
+        await vm.publicar()
+        #expect(vm.resultado != nil)
+        #expect(vm.publicacaoPendente == nil)
+        #expect(vm.textoAoFechar == "Voltar")
+        #expect(!vm.mostraAvisoPublicacaoContinua)
+    }
 }
