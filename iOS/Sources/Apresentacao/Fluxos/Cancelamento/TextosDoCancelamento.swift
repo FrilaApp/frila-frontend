@@ -44,6 +44,9 @@ enum TextosDoCancelamento {
     static let falhaGenerica = String(localized: "Não foi possível cancelar. Tente de novo.", bundle: bundleApresentacao)
     static let posicaoNaoCancelavel = String(localized: "Esta posição não pode mais ser cancelada. Atualize a tela para ver como ela está.", bundle: bundleApresentacao)
     static let vagaJaFechada = String(localized: "Esta vaga já foi cancelada ou encerrada.", bundle: bundleApresentacao)
+    // Provisório, até o texto final do #20: o filtro de termos da diretriz 1.2 recusou o motivo
+    // (`422 campo_invalido`, `details: motivo`). Mandar de novo não adianta; é preciso reescrever.
+    static let motivoRecusado = String(localized: "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo.", bundle: bundleApresentacao)
 
     static func titulo(lado: LadoDoCancelamento, alvo: AlvoDoCancelamento) -> String {
         switch (lado, alvo) {
@@ -105,6 +108,7 @@ enum TextosDoCancelamento {
         switch erro.codigo {
         case .posicaoNaoCancelavel: posicaoNaoCancelavel
         case .vagaEncerrada: vagaJaFechada
+        case .campoInvalido where erro.detalhes == "motivo": motivoRecusado
         default: MensagemDoErroAPI.texto(erro)
         }
     }
