@@ -6,6 +6,7 @@ import Observation
 public final class CadastroViewModel {
     private let api: any ApiCliente
     private let relogio: any Relogio
+    private let verificadorDeIdade: any VerificadorDeIdade
     public let email: String
 
     public var perfil: PerfilConta = .profissional
@@ -17,10 +18,16 @@ public final class CadastroViewModel {
     public var carregando: Bool = false
     public var erro: String?
 
-    public init(api: any ApiCliente, email: String, relogio: any Relogio = RelogioDoSistema()) {
+    public init(
+        api: any ApiCliente,
+        email: String,
+        relogio: any Relogio = RelogioDoSistema(),
+        verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel()
+    ) {
         self.api = api
         self.email = email
         self.relogio = relogio
+        self.verificadorDeIdade = verificadorDeIdade
     }
 
     public var formularioPreenchido: Bool {
@@ -69,6 +76,13 @@ public final class CadastroViewModel {
         carregando = true
         erro = nil
         defer { carregando = false }
+
+        // Verificação condicional de maioridade via Declared Age Range (iOS 26.2+, RN20 / Cartão #215)
+        let resultadoIdade = await verificadorDeIdade.verificarMaioridade()
+        if resultadoIdade == .abaixoDe18 {
+            erro = String(localized: "O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
+            return nil
+        }
 
         let cadastro = CadastroConta(
             nome: nomeLimpo,
