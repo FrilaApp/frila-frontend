@@ -21,7 +21,12 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
     }
 
     private func abrirFolha(_ app: XCUIApplication) -> XCUIElement {
-        tocar(app.buttons["cancelar-turno"])
+        let cancelar = app.buttons["cancelar-turno"]
+        XCTAssertTrue(cancelar.waitForExistence(timeout: 5))
+        for _ in 0..<3 where !cancelar.isHittable {
+            app.swipeUp()
+        }
+        tocar(cancelar)
         let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
         XCTAssertTrue(folha.waitForExistence(timeout: 5))
         return folha
@@ -170,9 +175,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
         tocar(cartao)
 
-        tocar(app.buttons["cancelar-turno"])
-        let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
-        XCTAssertTrue(folha.waitForExistence(timeout: 5))
+        let folha = abrirFolha(app)
 
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
         XCTAssertTrue(aviso.waitForExistence(timeout: 5))
