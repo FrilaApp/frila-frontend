@@ -5,7 +5,7 @@ Fundação nativa em Swift 6.3, SwiftUI e SwiftData, com alvo mínimo iOS 17 e b
 ## Abrir e rodar
 
 1. Instale o XcodeGen 2.45.3 (`brew install xcodegen`; a CI usa essa versão fixada).
-2. Rode `xcodegen generate` nesta pasta. O projeto gerado é versionado e a CI falha se ele divergir do `project.yml`.
+2. Rode `Scripts/gerar-projeto.sh` nesta pasta toda vez que clonar ou der `git pull` (ou trocar de branch). O `Frila.xcodeproj` não é versionado no Git para evitar conflitos constantes de merge no `project.pbxproj`; a estrutura do projeto vem do `project.yml` e as versões fixadas dos pacotes SPM vêm do `Package.resolved` versionado na raiz do iOS, que o script restaura para dentro do projeto gerado.
 3. Abra `Frila.xcodeproj` e use `Frila-Local` no simulador. Esse esquema usa `ApiClienteEmMemoria` de forma explícita e não precisa de backend, Supabase nem Firebase.
 4. Para `Frila-Dev` e `Frila-Prod`, gere `Configurations/Secrets.xcconfig` (seção abaixo) e injete os plists do Firebase.
 
@@ -51,7 +51,7 @@ O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources
 
 - Permitido no app: URL do projeto e chave publicável do Supabase.
 - Proibido no app e no Git: `service_role`, `sb_secret_`, SMTP, conta de serviço FCM, segredo do agendador e chave APNs `.p8`.
-- Nunca versionados (ver `.gitignore`): `Configurations/Secrets.xcconfig`, `Resources/Firebase/**/GoogleService-Info.plist`, `Secrets/`, `*.p8`, `DerivedData/`, `build/`, `.build/`, `xcuserdata/` e `.DS_Store`.
+- Nunca versionados (ver `.gitignore`): `Frila.xcodeproj/`, `Configurations/Secrets.xcconfig`, `Resources/Firebase/**/GoogleService-Info.plist`, `Secrets/`, `*.p8`, `DerivedData/`, `build/`, `.build/`, `xcuserdata/` e `.DS_Store`.
 - As fases de script do app não exportam as variáveis de build para o log (`showEnvVars: false`), para a chave não aparecer em log local nem da CI.
 - A sessão do Supabase usa o `KeychainLocalStorage` padrão do SDK e renovação automática. Nunca é gravada em `UserDefaults`.
 
@@ -59,7 +59,7 @@ O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources
 
 ```sh
 python3 Scripts/validate-fixtures.py
-xcodegen generate
+Scripts/gerar-projeto.sh
 Scripts/contrato-em-dia.sh
 xcodebuild test  -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone disponível>'
 xcodebuild build -project Frila.xcodeproj -scheme Frila-Dev  -destination 'generic/platform=iOS Simulator'
@@ -277,6 +277,27 @@ Scripts/gerar-licencas.py --checkouts <pasta>/SourcePackages/checkouts
 - **Erro, e não entrada vazia.** Pacote sem arquivo de licença, checkout em revisão diferente da do `Package.resolved` ou licença de tipo que o script não reconhece interrompem a geração.
 - **Guarda.** `LicencasTests` falha se um pacote do `Package.resolved` ficar sem entrada, se a entrada for de outra revisão ou se sobrar entrada de pacote que saiu.
 - **Limite.** Licenças de código de terceiros embutido dentro de um pacote (pastas `third_party`) só aparecem quando o próprio pacote as reproduz no arquivo de licença da raiz, como faz o GoogleUtilities.
+
+### Dependências SPM e como atualizar
+
+As versões fixadas dos pacotes SPM (Firebase, Supabase etc.) ficam versionadas na raiz do iOS em `Package.resolved`. O `Scripts/gerar-projeto.sh` restaura esse arquivo dentro de `Frila.xcodeproj` ao gerar o projeto, e a CI valida com `-onlyUsePackageVersionsFromResolvedFile` para garantir que nenhuma versão seja resolvida sem revisão prévia.
+
+Para atualizar uma dependência:
+1. Altere a restrição ou versão exata no `project.yml`.
+2. Rode `Scripts/gerar-projeto.sh`.
+3. Abra o `Frila.xcodeproj` no Xcode e atualize os pacotes (**File > Packages > Update to Latest Package Versions** ou **Resolve Package Versions**), ou rode:
+   ```sh
+   xcodebuild -resolvePackageDependencies -project Frila.xcodeproj -scheme Frila-Local
+   ```
+4. Copie o arquivo resolvido de volta para a raiz do iOS:
+   ```sh
+   cp Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
+   ```
+5. Atualize o arquivo de licenças e execute os testes:
+   ```sh
+   Scripts/gerar-licencas.py
+   ```
+6. Faça commit de `project.yml`, `Package.resolved` e `Resources/Licencas.json`.
 
 ## Contrato
 

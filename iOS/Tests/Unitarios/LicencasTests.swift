@@ -23,7 +23,9 @@ struct LicencasTests {
     }
 
     private static func pinos() throws -> [PacotesResolvidos.Pino] {
-        let url = raiz.appending(path: "Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
+        let urlProjeto = raiz.appending(path: "Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
+        let urlRaiz = raiz.appending(path: "Package.resolved")
+        let url = FileManager.default.fileExists(atPath: urlRaiz.path()) ? urlRaiz : urlProjeto
         return try JSONDecoder().decode(PacotesResolvidos.self, from: Data(contentsOf: url)).pins
     }
 
