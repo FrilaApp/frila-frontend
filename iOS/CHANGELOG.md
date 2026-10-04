@@ -30,6 +30,9 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Minhas vagas, com o painel do estabelecimento (#107).
 - Acompanhamento do turno: confirmar a presença de quem fez check-in manual e reabrir a vaga
   quando o profissional atrasa 15 minutos (#19).
+- Cancelar uma posição no painel do turno ou a vaga inteira em Minhas vagas, com motivo
+  obrigatório e o aviso de que a posição volta a ser oferecida antes do início e fica descoberta
+  depois dele (#20).
 
 ### Em todo o app
 - Notificações de vaga nova, confirmação, lembretes do turno, check-in, atraso e cancelamento. O
