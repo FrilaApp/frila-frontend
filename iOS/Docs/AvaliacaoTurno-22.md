@@ -13,11 +13,17 @@ O `409 avaliacao_ja_registrada` bloqueia a escolha, limpa a seleção recusada e
 somente a informação de que já existe avaliação. Não guarda Sim ou Não. O mesmo vale
 para o 409 durante o reenvio: a ação recusada sai da fila e a resposta local passa ao
 estado sem resposta conhecida. Ao reabrir, a tela mostra “Esta avaliação já foi registrada.”.
+Com um só `AvaliacaoTurnoViewModel` por turno mantido estável (`MeuTurnoViewModel.swift:125-127`,
+`AcompanhamentoViewModel.swift:430-435`, #140), reabrir a avaliação após o envio volta a
+exibir o estado "já registrada" com a resposta gravada, zerando o sucesso transitório
+(`AvaliacaoTurnoViewModel.swift:253-261`).
 
-Sem rede, a fila guarda também o ID da conta. A primeira avaliação por conta e turno
-prevalece, inclusive entre modelos distintos. A reabertura consulta a fila mesmo
-quando a resposta já está nos UserDefaults e mostra que ela está pendente. O reenvio
-confere a conta atual; avaliações legadas sem autor conhecido não são reenviadas.
+Sem rede, a fila guarda também o ID da conta (`contaID`). A primeira avaliação por conta e turno
+prevalece. A reabertura consulta a fila mesmo quando a resposta já está nos UserDefaults e
+mostra que ela está pendente. O reenvio confere a conta atual (`SincronizadorAcoes.swift:20-31`, #139),
+consultando a identidade uma única vez antes do lote; avaliações legadas sem autor conhecido não são reenviadas.
+A resolução da identidade usa `PrazoDaAbertura.padrao` (8 s) (`IdentidadeDaAvaliacao.swift:8-21`, #137)
+para não prender o fluxo em conexões instáveis.
 
 ## Evidência dos critérios
 
@@ -47,7 +53,7 @@ Validação em 01/10/2026: `xcodebuild test -project iOS/Frila.xcodeproj -scheme
 -destination 'platform=iOS Simulator,id=85940BCB-553C-4145-8F8E-E83423D86431'
 -derivedDataPath iOS/DerivedData/avaliacao22 -parallel-testing-enabled NO` passou com
 290 testes unitários e 43 testes de interface, sem falhas. `conferir-textos.sh` passou,
-as 28 fixtures do contrato foram validadas e o projeto versionado foi gerado com XcodeGen.
+as 28 fixtures do contrato foram validadas e o projeto foi gerado com XcodeGen (hoje via `Scripts/gerar-projeto.sh`, mantendo o `Frila.xcodeproj` fora do git).
 
 ## Revisão do PR #52
 
@@ -92,3 +98,6 @@ A implementação inicial cobriu o profissional. Em 04/10/2026, a avaliação pe
 foi integrada pelo PR #126 (`AcompanhamentoViewModel`, `TelaTurnoDoContratante` e
 `TelaAvaliacao`), permitindo ao contratante responder com Sim ou Não à pergunta objetiva
 "Chamaria este profissional de novo?" após o encerramento do turno com presença confirmada.
+No PR #140, posições no estado `cumprida` (que o agendador do backend transiciona minutos
+após o fim) continuam avaliáveis além de `confirmada` (`AcompanhamentoViewModel.swift:405-414`),
+garantindo que o contratante consiga avaliar mesmo após a passagem automática de estado.

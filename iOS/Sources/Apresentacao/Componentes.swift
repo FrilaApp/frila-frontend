@@ -127,15 +127,28 @@ public struct FiltroPill: View {
         self.acao = acao
     }
 
+    public static func valorAcessibilidade(selecionado: Bool) -> String {
+        selecionado ? String(localized: "filtro ativo", bundle: bundleApresentacao) : ""
+    }
+
     public var body: some View {
         Button(action: acao) {
-            titulo.font(.subheadline.weight(.semibold)).padding(.horizontal, 14).frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Capsule())
+            HStack(spacing: FrilaEspaco.minimo) {
+                if selecionado {
+                    Image(systemName: "checkmark")
+                        .accessibilityHidden(true)
+                }
+                titulo.font(.subheadline.weight(.semibold))
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
         .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
         .accessibilityAddTraits(selecionado ? .isSelected : [])
+        .accessibilityValue(Self.valorAcessibilidade(selecionado: selecionado))
     }
 }
 
