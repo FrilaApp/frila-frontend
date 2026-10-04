@@ -22,11 +22,12 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         sessaoHTTP: URLSession,
         armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria? = nil
     ) {
-        // A sessão de autenticação fica no Keychain: é o armazenamento padrão do supabase-swift no iOS.
+        // A sessão de autenticação fica no Keychain só deste aparelho (`SessaoNoKeychainDoAparelho`):
+        // o armazenamento padrão do supabase-swift a deixava ir no backup para outro iPhone.
         let auth: SupabaseClientOptions.AuthOptions = if let armazenamentoDaSessao {
             .init(storage: armazenamentoDaSessao, autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
         } else {
-            .init(autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
+            .init(storage: SessaoNoKeychainDoAparelho(), autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
         }
         let options = SupabaseClientOptions(
             db: .init(decoder: ContratoAPI.decodificador()),
