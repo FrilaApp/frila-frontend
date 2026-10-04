@@ -16,34 +16,25 @@ public struct FolhaDeCancelamento: View {
     }
 
     public var body: some View {
-        ScrollView {
-            FolhaFrila(verbatim: TextosDoCancelamento.titulo(lado: viewModel.lado, alvo: viewModel.alvo)) {
-                switch viewModel.estado {
-                case .pronto, .enviando, .falha:
-                    formulario
-                case let .concluido(desfecho):
-                    desfechoView(desfecho)
+        NavigationStack {
+            ScrollView {
+                FolhaFrila(verbatim: TextosDoCancelamento.titulo(lado: viewModel.lado, alvo: viewModel.alvo)) {
+                    switch viewModel.estado {
+                    case .pronto, .enviando, .falha:
+                        formulario
+                    case let .concluido(desfecho):
+                        desfechoView(desfecho)
+                    }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom) {
+                botoesDeAcao
+            }
+            .background(FrilaCor.fundo.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
         }
         .accessibilityIdentifier("folha-de-cancelamento")
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
-            botoesDeAcao
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button {
-                    focoNosDetalhes = false
-                } label: {
-                    Text(verbatim: TextosDoCancelamento.ok)
-                }
-                .accessibilityLabel(Text(verbatim: TextosDoCancelamento.recolherTeclado))
-                .accessibilityIdentifier("recolher-teclado")
-            }
-        }
-        .background(FrilaCor.fundo.ignoresSafeArea())
         .interactiveDismissDisabled(viewModel.estado == .enviando)
     }
 
@@ -79,6 +70,18 @@ public struct FolhaDeCancelamento: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
             .accessibilityIdentifier("detalhes-do-cancelamento")
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        focoNosDetalhes = false
+                    } label: {
+                        Text(verbatim: TextosDoCancelamento.ok)
+                    }
+                    .accessibilityLabel(Text(verbatim: TextosDoCancelamento.recolherTeclado))
+                    .accessibilityIdentifier("recolher-teclado")
+                }
+            }
         } else {
             Text(verbatim: TextosDoCancelamento.motivoObrigatorio)
                 .font(.subheadline)
@@ -107,14 +110,14 @@ public struct FolhaDeCancelamento: View {
                     .accessibilityIdentifier("voltar-do-cancelamento")
             }
             .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo.opacity(0.95))
+            .background(FrilaCor.fundo)
         case .concluido:
             VStack(spacing: FrilaEspaco.pequeno) {
                 BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
                     .accessibilityIdentifier("fechar-cancelamento")
             }
             .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo.opacity(0.95))
+            .background(FrilaCor.fundo)
         }
     }
 

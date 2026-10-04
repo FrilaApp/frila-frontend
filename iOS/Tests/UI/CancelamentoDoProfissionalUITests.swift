@@ -23,7 +23,8 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
     private func abrirFolha(_ app: XCUIApplication) -> XCUIElement {
         let cancelar = app.buttons["cancelar-turno"]
         XCTAssertTrue(cancelar.waitForExistence(timeout: 5))
-        for _ in 0..<3 where !cancelar.isHittable {
+        app.swipeUp()
+        for _ in 0..<5 where !cancelar.isHittable {
             app.swipeUp()
         }
         tocar(cancelar)
@@ -89,10 +90,10 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         let confirmar = app.buttons["confirmar-cancelamento"]
         tocar(app.buttons["motivo-outro"])
         XCTAssertFalse(confirmar.isEnabled)
-        let detalhes = app.textFields["detalhes-do-cancelamento"]
+        let detalhes = app.descendants(matching: .any)["detalhes-do-cancelamento"].firstMatch
         XCTAssertTrue(detalhes.waitForExistence(timeout: 5))
         // O campo fica abaixo da dobra da folha: rola até ele antes de tocar.
-        if !detalhes.isHittable { folha.swipeUp() }
+        folha.swipeUp()
         tocar(detalhes)
         detalhes.typeText("Viagem marcada de última hora")
         XCTAssertTrue(confirmar.isEnabled)
@@ -139,9 +140,9 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         let folha = abrirFolha(app)
 
         tocar(app.buttons["motivo-outro"])
-        let detalhes = app.textFields["detalhes-do-cancelamento"]
+        let detalhes = app.descendants(matching: .any)["detalhes-do-cancelamento"].firstMatch
         XCTAssertTrue(detalhes.waitForExistence(timeout: 5))
-        if !detalhes.isHittable { folha.swipeUp() }
+        folha.swipeUp()
         tocar(detalhes)
         detalhes.typeText("Imprevisto urgente")
 
