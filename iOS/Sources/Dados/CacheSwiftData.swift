@@ -1,5 +1,6 @@
 import Foundation
 import FrilaDominio
+import OSLog
 import SwiftData
 
 @Model
@@ -67,6 +68,18 @@ public final class ContatoDoTurnoPersistido {
 
     public init(turnoID: UUID, conteudo: Data) { self.turnoID = turnoID; self.conteudo = conteudo }
 }
+
+/// Os modelos que guardam um valor do domínio como JSON em `conteudo`.
+protocol RegistroComConteudo: PersistentModel {
+    var conteudo: Data { get }
+}
+
+extension TurnoPersistido: RegistroComConteudo {}
+extension FuncaoPersistida: RegistroComConteudo {}
+extension SessaoPersistida: RegistroComConteudo {}
+extension AcaoPendentePersistida: RegistroComConteudo {}
+extension AcaoRecusadaPersistida: RegistroComConteudo {}
+extension ContatoDoTurnoPersistido: RegistroComConteudo {}
 
 public enum EsquemaFrilaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
@@ -138,7 +151,8 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
 
     public func sessao() throws -> SessaoUsuario? {
         guard let registro = try modelContext.fetch(FetchDescriptor<SessaoPersistida>()).first else { return nil }
-        return try JSONDecoder().decode(SessaoUsuario.self, from: registro.conteudo)
+        let sessoes: [SessaoUsuario] = try legiveis([registro], JSONDecoder(), origem: "sessao")
+        return sessoes.first
     }
 
     public func salvar(turnos: [Turno], em instante: Date) throws {
@@ -173,8 +187,8 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         if !vencidos.isEmpty { try modelContext.save() }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try todos.filter { $0.fim > limite }.map { registro in
-            let turno = try decoder.decode(Turno.self, from: registro.conteudo)
+        let turnos: [Turno] = try legiveis(todos.filter { $0.fim > limite }, decoder, origem: "turnos")
+        return try turnos.map { turno in
             guard !turno.cancelado, turno.contatoVisivel(em: instante) else { return turno.com(contato: nil) }
             let guardado = try contato(doTurno: turno.id, em: instante) ?? turno.contato
             return turno.com(contato: guardado?.estaVisivel(em: instante) == true ? guardado : nil)
@@ -196,7 +210,8 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
     public func contato(doTurno turnoID: UUID, em instante: Date) throws -> Contato? {
         let descritor = FetchDescriptor<ContatoDoTurnoPersistido>(predicate: #Predicate { $0.turnoID == turnoID })
         guard let registro = try modelContext.fetch(descritor).first else { return nil }
-        let contato = try JSONDecoder().decode(Contato.self, from: registro.conteudo)
+        let contatos: [Contato] = try legiveis([registro], JSONDecoder(), origem: "contato")
+        guard let contato = contatos.first else { return nil }
         guard contato.estaVisivel(em: instante) else {
             modelContext.delete(registro)
             try modelContext.save()
@@ -225,10 +240,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
     }
 
     public func funcoes() throws -> [Funcao] {
-        let decoder = JSONDecoder()
-        return try modelContext.fetch(FetchDescriptor<FuncaoPersistida>()).map {
-            try decoder.decode(Funcao.self, from: $0.conteudo)
-        }
+        try legiveis(try modelContext.fetch(FetchDescriptor<FuncaoPersistida>()), JSONDecoder(), origem: "funcoes")
     }
 
     public func enfileirar(_ acao: AcaoPendente) throws {
@@ -271,7 +283,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let descritor = FetchDescriptor<AcaoPendentePersistida>(sortBy: [SortDescriptor(\.instanteDoToque)])
-        return try modelContext.fetch(descritor).map { try decoder.decode(AcaoPendente.self, from: $0.conteudo) }
+        return try legiveis(try modelContext.fetch(descritor), decoder, origem: "fila")
     }
 
     public func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) throws {
@@ -300,9 +312,7 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
     }
 
     private func lerRecusas() throws -> [AcaoRecusada] {
-        try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>()).map {
-            try JSONDecoder().decode(AcaoRecusada.self, from: $0.conteudo)
-        }
+        try legiveis(try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>()), JSONDecoder(), origem: "recusadas")
     }
 
     public func reconhecerRecusa(id: UUID) async throws {
@@ -330,7 +340,8 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         let aceita = autor.map { acao.com(contaID: $0) } ?? acao
         let decoder = JSONDecoder()
         let registros = try modelContext.fetch(FetchDescriptor<AcaoRecusadaPersistida>())
-        let resolvidas = try registros.filter { try decoder.decode(AcaoRecusada.self, from: $0.conteudo).corresponde(a: aceita) }
+        // Registro ilegível não bloqueia o aceite: `lerRecusas` o apaga na próxima leitura.
+        let resolvidas = registros.filter { (try? decoder.decode(AcaoRecusada.self, from: $0.conteudo))?.corresponde(a: aceita) == true }
         try reconhecer(resolvidas)
     }
 
@@ -338,6 +349,30 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         try modelContext.delete(model: AcaoPendentePersistida.self, where: #Predicate { $0.id == id })
         try modelContext.save()
     }
+
+    /// Decodifica registro a registro. O que não decodifica foi gravado por um build com outro modelo
+    /// (ou ficou corrompido): sai do banco e da lista, em vez de uma única linha ilegível inutilizar
+    /// o cache ou a fila inteira até a saída da conta. Só a origem e a quantidade vão ao log.
+    private func legiveis<Registro: RegistroComConteudo, Valor: Decodable>(
+        _ registros: [Registro], _ decoder: JSONDecoder, origem: String
+    ) throws -> [Valor] {
+        var ilegiveis = 0
+        let valores = registros.compactMap { registro -> Valor? in
+            guard let valor = try? decoder.decode(Valor.self, from: registro.conteudo) else {
+                modelContext.delete(registro)
+                ilegiveis += 1
+                return nil
+            }
+            return valor
+        }
+        if ilegiveis > 0 {
+            try modelContext.save()
+            Self.log.warning("registros_ilegiveis origem=\(origem, privacy: .public) apagados=\(ilegiveis, privacy: .public)")
+        }
+        return valores
+    }
+
+    private static let log = Logger(subsystem: "com.frila.org.app", category: "cache")
 
     public func limpar() throws {
         try modelContext.delete(model: TurnoPersistido.self)
