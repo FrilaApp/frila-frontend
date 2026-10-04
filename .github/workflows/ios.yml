@@ -124,14 +124,8 @@ jobs:
           Scripts/teste-conferir-textos.sh
           Scripts/conferir-textos.sh
 
-      - name: Gerar o projeto e conferir que está versionado
-        run: |
-          xcodegen generate
-          if ! git diff --quiet -- Frila.xcodeproj || [[ -n "$(git status --porcelain -- Frila.xcodeproj)" ]]; then
-            git status --short -- Frila.xcodeproj
-            echo "::error::Frila.xcodeproj difere do project.yml. Rode 'xcodegen generate' em iOS/ e versione o resultado."
-            exit 1
-          fi
+      - name: Gerar o projeto
+        run: xcodegen generate
 
       - name: Definir DerivedData temporário
         run: echo "DERIVED_DATA_PATH=$RUNNER_TEMP/DerivedData" >> "$GITHUB_ENV"
@@ -140,11 +134,13 @@ jobs:
         id: spm-cache
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: ${{ runner.temp }}/DerivedData/SourcePackages
-          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-spm-${{ hashFiles('iOS/Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          path: |
+            ${{ runner.temp }}/DerivedData/SourcePackages
+            iOS/Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-spm-${{ hashFiles('iOS/project.yml') }}
 
       - name: Resolver os pacotes SPM sem cache
-        if: steps.spm-cache.outputs.cache-hit != 'true'
+        if: steps.spm-cache.outputs.cache-hit != 'true' || hashFiles('iOS/Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') == ''
         run: |
           xcodebuild -resolvePackageDependencies \
             -project Frila.xcodeproj \

@@ -49,6 +49,8 @@ jobs:
         shell: bash
         working-directory: iOS
     env:
+      XCODEGEN_VERSION: "2.45.3"
+      XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
       XCODE_VERSION: "26.6"
       # Esquema que as tags mandam. O 0.4 e o 0.5 vão com o Frila-Beta (frila-dev), porque o
       # frila-prod ainda não tem as migrações (frila-backend, docs/ESTADO.md; cartão do ambiente de
@@ -132,6 +134,17 @@ jobs:
             exit 1
           fi
 
+      - name: Instalar o XcodeGen fixado
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check --status
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+
+      - name: Gerar o projeto
+        run: xcodegen generate
+
       - name: Definir DerivedData e saída temporários
         run: |
           echo "FRILA_DERIVED_DATA=$RUNNER_TEMP/DerivedData" >> "$GITHUB_ENV"
@@ -141,7 +154,7 @@ jobs:
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ${{ runner.temp }}/DerivedData/SourcePackages
-          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-spm-${{ hashFiles('iOS/Frila.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-spm-${{ hashFiles('iOS/project.yml') }}
 
       - name: Gerar a configuração do ambiente (Supabase e Firebase)
         env:
@@ -196,5 +209,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           rm -rf "$RUNNER_TEMP/asc" "$RUNNER_TEMP/testflight" "$RUNNER_TEMP/DerivedData"
+          rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
           rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
           rm -f iOS/Resources/Firebase/*/GoogleService-Info.plist iOS/Resources/Firebase/*/GoogleService-Info.plist.tmp.*
