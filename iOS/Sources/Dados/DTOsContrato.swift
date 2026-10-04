@@ -1,5 +1,6 @@
 import Foundation
 import FrilaDominio
+import OSLog
 
 /// Valor que chegou no formato do contrato, mas não cabe no domínio (dia da semana 9, hora 25:00…).
 struct ErroDeConversao: Error, Equatable {
@@ -564,13 +565,13 @@ enum ContratoAPI {
             case posicaoID = "posicao_id"
             case turnoID = "turno_id"
         }
-        func dominio() throws -> ResultadoCandidatura {
+        func dominio() -> ResultadoCandidatura {
             ResultadoCandidatura(
                 estado: estado,
                 candidaturaID: candidaturaID,
                 posicaoID: posicaoID,
                 turnoID: turnoID,
-                contato: try contato?.dominio()
+                contato: contato?.dominio()
             )
         }
     }
@@ -585,16 +586,27 @@ enum ContratoAPI {
             case whatsappURL = "whatsapp_url"
             case visivelAte = "visivel_ate"
         }
-        /// O app abre o `whatsapp_url` como vem; por isso só aceita o link do WhatsApp em https
-        /// (auditoria de 03/10/2026, A5). Outro esquema ou host não vira contato: é `respostaInvalida`.
+        /// O app abre o `whatsapp_url` como vem; por isso só passa o link do WhatsApp em https
+        /// (auditoria de 03/10/2026, A5). Outro esquema ou host é trocado pelo `wa.me` montado do
+        /// telefone, sem erro: `candidatar` e `escolher_candidato` já gravaram no servidor quando a
+        /// resposta chega, e um erro aqui faria a ação bem-sucedida parecer falha (e a repetição, 409).
         static let hostsDoWhatsApp: Set<String> = ["wa.me", "api.whatsapp.com"]
+        private static let log = Logger(subsystem: "com.frila.org.app", category: "contrato")
 
-        func dominio() throws -> Contato {
-            guard whatsappURL.scheme?.lowercased() == "https",
-                  let host = whatsappURL.host()?.lowercased(), Self.hostsDoWhatsApp.contains(host) else {
-                throw ErroDeConversao(campo: "whatsapp_url")
+        func dominio() -> Contato {
+            Contato(nome: nome, telefone: telefone, whatsappURL: Self.linkSeguro(whatsappURL, telefone: telefone), visivelAte: visivelAte)
+        }
+
+        /// O link como veio, se é do WhatsApp em https; senão, `https://wa.me/` + os dígitos do
+        /// telefone E.164 (`+5561999990000` → `https://wa.me/5561999990000`, como no contrato).
+        static func linkSeguro(_ url: URL, telefone: String) -> URL {
+            if url.scheme?.lowercased() == "https", let host = url.host()?.lowercased(), hostsDoWhatsApp.contains(host) {
+                return url
             }
-            return Contato(nome: nome, telefone: telefone, whatsappURL: whatsappURL, visivelAte: visivelAte)
+            // Só o fato, nunca o link nem o número.
+            log.notice("whatsapp_url_saneado")
+            let digitos = telefone.filter(\.isNumber)
+            return URL(string: "https://wa.me/\(digitos)") ?? URL(string: "https://wa.me/")!
         }
     }
 
@@ -646,8 +658,8 @@ enum ContratoAPI {
             case posicaoID = "posicao_id"
             case turnoID = "turno_id"
         }
-        func dominio() throws -> ResultadoConfirmacao {
-            ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turnoID, contato: try contato.dominio())
+        func dominio() -> ResultadoConfirmacao {
+            ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turnoID, contato: contato.dominio())
         }
     }
 

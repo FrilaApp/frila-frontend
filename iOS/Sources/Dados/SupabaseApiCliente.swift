@@ -195,7 +195,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     public func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura {
         let resposta: ContratoAPI.CandidaturaDTO = try await rpc("candidatar", params: ContratoAPI.ID("vaga_id", vagaID))
-        return try converter { try resposta.dominio() }
+        return resposta.dominio()
     }
 
     public func perfilPublico(id: UUID) async throws -> PerfilPublico {
@@ -215,7 +215,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             "escolher_candidato",
             params: ContratoAPI.ID("candidatura_id", candidaturaID)
         )
-        return try converter { try resposta.dominio() }
+        return resposta.dominio()
     }
 
     public func retirarCandidatura(id: UUID) async throws -> Candidatura {
@@ -240,7 +240,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     public func contatoDoTurno(id: UUID) async throws -> Contato {
         let resposta: ContratoAPI.ContatoDTO = try await rpc("contato_do_turno", params: ContratoAPI.ID("turno_id", id))
-        return try converter { try resposta.dominio() }
+        return resposta.dominio()
     }
 
     public func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho {
