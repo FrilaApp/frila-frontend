@@ -6,7 +6,6 @@ struct AcoesDeSeguranca: View {
     @State private var denunciando = false
     @State private var confirmandoBloqueio = false
     private let nomeAlvo: String
-    private let perfilID: UUID
     private let identificadorDenunciar: String
     private let identificadorBloquear: String
     private let identificadorConfirmarBloqueio: String
@@ -22,7 +21,6 @@ struct AcoesDeSeguranca: View {
     ) {
         _model = State(initialValue: SegurancaViewModel(perfil: perfil, turnoID: turnoID, api: api, bloqueios: bloqueios))
         self.nomeAlvo = perfil.nome
-        self.perfilID = perfil.id
         self.identificadorDenunciar = identificadorDenunciar
         self.identificadorBloquear = identificadorBloquear
         self.identificadorConfirmarBloqueio = identificadorConfirmarBloqueio
@@ -52,7 +50,6 @@ struct AcoesDeSeguranca: View {
                 AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("erro-bloqueio")
             }
         }
-        .id(perfilID)
         .alert(TextosDaSeguranca.confirmarBloqueio, isPresented: $confirmandoBloqueio) {
             Button(TextosDaSeguranca.cancelar, role: .cancel) {}
             Button(TextosDaSeguranca.bloquear, role: .destructive) { Task { await model.bloquear() } }
@@ -199,6 +196,7 @@ struct TelaPerfilPublico: View {
                         if !perfil.funcoes.isEmpty { Text(verbatim: perfil.funcoes.joined(separator: ", ")) }
                         SeloReputacao(perfil.reputacao)
                         AcoesDeSeguranca(perfil: perfil, api: api, bloqueios: bloqueios)
+                            .id(perfil.id)
                     }
                 }
             }

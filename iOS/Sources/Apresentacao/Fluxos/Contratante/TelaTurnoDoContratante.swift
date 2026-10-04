@@ -205,6 +205,9 @@ struct TelaTurnoDoContratante: View {
                     identificadorDenunciar: "denunciar-\(turno.posicao.id)",
                     identificadorBloquear: "bloquear-\(turno.posicao.id)"
                 )
+                // O @State do modelo nasce no init: identidade pelo alvo, para a posição reatribuída
+                // não denunciar nem bloquear o profissional anterior.
+                .id(profissional.id)
             }
         }
     }
