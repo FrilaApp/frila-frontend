@@ -30,4 +30,8 @@ As regressões iniciais falharam antes das correções: seis testes na primeira 
 
 Após integrar o main com #134 e #135, a rodada unitária dirigida passou com 113/113 testes (`dirigido-integrado.xcresult`). A rodada anterior com interface passou com 112 unitários e dois testes de interface, 114/114 (`avisos-validado.xcresult`). Todo xcodebuild passou pela fila `vez.sh`, no simulador exclusivo Homem-Aranha, com `-parallel-testing-enabled NO`.
 
-Validação final da suíte e do Release: pendente de conclusão; atualizar antes do PR.
+Validação final em 04/10/2026: suíte completa `Frila-Local`, uma rodada pela fila, passou com 1.198 testes: 1.167 aprovados, nenhuma falha inesperada, 30 pulados e uma falha esperada (`suite-resumo.json`, resultado `Passed`). Foram 977 testes unitários e 221 testes de interface. A falha esperada é o autoteste `AjudanteDeLancamentoUITestsInternos.testAlvoMinimoAceitaErroDePontoFlutuanteERecusaAlvoMenor`; os pulados pertencem à auditoria opcional de acessibilidade e à medição. A avaliação, presença, republicação, contestação, ciclo 04 e o novo teste de fechar/reabrir aviso passaram nesta rodada.
+
+O Beta de simulador compilou com assinatura e passou em `iOS/Scripts/conferir-release.sh build/Build/Products/Release-Beta-iphonesimulator/Frila.app`; `iOS/Scripts/conferir-textos.sh` e `git diff --check` também passaram. O simulador foi desligado ao final. O projeto foi regenerado após os merges do main (#134 e #135); `.xcodeproj` permanece fora do git.
+
+Comando da suíte: `vez.sh "Homem-Aranha" -- xcodebuild test -project iOS/Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,id=85940BCB-553C-4145-8F8E-E83423D86431' -derivedDataPath build -resultBundlePath evidencias/revisao-loki/suite.xcresult -parallel-testing-enabled NO`. Logs e resumos JSON preservados em `evidencias/revisao-loki/` no worktree.
