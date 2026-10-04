@@ -171,7 +171,8 @@ struct TelaTurnoDoContratante: View {
         .cartaoFrila()
         .accessibilityElement(children: .combine)
 
-        ForEach(viewModel.recusasDaFila) { recusa in
+        // O modelo é o da lista inteira: aqui só as recusas deste turno.
+        ForEach(viewModel.recusasDaFila.filter { $0.turnoID == turnoID }) { recusa in
             AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
                 .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
             BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila(id: recusa.id) } }
