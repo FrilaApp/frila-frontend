@@ -346,10 +346,10 @@ struct SupabaseDaSprint2Tests {
         #expect(try BackendDaSprint2.recebido(em: "contestar_suspensao") == ContratoTests.fixture("requisicao-contestar-suspensao"))
     }
 
-    @Test("Tipo de protocolo ou estado de conta que o app não conhece vira resposta_invalida, nunca queda")
+    @Test("Tipo de protocolo que o app não conhece vira denúncia (informativo); estado de conta desconhecido vira resposta_invalida, nunca queda")
     func enumDesconhecido() async throws {
         let api = try cliente(CasosDeBordaDaSprint2.self)
-        await #expect(throws: ErroDaApi(codigo: .respostaInvalida)) { _ = try await api.denunciar(Esperado.denuncia) }
+        #expect(try await api.denunciar(Esperado.denuncia).tipo == .denuncia)
         await #expect(throws: ErroDaApi(codigo: .respostaInvalida)) { _ = try await api.situacaoDaConta() }
     }
 
