@@ -75,7 +75,7 @@ public final class RoteadorDoProfissional {
         caminho.append(.ajustarFuncoes(vagaID: vagaID))
     }
 
-    public func candidatar(viewModel: CandidaturaViewModel) async {
+    public func candidatar(viewModel: CandidaturaViewModel, cache: (any CacheLocal)? = nil) async {
         if let candidaturaEmAndamento, candidaturaEmAndamento !== viewModel, candidaturaEmAndamento.enviando {
             viewModel.indicarOutroEnvioEmAndamento()
             return
@@ -87,7 +87,7 @@ public final class RoteadorDoProfissional {
                 candidaturaEmAndamento = nil
             }
         }
-        await viewModel.candidatar()
+        await viewModel.candidatar(cache: cache)
         guard candidaturaEmAndamento === viewModel,
               case let .concluida(resultado) = viewModel.estado,
               resultado.abreTelaPropria else { return }
@@ -172,7 +172,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                                 roteador.abrirVaga(id: vagaID)
                             }
                         case let .detalhe(vagaID):
-                            DestinoDoDetalhe(vagaID: vagaID, api: api, candidatar: roteador.candidatar)
+                            DestinoDoDetalhe(vagaID: vagaID, api: api, candidatar: candidatar)
                         case let .resultado(vaga, resultado):
                             TelaResultadoDaCandidatura(
                                 vaga: vaga, resultado: resultado, api: api, verCandidaturas: { roteador.abrirCandidaturas() },
@@ -184,7 +184,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .vagaDoAviso(vagaID):
                             DestinoDaVagaDoAviso(
                                 vagaID: vagaID, api: api, repositorio: repositorioTurnos,
-                                candidatar: roteador.candidatar, voltarParaLista: voltarParaLista
+                                candidatar: candidatar, voltarParaLista: voltarParaLista
                             ) { destinoDoMeuTurno($0) }
                         case let .turnoDoAviso(turnoID):
                             DestinoDoTurnoDoAviso(turnoID: turnoID, repositorio: repositorioTurnos, verMeusTurnos: { roteador.abrir(.meusTurnos) }) {
@@ -271,6 +271,10 @@ public struct FluxoDoProfissional<Barra: View>: View {
 }
 
 extension FluxoDoProfissional {
+    private func candidatar(_ viewModel: CandidaturaViewModel) async {
+        await roteador.candidatar(viewModel: viewModel, cache: fila as? any CacheLocal)
+    }
+
     private func recuperarIdentidade() async {
         guard !recuperandoIdentidade else { return }
         recuperandoIdentidade = true
@@ -321,7 +325,7 @@ extension FluxoDoProfissional {
     /// resultado com tela própria abre na pilha de Vagas: a aba acompanha, e esta pilha volta ao
     /// início, para "Ver minhas candidaturas" cair na lista.
     private func candidatarPelaAbaCandidaturas(_ viewModel: CandidaturaViewModel) async {
-        await roteador.candidatar(viewModel: viewModel)
+        await candidatar(viewModel)
         guard case let .concluida(resultado) = viewModel.estado, resultado.abreTelaPropria else { return }
         caminhoCandidaturas = []
         roteador.aba = .vagas

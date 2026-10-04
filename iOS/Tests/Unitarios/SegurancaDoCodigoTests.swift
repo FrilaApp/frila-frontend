@@ -64,6 +64,24 @@ struct SegurancaDoCodigoTests {
         #expect(achados.isEmpty, "argumento de Debug fora de #if DEBUG em \(achados)")
     }
 
+    @Test("Todo arquivo que o app grava leva .completeFileProtection")
+    func arquivosGravadosComProtecaoCompleta() throws {
+        // `Data.write(to:options:)`: o que o app grava em disco é a exportação dos dados da pessoa
+        // (JSON, CSV, PDF). O simulador não tem proteção de dados, então a opção é conferida no
+        // código, a cada `xcodebuild test`, e não no atributo do arquivo.
+        let gravacao = /\.write\(to:/
+        var achados: [String] = []
+        var encontrados = 0
+        for arquivo in try Self.arquivosSwift() {
+            for (indice, linha) in arquivo.linhas.enumerated() where linha.contains(gravacao) {
+                encontrados += 1
+                if !linha.contains(".completeFileProtection") { achados.append("\(arquivo.nome):\(indice + 1)") }
+            }
+        }
+        #expect(encontrados > 0, "a busca não achou nenhuma gravação: o teste não está olhando o lugar certo")
+        #expect(achados.isEmpty, "gravação em disco sem .completeFileProtection em \(achados)")
+    }
+
     @Test("Nenhum log interpola e-mail, token, sessão, senha, telefone ou chave")
     func logsSemDadoSensivel() throws {
         let interpolacao = /\\\(([^)]*)\)/

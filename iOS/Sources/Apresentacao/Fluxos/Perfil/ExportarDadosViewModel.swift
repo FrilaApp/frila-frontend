@@ -109,7 +109,9 @@ public final class ExportarDadosViewModel {
         let urlArquivo = diretorioTemporario.appendingPathComponent(nomeArquivo)
 
         try? FileManager.default.removeItem(at: urlArquivo)
-        try dados.write(to: urlArquivo, options: .atomic)
+        // O arquivo reúne tudo o que o servidor sabe da pessoa. Fica cifrado com o aparelho bloqueado
+        // (classe completa): a folha de compartilhar só o lê com o app na frente e o aparelho aberto.
+        try dados.write(to: urlArquivo, options: [.atomic, .completeFileProtection])
         return urlArquivo
     }
 }

@@ -249,14 +249,14 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(pendente.isHittable)
         XCTAssertTrue(pendente.label.contains("Aguardando a escolha do estabelecimento"), pendente.label)
         XCTAssertLessThanOrEqual(pendente.frame.maxX, largura, "o cartão da candidatura passou da largura da tela")
-        XCTAssertGreaterThanOrEqual(pendente.frame.height, 44)
+        XCTAssertAlvoMinimo(pendente.frame.height)
 
         pendente.tap()
         let retirar = app.buttons["retirar-candidatura"]
         XCTAssertTrue(retirar.waitForExistence(timeout: 10))
         XCTAssertTrue(retirar.isHittable, "no maior tamanho de letra a retirada fica presa ao rodapé, sempre ao alcance")
         XCTAssertEqual(retirar.label, "Retirar candidatura")
-        XCTAssertGreaterThanOrEqual(retirar.frame.height, 44)
+        XCTAssertAlvoMinimo(retirar.frame.height)
         XCTAssertLessThanOrEqual(retirar.frame.maxX, largura)
         XCTAssertTrue(elemento("candidatura-enviada", em: app).label.contains("Candidatura enviada"))
 

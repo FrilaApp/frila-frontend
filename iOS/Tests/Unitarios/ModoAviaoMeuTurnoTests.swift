@@ -2,6 +2,7 @@ import Foundation
 @testable import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
+import SwiftData
 import Testing
 
 private final class RelogioMutavel: Relogio, @unchecked Sendable {
@@ -14,6 +15,8 @@ private final class RelogioMutavel: Relogio, @unchecked Sendable {
 
 private final class ApiDubleModoAviao: ApiClienteEncaminhador, @unchecked Sendable {
     var semRede = false
+    var turnosSemContato: [Turno]?
+    var contatoOnline: Contato?
 
     override func detalheDaVaga(id: UUID) async throws -> Vaga {
         if semRede { throw ErroDaApi(codigo: .semRede) }
@@ -22,11 +25,13 @@ private final class ApiDubleModoAviao: ApiClienteEncaminhador, @unchecked Sendab
 
     override func meusTurnos() async throws -> [Turno] {
         if semRede { throw ErroDaApi(codigo: .semRede) }
+        if let turnosSemContato { return turnosSemContato }
         return try await super.meusTurnos()
     }
 
     override func contatoDoTurno(id: UUID) async throws -> Contato {
         if semRede { throw ErroDaApi(codigo: .semRede) }
+        if let contatoOnline { return contatoOnline }
         return try await super.contatoDoTurno(id: id)
     }
 }
@@ -79,6 +84,132 @@ private func criarTurnoConfirmadoComContato(
 @MainActor
 @Suite("Modo avião do Meu turno (#73 e #109): persistência, lista e detalhe com contato legíveis")
 struct ModoAviaoMeuTurnoTests {
+
+    @Test("Confirmação guarda o contato antes da primeira leitura de meus_turnos")
+    func contatoDaConfirmacaoFicaNoCache() async throws {
+        let api = ApiClienteEmMemoria()
+        try await api.entrarDemonstracao(email: "revisao@frila.app", codigo: "codigo-da-revisao")
+        let vagaNaLista = try #require(try await api.vagasAbertas().first)
+        let vaga = try await api.detalheDaVaga(id: vagaNaLista.id)
+        let cache = try criarArmazenamentoLocal()
+        let candidatura = CandidaturaViewModel(vaga: vaga, api: api)
+        let roteador = RoteadorDoProfissional()
+        await roteador.candidatar(viewModel: candidatura, cache: cache)
+        guard case let .concluida(.confirmada(turnoID, contato)) = candidatura.estado else {
+            Issue.record("A candidatura deveria confirmar o turno")
+            return
+        }
+        let id = try #require(turnoID)
+        let recebido = try #require(contato)
+        #expect(try await cache.contato(doTurno: id, em: Date.now) == recebido)
+        let confirmado = try #require(try await api.meusTurnos().first).com(contato: nil)
+        try await cache.salvar(turnos: [confirmado], em: Date.now)
+        let semRede = ApiDubleModoAviao(base: api)
+        semRede.semRede = true
+        let detalhe = MeuTurnoViewModel(turno: confirmado, api: semRede, fila: cache)
+        await detalhe.carregar()
+        #expect(detalhe.contato == recebido)
+        #expect(!detalhe.contatoExpirado)
+        #expect(detalhe.urlWhatsApp != nil)
+    }
+
+    @Test("Contato separado vence no limite do contrato, mesmo quando o turno ainda está no cache")
+    func contatoGuardadoVence() async throws {
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let confirmado = try criarTurnoConfirmadoComContato(inicio: agora, fim: agora.addingTimeInterval(3_600)).com(contato: nil)
+        let contato = Contato(nome: "Clara", telefone: "+5561988887777", whatsappURL: try #require(URL(string: "https://wa.me/5561988887777")), visivelAte: agora.addingTimeInterval(60))
+        let cache = try criarArmazenamentoLocal()
+        try await cache.salvar(turnos: [confirmado], em: agora)
+        try await cache.salvar(contato: contato, doTurno: confirmado.id)
+        #expect(try await cache.contato(doTurno: confirmado.id, em: contato.visivelAte) == contato)
+        let vencido = contato.visivelAte.addingTimeInterval(1)
+        #expect(try await cache.contato(doTurno: confirmado.id, em: vencido) == nil)
+        let turnos = try await cache.turnosValidos(em: vencido)
+        #expect(turnos.count == 1)
+        #expect(turnos.first?.contato == nil)
+        let api = ApiDubleModoAviao()
+        api.semRede = true
+        let detalhe = MeuTurnoViewModel(turno: confirmado, api: api, fila: cache, relogio: RelogioMutavel(vencido))
+        await detalhe.carregar()
+        #expect(detalhe.contato == nil)
+        #expect(detalhe.urlWhatsApp == nil)
+    }
+
+    @Test("Sair da conta apaga também o contato recebido antes da lista de turnos")
+    func sairApagaContatoGuardado() async throws {
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let confirmado = try criarTurnoConfirmadoComContato(inicio: agora, fim: agora.addingTimeInterval(3_600))
+        let cache = try criarArmazenamentoLocal()
+        try await cache.salvar(contato: #require(confirmado.contato), doTurno: confirmado.id)
+        await SaidaDaConta(api: ApiClienteEmMemoria(), armazenamento: cache).sair(tokenFCM: nil)
+        #expect(try await cache.contato(doTurno: confirmado.id, em: agora) == nil)
+        #expect(try await cache.turnosValidos(em: agora).isEmpty)
+    }
+
+    @Test("Banco V2 migra conservando turnos e recusas; contato persiste ao reabrir o arquivo")
+    func migracaoDoContatoEmDisco() async throws {
+        let diretorio = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let url = diretorio.appending(path: "Contato.store")
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let confirmado = try criarTurnoConfirmadoComContato(inicio: agora, fim: agora.addingTimeInterval(3_600))
+        let acao = AcaoPendente(tipo: .checkin, turnoID: confirmado.id, instanteDoToque: agora, chave: UUID())
+        let recusa = AcaoRecusada(acao: acao, codigo: .vagaEncerrada)
+        do {
+            let esquema = Schema(versionedSchema: EsquemaFrilaV2.self)
+            let container = try ModelContainer(for: esquema, configurations: [ModelConfiguration("Contato", schema: esquema, url: url)])
+            let context = ModelContext(container)
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            context.insert(TurnoPersistido(id: confirmado.id, conteudo: try encoder.encode(confirmado.com(contato: nil)), fim: confirmado.vaga.periodo.fim, contatoVisivelAte: confirmado.contatoVisivelAte, salvoEm: agora))
+            context.insert(AcaoRecusadaPersistida(id: recusa.id, conteudo: try JSONEncoder().encode(recusa)))
+            try context.save()
+        }
+        let esquema = Schema(versionedSchema: EsquemaFrilaV3.self)
+        let config = ModelConfiguration("Contato", schema: esquema, url: url)
+        do {
+            let container = try ModelContainer(for: esquema, migrationPlan: MigracaoFrila.self, configurations: [config])
+            let cache = ArmazenamentoSwiftData(modelContainer: container)
+            #expect(try await cache.turnosValidos(em: agora).first?.id == confirmado.id)
+            #expect(try await cache.recusadas() == [recusa])
+            try await cache.salvar(contato: #require(confirmado.contato), doTurno: confirmado.id)
+        }
+        let reaberto = ArmazenamentoSwiftData(modelContainer: try ModelContainer(for: esquema, migrationPlan: MigracaoFrila.self, configurations: [config]))
+        #expect(try await reaberto.contato(doTurno: confirmado.id, em: agora) == confirmado.contato)
+        #expect(try await reaberto.turnosValidos(em: agora).first?.contato == confirmado.contato)
+    }
+
+    @Test("Contato recebido no detalhe sobrevive à releitura de meus_turnos sem contato e abre sem rede")
+    func contatoDoDetalheFicaNoCache() async throws {
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let relogio = RelogioMutavel(agora)
+        let confirmado = try criarTurnoConfirmadoComContato(inicio: agora, fim: agora.addingTimeInterval(5 * 3_600))
+        let contato = try #require(confirmado.contato)
+        let cache = try criarArmazenamentoLocal()
+        let api = ApiDubleModoAviao()
+        // O contrato de meus_turnos não traz contato: ele chega por outra chamada.
+        api.turnosSemContato = [confirmado.com(contato: nil)]
+        api.contatoOnline = contato
+        let repositorio = TurnosComCache(buscar: { try await api.meusTurnos() }, cache: cache, relogio: relogio)
+        let online = try #require(try await repositorio.meusTurnos().first)
+        #expect(online.contato == nil)
+        let detalhe = MeuTurnoViewModel(turno: online, api: api, fila: cache, relogio: relogio)
+        await detalhe.carregar()
+        #expect(detalhe.contato == contato)
+
+        _ = try await repositorio.ler()
+        api.semRede = true
+        let offline = try await repositorio.ler()
+        #expect(offline.origem == .cache)
+        let guardado = try #require(offline.turnos.first)
+        #expect(guardado.contato == contato)
+        let reaberto = MeuTurnoViewModel(turno: guardado, api: api, fila: cache, relogio: relogio)
+        await reaberto.carregar()
+        #expect(reaberto.contato == contato)
+        #expect(!reaberto.contatoExpirado)
+        #expect(reaberto.urlWhatsApp != nil)
+    }
 
     @Test("Modo avião de ponta a ponta: lista Meus turnos e detalhe do turno exibem contato e dados a partir do cache SwiftData")
     func modoAviaoPontaAPontaListaEDetalheComContato() async throws {

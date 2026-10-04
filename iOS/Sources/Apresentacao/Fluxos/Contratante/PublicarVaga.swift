@@ -102,6 +102,7 @@ public final class PublicarVagaViewModel {
     public private(set) var enviando = false
     public private(set) var erros: [CampoPublicacaoVaga: String] = [:]
     public private(set) var mensagemErro: String?
+    public private(set) var recusaDaFila: AcaoRecusada?
     public private(set) var resultado: VagaPublicada?
     public private(set) var publicacaoPendente: PublicacaoVaga?
     public private(set) var restaurandoPublicacao: Bool
@@ -151,7 +152,16 @@ public final class PublicarVagaViewModel {
     public var camposBloqueados: Bool { publicacaoPendente != nil }
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
 
+    public func carregarRecusaDaFila() async {
+        recusaDaFila = (try? await fila.recusadas().first { $0.tipo == .publicacaoVaga && $0.estabelecimentoID == estabelecimento?.id }) ?? nil
+        if let recusaDaFila, acaoPendente?.id == recusaDaFila.id {
+            acaoPendente = nil
+            publicacaoPendente = nil
+        }
+    }
+
     public func restaurarPublicacaoPendente() async {
+        await carregarRecusaDaFila()
         restaurandoPublicacao = true
         defer { restaurandoPublicacao = false }
         do {
@@ -368,6 +378,9 @@ public struct TelaPublicarVaga: View {
         .onChange(of: model.resultado != nil) { _, publicou in
             if publicou { Task { await permissaoDePush?.oferecer() } }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await model.carregarRecusaDaFila() }
+        }
         .task {
             await model.restaurarPublicacaoPendente()
             await model.carregarFuncoes()
@@ -496,6 +509,10 @@ public struct TelaPublicarVaga: View {
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     AvisoFrila(verbatim: TextosPublicarVaga.avisoRN10, tom: .informativo)
                     Text(verbatim: telefoneResponsavel).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+                }
+                if let recusa = model.recusaDaFila {
+                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                        .accessibilityIdentifier("aviso-publicacao-recusada")
                 }
                 if let erro = model.mensagemErro { AvisoFrila(verbatim: erro, tom: .erro) }
                 BotaoPrimario(verbatim: model.camposBloqueados ? TextosPublicarVaga.tentarNovamente : TextosPublicarVaga.publicar, carregando: model.enviando) {

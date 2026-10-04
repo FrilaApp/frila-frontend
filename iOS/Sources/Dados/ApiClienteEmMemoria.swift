@@ -1126,6 +1126,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// `pendente`, e o manual não guarda a distância.
     public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try verificarFalhaGeral()
+        if turnosCancelados.contains(where: { $0.id == turnoID }) {
+            throw erro("vaga_encerrada", detalhes: "posicao_cancelada")
+        }
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         if let gravado = checkins[turnoID] { return gravado }
         try validarRegistro(distanciaMetros: distanciaMetros, registradoEm: registradoEm)
@@ -1145,6 +1148,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// `confirmarCheckinManual` atualiza, como a verificação atual do turno no backend.
     public func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try verificarFalhaGeral()
+        if turnosCancelados.contains(where: { $0.id == turnoID }) {
+            throw erro("vaga_encerrada", detalhes: "posicao_cancelada")
+        }
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         if let gravado = checkouts[turnoID] { return gravado }
         guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }

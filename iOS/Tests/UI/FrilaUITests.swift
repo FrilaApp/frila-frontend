@@ -316,6 +316,7 @@ final class AutenticacaoUITests: XCTestCase {
     func testFluxoCompletoPrimeiroAcessoAteVagas() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso", "-FRILA_BUSCA_PERFIL_UI_TEST"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         let email = app.textFields["entrada-email"]
@@ -339,6 +340,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -430,11 +432,20 @@ final class AutenticacaoUITests: XCTestCase {
         rolarAte(app.buttons["botao-salvar-perfil"], app: app)
     }
 
+    private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if app.keyboards.element.exists {
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+    }
+
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
-            if elemento.isHittable { return }
-            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
-            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            if elemento.isHittable && !app.keyboards.element.exists { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
             inicio.press(forDuration: 0.05, thenDragTo: fim)
         }
         if !elemento.isHittable {
@@ -533,6 +544,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -584,6 +596,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -633,6 +646,7 @@ final class AutenticacaoUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -857,6 +871,7 @@ extension XCUIElement {
     /// "Informe um e-mail válido." e a tela do código nunca abria.
     func digitarEEsperar(_ texto: String, file: StaticString = #filePath, line: UInt = #line) {
         typeText(texto)
+        if (value as? String) == texto { return }
         let completo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", texto), object: self)
         XCTAssertEqual(
             XCTWaiter.wait(for: [completo], timeout: 10), .completed,

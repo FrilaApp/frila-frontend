@@ -84,6 +84,28 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         XCTAssertTrue(folhaDeCompartilharApareceu(app), "O intervalo livre também exporta")
     }
 
+    /// O controle segmentado do sistema não acompanha o Dynamic Type: em AX5 os formatos viram
+    /// pílulas que crescem com o texto (QA de 04/10, achado 4).
+    func testEmAX5OFormatoViraPilulasQueCrescemComOTexto() {
+        let app = abrir(
+            cenario: "success", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos",
+            extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        )
+        let csv = app.buttons["historico-formato-csv"]
+        let pdf = app.buttons["historico-formato-pdf"]
+        XCTAssertTrue(csv.waitForExistence(timeout: 5), "Em AX5 o formato aparece em pílulas")
+        XCTAssertFalse(app.segmentedControls["historico-formato"].exists)
+        XCTAssertTrue(csv.isSelected, "CSV é o formato inicial")
+        for _ in 0..<6 where !pdf.isHittable { app.swipeUp() }
+
+        pdf.tap()
+
+        XCTAssertTrue(pdf.isSelected)
+        XCTAssertFalse(csv.isSelected)
+        XCTAssertGreaterThan(pdf.frame.height, 44 + 8, "Em AX5 a pílula cresce além do mínimo de 44 pt")
+        anexar(app, "historico-formato-ax5")
+    }
+
     private func abrir(cenario: String, perfil: String, item: String, extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + extras
@@ -95,6 +117,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
 
         let entrada = app.buttons[item]
         XCTAssertTrue(entrada.waitForExistence(timeout: 5), "O perfil deve ter a entrada do histórico de turnos")
+        for _ in 0..<8 where !entrada.isHittable { app.swipeUp() }
         entrada.tap()
 
         XCTAssertTrue(app.buttons["historico-exportar"].waitForExistence(timeout: 5), "A tela do histórico abre com o botão Exportar")

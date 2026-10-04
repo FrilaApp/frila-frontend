@@ -24,16 +24,16 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         // 2.1 Botão de busca (lupa): alvo >= 44x44 pt
         let botaoBusca = app.buttons["buscar-endereco-botao"]
         XCTAssertTrue(botaoBusca.waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(botaoBusca.frame.width, 44, "Botão de busca deve ter largura >= 44 pt")
-        XCTAssertGreaterThanOrEqual(botaoBusca.frame.height, 44, "Botão de busca deve ter altura >= 44 pt")
+        XCTAssertAlvoMinimo(botaoBusca.frame.width, "Botão de busca deve ter largura >= 44 pt")
+        XCTAssertAlvoMinimo(botaoBusca.frame.height, "Botão de busca deve ter altura >= 44 pt")
         XCTAssertTrue(botaoBusca.isHittable)
 
         // 3.7 Marcador do mapa: label e alça >= 44x44 pt
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
         XCTAssertEqual(marcador.label, "Ponto do estabelecimento")
-        XCTAssertGreaterThanOrEqual(marcador.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(marcador.frame.height, 44)
+        XCTAssertAlvoMinimo(marcador.frame.width)
+        XCTAssertAlvoMinimo(marcador.frame.height)
 
         // Mapa do estabelecimento
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
@@ -53,12 +53,12 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         // 2.4 Campo de Valor: altura >= 44 pt
         let campoValor = app.textFields["valor-vaga-campo"]
         XCTAssertTrue(campoValor.waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(campoValor.frame.height, 44, "Campo Valor deve ter altura >= 44 pt")
+        XCTAssertAlvoMinimo(campoValor.frame.height, "Campo Valor deve ter altura >= 44 pt")
 
         // 2.5 Campo de Posições: altura >= 44 pt
         let campoPosicoes = app.textFields["posicoes-vaga-campo"]
         XCTAssertTrue(campoPosicoes.waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(campoPosicoes.frame.height, 44, "Campo Posições deve ter altura >= 44 pt")
+        XCTAssertAlvoMinimo(campoPosicoes.frame.height, "Campo Posições deve ter altura >= 44 pt")
 
         // 3.9 Picker de Alerta: deve ter accessibilityLabel "Avisar se a vaga seguir vazia"
         let pickerAlerta = app.descendants(matching: .any)["alerta-vaga-picker"]
@@ -69,15 +69,14 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         let maisOpcoes = app.buttons["mais-opcoes-botao"]
         XCTAssertTrue(maisOpcoes.waitForExistence(timeout: 5))
         trazerParaATela(maisOpcoes, em: app)
-        // O frame vem com erro de ponto flutuante (43,999999…): a tolerância de 0,01 pt evita a falha espúria.
-        XCTAssertGreaterThanOrEqual(maisOpcoes.frame.height, 44 - 0.01, "Botão Mais opções deve ter altura >= 44 pt")
+        XCTAssertAlvoMinimo(maisOpcoes.frame.height, "Botão Mais opções deve ter altura >= 44 pt")
         maisOpcoes.tap()
 
         // 2.6 Campo de Observações: altura >= 44 pt mesmo vazio
         let campoObs = app.descendants(matching: .any)["observacoes-vaga-campo"]
         XCTAssertTrue(campoObs.waitForExistence(timeout: 5))
         trazerParaATela(campoObs, em: app)
-        XCTAssertGreaterThanOrEqual(campoObs.frame.height, 44, "Campo Observações deve ter altura >= 44 pt")
+        XCTAssertAlvoMinimo(campoObs.frame.height, "Campo Observações deve ter altura >= 44 pt")
     }
 
     // MARK: - 3. Publicar Vaga em Dynamic Type XXXL
@@ -184,18 +183,19 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         let linkLigar = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Ligar'")).firstMatch
         XCTAssertTrue(linkLigar.waitForExistence(timeout: 5))
         trazerParaATela(linkLigar, em: app)
-        XCTAssertGreaterThanOrEqual(linkLigar.frame.height, 44, "Link Ligar deve ter altura mínima de 44 pt")
+        XCTAssertAlvoMinimo(linkLigar.frame.height, "Link Ligar deve ter altura mínima de 44 pt")
         XCTAssertTrue(linkLigar.isHittable)
 
         // Verifica que o WhatsApp também mantém alvo de toque
         let linkWhatsApp = app.buttons.matching(NSPredicate(format: "label CONTAINS 'WhatsApp'")).firstMatch
         XCTAssertTrue(linkWhatsApp.waitForExistence(timeout: 5))
         trazerParaATela(linkWhatsApp, em: app)
-        XCTAssertGreaterThanOrEqual(linkWhatsApp.frame.height, 44, "Link WhatsApp deve ter altura mínima de 44 pt")
+        XCTAssertAlvoMinimo(linkWhatsApp.frame.height, "Link WhatsApp deve ter altura mínima de 44 pt")
         XCTAssertTrue(linkWhatsApp.isHittable)
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        if elemento.isHittable { return }
         let janela = app.windows.firstMatch.frame
         let margemSuperior: CGFloat = 120
         let margemInferior: CGFloat = 60
@@ -215,13 +215,12 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             )
             switch direcao {
             case .nenhuma:
-                break
+                return
             case .rolarParaBaixo:
                 app.swipeDown()
             case .rolarParaCima:
                 app.swipeUp()
             }
-            if direcao == .nenhuma { break }
         }
     }
 

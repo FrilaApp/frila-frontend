@@ -13,6 +13,29 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
     }
 
+    func testCheckinRecusadoSaiDaFilaEMostraAvisoNoTurnoCancelado() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado", "-FRILA_CACHE_VAZIO_UI_TEST", "-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"]
+        app.launch()
+        abrirTurno(app)
+        let aviso = app.descendants(matching: .any)["aviso-acao-recusada-checkin"].firstMatch
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        XCTAssertTrue(aviso.label.contains("O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido."))
+        XCTAssertFalse(app.descendants(matching: .any)["presenca-do-turno"].exists)
+        XCTAssertFalse(app.buttons["fazer-checkin"].exists)
+        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
+        tocar(app.buttons["meu-turno-\(turnoID)"])
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10), "a recusa permanece registrada ao reabrir")
+    }
+
+    private func iniciarApp(cenario: String, extras: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"] + extras
+        AjudanteDeLancamentoUITests.preparar(app)
+        app.launch()
+        return app
+    }
+
     func testCanceladoApareceNaListaENoDetalheSemAcoes() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado"]
@@ -86,10 +109,7 @@ final class TurnoContrato0231UITests: XCTestCase {
     }
 
     func testRespostaContinuaDepoisDeSairEEntrarNaConta() {
-        let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado"]
-        app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
-        app.launch()
+        let app = iniciarApp(cenario: "turno-encerrado")
         abrirTurno(app)
         let avaliar = app.buttons["Avaliar turno"]
         if !avaliar.isHittable { app.swipeUp() }
@@ -166,13 +186,10 @@ final class TurnoContrato0231UITests: XCTestCase {
 
     private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
-        if !elemento.isHittable {
-            // Em transições de navegação ou quando tarefas de fundo estão em execução no runner da CI,
-            // aguarda o elemento ficar tocável antes do tap sem travar o teste com assertion no XCTWaiter
-            // caso o polling do XPC atinja o limite (o tap nativo trata a ativação do elemento).
+        if !elemento.isHittable || !elemento.isEnabled {
             let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
             let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-            _ = XCTWaiter.wait(for: [espera], timeout: 10)
+            _ = XCTWaiter.wait(for: [espera], timeout: 5)
         }
         elemento.tap()
     }

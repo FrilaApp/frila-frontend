@@ -47,6 +47,9 @@ public struct TelaAvaliacao: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await viewModel.carregar() }
+        }
         .accessibilityIdentifier("tela-avaliacao")
     }
 

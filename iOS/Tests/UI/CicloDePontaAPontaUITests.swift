@@ -22,6 +22,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             "-FRILA_SCENARIO", "primeiro-acesso",
             "-FRILA_CADASTRO_UI_TEST"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         // 1. Entrada por e-mail e código de acesso
@@ -50,6 +51,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -103,6 +105,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             "-FRILA_SCENARIO", "success",
             "-FRILA_LOCALIZACAO", "negada"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         // 1. Lista de vagas abertas
@@ -189,6 +192,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         app.launchArguments = [
             "-FRILA_SCENARIO", "turno-encerrado"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
@@ -248,6 +252,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             "-FRILA_ABRIR_MINHAS_VAGAS",
             "-FRILA_SCENARIO", "ciclo-contratante-turno-concluido"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         // 1. Painel Minhas vagas abre com a vaga encerrada
@@ -344,11 +349,20 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         elemento.tap()
     }
 
+    private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if app.keyboards.element.exists {
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+    }
+
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
-            if elemento.isHittable { return }
-            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
-            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            if elemento.isHittable && !app.keyboards.element.exists { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
             inicio.press(forDuration: 0.05, thenDragTo: fim)
         }
         if !elemento.isHittable {
@@ -364,7 +378,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         for _ in 0..<tentativas {
             guard elementoUnico.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elementoUnico.frame
@@ -377,13 +391,12 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             )
             switch direcao {
             case .nenhuma:
-                break
+                return
             case .rolarParaBaixo:
-                app.swipeDown(velocity: .slow)
+                app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
-            if direcao == .nenhuma { break }
         }
     }
 }

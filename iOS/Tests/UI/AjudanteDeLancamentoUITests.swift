@@ -16,6 +16,7 @@ public final class AjudanteDeLancamentoUITests: NSObject, XCTestObservation {
 
     /// Configura o aplicativo para testes de interface, adicionando `-FRILA_SEM_ANIMACOES`
     /// caso não seja teste de medição (-FRILA_MEDICAO).
+    @MainActor
     public static func preparar(_ app: XCUIApplication) {
         if !app.launchArguments.contains("-FRILA_MEDICAO") &&
            !app.launchArguments.contains(argumentoSemAnimacoes) {
@@ -78,6 +79,27 @@ extension XCUIApplication {
     }
 }
 
+// MARK: - Alvo mínimo
+
+/// Alvo de toque mínimo (44 pt, HIG). O frame que o XCTest devolve sai de conta em ponto
+/// flutuante e um controle de 44 pt pode medir 43,999999…: a comparação tem 0,01 pt de folga.
+enum AlvoMinimo {
+    static let pontos: CGFloat = 44
+    static let tolerancia: CGFloat = 0.01
+
+    static func atende(_ medida: CGFloat) -> Bool { medida >= pontos - tolerancia }
+}
+
+/// Confere que a medida (largura ou altura do frame) chega ao alvo mínimo, com a folga de `AlvoMinimo`.
+func XCTAssertAlvoMinimo(
+    _ medida: CGFloat,
+    _ mensagem: @autoclosure () -> String = "",
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    XCTAssertGreaterThanOrEqual(medida, AlvoMinimo.pontos - AlvoMinimo.tolerancia, mensagem(), file: file, line: line)
+}
+
 // MARK: - Testes do Ajudante
 
 @MainActor
@@ -94,6 +116,14 @@ final class AjudanteDeLancamentoUITestsInternos: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_MEDICAO"]
         AjudanteDeLancamentoUITests.preparar(app)
         XCTAssertFalse(app.launchArguments.contains("-FRILA_SEM_ANIMACOES"))
+    }
+
+    func testAlvoMinimoAceitaErroDePontoFlutuanteERecusaAlvoMenor() {
+        XCTAssertTrue(AlvoMinimo.atende(44))
+        XCTAssertTrue(AlvoMinimo.atende(43.999999), "erro de ponto flutuante de um controle de 44 pt")
+        XCTAssertFalse(AlvoMinimo.atende(43.98), "alvo de verdade menor que 44 pt")
+        XCTAssertAlvoMinimo(43.999999)
+        XCTExpectFailure("43,9 pt fica abaixo do alvo mínimo") { XCTAssertAlvoMinimo(43.9) }
     }
 }
 

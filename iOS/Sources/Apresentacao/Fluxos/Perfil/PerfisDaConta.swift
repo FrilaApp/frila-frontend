@@ -189,6 +189,7 @@ public struct TelaMeuPerfilProfissional: View {
         } label: {
             Text(verbatim: titulo)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var placeholders: some View {

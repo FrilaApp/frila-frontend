@@ -212,6 +212,12 @@ private struct Dependencias {
 /// Limite: `possuiSessao()` pode precisar da rede para renovar; offline com sessão guardada, cai na
 /// tela de antes até a próxima abertura.
 private struct EntradaDoApp: View {
+    #if DEBUG
+    // A tela pode ser reconstruída: a fila e os modelos do teste precisam usar o mesmo banco.
+    private static let armazenamentoDeTeste = try? ArmazenamentoSwiftData(
+        modelContainer: PersistenciaFrila.criarContainer(emMemoria: true)
+    )
+    #endif
     let api: any ApiCliente
     let armazenamento: ArmazenamentoSwiftData?
     let localizacao: any LeitorDeLocalizacao
@@ -253,7 +259,7 @@ private struct EntradaDoApp: View {
         // Reproduz a instalação anterior ao cache de sessão, somente com o dublê Local.
         let armazenamento: ArmazenamentoSwiftData? = if api is ApiClienteEmMemoria,
             ProcessInfo.processInfo.arguments.contains("-FRILA_CACHE_VAZIO_UI_TEST") {
-            try? ArmazenamentoSwiftData(modelContainer: PersistenciaFrila.criarContainer(emMemoria: true))
+            Self.armazenamentoDeTeste
         } else if api is ApiClienteEmMemoria,
                   ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_CACHE_UI_TEST") {
             nil
@@ -380,11 +386,25 @@ private struct EntradaDoApp: View {
     /// que este aparelho guardou da conta. Sem o banco local, o app funciona só com rede.
     private func acompanharOffline() async {
         guard let armazenamento else { return }
+        #if DEBUG
+        // Reproduz o check-in guardado antes do cancelamento, somente no dublê Local.
+        if api is ApiClienteEmMemoria,
+           ProcessInfo.processInfo.arguments.contains("-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"),
+           let turno = try? await api.meusTurnos().first(where: { $0.cancelado }) {
+            try? await armazenamento.enfileirar(AcaoPendente(
+                tipo: .checkin, turnoID: turno.id,
+                instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID()
+            ))
+        }
+        #endif
         let reenvio = ReenvioAoReconectar(
             monitor: MonitorDeConexaoDoSistema(),
             sincronizador: SincronizadorAcoes(fila: armazenamento, api: api, avaliacaoJaRegistrada: { acao in
                 guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
                 UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
+            }, avaliacaoRecusada: { acao in
+                guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
+                UserDefaultsArmazenamentoAvaliacoes().remover(para: turnoID, contaID: contaID)
             })
         )
         let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho, canal: canal,

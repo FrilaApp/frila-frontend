@@ -15,6 +15,7 @@ public enum FrilaCor {
     public static let sucesso = Color("Success", bundle: recursos)
     public static let alerta = Color("Warning", bundle: recursos)
     public static let perigo = Color("Danger", bundle: recursos)
+    public static let borda = textoSecundario.opacity(0.35)
 }
 
 public enum FrilaEspaco {

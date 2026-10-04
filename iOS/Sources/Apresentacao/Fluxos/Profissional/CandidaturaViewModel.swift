@@ -120,14 +120,18 @@ public final class CandidaturaViewModel {
     /// A retirada aconteceu nesta tela: a leitura que saiu antes dela não traz a candidatura de volta.
     private var retirouAgora = false
 
-    public func candidatar() async {
+    public func candidatar(cache: (any CacheLocal)? = nil) async {
         // A troca para `enviando` acontece no MainActor antes do primeiro await: um segundo toque que
         // chegue enquanto a chamada está em voo já vê `enviando` e para aqui.
         guard !enviando else { return }
         estado = .enviando
         let resultado: ResultadoDaCandidatura
         do {
-            resultado = Self.resultado(try await enviar(vaga.id))
+            let resposta = try await enviar(vaga.id)
+            if resposta.estado == .confirmada, let turnoID = resposta.turnoID, let contato = resposta.contato {
+                try? await cache?.salvar(contato: contato, doTurno: turnoID)
+            }
+            resultado = Self.resultado(resposta)
         } catch let erro as ErroDaApi {
             resultado = Self.mapear(erro)
         } catch {

@@ -346,10 +346,10 @@ struct SupabaseDaSprint2Tests {
         #expect(try BackendDaSprint2.recebido(em: "contestar_suspensao") == ContratoTests.fixture("requisicao-contestar-suspensao"))
     }
 
-    @Test("Tipo de protocolo ou estado de conta que o app não conhece vira resposta_invalida, nunca queda")
+    @Test("Tipo de protocolo que o app não conhece vira denúncia (informativo); estado de conta desconhecido vira resposta_invalida, nunca queda")
     func enumDesconhecido() async throws {
         let api = try cliente(CasosDeBordaDaSprint2.self)
-        await #expect(throws: ErroDaApi(codigo: .respostaInvalida)) { _ = try await api.denunciar(Esperado.denuncia) }
+        #expect(try await api.denunciar(Esperado.denuncia).tipo == .denuncia)
         await #expect(throws: ErroDaApi(codigo: .respostaInvalida)) { _ = try await api.situacaoDaConta() }
     }
 
@@ -384,5 +384,129 @@ struct SupabaseDaSprint2Tests {
         #expect(erro?.codigo == esperado)
         #expect(erro?.codigoOriginal == RecusasDaSprint2.recusas[rota]?.codigo)
         #expect(erro?.detalhes == RecusasDaSprint2.recusas[rota]?.detalhes)
+    }
+}
+
+// MARK: - Valor novo do contrato (robustez antes do TestFlight)
+
+/// O contrato muda mais rápido que o app (0.2.34 hoje). Com a fixture do espelho e um valor trocado
+/// por um que este app não conhece, cada campo cai em uma de duas regras, e nenhuma delas é queda:
+/// - tolerado: o campo fica sem valor (ou no `outro`) e o resto da resposta segue;
+/// - recusado: a decodificação do item falha; numa lista o cliente descarta só o item, numa resposta
+///   única devolve `respostaInvalida` para a tela.
+@Suite("Valor novo do contrato: tolerado ou recusado, nunca queda")
+struct ValorNovoDoContratoTests {
+    /// A fixture com um campo trocado. `caminho` é `chave/indice/chave…` (`0/vaga/campo_novo`): um
+    /// passo numérico é índice de lista, os outros são chaves de objeto.
+    private func fixture(_ nome: String, trocando caminho: String, por valor: Any) throws -> Data {
+        func aplicar(_ no: Any, _ resto: ArraySlice<Substring>) -> Any {
+            guard let passo = resto.first else { return valor }
+            if var lista = no as? [Any], let indice = Int(passo), lista.indices.contains(indice) {
+                lista[indice] = aplicar(lista[indice], resto.dropFirst())
+                return lista
+            }
+            if var objeto = no as? [String: Any] {
+                objeto[String(passo)] = aplicar(objeto[String(passo)] ?? [:], resto.dropFirst())
+                return objeto
+            }
+            return no
+        }
+        let raiz = try JSONSerialization.jsonObject(with: FixturesDoContrato.dados(nome))
+        return try JSONSerialization.data(withJSONObject: aplicar(raiz, caminho.split(separator: "/")[...]))
+    }
+
+    @Test("Campo a mais em qualquer nível é ignorado")
+    func campoAMais() throws {
+        let turnos = try ContratoAPI.decodificador().decode(
+            [ContratoAPI.TurnoDTO].self, from: fixture("turnos", trocando: "0/vaga/campo_novo", por: ["x": 1])
+        )
+        #expect(turnos.count == 1)
+        let painel = try ContratoAPI.decodificador().decode(
+            ContratoAPI.PainelDTO.self, from: fixture("painel", trocando: "campo_novo", por: "x")
+        )
+        #expect(!painel.vagas.isEmpty)
+    }
+
+    @Test("Estado novo da posição no turno e tipo novo de check-in no painel ficam sem valor, e a lista segue")
+    func toleradosFicamSemValor() throws {
+        let turnos = try ContratoAPI.decodificador().decode(
+            [ContratoAPI.TurnoDTO].self, from: fixture("turnos", trocando: "0/estado", por: "estado_novo")
+        )
+        #expect(turnos.first?.estado == nil)
+        let painel = try ContratoAPI.decodificador().decode(
+            ContratoAPI.PainelDTO.self, from: fixture("painel", trocando: "vagas/0/posicoes/0/checkin_tipo", por: "tipo_novo")
+        )
+        #expect(painel.vagas.first?.posicoes.first?.checkinTipo == nil)
+    }
+
+    @Test("Causa nova de cancelamento vira `outro`")
+    func causaNovaViraOutro() throws {
+        let turnos = try ContratoAPI.decodificador().decode(
+            [ContratoAPI.TurnoDTO].self, from: fixture("turnos-com-cancelamento", trocando: "0/cancelamento/causa", por: "causa_nova")
+        )
+        #expect(turnos.first?.cancelamento?.causa == .outro)
+    }
+
+    @Test("Enum novo com caso neutro cai nele: verificação pendente, registro manual, papel operador, protocolo denúncia, estabelecimento outro")
+    func casoNeutro() throws {
+        let decodificador = ContratoAPI.decodificador()
+        let turnos = try decodificador.decode([ContratoAPI.TurnoDTO].self, from: fixture("turnos", trocando: "0/verificacao", por: "valor_novo"))
+        #expect(turnos.first?.verificacao == .pendente)
+        let registro = try decodificador.decode(ContratoAPI.ResultadoRegistroDTO.self, from: fixture("resultado-registro", trocando: "tipo", por: "valor_novo"))
+        #expect(registro.tipo == .manual)
+        let protocolo = try decodificador.decode(ContratoAPI.ProtocoloDTO.self, from: fixture("protocolo", trocando: "tipo", por: "valor_novo"))
+        #expect(protocolo.tipo == .denuncia)
+        let casas = try decodificador.decode([ContratoAPI.EstabelecimentoDaContaDTO].self, from: fixture("meus-estabelecimentos", trocando: "0/papel", por: "valor_novo"))
+        #expect(casas.first?.papel == .operador)
+        let casasTipo = try decodificador.decode([ContratoAPI.EstabelecimentoDaContaDTO].self, from: fixture("meus-estabelecimentos", trocando: "0/tipo", por: "valor_novo"))
+        #expect(casasTipo.first?.tipo == .outro)
+    }
+
+    @Test("Painel: vaga com estado ou modo novo e posição com estado novo saem do painel, e o resto chega")
+    func painelDescartaItens() throws {
+        let decodificador = ContratoAPI.decodificador()
+        for caminho in ["vagas/0/estado", "vagas/0/modo"] {
+            let painel = try decodificador.decode(ContratoAPI.PainelDTO.self, from: fixture("painel", trocando: caminho, por: "valor_novo"))
+            #expect(painel.vagas.isEmpty)
+            #expect(painel.descartados == 1)
+        }
+        let painel = try decodificador.decode(ContratoAPI.PainelDTO.self, from: fixture("painel", trocando: "vagas/0/posicoes/0/estado", por: "valor_novo"))
+        #expect(painel.vagas.first?.posicoes.count == 1)
+        #expect(painel.descartados == 1)
+    }
+
+    @Test("Item de lista com enum novo e sem caso neutro recusa no DTO (o cliente descarta só o item); resposta única de conta recusa inteira", arguments: [
+        ("turnos", "0/contraparte/tipo"), ("vagas-abertas", "0/modo"), ("minhas-candidaturas", "0/estado"),
+        ("usuario", "perfil"), ("usuario", "estado"), ("situacao-da-conta-suspensa", "estado"),
+    ])
+    func recusados(nome: String, caminho: String) throws {
+        let dados = try fixture(nome, trocando: caminho, por: "valor_novo")
+        let decodificador = ContratoAPI.decodificador()
+        #expect(throws: DecodingError.self) {
+            switch nome {
+            case "turnos": _ = try decodificador.decode([ContratoAPI.TurnoDTO].self, from: dados)
+            case "vagas-abertas": _ = try decodificador.decode([ContratoAPI.VagaNaListaDTO].self, from: dados)
+            case "minhas-candidaturas": _ = try decodificador.decode([ContratoAPI.MinhaCandidaturaDTO].self, from: dados)
+            case "usuario": _ = try decodificador.decode(ContratoAPI.UsuarioDTO.self, from: dados)
+            case "situacao-da-conta-suspensa": _ = try decodificador.decode(ContratoAPI.SituacaoDaContaDTO.self, from: dados)
+            default: Issue.record("fixture sem decodificação: \(nome)")
+            }
+        }
+        // Na lista, o cliente embrulha cada item em `ItemTolerante`: o item some, a lista fica.
+        if nome != "usuario", nome != "situacao-da-conta-suspensa" {
+            let tolerados: Int = switch nome {
+            case "turnos": try decodificador.decode([ItemTolerante<ContratoAPI.TurnoDTO>].self, from: dados).compactMap(\.valor).count
+            case "vagas-abertas": try decodificador.decode([ItemTolerante<ContratoAPI.VagaNaListaDTO>].self, from: dados).compactMap(\.valor).count
+            default: try decodificador.decode([ItemTolerante<ContratoAPI.MinhaCandidaturaDTO>].self, from: dados).compactMap(\.valor).count
+            }
+            let total = try #require(JSONSerialization.jsonObject(with: dados) as? [Any]).count
+            #expect(tolerados == total - 1)
+        }
+    }
+
+    @Test("Push de tipo que o app não conhece não vira aviso")
+    func pushDeTipoNovo() {
+        #expect(AvisoDePush(payload: ["tipo": "tipo_novo", "turno_id": UUID().uuidString]) == nil)
+        #expect(AvisoDePush(payload: ["tipo": "confirmacao", "turno_id": "nao-e-uuid"])?.turnoID == nil)
     }
 }

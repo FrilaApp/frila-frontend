@@ -258,11 +258,17 @@ for caminho in arquivos:
 
     # 8. Cores fora dos tokens de design (FrilaCor)
     if not caminho.endswith("DesignTokens.swift"):
-        padrao_cor = re.compile(r'\.(foregroundStyle|foregroundColor|background)\s*\(\s*\.(red|green|blue|orange|yellow|pink|purple|teal|indigo|mint|cyan|secondary|primary)\b')
+        padrao_cor = re.compile(r'\.(foregroundStyle|foregroundColor|background|tint)\s*\(\s*\.(red|green|blue|orange|yellow|pink|purple|teal|indigo|mint|cyan|secondary|primary)\b')
         for m in padrao_cor.finditer(limpo):
             num_linha = conteudo[:m.start()].count('\n') + 1
             linha = linhas[num_linha - 1].strip()
             problemas.append((caminho, num_linha, f"Cor fora dos tokens: '{linha}'"))
+
+        padrao_construtor_cor = re.compile(r'\b(Color\s*\(\s*(red|white|uiColor):|Color\s*\(\s*"|UIColor\s*\(|Font\.custom\s*\(|Font\.system\s*\(\s*size:)')
+        for m in padrao_construtor_cor.finditer(limpo):
+            num_linha = conteudo[:m.start()].count('\n') + 1
+            linha = linhas[num_linha - 1].strip()
+            problemas.append((caminho, num_linha, f"Cor ou fonte fora dos tokens: '{linha}'"))
 
 catalogos = []
 if len(sys.argv) > 2 and sys.argv[2]:

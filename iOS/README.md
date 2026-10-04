@@ -127,6 +127,7 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
   - `404` e falha de rede ficam no detalhe, com nova tentativa.
 - **Volta à lista.** As telas de resultado voltam para a lista e a atualizam.
 - **Sessão.** A candidatura não usa a fila de sessão do cliente: um 409 não encerra a sessão.
+- **Contato sem rede (#73).** O contato recebido na confirmação ou por `contato_do_turno` fica no cache por turno, com o prazo `visivel_ate` do servidor. Reabrir Meu turno sem rede conserva o contato e o WhatsApp enquanto os prazos do contato e do turno forem válidos. Relê-lo em `meus_turnos`, cuja resposta não contém contato, não apaga essa reserva. Sair da conta apaga o contato junto com os demais dados locais.
 - **Rota por vaga_id.** `-FRILA_VAGA_ID <uuid>` abre o detalhe, é a mesma entrada que o push do tipo vaga vai usar (S2 #8) e nunca candidata sozinha. Esse argumento e o `-FRILA_ABRIR_CATALOGO` só existem em Debug; um teste confere que ficam dentro de `#if DEBUG`, e o binário de Release não os contém.
 - **Cenários do dublê.** `vaga-preenchida`, `vaga-encerrada`, `inelegivel` (turno sobreposto) e `inelegivel-suspenso`.
 
@@ -139,7 +140,7 @@ As telas de `Sources/Apresentacao/Fluxos/Profissional/` são **baixa fidelidade 
 - **Check-out.** Mesmo fluxo, sem teto de distância: a 350 m é enviado com a distância. Sem GPS, a saída é registrada sem localização.
 - **Sem rede.** `sem_rede` no envio põe a ação na fila offline (#111) com o instante do toque; ela sobe pelo `ReenvioAoReconectar`. Ao reabrir a tela, o que está na fila aparece como pendente.
 - **Ponto da vaga.** `meus_turnos` não traz o ponto: ele vem do detalhe da vaga, que a tela já carrega. Com a tela aberta sem rede desde o início, o ponto não chega e o registro sai como manual, mesmo com GPS.
-- **Limites.** A tela aberta não se atualiza sozinha quando a fila sobe. Uma ação da fila recusada pelo servidor (por exemplo `fora_da_janela`) continua na fila, como no #111. O `meusTurnos` do dublê não reflete o check-in, então reabrir o turno no esquema Local mostra o botão de novo, e o toque devolve o registro já gravado.
+- **Limites.** A tela aberta não se atualiza sozinha quando a fila sobe. Uma ação da fila recusada em definitivo (por exemplo `fora_da_janela` ou `vaga_encerrada`) sai do reenvio e deixa um aviso no detalhe do turno, mesmo cancelado. Falhas transitórias continuam pendentes. O `meusTurnos` do dublê não reflete o check-in, então reabrir o turno no esquema Local mostra o botão de novo, e o toque devolve o registro já gravado.
 - **GPS simulado.** No esquema Local, `-FRILA_LOCALIZACAO` seguido de `perto` (150 m), `longe` (350 m), `negada`, `sem-sinal`, `imprecisa` ou `aproximada` troca o CoreLocation pelo `LeitorDeLocalizacaoSimulado`, com as distâncias medidas até a vaga das fixtures. Só vale com o dublê em memória; sem o argumento, o esquema Local usa o GPS do simulador (`xcrun simctl location <udid> set <lat>,<lon>`).
 
 ## Turno do contratante (#19, visual provisório)
