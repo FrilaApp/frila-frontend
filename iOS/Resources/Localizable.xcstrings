@@ -1,26 +1,6 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
-    "OK": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OK"
-          }
-        }
-      }
-    },
-    "Recolher teclado": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recolher teclado"
-          }
-        }
-      }
-    },
     "Bloquear este perfil?": {
       "localizations": {
         "pt-BR": {
@@ -6119,6 +6099,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "A posição não será reaberta: o turno fica descoberto."
+          }
+        }
+      }
+    },
+    "Chamaria este profissional de novo?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamaria este profissional de novo?"
+          }
+        }
+      }
+    },
+    "Sua resposta é anônima e compõe a reputação do profissional no Frila. Cada turno concluído conta para o índice de recomendação.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua resposta é anônima e compõe a reputação do profissional no Frila. Cada turno concluído conta para o índice de recomendação."
           }
         }
       }
