@@ -22,6 +22,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             "-FRILA_SCENARIO", "primeiro-acesso",
             "-FRILA_CADASTRO_UI_TEST"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         // 1. Entrada por e-mail e código de acesso
@@ -50,6 +51,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
         telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
@@ -103,6 +105,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             "-FRILA_SCENARIO", "success",
             "-FRILA_LOCALIZACAO", "negada"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         // 1. Lista de vagas abertas
@@ -189,6 +192,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         app.launchArguments = [
             "-FRILA_SCENARIO", "turno-encerrado"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
@@ -240,7 +244,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         add(captura)
     }
 
-    // MARK: - Etapa 4: Contratante vê turno concluído com presença verificada
+    // MARK: - Etapa 4: Contratante avalia profissional após turno concluído e verificado (#22)
 
     func test04_ContratanteVeTurnoConcluido() {
         let app = XCUIApplication()
@@ -248,6 +252,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             "-FRILA_ABRIR_MINHAS_VAGAS",
             "-FRILA_SCENARIO", "ciclo-contratante-turno-concluido"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         // 1. Painel Minhas vagas abre com a vaga encerrada
@@ -281,15 +286,58 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         let detalheConfirmacao = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'detalhe-confirmacao-'")).firstMatch
         XCTAssertTrue(detalheConfirmacao.waitForExistence(timeout: 10), "Detalhe da confirmação deve estar visível")
 
-        // 6. DEFEITO DE PRODUTO REGISTRADO: A tela do contratante não possui interface para avaliar o profissional.
-        // A especificação e implementação vigentes cobrem apenas a avaliação pelo profissional (iOS/Docs/AvaliacaoTurno-22.md).
-        // Confirmamos que a tela exibe o turno concluído e que não há interface de avaliação contratante disponível.
-        XCTAssertFalse(app.buttons["Avaliar turno"].exists, "Avaliação pelo contratante ainda não foi implementada")
-        XCTAssertFalse(app.buttons["botao-abrir-avaliacao"].exists, "Botão de avaliação não existe na tela do contratante")
-        XCTAssertFalse(app.descendants(matching: .any)["cartao-avaliacao-turno"].exists, "Cartão de avaliação não existe na tela do contratante")
+        // 6. Avaliação do profissional pelo contratante (#22)
+        let cartaoAvaliacao = app.descendants(matching: .any)["cartao-avaliacao-turno"]
+        if !cartaoAvaliacao.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 10), "Cartão de avaliação do turno deve existir")
+
+        let botaoAvaliar = app.buttons["botao-abrir-avaliacao"]
+        let botaoAlternativo = app.buttons["Avaliar turno"]
+        let botaoEfetivo = botaoAvaliar.exists ? botaoAvaliar : botaoAlternativo
+        XCTAssertTrue(botaoEfetivo.waitForExistence(timeout: 10), "Botão para abrir avaliação deve existir")
+        tocar(botaoEfetivo)
+
+        // 7. Tela de avaliação
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10), "Tela de avaliação deve abrir")
+        let pergunta = app.staticTexts["pergunta-avaliacao"]
+        XCTAssertTrue(pergunta.waitForExistence(timeout: 10))
+        XCTAssertEqual(pergunta.label, "Chamaria este profissional de novo?")
+
+        let sim = app.buttons["resposta-sim"]
+        XCTAssertTrue(sim.waitForExistence(timeout: 10))
+        tocar(sim)
+
+        let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
+        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
+        XCTAssertTrue(botaoEnviar.isEnabled)
+        tocar(botaoEnviar)
+
+        let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: 10), "Confirmação do envio da avaliação deve aparecer")
+
+        // 8. Voltar para a tela do turno do contratante e verificar o estado avaliado
+        let voltar = app.navigationBars.buttons.element(boundBy: 0)
+        tocar(voltar)
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 10), "Tela do turno do contratante deve reaparecer")
+
+        let textoStatus = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Resposta: Sim'")).firstMatch
+        XCTAssertTrue(textoStatus.waitForExistence(timeout: 10), "Status de turno avaliado deve ser exibido")
+
+        let botaoVer = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Ver avaliação' || identifier == 'botao-ver-avaliacao'")).firstMatch
+        XCTAssertTrue(botaoVer.waitForExistence(timeout: 10), "Botão Ver avaliação deve existir após avaliar")
+
+        // 9. Reabrir e verificar resposta gravada
+        tocar(botaoVer)
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10), "Tela de avaliação deve reabrir")
+        let avisoJaAvaliado = app.descendants(matching: .any)["aviso-ja-avaliado"]
+        XCTAssertTrue(avisoJaAvaliado.waitForExistence(timeout: 10), "Aviso de avaliação já registrada deve ser exibido")
+        XCTAssertFalse(app.buttons["botao-enviar-avaliacao"].exists, "Botão de envio não deve existir após avaliação")
 
         let captura = XCTAttachment(screenshot: app.screenshot())
-        captura.name = "ciclo-04-contratante-turno-concluido-verificado"
+        captura.name = "ciclo-04-contratante-avaliacao-concluida"
         captura.lifetime = .keepAlways
         add(captura)
     }
@@ -301,11 +349,20 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         elemento.tap()
     }
 
+    private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if app.keyboards.element.exists {
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+    }
+
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
-            if elemento.isHittable { return }
-            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
-            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            if elemento.isHittable && !app.keyboards.element.exists { return }
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
             inicio.press(forDuration: 0.05, thenDragTo: fim)
         }
         if !elemento.isHittable {
@@ -313,7 +370,6 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         }
         XCTAssertTrue(elemento.isHittable)
     }
-
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
         let elementoUnico = elemento.firstMatch
         let janela = app.windows.firstMatch.frame
@@ -322,7 +378,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         for _ in 0..<tentativas {
             guard elementoUnico.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elementoUnico.frame
@@ -335,13 +391,12 @@ final class CicloDePontaAPontaUITests: XCTestCase {
             )
             switch direcao {
             case .nenhuma:
-                break
+                return
             case .rolarParaBaixo:
-                app.swipeDown(velocity: .slow)
+                app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
-            if direcao == .nenhuma { break }
         }
     }
 }

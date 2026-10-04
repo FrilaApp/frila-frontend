@@ -70,6 +70,7 @@ public final class AcompanhamentoViewModel {
     /// O turno cuja reabertura espera a confirmação de quem tocou em "Reabrir vaga".
     public private(set) var reaberturaEmConfirmacao: TurnoAcompanhado?
     public let api: (any ApiCliente)?
+    public private(set) var contaID: UUID?
 
     private let buscarPainel: @Sendable () async throws -> Painel
     private let confirmar: @Sendable (UUID) async throws -> ResultadoRegistro
@@ -78,6 +79,8 @@ public final class AcompanhamentoViewModel {
     private let cancelarVaga: @Sendable (UUID, String) async throws -> VagaCancelada
     private let agora: @Sendable () -> Date
     private let fila: (any FilaDeAcoes)?
+    private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
+    private var avaliacoesLocais: [UUID: Bool] = [:]
     private let aoMudar: @MainActor () async -> Void
 
     /// `aoMudar` roda depois de cada confirmação, reabertura ou cancelamento, para a lista de vagas
@@ -88,6 +91,8 @@ public final class AcompanhamentoViewModel {
         agora: @escaping @Sendable () -> Date = Date.init,
         calendario: Calendar = MinhasVagasViewModel.calendarioSaoPaulo,
         fila: (any FilaDeAcoes)? = nil,
+        contaID: UUID? = nil,
+        armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         aoMudar: @escaping @MainActor () async -> Void = {}
     ) {
         self.init(
@@ -106,6 +111,8 @@ public final class AcompanhamentoViewModel {
             agora: agora,
             fila: fila,
             api: api,
+            contaID: contaID,
+            armazenamentoAvaliacoes: armazenamentoAvaliacoes,
             aoMudar: aoMudar
         )
     }
@@ -119,6 +126,8 @@ public final class AcompanhamentoViewModel {
         agora: @escaping @Sendable () -> Date = Date.init,
         fila: (any FilaDeAcoes)? = nil,
         api: (any ApiCliente)? = nil,
+        contaID: UUID? = nil,
+        armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         aoMudar: @escaping @MainActor () async -> Void = {}
     ) {
         self.buscarPainel = buscarPainel
@@ -129,6 +138,8 @@ public final class AcompanhamentoViewModel {
         self.agora = agora
         self.fila = fila
         self.api = api
+        self.contaID = contaID
+        self.armazenamentoAvaliacoes = armazenamentoAvaliacoes
         self.aoMudar = aoMudar
     }
 
@@ -195,7 +206,22 @@ public final class AcompanhamentoViewModel {
         carregando = true
         defer { carregando = false }
         await lerCancelamentosNaFila()
+        await carregarIdentidadeEEAvaliacoes()
         await lerPainel(registrandoFalha: true)
+    }
+
+    private func carregarIdentidadeEEAvaliacoes() async {
+        if contaID == nil, let api {
+            contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
+        }
+        if let contaID {
+            let pendentes = try? await fila?.pendentes()
+            for acao in pendentes ?? [] where acao.tipo == .avaliacao && acao.contaID == contaID {
+                if let turnoID = acao.turnoID, let resposta = acao.resposta {
+                    avaliacoesLocais[turnoID] = resposta
+                }
+            }
+        }
     }
 
     /// Lê o painel e só o aplica se nenhuma ação respondeu enquanto a leitura estava em voo. Uma
@@ -366,6 +392,56 @@ public final class AcompanhamentoViewModel {
     public func lerCancelamentosNaFila() async {
         guard let fila, let acoes = try? await fila.pendentes() else { return }
         cancelamentosNaFila = Set(acoes.filter { $0.tipo == .cancelamentoPosicao || $0.tipo == .cancelamentoVaga }.compactMap(\.alvoID))
+    }
+
+    // MARK: Avaliação (#22)
+
+    /// O contratante pode avaliar após o fim previsto do turno e com presença verificada (RN07 / #22).
+    public func podeAvaliar(_ turno: TurnoAcompanhado) -> Bool {
+        guard turno.posicao.turnoID != nil,
+              turno.posicao.estado == .confirmada,
+              turno.posicao.cancelamento == nil,
+              turno.posicao.verificacao == .verificado,
+              turno.vaga.periodo.fim <= agora() else {
+            return false
+        }
+        return true
+    }
+
+    public func jaAvaliado(_ turno: TurnoAcompanhado) -> Bool {
+        guard let turnoID = turno.posicao.turnoID else { return false }
+        if avaliacoesLocais[turnoID] != nil { return true }
+        guard let contaID else { return false }
+        return armazenamentoAvaliacoes.jaRegistrada(para: turnoID, contaID: contaID)
+    }
+
+    public func respostaAvaliacao(_ turno: TurnoAcompanhado) -> Bool? {
+        guard let turnoID = turno.posicao.turnoID else { return nil }
+        if let local = avaliacoesLocais[turnoID] { return local }
+        guard let contaID else { return nil }
+        return armazenamentoAvaliacoes.resposta(para: turnoID, contaID: contaID)
+    }
+
+    public func criarAvaliacaoViewModel(para turno: TurnoAcompanhado, api clienteAlternativo: (any ApiCliente)? = nil) -> AvaliacaoTurnoViewModel? {
+        guard podeAvaliar(turno), let turnoID = turno.posicao.turnoID, let apiCliente = clienteAlternativo ?? api else { return nil }
+        guard let idDaConta = contaID else { return nil }
+        return AvaliacaoTurnoViewModel(
+            turnoID: turnoID,
+            contaID: idDaConta,
+            turno: nil,
+            api: apiCliente,
+            fila: fila,
+            armazenamento: armazenamentoAvaliacoes,
+            relogio: RelogioDaFuncao(funcao: agora),
+            pergunta: TextosDoProfissional.Avaliacao.perguntaContratante,
+            explicacao: TextosDoProfissional.Avaliacao.explicacaoContratante,
+            aoAvaliar: { [weak self] avaliacao in
+                self?.avaliacoesLocais[turnoID] = avaliacao.resposta
+            },
+            aoEnfileirar: { [weak self] resposta in
+                self?.avaliacoesLocais[turnoID] = resposta
+            }
+        )
     }
 
     // MARK: Estado local

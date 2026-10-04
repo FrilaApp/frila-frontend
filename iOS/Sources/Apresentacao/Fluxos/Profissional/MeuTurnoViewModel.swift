@@ -5,6 +5,7 @@ import Observation
 @MainActor @Observable
 public final class MeuTurnoViewModel {
     public let turno: Turno
+    public private(set) var recusasDaFila: [AcaoRecusada] = []
     public private(set) var contato: Contato?
     public private(set) var contatoExpirado: Bool
     public private(set) var responsavelLocal: String?
@@ -14,6 +15,8 @@ public final class MeuTurnoViewModel {
 
     private var avaliacaoEnviada: Avaliacao?
     private var respostaPendente: Bool?
+    /// UserDefaults não participa de Observation: a releitura invalida os derivados da reserva.
+    private var revisaoDaReserva = 0
     private let aoAvaliar: (() -> Void)?
     private let aoCancelar: (() -> Void)?
 
@@ -49,6 +52,7 @@ public final class MeuTurnoViewModel {
     private let filaDeAcoes: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
+    private var cacheLocal: (any CacheLocal)? { filaDeAcoes as? any CacheLocal }
 
     public init(
         turno: Turno,
@@ -94,6 +98,7 @@ public final class MeuTurnoViewModel {
     }
 
     public var respostaAvaliacao: Bool? {
+        _ = revisaoDaReserva
         if let avaliacao = avaliacaoEnviada ?? turno.avaliacao { return avaliacao.resposta }
         if let respostaPendente { return respostaPendente }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return nil }
@@ -101,6 +106,7 @@ public final class MeuTurnoViewModel {
     }
 
     public var jaAvaliado: Bool {
+        _ = revisaoDaReserva
         if avaliacaoEnviada != nil || turno.avaliacao != nil || respostaPendente != nil { return true }
         guard let contaID, armazenamentoAvaliacoes.podeUsarReserva(para: turno, contaID: contaID) else { return false }
         return armazenamentoAvaliacoes.jaRegistrada(para: turno.id, contaID: contaID) || (!turno.servidorInformaAvaliacao && !turno.podeAvaliar && podeAvaliar)
@@ -177,17 +183,23 @@ public final class MeuTurnoViewModel {
         return componentes?.url
     }
 
-    public func carregar() async {
-        guard permiteAcoesDoTurno else { return }
-        if await CancelamentoViewModel.pendenteNaFila(filaDeAcoes, alvo: .posicao(id: turno.posicaoID, turnoID: turno.id)) {
-            cancelamentoNaFila = true
-        }
+    public func carregarRecusasDaFila() async {
+        recusasDaFila = (try? await filaDeAcoes?.recusadas().filter { $0.turnoID == turno.id }) ?? []
         if let contaID, turno.avaliacao == nil {
             respostaPendente = try? await filaDeAcoes?.pendentes().first {
                 $0.tipo == .avaliacao && $0.turnoID == turno.id && $0.contaID == contaID
             }?.resposta
         }
         await presenca?.restaurarPendentes()
+        revisaoDaReserva += 1
+    }
+
+    public func carregar() async {
+        await carregarRecusasDaFila()
+        guard permiteAcoesDoTurno else { return }
+        if await CancelamentoViewModel.pendenteNaFila(filaDeAcoes, alvo: .posicao(id: turno.posicaoID, turnoID: turno.id)) {
+            cancelamentoNaFila = true
+        }
         if !turno.contatoVisivel(em: relogio.agora) {
             contato = nil
             contatoExpirado = true
@@ -202,6 +214,7 @@ public final class MeuTurnoViewModel {
             if novoContato.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora) {
                 self.contato = novoContato
                 self.contatoExpirado = false
+                try? await cacheLocal?.salvar(contato: novoContato, doTurno: turno.id)
             } else {
                 self.contato = nil
                 self.contatoExpirado = true
@@ -209,9 +222,11 @@ public final class MeuTurnoViewModel {
         } catch let erro as ErroDaApi where erro.codigo == .contatoExpirado {
             self.contato = nil
             self.contatoExpirado = true
+            try? await cacheLocal?.removerContato(doTurno: turno.id)
         } catch let erro as ErroDaApi where erro.codigo == .semRede {
             // Em modo avião, mantém o contato se ainda estiver dentro do prazo (RN10 / RNF06).
-            if let c = self.contato ?? turno.contato, c.estaVisivel(em: relogio.agora), turno.contatoVisivel(em: relogio.agora) {
+            let guardado = try? await cacheLocal?.contato(doTurno: turno.id, em: relogio.agora)
+            if let c = self.contato ?? guardado ?? turno.contato, c.estaVisivel(em: relogio.agora), turno.contatoVisivel(em: relogio.agora) {
                 self.contato = c
                 self.contatoExpirado = false
             } else {

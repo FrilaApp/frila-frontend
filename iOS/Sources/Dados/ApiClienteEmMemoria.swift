@@ -302,6 +302,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .checkinManualPendente, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
+                #if DEBUG
+                case .cicloContratanteTurnoConcluido: -10 * 60 * 60
+                #endif
                 // Os dois lados das 24 h da RN12: a 10 h o cancelamento do profissional é falta; a 48 h, não.
                 // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
                 case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
@@ -1123,6 +1126,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// `pendente`, e o manual não guarda a distância.
     public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try verificarFalhaGeral()
+        if turnosCancelados.contains(where: { $0.id == turnoID }) {
+            throw erro("vaga_encerrada", detalhes: "posicao_cancelada")
+        }
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         if let gravado = checkins[turnoID] { return gravado }
         try validarRegistro(distanciaMetros: distanciaMetros, registradoEm: registradoEm)
@@ -1142,6 +1148,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// `confirmarCheckinManual` atualiza, como a verificação atual do turno no backend.
     public func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try verificarFalhaGeral()
+        if turnosCancelados.contains(where: { $0.id == turnoID }) {
+            throw erro("vaga_encerrada", detalhes: "posicao_cancelada")
+        }
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         if let gravado = checkouts[turnoID] { return gravado }
         guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }

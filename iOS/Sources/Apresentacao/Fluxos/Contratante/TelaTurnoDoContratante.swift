@@ -141,7 +141,7 @@ struct TelaTurnoDoContratante: View {
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(TextosDoAcompanhamento.titulo)
         .navigationBarTitleDisplayMode(.inline)
-        .task { if viewModel.painel == nil { await viewModel.carregar() } }
+        .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .refreshable { await viewModel.carregar() }
         .sheet(item: $cancelamento) { folha in
             FolhaDeCancelamento(viewModel: folha) { cancelamento = nil }
@@ -185,6 +185,8 @@ struct TelaTurnoDoContratante: View {
                 .accessibilityIdentifier("cancelar-posicao-\(turno.posicao.id)")
         }
 
+        cartaoAvaliacao(turno)
+
         rodapeAcoes(turno)
     }
 
@@ -211,6 +213,71 @@ struct TelaTurnoDoContratante: View {
         .accessibilityIdentifier("botao-ajuda-turno")
         .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
     }
+
+    // MARK: - Avaliação (#22)
+
+    @ViewBuilder
+    private func cartaoAvaliacao(_ turno: TurnoAcompanhado) -> some View {
+        if viewModel.podeAvaliar(turno) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityAddTraits(.isHeader)
+
+                if viewModel.jaAvaliado(turno) {
+                    if let resposta = viewModel.respostaAvaliacao(turno) {
+                        Text(verbatim: TextosDoProfissional.Avaliacao.statusResposta(resposta))
+                            .font(.body.weight(.semibold))
+                            .accessibilityIdentifier("texto-status-avaliacao")
+                    } else {
+                        Text(verbatim: TextosDoProfissional.Avaliacao.statusAvaliado)
+                            .font(.body.weight(.semibold))
+                            .accessibilityIdentifier("texto-status-avaliacao")
+                    }
+
+                    NavigationLink {
+                        if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
+                            TelaAvaliacao(viewModel: avaliacao)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "star.fill")
+                            Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
+                        }
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
+                    }
+                    .accessibilityIdentifier("botao-ver-avaliacao")
+                } else {
+                    Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
+                        .font(.subheadline)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+
+                    NavigationLink {
+                        if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
+                            TelaAvaliacao(viewModel: avaliacao)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "star.fill")
+                            Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
+                        }
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
+                    }
+                    .accessibilityIdentifier("botao-abrir-avaliacao")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(FrilaEspaco.medio)
+            .cartaoFrila()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("cartao-avaliacao-turno")
+        }
+    }
+
+    // MARK: - Ações de segurança (#39)
 
     @ViewBuilder
     private func rodapeSeguranca(_ turno: TurnoAcompanhado) -> some View {

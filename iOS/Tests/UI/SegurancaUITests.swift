@@ -6,6 +6,7 @@ final class SegurancaUITests: XCTestCase {
     private func abrirVaga() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         let vaga = app.buttons["vaga-40000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(vaga.waitForExistence(timeout: 10))
@@ -15,13 +16,14 @@ final class SegurancaUITests: XCTestCase {
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        if elemento.isHittable { return }
         let janela = app.windows.firstMatch.frame
         let margemSuperior: CGFloat = 120
         let margemInferior: CGFloat = 60
 
         for _ in 0..<tentativas {
             guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
                 continue
             }
             let quadro = elemento.frame
@@ -34,13 +36,12 @@ final class SegurancaUITests: XCTestCase {
             )
             switch direcao {
             case .nenhuma:
-                break
+                return
             case .rolarParaBaixo:
-                app.swipeDown(velocity: .slow)
+                app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp(velocity: .slow)
+                app.swipeUp()
             }
-            if direcao == .nenhuma { break }
         }
         XCTAssertTrue(elemento.exists)
     }
@@ -60,7 +61,7 @@ final class SegurancaUITests: XCTestCase {
                 XCTAssertTrue(botao.label.hasPrefix(rotulo))
             }
             XCTAssertTrue(botao.isEnabled)
-            XCTAssertGreaterThanOrEqual(botao.frame.height, 44 - 0.1)
+            XCTAssertAlvoMinimo(botao.frame.height)
         }
     }
 

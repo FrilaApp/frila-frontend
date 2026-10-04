@@ -3,14 +3,17 @@ import FrilaDominio
 
 public actor SincronizadorAcoes {
     private let fila: any FilaDeAcoes
+    private let avaliacaoRecusada: @Sendable (AcaoPendente) -> Void
     private let avaliacaoJaRegistrada: @Sendable (AcaoPendente) -> Void
     private let api: any ApiCliente
 
     public init(fila: any FilaDeAcoes, api: any ApiCliente,
-                avaliacaoJaRegistrada: @escaping @Sendable (AcaoPendente) -> Void = { _ in }) {
+                avaliacaoJaRegistrada: @escaping @Sendable (AcaoPendente) -> Void = { _ in },
+                avaliacaoRecusada: @escaping @Sendable (AcaoPendente) -> Void = { _ in }) {
         self.fila = fila
         self.api = api
         self.avaliacaoJaRegistrada = avaliacaoJaRegistrada
+        self.avaliacaoRecusada = avaliacaoRecusada
     }
 
     public func sincronizar() async {
@@ -63,20 +66,57 @@ public actor SincronizadorAcoes {
                 // A resposta da fila foi recusada: não pode continuar aparecendo como resposta dada.
                 avaliacaoJaRegistrada(acao)
                 try? await fila.remover(id: acao.id)
-            } catch let erro as ErroDaApi where acao.tipo == .publicacaoVaga && erro.codigo.recusaDefinitivaDePublicacao {
-                // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
-                try? await fila.remover(id: acao.id)
-            } catch let erro as ErroDaApi where acao.tipo == .republicacaoVaga && (erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta) {
-                // Respostas definitivas recusadas não serão aceitas numa repetição da mesma chave.
-                try? await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi where (acao.tipo == .cancelamentoPosicao || acao.tipo == .cancelamentoVaga) && erro.codigo.recusaDefinitivaDeCancelamento {
                 // No reenvio, a posição já cancelada responde `posicaoNaoCancelavel` e a vaga,
                 // `vagaEncerrada`: o cancelamento já está feito, ou nunca será aceito.
                 try? await fila.remover(id: acao.id)
+            } catch let erro as ErroDaApi {
+                // Sem o registro persistido, a ação continua para não perder o aviso da recusa.
+                if await recusaDefinitiva(erro, acao: acao) {
+                    do {
+                        try await fila.recusar(acao, codigo: erro.codigo)
+                        if acao.tipo == .avaliacao, try await fila.recusadas().contains(where: { $0.id == acao.id }) {
+                            avaliacaoRecusada(acao)
+                            // A tela relê a fila depois de limpar a resposta local recusada.
+                            NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
+                        }
+                    } catch { continue }
+                }
             } catch {
                 // A ação permanece para uma nova tentativa idempotente.
                 continue
             }
+        }
+    }
+
+    private func recusaDefinitiva(_ erro: ErroDaApi, acao: AcaoPendente) async -> Bool {
+        switch acao.tipo {
+        case .checkin, .checkout:
+            if acao.tipo == .checkout, erro.codigo == .checkinPendente {
+                // O check-in pode ter falhado por rede/5xx nesta passagem; não descarta a saída dele.
+                guard let pendentes = try? await fila.pendentes() else { return false }
+                return !pendentes.contains { $0.tipo == .checkin && $0.turnoID == acao.turnoID }
+            }
+            switch erro.codigo {
+            case .semPermissao, .contaSuspensa, .naoEncontrado, .vagaEncerrada,
+                 .campoObrigatorio, .campoInvalido, .foraDaJanela, .registroNoFuturo:
+                return true
+            default:
+                return false
+            }
+        case .publicacaoVaga:
+            return erro.codigo.recusaDefinitivaDePublicacao
+        case .republicacaoVaga:
+            return erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .vagaOculta
+        case .avaliacao:
+            switch erro.codigo {
+            case .semPermissao, .contaSuspensa, .avaliacaoIndisponivel, .campoObrigatorio:
+                return true
+            default:
+                return false
+            }
+        case .cancelamentoPosicao, .cancelamentoVaga:
+            return false
         }
     }
 }

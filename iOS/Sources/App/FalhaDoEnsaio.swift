@@ -1,4 +1,5 @@
 #if FRILA_ENSAIO_FALHA
+import FrilaApresentacao
 import SwiftUI
 
 /// Botão do ensaio de falha do TestFlight (#203): prova que uma falha do build distribuído chega
@@ -13,7 +14,7 @@ struct BotaoDeFalhaDoEnsaio: View {
             Text(verbatim: "Forçar falha (ensaio)")
         }
         .buttonStyle(.borderedProminent)
-        .tint(.red)
+        .tint(FrilaCor.perigo)
         .padding()
         .accessibilityIdentifier("ensaio-forcar-falha")
     }

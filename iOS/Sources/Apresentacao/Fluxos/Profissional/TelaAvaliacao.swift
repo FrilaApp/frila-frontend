@@ -15,7 +15,9 @@ public struct TelaAvaliacao: View {
         api: any ApiCliente,
         fila: (any FilaDeAcoes)? = nil,
         armazenamento: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
-        relogio: any Relogio = RelogioDoSistema()
+        relogio: any Relogio = RelogioDoSistema(),
+        pergunta: String? = nil,
+        explicacao: String? = nil
     ) {
         self.init(viewModel: AvaliacaoTurnoViewModel(
             turnoID: turnoID,
@@ -24,7 +26,9 @@ public struct TelaAvaliacao: View {
             api: api,
             fila: fila,
             armazenamento: armazenamento,
-            relogio: relogio
+            relogio: relogio,
+            pergunta: pergunta,
+            explicacao: explicacao
         ))
     }
 
@@ -43,6 +47,9 @@ public struct TelaAvaliacao: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await viewModel.carregar() }
+        }
         .accessibilityIdentifier("tela-avaliacao")
     }
 
@@ -56,7 +63,7 @@ public struct TelaAvaliacao: View {
     private var cartaoExplicacao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Label {
-                Text(verbatim: TextosDoProfissional.Avaliacao.explicacao)
+                Text(verbatim: viewModel.explicacao)
                     .font(.subheadline)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } icon: {

@@ -10,6 +10,7 @@ public protocol ArmazenamentoAvaliacoes: Sendable {
     func salvar(resposta: Bool, para turnoID: UUID, contaID: UUID)
     func jaRegistrada(para turnoID: UUID, contaID: UUID) -> Bool
     func registrarSemResposta(para turnoID: UUID, contaID: UUID)
+    func remover(para turnoID: UUID, contaID: UUID)
     func limpar()
 }
 
@@ -57,6 +58,12 @@ public final class UserDefaultsArmazenamentoAvaliacoes: ArmazenamentoAvaliacoes,
         defaults.set(Date(), forKey: chave + "_instante")
     }
 
+    public func remover(para turnoID: UUID, contaID: UUID) {
+        let chave = prefixo + contaID.uuidString + "_" + turnoID.uuidString
+        defaults.removeObject(forKey: chave)
+        defaults.removeObject(forKey: chave + "_instante")
+    }
+
     public func limpar() {
         for chave in defaults.dictionaryRepresentation().keys where chave.hasPrefix(prefixo) {
             defaults.removeObject(forKey: chave)
@@ -102,6 +109,14 @@ public final class ArmazenamentoAvaliacoesEmMemoria: ArmazenamentoAvaliacoes, @u
         }
     }
 
+    public func remover(para turnoID: UUID, contaID: UUID) {
+        trava.withLock {
+            valores[contaID]?[turnoID] = nil
+            instantes[contaID]?[turnoID] = nil
+            semResposta[contaID]?.remove(turnoID)
+        }
+    }
+
     public func limpar() {
         trava.withLock {
             valores.removeAll()
@@ -117,6 +132,7 @@ public final class AvaliacaoTurnoViewModel {
     public let contaID: UUID
     public private(set) var turno: Turno?
     public let pergunta: String
+    public let explicacao: String
 
     private var respostaAtual: Bool?
     public var resposta: Bool? {
@@ -140,6 +156,7 @@ public final class AvaliacaoTurnoViewModel {
     private let repositorioTurnos: (any TurnoRepositorio)?
     private let aoEnfileirar: ((Bool) -> Void)?
     private let aoAvaliar: ((Avaliacao) -> Void)?
+    private var acaoOfflineID: UUID?
 
     public init(
         turnoID: UUID,
@@ -150,6 +167,7 @@ public final class AvaliacaoTurnoViewModel {
         armazenamento: any ArmazenamentoAvaliacoes = UserDefaultsArmazenamentoAvaliacoes(),
         relogio: any Relogio = RelogioDoSistema(),
         pergunta: String? = nil,
+        explicacao: String? = nil,
         aoAvaliar: ((Avaliacao) -> Void)? = nil,
         aoEnfileirar: ((Bool) -> Void)? = nil,
         repositorioTurnos: (any TurnoRepositorio)? = nil
@@ -165,6 +183,7 @@ public final class AvaliacaoTurnoViewModel {
         self.aoEnfileirar = aoEnfileirar
         self.repositorioTurnos = repositorioTurnos
         self.pergunta = pergunta ?? TextosDoProfissional.Avaliacao.perguntaProfissional
+        self.explicacao = explicacao ?? TextosDoProfissional.Avaliacao.explicacao
 
         if let avaliacao = turno?.avaliacao {
             self.respostaAtual = avaliacao.resposta
@@ -198,6 +217,11 @@ public final class AvaliacaoTurnoViewModel {
         }
         // A consulta ocorre também com resposta local: pendente não é confirmação do servidor.
         let pendentes = try? await fila?.pendentes()
+        let estavaEnfileirado = enfileiradoOffline
+        var acaoRecusada = false
+        if let acaoOfflineID, let fila {
+            acaoRecusada = (try? await fila.recusadas().contains { $0.id == acaoOfflineID }) == true
+        }
         enfileiradoOffline = false
         if armazenamento.podeUsarReserva(para: turno, contaID: contaID),
            armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
@@ -209,6 +233,7 @@ public final class AvaliacaoTurnoViewModel {
         } else if let pendente = pendentes?.first(where: {
             $0.tipo == .avaliacao && $0.turnoID == turnoID && $0.contaID == contaID
         }), let respostaPendente = pendente.resposta {
+            acaoOfflineID = pendente.id
             respostaAtual = respostaPendente
             jaAvaliado = true
             enfileiradoOffline = true
@@ -216,10 +241,26 @@ public final class AvaliacaoTurnoViewModel {
             if armazenamento.resposta(para: turnoID, contaID: contaID) == nil {
                 armazenamento.salvar(resposta: respostaPendente, para: turnoID, contaID: contaID)
             }
+        } else if acaoRecusada {
+            // A notificação da fila pode chegar antes da limpeza da reserva local.
+            // O ID distingue esta tentativa de outra resposta aceita depois.
+            if !armazenamento.jaRegistrada(para: turnoID, contaID: contaID) {
+                acaoOfflineID = nil
+            }
+            respostaAtual = nil
+            jaAvaliado = turno?.podeAvaliar == false
+            sucesso = false
+            mensagemDeSucesso = nil
         } else if (armazenamento.podeUsarReserva(para: turno, contaID: contaID) || sucesso),
                   let gravada = armazenamento.resposta(para: turnoID, contaID: contaID) {
             respostaAtual = gravada
             jaAvaliado = true
+            mensagemDeSucesso = nil
+        } else if !armazenamento.jaRegistrada(para: turnoID, contaID: contaID),
+                  estavaEnfileirado || !sucesso {
+            if estavaEnfileirado { respostaAtual = nil }
+            jaAvaliado = turno?.podeAvaliar == false
+            sucesso = false
             mensagemDeSucesso = nil
         }
     }
@@ -248,6 +289,7 @@ public final class AvaliacaoTurnoViewModel {
 
         do {
             let avaliacao = try await api.avaliar(turnoID: turnoID, resposta: resposta)
+            acaoOfflineID = nil
             respostaAtual = avaliacao.resposta
             aoAvaliar?(avaliacao)
             armazenamento.salvar(resposta: avaliacao.resposta, para: turnoID, contaID: contaID)
@@ -298,9 +340,11 @@ public final class AvaliacaoTurnoViewModel {
             )
             try await fila.enfileirar(acao)
             // Se outro modelo enfileirou antes, prevalece a primeira resposta da fila.
-            let primeira = try await fila.pendentes().first(where: {
+            let primeiraAcao = try await fila.pendentes().first(where: {
                 $0.tipo == .avaliacao && $0.turnoID == turnoID && $0.contaID == contaID
-            })?.resposta ?? resposta
+            })
+            let primeira = primeiraAcao?.resposta ?? resposta
+            acaoOfflineID = primeiraAcao?.id ?? acao.id
             respostaAtual = primeira
             aoEnfileirar?(primeira)
             armazenamento.salvar(resposta: primeira, para: turnoID, contaID: contaID)

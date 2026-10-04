@@ -73,7 +73,7 @@ public struct TelaCodigo: View {
                                     .overlay(
                                         RoundedRectangle(cornerRadius: FrilaRaio.pequeno)
                                             .stroke(
-                                                indice == viewModel.codigo.count ? FrilaCor.primaria : FrilaCor.textoSecundario.opacity(0.35),
+                                                indice == viewModel.codigo.count ? FrilaCor.primaria : FrilaCor.borda,
                                                 lineWidth: indice == viewModel.codigo.count ? 2 : 1
                                             )
                                     )

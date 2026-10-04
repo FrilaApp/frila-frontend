@@ -175,6 +175,8 @@ public struct SeloReputacao: View {
 }
 
 public struct AvisoFrila: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     public enum Tom { case informativo, alerta, erro }
     private enum Conteudo {
         case localizado(LocalizedStringKey)
@@ -194,22 +196,36 @@ public struct AvisoFrila: View {
     }
 
     public var body: some View {
-        Label {
-            switch conteudo {
-            case let .localizado(chave):
-                Text(chave, bundle: bundleApresentacao)
-            case let .literal(texto):
-                Text(verbatim: texto)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    Image(systemName: icone)
+                        .accessibilityHidden(true)
+                    textoView
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
+                    Image(systemName: icone)
+                        .accessibilityHidden(true)
+                    textoView
+                }
             }
-        } icon: {
-            Image(systemName: icone)
         }
+        .accessibilityElement(children: .combine)
         .font(.callout)
         .foregroundStyle(cor)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
         .background(cor.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var textoView: some View {
+        switch conteudo {
+        case let .localizado(chave):
+            Text(chave, bundle: bundleApresentacao)
+        case let .literal(texto):
+            Text(verbatim: texto)
+        }
     }
 
     private var cor: Color { switch tom { case .informativo: FrilaCor.primaria; case .alerta: FrilaCor.alerta; case .erro: FrilaCor.perigo } }

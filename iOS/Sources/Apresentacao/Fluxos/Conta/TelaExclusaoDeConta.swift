@@ -4,6 +4,9 @@ import SwiftUI
 public struct TelaExclusaoDeConta: View {
     @State private var viewModel: ExclusaoDeContaViewModel
     @State private var mostrarDialogoConfirmacao = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// O quadro do ícone acompanha a fonte: preso a 24 pt, o símbolo crescia e invadia o texto em AX5.
+    @ScaledMetric private var ladoDoIcone: CGFloat = 24
     private let formatador = FormatadorFrila()
 
     public init(viewModel: ExclusaoDeContaViewModel) {
@@ -30,26 +33,57 @@ public struct TelaExclusaoDeConta: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosExclusaoDeConta.titulo))
         .navigationBarTitleDisplayMode(.inline)
+        // Sem fundo, a barra inline deixava o texto da rolagem passar por trás do Voltar e do título.
+        .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .task { await viewModel.carregar() }
-        .confirmationDialog(
-            Text(verbatim: TextosExclusaoDeConta.dialogoTitulo),
-            isPresented: $mostrarDialogoConfirmacao,
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                Task { await viewModel.confirmarExclusao() }
-            } label: {
-                Text(verbatim: TextosExclusaoDeConta.dialogoConfirmar)
-            }
-            .accessibilityIdentifier("botao-confirmar-exclusao-dialogo")
-
-            Button(role: .cancel) {} label: {
-                Text(verbatim: TextosExclusaoDeConta.cancelar)
-            }
-        } message: {
-            Text(verbatim: TextosExclusaoDeConta.dialogoMensagem)
-        }
+        .sheet(isPresented: $mostrarDialogoConfirmacao) { confirmacaoFinal }
         .accessibilityIdentifier("tela-exclusao-de-conta")
+    }
+
+    /// Confirmação da ação irreversível. Era um `confirmationDialog` do sistema, e nos tamanhos de
+    /// acessibilidade o título e a mensagem empurravam o Cancelar para fora da tela (QA de 04/10).
+    /// Aqui o texto rola e os dois botões ficam presos ao rodapé, o Cancelar primeiro.
+    private var confirmacaoFinal: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                Text(verbatim: TextosExclusaoDeConta.dialogoTitulo)
+                    .font(.title3.bold())
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityAddTraits(.isHeader)
+                Text(verbatim: TextosExclusaoDeConta.dialogoMensagem)
+                    .foregroundStyle(FrilaCor.texto)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: TextosExclusaoDeConta.cancelar) {
+                    mostrarDialogoConfirmacao = false
+                }
+                .accessibilityIdentifier("botao-cancelar-exclusao-dialogo")
+
+                Button(role: .destructive) {
+                    mostrarDialogoConfirmacao = false
+                    Task { await viewModel.confirmarExclusao() }
+                } label: {
+                    Text(verbatim: TextosExclusaoDeConta.dialogoConfirmar)
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                .accessibilityIdentifier("botao-confirmar-exclusao-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium])
     }
 
     private var avisoPrincipal: some View {
@@ -82,11 +116,15 @@ public struct TelaExclusaoDeConta: View {
     }
 
     private func itemConsequencia(icone: String, texto: String) -> some View {
-        HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+        // Nos tamanhos de acessibilidade o ícone vai acima, e o texto fica com a largura toda.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.minimo))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: FrilaEspaco.pequeno))
+        return layout {
             // Decorativo: o texto ao lado diz tudo; sem isto o VoiceOver lia o nome do símbolo.
             Image(systemName: icone)
                 .foregroundStyle(FrilaCor.perigo)
-                .frame(width: 24, height: 24)
+                .frame(width: ladoDoIcone, height: ladoDoIcone)
                 .accessibilityHidden(true)
             Text(verbatim: texto)
                 .font(.subheadline)

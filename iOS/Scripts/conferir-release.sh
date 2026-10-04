@@ -45,6 +45,15 @@ if plutil -extract NSUserTrackingUsageDescription raw -o /dev/null "$info_plist"
   falhar "Info.plist não pode conter NSUserTrackingUsageDescription"
 fi
 
+# Auditoria de segurança (03/10/2026, A6): o app só fala HTTPS pelo ATS padrão, não expõe a pasta
+# Documents no Finder/Arquivos e não registra esquema de URL (não há deep link). Qualquer uma destas
+# chaves abriria uma superfície que o código não trata.
+for chave in NSAppTransportSecurity UIFileSharingEnabled LSSupportsOpeningDocumentsInPlace CFBundleURLTypes; do
+  if plutil -extract "$chave" raw -o /dev/null "$info_plist" >/dev/null 2>&1; then
+    falhar "Info.plist não pode conter $chave"
+  fi
+done
+
 # O app lê a localização em uso e pede a precisão temporária no check-in: sem estes dois textos o
 # sistema não mostra o pedido.
 localizacao="$(python3 - "$info_plist" <<'PYLOCALIZACAO'
@@ -94,6 +103,7 @@ ganchos_de_desenvolvimento=(
   '-FRILA_ABRIR_MINHAS_VAGAS'
   '-FRILA_CADASTRO_UI_TEST'
   '-FRILA_BUSCA_PERFIL_UI_TEST'
+  '-FRILA_CAPTURAR_URL_UI_TEST'
   '-FRILA_ENTRADA'
   '-FRILA_LOCALIZACAO'
   '-FRILA_VAGA_ID'
@@ -120,6 +130,8 @@ fi
 simbolos_de_desenvolvimento=(
   'pelosArgumentos'
   'CatalogoDesignSystem'
+  'AbridorDeURLParaTeste'
+  'CapturaDeAberturaDeURLParaTeste'
 )
 
 # A medição de desempenho (#73) só pode estar no build de medição, que o enviar-testflight.sh

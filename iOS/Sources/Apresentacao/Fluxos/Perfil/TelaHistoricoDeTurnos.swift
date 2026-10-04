@@ -6,6 +6,7 @@ import SwiftUI
 public struct TelaHistoricoDeTurnos: View {
     @State private var model: HistoricoDeTurnosViewModel
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private static let idDoResultado = "historico-resultado"
 
     public init(api: any ApiCliente, estabelecimentoID: UUID? = nil) {
@@ -56,6 +57,9 @@ public struct TelaHistoricoDeTurnos: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosHistoricoDeTurnos.titulo))
         .navigationBarTitleDisplayMode(.inline)
+        // Sem fundo, a barra inline deixava o texto da rolagem passar por trás do Voltar e do título.
+        .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: Bindable(model).mostrarFolhaCompartilhamento, onDismiss: {
             model.folhaCompartilhamentoFechada()
         }) {
@@ -151,16 +155,29 @@ public struct TelaHistoricoDeTurnos: View {
             Text(verbatim: TextosHistoricoDeTurnos.formato)
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
-            Picker(selection: Binding(get: { model.formato }, set: { model.escolher(formato: $0) })) {
-                ForEach(FormatoExportacao.allCases, id: \.self) { formato in
-                    Text(verbatim: formato.rawValue.uppercased()).tag(formato)
+            if dynamicTypeSize.isAccessibilitySize {
+                // O controle segmentado do sistema não acompanha o Dynamic Type: nos tamanhos de
+                // acessibilidade os formatos viram pílulas, como as do período.
+                HStack(spacing: FrilaEspaco.pequeno) {
+                    ForEach(FormatoExportacao.allCases, id: \.self) { formato in
+                        FiltroPill(verbatim: formato.rawValue.uppercased(), selecionado: model.formato == formato) {
+                            model.escolher(formato: formato)
+                        }
+                        .accessibilityIdentifier("historico-formato-\(formato.rawValue)")
+                    }
                 }
-            } label: {
-                Text(verbatim: TextosHistoricoDeTurnos.formato)
+            } else {
+                Picker(selection: Binding(get: { model.formato }, set: { model.escolher(formato: $0) })) {
+                    ForEach(FormatoExportacao.allCases, id: \.self) { formato in
+                        Text(verbatim: formato.rawValue.uppercased()).tag(formato)
+                    }
+                } label: {
+                    Text(verbatim: TextosHistoricoDeTurnos.formato)
+                }
+                .pickerStyle(.segmented)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .accessibilityIdentifier("historico-formato")
             }
-            .pickerStyle(.segmented)
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .accessibilityIdentifier("historico-formato")
         }
         .disabled(model.estaCarregando)
     }

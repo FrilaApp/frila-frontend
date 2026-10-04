@@ -5,6 +5,9 @@ import FrilaDominio
 import Testing
 
 private actor FilaDeTeste: FilaDeAcoes {
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws { try await remover(id: acao.id) }
+    func recusadas() -> [AcaoRecusada] { [] }
+
     private var itens: [AcaoPendente] = []
     func enfileirar(_ acao: AcaoPendente) { itens.removeAll { $0.id == acao.id }; itens.append(acao) }
     func pendentes() -> [AcaoPendente] { itens }
