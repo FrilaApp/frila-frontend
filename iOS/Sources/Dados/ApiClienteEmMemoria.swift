@@ -1195,11 +1195,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
         )
     }
 
+    /// Segue `avaliar` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): turno que não
+    /// existe ou não é de quem chama é `403 sem_permissao`, e não `404`, para não dizer a um estranho
+    /// que o turno existe; a avaliação já gravada é conferida antes do prazo; antes do fim previsto é
+    /// `422 avaliacao_indisponivel` com `antes_do_fim`, e sem presença verificada, com
+    /// `sem_presenca_verificada`. O turno cancelado continua sendo de quem chama, e o cancelamento o
+    /// deixa sem presença verificada. Diferença declarada: o backend devolve a avaliação gravada
+    /// quando o reenvio traz a mesma resposta; o dublê responde `409` a qualquer segunda avaliação.
     public func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao {
         try verificarFalhaGeral()
         if cenario == .avaliacaoSemRede { throw ErroDaApi(codigo: .semRede) }
-        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+        let cancelado = turnosCancelados.first(where: { $0.id == turnoID })
+        guard let turno = turnos.first(where: { $0.id == turnoID }) ?? cancelado else { throw erro("sem_permissao") }
         guard avaliacoes[turnoID] == nil else { throw erro("avaliacao_ja_registrada") }
+        guard turno.vaga.periodo.fim <= relogio.agora else { throw erro("avaliacao_indisponivel", detalhes: "antes_do_fim") }
+        guard cancelado == nil, turno.verificacao == .verificado else {
+            throw erro("avaliacao_indisponivel", detalhes: "sem_presenca_verificada")
+        }
         let avaliacao = Avaliacao(turnoID: turnoID, resposta: resposta, criadaEm: relogio.agora)
         avaliacoes[turnoID] = avaliacao
         return avaliacao
@@ -1417,7 +1429,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
           "turnos": [],
           "avaliacoes_dadas": [],
           "avaliacoes_recebidas": [],
-          "dispositivos": []
+          "dispositivos": [],
+          "candidaturas": [],
+          "ocorrencias": [],
+          "bloqueios": [],
+          "notificacoes": [],
+          "despachos": [],
+          "equipe_confianca": [],
+          "pedido_de_exclusao": null
         }
         """
         guard let data = jsonString.data(using: .utf8) else {

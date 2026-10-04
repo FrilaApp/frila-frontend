@@ -69,7 +69,8 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         let maisOpcoes = app.buttons["mais-opcoes-botao"]
         XCTAssertTrue(maisOpcoes.waitForExistence(timeout: 5))
         trazerParaATela(maisOpcoes, em: app)
-        XCTAssertGreaterThanOrEqual(maisOpcoes.frame.height, 44, "Botão Mais opções deve ter altura >= 44 pt")
+        // O frame vem com erro de ponto flutuante (43,999999…): a tolerância de 0,01 pt evita a falha espúria.
+        XCTAssertGreaterThanOrEqual(maisOpcoes.frame.height, 44 - 0.01, "Botão Mais opções deve ter altura >= 44 pt")
         maisOpcoes.tap()
 
         // 2.6 Campo de Observações: altura >= 44 pt mesmo vazio
@@ -195,6 +196,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
+        if elemento.isHittable { return }
         let janela = app.windows.firstMatch.frame
         let margemSuperior: CGFloat = 120
         let margemInferior: CGFloat = 60
@@ -214,13 +216,12 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             )
             switch direcao {
             case .nenhuma:
-                break
+                return
             case .rolarParaBaixo:
                 app.swipeDown()
             case .rolarParaCima:
                 app.swipeUp()
             }
-            if direcao == .nenhuma { break }
         }
     }
 }
