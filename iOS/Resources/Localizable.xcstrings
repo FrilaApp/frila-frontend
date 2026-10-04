@@ -221,6 +221,16 @@
         }
       }
     },
+    "Ajustar minhas funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustar minhas funções"
+          }
+        }
+      }
+    },
     "%@ às %@": {
       "localizations": {
         "pt-BR": {
@@ -4323,6 +4333,166 @@
         }
       }
     },
+    "Histórico de turnos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Histórico de turnos"
+          }
+        }
+      }
+    },
+    "Exporte os turnos de um período com data, função, horários registrados, valor acordado e contraparte. O valor é o combinado entre as partes, e não um pagamento feito pelo Frila. Turno não verificado sai marcado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporte os turnos de um período com data, função, horários registrados, valor acordado e contraparte. O valor é o combinado entre as partes, e não um pagamento feito pelo Frila. Turno não verificado sai marcado."
+          }
+        }
+      }
+    },
+    "Período": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Período"
+          }
+        }
+      }
+    },
+    "Este mês": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mês"
+          }
+        }
+      }
+    },
+    "Mês passado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mês passado"
+          }
+        }
+      }
+    },
+    "Escolher datas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher datas"
+          }
+        }
+      }
+    },
+    "De": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De"
+          }
+        }
+      }
+    },
+    "Até": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até"
+          }
+        }
+      }
+    },
+    "A data inicial precisa ser igual ou anterior à final, e nenhuma pode estar no futuro.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A data inicial precisa ser igual ou anterior à final, e nenhuma pode estar no futuro."
+          }
+        }
+      }
+    },
+    "Formato": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formato"
+          }
+        }
+      }
+    },
+    "Exportar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar"
+          }
+        }
+      }
+    },
+    "Gera o arquivo do período e abre o compartilhamento do sistema.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gera o arquivo do período e abre o compartilhamento do sistema."
+          }
+        }
+      }
+    },
+    "Gerando o arquivo…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerando o arquivo…"
+          }
+        }
+      }
+    },
+    "Nenhum turno nesse período. Nenhum arquivo foi gerado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum turno nesse período. Nenhum arquivo foi gerado."
+          }
+        }
+      }
+    },
+    "Em %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em %@"
+          }
+        }
+      }
+    },
+    "De %@ a %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De %@ a %@"
+          }
+        }
+      }
+    },
     "Fale com o suporte": {
       "localizations": {
         "pt-BR": {
@@ -5819,6 +5989,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta vaga já foi cancelada ou encerrada."
+          }
+        }
+      }
+    },
+    "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo."
           }
         }
       }

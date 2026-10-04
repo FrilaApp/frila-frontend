@@ -83,9 +83,11 @@ public struct TelaExclusaoDeConta: View {
 
     private func itemConsequencia(icone: String, texto: String) -> some View {
         HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+            // Decorativo: o texto ao lado diz tudo; sem isto o VoiceOver lia o nome do símbolo.
             Image(systemName: icone)
                 .foregroundStyle(FrilaCor.perigo)
                 .frame(width: 24, height: 24)
+                .accessibilityHidden(true)
             Text(verbatim: texto)
                 .font(.subheadline)
                 .foregroundStyle(FrilaCor.texto)
