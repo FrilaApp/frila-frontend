@@ -12,12 +12,14 @@ struct SegurancaDoCodigoTests {
 
     private static func arquivosSwift() throws -> [(nome: String, linhas: [Substring])] {
         let fontes = raiz.appending(path: "Sources")
-        let enumerador = try #require(FileManager.default.enumerator(at: fontes, includingPropertiesForKeys: nil))
-        return try enumerador.compactMap { $0 as? URL }
-            .filter { $0.pathExtension == "swift" }
-            .map { url in
-                let nome = url.path.replacingOccurrences(of: raiz.path + "/", with: "")
-                return (nome, try String(contentsOf: url, encoding: .utf8).split(separator: "\n", omittingEmptySubsequences: false))
+        // Caminhos relativos: o prefixo absoluto visto pelo simulador pode diferir do de #filePath
+        // (/tmp e /private/tmp), e o nome "Sources/..." não pode depender dele.
+        let caminhos = try #require(FileManager.default.subpaths(atPath: fontes.path))
+        return try caminhos
+            .filter { $0.hasSuffix(".swift") }
+            .map { relativo in
+                let conteudo = try String(contentsOf: fontes.appending(path: relativo), encoding: .utf8)
+                return ("Sources/" + relativo, conteudo.split(separator: "\n", omittingEmptySubsequences: false))
             }
     }
 
