@@ -9,7 +9,7 @@ final class SuporteTurnoUITests: XCTestCase {
 
     func testFolhaDeSuporteExibePrazoMotivosESeguranca() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_ABRIR_SUPORTE_TURNO", "-FRILA_SCENARIO", "success"]
+        app.launchArguments = ["-FRILA_ABRIR_SUPORTE_TURNO", "-FRILA_SCENARIO", "success", "-FRILA_CACHE_VAZIO_UI_TEST"]
         app.launch()
 
         // 1. A folha de suporte abre e exibe o título
@@ -27,10 +27,7 @@ final class SuporteTurnoUITests: XCTestCase {
         opcaoRisco.tap()
 
         let avisoSeguranca = app.descendants(matching: .any)["aviso-seguranca-suporte"]
-        if !avisoSeguranca.waitForExistence(timeout: 5) {
-            print("DEBUG HIERARCHY: \(app.debugDescription)")
-        }
-        XCTAssertTrue(avisoSeguranca.exists, "Aviso de emergência deve aparecer ao selecionar risco à segurança")
+        XCTAssertTrue(avisoSeguranca.waitForExistence(timeout: 5), "Aviso de emergência deve aparecer ao selecionar risco à segurança")
 
         let botao190 = app.descendants(matching: .any)["botao-ligar-190"]
         XCTAssertTrue(botao190.waitForExistence(timeout: 5), "Botão para ligar 190 deve estar disponível")
@@ -42,7 +39,7 @@ final class SuporteTurnoUITests: XCTestCase {
         app.swipeUp()
 
         // 5. Campo de relato opcional aceita texto
-        let campoRelato = app.textViews["campo-relato-suporte"]
+        let campoRelato = app.descendants(matching: .any)["campo-relato-suporte"]
         if campoRelato.waitForExistence(timeout: 3) {
             campoRelato.tap()
             campoRelato.typeText("Relato de teste para o suporte.")
@@ -54,6 +51,9 @@ final class SuporteTurnoUITests: XCTestCase {
 
         let botaoCopiar = app.descendants(matching: .any)["botao-copiar-dados-suporte"]
         XCTAssertTrue(botaoCopiar.waitForExistence(timeout: 5), "Botão para copiar dados deve estar presente")
+        if !botaoCopiar.isHittable {
+            app.swipeUp()
+        }
         botaoCopiar.tap()
 
         let avisoCopiado = app.descendants(matching: .any)["aviso-dados-copiados"]
@@ -67,13 +67,14 @@ final class SuporteTurnoUITests: XCTestCase {
     func testBotaoAjudaTurnoEmTurnoDoContratante() {
         let app = XCUIApplication()
         let turnoID = "82000000-0000-0000-0000-000000000001"
-        app.launchArguments = ["-FRILA_SCENARIO", "checkin-manual-pendente"]
+        app.launchArguments = ["-FRILA_SCENARIO", "checkin-manual-pendente", "-FRILA_CACHE_VAZIO_UI_TEST"]
         app.launch()
 
         let acompanhar = app.buttons["acompanhar-turno-\(turnoID)"]
         XCTAssertTrue(acompanhar.waitForExistence(timeout: 15))
         acompanhar.tap()
 
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 10))
         app.swipeUp()
         let botaoAjuda = app.descendants(matching: .any)["botao-ajuda-turno"]
         XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5), "Botão de ajuda no turno deve estar visível no rodapé do contratante")
@@ -98,8 +99,11 @@ final class SuporteTurnoUITests: XCTestCase {
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
         cartao.tap()
 
-        app.swipeUp()
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 10))
         let botaoAjuda = app.descendants(matching: .any)["botao-ajuda-turno"]
+        if !botaoAjuda.isHittable {
+            app.swipeUp()
+        }
         XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5), "Botão de ajuda no turno deve estar visível no rodapé do profissional")
         botaoAjuda.tap()
 

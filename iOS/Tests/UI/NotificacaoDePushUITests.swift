@@ -31,7 +31,7 @@ final class NotificacaoDePushUITests: XCTestCase {
     /// pedido. Depois disso a permissão fica concedida, e o aviso não aparece mais.
     private func permitirNotificacoes(_ app: XCUIApplication) {
         let explicar = app.buttons["explicar-notificacoes"]
-        guard explicar.waitForExistence(timeout: 3) else { return }
+        guard explicar.waitForExistence(timeout: 1) else { return }
         explicar.tap()
         XCTAssertTrue(app.buttons["ativar-notificacoes"].waitForExistence(timeout: 5))
         app.buttons["ativar-notificacoes"].tap()
@@ -43,7 +43,11 @@ final class NotificacaoDePushUITests: XCTestCase {
 
     private func tocarNaNotificacao() {
         let notificacao = sistema.staticTexts["Aviso simulado: vaga"].firstMatch
-        XCTAssertTrue(notificacao.waitForExistence(timeout: 30), "a notificação aparece")
+        if !notificacao.waitForExistence(timeout: 15) {
+            // Se o banner expirou para a central de notificações, abre a central para tocar
+            sistema.swipeDown()
+        }
+        XCTAssertTrue(notificacao.waitForExistence(timeout: 15), "a notificação aparece")
         notificacao.tap()
     }
 
@@ -61,7 +65,7 @@ final class NotificacaoDePushUITests: XCTestCase {
     }
 
     func testToqueComOAppEmSegundoPlanoAbreODestino() {
-        let app = abrir(notificacaoEm: 9)
+        let app = abrir(notificacaoEm: 14)
 
         XCUIDevice.shared.press(.home)
         tocarNaNotificacao()
