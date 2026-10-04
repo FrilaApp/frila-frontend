@@ -162,6 +162,71 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão")
     }
 
+    /// Em AX5 o `confirmationDialog` do sistema empurrava o Cancelar para fora da tela, numa ação
+    /// irreversível (QA de 04/10, achado 1). A confirmação tem de mostrar os dois botões sem rolar.
+    func testConfirmacaoEmAX5MostraCancelarTocavelECancelarNaoExclui() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10))
+        botaoPerfil.tap()
+
+        let irParaExclusao = app.buttons["perfil-excluir-conta"]
+        XCTAssertTrue(irParaExclusao.waitForExistence(timeout: 5))
+        rolarAte(irParaExclusao, em: app)
+        irParaExclusao.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-exclusao-de-conta"].waitForExistence(timeout: 5))
+        anexar(app, "ExclusaoEmAX5Topo")
+        // Captura do item de consequência em AX5: o ícone vai acima do texto, sem invadi-lo.
+        let consequencia = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Os turnos futuros'")).firstMatch
+        let janela = app.windows.firstMatch.frame
+        for _ in 0..<10 where !(consequencia.exists && consequencia.frame.minY > janela.minY && consequencia.frame.minY < janela.midY) {
+            app.swipeUp()
+        }
+        anexar(app, "ExclusaoEmAX5Consequencias")
+
+        // Em AX5 o elemento do Toggle é quase todo rótulo, e o toque no rótulo não alterna: vai no interruptor.
+        let toggle = app.switches["toggle-confirmar-consequencias"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        let interruptor = toggle.switches.firstMatch
+        rolarAte(interruptor, em: app)
+        anexar(app, "ExclusaoEmAX5Rolada")
+        interruptor.tap()
+
+        let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
+        let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: botaoExcluir)
+        XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: 5), .completed)
+        rolarAte(botaoExcluir, em: app)
+        botaoExcluir.tap()
+
+        let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
+        let confirmar = app.buttons["botao-confirmar-exclusao-dialogo"]
+        XCTAssertTrue(cancelar.waitForExistence(timeout: 5), "A confirmação deve ter o Cancelar")
+        anexar(app, "ConfirmacaoDeExclusaoEmAX5")
+        XCTAssertTrue(cancelar.isHittable, "Em AX5, o Cancelar fica tocável sem rolar")
+        XCTAssertTrue(confirmar.isHittable, "Em AX5, o Confirmar fica tocável sem rolar")
+
+        cancelar.tap()
+        let fechou = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cancelar)
+        XCTAssertEqual(XCTWaiter.wait(for: [fechou], timeout: 5), .completed, "O Cancelar fecha a confirmação")
+        XCTAssertTrue(app.descendants(matching: .any)["tela-exclusao-de-conta"].exists, "Cancelar não exclui: a tela continua")
+        XCTAssertFalse(app.textFields["entrada-email"].exists, "Cancelar não volta para a entrada")
+    }
+
+    private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication) {
+        for _ in 0..<10 where !elemento.isHittable { app.swipeUp() }
+        XCTAssertTrue(elemento.isHittable, "\(elemento) não ficou tocável")
+    }
+
+    private func anexar(_ app: XCUIApplication, _ nome: String) {
+        let anexo = XCTAttachment(screenshot: app.screenshot())
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+    }
+
     private func confirmarExclusaoNoDialogo(no app: XCUIApplication) {
         let botaoConfirmar = app.buttons.matching(identifier: "botao-confirmar-exclusao-dialogo").firstMatch
         XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: 5), "Diálogo de confirmação deve aparecer")
