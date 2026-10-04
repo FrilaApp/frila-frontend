@@ -71,6 +71,7 @@ public final class AcompanhamentoViewModel {
     public private(set) var reaberturaEmConfirmacao: TurnoAcompanhado?
     public let api: (any ApiCliente)?
     public private(set) var contaID: UUID?
+    public private(set) var recusasDaFila: [AcaoRecusada] = []
 
     private let buscarPainel: @Sendable () async throws -> Painel
     private let confirmar: @Sendable (UUID) async throws -> ResultadoRegistro
@@ -210,10 +211,11 @@ public final class AcompanhamentoViewModel {
         defer { carregando = false }
         await lerCancelamentosNaFila()
         await carregarIdentidadeEEAvaliacoes()
+        await carregarRecusasDaFila()
         await lerPainel(registrandoFalha: true)
     }
 
-    private func carregarIdentidadeEEAvaliacoes() async {
+    public func carregarIdentidadeEEAvaliacoes() async {
         if contaID == nil, let api {
             contaID = try? await IdentidadeDaAvaliacao.obter(api: api, cache: fila as? any CacheLocal)
         }
@@ -225,6 +227,31 @@ public final class AcompanhamentoViewModel {
                 }
             }
         }
+    }
+
+    public func carregarRecusasDaFila(para turnoID: UUID? = nil) async {
+        guard let fila else { return }
+        let todas = (try? await fila.recusadas()) ?? []
+        if let turnoID {
+            recusasDaFila = todas.filter { $0.turnoID == turnoID }
+        } else {
+            recusasDaFila = todas
+        }
+    }
+
+    public func fecharAvisoDaFila(id: UUID) async {
+        guard let fila else { return }
+        do {
+            try await fila.reconhecerRecusa(id: id)
+            recusasDaFila.removeAll { $0.id == id }
+        } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
+    }
+
+    public func carregarDaFila(para turnoID: UUID? = nil) async {
+        await lerCancelamentosNaFila()
+        await carregarIdentidadeEEAvaliacoes()
+        await carregarRecusasDaFila(para: turnoID)
+        await lerPainel(registrandoFalha: false)
     }
 
     /// Lê o painel e só o aplica se nenhuma ação respondeu enquanto a leitura estava em voo. Uma

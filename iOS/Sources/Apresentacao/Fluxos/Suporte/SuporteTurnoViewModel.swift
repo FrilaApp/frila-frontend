@@ -109,6 +109,7 @@ public final class SuporteTurnoViewModel: Identifiable {
     public var motivo: MotivoSuporteTurno
     public var relato: String
     public private(set) var copiadoComSucesso: Bool = false
+    public private(set) var falhaAoAbrirEmail: Bool = false
     public var mostrandoCompositorNativo: Bool = false
 
     private let verificadorPodeEnviarEmail: (@Sendable () -> Bool)?
@@ -212,14 +213,36 @@ public final class SuporteTurnoViewModel: Identifiable {
         mostrandoCompositorNativo = false
     }
 
+    /// Registra que a tentativa de abertura do e-mail não teve sucesso pelo sistema.
+    public func registrarFalhaAoAbrirEmail() {
+        falhaAoAbrirEmail = true
+    }
+
     /// Aciona a abertura de e-mail: se nativo disponível, abre compositor; senão, dispara URL mailto.
     public func abrirEmail(comAbridorURL abrirURL: ((URL) -> Void)? = nil) {
+        falhaAoAbrirEmail = false
         if podeEnviarEmailNativo {
             mostrandoCompositorNativo = true
         } else if let url = urlMailto, let abrirURL {
             abrirURL(url)
         } else {
-            copiarDadosParaTransferencia()
+            falhaAoAbrirEmail = true
+        }
+    }
+
+    /// Aciona a abertura de e-mail recebendo o retorno da tentativa do sistema.
+    public func abrirEmail(comAbridorComResultado abrirURL: ((URL, @escaping (Bool) -> Void) -> Void)?) {
+        falhaAoAbrirEmail = false
+        if podeEnviarEmailNativo {
+            mostrandoCompositorNativo = true
+        } else if let url = urlMailto, let abrirURL {
+            abrirURL(url) { [weak self] aceito in
+                if !aceito {
+                    self?.falhaAoAbrirEmail = true
+                }
+            }
+        } else {
+            falhaAoAbrirEmail = true
         }
     }
 }

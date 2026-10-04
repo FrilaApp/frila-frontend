@@ -240,4 +240,35 @@ struct SuporteTurnoTests {
         vm.abrirEmail()
         #expect(vm.mostrandoCompositorNativo)
     }
+
+    @Test("Quando a abertura do mailto falha por falta de cliente de e-mail, registra falha para aviso na tela")
+    func falhaAoAbrirEmailRegistrada() {
+        let vm = SuporteTurnoViewModel(
+            dados: criarContextoExemplo(),
+            verificadorPodeEnviarEmail: { false }
+        )
+        #expect(!vm.podeEnviarEmailNativo)
+        #expect(!vm.falhaAoAbrirEmail)
+
+        vm.abrirEmail(comAbridorComResultado: { _, completion in
+            completion(false)
+        })
+
+        #expect(vm.falhaAoAbrirEmail)
+        #expect(!vm.mostrandoCompositorNativo)
+    }
+
+    @Test("Quando a abertura do mailto é aceita pelo sistema, não registra falha de e-mail")
+    func sucessoAoAbrirEmailNaoRegistraFalha() {
+        let vm = SuporteTurnoViewModel(
+            dados: criarContextoExemplo(),
+            verificadorPodeEnviarEmail: { false }
+        )
+        vm.abrirEmail(comAbridorComResultado: { _, completion in
+            completion(true)
+        })
+
+        #expect(!vm.falhaAoAbrirEmail)
+    }
 }
+

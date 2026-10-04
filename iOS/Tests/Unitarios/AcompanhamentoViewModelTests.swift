@@ -992,4 +992,105 @@ struct AvaliacaoDoContratanteTests {
         #expect(segundo.resposta == false)
         #expect(try #require(vm.criarAvaliacaoViewModel(para: outro)) !== primeiro)
     }
+
+    @Test("Avaliação do contratante sem conta inicial recupera identidade e libera o view model de avaliação")
+    func avaliacaoSemContaInicialRecuperaIdentidade() async throws {
+        let api = ApiClienteEmMemoria(cenario: .painelContratante)
+        let vm = AcompanhamentoViewModel(
+            api: api,
+            estabelecimentoID: PainelDeTeste.casa,
+            agora: { agora },
+            contaID: nil
+        )
+        let turno = try turnoEncerrado(estado: .cumprida)
+        #expect(vm.podeAvaliar(turno))
+        #expect(vm.criarAvaliacaoViewModel(para: turno) == nil)
+
+        await vm.carregarIdentidadeEEAvaliacoes()
+        #expect(vm.contaID != nil)
+        #expect(vm.criarAvaliacaoViewModel(para: turno) != nil)
+    }
+
+    @Test("Atualização da fila offline no turno do contratante recarrega cancelamentos e recusas")
+    func atualizacaoDaFilaRecarregaCancelamentosERecusas() async throws {
+        let fila = FilaDeTesteAcompanhamento()
+        let turno = try turnoEncerrado(estado: .confirmada, fimHaHoras: -2)
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { Painel(estabelecimentoID: PainelDeTeste.casa, vagas: [VagaNoPainel(vaga: turno.vaga, modo: .urgencia, estado: .publicada, alertaVagaVazia: false, candidatosPendentes: 0, posicoes: [turno.posicao])], checkinsPendentes: []) },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            fila: fila,
+            api: ApiClienteAvaliarMock(),
+            contaID: contaID,
+            armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria()
+        )
+        await vm.carregar()
+        #expect(vm.podeCancelar(turno))
+        #expect(vm.recusasDaFila.isEmpty)
+
+        let acaoCancelamento = AcaoPendente(
+            id: UUID(),
+            tipo: .cancelamentoPosicao,
+            turnoID: turno.posicao.turnoID,
+            instanteDoToque: agora,
+            chave: UUID(),
+            alvoID: turno.posicao.id
+        )
+        try await fila.enfileirar(acaoCancelamento)
+
+        let acaoRecusada = AcaoPendente(id: UUID(), tipo: .avaliacao, turnoID: turno.posicao.turnoID, instanteDoToque: agora, chave: UUID())
+        try await fila.recusar(acaoRecusada, codigo: .campoInvalido)
+
+        #expect(vm.podeCancelar(turno))
+        #expect(vm.recusasDaFila.isEmpty)
+
+        await vm.carregarDaFila(para: turno.posicao.turnoID)
+
+        #expect(!vm.podeCancelar(turno))
+        #expect(!vm.recusasDaFila.isEmpty)
+
+        if let recusa = vm.recusasDaFila.first {
+            await vm.fecharAvisoDaFila(id: recusa.id)
+            #expect(vm.recusasDaFila.isEmpty)
+        }
+    }
 }
+
+private final class FilaDeTesteAcompanhamento: FilaDeAcoes, @unchecked Sendable {
+    private let trava = NSLock()
+    private var itens: [AcaoPendente] = []
+    private var recusadasLista: [AcaoRecusada] = []
+
+    func enfileirar(_ acao: AcaoPendente) async throws {
+        trava.withLock { itens.append(acao) }
+    }
+
+    func pendentes() async throws -> [AcaoPendente] {
+        trava.withLock { itens }
+    }
+
+    func remover(id: UUID) async throws {
+        trava.withLock { itens.removeAll { $0.id == id } }
+    }
+
+    func limpar() async throws {
+        trava.withLock { itens.removeAll() }
+    }
+
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {
+        try await remover(id: acao.id)
+        trava.withLock {
+            recusadasLista.append(AcaoRecusada(acao: acao, codigo: codigo))
+        }
+    }
+
+    func recusadas() async throws -> [AcaoRecusada] {
+        trava.withLock { recusadasLista }
+    }
+
+    func reconhecerRecusa(id: UUID) async throws {
+        trava.withLock { recusadasLista.removeAll { $0.id == id } }
+    }
+}
+
