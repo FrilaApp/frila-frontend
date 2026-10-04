@@ -16,6 +16,7 @@ public final class AjudanteDeLancamentoUITests: NSObject, XCTestObservation {
 
     /// Configura o aplicativo para testes de interface, adicionando `-FRILA_SEM_ANIMACOES`
     /// caso não seja teste de medição (-FRILA_MEDICAO).
+    @MainActor
     public static func preparar(_ app: XCUIApplication) {
         if !app.launchArguments.contains("-FRILA_MEDICAO") &&
            !app.launchArguments.contains(argumentoSemAnimacoes) {

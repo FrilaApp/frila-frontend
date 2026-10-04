@@ -316,6 +316,7 @@ final class AutenticacaoUITests: XCTestCase {
     func testFluxoCompletoPrimeiroAcessoAteVagas() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso", "-FRILA_BUSCA_PERFIL_UI_TEST"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         let email = app.textFields["entrada-email"]
@@ -431,6 +432,7 @@ final class AutenticacaoUITests: XCTestCase {
     }
 
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        if elemento.isHittable { return }
         for _ in 0..<6 {
             if elemento.isHittable { return }
             let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
@@ -857,6 +859,7 @@ extension XCUIElement {
     /// "Informe um e-mail válido." e a tela do código nunca abria.
     func digitarEEsperar(_ texto: String, file: StaticString = #filePath, line: UInt = #line) {
         typeText(texto)
+        if (value as? String) == texto { return }
         let completo = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", texto), object: self)
         XCTAssertEqual(
             XCTWaiter.wait(for: [completo], timeout: 10), .completed,

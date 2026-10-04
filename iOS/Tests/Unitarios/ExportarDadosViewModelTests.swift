@@ -79,6 +79,31 @@ struct ExportarDadosViewModelTests {
         vm.folhaCompartilhamentoFechada()
     }
 
+    @Test("Arquivo exportado fica na classe de proteção completa: cifrado com o aparelho bloqueado")
+    func arquivoExportadoTemProtecaoCompleta() async throws {
+        let duble = DubleApiExportar()
+        let relogio = RelogioFixo(agora: Date(timeIntervalSince1970: 1_790_000_000))
+        let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorioTeste) }
+
+        let vm = ExportarDadosViewModel(api: duble, relogio: relogio, diretorioTemporario: diretorioTeste)
+        await vm.exportarDados()
+
+        let url = try #require(vm.arquivoParaCompartilhar)
+        let atributos = try FileManager.default.attributesOfItem(atPath: url.path)
+        let classe = atributos[.protectionKey] as? FileProtectionType
+        #if targetEnvironment(simulator)
+        // O simulador não tem proteção de dados e não devolve o atributo; a classe só é observável no
+        // aparelho. A opção de gravação é conferida no código pelo `SegurancaDoCodigoTests`.
+        #expect(classe == nil || classe == .complete)
+        #else
+        #expect(classe == .complete)
+        #endif
+
+        vm.folhaCompartilhamentoFechada()
+    }
+
     @Test("Sem rede: exibe mensagem amigável de conexão e não abre folha de compartilhamento")
     func semRedeExibeMensagemAmigavel() async throws {
         let duble = DubleApiExportar()

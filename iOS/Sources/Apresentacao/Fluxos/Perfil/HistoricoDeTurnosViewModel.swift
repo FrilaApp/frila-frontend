@@ -166,7 +166,9 @@ public final class HistoricoDeTurnosViewModel {
     private func gravar(_ dados: Data, nome: String) throws -> URL {
         let url = diretorioTemporario.appendingPathComponent(nome)
         try? FileManager.default.removeItem(at: url)
-        try dados.write(to: url, options: .atomic)
+        // Endereços, nomes e valores dos turnos: cifrado com o aparelho bloqueado, como o JSON de
+        // "meus dados" (auditoria de 03/10/2026, A3).
+        try dados.write(to: url, options: [.atomic, .completeFileProtection])
         return url
     }
 }

@@ -25,11 +25,11 @@ final class ServidorDeHojeUITests: XCTestCase {
 
     private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
-        let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
-        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-        // 10 s, como a espera da existência e no TurnoContrato0231UITests: no runner lento da CI
-        // a transição de telas pode demorar mais que os 5 s.
-        XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 10), .completed, file: file, line: line)
+        if !elemento.isHittable || !elemento.isEnabled {
+            let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
+            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
+            XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 5), .completed, file: file, line: line)
+        }
         elemento.tap()
     }
 
