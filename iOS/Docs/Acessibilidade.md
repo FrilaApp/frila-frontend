@@ -236,6 +236,9 @@ do job. Ela só roda com `FRILA_AUDITORIA_DE_ACESSIBILIDADE=1` no ambiente do te
 passadas): 533 s, 512 s e 513 s só de testes, fora a compilação, ou seja, cerca de 9 minutos.
 
 ```sh
+# antes de rodar, se o projeto ainda não foi gerado nesta pasta/branch:
+Scripts/gerar-projeto.sh  # gera o Frila.xcodeproj via XcodeGen e restaura o Package.resolved versionado
+
 # as três passadas (padrão + AX5 e Reduzir Movimento), com os result bundles numa pasta
 Scripts/auditoria-de-acessibilidade.sh <UDID> [pasta]
 
