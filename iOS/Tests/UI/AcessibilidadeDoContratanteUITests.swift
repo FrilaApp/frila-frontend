@@ -223,4 +223,112 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             if direcao == .nenhuma { break }
         }
     }
+
+    // MARK: - 4. Avaliação do Profissional pelo Contratante (#22)
+
+    func testAvaliacaoDoProfissionalPeloContratanteTamanhoPadrao() {
+        let app = abrir(argumentos: [
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "ciclo-contratante-turno-concluido"
+        ])
+
+        let minhasVagas = app.descendants(matching: .any)["minhas-vagas"]
+        XCTAssertTrue(minhasVagas.waitForExistence(timeout: 15))
+
+        let vaga = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
+        XCTAssertTrue(vaga.waitForExistence(timeout: 10))
+        trazerParaATela(vaga, em: app)
+        vaga.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10))
+
+        let acompanhar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'acompanhar-turno-'")).firstMatch
+        XCTAssertTrue(acompanhar.waitForExistence(timeout: 10))
+        acompanhar.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 10))
+
+        let cartaoAvaliacao = app.descendants(matching: .any)["cartao-avaliacao-turno"]
+        trazerParaATela(cartaoAvaliacao, em: app)
+        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 10))
+
+        salvarCaptura(app.screenshot(), nome: "01-entrada-turno-contratante-se.png")
+
+        let botaoAvaliar = app.buttons["botao-abrir-avaliacao"]
+        let botaoAlternativo = app.buttons["Avaliar turno"]
+        let botaoEfetivo = botaoAvaliar.exists ? botaoAvaliar : botaoAlternativo
+        XCTAssertTrue(botaoEfetivo.waitForExistence(timeout: 10))
+        botaoEfetivo.tap()
+
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
+        let pergunta = app.staticTexts["pergunta-avaliacao"]
+        XCTAssertTrue(pergunta.waitForExistence(timeout: 10))
+        XCTAssertEqual(pergunta.label, "Chamaria este profissional de novo?")
+
+        let sim = app.buttons["resposta-sim"]
+        let nao = app.buttons["resposta-nao"]
+        XCTAssertTrue(sim.waitForExistence(timeout: 5))
+        XCTAssertTrue(nao.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(sim.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(nao.frame.height, 44)
+
+        salvarCaptura(app.screenshot(), nome: "02-avaliacao-contratante-padrao-se.png")
+    }
+
+    func testAvaliacaoDoProfissionalPeloContratanteAX5() {
+        let app = abrir(argumentos: [
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "ciclo-contratante-turno-concluido",
+            "-UIPreferredContentSizeCategoryName", Self.ax5
+        ])
+
+        let minhasVagas = app.descendants(matching: .any)["minhas-vagas"]
+        XCTAssertTrue(minhasVagas.waitForExistence(timeout: 15))
+
+        let vaga = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
+        XCTAssertTrue(vaga.waitForExistence(timeout: 10))
+        trazerParaATela(vaga, em: app)
+        vaga.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10))
+
+        let acompanhar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'acompanhar-turno-'")).firstMatch
+        XCTAssertTrue(acompanhar.waitForExistence(timeout: 10))
+        acompanhar.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 10))
+
+        let cartaoAvaliacao = app.descendants(matching: .any)["cartao-avaliacao-turno"]
+        trazerParaATela(cartaoAvaliacao, em: app)
+        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 10))
+
+        let botaoAvaliar = app.buttons["botao-abrir-avaliacao"]
+        let botaoAlternativo = app.buttons["Avaliar turno"]
+        let botaoEfetivo = botaoAvaliar.exists ? botaoAvaliar : botaoAlternativo
+        XCTAssertTrue(botaoEfetivo.waitForExistence(timeout: 10))
+        botaoEfetivo.tap()
+
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
+        let pergunta = app.staticTexts["pergunta-avaliacao"]
+        XCTAssertTrue(pergunta.waitForExistence(timeout: 10))
+        XCTAssertEqual(pergunta.label, "Chamaria este profissional de novo?")
+
+        let sim = app.buttons["resposta-sim"]
+        let nao = app.buttons["resposta-nao"]
+        XCTAssertTrue(sim.waitForExistence(timeout: 5))
+        XCTAssertTrue(nao.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(sim.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(nao.frame.height, 44)
+
+        salvarCaptura(app.screenshot(), nome: "03-avaliacao-contratante-ax5-se.png")
+    }
+
+    private func salvarCaptura(_ screenshot: XCUIScreenshot, nome: String) {
+        let anexo = XCTAttachment(screenshot: screenshot)
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+        let caminho = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/thor/capturas/\(nome)"
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: caminho))
+    }
 }
