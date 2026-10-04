@@ -2,6 +2,7 @@ import Foundation
 @testable import FrilaApresentacao
 import FrilaDados
 import FrilaDominio
+import SwiftUI
 import Testing
 
 private struct ErroQualquer: Error {}
@@ -195,5 +196,78 @@ struct TelasDoProfissionalBordasTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
         #expect(vm.arquivoParaCompartilhar == nil)
         #expect(!vm.mostrarFolhaCompartilhamento)
+    }
+}
+
+// MARK: - Dado extremo vindo do servidor (robustez antes do TestFlight)
+
+/// Textos que o servidor pode mandar e que o dublê não tem: relato de 2.000 caracteres, nome com
+/// emoji composto (ZWJ) e com escrita da direita para a esquerda, nome vazio. Cada cartão é
+/// renderizado de verdade (`ImageRenderer`): o teste pega o que derruba o layout, não só o modelo.
+private enum DadoExtremo {
+    static let longo = String(repeating: "Relato longo do turno, com acento, ç e emoji 🧑‍🍳. ", count: 40) // > 2.000 caracteres
+    static let emojiERTL = "🧑🏽‍🍳👩🏿‍🍳 مطعم الأصيل · בית קפה · Bistrô Ipê 🇧🇷"
+    static let vazio = ""
+    static let casos = [longo, emojiERTL, vazio]
+}
+
+@Suite("Cartões com dado extremo do servidor: texto longo, emoji, RTL e vazio") @MainActor
+struct CartoesComDadoExtremoTests {
+    private func renderiza(_ view: some View) -> Bool {
+        let renderizador = ImageRenderer(content: view.frame(width: 390))
+        renderizador.scale = 1
+        return renderizador.uiImage != nil
+    }
+
+    @Test("Cartão de vaga renderiza com função, local e nome do estabelecimento extremos", arguments: DadoExtremo.casos)
+    func cartaoDeVaga(texto: String) async throws {
+        let base = try #require(try await ApiClienteEmMemoria().vagasAbertas(.todas).first)
+        let vaga = VagaNaLista(
+            id: base.id,
+            funcao: Funcao(id: base.funcao.id, nome: texto, categoria: texto),
+            estabelecimento: PerfilPublico(id: base.estabelecimento.id, tipo: .estabelecimento, nome: texto, funcoes: [texto],
+                                           reputacao: Reputacao(positivas: 7, total: 3, taxaComparecimento: -1, turnosConsiderados: 1, turnosRealizados: 9)),
+            periodo: base.periodo, local: texto, regiaoAdministrativa: texto, distanciaKm: 12345.678,
+            valor: Dinheiro(centavos: 999_999_999_99), posicoesAbertas: 200, inclusos: base.inclusos, modo: base.modo
+        )
+        #expect(renderiza(CartaoVaga(vaga)))
+        #expect(!CartaoVaga(vaga).rotuloDeAcessibilidade.isEmpty)
+    }
+
+    @Test("Cartão de meu turno e cartão de candidatura renderizam com textos extremos", arguments: DadoExtremo.casos)
+    func cartoesDeTurnoECandidatura(texto: String) throws {
+        let inicio = Date(timeIntervalSince1970: 1_791_000_000)
+        let vaga = VagaResumo(id: UUID(), funcao: texto, local: texto, regiaoAdministrativa: texto,
+                              periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(6 * 3600)), valor: Dinheiro(centavos: 1))
+        let contraparte = PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: texto, funcoes: [],
+                                        reputacao: Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0))
+        let whatsapp = try #require(URL(string: "https://wa.me/5561999990000"))
+        let turno = Turno(
+            id: UUID(), posicaoID: UUID(), vaga: vaga, contraparte: contraparte, contatoVisivelAte: inicio.addingTimeInterval(7 * 86_400),
+            verificacao: .pendente, valorAcordado: Dinheiro(centavos: 1), podeAvaliar: true,
+            contato: Contato(nome: texto, telefone: texto, whatsappURL: whatsapp, visivelAte: inicio.addingTimeInterval(7 * 86_400)),
+            estado: .cancelada, cancelamento: CancelamentoDoTurno(causa: .outro, falta: true, canceladaEm: inicio)
+        )
+        #expect(renderiza(CartaoMeuTurno(turno: turno)))
+        let candidatura = Candidatura(id: UUID(), vaga: vaga, estado: .aceita, criadaEm: inicio, turnoID: turno.id)
+        #expect(renderiza(CartaoDaCandidatura(candidatura: candidatura, turno: turno)))
+    }
+
+    @Test("Selo de reputação e aviso renderizam com números incoerentes e texto de 2.000 caracteres")
+    func seloEAviso() {
+        #expect(renderiza(SeloReputacao(Reputacao(positivas: 7, total: 3, taxaComparecimento: 2.5, turnosConsiderados: -1, turnosRealizados: Int.max))))
+        #expect(renderiza(SeloReputacao(Reputacao(positivas: Int.max, total: Int.max, taxaComparecimento: .nan, turnosConsiderados: 1, turnosRealizados: 1))))
+        #expect(renderiza(AvisoFrila(verbatim: DadoExtremo.longo, tom: .erro)))
+        #expect(renderiza(AvisoFrila(verbatim: DadoExtremo.emojiERTL, tom: .alerta)))
+    }
+
+    @Test("Formatador aguenta valor e distância extremos e instante distante")
+    func formatador() {
+        let formatador = FormatadorFrila()
+        #expect(!formatador.dinheiro(Dinheiro(centavos: Int.max)).isEmpty)
+        #expect(!formatador.distancia(.infinity).isEmpty)
+        #expect(!formatador.distancia(.nan).isEmpty)
+        #expect(!formatador.dataEHora(.distantFuture).isEmpty)
+        #expect(!formatador.hora(.distantPast).isEmpty)
     }
 }
