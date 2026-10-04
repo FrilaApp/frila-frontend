@@ -77,13 +77,9 @@ com o dublê `sem-rede`, que recusa toda chamada:
 - **Funciona sem rede:**
   - Meus turnos, com o aviso de que a lista veio do cache;
   - o turno aberto;
+  - o contato do turno e o botão de abrir conversa no WhatsApp, preservados no cache local (`ArmazenamentoSwiftData`, `ContatoDoTurnoPersistido`) até o prazo de expiração da RN10 (#133);
   - o check-in, que sai manual (sem o ponto da vaga não há distância) e fica na fila, com o aviso
     de que será enviado quando a internet voltar.
-- **Ainda não funciona:** o contato do turno. O `meus_turnos` não traz o contato (contrato 0.2.8,
-  de propósito: o prazo da RN10 fica em `contato_do_turno`), e o app não grava no cache o contato
-  que recebe de `contato_do_turno` nem o da confirmação. Sem rede, o cartão diz que o contato foi
-  encerrado. O teste marca essa asserção com `XCTExpectFailure` estrito: quando a correção entrar,
-  ele reprova até a expectativa sair.
 
 ## Onde a medição existe
 
