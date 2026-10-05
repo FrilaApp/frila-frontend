@@ -19,6 +19,9 @@ concurrency:
   group: ios-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  TEST_RUNNER_CI: "true"
+
 jobs:
   builds:
     name: Testes unitários e builds Dev e Prod
