@@ -13,6 +13,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case funcaoIncompativel = "funcao-incompativel"
         case semRede = "sem-rede"
         case contaSuspensa = "conta-suspensa"
+        /// Contestação já respondida: conserva o protocolo original com prazo passado (0.2.36).
+        case contestacaoRespondida = "contestacao-respondida"
         /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
         /// backend e que não é falta de rede nem de ponto de referência (estado de erro do #104).
         case erroNaLista = "erro-na-lista"
@@ -225,9 +227,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var confirmacoesDeCheckin: [UUID: Date] = [:]
     /// Detalhe do cancelamento por posição (contrato 0.2.31).
     private var cancelamentosPorPosicao: [UUID: CancelamentoDaPosicao] = [:]
+    /// Resultado e autor original: só o mesmo autor pode repetir sem efeitos (0.2.35).
+    private var resultadosDeCancelamento: [UUID: (autor: UUID, resultado: ResultadoCancelamento)] = [:]
+    private var vagasCanceladas: [UUID: (autor: UUID, resultado: VagaCancelada)] = [:]
     private var denunciasPorChave: [UUID: Protocolo] = [:]
     private var bloqueios: [Alvo: Bloqueio] = [:]
-    /// Só no cenário `contaSuspensa`.
+    /// Suspensão dos cenários de conta suspensa e contestação respondida.
     private var suspensao: Suspensao?
     /// A equipe de confiança de cada estabelecimento, como a tabela `equipe_confianca`: os ids dos
     /// profissionais, do incluído mais recente para o mais antigo. Na conta de profissional, ele
@@ -295,14 +300,19 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     disponibilidades: perfil.disponibilidades, reputacao: perfil.reputacao
                 )
             }
-            if cenario == .contaSuspensa, let ativa = conta {
+            if (cenario == .contaSuspensa || cenario == .contestacaoRespondida), let ativa = conta {
                 conta = Conta(
                     id: ativa.id, perfil: ativa.perfil, nome: ativa.nome, telefone: ativa.telefone, email: ativa.email,
                     nascimento: ativa.nascimento, estado: .suspensa
                 )
                 suspensao = Suspensao(
                     motivo: "Denúncia grave confirmada pela Equipe Frila",
-                    desde: relogio.agora.addingTimeInterval(-2 * 24 * 60 * 60), contestacao: nil
+                    desde: relogio.agora.addingTimeInterval(-20 * 24 * 60 * 60),
+                    contestacao: cenario == .contestacaoRespondida ? Protocolo(
+                        ocorrenciaID: UUID(uuidString: "11111111-2222-3333-4444-555555555555")!,
+                        tipo: .contestacao, criadaEm: relogio.agora.addingTimeInterval(-10 * 86400),
+                        prazoRespostaAte: DataCivil.deSaoPaulo(relogio.agora, somandoDias: -3)!
+                    ) : nil
                 )
             }
             estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
@@ -1429,8 +1439,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// Segue `cancelar_posicao` do backend (`20260926060100_exigir_conta_ativa_escrita.sql` e
     /// `privado.cancelar_uma_posicao`): motivo com menos de 3 caracteres é `422 campo_obrigatorio`;
-    /// posição que não existe, `404`; a que não está confirmada, `409 posicao_nao_cancelavel`; antes
-    /// do início a vaga ganha uma posição nova, depois dele o turno fica descoberto. Quem cancela é
+    /// posição que não existe, `404`; aberta, cumprida ou com check-in, `409 posicao_nao_cancelavel`.
+    /// Antes do início a vaga ganha uma posição nova; depois, sem check-in, o turno fica descoberto.
+    /// Repetir pelo mesmo autor devolve o resultado
+    /// original, sem repetir efeitos (0.2.35). Quem cancela é
     /// a conta do dublê: com perfil de profissional é o profissional da posição, e a menos de 24 h
     /// do início leva falta; com perfil de contratante é a casa, sem falta. O filtro de termos da
     /// diretriz 1.2 (`422 campo_invalido`, `motivo`) não é modelado.
@@ -1438,21 +1450,31 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarFalhaGeral()
         if cenario == .cancelarSemRede { throw ErroDaApi(codigo: .semRede) }
         try validarMotivo(motivo)
+        if let original = resultadosDeCancelamento[id], original.autor == conta?.id {
+            return original.resultado
+        }
         guard let indice = turnos.firstIndex(where: { $0.posicaoID == id }) else {
             throw erro(conhecidaSemTurno(id) ? "posicao_nao_cancelavel" : "nao_encontrado")
         }
         let agora = relogio.agora
-        let inicio = turnos[indice].vaga.periodo.inicio
+        let turno = turnos[indice]
+        let inicio = turno.vaga.periodo.inicio
+        guard turno.estado != .cumprida, checkins[turno.id] == nil, turno.checkin == nil else {
+            throw erro("posicao_nao_cancelavel")
+        }
         let peloProfissional = conta?.perfil == .profissional
         let causa: CausaDoCancelamento = peloProfissional ? .profissional : .estabelecimento
-        return cancelarTurno(
+        let resultado = cancelarTurno(
             em: indice, falta: peloProfissional && inicio.timeIntervalSince(agora) < 24 * 60 * 60, reabrir: inicio > agora,
             causa: causa, motivo: motivo
         )
+        if let autor = conta?.id { resultadosDeCancelamento[id] = (autor, resultado) }
+        return resultado
     }
 
     /// Segue `cancelar_vaga` do backend (`20260925020000_cancelamentos.sql`): vaga que não existe
-    /// ou de outra casa é `404`; a já cancelada ou encerrada, `409 vaga_encerrada`; as posições
+    /// ou de outra casa é `404`; iniciada, encerrada ou cancelada por outro autor é `409 vaga_encerrada`.
+    /// Repetir pelo mesmo autor devolve o resultado original, sem efeitos novos (0.2.35). As posições
     /// confirmadas caem sem falta e sem reabertura, e as abertas, junto. O `422 perfil_incompativel`
     /// da conta de profissional não é modelado: o dublê não cobra RN25 fora dos cadastros.
     public func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada {
@@ -1461,7 +1483,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard let indice = vagas.firstIndex(where: { $0.id == id }),
               estabelecimentos.contains(where: { $0.id == vagas[indice].estabelecimento.id }) else { throw erro("nao_encontrado") }
         let vaga = vagas[indice]
-        guard vaga.estado != .cancelada, vaga.estado != .encerrada else { throw erro("vaga_encerrada") }
+        if let original = vagasCanceladas[id], original.autor == conta?.id { return original.resultado }
+        guard vaga.estado != .cancelada, vaga.estado != .encerrada,
+              vaga.periodo.inicio > relogio.agora else { throw erro("vaga_encerrada") }
         var confirmadas = 0
         while let turno = turnos.firstIndex(where: { $0.vaga.id == id }) {
             _ = cancelarTurno(em: turno, falta: false, reabrir: false, causa: .estabelecimento, motivo: motivo)
@@ -1473,7 +1497,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         posicoesAbertasDoPainel[id] = nil
         expirarPendentes(da: id)
         vagas[indice] = Self.copia(vaga, posicoesAbertas: 0, estado: .cancelada)
-        return VagaCancelada(vagaID: id, estado: .cancelada, posicoesCanceladas: vaga.posicoesAbertas + confirmadas)
+        let resultado = VagaCancelada(vagaID: id, estado: .cancelada, posicoesCanceladas: vaga.posicoesAbertas + confirmadas)
+        if let autor = conta?.id { vagasCanceladas[id] = (autor, resultado) }
+        return resultado
     }
 
     // MARK: Confiança e direitos
@@ -1527,8 +1553,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Segue `contestar_suspensao` do backend (`20261001100000_suspensao_da_conta.sql`), na ordem
     /// dele: sem suspensão é `422 sem_suspensao_ativa`; relato em branco, `422 campo_obrigatorio`; com
     /// menos de 10 caracteres, `422 campo_invalido`; contestação já feita, `409 contestacao_ja_aberta`.
-    /// No backend o 409 vale também para a contestação já resolvida, que `situacao_da_conta` não
-    /// mostra; o dublê não resolve contestação, então nele as duas leituras coincidem.
+    /// O 409 vale também para a contestação já respondida. `situacao_da_conta` mantém o protocolo
+    /// nos dois casos, sem expor o resultado da análise (0.2.36).
     public func contestarSuspensao(relato: String) async throws -> Protocolo {
         try verificarRede()
         guard conta != nil else { throw erro("nao_autenticado") }
@@ -1857,7 +1883,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// Posição que o dublê conhece e que não tem turno confirmado: já cancelada, ou aberta por uma reabertura.
     private func conhecidaSemTurno(_ posicaoID: UUID) -> Bool {
-        turnosCancelados.contains { $0.posicaoID == posicaoID } || posicoesReabertas.values.contains { $0.contains(posicaoID) }
+        turnosCancelados.contains { $0.posicaoID == posicaoID }
+            || posicoesReabertas.values.contains { $0.contains(posicaoID) }
+            || posicoesAbertasDoPainel.values.contains { $0.contains(posicaoID) }
+            || posicoesFechadas.values.contains { $0.contains(posicaoID) }
     }
 
     private func validarMotivo(_ motivo: String) throws {
@@ -1936,7 +1965,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     private func verificarFalhaGeral() throws {
         try verificarRede()
-        if cenario == .contaSuspensa { throw erro("sem_permissao", detalhes: "conta_suspensa") }
+        if cenario == .contaSuspensa || cenario == .contestacaoRespondida { throw erro("sem_permissao", detalhes: "conta_suspensa") }
     }
 
     /// Erro montado a partir do envelope em `erros.json`, como o cliente real recebe.
@@ -2060,6 +2089,11 @@ extension ApiClienteEmMemoria: ExclusaoDeContaPorta {
     }
 
     // MARK: - Suporte a cenários de teste da suspensão (#41)
+
+    /// Troca o autor sem alterar posições e vagas, para conferir o reenvio por outra parte/membro.
+    public func definirContaParaTeste(_ novaConta: Conta) {
+        conta = novaConta
+    }
 
     public func reativarConta() {
         if let contaAtual = conta {

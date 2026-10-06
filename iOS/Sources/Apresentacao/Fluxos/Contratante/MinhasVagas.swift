@@ -538,6 +538,12 @@ private struct TelaDetalheVagaContratante: View {
                 }
                 if let acompanhamento {
                     AvisosDoAcompanhamento(viewModel: acompanhamento)
+                    ForEach(acompanhamento.recusasDaFila.filter { $0.tipo == .cancelamentoVaga && $0.vagaID == vaga.vaga.id }) { recusa in
+                        AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
+                            .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                        BotaoSecundario("Fechar") { Task { await acompanhamento.fecharAvisoDaFila(id: recusa.id) } }
+                            .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                    }
                 }
                 Text(verbatim: vaga.vaga.funcao).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -611,6 +617,10 @@ private struct TelaDetalheVagaContratante: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $perfilSelecionado) { perfil in
             TelaPerfilPublico(perfil: perfil, api: api, bloqueios: bloqueios)
+        }
+        .task { await acompanhamento?.carregarRecusasDaFila() }
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await acompanhamento?.carregarRecusasDaFila() }
         }
         .accessibilityIdentifier("detalhe-vaga-contratante")
     }

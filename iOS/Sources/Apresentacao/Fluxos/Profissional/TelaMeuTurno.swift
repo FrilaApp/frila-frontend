@@ -23,7 +23,7 @@ public struct TelaMeuTurno: View {
                 cabecalho
                 cartaoTurno
                 ForEach(viewModel.recusasDaFila) { recusa in
-                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                    AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
                         .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
                     BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila(id: recusa.id) } }
                         .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")

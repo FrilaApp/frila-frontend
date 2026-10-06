@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "O acesso aos serviços do Frila está suspenso.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O acesso aos serviços do Frila está suspenso."
+          }
+        }
+      }
+    },
+    "A resposta da Equipe Frila é enviada por e-mail. Para qualquer recurso adicional, escreva para %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta da Equipe Frila é enviada por e-mail. Para qualquer recurso adicional, escreva para %@."
+          }
+        }
+      }
+    },
     "Bloquear este perfil?": {
       "localizations": {
         "pt-BR": {

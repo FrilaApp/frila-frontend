@@ -102,12 +102,12 @@ struct ContaSuspensaViewModelTests {
         }
     }
 
-    @Test("Cenário 3b: 409 mesmo com contestação == nil (contestação anterior já resolvida no backend)")
+    @Test("Cenário 3b: 409 bloqueia reenvio mesmo se a releitura não devolver protocolo")
     func contestacao409MesmoSemProtocoloAberto() async throws {
         let situacaoSemProtocolo = SituacaoDaConta(
             estado: .suspensa,
             suspensao: Suspensao(
-                motivo: "Suspensão com contestação passada já encerrada",
+                motivo: "Suspensão sem protocolo na releitura",
                 desde: Date(),
                 contestacao: nil
             )
@@ -240,6 +240,7 @@ struct ContaSuspensaViewModelTests {
 
         let vm = ContaSuspensaViewModel(
             situacao: situacaoComContestacao,
+            relogio: RelogioFixo(agora: Date(timeIntervalSince1970: 1_791_288_000)),
             obterSituacao: { situacaoComContestacao },
             enviarContestacaoAcao: { _ in throw ErroDaApi(codigo: .contestacaoJaAberta) }
         )
@@ -307,5 +308,67 @@ struct ContaSuspensaViewModelTests {
         #expect(vm.mensagemErro == TextosContaSuspensa.erroGenerico)
         #expect(vm.protocolo == nil)
     }
+    @Test("409 relê a suspensão e mostra o protocolo original sem erro genérico")
+    func conflitoRecarregaProtocolo() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        let vm = ContaSuspensaViewModel(api: api)
+        await vm.carregar()
+        let original = try await api.contestarSuspensao(relato: "Contestação enviada em outro aparelho")
+        vm.abrirFormularioContestacao()
+        vm.relato = "Contestação enviada neste aparelho"
+        await vm.enviarContestacao()
+        #expect(vm.protocolo == original)
+        #expect(!vm.podeContestar)
+        #expect(!vm.mostrarFormularioContestacao)
+        #expect(vm.mensagemErro == nil)
+    }
+
+    @Test("Prazo inclui o dia civil de São Paulo e depois usa e-mail, sem liberar nova contestação",
+          arguments: ["2026-10-09T23:59:00-03:00", "2026-10-10T00:00:00-03:00"])
+    func prazoDaContestacao(instante: String) async throws {
+        let agora = try #require(ISO8601DateFormatter().date(from: instante))
+        let protocolo = Protocolo(ocorrenciaID: UUID(), tipo: .contestacao, criadaEm: agora,
+            prazoRespostaAte: try DataCivil("2026-10-09"))
+        let situacao = SituacaoDaConta(estado: .suspensa,
+            suspensao: Suspensao(motivo: "Suspensão", desde: agora, contestacao: protocolo))
+        let enderecos = EnderecosOficiais(termosDeUso: EnderecosOficiais.padrao.termosDeUso,
+            politicaDePrivacidade: EnderecosOficiais.padrao.politicaDePrivacidade, emailSuporte: "suporte@example.org")
+        let vm = ContaSuspensaViewModel(situacao: situacao, relogio: RelogioFixo(agora: agora),
+            enderecos: enderecos, obterSituacao: { situacao },
+            enviarContestacaoAcao: { _ in Issue.record("Não deve enviar nova contestação"); return protocolo })
+        let dentroDoPrazo = instante.hasPrefix("2026-10-09")
+        #expect(vm.emAnalise == dentroDoPrazo)
+        #expect(vm.protocolo == protocolo)
+        #expect(!vm.podeContestar)
+        vm.abrirFormularioContestacao()
+        #expect(!vm.mostrarFormularioContestacao)
+        vm.relato = "Novo recurso válido"
+        await vm.enviarContestacao()
+        if dentroDoPrazo {
+            #expect(vm.mensagemDoProtocolo == TextosContaSuspensa.mensagemEmAnalise)
+        } else {
+            #expect(!vm.mensagemDoProtocolo.contains("em análise"))
+            #expect(vm.mensagemDoProtocolo.contains(enderecos.emailSuporte))
+            #expect(vm.mensagemDoProtocolo.contains("recurso adicional"))
+        }
+    }
+
+    @Test("Contestação respondida conserva protocolo e o dublê recusa nova contestação")
+    func contestacaoRespondida() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contestacaoRespondida)
+        let vm = ContaSuspensaViewModel(api: api)
+        await vm.carregar()
+        #expect(vm.protocolo != nil)
+        #expect(!vm.emAnalise)
+        #expect(!vm.podeContestar)
+        #expect(vm.mensagemDoProtocolo.contains(EnderecosOficiais.padrao.emailSuporte))
+        await #expect(throws: ErroDaApi(codigo: .contestacaoJaAberta)) {
+            try await api.contestarSuspensao(relato: "Quero recorrer novamente")
+        }
+        let protocolo = vm.protocolo
+        await vm.carregar()
+        #expect(vm.protocolo == protocolo)
+    }
+
 }
 
