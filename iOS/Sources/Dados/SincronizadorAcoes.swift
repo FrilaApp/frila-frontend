@@ -79,15 +79,14 @@ public actor SincronizadorAcoes {
                 // A resposta da fila foi recusada: não pode continuar aparecendo como resposta dada.
                 avaliacaoJaRegistrada(acao)
                 try? await fila.remover(id: acao.id)
-            } catch let erro as ErroDaApi where (acao.tipo == .cancelamentoPosicao || acao.tipo == .cancelamentoVaga) && erro.codigo.recusaDefinitivaDeCancelamento {
-                // No reenvio, a posição já cancelada responde `posicaoNaoCancelavel` e a vaga,
-                // `vagaEncerrada`: o cancelamento já está feito, ou nunca será aceito.
-                try? await fila.remover(id: acao.id)
             } catch let erro as ErroDaApi {
                 // Sem o registro persistido, a ação continua para não perder o aviso da recusa.
                 if await recusaDefinitiva(erro, acao: acao) {
                     do {
                         try await fila.recusar(acao, codigo: erro.codigo)
+                        if acao.tipo == .cancelamentoPosicao || acao.tipo == .cancelamentoVaga {
+                            NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)
+                        }
                         if acao.tipo == .avaliacao, try await fila.recusadas(incluirReconhecidas: true).contains(where: { $0.id == acao.id }) {
                             avaliacaoRecusada(acao)
                             // A tela relê a fila depois de limpar a resposta local recusada.
@@ -129,7 +128,8 @@ public actor SincronizadorAcoes {
                 return false
             }
         case .cancelamentoPosicao, .cancelamentoVaga:
-            return false
+            // Reenvio do próprio autor é 200 (0.2.35); 409 é recusa e precisa de aviso.
+            return erro.codigo.recusaDefinitivaDeCancelamento
         }
     }
 }

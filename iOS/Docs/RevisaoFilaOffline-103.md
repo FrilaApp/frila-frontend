@@ -35,3 +35,15 @@ Validação final em 04/10/2026: suíte completa `Frila-Local`, uma rodada pela 
 O Beta de simulador compilou com assinatura e passou em `iOS/Scripts/conferir-release.sh build/Build/Products/Release-Beta-iphonesimulator/Frila.app`; `iOS/Scripts/conferir-textos.sh` e `git diff --check` também passaram. O simulador foi desligado ao final. O projeto foi regenerado após os merges do main (#134 e #135); `.xcodeproj` permanece fora do git.
 
 Comando da suíte: `vez.sh "Homem-Aranha" -- xcodebuild test -project iOS/Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,id=85940BCB-553C-4145-8F8E-E83423D86431' -derivedDataPath build -resultBundlePath evidencias/revisao-loki/suite.xcresult -parallel-testing-enabled NO`. Logs e resumos JSON preservados em `evidencias/revisao-loki/` no worktree.
+
+## Cancelamentos no contrato 0.2.35
+
+O reenvio pelo autor do cancelamento original conclui com `200`, sem repetir efeitos. Um `409
+posicao_nao_cancelavel` ou `vaga_encerrada` recusa a ação da fila: persiste em `AcaoRecusada`,
+com os textos já usados pelo fluxo de cancelamento, e não volta a ser enviado. A recusa da vaga
+conserva seu ID para aparecer no detalhe correto. Fechar o aviso e reconhecer recusas após sucesso
+seguem a política do achado 4. As recusas definitivas de permissão, validação e recurso inexistente
+também conservam aviso; falhas de rede e transitórias permanecem pendentes.
+
+Evidência automatizada: `SincronizadorRecusasTests.cancelamentoRecusado` e `cancelamentoAceito`,
+`CancelamentoPelaApiTests.reenvioDaPosicao`, `reenvioDaVaga` e `outroAutor`.

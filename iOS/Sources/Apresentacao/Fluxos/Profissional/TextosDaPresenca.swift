@@ -71,6 +71,13 @@ extension TextosDoProfissional {
 
 // Textos provisórios para validação pelo Cauê.
 enum TextosDaFila {
+    static func texto(_ recusa: AcaoRecusada) -> String {
+        if recusa.tipo == .cancelamentoPosicao || recusa.tipo == .cancelamentoVaga {
+            return TextosDoCancelamento.falha(ErroDaApi(codigo: recusa.codigo))
+        }
+        return texto(recusa.tipo)
+    }
+
     static func texto(_ tipo: TipoAcaoPendente) -> String {
         switch tipo {
         case .checkin:
@@ -84,7 +91,7 @@ enum TextosDaFila {
         case .avaliacao:
             String(localized: "A avaliação guardada neste aparelho não foi registrada. Você pode tentar novamente quando a avaliação estiver disponível.", bundle: bundleApresentacao)
         case .cancelamentoPosicao, .cancelamentoVaga:
-            "" // O cancelamento trata o desfecho no próprio fluxo.
+            TextosDoCancelamento.falhaGenerica
         }
     }
 }

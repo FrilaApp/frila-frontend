@@ -296,15 +296,15 @@ struct CancelamentoEmMemoriaTests {
         #expect(resultado.reaberta)
     }
 
-    @Test("Depois do início não há reabertura: o turno fica descoberto")
+    @Test("Depois do início a posição recusa cancelamento (0.2.35)")
     func depoisDoInicio() async throws {
         let cena = try await Cena.montar(emHoras: 2, cenario: .contratante)
         cena.relogio.avancar(para: cena.inicio.addingTimeInterval(20 * minuto))
 
-        let resultado = try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
-
-        #expect(resultado == ResultadoCancelamento(posicaoID: cena.posicaoID, falta: false, reaberta: false, novaPosicaoID: nil))
-        #expect(try await cena.vagaNoPainel().posicoes.map(\.estado) == [.cancelada])
+        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
+            try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
+        }
+        #expect(try await cena.posicaoNoPainel().estado == .confirmada)
     }
 
     @Test("Motivo com menos de 3 caracteres é campo_obrigatorio, com o campo no detalhe", arguments: ["", "  ", "ok", " ok "])
@@ -319,17 +319,16 @@ struct CancelamentoEmMemoriaTests {
         #expect(try await cena.posicaoNoPainel().estado == .confirmada)
     }
 
-    @Test("Posição já cancelada ou aberta é posicao_nao_cancelavel; a que não existe, nao_encontrado")
+    @Test("Posição aberta é posicao_nao_cancelavel; reenvio pelo autor é sucesso; inexistente é nao_encontrado")
     func posicaoNaoCancelavel() async throws {
         let cena = try await Cena.montar()
         await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) {
             try await cena.api.cancelarPosicao(id: UUID(), motivo: motivo)
         }
 
-        let nova = try #require(try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo).novaPosicaoID)
-        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
-            try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
-        }
+        let original = try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
+        let nova = try #require(original.novaPosicaoID)
+        #expect(try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo) == original)
         await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
             try await cena.api.cancelarPosicao(id: nova, motivo: motivo)
         }
@@ -349,45 +348,42 @@ struct CancelamentoEmMemoriaTests {
         await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) { try await cena.api.candidatar(vagaID: cena.vagaID) }
     }
 
-    @Test("Cancelar a vaga depois do início cancela o turno em andamento, sem falta, e mantém a presença já verificada")
+    @Test("Cancelar a vaga depois do início responde vaga_encerrada e mantém a presença")
     func cancelarVagaDepoisDoInicio() async throws {
         let cena = try await Cena.montar()
         cena.relogio.avancar(para: cena.inicio)
         _ = try await cena.api.fazerCheckin(turnoID: cena.turnoID, distanciaMetros: 40, registradoEm: cena.inicio)
         cena.relogio.avancar(para: cena.inicio.addingTimeInterval(hora))
 
-        let cancelada = try await cena.api.cancelarVaga(id: cena.vagaID, motivo: motivo)
-
-        #expect(cancelada == VagaCancelada(vagaID: cena.vagaID, estado: .cancelada, posicoesCanceladas: 1))
+        await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) {
+            try await cena.api.cancelarVaga(id: cena.vagaID, motivo: motivo)
+        }
         let posicao = try await cena.posicaoNoPainel()
-        #expect(posicao.estado == .cancelada)
+        #expect(posicao.estado == .confirmada)
         #expect(posicao.verificacao == .verificado)
     }
 
-    @Test("Posição com check-in feito e turno em andamento ainda pode ser cancelada, sem reabertura")
+    @Test("Posição com check-in feito e turno em andamento recusa cancelamento")
     func cancelarComCheckinFeito() async throws {
         let cena = try await Cena.montar(cenario: .contratante)
         try await cena.checkinManual()
         cena.relogio.avancar(para: cena.inicio.addingTimeInterval(hora))
 
-        let resultado = try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
-
-        #expect(resultado == ResultadoCancelamento(posicaoID: cena.posicaoID, falta: false, reaberta: false, novaPosicaoID: nil))
-        // O check-in manual que ninguém confirmou deixa de esperar: sai dos pendentes como não verificado.
-        #expect(try await cena.posicaoNoPainel().verificacao == .naoVerificado)
-        #expect(try await cena.painel().checkinsPendentes.isEmpty)
+        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
+            try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
+        }
+        #expect(try await cena.posicaoNoPainel().verificacao == .pendente)
+        #expect(try await !cena.painel().checkinsPendentes.isEmpty)
     }
 
-    @Test("Vaga já cancelada é vaga_encerrada; a que não existe, nao_encontrado")
+    @Test("Vaga cancelada pelo mesmo autor devolve resultado original; inexistente é nao_encontrado")
     func cancelarVagaDeNovo() async throws {
         let cena = try await Cena.montar()
         await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) {
             try await cena.api.cancelarVaga(id: UUID(), motivo: motivo)
         }
-        _ = try await cena.api.cancelarVaga(id: cena.vagaID, motivo: motivo)
-        await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) {
-            try await cena.api.cancelarVaga(id: cena.vagaID, motivo: motivo)
-        }
+        let original = try await cena.api.cancelarVaga(id: cena.vagaID, motivo: motivo)
+        #expect(try await cena.api.cancelarVaga(id: cena.vagaID, motivo: motivo) == original)
     }
 }
 

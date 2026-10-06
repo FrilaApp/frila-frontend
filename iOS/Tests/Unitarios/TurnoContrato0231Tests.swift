@@ -350,7 +350,7 @@ struct TurnoContrato0231Tests {
 
     @Test("Dublê registra a causa da desistência sem devolver o motivo")
     func dubleDesistencia() async throws {
-        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoPerto)
         let inicial = try #require(try await api.meusTurnos().first)
         _ = try await api.cancelarPosicao(id: inicial.posicaoID, motivo: "Motivo privado da desistência")
         let lido = try #require(try await api.meusTurnos().first)

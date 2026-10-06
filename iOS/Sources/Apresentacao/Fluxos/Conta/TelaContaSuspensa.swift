@@ -115,7 +115,7 @@ public struct TelaContaSuspensa: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             HStack {
                 Label {
-                    Text(verbatim: TextosContaSuspensa.emAnalise)
+                    Text(verbatim: viewModel.emAnalise ? TextosContaSuspensa.emAnalise : TextosContaSuspensa.protocoloTitulo)
                         .font(.subheadline.weight(.semibold))
                 } icon: {
                     Image(systemName: "clock.arrow.circlepath")
@@ -123,7 +123,7 @@ public struct TelaContaSuspensa: View {
                 .foregroundStyle(FrilaCor.alerta)
                 Spacer()
             }
-            .accessibilityIdentifier("status-em-analise")
+            .accessibilityIdentifier(viewModel.emAnalise ? "status-em-analise" : "status-contestacao-enviada")
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.protocoloNumero)
@@ -154,10 +154,11 @@ public struct TelaContaSuspensa: View {
                     .accessibilityIdentifier("prazo-resposta-contestacao")
             }
 
-            Text(verbatim: TextosContaSuspensa.mensagemEmAnalise)
+            Text(verbatim: viewModel.mensagemDoProtocolo)
                 .font(.caption)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .padding(.top, FrilaEspaco.minimo)
+                .accessibilityIdentifier("mensagem-protocolo-contestacao")
         }
     }
 

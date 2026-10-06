@@ -307,11 +307,11 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 
     // Cancelamento
     /// Qualquer das partes, com motivo de pelo menos 3 caracteres (RN12). O motivo vai para a tela
-    /// da outra parte. Reenviar depois de uma queda de rede não devolve o mesmo resultado: a posição
-    /// já cancelada responde `posicaoNaoCancelavel`, que no reenvio quer dizer "já cancelada".
+    /// da outra parte. Reenvio pelo mesmo autor devolve o resultado original sem repetir efeitos
+    /// (0.2.35); `posicaoNaoCancelavel` indica recusa, inclusive cancelamento pela outra parte.
     func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento
     /// Só o contratante: cancela as posições abertas e as confirmadas, sem falta para ninguém.
-    /// No reenvio, a vaga já cancelada responde `vagaEncerrada`.
+    /// Reenvio pelo mesmo autor devolve o resultado original; `vagaEncerrada` indica recusa (0.2.35).
     func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada
 
     // Confiança e direitos

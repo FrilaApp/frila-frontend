@@ -111,4 +111,82 @@ struct CancelamentoPelaApiTests {
             #expect(motivo.id == motivo.rawValue)
         }
     }
+    @Test("Reenvio pelo mesmo profissional preserva resultado, motivo, falta e posição reaberta",
+          arguments: [ApiClienteEmMemoria.Cenario.turnoConfirmadoPerto, .turnoConfirmadoLonge])
+    func reenvioDaPosicao(cenario: ApiClienteEmMemoria.Cenario) async throws {
+        let api = ApiClienteEmMemoria(cenario: cenario, relogio: RelogioFixo(agora: agora))
+        let turno = try #require(try await api.meusTurnos().first)
+        let primeira = try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
+        let turnos = try await api.meusTurnos()
+        let vaga = try await api.detalheDaVaga(id: turno.vaga.id)
+        let repetida = try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Outro motivo válido")
+        #expect(repetida == primeira)
+        #expect(try await api.meusTurnos() == turnos)
+        #expect(try await api.detalheDaVaga(id: turno.vaga.id) == vaga)
+        #expect(primeira.falta == (cenario == .turnoConfirmadoPerto))
+    }
+
+    @Test("Reenvio da vaga devolve a contagem original sem repetir cancelamentos")
+    func reenvioDaVaga() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contratante, relogio: RelogioFixo(agora: agora))
+        let casa = try #require(try await api.meusEstabelecimentos().first)
+        let janela = try Periodo(inicio: agora, fim: agora.addingTimeInterval(7 * 86400))
+        let vaga = try #require(try await api.painelEstabelecimento(id: casa.id, periodo: janela).vagas.first)
+        let primeira = try await api.cancelarVaga(id: vaga.vaga.id, motivo: "Evento adiado")
+        let painel = try await api.painelEstabelecimento(id: casa.id, periodo: janela)
+        #expect(try await api.cancelarVaga(id: vaga.vaga.id, motivo: "Outro motivo válido") == primeira)
+        #expect(try await api.painelEstabelecimento(id: casa.id, periodo: janela) == painel)
+    }
+
+    @Test("Outro autor, inclusive outro membro do mesmo perfil, recebe 409",
+          arguments: [PerfilConta.profissional, .contratante], [TipoAcaoPendente.cancelamentoPosicao, .cancelamentoVaga])
+    func outroAutor(perfil: PerfilConta, tipo: TipoAcaoPendente) async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoLonge, relogio: RelogioFixo(agora: agora))
+        let turno = try #require(try await api.meusTurnos().first)
+        let conta = try await api.minhaConta()
+        if tipo == .cancelamentoPosicao {
+            _ = try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
+        } else {
+            _ = try await api.cancelarVaga(id: turno.vaga.id, motivo: "Evento adiado")
+        }
+        await api.definirContaParaTeste(Conta(id: UUID(), perfil: perfil, nome: conta.nome,
+            telefone: conta.telefone, email: conta.email, nascimento: conta.nascimento, estado: conta.estado))
+        if tipo == .cancelamentoPosicao {
+            await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
+                try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Outro motivo válido")
+            }
+        } else {
+            await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) {
+                try await api.cancelarVaga(id: turno.vaga.id, motivo: "Outro motivo válido")
+            }
+        }
+    }
+
+    @Test("Posição aberta sem confirmação continua respondendo 409")
+    func posicaoAberta() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contratante, relogio: RelogioFixo(agora: agora))
+        let casa = try #require(try await api.meusEstabelecimentos().first)
+        let janela = try Periodo(inicio: agora, fim: agora.addingTimeInterval(7 * 86400))
+        let painel = try await api.painelEstabelecimento(id: casa.id, periodo: janela)
+        let aberta = try #require(painel.vagas.flatMap(\.posicoes).first { $0.estado == .aberta })
+        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
+            try await api.cancelarPosicao(id: aberta.id, motivo: "Evento adiado")
+        }
+    }
+
+    @Test("Turno em andamento ou cumprido continua respondendo 409",
+          arguments: [ApiClienteEmMemoria.Cenario.atrasoNoTurno, .turnoEncerradoVerificado])
+    func turnoIniciado(cenario: ApiClienteEmMemoria.Cenario) async throws {
+        let api = ApiClienteEmMemoria(cenario: cenario, relogio: RelogioFixo(agora: agora))
+        let turno = try #require(try await api.meusTurnos().first)
+        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
+            try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
+        }
+        if cenario == .atrasoNoTurno {
+            await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) {
+                try await api.cancelarVaga(id: turno.vaga.id, motivo: "Evento adiado")
+            }
+        }
+    }
+
 }
