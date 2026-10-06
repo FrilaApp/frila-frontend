@@ -174,18 +174,38 @@ struct CancelamentoPelaApiTests {
         }
     }
 
-    @Test("Turno em andamento ou cumprido continua respondendo 409",
-          arguments: [ApiClienteEmMemoria.Cenario.atrasoNoTurno, .turnoEncerradoVerificado])
-    func turnoIniciado(cenario: ApiClienteEmMemoria.Cenario) async throws {
-        let api = ApiClienteEmMemoria(cenario: cenario, relogio: RelogioFixo(agora: agora))
+    @Test("Posição sem check-in aceita cancelamento depois do início; vaga iniciada continua 409")
+    func turnoIniciadoSemCheckin() async throws {
+        let api = ApiClienteEmMemoria(cenario: .atrasoNoTurno, relogio: RelogioFixo(agora: agora))
         let turno = try #require(try await api.meusTurnos().first)
+        #expect(turno.checkin == nil)
+        #expect(turno.vaga.periodo.inicio < agora)
+        let resultado = try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
+        #expect(resultado == ResultadoCancelamento(posicaoID: turno.posicaoID, falta: false, reaberta: false, novaPosicaoID: nil))
+        await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) {
+            try await api.cancelarVaga(id: turno.vaga.id, motivo: "Evento adiado")
+        }
+    }
+
+    @Test("Depois do início com check-in manual ou geolocalizado responde 409", arguments: [40, 500])
+    func turnoIniciadoComCheckin(distancia: Int) async throws {
+        let api = ApiClienteEmMemoria(cenario: .atrasoNoTurno, relogio: RelogioFixo(agora: agora))
+        let turno = try #require(try await api.meusTurnos().first)
+        _ = try await api.fazerCheckin(turnoID: turno.id, distanciaMetros: distancia, registradoEm: agora)
+        let antes = try await api.meusTurnos()
+        #expect(try #require(antes.first).checkin != nil)
         await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
             try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
         }
-        if cenario == .atrasoNoTurno {
-            await #expect(throws: ErroDaApi(codigo: .vagaEncerrada)) {
-                try await api.cancelarVaga(id: turno.vaga.id, motivo: "Evento adiado")
-            }
+        #expect(try await api.meusTurnos() == antes)
+    }
+
+    @Test("Turno cumprido continua respondendo 409")
+    func turnoCumprido() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoEncerradoVerificado, relogio: RelogioFixo(agora: agora))
+        let turno = try #require(try await api.meusTurnos().first)
+        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
+            try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
         }
     }
 

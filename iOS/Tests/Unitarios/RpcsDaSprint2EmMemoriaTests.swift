@@ -296,15 +296,16 @@ struct CancelamentoEmMemoriaTests {
         #expect(resultado.reaberta)
     }
 
-    @Test("Depois do início a posição recusa cancelamento (0.2.35)")
+    @Test("Depois do início sem check-in não há reabertura: o turno fica descoberto")
     func depoisDoInicio() async throws {
         let cena = try await Cena.montar(emHoras: 2, cenario: .contratante)
         cena.relogio.avancar(para: cena.inicio.addingTimeInterval(20 * minuto))
 
-        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
-            try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
-        }
-        #expect(try await cena.posicaoNoPainel().estado == .confirmada)
+        let resultado = try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo)
+
+        #expect(resultado == ResultadoCancelamento(posicaoID: cena.posicaoID, falta: false, reaberta: false, novaPosicaoID: nil))
+        #expect(try await cena.vagaNoPainel().posicoes.map(\.estado) == [.cancelada])
+        #expect(try await cena.api.cancelarPosicao(id: cena.posicaoID, motivo: motivo) == resultado)
     }
 
     @Test("Motivo com menos de 3 caracteres é campo_obrigatorio, com o campo no detalhe", arguments: ["", "  ", "ok", " ok "])

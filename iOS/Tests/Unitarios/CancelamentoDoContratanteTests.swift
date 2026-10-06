@@ -135,7 +135,7 @@ private struct Cena {
         #expect(cancelada.cancelamento?.motivo == "Movimento menor que o esperado")
     }
 
-    @Test func depoisDoInicioAPosicaoRecusaCancelamento() async throws {
+    @Test func depoisDoInicioAPosicaoNaoReabreEOAvisoDizTurnoDescoberto() async throws {
         let cena = try await Cena.montar(emHoras: 2)
         cena.relogio.avancar(para: cena.inicio.addingTimeInterval(hora))
         let folha = try #require(cena.viewModel.criarCancelamento(de: try cena.turno()))
@@ -143,8 +143,8 @@ private struct Cena {
         #expect(folha.aviso.contains("o turno fica descoberto"))
         folha.motivo = .problemaNoLocal
         await folha.confirmar()
-        #expect(folha.estado == .falha(TextosDoCancelamento.posicaoNaoCancelavel))
-        #expect(cena.viewModel.resultado == nil)
+        #expect(cena.viewModel.resultado == .posicaoCancelada(reaberta: false))
+        #expect(TextosDoAcompanhamento.resultado(.posicaoCancelada(reaberta: false)).contains("O turno ficou descoberto"))
         #expect(try cena.vaga().posicoes.filter { $0.estado == .aberta }.count == 1)
     }
 

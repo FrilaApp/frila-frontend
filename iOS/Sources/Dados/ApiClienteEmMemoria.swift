@@ -1324,8 +1324,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// Segue `cancelar_posicao` do backend (`20260926060100_exigir_conta_ativa_escrita.sql` e
     /// `privado.cancelar_uma_posicao`): motivo com menos de 3 caracteres é `422 campo_obrigatorio`;
-    /// posição que não existe, `404`; aberta ou com turno iniciado/cumprido, `409 posicao_nao_cancelavel`.
-    /// Antes do início a vaga ganha uma posição nova. Repetir pelo mesmo autor devolve o resultado
+    /// posição que não existe, `404`; aberta, cumprida ou com check-in, `409 posicao_nao_cancelavel`.
+    /// Antes do início a vaga ganha uma posição nova; depois, sem check-in, o turno fica descoberto.
+    /// Repetir pelo mesmo autor devolve o resultado
     /// original, sem repetir efeitos (0.2.35). Quem cancela é
     /// a conta do dublê: com perfil de profissional é o profissional da posição, e a menos de 24 h
     /// do início leva falta; com perfil de contratante é a casa, sem falta. O filtro de termos da
@@ -1341,8 +1342,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
             throw erro(conhecidaSemTurno(id) ? "posicao_nao_cancelavel" : "nao_encontrado")
         }
         let agora = relogio.agora
-        let inicio = turnos[indice].vaga.periodo.inicio
-        guard inicio > agora, turnos[indice].estado != .cumprida else { throw erro("posicao_nao_cancelavel") }
+        let turno = turnos[indice]
+        let inicio = turno.vaga.periodo.inicio
+        guard turno.estado != .cumprida, checkins[turno.id] == nil, turno.checkin == nil else {
+            throw erro("posicao_nao_cancelavel")
+        }
         let peloProfissional = conta?.perfil == .profissional
         let causa: CausaDoCancelamento = peloProfissional ? .profissional : .estabelecimento
         let resultado = cancelarTurno(
