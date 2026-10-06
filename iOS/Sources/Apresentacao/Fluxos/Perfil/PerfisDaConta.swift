@@ -214,15 +214,10 @@ public struct TelaMeuPerfilProfissional: View {
         }
     }
 
+    /// A folha "Por que recebo vagas" (RF27, #18): texto aprovado, critérios reais e "Contestar".
     private var explicacao: some View {
         NavigationStack {
-            ScrollView {
-                Text(verbatim: TextosPerfilConta.explicacaoVagas)
-                    .accessibilityIdentifier("perfil-explicacao-vagas")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-            }
-            .navigationTitle(Text(verbatim: TextosPerfilConta.porQueRecebo)).navigationBarTitleDisplayMode(.inline)
+            TelaPorQueReceboVagas(api: api)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -235,7 +230,7 @@ public struct TelaMeuPerfilProfissional: View {
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
-        }.presentationDetents([.medium, .large])
+        }.presentationDetents([.large])
     }
 }
 

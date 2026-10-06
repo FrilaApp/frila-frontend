@@ -1150,6 +1150,47 @@ enum ContratoAPI {
         let relato: String
     }
 
+    // MARK: Por que recebo vagas (RF27)
+
+    struct PedirRevisaoDespacho: Encodable {
+        let relato: String
+    }
+
+    struct CriteriosDeNotificacaoDTO: Decodable {
+        struct EquipeDTO: Decodable {
+            let estabelecimentoID: UUID
+            let nome: String
+
+            enum CodingKeys: String, CodingKey {
+                case nome
+                case estabelecimentoID = "estabelecimento_id"
+            }
+        }
+
+        let funcoes: [FuncaoDTO]
+        let disponibilidades: [JanelaDTO]
+        let distanciaMaximaKm: Double
+        let equipesDeConfianca: [EquipeDTO]
+        let notificacoesNoMaximoACadaMin: Int
+
+        enum CodingKeys: String, CodingKey {
+            case funcoes, disponibilidades
+            case distanciaMaximaKm = "distancia_maxima_km"
+            case equipesDeConfianca = "equipes_de_confianca"
+            case notificacoesNoMaximoACadaMin = "notificacoes_no_maximo_a_cada_min"
+        }
+
+        func dominio() throws -> CriteriosDeNotificacao {
+            try CriteriosDeNotificacao(
+                funcoes: funcoes.map { $0.dominio() },
+                disponibilidades: disponibilidades.map { try $0.dominio() },
+                distanciaMaximaKm: distanciaMaximaKm,
+                equipesDeConfianca: equipesDeConfianca.map { EquipeDeConfiancaDoProfissional(estabelecimentoID: $0.estabelecimentoID, nome: $0.nome) },
+                notificacoesNoMaximoACadaMin: notificacoesNoMaximoACadaMin
+            )
+        }
+    }
+
     struct ProtocoloDTO: Decodable {
         let ocorrenciaID: UUID
         let tipo: TipoDeProtocolo

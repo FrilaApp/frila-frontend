@@ -18,6 +18,10 @@ App -> Infraestrutura -> Dominio
 
 `PerfilConta` é fixo em `SessaoUsuario`: não há troca de perfil na sessão.
 
+## Por que recebo vagas e revisão do despacho (#18)
+
+A tela "Por que recebo vagas" (folha de Meu perfil, `Fluxos/Perfil/TelaPorQueReceboVagas.swift`) mantém o texto explicativo do app e mostra os critérios reais de `criteriosDeNotificacao` (função, grade semanal, distância máxima do ponto base, equipes de confiança e teto de notificações), com estados de carregando, vazio, sem rede e erro no `PorQueReceboVagasViewModel`. "Contestar" pede o relato e chama `pedirRevisaoDespacho`, que devolve um `Protocolo` do tipo `revisao_despacho` com o prazo de resposta; as recusas do contrato (campo, conta suspensa, limite) têm mensagem própria. O despacho em si é do servidor: o app só lê os critérios e registra o pedido. O dublê guarda a equipe de confiança de cada casa (`equipesDeConfianca`), que a frente do contratante reutiliza.
+
 ## Cache e fila offline (#111)
 
 O banco local é um `ModelContainer` do SwiftData em `Application Support/Frila/Frila.store`, com a proteção de arquivo `completeUntilFirstUserAuthentication` na pasta. Os arquivos criados nela herdam a classe. É a mesma proteção padrão do iOS para dados de app: o conteúdo fica cifrado até o primeiro desbloqueio depois de ligar o aparelho, e legível depois disso, inclusive em segundo plano, que é quando a fila precisa sair. A classe `complete` travaria a fila com a tela bloqueada.

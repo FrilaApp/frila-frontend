@@ -232,6 +232,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var bloqueios: [Alvo: Bloqueio] = [:]
     /// Suspensão dos cenários de conta suspensa e contestação respondida.
     private var suspensao: Suspensao?
+    /// A equipe de confiança de cada estabelecimento, como a tabela `equipe_confianca`: os ids dos
+    /// profissionais. O profissional das fixtures começa na equipe da casa das fixtures (RF18).
+    private var equipesDeConfianca: [UUID: Set<UUID>] = [:]
+    /// Os relatos que chegaram a `pedirRevisaoDespacho`, já aparados: os testes conferem o envio.
+    public private(set) var relatosDeRevisaoDespacho: [String] = []
     /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
     private var dispositivos: [String: UUID] = [:]
     /// O `vinculo_id` de cada token (contrato 0.2.30): novo quando o token entra ou troca de dono,
@@ -307,6 +312,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 )
             }
             estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
+            if let casa = estabelecimentos.first { equipesDeConfianca[casa.id] = [perfilPublicoDeExemplo.id] }
             if let vagas {
                 self.vagas = vagas
             } else {
@@ -678,6 +684,44 @@ public actor ApiClienteEmMemoria: ApiCliente {
         )
         perfilProfissional = perfil
         return perfil
+    }
+
+    // MARK: Por que recebo vagas (RF27)
+
+    /// Segue `criterios_de_notificacao` do backend (`20260929190000_contestar_despacho.sql`): sem
+    /// conta é `401`; conta de contratante, `422 perfil_incompativel`; sem perfil profissional,
+    /// `404`. A leitura não exige conta ativa, e a suspensa também lê. Funções, grade e equipes saem
+    /// na ordem do backend: nome, dia e hora, nome. A distância e o teto são os parâmetros de hoje.
+    public func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
+        guard let perfil = perfilProfissional else { throw erro("nao_encontrado") }
+        let equipes = estabelecimentos
+            .filter { equipesDeConfianca[$0.id]?.contains(perfil.id) == true }
+            .map { EquipeDeConfiancaDoProfissional(estabelecimentoID: $0.id, nome: $0.nome) }
+            .sorted { $0.nome < $1.nome }
+        return CriteriosDeNotificacao(
+            funcoes: perfil.funcoes.sorted { $0.nome < $1.nome },
+            disponibilidades: perfil.disponibilidades.sorted { ($0.diaDaSemana, $0.inicio) < ($1.diaDaSemana, $1.inicio) },
+            distanciaMaximaKm: 15,
+            equipesDeConfianca: equipes,
+            notificacoesNoMaximoACadaMin: 30
+        )
+    }
+
+    /// Segue `pedir_revisao_despacho` do backend (`20260929190000_contestar_despacho.sql`), na ordem
+    /// dele: sem conta é `401`; contratante, `422 perfil_incompativel`; conta suspensa, `403
+    /// sem_permissao/conta_suspensa`; relato em branco, `422 campo_obrigatorio`; com menos de 10
+    /// caracteres, `422 campo_invalido`. Não é idempotente: cada pedido abre uma ocorrência nova.
+    public func pedirRevisaoDespacho(relato: String) async throws -> Protocolo {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
+        guard conta.estado != .suspensa else { throw erro("sem_permissao", detalhes: "conta_suspensa") }
+        try validarRelato(relato)
+        relatosDeRevisaoDespacho.append(relato.trimmingCharacters(in: .whitespacesAndNewlines))
+        return try novoProtocolo(.revisaoDespacho)
     }
 
     // MARK: Estabelecimento

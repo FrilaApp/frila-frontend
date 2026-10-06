@@ -246,6 +246,16 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func meuPerfilProfissional() async throws -> PerfilProfissional
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional
 
+    // Por que recebo vagas (RF27)
+    /// Os critérios em vigor para quem chama. Conta de contratante é `perfilIncompativel`; sem
+    /// perfil profissional, `naoEncontrado`. A leitura não exige conta ativa: a suspensa também lê.
+    func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao
+    /// "Contestar" na tela: pede à Equipe Frila a revisão do despacho, com relato de pelo menos 10
+    /// caracteres; a resposta vai por e-mail em até 5 dias úteis. Relato em branco é
+    /// `campoObrigatorio` e curto, `campoInvalido`, os dois com `relato` no detalhe; conta suspensa é
+    /// `semPermissao` com `conta_suspensa`. Não é idempotente: cada pedido abre uma ocorrência nova.
+    func pedirRevisaoDespacho(relato: String) async throws -> Protocolo
+
     // Estabelecimento
     func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento
     func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta]
