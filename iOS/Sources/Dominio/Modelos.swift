@@ -919,3 +919,48 @@ public struct SituacaoDaConta: Codable, Hashable, Sendable {
         self.suspensao = suspensao
     }
 }
+
+/// Um estabelecimento cuja equipe de confiança inclui o profissional (RF18): as vagas dele chegam
+/// mesmo além da distância máxima, desde que a função e a grade batam.
+public struct EquipeDeConfiancaDoProfissional: Codable, Hashable, Identifiable, Sendable {
+    public let estabelecimentoID: UUID
+    public let nome: String
+
+    public var id: UUID { estabelecimentoID }
+
+    public init(estabelecimentoID: UUID, nome: String) {
+        self.estabelecimentoID = estabelecimentoID
+        self.nome = nome
+    }
+}
+
+/// O que decide se o profissional recebe a notificação de uma vaga (RF27, LGPD art. 20): função,
+/// grade semanal de disponibilidade, distância do ponto base e as equipes de confiança de que faz
+/// parte. O texto da tela "Por que recebo vagas" é do app; aqui só os dados em vigor.
+public struct CriteriosDeNotificacao: Codable, Hashable, Sendable {
+    public let funcoes: [Funcao]
+    public let disponibilidades: [JanelaDeDisponibilidade]
+    /// Parâmetro do sistema; hoje, 15 km (RN05).
+    public let distanciaMaximaKm: Double
+    public let equipesDeConfianca: [EquipeDeConfiancaDoProfissional]
+    /// Teto de RN23; hoje, 30 minutos.
+    public let notificacoesNoMaximoACadaMin: Int
+
+    public init(
+        funcoes: [Funcao],
+        disponibilidades: [JanelaDeDisponibilidade],
+        distanciaMaximaKm: Double,
+        equipesDeConfianca: [EquipeDeConfiancaDoProfissional],
+        notificacoesNoMaximoACadaMin: Int
+    ) {
+        self.funcoes = funcoes
+        self.disponibilidades = disponibilidades
+        self.distanciaMaximaKm = distanciaMaximaKm
+        self.equipesDeConfianca = equipesDeConfianca
+        self.notificacoesNoMaximoACadaMin = notificacoesNoMaximoACadaMin
+    }
+
+    /// Sem função, sem grade e sem equipe: nenhuma vaga chega por notificação, e a tela diz isso em
+    /// vez de mostrar três seções vazias.
+    public var semCriterios: Bool { funcoes.isEmpty && disponibilidades.isEmpty && equipesDeConfianca.isEmpty }
+}

@@ -29,6 +29,10 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func meuPerfilProfissional() async throws -> PerfilProfissional { try await base.meuPerfilProfissional() }
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional { try await base.atualizarPerfilProfissional(alteracao) }
 
+    // Por que recebo vagas
+    func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao { try await base.criteriosDeNotificacao() }
+    func pedirRevisaoDespacho(relato: String) async throws -> Protocolo { try await base.pedirRevisaoDespacho(relato: relato) }
+
     // Estabelecimento
     func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento { try await base.cadastrarEstabelecimento(cadastro) }
     func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta] { try await base.meusEstabelecimentos() }

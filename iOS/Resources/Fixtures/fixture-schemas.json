@@ -24,6 +24,9 @@
   "contato.json": {
     "schema": "#/components/schemas/Contato"
   },
+  "criterios-de-notificacao.json": {
+    "schema": "#/components/schemas/CriteriosDeNotificacao"
+  },
   "dispositivo.json": {
     "schema": "#/components/schemas/Dispositivo"
   },
@@ -63,6 +66,9 @@
   },
   "perfil-publico.json": {
     "schema": "#/components/schemas/PerfilPublico"
+  },
+  "protocolo-revisao-despacho.json": {
+    "schema": "#/components/schemas/Protocolo"
   },
   "protocolo.json": {
     "schema": "#/components/schemas/Protocolo"
@@ -105,6 +111,9 @@
   },
   "requisicao-escolher-candidato.json": {
     "schema": "#/paths/~1rpc~1escolher_candidato/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-pedir-revisao-despacho.json": {
+    "schema": "#/paths/~1rpc~1pedir_revisao_despacho/post/requestBody/content/application~1json/schema"
   },
   "requisicao-exportar-turnos.json": {
     "schema": "#/paths/~1exportar-turnos/post/requestBody/content/application~1json/schema"
