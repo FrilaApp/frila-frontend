@@ -172,6 +172,24 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return try converter { try resposta.dominio() }
     }
 
+    // MARK: Equipe de confiança (RF18, UC11)
+
+    public func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico] {
+        try await lista(
+            "equipe_de_confianca", params: ContratoAPI.EstabelecimentoParametros(estabelecimentoID: estabelecimentoID)
+        ) { (item: ContratoAPI.PerfilPublicoDTO) in item.dominio() }
+    }
+
+    public func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe {
+        let resposta: ContratoAPI.MembroDaEquipeDTO = try await rpc("incluir_na_equipe", params: ContratoAPI.MembroDaEquipeDTO(membro))
+        return resposta.dominio()
+    }
+
+    public func removerDaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe {
+        let resposta: ContratoAPI.MembroDaEquipeDTO = try await rpc("remover_da_equipe", params: ContratoAPI.MembroDaEquipeDTO(membro))
+        return resposta.dominio()
+    }
+
     // MARK: Catálogo e vagas
 
     public func funcoes() async throws -> [Funcao] {

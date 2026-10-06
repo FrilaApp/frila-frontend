@@ -265,6 +265,18 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func meuEstabelecimento(id: UUID) async throws -> Estabelecimento
     func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel
 
+    // Equipe de confiança (RF18, UC11)
+    /// Os profissionais da equipe, do mais recente para o mais antigo, como a casa os vê (perfil
+    /// público, sem contato). Só membro do estabelecimento: quem não é recebe `semPermissao`.
+    func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico]
+    /// Só o administrador da casa, e só quem já cumpriu nela um turno com presença verificada:
+    /// senão é `semPermissao` com `sem_turno_cumprido` no detalhe (o servidor decide; o botão
+    /// condicional da tela é só conveniência). Conta suspensa é `semPermissao` com `conta_suspensa`;
+    /// profissional que não existe, `naoEncontrado`. Idempotente.
+    func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe
+    /// Só o administrador. Sem penalidade nem aviso ao profissional (RN16). Idempotente.
+    func removerDaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe
+
     // Catálogo e vagas
     func funcoes() async throws -> [Funcao]
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada

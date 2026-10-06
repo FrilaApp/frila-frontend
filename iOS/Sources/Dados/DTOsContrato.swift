@@ -954,6 +954,26 @@ enum ContratoAPI {
         enum CodingKeys: String, CodingKey { case estabelecimentoID = "estabelecimento_id" }
     }
 
+    /// `MembroDaEquipe` do contrato: corpo e resposta de `incluir_na_equipe` e `remover_da_equipe`.
+    struct MembroDaEquipeDTO: Codable {
+        let estabelecimentoID: UUID
+        let profissionalID: UUID
+
+        init(_ membro: MembroDaEquipe) {
+            estabelecimentoID = membro.estabelecimentoID
+            profissionalID = membro.profissionalID
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case estabelecimentoID = "estabelecimento_id"
+            case profissionalID = "profissional_id"
+        }
+
+        func dominio() -> MembroDaEquipe {
+            MembroDaEquipe(estabelecimentoID: estabelecimentoID, profissionalID: profissionalID)
+        }
+    }
+
     struct PainelParametros: Encodable {
         let estabelecimentoID: UUID
         let de: String

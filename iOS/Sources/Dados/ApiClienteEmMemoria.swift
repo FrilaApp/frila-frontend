@@ -42,6 +42,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case alertaVagaVazia = "alerta-vaga-vazia"
         /// Painel com uma posição confirmada para testar perfil público e contato liberado.
         case painelContratante = "painel-contratante"
+        /// Como `painelContratante`, com o profissional do turno já na equipe de confiança da casa (#24).
+        case equipeDeConfiancaComMembro = "equipe-de-confianca-com-membro"
         /// Painel sem vagas para conferir a orientação do primeiro acesso do contratante.
         case painelVazio = "painel-vazio"
         /// Conta de contratante com um turno em andamento cujo check-in manual espera a confirmação (#19).
@@ -233,8 +235,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Suspensão dos cenários de conta suspensa e contestação respondida.
     private var suspensao: Suspensao?
     /// A equipe de confiança de cada estabelecimento, como a tabela `equipe_confianca`: os ids dos
-    /// profissionais. O profissional das fixtures começa na equipe da casa das fixtures (RF18).
-    private var equipesDeConfianca: [UUID: Set<UUID>] = [:]
+    /// profissionais, do incluído mais recente para o mais antigo. Na conta de profissional, ele
+    /// começa na equipe da casa das fixtures (RF18); na de contratante, a equipe começa vazia, salvo
+    /// no cenário `equipeDeConfiancaComMembro`.
+    private var equipesDeConfianca: [UUID: [UUID]] = [:]
     /// Os relatos que chegaram a `pedirRevisaoDespacho`, já aparados: os testes conferem o envio.
     public private(set) var relatosDeRevisaoDespacho: [String] = []
     /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
@@ -269,7 +273,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -312,7 +316,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 )
             }
             estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
-            if let casa = estabelecimentos.first { equipesDeConfianca[casa.id] = [perfilPublicoDeExemplo.id] }
+            if let casa = estabelecimentos.first, conta?.perfil == .profissional || cenario == .equipeDeConfiancaComMembro {
+                equipesDeConfianca[casa.id] = [perfilPublicoDeExemplo.id]
+            }
             if let vagas {
                 self.vagas = vagas
             } else {
@@ -342,7 +348,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
-            if cenario == .painelContratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
+            if cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
                 || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante,
                 let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
@@ -356,7 +362,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let turnoExemplo = Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: (cenario == .painelContratante || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
+                    verificacao: (cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
                     valorAcordado: vaga.valor, podeAvaliar: false
                 )
                 if cenario == .posicaoCanceladaComMotivo {
@@ -853,6 +859,71 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 .sorted { $0.registradoEm < $1.registradoEm }
                 .map(\.turnoID)
         )
+    }
+
+    // MARK: Equipe de confiança (RF18, UC11)
+
+    /// Segue `equipe_de_confianca` do backend (`20260929210000_equipe_de_confianca.sql`): sem conta é
+    /// `401`; quem não é membro da casa, `403 sem_permissao`. A leitura não exige conta ativa nem
+    /// perfil de contratante: quem não é membro cai no 403. Do incluído mais recente para o mais antigo.
+    public func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico] {
+        try verificarRede()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        guard estabelecimentos.contains(where: { $0.id == estabelecimentoID }) else { throw erro("sem_permissao") }
+        return (equipesDeConfianca[estabelecimentoID] ?? []).compactMap(perfilDoProfissional)
+    }
+
+    /// Segue `incluir_na_equipe` do backend, na ordem dele: sem conta é `401`; conta de profissional,
+    /// `422 perfil_incompativel`; conta suspensa, `403 sem_permissao/conta_suspensa`; quem não é
+    /// administrador da casa, `403 sem_permissao`; profissional que não existe, `404`; sem turno com
+    /// presença verificada na casa, `403 sem_permissao/sem_turno_cumprido`. Idempotente: incluir de
+    /// novo devolve o mesmo par e não muda a ordem.
+    public func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe {
+        try exigirAdministrador(de: membro.estabelecimentoID)
+        guard perfilDoProfissional(membro.profissionalID) != nil else { throw erro("nao_encontrado") }
+        guard cumpriuTurnoVerificado(membro.profissionalID, em: membro.estabelecimentoID) else {
+            throw erro("sem_permissao", detalhes: "sem_turno_cumprido")
+        }
+        var equipe = equipesDeConfianca[membro.estabelecimentoID] ?? []
+        if !equipe.contains(membro.profissionalID) { equipe.insert(membro.profissionalID, at: 0) }
+        equipesDeConfianca[membro.estabelecimentoID] = equipe
+        return membro
+    }
+
+    /// Segue `remover_da_equipe` do backend: as mesmas conferências de conta, perfil, suspensão e
+    /// administrador; depois apaga, sem penalidade nem aviso (RN16). Idempotente: remover quem não
+    /// está na equipe devolve o par do mesmo jeito.
+    public func removerDaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe {
+        try exigirAdministrador(de: membro.estabelecimentoID)
+        equipesDeConfianca[membro.estabelecimentoID]?.removeAll { $0 == membro.profissionalID }
+        return membro
+    }
+
+    private func exigirAdministrador(de estabelecimentoID: UUID) throws {
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        guard conta.perfil == .contratante else { throw erro("perfil_incompativel") }
+        guard conta.estado != .suspensa else { throw erro("sem_permissao", detalhes: "conta_suspensa") }
+        guard let casa = estabelecimentos.first(where: { $0.id == estabelecimentoID }), casa.papel == .administrador else {
+            throw erro("sem_permissao")
+        }
+    }
+
+    /// O profissional como a casa o vê: o de exemplo, um candidato ou alguém que ela escolheu.
+    private func perfilDoProfissional(_ id: UUID) -> PerfilPublico? {
+        if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
+        if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
+        return profissionaisEscolhidos.values.first { $0.id == id }
+    }
+
+    /// Como a consulta do backend: um turno de uma vaga da casa, deste profissional, com presença
+    /// verificada; a posição pode até ter sido cancelada depois.
+    private func cumpriuTurnoVerificado(_ profissionalID: UUID, em estabelecimentoID: UUID) -> Bool {
+        (turnos + turnosCancelados).contains { turno in
+            guard profissionalDo(turno).id == profissionalID,
+                  vagas.first(where: { $0.id == turno.vaga.id })?.estabelecimento.id == estabelecimentoID else { return false }
+            return (checkins[turno.id]?.verificacao ?? turno.verificacao) == .verificado
+        }
     }
 
     // MARK: Catálogo e vagas

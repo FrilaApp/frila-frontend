@@ -920,6 +920,18 @@ public struct SituacaoDaConta: Codable, Hashable, Sendable {
     }
 }
 
+/// O par que entra e sai da equipe de confiança de um estabelecimento (RF18, UC11). É o corpo de
+/// `incluir_na_equipe` e `remover_da_equipe`, e o que as duas devolvem.
+public struct MembroDaEquipe: Codable, Hashable, Sendable {
+    public let estabelecimentoID: UUID
+    public let profissionalID: UUID
+
+    public init(estabelecimentoID: UUID, profissionalID: UUID) {
+        self.estabelecimentoID = estabelecimentoID
+        self.profissionalID = profissionalID
+    }
+}
+
 /// Um estabelecimento cuja equipe de confiança inclui o profissional (RF18): as vagas dele chegam
 /// mesmo além da distância máxima, desde que a função e a grade batam.
 public struct EquipeDeConfiancaDoProfissional: Codable, Hashable, Identifiable, Sendable {

@@ -297,6 +297,15 @@ struct TelaTurnoDoContratante: View {
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("etiqueta-bloqueio-\(turno.posicao.id)")
                 }
+                // Só com a presença verificada: é a condição de `incluir_na_equipe` (UC11). O
+                // servidor confere de novo; aqui é só para não oferecer o que ele vai recusar.
+                if turno.posicao.verificacao == .verificado, let estabelecimentoID = viewModel.painel?.estabelecimentoID {
+                    BotaoIncluirNaEquipe(
+                        perfil: profissional, estabelecimentoID: estabelecimentoID, api: api,
+                        identificador: "incluir-na-equipe-\(turno.posicao.id)"
+                    )
+                    .id(profissional.id)
+                }
                 AcoesDeSeguranca(
                     perfil: profissional,
                     turnoID: turno.posicao.turnoID,
