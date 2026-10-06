@@ -223,6 +223,9 @@ private struct Cena {
     @Test func posicaoJaCanceladaNoServidorRecebeMensagemPropria() async throws {
         let cena = try await Cena.montar()
         _ = try await cena.base.cancelarPosicao(id: cena.posicaoID, motivo: "Cancelada por outro membro")
+        let conta = try await cena.base.minhaConta()
+        await cena.base.definirContaParaTeste(Conta(id: UUID(), perfil: conta.perfil, nome: conta.nome,
+            telefone: conta.telefone, email: conta.email, nascimento: conta.nascimento, estado: conta.estado))
         let folha = try #require(cena.viewModel.criarCancelamento(de: try cena.turno()))
         folha.motivo = .movimentoMenor
         await folha.confirmar()

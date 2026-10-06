@@ -24,8 +24,15 @@
   "contato.json": {
     "schema": "#/components/schemas/Contato"
   },
+  "criterios-de-notificacao.json": {
+    "schema": "#/components/schemas/CriteriosDeNotificacao"
+  },
   "dispositivo.json": {
     "schema": "#/components/schemas/Dispositivo"
+  },
+  "equipe-de-confianca.json": {
+    "schema": "#/components/schemas/PerfilPublico",
+    "lista": true
   },
   "erros.json": {
     "schema": "#/components/schemas/Erro",
@@ -37,6 +44,9 @@
   "funcoes.json": {
     "schema": "#/components/schemas/Funcao",
     "lista": true
+  },
+  "membro-da-equipe.json": {
+    "schema": "#/components/schemas/MembroDaEquipe"
   },
   "meu-estabelecimento.json": {
     "schema": "#/components/schemas/MeuEstabelecimento"
@@ -63,6 +73,9 @@
   },
   "perfil-publico.json": {
     "schema": "#/components/schemas/PerfilPublico"
+  },
+  "protocolo-revisao-despacho.json": {
+    "schema": "#/components/schemas/Protocolo"
   },
   "protocolo.json": {
     "schema": "#/components/schemas/Protocolo"
@@ -108,6 +121,9 @@
   },
   "requisicao-exportar-turnos.json": {
     "schema": "#/paths/~1exportar-turnos/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-pedir-revisao-despacho.json": {
+    "schema": "#/paths/~1rpc~1pedir_revisao_despacho/post/requestBody/content/application~1json/schema"
   },
   "requisicao-publicar-vaga.json": {
     "schema": "#/components/schemas/NovaVaga"

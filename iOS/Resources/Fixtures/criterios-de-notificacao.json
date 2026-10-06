@@ -1,0 +1,29 @@
+{
+  "funcoes": [
+    {
+      "id": "20000000-0000-0000-0000-000000000001",
+      "nome": "Garçom",
+      "categoria": "Salão"
+    }
+  ],
+  "disponibilidades": [
+    {
+      "dia_semana": 5,
+      "hora_inicio": "18:00",
+      "hora_fim": "02:00"
+    },
+    {
+      "dia_semana": 6,
+      "hora_inicio": "18:00",
+      "hora_fim": "02:00"
+    }
+  ],
+  "distancia_maxima_km": 15,
+  "equipes_de_confianca": [
+    {
+      "estabelecimento_id": "30000000-0000-0000-0000-000000000001",
+      "nome": "Bistrô Ipê"
+    }
+  ],
+  "notificacoes_no_maximo_a_cada_min": 30
+}

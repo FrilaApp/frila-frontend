@@ -124,6 +124,21 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return try converter { try perfil.dominio() }
     }
 
+    // MARK: Por que recebo vagas (RF27)
+
+    public func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao {
+        let resposta: ContratoAPI.CriteriosDeNotificacaoDTO = try await rpc("criterios_de_notificacao")
+        return try converter { try resposta.dominio() }
+    }
+
+    public func pedirRevisaoDespacho(relato: String) async throws -> Protocolo {
+        let resposta: ContratoAPI.ProtocoloDTO = try await rpc(
+            "pedir_revisao_despacho",
+            params: ContratoAPI.PedirRevisaoDespacho(relato: relato)
+        )
+        return try converter { try resposta.dominio() }
+    }
+
     // MARK: Estabelecimento
 
     public func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento {
@@ -155,6 +170,24 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         let resposta: ContratoAPI.PainelDTO = try await rpc("painel_estabelecimento", params: params)
         Self.registrarDescartados(resposta.descartados, rpc: "painel_estabelecimento")
         return try converter { try resposta.dominio() }
+    }
+
+    // MARK: Equipe de confiança (RF18, UC11)
+
+    public func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico] {
+        try await lista(
+            "equipe_de_confianca", params: ContratoAPI.EstabelecimentoParametros(estabelecimentoID: estabelecimentoID)
+        ) { (item: ContratoAPI.PerfilPublicoDTO) in item.dominio() }
+    }
+
+    public func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe {
+        let resposta: ContratoAPI.MembroDaEquipeDTO = try await rpc("incluir_na_equipe", params: ContratoAPI.MembroDaEquipeDTO(membro))
+        return resposta.dominio()
+    }
+
+    public func removerDaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe {
+        let resposta: ContratoAPI.MembroDaEquipeDTO = try await rpc("remover_da_equipe", params: ContratoAPI.MembroDaEquipeDTO(membro))
+        return resposta.dominio()
     }
 
     // MARK: Catálogo e vagas

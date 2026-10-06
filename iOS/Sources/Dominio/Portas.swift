@@ -246,6 +246,16 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func meuPerfilProfissional() async throws -> PerfilProfissional
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional
 
+    // Por que recebo vagas (RF27)
+    /// Os critérios em vigor para quem chama. Conta de contratante é `perfilIncompativel`; sem
+    /// perfil profissional, `naoEncontrado`. A leitura não exige conta ativa: a suspensa também lê.
+    func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao
+    /// "Contestar" na tela: pede à Equipe Frila a revisão do despacho, com relato de pelo menos 10
+    /// caracteres; a resposta vai por e-mail em até 5 dias úteis. Relato em branco é
+    /// `campoObrigatorio` e curto, `campoInvalido`, os dois com `relato` no detalhe; conta suspensa é
+    /// `semPermissao` com `conta_suspensa`. Não é idempotente: cada pedido abre uma ocorrência nova.
+    func pedirRevisaoDespacho(relato: String) async throws -> Protocolo
+
     // Estabelecimento
     func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento
     func meusEstabelecimentos() async throws -> [EstabelecimentoDaConta]
@@ -254,6 +264,18 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// Quem não é membro recebe `sem_permissao`.
     func meuEstabelecimento(id: UUID) async throws -> Estabelecimento
     func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel
+
+    // Equipe de confiança (RF18, UC11)
+    /// Os profissionais da equipe, do mais recente para o mais antigo, como a casa os vê (perfil
+    /// público, sem contato). Só membro do estabelecimento: quem não é recebe `semPermissao`.
+    func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico]
+    /// Só o administrador da casa, e só quem já cumpriu nela um turno com presença verificada:
+    /// senão é `semPermissao` com `sem_turno_cumprido` no detalhe (o servidor decide; o botão
+    /// condicional da tela é só conveniência). Conta suspensa é `semPermissao` com `conta_suspensa`;
+    /// profissional que não existe, `naoEncontrado`. Idempotente.
+    func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe
+    /// Só o administrador. Sem penalidade nem aviso ao profissional (RN16). Idempotente.
+    func removerDaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe
 
     // Catálogo e vagas
     func funcoes() async throws -> [Funcao]
@@ -307,11 +329,11 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 
     // Cancelamento
     /// Qualquer das partes, com motivo de pelo menos 3 caracteres (RN12). O motivo vai para a tela
-    /// da outra parte. Reenviar depois de uma queda de rede não devolve o mesmo resultado: a posição
-    /// já cancelada responde `posicaoNaoCancelavel`, que no reenvio quer dizer "já cancelada".
+    /// da outra parte. Reenvio pelo mesmo autor devolve o resultado original sem repetir efeitos
+    /// (0.2.35); `posicaoNaoCancelavel` indica recusa, inclusive cancelamento pela outra parte.
     func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento
     /// Só o contratante: cancela as posições abertas e as confirmadas, sem falta para ninguém.
-    /// No reenvio, a vaga já cancelada responde `vagaEncerrada`.
+    /// Reenvio pelo mesmo autor devolve o resultado original; `vagaEncerrada` indica recusa (0.2.35).
     func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada
 
     // Confiança e direitos

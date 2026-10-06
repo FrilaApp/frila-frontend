@@ -18,6 +18,14 @@ App -> Infraestrutura -> Dominio
 
 `PerfilConta` é fixo em `SessaoUsuario`: não há troca de perfil na sessão.
 
+## Por que recebo vagas e revisão do despacho (#18)
+
+A tela "Por que recebo vagas" (folha de Meu perfil, `Fluxos/Perfil/TelaPorQueReceboVagas.swift`) mantém o texto explicativo do app e mostra os critérios reais de `criteriosDeNotificacao` (função, grade semanal, distância máxima do ponto base, equipes de confiança e teto de notificações), com estados de carregando, vazio, sem rede e erro no `PorQueReceboVagasViewModel`. "Contestar" pede o relato e chama `pedirRevisaoDespacho`, que devolve um `Protocolo` do tipo `revisao_despacho` com o prazo de resposta; as recusas do contrato (campo, conta suspensa, limite) têm mensagem própria. O despacho em si é do servidor: o app só lê os critérios e registra o pedido. O dublê guarda a equipe de confiança de cada casa (`equipesDeConfianca`), que a frente do contratante reutiliza.
+
+## Equipe de confiança (#24)
+
+Em Estabelecimento, "Equipe de confiança" (`Fluxos/Equipe/TelaEquipeDeConfianca.swift`) lista `equipeDeConfianca` e remove com `removerDaEquipe`, depois de uma confirmação. "Incluir na equipe" (`BotaoIncluirNaEquipe`) aparece no turno do contratante só quando a presença foi verificada, que é a condição de `incluir_na_equipe` (UC11); a regra vale no servidor, e o `403 sem_permissao` com `sem_turno_cumprido` tem mensagem própria (`MensagensDaEquipe`), como a conta suspensa e o papel de operador. No dublê, a equipe começa vazia na conta de contratante (cenário `equipe-de-confianca-com-membro` a põe cheia) e com o profissional das fixtures na conta de profissional, de onde saem os critérios de "Por que recebo vagas".
+
 ## Cache e fila offline (#111)
 
 O banco local é um `ModelContainer` do SwiftData em `Application Support/Frila/Frila.store`, com a proteção de arquivo `completeUntilFirstUserAuthentication` na pasta. Os arquivos criados nela herdam a classe. É a mesma proteção padrão do iOS para dados de app: o conteúdo fica cifrado até o primeiro desbloqueio depois de ligar o aparelho, e legível depois disso, inclusive em segundo plano, que é quando a fila precisa sair. A classe `complete` travaria a fila com a tela bloqueada.

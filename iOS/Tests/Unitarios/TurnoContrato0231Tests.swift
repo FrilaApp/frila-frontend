@@ -348,10 +348,13 @@ struct TurnoContrato0231Tests {
         #expect(!vm.podeAvaliar)
     }
 
-    @Test("Dublê registra a causa da desistência sem devolver o motivo")
+    @Test("Dublê registra a causa da desistência após o início sem check-in, sem devolver o motivo")
     func dubleDesistencia() async throws {
-        let api = ApiClienteEmMemoria(cenario: .turnoEncerrado)
+        let relogio = RelogioDeDesistencia(agora)
+        let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoPerto, relogio: relogio)
         let inicial = try #require(try await api.meusTurnos().first)
+        #expect(inicial.checkin == nil)
+        relogio.avancar(para: inicial.vaga.periodo.inicio.addingTimeInterval(60))
         _ = try await api.cancelarPosicao(id: inicial.posicaoID, motivo: "Motivo privado da desistência")
         let lido = try #require(try await api.meusTurnos().first)
         #expect(lido.cancelado)
@@ -380,6 +383,14 @@ struct TurnoContrato0231Tests {
     }
 
 
+}
+
+private final class RelogioDeDesistencia: Relogio, @unchecked Sendable {
+    private let trava = NSLock()
+    private var instante: Date
+    init(_ instante: Date) { self.instante = instante }
+    var agora: Date { trava.withLock { instante } }
+    func avancar(para instante: Date) { trava.withLock { self.instante = instante } }
 }
 
 private struct RelogioFixo: Relogio {

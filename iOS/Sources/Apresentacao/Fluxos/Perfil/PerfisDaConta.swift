@@ -214,15 +214,10 @@ public struct TelaMeuPerfilProfissional: View {
         }
     }
 
+    /// A folha "Por que recebo vagas" (RF27, #18): texto aprovado, critérios reais e "Contestar".
     private var explicacao: some View {
         NavigationStack {
-            ScrollView {
-                Text(verbatim: TextosPerfilConta.explicacaoVagas)
-                    .accessibilityIdentifier("perfil-explicacao-vagas")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-            }
-            .navigationTitle(Text(verbatim: TextosPerfilConta.porQueRecebo)).navigationBarTitleDisplayMode(.inline)
+            TelaPorQueReceboVagas(api: api)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -235,7 +230,7 @@ public struct TelaMeuPerfilProfissional: View {
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
-        }.presentationDetents([.medium, .large])
+        }.presentationDetents([.large])
     }
 }
 
@@ -284,6 +279,15 @@ public struct TelaPerfilEstabelecimento: View {
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }
                     .accessibilityIdentifier("estabelecimento-historico-turnos")
+                    NavigationLink { TelaEquipeDeConfianca(api: api, estabelecimentoID: estabelecimento.id) } label: {
+                        Label {
+                            Text(verbatim: TextosEquipeDeConfianca.titulo)
+                        } icon: {
+                            Image(systemName: "person.2")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("estabelecimento-equipe-de-confianca")
                     Button { mostrarAjuda = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.ajuda)
