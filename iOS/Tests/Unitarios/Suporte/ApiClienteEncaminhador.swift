@@ -39,6 +39,11 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func meuEstabelecimento(id: UUID) async throws -> Estabelecimento { try await base.meuEstabelecimento(id: id) }
     func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel { try await base.painelEstabelecimento(id: id, periodo: periodo) }
 
+    // Equipe de confiança
+    func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico] { try await base.equipeDeConfianca(estabelecimentoID: estabelecimentoID) }
+    func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe { try await base.incluirNaEquipe(membro) }
+    func removerDaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe { try await base.removerDaEquipe(membro) }
+
     // Catálogo e vagas
     func funcoes() async throws -> [Funcao] { try await base.funcoes() }
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada { try await base.publicarVaga(publicacao) }

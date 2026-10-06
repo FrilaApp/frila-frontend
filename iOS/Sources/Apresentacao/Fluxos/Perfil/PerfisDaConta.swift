@@ -279,6 +279,15 @@ public struct TelaPerfilEstabelecimento: View {
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }
                     .accessibilityIdentifier("estabelecimento-historico-turnos")
+                    NavigationLink { TelaEquipeDeConfianca(api: api, estabelecimentoID: estabelecimento.id) } label: {
+                        Label {
+                            Text(verbatim: TextosEquipeDeConfianca.titulo)
+                        } icon: {
+                            Image(systemName: "person.2")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("estabelecimento-equipe-de-confianca")
                     Button { mostrarAjuda = true } label: {
                         Label {
                             Text(verbatim: TextosPerfilConta.ajuda)
