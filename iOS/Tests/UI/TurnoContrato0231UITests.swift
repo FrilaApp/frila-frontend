@@ -38,8 +38,9 @@ final class TurnoContrato0231UITests: XCTestCase {
         let fechar = app.buttons["fechar-aviso-acao-recusada-checkin"]
         XCTAssertTrue(fechar.waitForExistence(timeout: 5))
         tocar(fechar)
-        let sumiu = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: aviso)
-        XCTAssertEqual(XCTWaiter.wait(for: [sumiu], timeout: 5), .completed)
+        // 10 s, como as outras esperas do aviso: no runner da CI uma só consulta à árvore de
+        // acessibilidade levou 4,2 s (execução 37504092755), e a espera de 5 s estourou na primeira.
+        XCTAssertTrue(aviso.waitForNonExistence(timeout: 10), "o aviso não fechou depois do toque em fechar")
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
         tocar(app.buttons["meu-turno-\(turnoID)"])
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
