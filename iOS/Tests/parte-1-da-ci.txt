@@ -13,6 +13,7 @@ FrilaUITests/AcessibilidadeDoCatalogoUITests      # 4,7 min
 FrilaUITests/AcessibilidadeDoContratanteUITests   # 3,6 min
 FrilaUITests/AcessibilidadeDoProfissionalUITests  # 2,9 min
 FrilaUITests/AutenticacaoUITests                  # 8,8 min
+FrilaUITests/CancelamentoDoProfissionalUITests    # 3,0 min
 FrilaUITests/CandidaturaUITests                   # 2,9 min
 FrilaUITests/CicloDePontaAPontaUITests            # 3,5 min
 FrilaUITests/FluxoDoContratanteUITests            # 2,8 min

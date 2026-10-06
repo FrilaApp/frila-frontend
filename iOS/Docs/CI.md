@@ -13,6 +13,13 @@ Classe ou alvo de teste novo fica fora da lista e cai sozinho na parte 2. Antes 
 
 A divisão saiu dos tempos por classe da execução 37244334865 (push no `main`, 05/10). As 38 classes de interface somaram 71,0 minutos. A parte 1 ficou com 11 classes (39,2 min) e os unitários; a parte 2, com 27 classes (31,7 min) e os builds de Release. Esses builds levaram de 9m45s a 10m28s nas execuções 37241695780 e 37251084274.
 
+Na primeira execução do desenho, a 37504092755 (06/10):
+- a parte 1 levou 55m56s e a parte 2, 59m19s, 115m15s somados;
+- a interface rodou 11% mais devagar que na 37244334865 na parte 1 e 22% na parte 2, cada job numa máquina;
+- cada parte gastou cerca de 4 minutos entre o início do passo de testes e o primeiro teste, com o boot do simulador e a instalação.
+
+Depois dela, `CancelamentoDoProfissionalUITests` (3,0 min) passou para a parte 1. A troca compensa as classes novas do #154 e do #155 (`PorQueReceboVagasUITests` e `EquipeDeConfiancaUITests`), que caíram sozinhas na parte 2.
+
 Cada parte compila o seu `build-for-testing`. A alternativa medida foi compilar uma vez e repassar os produtos às partes como artefato:
 - os produtos têm 218 MB, ou 56 MB zipados (medido localmente);
 - o upload na CI fez 360 MB em 19 s (xcresult da 37241695780);
