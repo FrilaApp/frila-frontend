@@ -124,6 +124,21 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return try converter { try perfil.dominio() }
     }
 
+    // MARK: Por que recebo vagas (RF27)
+
+    public func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao {
+        let resposta: ContratoAPI.CriteriosDeNotificacaoDTO = try await rpc("criterios_de_notificacao")
+        return try converter { try resposta.dominio() }
+    }
+
+    public func pedirRevisaoDespacho(relato: String) async throws -> Protocolo {
+        let resposta: ContratoAPI.ProtocoloDTO = try await rpc(
+            "pedir_revisao_despacho",
+            params: ContratoAPI.PedirRevisaoDespacho(relato: relato)
+        )
+        return try converter { try resposta.dominio() }
+    }
+
     // MARK: Estabelecimento
 
     public func cadastrarEstabelecimento(_ cadastro: CadastroEstabelecimento) async throws -> Estabelecimento {
