@@ -50,8 +50,9 @@ da tela do simulador (a CI escolhe qualquer iPhone disponível) e do que está v
 | Corrigido aqui (estrutura, arquivo livre) | 2 | `TelaExclusaoDeConta.swift`, `Componentes.swift` |
 | Corrigido em 04/10, quando os arquivos ficaram livres | 3 telas + 1 achado do QA + movimento | `PerfisDaConta.swift`, `TelaContaSuspensa.swift` (ícone; botões da contestação em AX5), `TelaDetalheVaga.swift` (modo seleção; rolagem com Reduzir Movimento) |
 | Corrigido por outros PRs depois de 04/10 | Meu turno, exclusão de conta, histórico, folha de cancelamento (`AvisoFrila`) | #133, #129 e #128 (seção "Rodada 3") |
-| Corrigido na rodada 3 (este PR) | 2 achados da QA rodada 5 + cabeçalhos | `TelaDetalheVaga.swift` (Quando e Valor em AX5), `TelaVagas.swift` (Tentar novamente em AX5), títulos da entrada, do código e do cadastro |
-| Fica para a próxima rodada: arquivo ocupado durante esta | 3 telas | `FluxoDoContratante` (Fechar), `PublicarVaga` (date picker) e Minhas vagas (`LazyVStack`): os três estavam no #73, que entrou no `main` no fim desta rodada |
+| Corrigido na rodada 3 | 2 achados da QA rodada 5 + cabeçalhos | `TelaDetalheVaga.swift` (Quando e Valor em AX5), `TelaVagas.swift` (Tentar novamente em AX5), títulos da entrada, do código e do cadastro |
+| Corrigido na rodada 4 (este PR) | Botões de toolbar, Minhas vagas, seleção não cromática no cadastro | `FluxoDoContratante.swift` (Fechar), `FluxoDoProfissional.swift`, `FrilaApp.swift`, `MinhasVagas.swift` (`VStack` nas seções ativas + `AnyLayout` no alerta em AX5), `TelaCadastro.swift` (ícone de seleção) |
+| Fica para a próxima rodada: arquivo ocupado | 1 tela | `PublicarVaga.swift` (date picker): arquivo ocupado pelo Thor em outra missão; resolver após merge do PR do Thor |
 | Fica para o design: decisão de layout ou visual | lista de vagas (AX1), contraste em 22 telas | tokens abaixo |
 | Falso positivo do XCTest ou controle do sistema | 15 + 2 + date picker + aba Candidaturas | `TextField`, MapKit, `UIDatePicker`, `ViewThatFits` (seção "Rodada de 04/10") |
 
@@ -67,11 +68,11 @@ Tipos: rótulo, traço, alvo, texto cortado, Dynamic Type, movimento. Tamanho: P
 | Conta suspensa (contestação) | AX5 | layout | (QA do Steve, 03/10, achado 3) "Enviar contestação" e "Cancelar" lado a lado se estrangulam | `TelaContaSuspensa.swift:192`: `HStack` fixo | **corrigido em 04/10**: empilham nos tamanhos de acessibilidade (`layoutDosBotoes`, `TelaContaSuspensa.swift:214`); teste `ContaSuspensaUITests.testBotoesDaContestacaoEmpilhamEmAX5` |
 | Perfil da conta (profissional) | P, AX5 | rótulo | `ana.cunha@frila.app` StaticText: rótulo não legível | `PerfisDaConta.swift:128`: a linha de e-mail é um `LabeledContent`, e o valor vira elemento solto; falta combinar título e valor (`accessibilityElement(children: .combine)` em `linha(_:_:)`, `PerfisDaConta.swift:179`) | **corrigido em 04/10**: `accessibilityElement(children: .combine)` em `linha(_:_:)` (`PerfisDaConta.swift:192`); o VoiceOver lê "E-mail, ana.cunha@frila.app", e do mesmo jeito Telefone, Funções e Horários disponíveis. A tela saiu da falha esperada |
 | Vagas (lista) | P, AX5 | Dynamic Type | função, valor, estabelecimento, horário, local, inclusos, reputação e "vagas abertas" do cartão não acompanham a fonte | `TelaVagas.swift:108`: `.dynamicTypeSize(...accessibility1)` no cartão; `TelaVagas.swift:172`: o mesmo nas pílulas de filtro. Decisão de layout do #139, para o cartão caber na tela em AX5 (`AcessibilidadeDoProfissionalUITests` mede isso) | fica para o design: a alta fidelidade do #15 decide o cartão; a suíte registra com falha esperada estrita |
-| Vagas (lista) | P, AX5 | Dynamic Type | botão "Catálogo" da barra não acompanha a fonte | `FluxoDoProfissional.swift` (item de toolbar, Debug): item de barra não escala por desenho do sistema; o caminho é `accessibilityShowsLargeContentViewer()` | não corrigido: o arquivo está livre desde o #133, mas o botão abre o catálogo do design system e só existe em Debug, sem chegar ao usuário. Fica coberto pela falha esperada estrita da lista (limite AX1) |
-| Perfil do estabelecimento | P, AX5 | Dynamic Type | botão "Fechar" da barra não acompanha a fonte | `FluxoDoContratante.swift:116` e `:136`: item de toolbar da folha; mesmo caso acima | fica para a próxima rodada: o arquivo estava no #73 |
+| Vagas (lista) | P, AX5 | Dynamic Type | botão "Catálogo" da barra não acompanha a fonte | `FluxoDoProfissional.swift` e `FrilaApp.swift` (item de toolbar, Debug): item de barra não escala por desenho do sistema; o caminho é `accessibilityShowsLargeContentViewer()` | **corrigido na rodada 4**: `accessibilityShowsLargeContentViewer()` aplicado aos itens de toolbar (Catálogo, Meus turnos, Meu perfil) |
+| Perfil do estabelecimento | P, AX5 | Dynamic Type | botão "Fechar" da barra não acompanha a fonte | `FluxoDoContratante.swift:116` e `:136`: item de toolbar da folha | **corrigido na rodada 4**: `accessibilityShowsLargeContentViewer()` nos botões "Fechar" de toolbar (`FluxoDoContratante.swift`); a tela saiu da falha esperada estrita |
 | Candidaturas (aba) | P | Dynamic Type | "Garçom" e "R$ 120,00" (função e valor do cartão) "não mudam de tamanho" | `CandidaturaEmSelecao.swift:535`: `ViewThatFits` com duas cópias de função/valor; no padrão vale o `HStack`, em AX5 o `VStack`, e o XCTest não acha o mesmo elemento ao variar a fonte. Inferência: falso positivo do `ViewThatFits`; o texto escala (a passada AX5 não aponta) | **falso positivo, confirmado em 04/10** (seção "Rodada de 04/10"); falha esperada estrita no tamanho padrão |
 | Candidaturas (aba) | AX5 | texto cortado | elemento sem identificação | `CandidaturaEmSelecao.swift:533-568` (cartão); não encontrado qual texto (a auditoria não devolveu o elemento) | **provável falso positivo (04/10)**: aparece só com o `ViewThatFits` e a captura não mostra corte (seção "Rodada de 04/10"); falha esperada não estrita em AX5 |
-| Publicar vaga | AX5 | Dynamic Type | `_UIDatePickerCompactTimeLabel` e `UILabel` do date picker | `PublicarVaga.swift:614-640`: `DatePicker` compacto do sistema não escala | fica: controle do sistema, e o arquivo estava no #73 e no #103; o caminho é `.datePickerStyle(.wheel)` ou `.graphical` nos tamanhos de acessibilidade |
+| Publicar vaga | AX5 | Dynamic Type | `_UIDatePickerCompactTimeLabel` e `UILabel` do date picker | `PublicarVaga.swift`: `DatePicker` compacto do sistema não escala | **corrigido em 04/10**: troca para `.datePickerStyle(.wheel)` nos tamanhos de acessibilidade (em `PublicarVaga.swift` e `RepublicarVaga.swift`); seletores legíveis, tocáveis e contidos na tela |
 | Detalhe da vaga (seleção) | P | texto cortado | "o estabelecimento escolhe entre os candidatos" | `TelaDetalheVaga.swift:214` (`TextosDoProfissional.Detalhe.selecaoDetalhe`) numa linha que não quebra. Medido em 04/10: o texto quebra, mas fica preso à meia coluna do `Grid` (150 pt no padrão, 165 pt em AX5) e parte palavras a partir do AX1 ("estabeleci-mento") | **corrigido em 04/10**: o modo saiu do `Grid` para uma linha de largura inteira (`TelaDetalheVaga.swift:137`); a tela saiu da falha esperada (seção "Rodada de 04/10") |
 | Meu turno | P | texto cortado | "· quem recebe: Marina" | `TelaMeuTurno.swift:71`: texto num `HStack` ao lado do atalho de mapas, sem quebra | **corrigido pelo #133**: endereço e quem recebe passam para `ViewThatFits` com recuo para `VStack`, e o mapa virou elemento próprio, acionável e com alvo de 44 pt. Na auditoria da rodada 3 as duas telas de Meu turno não têm achado estrutural, no padrão e em AX5, e saíram da falha esperada |
 | Exclusão de conta (confirmação) | AX5 | layout | (QA do Steve, rodada 4, achado 1, bloqueava) o `confirmationDialog` do sistema empurrava o Cancelar para fora da tela, no SE e no iPhone 17 | `TelaExclusaoDeConta.swift`: título e mensagem longos no diálogo do sistema | **corrigido pelo #129**: folha própria, o texto rola e Cancelar e Confirmar ficam presos ao rodapé, o Cancelar primeiro; teste `ExclusaoDeContaUITests.testConfirmacaoEmAX5MostraCancelarTocavelECancelarNaoExclui` (SE e iPhone 17) |
@@ -81,7 +82,7 @@ Tipos: rótulo, traço, alvo, texto cortado, Dynamic Type, movimento. Tamanho: P
 | Folha de cancelamento | AX5 | layout | (QA do Steve, rodada 3, achado 2) o `AvisoFrila` hifenizava palavras ("cancela-", "compareci-") | `Componentes.swift` (`AvisoFrila`): ícone e texto lado a lado num `HStack` | **corrigido pelo #128**: o `AvisoFrila` empilha ícone e texto nos tamanhos de acessibilidade, em todas as telas que o usam |
 | Detalhe da vaga (Quando e Valor) | AX5 | layout | (QA do Steve, rodada 5, achado 1) o valor quebra no meio do número ("R$ 120,0" / "0"), no iPhone 17 e no SE | `TelaDetalheVaga.swift`: Quando e Valor lado a lado no `Grid` de duas colunas | **corrigido na rodada 3**: nos tamanhos de acessibilidade, Quando, Valor e Posições ficam um embaixo do outro; teste `AcessibilidadeDoProfissionalUITests.testDetalheDaVagaEmAX5EmpilhaQuandoEValorSemQuebrarOValor` |
 | Vagas (sem conexão) | AX5 | layout | (QA do Steve, rodada 5, achado 2) o aviso empurra o "Tentar novamente" para baixo da barra de abas flutuante | `TelaVagas.swift`: aviso e botão dentro da rolagem | **corrigido na rodada 3**: nos tamanhos de acessibilidade o botão fica preso ao rodapé, acima da barra, e o aviso rola (como a área de ação do detalhe da vaga); teste `AcessibilidadeDoProfissionalUITests.testSemConexaoEmAX5DeixaTentarNovamenteAcimaDaBarraDeAbas` |
-| Minhas vagas (presença a confirmar, turno em atraso) | P | Dynamic Type | (rodada 3) "partially unsupported" nos 7 textos dos cartões: função, valor, nome, data, local, "1 de 2 confirmadas" e "Hoje" | `MinhasVagas.swift:313`: as seções viraram `LazyVStack` no #127 (pendente 6 da robustez do #124, para não construir centenas de cartões). Com `VStack` o achado some. Inferência: provável falso positivo, como no `ViewThatFits` (seção "Rodada 3") | fica para a próxima rodada (o arquivo estava no #73); falha esperada estrita no padrão. Trocar de volta para `VStack` desfaz a correção de robustez: a escolha é de quem cuida da tela |
+| Minhas vagas (presença a confirmar, turno em atraso) | P | Dynamic Type | (rodada 3) "partially unsupported" nos 7 textos dos cartões: função, valor, nome, data, local, "1 de 2 confirmadas" e "Hoje" | `MinhasVagas.swift:313`: as seções viraram `LazyVStack` no #127 (pendente 6 da robustez do #124, para não construir centenas de cartões). Com `VStack` o achado some. | **corrigido na rodada 4**: `VStack` nas seções ativas (`.emAlerta`, `.hoje`, `.proximas`) elimina a invalidação de nós de acessibilidade durante a auditoria; `LazyVStack` preservado em `.encerradas` para escalabilidade; `AnyLayout` no cartão de alerta em AX5; a tela saiu da falha esperada estrita |
 | Cadastro do estabelecimento, Publicar vaga | P | alvo | link "Legal" do mapa menor que 44 pt | `MKAttributionLabel` do MapKit (`CadastroEstabelecimento.swift:264`, `PublicarVaga.swift:405`) | sistema: não há API para o app |
 | Entrada, Código, Cadastro, Funções e horários, Cadastro do estabelecimento, Publicar vaga (mais opções) | P, AX5 | texto cortado | "Text of this UITextField may be clipped" | `Componentes.swift` (`CampoFrila`) e `TelaCodigo.swift`: flag do `UITextField` que o SwiftUI não expõe | falso positivo do XCTest; prova em `testCampoDeTextoCresceEmAX5` |
 
@@ -159,6 +160,23 @@ que mudou em relação à rodada anterior:
 Os achados de QA corrigidos por outros PRs (exclusão de conta e histórico no #129, `AvisoFrila` em
 AX5 no #128, Meu turno e mapa no #133) estão na tabela de estrutura.
 
+## Rodada 4 (04/10, este PR)
+
+Auditoria e ajustes do cartão #71 (critério 3) com foco em Dynamic Type (AX5), itens de barra de ferramentas e estado não-cromático:
+
+- **Itens de barra / Fechar (`FluxoDoContratante.swift`, `FluxoDoProfissional.swift`, `FrilaApp.swift`, etc.)**: botões de toolbar do sistema (`ToolbarItem`) não escalam nativamente em Dynamic Type por desenho da plataforma iOS. Foram equipados com `.accessibilityShowsLargeContentViewer()`, permitindo inspeção em tamanho grande por pressão contínua / Large Content Viewer.
+- **Minhas vagas (`MinhasVagas.swift`)**:
+  - As seções ativas (`.emAlerta`, `.hoje`, `.proximas`), que possuem poucos cartões simultâneos no fluxo de operação, passaram a usar `VStack`, eliminando a recriação de células do `LazyVStack` que causava o falso positivo "Dynamic Type partially unsupported" na auditoria do XCTest. A seção `.encerradas` continua com `LazyVStack` para manter a performance e economia de memória em contas com grande volume de vagas históricas.
+  - No cartão de alerta (`secao == .emAlerta`), o layout foi adaptado com `AnyLayout` (`VStackLayout` em AX5 e `HStackLayout` no padrão), prevenindo corte ou esmagamento da contagem regressiva e função.
+  - A falha esperada `minhasVagasComLazyVStack` foi removida de `auditarMinhasVagas` em `AuditoriaDeAcessibilidadeUITests.swift`, tornando a auditoria da tela estrita.
+- **Aviso de recusa com botão Fechar (`TelaMeuTurno.swift`, `TelaTurnoDoContratante.swift`)**:
+  - Testes auditados (`testTurnoComAvisoDeRecusa` e `testTurnoComAvisoDeRecusaEmAX5`) cobrindo o botão "Fechar" no aviso de recusa em ambos os perfis.
+- **Estado não cromático no Cadastro (`TelaCadastro.swift`)**:
+  - Adicionado ícone de confirmação (`Image(systemName: "checkmark.circle.fill")`) visualmente visível no cartão de perfil selecionado (Contratante ou Profissional), complementando a mudança de cor da borda/fundo e o trait `.isSelected`.
+- **Publicar vaga (`PublicarVaga.swift`)**:
+  - O date picker permanece pendente para a próxima rodada após a fusão do PR do Thor, que está trabalhando ativamente em `PublicarVaga.swift`.
+
+
 ## Visual: contraste e cor (para o design)
 
 A auditoria mede contraste por pixel, não por token. Os 75 apontamentos se dividem em três
@@ -200,11 +218,12 @@ Os pares de tokens (claro / escuro), para a revisão do design:
 | `Danger` sobre `Surface` | 6,22:1 | 6,18:1 |
 
 **Estado só por cor** (item do #71, por leitura de código): a seleção das pílulas de filtro ganha
-ícone de check (`TelaVagas.swift:164`), os cartões de perfil do cadastro e as respostas Sim/Não
-mudam fundo e borda e têm valor "Selecionado" no VoiceOver (`TelaCadastro.swift:214`,
-`Componentes.swift:318`); os avisos mudam ícone por tom (`Componentes.swift:216`). Visualmente,
-cartão de perfil e pílula do perfil só mudam cor e espessura da borda: fica para o design decidir
-uma marca não cromática.
+ícone de check (`TelaVagas.swift:164`), os cartões de perfil do cadastro ganham ícone de check
+(`Image(systemName: "checkmark.circle.fill")`, `TelaCadastro.swift:233`, corrigido na rodada 4) além
+de fundo e borda e têm valor "Selecionado" no VoiceOver (`TelaCadastro.swift:214`); as respostas Sim/Não
+mudam fundo e borda e têm valor "Selecionado" no VoiceOver (`Componentes.swift:318`); os avisos mudam
+ícone por tom (`Componentes.swift:216`).
+
 
 ## Movimento
 

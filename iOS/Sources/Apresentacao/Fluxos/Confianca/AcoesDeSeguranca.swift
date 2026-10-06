@@ -147,7 +147,9 @@ private struct FolhaDeDenuncia: View {
             .navigationTitle(TextosDaSeguranca.denunciar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TextosDaSeguranca.fechar) { dismiss() }.disabled(model.enviando)
+                    Button(TextosDaSeguranca.fechar) { dismiss() }
+                        .accessibilityShowsLargeContentViewer()
+                        .disabled(model.enviando)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()

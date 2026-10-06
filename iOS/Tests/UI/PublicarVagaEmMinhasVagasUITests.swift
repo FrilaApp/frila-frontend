@@ -150,6 +150,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let avisoContinua = app.descendants(matching: .any)["aviso-publicacao-continua"]
         XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "o aviso informativo de que a publicação continua deve aparecer")
         XCTAssertTrue(app.staticTexts["A publicação continua e será concluída quando a conexão voltar."].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-erro-publicacao"].exists, "não deve exibir banner vermelho de erro sem rede")
         XCTAssertEqual(botaoFechar.label, "Voltar", "o botão de fechar passa a ser 'Voltar' quando a publicação ficou na fila")
 
         // 4. Toca em "Voltar" e volta para Minhas vagas
@@ -159,11 +160,48 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
         XCTAssertEqual(vagas(app).count, antes, "a vaga não foi criada no servidor, continua pendente na fila")
 
-        // 5. Ao abrir o formulário novamente, a vaga continua pendente (restaurada da fila)
+        // 5. Ao abrir o formulário novamente, a vaga continua pendente (restaurada da fila com os campos preenchidos)
         entrada.tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
         XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "a vaga pendente na fila reabre com o aviso de continuação")
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-erro-publicacao"].exists, "não deve exibir aviso vermelho ao reabrir pendência")
         XCTAssertEqual(botaoFechar.label, "Voltar")
+
+        let botaoTentarNovamente = app.buttons["publicar-vaga-botao"]
+        XCTAssertTrue(botaoTentarNovamente.waitForExistence(timeout: 5))
+        XCTAssertEqual(botaoTentarNovamente.label, "Tentar novamente")
+
+        let campoResponsavel = app.textFields["Quem recebe no local"]
+        XCTAssertTrue(campoResponsavel.exists)
+        XCTAssertEqual(campoResponsavel.value as? String, "Marina")
+
+        let campoValor = app.textFields["Valor por posição"]
+        XCTAssertTrue(campoValor.exists)
+        XCTAssertEqual(campoValor.value as? String, "R$ 180,00")
+    }
+
+    func testPublicarVagaEmAX5SeletorDeDataETocavel() {
+        let app = abrir(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        XCTAssertTrue(entrada.isHittable)
+        entrada.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+
+        let dpInicio = app.datePickers["datepicker-inicio"]
+        rolarAte(dpInicio, em: app)
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5), "DatePicker Início deve existir")
+        XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
+        XCTAssertGreaterThan(dpInicio.pickerWheels.count, 0, "DatePicker Início deve conter rodas de seleção")
+
+        let dpFim = app.datePickers["datepicker-fim"]
+        rolarAte(dpFim, em: app)
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5), "DatePicker Fim deve existir")
+        XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
+        XCTAssertGreaterThan(dpFim.pickerWheels.count, 0, "DatePicker Fim deve conter rodas de seleção")
     }
 
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {

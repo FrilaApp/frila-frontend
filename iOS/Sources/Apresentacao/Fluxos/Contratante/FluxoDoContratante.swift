@@ -116,6 +116,7 @@ public struct FluxoDoContratante: View {
                         Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
                             mostrandoPerfilEstabelecimento = false
                         }
+                        .accessibilityShowsLargeContentViewer()
                     }
                 }
             }
@@ -136,6 +137,7 @@ public struct FluxoDoContratante: View {
                         Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
                             mostrandoExclusaoDeConta = false
                         }
+                        .accessibilityShowsLargeContentViewer()
                     }
                 }
             }
