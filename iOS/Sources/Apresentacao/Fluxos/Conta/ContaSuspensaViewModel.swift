@@ -15,6 +15,8 @@ public final class ContaSuspensaViewModel: Identifiable {
     public private(set) var bloqueadoPor409 = false
     public private(set) var contaReativada = false
 
+    private let relogio: any Relogio
+    public let enderecos: EnderecosOficiais
     private let obterSituacao: @Sendable () async throws -> SituacaoDaConta
     private let enviarContestacaoAcao: @Sendable (String) async throws -> Protocolo
     private let aoReativar: () -> Void
@@ -29,11 +31,16 @@ public final class ContaSuspensaViewModel: Identifiable {
     }
 
     public var emAnalise: Bool {
-        protocolo != nil
+        guard let protocolo, let hoje = DataCivil.deSaoPaulo(relogio.agora) else { return false }
+        return hoje <= protocolo.prazoRespostaAte
+    }
+
+    public var mensagemDoProtocolo: String {
+        emAnalise ? TextosContaSuspensa.mensagemEmAnalise : TextosContaSuspensa.mensagemAposPrazo(email: enderecos.emailSuporte)
     }
 
     public var podeContestar: Bool {
-        !emAnalise && !bloqueadoPor409 && !enviandoContestacao && !contaReativada
+        protocolo == nil && !bloqueadoPor409 && !enviandoContestacao && !contaReativada
     }
 
     public var relatoValido: Bool {
@@ -42,11 +49,15 @@ public final class ContaSuspensaViewModel: Identifiable {
 
     public init(
         situacao: SituacaoDaConta? = nil,
+        relogio: any Relogio = RelogioDoSistema(),
+        enderecos: EnderecosOficiais = .padrao,
         obterSituacao: @escaping @Sendable () async throws -> SituacaoDaConta,
         enviarContestacaoAcao: @escaping @Sendable (String) async throws -> Protocolo,
         aoReativar: @escaping () -> Void = {},
         sair: @escaping () -> Void = {}
     ) {
+        self.relogio = relogio
+        self.enderecos = enderecos
         self.situacao = situacao
         self.protocolo = situacao?.suspensao?.contestacao
         self.obterSituacao = obterSituacao
@@ -58,11 +69,15 @@ public final class ContaSuspensaViewModel: Identifiable {
     public convenience init(
         situacao: SituacaoDaConta? = nil,
         api: any ApiCliente,
+        relogio: any Relogio = RelogioDoSistema(),
+        enderecos: EnderecosOficiais = .padrao,
         aoReativar: @escaping () -> Void = {},
         sair: @escaping () -> Void = {}
     ) {
         self.init(
             situacao: situacao,
+            relogio: relogio,
+            enderecos: enderecos,
             obterSituacao: { try await api.situacaoDaConta() },
             enviarContestacaoAcao: { relato in try await api.contestarSuspensao(relato: relato) },
             aoReativar: aoReativar,
@@ -83,6 +98,7 @@ public final class ContaSuspensaViewModel: Identifiable {
             }
             if let contestacao = novaSituacao.suspensao?.contestacao {
                 self.protocolo = contestacao
+                mostrarFormularioContestacao = false
             }
         } catch let erroApi as ErroDaApi {
             if erroApi.codigo == .semRede {
@@ -132,6 +148,7 @@ public final class ContaSuspensaViewModel: Identifiable {
                 bloqueadoPor409 = true
                 mostrarFormularioContestacao = false
                 avisoExplicacao409 = TextosContaSuspensa.contestacaoJaExiste
+                await carregar()
             case .semSuspensaoAtiva:
                 contaReativada = true
                 aoReativar()

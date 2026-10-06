@@ -1,7 +1,7 @@
 import Foundation
 import FrilaDados
 import FrilaDominio
-import FrilaApresentacao
+@testable import FrilaApresentacao
 import Testing
 import SwiftData
 
@@ -53,8 +53,85 @@ private final class ApiSaidaRecusada: ApiClienteEncaminhador, @unchecked Sendabl
     }
 }
 
+private final class ApiCancelamentoRecusado: ApiClienteEncaminhador, @unchecked Sendable {
+    let codigo: CodigoErroAPI
+    init(codigo: CodigoErroAPI) { self.codigo = codigo; super.init() }
+    override func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento {
+        throw ErroDaApi(codigo: codigo)
+    }
+    override func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada {
+        throw ErroDaApi(codigo: codigo)
+    }
+}
+
 @Suite("Recusas definitivas da fila")
 struct SincronizadorRecusasTests {
+    @Test("409 de cancelamento persiste recusa visível e impede reenvio",
+          arguments: [TipoAcaoPendente.cancelamentoPosicao, .cancelamentoVaga],
+          [CodigoErroAPI.posicaoNaoCancelavel, .vagaEncerrada])
+    func cancelamentoRecusado(tipo: TipoAcaoPendente, codigo: CodigoErroAPI) async throws {
+        let api = ApiCancelamentoRecusado(codigo: codigo)
+        let conta = try await api.minhaConta()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let acao = AcaoPendente(tipo: tipo, turnoID: UUID(), contaID: conta.id,
+            instanteDoToque: .now, chave: UUID(), alvoID: UUID(), motivo: "Imprevisto pessoal")
+        try await fila.enfileirar(acao)
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+        await sincronizador.sincronizar()
+        #expect(try await fila.pendentes().isEmpty)
+        let recusa = try #require(try await fila.recusadas().first)
+        #expect(try await fila.recusadas() == [AcaoRecusada(acao: acao, codigo: codigo)])
+        #expect(TextosDaFila.texto(recusa) == TextosDoCancelamento.falha(ErroDaApi(codigo: codigo)))
+        if tipo == .cancelamentoVaga {
+            #expect(recusa.vagaID == acao.alvoID)
+        }
+    }
+
+    @Test("200 no reenvio de cancelamento perdido conclui sem recusa",
+          arguments: [TipoAcaoPendente.cancelamentoPosicao, .cancelamentoVaga])
+    func cancelamentoAceito(tipo: TipoAcaoPendente) async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoLonge)
+        let turno = try #require(try await api.meusTurnos().first)
+        let conta = try await api.minhaConta()
+        let alvo = tipo == .cancelamentoPosicao ? turno.posicaoID : turno.vaga.id
+        if tipo == .cancelamentoPosicao {
+            _ = try await api.cancelarPosicao(id: alvo, motivo: "Imprevisto pessoal")
+        } else {
+            _ = try await api.cancelarVaga(id: alvo, motivo: "Imprevisto pessoal")
+        }
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let acao = AcaoPendente(tipo: tipo, turnoID: turno.id, contaID: conta.id,
+            instanteDoToque: .now, chave: UUID(), alvoID: alvo, motivo: "Imprevisto pessoal")
+        try await fila.enfileirar(acao)
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(try await fila.pendentes().isEmpty)
+        #expect(try await fila.recusadas().isEmpty)
+    }
+
+    @Test("Sucesso reconhece a recusa da mesma vaga e conserva a de outra vaga")
+    func sucessoDoCancelamentoReconheceSoAVagaCorrespondente() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoLonge)
+        let turno = try #require(try await api.meusTurnos().first)
+        let conta = try await api.minhaConta()
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let primeira = AcaoPendente(tipo: .cancelamentoVaga, contaID: conta.id,
+            instanteDoToque: .now, chave: UUID(), alvoID: turno.vaga.id, motivo: "Evento adiado")
+        let outraVaga = AcaoPendente(tipo: .cancelamentoVaga, contaID: conta.id,
+            instanteDoToque: .now, chave: UUID(), alvoID: UUID(), motivo: "Evento adiado")
+        try await fila.enfileirar(primeira)
+        try await fila.enfileirar(outraVaga)
+        try await fila.recusar(primeira, codigo: .vagaEncerrada)
+        try await fila.recusar(outraVaga, codigo: .vagaEncerrada)
+        let nova = AcaoPendente(tipo: .cancelamentoVaga, contaID: conta.id,
+            instanteDoToque: .now, chave: UUID(), alvoID: turno.vaga.id, motivo: "Evento adiado")
+        try await fila.enfileirar(nova)
+        await SincronizadorAcoes(fila: fila, api: api).sincronizar()
+        #expect(try await fila.pendentes().isEmpty)
+        #expect(try await fila.recusadas().map(\.id) == [outraVaga.id])
+        #expect(try await fila.recusadas(incluirReconhecidas: true).contains { $0.id == primeira.id && $0.avisoReconhecido == true })
+    }
+
     @Test("Erro da consulta de conta conserva ação autorada; sem rede interrompe também o legado",
           arguments: [CodigoErroAPI.naoEncontrado, .semPermissao, .contaSuspensa, .semRede])
     func falhaDaContaNaoRecusaAcao(codigo: CodigoErroAPI) async throws {

@@ -93,16 +93,14 @@ private actor FilaDeAcoesMemoria: FilaDeAcoes {
         #expect(viewModel.faltaNoCancelamento == "Este cancelamento não contou como falta.")
     }
 
-    @Test func dubleRecusaMotivoCurtoEPosicaoJaCancelada() async throws {
+    @Test func dubleRecusaMotivoCurtoEReenvioDevolveResultado() async throws {
         let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoLonge, relogio: RelogioFixo(agora))
         let turno = try await turnoConfirmado(api)
         await #expect(throws: ErroDaApi(codigo: .campoObrigatorio, detalhes: "motivo")) {
             try await api.cancelarPosicao(id: turno.posicaoID, motivo: "ab")
         }
-        _ = try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
-        await #expect(throws: ErroDaApi(codigo: .posicaoNaoCancelavel)) {
-            try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
-        }
+        let primeira = try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")
+        #expect(try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal") == primeira)
     }
 
     @Test func semRedeGuardaNaFilaEOSincronizadorEnviaDepois() async throws {
@@ -140,7 +138,7 @@ private actor FilaDeAcoesMemoria: FilaDeAcoes {
         #expect(relido.cancelamento?.causa == .profissional)
     }
 
-    @Test func sincronizadorDescartaCancelamentoJaFeitoEMantemOQueFalhouPorRede() async throws {
+    @Test func sincronizadorConcluiReenvioIdempotenteEMantemOQueFalhouPorRede() async throws {
         let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoLonge, relogio: RelogioFixo(agora))
         let turno = try await turnoConfirmado(api)
         _ = try await api.cancelarPosicao(id: turno.posicaoID, motivo: "Imprevisto pessoal")

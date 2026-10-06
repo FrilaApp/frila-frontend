@@ -160,7 +160,7 @@ public struct AcaoRecusada: Codable, Equatable, Identifiable, Sendable {
         id = acao.id
         tipo = acao.tipo
         turnoID = acao.turnoID
-        vagaID = acao.republicacao?.vagaID
+        vagaID = acao.tipo == .cancelamentoVaga ? acao.alvoID : acao.republicacao?.vagaID
         estabelecimentoID = acao.publicacao?.estabelecimentoID
         contaID = acao.contaID
         self.codigo = codigo
@@ -173,7 +173,7 @@ public struct AcaoRecusada: Codable, Equatable, Identifiable, Sendable {
     }
 
     public func corresponde(a acao: AcaoPendente) -> Bool {
-        tipo == acao.tipo && turnoID == acao.turnoID && vagaID == acao.republicacao?.vagaID
+        tipo == acao.tipo && turnoID == acao.turnoID && vagaID == (acao.tipo == .cancelamentoVaga ? acao.alvoID : acao.republicacao?.vagaID)
             && estabelecimentoID == acao.publicacao?.estabelecimentoID
             && (contaID == nil || contaID == acao.contaID)
     }

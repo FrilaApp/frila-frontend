@@ -3,7 +3,7 @@ import Foundation
 public enum TextosContaSuspensa {
     public static let titulo = String(localized: "Conta suspensa", bundle: bundleApresentacao)
     public static let subtitulo = String(localized: "Sua conta está temporariamente suspensa.", bundle: bundleApresentacao)
-    public static let avisoPrincipal = String(localized: "O acesso aos serviços do Frila está suspenso devido a uma ocorrência em análise.", bundle: bundleApresentacao)
+    public static let avisoPrincipal = String(localized: "O acesso aos serviços do Frila está suspenso.", bundle: bundleApresentacao)
     public static let secaoMotivo = String(localized: "Informações da suspensão", bundle: bundleApresentacao)
     public static let motivoTitulo = String(localized: "Motivo informado", bundle: bundleApresentacao)
     public static let desdeTitulo = String(localized: "Suspensa desde", bundle: bundleApresentacao)
@@ -22,6 +22,9 @@ public enum TextosContaSuspensa {
     public static let protocoloData = String(localized: "Enviado em", bundle: bundleApresentacao)
     public static let prazoRespostaTitulo = String(localized: "Previsão de resposta até", bundle: bundleApresentacao)
     public static let mensagemEmAnalise = String(localized: "Sua contestação foi enviada e está em análise pela Equipe Frila. Você receberá uma notificação e resposta por e-mail dentro do prazo informado.", bundle: bundleApresentacao)
+    public static func mensagemAposPrazo(email: String) -> String {
+        String(localized: "A resposta da Equipe Frila é enviada por e-mail. Para qualquer recurso adicional, escreva para \(email).", bundle: bundleApresentacao)
+    }
     public static let contestacaoJaExiste = String(localized: "Já existe uma contestação para esta suspensão.", bundle: bundleApresentacao)
     public static let relatoMinimo = String(localized: "O relato deve conter pelo menos 10 caracteres.", bundle: bundleApresentacao)
     public static let relatoObrigatorio = String(localized: "Informe o motivo da contestação antes de enviar.", bundle: bundleApresentacao)

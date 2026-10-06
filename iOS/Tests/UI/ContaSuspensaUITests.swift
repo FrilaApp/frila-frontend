@@ -112,4 +112,24 @@ final class ContaSuspensaUITests: XCTestCase {
         // A borda de 1,5 pt do botão secundário entra no frame dele.
         XCTAssertEqual(cancelar.frame.width, enviar.frame.width, accuracy: 2, "Empilhados, os dois botões têm a largura do cartão")
     }
+    func testContestacaoRespondidaMostraProtocoloERecursoPorEmailSemNovoFormulario() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "contestacao-respondida"]
+        app.launch()
+        let protocolo = app.staticTexts["protocolo-contestacao"]
+        XCTAssertTrue(protocolo.waitForExistence(timeout: 10))
+        XCTAssertEqual(protocolo.label, "11111111-2222-3333-4444-555555555555")
+        let mensagem = app.staticTexts["mensagem-protocolo-contestacao"]
+        for _ in 0..<5 where !mensagem.isHittable { app.swipeUp() }
+        XCTAssertTrue(mensagem.exists)
+        XCTAssertTrue(mensagem.label.contains("A resposta da Equipe Frila é enviada por e-mail."))
+        XCTAssertTrue(mensagem.label.contains("recurso adicional"))
+        XCTAssertTrue(mensagem.label.contains("suportefrila@gmail.com"))
+        XCTAssertFalse(mensagem.label.contains("em análise"))
+        XCTAssertFalse(app.descendants(matching: .any)["status-em-analise"].exists)
+        XCTAssertFalse(app.buttons["botao-contestar-suspensao"].exists)
+        XCTAssertFalse(app.buttons["botao-enviar-contestacao"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["campo-relato-contestacao"].exists)
+    }
+
 }
