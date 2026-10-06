@@ -1,0 +1,22 @@
+# Parte 1 dos testes na CI (.github/workflows/ios.yml, job parte-1).
+#
+# Uma entrada por linha, no formato do -only-testing do xcodebuild: um alvo (FrilaTests) ou um
+# alvo e uma classe (FrilaUITests/Classe). A parte 1 roda só o que está aqui (-only-testing); a
+# parte 2 roda todo o resto da suíte do Frila-Local (-skip-testing desta mesma lista). Classe ou
+# alvo novo fica fora da lista e cai sozinho na parte 2.
+#
+# O tempo ao lado de cada classe foi medido na execução 37244334865 (push no main, 05/10/2026).
+# Quando rebalancear e como: iOS/Docs/CI.md.
+
+FrilaTests
+FrilaUITests/AcessibilidadeDoCatalogoUITests      # 4,7 min
+FrilaUITests/AcessibilidadeDoContratanteUITests   # 3,6 min
+FrilaUITests/AcessibilidadeDoProfissionalUITests  # 2,9 min
+FrilaUITests/AutenticacaoUITests                  # 8,8 min
+FrilaUITests/CandidaturaUITests                   # 2,9 min
+FrilaUITests/CicloDePontaAPontaUITests            # 3,5 min
+FrilaUITests/FluxoDoContratanteUITests            # 2,8 min
+FrilaUITests/ModoSelecaoDoContratanteUITests      # 1,8 min
+FrilaUITests/ModoSelecaoDoProfissionalUITests     # 2,2 min
+FrilaUITests/PublicarVagaEmMinhasVagasUITests     # 2,1 min
+FrilaUITests/TurnoContrato0231UITests             # 4,0 min

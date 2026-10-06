@@ -1,6 +1,41 @@
 # Integração contínua
 
-O workflow `.github/workflows/ios.yml` roda em pull requests e pushes que mexem em `iOS/**` ou no próprio workflow, num runner `macos-26`, com permissão só de leitura e limite de 90 minutos. Um push novo cancela a execução anterior do mesmo PR ou branch.
+O workflow `.github/workflows/ios.yml` roda em pull requests e pushes que mexem em `iOS/**` ou no próprio workflow, em dois jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limite de 90 minutos por job. Um push novo cancela a execução anterior do mesmo PR ou branch.
+
+## Duas partes
+
+Desde 06/10/2026 (PR #147), a suíte do `Frila-Local` é dividida por uma lista só, `Tests/parte-1-da-ci.txt`:
+
+- **Parte 1** (`parte-1`): os portões que não compilam (etapas 3 a 5 abaixo e a conferência das partes), depois os testes unitários (`FrilaTests` inteiro) e as classes de interface da lista, com `-only-testing`.
+- **Parte 2** (`parte-2`): todo o resto da suíte, com `-skip-testing` da mesma lista, e os builds de Release (etapas 11 a 13), que continuam pulados em PR que só mexe em testes ou documentação. Os builds de Release vêm antes dos testes de interface: um Release quebrado reprova em minutos.
+
+Classe ou alvo de teste novo fica fora da lista e cai sozinho na parte 2. Antes de compilar, a parte 1 roda `Scripts/partes-dos-testes.sh conferir`, com o autoteste `Scripts/teste-partes-dos-testes.sh`. A conferência reprova item da lista que não existe no código ou que aparece repetido, e imprime as classes de cada parte.
+
+A divisão saiu dos tempos por classe da execução 37244334865 (push no `main`, 05/10). As 38 classes de interface somaram 71,0 minutos. A parte 1 ficou com 11 classes (39,2 min) e os unitários; a parte 2, com 27 classes (31,7 min) e os builds de Release. Esses builds levaram de 9m45s a 10m28s nas execuções 37241695780 e 37251084274.
+
+Cada parte compila o seu `build-for-testing`. A alternativa medida foi compilar uma vez e repassar os produtos às partes como artefato:
+- os produtos têm 218 MB, ou 56 MB zipados (medido localmente);
+- o upload na CI fez 360 MB em 19 s (xcresult da 37241695780);
+- a compilação levou de 2m34s a 3m51s (37244334865, 37241695780 e 37251084274).
+
+Inferência: o artefato pouparia no máximo uma compilação por execução, menos o preparo de um terceiro job, e as partes esperariam por ele. A diferença é pequena, então ficou a opção mais simples.
+
+**Rebalancear** quando a parte 2 passar de 65 minutos medidos numa execução completa, ou quando a parte 1 passar disso. Mova classes para a lista ou tire dela pelos tempos da execução mais recente: no log, o xcbeautify imprime `Executed N tests, ... in S seconds` ao fim de cada classe. Antes do push, confira com as enumerações do próprio xcodebuild, depois de um `build-for-testing` do `Frila-Local`:
+
+```sh
+cd iOS
+for p in suite 1 2; do
+  ARGS=(); [[ $p == suite ]] || while IFS= read -r a; do ARGS+=("$a"); done <<< "$(Scripts/partes-dos-testes.sh argumentos $p)"
+  xcodebuild test-without-building -project Frila.xcodeproj -scheme Frila-Local -destination "id=<UDID>" \
+    -enumerate-tests -test-enumeration-style flat -test-enumeration-format json \
+    -test-enumeration-output-path "/tmp/partes-$p.json" "${ARGS[@]}"
+done
+Scripts/partes-dos-testes.sh conferir-enumeracoes /tmp/partes-suite.json /tmp/partes-1.json /tmp/partes-2.json
+```
+
+Em 06/10 essa conferência deu 1.101 testes na parte 1 e 155 na parte 2, que somam os 1.256 da suíte. Cada enumeração levou de 37 a 64 s localmente, por isso ela não roda em toda execução da CI.
+
+## Etapas
 
 Etapas, na ordem:
 
@@ -13,7 +48,7 @@ Etapas, na ordem:
 7. Injeta os plists do Firebase Dev e Prod.
 8. Escolhe o simulador de iPhone disponível com o iOS mais novo, sem aparelho fixo.
 9. Restaura `DerivedData/SourcePackages` pelo hash do `Package.resolved` e pela versão do Xcode. Sem cache, resolve os pacotes explicitamente com `-onlyUsePackageVersionsFromResolvedFile`; com cache, a resolução automática fica desabilitada. Produtos de build nunca entram no cache.
-10. `xcodebuild build-for-testing` e depois `test-without-building` do `Frila-Local`: testes unitários, de contrato e de interface, sem backend.
+10. `xcodebuild build-for-testing` e depois `test-without-building` do `Frila-Local`: testes unitários, de contrato e de interface, sem backend. Cada parte compila e roda a sua fatia: a parte 1, a lista; a parte 2, o resto (veja [Duas partes](#duas-partes)).
 11. Gera o `Secrets.xcconfig` de Dev e compila o `Frila-Dev` (pulado se o PR só mexe em testes ou documentação).
 12. Compila o `Frila-Beta` (Release apontando para o frila-dev) e confere o bundle (pulado se o PR só mexe em testes ou documentação).
 13. Gera o `Secrets.xcconfig` de Prod e compila o `Frila-Prod` e confere o bundle (pulado se o PR só mexe em testes ou documentação).
@@ -26,6 +61,8 @@ Desde 24/09 a etapa 12 compila com o `frila-prod` ([Dependências externas](Exte
 Custo: o repositório é privado e cada minuto macOS consome cerca de dez vezes a cota de um minuto Linux. O orçamento de Actions da organização está em US$ 0 com bloqueio de uso adicional, então esgotar a cota interrompe a CI sem gerar cobrança.
 
 Tempo da CI de PR: no PR #66, em 02/10/2026, a execução levou 39m45s. Os testes do `Frila-Local` tomaram 25m45s, a compilação deles 2m35s, e os builds do Dev, do Beta e do Prod, 1m59s, 4m20s e 3m44s. Nada roda duas vezes: o workflow só dispara em pull request e em push no `main`, e um push novo cancela a execução anterior do mesmo PR. O limite subiu de 45 para 70 minutos quando os testes de interface do push (#8) entraram, e para 90 minutos em 04/10/2026 após o crescimento da suíte de testes de interface (ciclo ponta a ponta e fluxos de cancelamento com motivo), evitando cancelamentos perto do fim que desperdiçam 70 minutos e voltam inteiros à fila. PRs que alteram apenas testes (`iOS/Tests/**`) ou documentação (`**/*.md`, `iOS/Docs/**`) pulam os builds de Release (`Frila-Dev`, `Frila-Beta` e `Frila-Prod`) e suas conferências, economizando cerca de 7m30s a 8m30s por execução. Separar os três builds num job paralelo encurtaria a espera, mas gastaria mais cota, porque a preparação e a compilação dos pacotes se repetiriam; não foi feito.
+
+Em outubro de 2026 o job único chegou perto do limite: na 37244334865 (push no `main`, 05/10) ele terminou em 85m45s, 75 deles no passo de testes. A primeira tentativa do PR #147 separou a interface num job e deixou os unitários e os builds de Release em outro. O job de interface levou 81m09s na 37241695780 e foi cortado nos 90 minutos na 37251084274. Nessa execução, as 16 primeiras classes levaram 46,5 minutos, contra 38,8 na 37241695780. Daí as duas partes de hoje, com os builds de Release na parte 2 em vez de num terceiro job.
 
 Paralelismo de testes no simulador: medido e descartado em 03/10/2026 no PR #102. Tentar rodar os testes em paralelo no xcodebuild (`-parallel-testing-enabled YES -maximum-parallel-testing-workers 2`) subiu o tempo do passo de testes de 42-53 minutos para 67m45s (estourando o limite de 70 minutos do workflow) e causou 8 falhas espúrias por lentidão extrema. O runner `macos-26` do GitHub Actions tem apenas 3 vCPUs; subir e manter dois clones de simulador concorrentes sobrecarrega a CPU (só o boot inicial levou 10m20s) e quebra a sincronização de acessibilidade do XCUITest. O simulador único sequencial é 15 a 25 minutos mais rápido e 100% determinístico. Não ligue paralelismo de simulador na CI sem runners com mais núcleos dedicados.
 
