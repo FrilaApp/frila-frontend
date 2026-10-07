@@ -18,22 +18,22 @@ final class SuporteTurnoUITests: XCTestCase {
 
         // 2. O aviso de prazo de até 5 dias úteis deve estar visível (Critério 2)
         let avisoPrazo = app.descendants(matching: .any)["aviso-prazo-suporte"]
-        XCTAssertTrue(avisoPrazo.waitForExistence(timeout: 5), "O aviso de prazo de 5 dias úteis deve estar visível")
+        XCTAssertTrue(avisoPrazo.waitForExistence(timeout: Espera.aparecer), "O aviso de prazo de 5 dias úteis deve estar visível")
         XCTAssertTrue(avisoPrazo.label.contains("Respondemos em até 5 dias úteis"), "Deve explicitar o prazo de 5 dias úteis")
 
         // 3. Seleção de motivo de risco de segurança exibe aviso imediato e atalhos 190 e 180 (Critério 3)
         let opcaoRisco = app.descendants(matching: .any)["opcao-motivo-risco_seguranca"]
-        XCTAssertTrue(opcaoRisco.waitForExistence(timeout: 5), "Opção de risco à segurança deve estar disponível")
+        XCTAssertTrue(opcaoRisco.waitForExistence(timeout: Espera.aparecer), "Opção de risco à segurança deve estar disponível")
         opcaoRisco.tap()
 
         let avisoSeguranca = app.descendants(matching: .any)["aviso-seguranca-suporte"]
-        XCTAssertTrue(avisoSeguranca.waitForExistence(timeout: 5), "Aviso de emergência deve aparecer ao selecionar risco à segurança")
+        XCTAssertTrue(avisoSeguranca.waitForExistence(timeout: Espera.aparecer), "Aviso de emergência deve aparecer ao selecionar risco à segurança")
 
         let botao190 = app.descendants(matching: .any)["botao-ligar-190"]
-        XCTAssertTrue(botao190.waitForExistence(timeout: 5), "Botão para ligar 190 deve estar disponível")
+        XCTAssertTrue(botao190.waitForExistence(timeout: Espera.aparecer), "Botão para ligar 190 deve estar disponível")
 
         let botao180 = app.descendants(matching: .any)["botao-ligar-180"]
-        XCTAssertTrue(botao180.waitForExistence(timeout: 5), "Botão para ligar 180 deve estar disponível")
+        XCTAssertTrue(botao180.waitForExistence(timeout: Espera.aparecer), "Botão para ligar 180 deve estar disponível")
 
         // 4. Rola a tela para ver os campos inferiores e botões de ação
         app.swipeUp()
@@ -47,21 +47,21 @@ final class SuporteTurnoUITests: XCTestCase {
 
         // 6. Botão de envio de e-mail e botão de cópia de dados (Critérios 4 e 5)
         let botaoEnviar = app.descendants(matching: .any)["botao-enviar-email-suporte"]
-        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 5), "Botão para abrir e-mail deve estar presente")
+        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: Espera.aparecer), "Botão para abrir e-mail deve estar presente")
 
         let botaoCopiar = app.descendants(matching: .any)["botao-copiar-dados-suporte"]
-        XCTAssertTrue(botaoCopiar.waitForExistence(timeout: 5), "Botão para copiar dados deve estar presente")
+        XCTAssertTrue(botaoCopiar.waitForExistence(timeout: Espera.aparecer), "Botão para copiar dados deve estar presente")
         if !botaoCopiar.isHittable {
             app.swipeUp()
         }
         botaoCopiar.tap()
 
         let avisoCopiado = app.descendants(matching: .any)["aviso-dados-copiados"]
-        XCTAssertTrue(avisoCopiado.waitForExistence(timeout: 5), "Confirmação de cópia dos dados deve ser exibida após o toque")
+        XCTAssertTrue(avisoCopiado.waitForExistence(timeout: Espera.aparecer), "Confirmação de cópia dos dados deve ser exibida após o toque")
 
         // 7. Botão fechar
         let botaoFechar = app.buttons["botao-fechar-suporte"]
-        XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5), "Botão de fechar folha deve estar acessível")
+        XCTAssertTrue(botaoFechar.waitForExistence(timeout: Espera.aparecer), "Botão de fechar folha deve estar acessível")
     }
 
     /// Critério 4 do #71: Com Reduzir Movimento ligado, nenhuma animação de deslocamento.
@@ -78,14 +78,14 @@ final class SuporteTurnoUITests: XCTestCase {
         let folha = app.descendants(matching: .any)["folha-suporte-turno"]
         XCTAssertTrue(folha.waitForExistence(timeout: 10), "A folha de suporte deve abrir")
         let iconeSemMovimento = app.descendants(matching: .any)["icone-prazo-sem-movimento"]
-        XCTAssertTrue(iconeSemMovimento.waitForExistence(timeout: 5), "A folha deve reconhecer a preferência de Reduzir Movimento")
+        XCTAssertTrue(iconeSemMovimento.waitForExistence(timeout: Espera.aparecer), "A folha deve reconhecer a preferência de Reduzir Movimento")
 
         let opcaoRisco = app.descendants(matching: .any)["opcao-motivo-risco_seguranca"]
-        XCTAssertTrue(opcaoRisco.waitForExistence(timeout: 5))
+        XCTAssertTrue(opcaoRisco.waitForExistence(timeout: Espera.aparecer))
         opcaoRisco.tap()
 
         let avisoSeguranca = app.descendants(matching: .any)["aviso-seguranca-suporte"]
-        XCTAssertTrue(avisoSeguranca.waitForExistence(timeout: 5), "Aviso de segurança aparece imediatamente sem animação de deslocamento")
+        XCTAssertTrue(avisoSeguranca.waitForExistence(timeout: Espera.aparecer), "Aviso de segurança aparece imediatamente sem animação de deslocamento")
     }
 
     func testBotaoAjudaTurnoEmTurnoDoContratante() {
@@ -101,11 +101,11 @@ final class SuporteTurnoUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 10))
         app.swipeUp()
         let botaoAjuda = app.descendants(matching: .any)["botao-ajuda-turno"]
-        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5), "Botão de ajuda no turno deve estar visível no rodapé do contratante")
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: Espera.aparecer), "Botão de ajuda no turno deve estar visível no rodapé do contratante")
         botaoAjuda.tap()
 
         let folha = app.descendants(matching: .any)["folha-suporte-turno"]
-        XCTAssertTrue(folha.waitForExistence(timeout: 5), "Folha de suporte deve abrir ao tocar no botão de ajuda")
+        XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer), "Folha de suporte deve abrir ao tocar no botão de ajuda")
         app.buttons["botao-fechar-suporte"].tap()
         XCTAssertFalse(folha.exists)
     }
@@ -128,11 +128,11 @@ final class SuporteTurnoUITests: XCTestCase {
         if !botaoAjuda.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5), "Botão de ajuda no turno deve estar visível no rodapé do profissional")
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: Espera.aparecer), "Botão de ajuda no turno deve estar visível no rodapé do profissional")
         botaoAjuda.tap()
 
         let folha = app.descendants(matching: .any)["folha-suporte-turno"]
-        XCTAssertTrue(folha.waitForExistence(timeout: 5), "Folha de suporte deve abrir ao tocar no botão de ajuda")
+        XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer), "Folha de suporte deve abrir ao tocar no botão de ajuda")
         app.buttons["botao-fechar-suporte"].tap()
         XCTAssertFalse(folha.exists)
     }

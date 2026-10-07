@@ -19,12 +19,12 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
 
     private func escolherMotivoEConfirmar(_ app: XCUIApplication, motivo: String) {
         let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
-        XCTAssertTrue(folha.waitForExistence(timeout: 5))
+        XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer))
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(aviso.label.contains("falta na sua taxa"), aviso.label)
         let confirmar = app.buttons["confirmar-cancelamento"]
-        XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(confirmar.isEnabled)
         tocar(app.buttons["motivo-\(motivo)"])
         XCTAssertTrue(confirmar.isEnabled)
@@ -39,36 +39,36 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(cartao.label.contains("1 de 2 confirmadas"), cartao.label)
 
         tocar(cartao)
-        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: Espera.aparecer))
         let acompanhar = app.buttons["acompanhar-turno-\(turnoID)"]
         if !acompanhar.isHittable { app.swipeUp() }
         tocar(acompanhar)
-        XCTAssertTrue(app.staticTexts["Chegada"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Chegada"].waitForExistence(timeout: Espera.aparecer))
         let cancelar = app.buttons["cancelar-posicao-\(posicaoID)"]
         if !cancelar.isHittable { app.swipeUp() }
         tocar(cancelar)
 
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(aviso.label.hasPrefix("Faltam 2") && aviso.label.contains(" h para o início."), aviso.label)
         XCTAssertTrue(aviso.label.contains("Não conta como falta para o profissional."), aviso.label)
         escolherMotivoEConfirmar(app, motivo: "movimentoMenor")
 
         let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
-        XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
+        XCTAssertTrue(desfecho.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(desfecho.label.contains("Posição cancelada. Ela voltou a ser oferecida a outros profissionais."), desfecho.label)
         tocar(app.buttons["fechar-cancelamento"])
 
         // O turno passa a cancelado na tela, com a causa e sem o botão.
-        XCTAssertTrue(app.staticTexts["posicao-cancelada-\(turnoID)"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["cancelamento-causa-\(turnoID)"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["posicao-cancelada-\(turnoID)"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.staticTexts["cancelamento-causa-\(turnoID)"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(app.staticTexts["cancelamento-causa-\(turnoID)"].label, "Cancelado pelo estabelecimento.")
         XCTAssertEqual(app.staticTexts["cancelamento-falta-\(turnoID)"].label, "Não contou como falta.")
         XCTAssertFalse(app.buttons["cancelar-posicao-\(posicaoID)"].exists)
 
         // Critério 2: o detalhe e Minhas vagas mostram a vaga sem a confirmação, sem reiniciar o app.
         tocar(app.navigationBars.buttons.firstMatch)
-        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.buttons["cancelar-posicao-\(posicaoID)"].exists)
         tocar(app.navigationBars.buttons.firstMatch)
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
@@ -84,20 +84,20 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Encerradas"].exists)
         tocar(cartao)
 
-        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: Espera.aparecer))
         tocar(app.buttons["cancelar-vaga-\(vagaID)"])
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(aviso.label.contains("Todas as posições serão canceladas"), aviso.label)
         escolherMotivoEConfirmar(app, motivo: "mudancaDePlanos")
 
         let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
-        XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
+        XCTAssertTrue(desfecho.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(desfecho.label.contains("Vaga cancelada. Os profissionais confirmados foram avisados."), desfecho.label)
         tocar(app.buttons["fechar-cancelamento"])
 
         // O detalhe passa a oferecer republicar, e não mais cancelar.
-        XCTAssertTrue(app.buttons["republicar-detalhe-vaga-\(vagaID)"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["republicar-detalhe-vaga-\(vagaID)"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.buttons["cancelar-vaga-\(vagaID)"].exists)
         XCTAssertFalse(app.buttons["cancelar-posicao-\(posicaoID)"].exists)
 
@@ -105,7 +105,7 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         tocar(app.navigationBars.buttons.firstMatch)
         XCTAssertTrue(app.staticTexts["Encerradas"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts["Próximas"].exists)
-        XCTAssertTrue(app.buttons["republicar-vaga-\(vagaID)"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["republicar-vaga-\(vagaID)"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testVoltarNaFolhaNaoCancelaNada() {
@@ -114,7 +114,7 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         tocar(app.buttons["cancelar-vaga-\(vagaID)"])
         tocar(app.buttons["motivo-movimentoMenor"])
         tocar(app.buttons["voltar-do-cancelamento"])
-        XCTAssertTrue(app.buttons["cancelar-vaga-\(vagaID)"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["cancelar-vaga-\(vagaID)"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.buttons["republicar-detalhe-vaga-\(vagaID)"].exists)
     }
 

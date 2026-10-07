@@ -17,20 +17,20 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
         XCTAssertFalse(cartao.label.contains("Turno cancelado"))
         tocar(cartao)
-        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
         return app
     }
 
     private func abrirFolha(_ app: XCUIApplication) -> XCUIElement {
         let cancelar = app.buttons["cancelar-turno"]
-        XCTAssertTrue(cancelar.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
         app.swipeUp()
         for _ in 0..<5 where !cancelar.isHittable {
             app.swipeUp()
         }
         tocar(cancelar)
         let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
-        XCTAssertTrue(folha.waitForExistence(timeout: 5))
+        XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer))
         return folha
     }
 
@@ -39,13 +39,13 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         _ = abrirFolha(app)
 
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(aviso.label.contains("Faltam 10 h para o início."), aviso.label)
         XCTAssertTrue(aviso.label.contains("conta como falta na sua taxa de comparecimento"), aviso.label)
 
         // Critério 3: sem motivo, o botão não habilita.
         let confirmar = app.buttons["confirmar-cancelamento"]
-        XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(confirmar.isEnabled)
         XCTAssertTrue(app.staticTexts["motivo-obrigatorio"].exists)
 
@@ -54,16 +54,16 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         tocar(confirmar)
 
         let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
-        XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
+        XCTAssertTrue(desfecho.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(desfecho.label.contains("Turno cancelado. A vaga voltou a ser oferecida a outros profissionais."), desfecho.label)
         XCTAssertEqual(app.staticTexts["falta-do-cancelamento"].label, "Este cancelamento contou como falta.")
         tocar(app.buttons["fechar-cancelamento"])
 
         // A tela do turno vira "Turno cancelado" na hora, sem botão de cancelar nem ações do turno.
-        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
         let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
-        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(cancelamento.label.contains("Você cancelou este turno."))
         XCTAssertTrue(cancelamento.label.contains("Este cancelamento contou como falta."))
         XCTAssertFalse(app.buttons["cancelar-turno"].exists)
@@ -82,7 +82,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         let folha = abrirFolha(app)
 
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(aviso.label.contains("Faltam 48 h para o início."), aviso.label)
         XCTAssertTrue(aviso.label.contains("não afeta sua taxa de comparecimento"), aviso.label)
         XCTAssertFalse(aviso.label.contains("conta como falta"), aviso.label)
@@ -92,7 +92,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         tocar(app.buttons["motivo-outro"])
         XCTAssertFalse(confirmar.isEnabled)
         let detalhes = app.descendants(matching: .any)["detalhes-do-cancelamento"].firstMatch
-        XCTAssertTrue(detalhes.waitForExistence(timeout: 5))
+        XCTAssertTrue(detalhes.waitForExistence(timeout: Espera.aparecer))
         // O campo fica abaixo da dobra da folha: rola até ele antes de tocar.
         folha.swipeUp()
         tocar(detalhes)
@@ -102,7 +102,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         tocar(confirmar)
 
         let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
-        XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
+        XCTAssertTrue(desfecho.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(app.staticTexts["falta-do-cancelamento"].label, "Este cancelamento não contou como falta.")
         tocar(app.buttons["fechar-cancelamento"])
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
@@ -113,7 +113,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         _ = abrirFolha(app)
         tocar(app.buttons["motivo-saude"])
         tocar(app.buttons["voltar-do-cancelamento"])
-        XCTAssertTrue(app.buttons["cancelar-turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["cancelar-turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Você está confirmado")
     }
 
@@ -124,14 +124,14 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         tocar(app.buttons["confirmar-cancelamento"])
 
         let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
-        XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
+        XCTAssertTrue(desfecho.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(desfecho.label.contains("Sem conexão. O cancelamento será enviado quando a internet voltar."), desfecho.label)
         XCTAssertFalse(app.staticTexts["falta-do-cancelamento"].exists)
         tocar(app.buttons["fechar-cancelamento"])
 
         // Critério 5: a tela diz que o cancelamento será enviado e não oferece cancelar de novo.
         let naFila = app.descendants(matching: .any)["cancelamento-na-fila"].firstMatch
-        XCTAssertTrue(naFila.waitForExistence(timeout: 5))
+        XCTAssertTrue(naFila.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.buttons["cancelar-turno"].exists)
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Você está confirmado")
     }
@@ -142,13 +142,13 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
 
         tocar(app.buttons["motivo-outro"])
         let detalhes = app.descendants(matching: .any)["detalhes-do-cancelamento"].firstMatch
-        XCTAssertTrue(detalhes.waitForExistence(timeout: 5))
+        XCTAssertTrue(detalhes.waitForExistence(timeout: Espera.aparecer))
         folha.swipeUp()
         tocar(detalhes)
         detalhes.typeText("Imprevisto urgente")
 
         let confirmar = app.buttons["confirmar-cancelamento"]
-        XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(confirmar.isEnabled)
         XCTAssertTrue(confirmar.isHittable, "Confirmar cancelamento deve ser hittable com teclado aberto")
 
@@ -165,7 +165,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         tocar(confirmar)
 
         let desfecho = app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch
-        XCTAssertTrue(desfecho.waitForExistence(timeout: 5))
+        XCTAssertTrue(desfecho.waitForExistence(timeout: Espera.aparecer))
     }
 
     func testFolhaDeCancelamentoEmAX5ExibeAvisoSemQuebraSilabica() {
@@ -185,7 +185,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         let folha = abrirFolha(app)
 
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(aviso.isHittable)
         XCTAssertFalse(aviso.label.contains("cancela-"), "Aviso não deve hifenizar palavras em AX5")
         XCTAssertFalse(aviso.label.contains("compareci-"), "Aviso não deve hifenizar palavras em AX5")
@@ -193,7 +193,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         salvarCaptura(app.screenshot(), nome: "05-cancelamento-aviso-ax5.png")
 
         let confirmar = app.buttons["confirmar-cancelamento"]
-        XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
     }
 
     private func salvarCaptura(_ screenshot: XCUIScreenshot, nome: String) {

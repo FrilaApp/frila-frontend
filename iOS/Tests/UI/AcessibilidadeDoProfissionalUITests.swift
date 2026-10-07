@@ -60,15 +60,15 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
         let filtroFuncao = app.descendants(matching: .any)["filtro-funcao"]
-        XCTAssertTrue(filtroFuncao.waitForExistence(timeout: 5))
+        XCTAssertTrue(filtroFuncao.waitForExistence(timeout: Espera.aparecer))
         XCTAssertAlvoMinimo(filtroFuncao.frame.height)
 
         let filtroData = app.descendants(matching: .any)["filtro-data"]
-        XCTAssertTrue(filtroData.waitForExistence(timeout: 5))
+        XCTAssertTrue(filtroData.waitForExistence(timeout: Espera.aparecer))
         XCTAssertAlvoMinimo(filtroData.frame.height)
 
         let filtroDistancia = app.descendants(matching: .any)["filtro-distancia"]
-        XCTAssertTrue(filtroDistancia.waitForExistence(timeout: 5))
+        XCTAssertTrue(filtroDistancia.waitForExistence(timeout: Espera.aparecer))
         XCTAssertAlvoMinimo(filtroDistancia.frame.height)
 
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
@@ -202,7 +202,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             let cartao = app.buttons["meu-turno-\(turnoID)"]
             XCTAssertTrue(cartao.waitForExistence(timeout: 10))
             cartao.tap()
-            XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
             for identificador in botoes {
                 let botao = app.buttons[identificador].firstMatch
                 XCTAssertTrue(botao.waitForExistence(timeout: 10), "\(cenario): \(identificador)")
@@ -222,7 +222,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         let cartao = app.buttons["meu-turno-22000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
         cartao.tap()
-        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
         return app
     }
 
@@ -249,9 +249,9 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         let endereco = app.staticTexts["endereco-do-turno"]
         let quemRecebe = app.staticTexts["quem-recebe-no-turno"]
         let mapa = app.buttons["atalho-mapas"]
-        XCTAssertTrue(endereco.waitForExistence(timeout: 5))
-        XCTAssertTrue(quemRecebe.waitForExistence(timeout: 5))
-        XCTAssertTrue(mapa.waitForExistence(timeout: 5))
+        XCTAssertTrue(endereco.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(quemRecebe.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(mapa.waitForExistence(timeout: Espera.aparecer))
         // No tamanho máximo, quem recebe fica abaixo do endereço e do link.
         XCTAssertGreaterThanOrEqual(quemRecebe.frame.minY, mapa.frame.maxY)
         let largura = app.windows.firstMatch.frame.width
@@ -307,7 +307,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["vagas-sem-conexao"].waitForExistence(timeout: 10))
         let tentar = app.buttons["vagas-tentar-de-novo"]
-        XCTAssertTrue(tentar.waitForExistence(timeout: 5))
+        XCTAssertTrue(tentar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(tentar.isHittable, "O Tentar novamente fica tocável sem rolar")
         let barra = app.tabBars.firstMatch
         if barra.exists {

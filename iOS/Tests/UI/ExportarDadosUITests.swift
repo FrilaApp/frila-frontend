@@ -14,10 +14,10 @@ final class ExportarDadosUITests: XCTestCase {
 
         // 2. No perfil, localiza e toca no item "Exportar meus dados"
         let botaoExportar = app.buttons["perfil-exportar-dados"]
-        XCTAssertTrue(botaoExportar.waitForExistence(timeout: 5), "Botão exportar dados deve existir no perfil")
+        XCTAssertTrue(botaoExportar.waitForExistence(timeout: Espera.aparecer), "Botão exportar dados deve existir no perfil")
 
         let explicacao = app.staticTexts["perfil-exportar-dados-explicacao"]
-        XCTAssertTrue(explicacao.waitForExistence(timeout: 5), "Explicação do que vem no arquivo deve estar visível")
+        XCTAssertTrue(explicacao.waitForExistence(timeout: Espera.aparecer), "Explicação do que vem no arquivo deve estar visível")
 
         anexar(app, "perfil-profissional-com-item-exportar")
         botaoExportar.tap()
@@ -44,10 +44,10 @@ final class ExportarDadosUITests: XCTestCase {
 
         // 2. No perfil do estabelecimento, localiza e toca no item "Exportar meus dados"
         let botaoExportar = app.buttons["estabelecimento-exportar-dados"]
-        XCTAssertTrue(botaoExportar.waitForExistence(timeout: 5), "Botão exportar dados deve existir no estabelecimento")
+        XCTAssertTrue(botaoExportar.waitForExistence(timeout: Espera.aparecer), "Botão exportar dados deve existir no estabelecimento")
 
         let explicacao = app.staticTexts["estabelecimento-exportar-dados-explicacao"]
-        XCTAssertTrue(explicacao.waitForExistence(timeout: 5), "Explicação do que vem no arquivo deve estar visível no estabelecimento")
+        XCTAssertTrue(explicacao.waitForExistence(timeout: Espera.aparecer), "Explicação do que vem no arquivo deve estar visível no estabelecimento")
 
         anexar(app, "perfil-estabelecimento-com-item-exportar")
         botaoExportar.tap()
@@ -72,11 +72,11 @@ final class ExportarDadosUITests: XCTestCase {
         botaoPerfil.tap()
 
         let botaoExportar = app.buttons["perfil-exportar-dados"]
-        XCTAssertTrue(botaoExportar.waitForExistence(timeout: 5), "Botão exportar dados deve existir no perfil")
+        XCTAssertTrue(botaoExportar.waitForExistence(timeout: Espera.aparecer), "Botão exportar dados deve existir no perfil")
         botaoExportar.tap()
 
         let avisoErro = app.descendants(matching: .any)["aviso-erro-exportar-dados"]
-        XCTAssertTrue(avisoErro.waitForExistence(timeout: 5), "Aviso de erro deve aparecer quando não há rede")
+        XCTAssertTrue(avisoErro.waitForExistence(timeout: Espera.aparecer), "Aviso de erro deve aparecer quando não há rede")
         anexar(app, "perfil-profissional-exportar-sem-rede")
     }
 
@@ -90,11 +90,11 @@ final class ExportarDadosUITests: XCTestCase {
         botaoPerfil.tap()
 
         let botaoExportar = app.buttons["perfil-exportar-dados"]
-        XCTAssertTrue(botaoExportar.waitForExistence(timeout: 5), "Botão exportar dados deve existir no perfil")
+        XCTAssertTrue(botaoExportar.waitForExistence(timeout: Espera.aparecer), "Botão exportar dados deve existir no perfil")
         botaoExportar.tap()
 
         let avisoErro = app.descendants(matching: .any)["aviso-erro-exportar-dados"]
-        XCTAssertTrue(avisoErro.waitForExistence(timeout: 5), "Aviso de erro deve aparecer quando o servidor falha")
+        XCTAssertTrue(avisoErro.waitForExistence(timeout: Espera.aparecer), "Aviso de erro deve aparecer quando o servidor falha")
         anexar(app, "perfil-profissional-exportar-erro-servidor")
     }
 

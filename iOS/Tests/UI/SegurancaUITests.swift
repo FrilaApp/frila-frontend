@@ -11,7 +11,7 @@ final class SegurancaUITests: XCTestCase {
         let vaga = app.buttons["vaga-40000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(vaga.waitForExistence(timeout: 10))
         vaga.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: Espera.aparecer))
         return app
     }
 
@@ -76,7 +76,7 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(motivo, em: app)
         motivo.tap()
         for opcao in ["Assédio", "Discriminação", "Risco à segurança", "Outro"] {
-            XCTAssertTrue(app.buttons[opcao].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.buttons[opcao].waitForExistence(timeout: Espera.aparecer))
         }
         app.buttons["Risco à segurança"].tap()
         let aviso = app.staticTexts["aviso-risco-imediato"]
@@ -89,7 +89,7 @@ final class SegurancaUITests: XCTestCase {
         relato.typeText("Relato de risco ocorrido no estabelecimento.")
         trazerParaATela(enviar, em: app)
         enviar.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
     }
 
@@ -103,7 +103,7 @@ final class SegurancaUITests: XCTestCase {
         XCTAssertTrue(bloquear.exists)
         bloquear.tap()
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["detalhe-nao-encontrada"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-nao-encontrada"].waitForExistence(timeout: Espera.aparecer))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertFalse(app.buttons["vaga-40000000-0000-0000-0000-000000000001"].exists)
     }
@@ -113,7 +113,7 @@ final class SegurancaUITests: XCTestCase {
         let abrir = app.buttons["abrir-perfil-estabelecimento"]
         trazerParaATela(abrir, em: app)
         abrir.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-estabelecimento"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-estabelecimento"].waitForExistence(timeout: Espera.aparecer))
         conferirAcoes(app)
         app.buttons["denunciar"].tap()
         let enviar = app.buttons["enviar-denuncia"]
@@ -123,7 +123,7 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(bloquear, em: app)
         bloquear.tap()
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.buttons["denunciar"].exists)
     }
 
@@ -135,7 +135,7 @@ final class SegurancaUITests: XCTestCase {
         XCTAssertTrue(vaga.waitForExistence(timeout: 10))
         vaga.tap()
         let perfil = app.buttons["perfil-publico-82000000-0000-0000-0000-000000000002"]
-        XCTAssertTrue(perfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(perfil.waitForExistence(timeout: Espera.aparecer))
         perfil.tap()
         conferirAcoes(app)
         app.buttons["denunciar"].tap()
@@ -146,11 +146,11 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(bloquear, em: app)
         bloquear.tap()
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: Espera.aparecer))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertFalse(perfil.exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(vaga.waitForExistence(timeout: 5))
+        XCTAssertTrue(vaga.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(vaga.label.contains("Ana Cunha"))
     }
 
@@ -195,7 +195,7 @@ final class SegurancaUITests: XCTestCase {
         relato.typeText("Relato de incidente durante o turno.")
         XCTAssertTrue(enviar.isHittable)
         enviar.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
         app.buttons["Fechar"].tap()
 
@@ -210,11 +210,11 @@ final class SegurancaUITests: XCTestCase {
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
         trazerParaATela(bloquear, em: app)
         XCTAssertFalse(bloquear.isEnabled)
-        XCTAssertTrue(app.staticTexts["etiqueta-bloqueio-turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["etiqueta-bloqueio-turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].exists)
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(turno.waitForExistence(timeout: 5))
+        XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer))
     }
 
     func testTurnoDoContratanteDenunciaMostraProtocoloEPrazoEBloqueioComConfirmacao() {
@@ -236,7 +236,7 @@ final class SegurancaUITests: XCTestCase {
 
         let botaoAcompanhar = app.buttons["acompanhar-turno-\(turnoID)"]
         trazerParaATela(botaoAcompanhar, em: app)
-        XCTAssertTrue(botaoAcompanhar.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoAcompanhar.waitForExistence(timeout: Espera.aparecer))
         botaoAcompanhar.tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 10))
@@ -260,7 +260,7 @@ final class SegurancaUITests: XCTestCase {
         relato.typeText("Relato de conduta durante o atendimento.")
         XCTAssertTrue(enviar.isHittable)
         enviar.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
         app.buttons["Fechar"].tap()
 
@@ -275,12 +275,12 @@ final class SegurancaUITests: XCTestCase {
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
         trazerParaATela(bloquear, em: app)
         XCTAssertFalse(bloquear.isEnabled)
-        XCTAssertTrue(app.staticTexts["etiqueta-bloqueio-\(posicaoID)"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["etiqueta-bloqueio-\(posicaoID)"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].exists)
 
         // Volta ao detalhe da vaga: a posição confirmada continua inteira (acompanhar e cancelar)
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: Espera.aparecer))
         let botaoAcompanharVolta = app.buttons["acompanhar-turno-\(turnoID)"]
         trazerParaATela(botaoAcompanharVolta, em: app)
         XCTAssertTrue(botaoAcompanharVolta.exists)
@@ -292,7 +292,7 @@ final class SegurancaUITests: XCTestCase {
 
         // Volta para a lista de Minhas vagas
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(vaga.waitForExistence(timeout: 5))
+        XCTAssertTrue(vaga.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(vaga.label.contains("Ana Cunha"))
     }
 }

@@ -21,13 +21,13 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
         let btnPerfil = app.buttons["Perfil do estabelecimento"]
-        XCTAssertTrue(btnPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(btnPerfil.waitForExistence(timeout: Espera.aparecer))
         btnPerfil.tap()
 
         let btnFechar = app.buttons["Fechar"]
-        XCTAssertTrue(btnFechar.waitForExistence(timeout: 5))
+        XCTAssertTrue(btnFechar.waitForExistence(timeout: Espera.aparecer))
         btnFechar.tap()
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
@@ -45,7 +45,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
         let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
         let expectativaCamera = XCTNSPredicateExpectation(predicate: cameraPronta, object: mapa)
-        XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: 5), .completed, "A câmera deve assentar antes do arrasto.")
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer), .completed, "A câmera deve assentar antes do arrasto.")
 
         guard let valorInicial = marcador.value as? String,
               let (latInicial, lonInicial) = extrairCoordenadas(valorInicial) else {
@@ -68,7 +68,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         // Espera a condição: marcador parado com coordenadas atualizadas após o arrasto.
         let marcadorMoveu = NSPredicate { _, _ in (marcador.value as? String) != valorInicial }
         let expectativaMarcador = XCTNSPredicateExpectation(predicate: marcadorMoveu, object: marcador)
-        XCTAssertEqual(XCTWaiter.wait(for: [expectativaMarcador], timeout: 5), .completed, "O marcador deve atualizar as coordenadas após o arrasto.")
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaMarcador], timeout: Espera.aparecer), .completed, "O marcador deve atualizar as coordenadas após o arrasto.")
 
         guard let valorFinal = marcador.value as? String,
               let (latFinal, lonFinal) = extrairCoordenadas(valorFinal) else {
@@ -135,7 +135,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertLessThan(componentesFinais[2], componentesIniciais[2], "A pinça deve aproximar o mapa.")
         // O zoom pode tirar o ponto do quadro; reabra a região antes de ler o marcador.
         mapa.pinch(withScale: 0.5, velocity: -1)
-        XCTAssertTrue(marcador.waitForExistence(timeout: 5))
+        XCTAssertTrue(marcador.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(marcador.value as? String, valorFinal, "O zoom não deve mudar o ponto.")
     }
 
@@ -171,7 +171,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         // Reponha o mapa para conferir que esconder o marcador não alterou o ponto.
         fim.press(forDuration: 0.1, thenDragTo: inicio)
-        XCTAssertTrue(marcador.waitForExistence(timeout: 5))
+        XCTAssertTrue(marcador.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(marcador.isHittable)
         XCTAssertEqual(marcador.value as? String, pontoInicial)
     }
@@ -242,13 +242,13 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let larguraTela = app.windows.firstMatch.frame.width
 
         let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
-        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5))
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer))
         trazerParaATela(dpInicio, em: app)
         XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 16, "DatePicker Início fora da margem esquerda: \(dpInicio.frame.minX) < 16")
         XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela - 16, "DatePicker Início extrapolou a margem direita: \(dpInicio.frame.maxX) > \(larguraTela - 16)")
 
         let dpFim = app.descendants(matching: .any)["datepicker-fim"]
-        XCTAssertTrue(dpFim.waitForExistence(timeout: 5))
+        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer))
         trazerParaATela(dpFim, em: app)
         XCTAssertGreaterThanOrEqual(dpFim.frame.minX, 16, "DatePicker Fim fora da margem esquerda: \(dpFim.frame.minX) < 16")
         XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela - 16, "DatePicker Fim extrapolou a margem direita: \(dpFim.frame.maxX) > \(larguraTela - 16)")
