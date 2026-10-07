@@ -19,6 +19,13 @@ entitlements() {
   printf '<plist version="1.0">\n<dict>\n\t<key>aps-environment</key>\n\t<string>%s</string>\n</dict>\n</plist>' "$1"
 }
 
+# O caso bom usa um catálogo real: um plist com nome de ícone sem imagem deve falhar.
+mkdir -p "$TMPDIR_TESTE/catalogo"
+xcrun actool "$SCRIPT_DIR/../Resources/App.xcassets" \
+  --compile "$TMPDIR_TESTE/catalogo" --platform iphonesimulator \
+  --minimum-deployment-target 17.0 --target-device iphone --app-icon AppIcon \
+  --output-partial-info-plist "$TMPDIR_TESTE/icone.plist" >/dev/null
+
 # Compila um executável de verdade com os entitlements na seção em que o Xcode os põe no simulador.
 compilar_com_entitlements() {
   local destino="$1"
@@ -34,6 +41,8 @@ novo_app_bom() {
   mkdir -p "$app"
   plutil -create xml1 "$plist"
   plutil -insert CFBundleExecutable -string Frila "$plist"
+  plutil -insert CFBundleIconName -string AppIcon "$plist"
+  cp "$TMPDIR_TESTE/catalogo/Assets.car" "$app/Assets.car"
   plutil -insert ITSAppUsesNonExemptEncryption -bool NO "$plist"
   plutil -insert NSLocationWhenInUseUsageDescription -string 'localização em uso' "$plist"
   plutil -insert NSLocationTemporaryUsageDescriptionDictionary -json '{"CheckIn": "precisão no check-in"}' "$plist"
@@ -76,6 +85,27 @@ esperar_reprovacao() {
 
 app="$(novo_app_bom bom)"
 esperar_aprovacao "$app"
+
+app="$(novo_app_bom icone-aninhado)"
+plutil -remove CFBundleIconName "$app/Info.plist"
+plutil -insert CFBundleIcons -json '{"CFBundlePrimaryIcon":{"CFBundleIconName":"AppIcon"}}' "$app/Info.plist"
+esperar_aprovacao "$app"
+
+app="$(novo_app_bom sem-icone)"
+plutil -remove CFBundleIconName "$app/Info.plist"
+esperar_reprovacao "ícone ausente no plist" "bundle sem ícone" "$app"
+
+app="$(novo_app_bom sem-catalogo)"
+rm "$app/Assets.car"
+esperar_reprovacao "catálogo ausente" "Assets.car não encontrado" "$app"
+
+app="$(novo_app_bom icone-inexistente)"
+plutil -replace CFBundleIconName -string Inexistente "$app/Info.plist"
+esperar_reprovacao "ícone sem imagem compilada" "não encontrado como imagem em Assets.car" "$app"
+
+app="$(novo_app_bom catalogo-invalido)"
+printf 'catálogo inválido' > "$app/Assets.car"
+esperar_reprovacao "catálogo inválido" "não foi possível conferir o ícone" "$app"
 
 app="$(novo_app_bom sem-criptografia)"
 plutil -remove ITSAppUsesNonExemptEncryption "$app/Info.plist"
