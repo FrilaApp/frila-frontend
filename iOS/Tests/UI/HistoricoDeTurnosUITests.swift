@@ -62,6 +62,19 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         anexar(app, "historico-erro-de-rede")
     }
 
+    func testIntervaloMaximoExcedidoExplicaLimiteSemOferecerReenvio() {
+        let app = abrir(cenario: "exportar-intervalo-maximo-excedido", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos")
+        app.buttons["historico-exportar"].tap()
+        let erro = app.descendants(matching: .any)["historico-erro"]
+        XCTAssertTrue(erro.waitForExistence(timeout: 10))
+        XCTAssertTrue(erro.label.contains("até 30 dias"))
+        XCTAssertFalse(app.buttons["historico-tentar-novamente"].exists)
+        XCTAssertFalse(app.otherElements["ActivityListView"].exists)
+        app.buttons["historico-intervalo"].tap()
+        XCTAssertFalse(erro.exists, "mudar o período limpa a recusa")
+        XCTAssertTrue(app.descendants(matching: .any)["historico-de"].exists)
+    }
+
     func testIntervaloLivreNoMaiorTextoCabeNaTelaEExporta() {
         let app = abrir(
             cenario: "success", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos",

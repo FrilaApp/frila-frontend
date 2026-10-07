@@ -79,13 +79,14 @@ struct DespachoEmMemoriaTests {
         #expect(await api.relatosDeRevisaoDespacho == [relato])
     }
 
-    @Test("Não é idempotente: dois pedidos abrem duas ocorrências")
+    @Test("0.2.37: o segundo pedido do autor é contestacao_ja_aberta, sem nova ocorrência")
     func doisPedidos() async throws {
         let api = ApiClienteEmMemoria()
-        let primeiro = try await api.pedirRevisaoDespacho(relato: relato)
-        let segundo = try await api.pedirRevisaoDespacho(relato: relato)
-        #expect(primeiro.ocorrenciaID != segundo.ocorrenciaID)
-        #expect(await api.relatosDeRevisaoDespacho.count == 2)
+        _ = try await api.pedirRevisaoDespacho(relato: relato)
+        await #expect(throws: ErroDaApi(codigo: .contestacaoJaAberta)) {
+            try await api.pedirRevisaoDespacho(relato: "Outro relato válido sobre o despacho.")
+        }
+        #expect(await api.relatosDeRevisaoDespacho == [relato])
     }
 
     @Test("Relato em branco é campo_obrigatorio; com menos de 10 caracteres, campo_invalido")

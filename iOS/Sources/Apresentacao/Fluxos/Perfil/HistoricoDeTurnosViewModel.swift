@@ -59,9 +59,16 @@ public final class HistoricoDeTurnosViewModel {
 
     public var estaCarregando: Bool { estado == .carregando }
 
-    /// O período que vai para o servidor, ou nil quando o intervalo livre não vale (fim antes do
-    /// início ou no futuro). O botão Exportar fica desabilitado enquanto for nil.
+    /// O período que vai para o servidor, ou nil para datas inválidas ou janela acima de 30 dias.
+    /// O botão Exportar fica desabilitado enquanto for nil.
     public var periodo: PeriodoDeExportacao? {
+        guard let periodo = periodoEscolhido, !periodo.excedeLimite else { return nil }
+        return periodo
+    }
+
+    public var excedeLimite: Bool { periodoEscolhido?.excedeLimite == true }
+
+    private var periodoEscolhido: PeriodoDeExportacao? {
         guard let hoje = DataCivil.deSaoPaulo(relogio.agora) else { return nil }
         switch atalho {
         case .esteMes:
@@ -116,8 +123,8 @@ public final class HistoricoDeTurnosViewModel {
             }
         } catch let erro as ErroDaApi {
             estado = .erro(
-                mensagem: MensagemDoErroAPI.texto(erro),
-                repetivel: erro.codigo != .naoAutenticado && erro.codigo != .semPermissao
+                mensagem: erro.codigo == .intervaloMaximoExcedido ? TextosHistoricoDeTurnos.intervaloMaximoExcedido : MensagemDoErroAPI.texto(erro),
+                repetivel: erro.codigo != .naoAutenticado && erro.codigo != .semPermissao && erro.codigo != .intervaloMaximoExcedido
             )
         } catch {
             // Só a gravação do arquivo temporário chega aqui; a API sempre lança `ErroDaApi`.

@@ -15,6 +15,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case contaSuspensa = "conta-suspensa"
         /// Contestação já respondida: conserva o protocolo original com prazo passado (0.2.36).
         case contestacaoRespondida = "contestacao-respondida"
+        case despachoContestacaoJaAberta = "despacho-contestacao-ja-aberta"
         /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
         /// backend e que não é falta de rede nem de ponto de referência (estado de erro do #104).
         case erroNaLista = "erro-na-lista"
@@ -98,6 +99,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case exportarErroServidor = "exportar-erro-servidor"
         /// `/exportar-turnos` responde 204: o período não tem turnos (UC13, 1a).
         case exportarTurnosSemTurnos = "exportar-turnos-sem-turnos"
+        case exportarIntervaloMaximoExcedido = "exportar-intervalo-maximo-excedido"
         /// Falha ao ler meu_estabelecimento (simula 404 do backend ou erro do servidor ao buscar o cadastro da casa).
         case erroAoLerMeuEstabelecimento = "erro-ao-ler-meu-estabelecimento"
         /// Publicação de vaga falha por falta de rede (#73).
@@ -252,6 +254,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var equipesDeConfianca: [UUID: [UUID]] = [:]
     /// Os relatos que chegaram a `pedirRevisaoDespacho`, já aparados: os testes conferem o envio.
     public private(set) var relatosDeRevisaoDespacho: [String] = []
+    private var revisoesDeDespacho: [UUID: Protocolo] = [:]
     /// A conta dona de cada token de push, como a tabela `dispositivo`: um dono por token.
     private var dispositivos: [String: UUID] = [:]
     /// O `vinculo_id` de cada token (contrato 0.2.30): novo quando o token entra ou troca de dono,
@@ -733,15 +736,20 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Segue `pedir_revisao_despacho` do backend (`20260929190000_contestar_despacho.sql`), na ordem
     /// dele: sem conta é `401`; contratante, `422 perfil_incompativel`; conta suspensa, `403
     /// sem_permissao/conta_suspensa`; relato em branco, `422 campo_obrigatorio`; com menos de 10
-    /// caracteres, `422 campo_invalido`. Não é idempotente: cada pedido abre uma ocorrência nova.
+    /// caracteres, `422 campo_invalido`. A 0.2.37 recusa uma segunda revisão pelo mesmo autor.
     public func pedirRevisaoDespacho(relato: String) async throws -> Protocolo {
         try verificarRede()
         guard let conta else { throw erro("nao_autenticado") }
         guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
         guard conta.estado != .suspensa else { throw erro("sem_permissao", detalhes: "conta_suspensa") }
         try validarRelato(relato)
+        guard revisoesDeDespacho[conta.id] == nil, cenario != .despachoContestacaoJaAberta else {
+            throw erro("contestacao_ja_aberta")
+        }
+        let protocolo = try novoProtocolo(.revisaoDespacho)
+        revisoesDeDespacho[conta.id] = protocolo
         relatosDeRevisaoDespacho.append(relato.trimmingCharacters(in: .whitespacesAndNewlines))
-        return try novoProtocolo(.revisaoDespacho)
+        return protocolo
     }
 
     // MARK: Estabelecimento
@@ -1656,9 +1664,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard conta != nil else { throw erro("nao_autenticado") }
         if cenario == .exportarSemRede { throw ErroDaApi(codigo: .semRede) }
         if cenario == .exportarErroServidor { throw ErroDaApi(codigo: .desconhecido) }
+        let intervalo = pedido.instantes(agora: relogio.agora)
+        guard intervalo.de <= intervalo.ate else { throw erro("campo_invalido", detalhes: "de") }
+        guard intervalo.ate.timeIntervalSince(intervalo.de) <= 30 * 24 * 3600 else {
+            throw erro("intervalo_maximo_excedido")
+        }
         if let estabelecimentoID = pedido.estabelecimentoID, !estabelecimentos.contains(where: { $0.id == estabelecimentoID }) {
             throw erro("sem_permissao")
         }
+        if cenario == .exportarIntervaloMaximoExcedido { throw erro("intervalo_maximo_excedido") }
         if cenario == .exportarTurnosSemTurnos { return .semTurnos }
         return .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: pedido.formato.rawValue))
     }

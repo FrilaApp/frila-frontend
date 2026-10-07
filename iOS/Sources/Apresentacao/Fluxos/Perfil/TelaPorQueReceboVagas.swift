@@ -128,6 +128,9 @@ public struct TelaPorQueReceboVagas: View {
 
             if let protocolo = viewModel.protocolo {
                 cartaoProtocolo(protocolo)
+            } else if viewModel.contestacaoJaAberta {
+                AvisoFrila(verbatim: TextosPorQueReceboVagas.contestacaoJaAberta, tom: .informativo)
+                    .accessibilityIdentifier("status-revisao-ja-aberta")
             } else if viewModel.mostrarFormulario {
                 formulario
             } else {

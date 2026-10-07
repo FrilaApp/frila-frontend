@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "Escolha um período de até 30 dias para exportar os turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um período de até 30 dias para exportar os turnos."
+          }
+        }
+      }
+    },
+    "Já existe uma contestação deste despacho. A resposta da Equipe Frila vai por e-mail. Qualquer recurso adicional deve ser enviado por e-mail.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Já existe uma contestação deste despacho. A resposta da Equipe Frila vai por e-mail. Qualquer recurso adicional deve ser enviado por e-mail."
+          }
+        }
+      }
+    },
     "O acesso aos serviços do Frila está suspenso.": {
       "localizations": {
         "pt-BR": {

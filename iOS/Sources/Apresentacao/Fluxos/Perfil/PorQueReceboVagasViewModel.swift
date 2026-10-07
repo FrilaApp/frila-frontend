@@ -22,6 +22,7 @@ public final class PorQueReceboVagasViewModel {
     public private(set) var enviando = false
     public private(set) var protocolo: Protocolo?
     public private(set) var mensagemErro: String?
+    public private(set) var contestacaoJaAberta = false
 
     private let carregarCriterios: @Sendable () async throws -> CriteriosDeNotificacao
     private let pedirRevisao: @Sendable (String) async throws -> Protocolo
@@ -49,9 +50,9 @@ public final class PorQueReceboVagasViewModel {
         relato.trimmingCharacters(in: .whitespacesAndNewlines).count >= 10
     }
 
-    /// Um pedido por abertura da tela: enviado, o botão dá lugar ao protocolo.
+    /// Enviado ou recusado por 409, o app não oferece outro pedido.
     public var podeContestar: Bool {
-        protocolo == nil && !enviando
+        protocolo == nil && !contestacaoJaAberta && !enviando
     }
 
     public func carregar() async {
@@ -100,7 +101,12 @@ public final class PorQueReceboVagasViewModel {
             protocolo = try await pedirRevisao(relatoLimpo)
             mostrarFormulario = false
         } catch let erroApi as ErroDaApi {
-            mensagemErro = Self.mensagem(para: erroApi)
+            if erroApi.codigo == .contestacaoJaAberta {
+                contestacaoJaAberta = true
+                mostrarFormulario = false
+            } else {
+                mensagemErro = Self.mensagem(para: erroApi)
+            }
         } catch {
             mensagemErro = TextosPorQueReceboVagas.erroEnviar
         }
