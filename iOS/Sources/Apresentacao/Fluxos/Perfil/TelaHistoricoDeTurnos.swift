@@ -98,7 +98,7 @@ public struct TelaHistoricoDeTurnos: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("historico-resumo-periodo")
             } else {
-                AvisoFrila(verbatim: TextosHistoricoDeTurnos.periodoInvalido, tom: .alerta)
+                AvisoFrila(verbatim: model.excedeLimite ? TextosHistoricoDeTurnos.intervaloMaximoExcedido : TextosHistoricoDeTurnos.periodoInvalido, tom: .alerta)
                     .accessibilityIdentifier("historico-periodo-invalido")
             }
         }

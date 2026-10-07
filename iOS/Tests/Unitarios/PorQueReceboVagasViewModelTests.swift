@@ -97,6 +97,43 @@ struct PorQueReceboVagasViewModelTests {
         #expect(!vm.mostrarFormulario)
     }
 
+    @Test("409: fecha o formulário, explica a contestação existente sem inventar protocolo e impede reenvio")
+    func contestacaoExistente() async {
+        let vm = await Self.pronto { _ in throw ErroDaApi(codigo: .contestacaoJaAberta) }
+        vm.abrirFormulario()
+        vm.relato = "Não recebi a vaga de sexta à noite."
+        await vm.contestar()
+        #expect(vm.contestacaoJaAberta)
+        #expect(vm.protocolo == nil)
+        #expect(vm.mensagemErro == nil)
+        #expect(!vm.mostrarFormulario)
+        #expect(!vm.podeContestar)
+        vm.cancelarFormulario()
+        await vm.carregar()
+        vm.abrirFormulario()
+        #expect(!vm.mostrarFormulario)
+        #expect(!vm.podeContestar)
+    }
+
+    @Test("Reabrir a folha com o mesmo modelo conserva o protocolo; outro modelo recebe 409 do dublê")
+    func reabrirDepoisDeEnviar() async throws {
+        let api = ApiClienteEmMemoria()
+        let vm = PorQueReceboVagasViewModel(api: api)
+        vm.relato = "Não recebi a vaga de sexta à noite."
+        await vm.contestar()
+        let protocolo = try #require(vm.protocolo)
+        await vm.carregar()
+        vm.abrirFormulario()
+        #expect(vm.protocolo == protocolo)
+        #expect(!vm.mostrarFormulario)
+        let reaberto = PorQueReceboVagasViewModel(api: api)
+        reaberto.relato = vm.relato
+        await reaberto.contestar()
+        #expect(reaberto.contestacaoJaAberta)
+        #expect(!reaberto.podeContestar)
+        #expect(await api.relatosDeRevisaoDespacho.count == 1)
+    }
+
     @Test("Relato vazio ou curto é barrado antes de enviar, com a mensagem do campo")
     func relatoInvalidoNaTela() async {
         let vm = await Self.pronto { _ in

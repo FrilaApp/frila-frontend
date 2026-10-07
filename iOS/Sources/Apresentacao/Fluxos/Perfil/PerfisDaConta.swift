@@ -99,6 +99,7 @@ public final class PerfilEstabelecimentoViewModel {
 }
 
 public struct TelaMeuPerfilProfissional: View {
+    @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
     @State private var exportarModel: ExportarDadosViewModel
     private let api: any ApiCliente
@@ -111,6 +112,7 @@ public struct TelaMeuPerfilProfissional: View {
         self.api = api
         self.enderecos = enderecos
         self.sair = sair
+        _despachoModel = State(initialValue: PorQueReceboVagasViewModel(api: api))
         _model = State(initialValue: MeuPerfilProfissionalViewModel(api: api))
         _exportarModel = State(initialValue: ExportarDadosViewModel(api: api))
     }
@@ -217,7 +219,7 @@ public struct TelaMeuPerfilProfissional: View {
     /// A folha "Por que recebo vagas" (RF27, #18): texto aprovado, critérios reais e "Contestar".
     private var explicacao: some View {
         NavigationStack {
-            TelaPorQueReceboVagas(api: api)
+            TelaPorQueReceboVagas(viewModel: despachoModel)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {

@@ -3,6 +3,7 @@ import Foundation
 /// Textos da tela "Por que recebo vagas" (RF27). O título e o texto explicativo aprovado ficam em
 /// `TextosPerfilConta`, de onde a tela sempre partiu.
 public enum TextosPorQueReceboVagas {
+    public static let contestacaoJaAberta = String(localized: "Já existe uma contestação deste despacho. A resposta da Equipe Frila vai por e-mail. Qualquer recurso adicional deve ser enviado por e-mail.", bundle: bundleApresentacao)
     public static let secaoFuncao = String(localized: "Sua função", bundle: bundleApresentacao)
     public static let semFuncao = String(localized: "Nenhuma função cadastrada.", bundle: bundleApresentacao)
     public static let secaoHorarios = String(localized: "Seus horários", bundle: bundleApresentacao)

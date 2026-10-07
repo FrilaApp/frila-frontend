@@ -161,7 +161,8 @@ struct HistoricoDeTurnosViewModelTests {
         defer { try? FileManager.default.removeItem(at: diretorio) }
         let vm = Self.modelo(DubleExportarTurnos(.success(.semTurnos)), agora: try #require(ContratoAPI.instante("2026-11-01T01:30:00Z")), diretorio: diretorio)
 
-        #expect(vm.periodo == (try PeriodoDeExportacao(de: DataCivil("2026-10-01"), ate: DataCivil("2026-10-31"))))
+        #expect(vm.periodo == nil)
+        #expect(vm.excedeLimite)
         vm.escolher(.mesPassado)
         #expect(vm.periodo == (try PeriodoDeExportacao(de: DataCivil("2026-09-01"), ate: DataCivil("2026-09-30"))))
     }
@@ -185,6 +186,42 @@ struct HistoricoDeTurnosViewModelTests {
         vm.escolher(inicio: try #require(ContratoAPI.instante("2026-09-05T15:00:00Z")))
         await vm.exportar()
         #expect(duble.pedidos.last?.periodo == (try PeriodoDeExportacao(de: DataCivil("2026-09-05"), ate: DataCivil("2026-09-10"))))
+    }
+
+    @Test("0.2.37: datas livres de 30 dias exportam; 31 dias e atalhos de mês com 31 dias não chegam à API")
+    func limiteDeTrintaDias() async throws {
+        let diretorio = try Self.diretorio()
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let duble = DubleExportarTurnos(.success(.semTurnos))
+        let vm = Self.modelo(duble, diretorio: diretorio)
+        vm.escolher(.intervalo)
+        vm.escolher(inicio: try #require(ContratoAPI.instante("2026-09-04T15:00:00Z")))
+        #expect(vm.periodo != nil)
+        await vm.exportar()
+        #expect(duble.pedidos.count == 1)
+        vm.escolher(inicio: try #require(ContratoAPI.instante("2026-09-03T15:00:00Z")))
+        #expect(vm.excedeLimite)
+        #expect(vm.periodo == nil)
+        await vm.exportar()
+        #expect(duble.pedidos.count == 1)
+        let novembro = Self.modelo(duble, agora: try #require(ContratoAPI.instante("2026-11-03T15:00:00Z")), diretorio: diretorio)
+        novembro.escolher(.mesPassado)
+        #expect(novembro.excedeLimite)
+        await novembro.exportar()
+        #expect(duble.pedidos.count == 1)
+    }
+
+    @Test("422 intervalo_maximo_excedido explica o limite e exige mudar as datas, sem tentar novamente")
+    func intervaloRecusadoPeloServidor() async throws {
+        let diretorio = try Self.diretorio()
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let vm = Self.modelo(DubleExportarTurnos(.failure(ErroDaApi(codigo: .intervaloMaximoExcedido))), diretorio: diretorio)
+        await vm.exportar()
+        #expect(vm.estado == .erro(mensagem: TextosHistoricoDeTurnos.intervaloMaximoExcedido, repetivel: false))
+        #expect(vm.arquivoParaCompartilhar == nil)
+        #expect(!vm.mostrarFolhaCompartilhamento)
+        vm.escolher(.intervalo)
+        #expect(vm.estado == .ocioso)
     }
 
     @Test("Mudar o período ou o formato apaga o aviso do pedido anterior")

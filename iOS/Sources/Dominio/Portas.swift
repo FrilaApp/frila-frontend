@@ -253,7 +253,7 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// "Contestar" na tela: pede à Equipe Frila a revisão do despacho, com relato de pelo menos 10
     /// caracteres; a resposta vai por e-mail em até 5 dias úteis. Relato em branco é
     /// `campoObrigatorio` e curto, `campoInvalido`, os dois com `relato` no detalhe; conta suspensa é
-    /// `semPermissao` com `conta_suspensa`. Não é idempotente: cada pedido abre uma ocorrência nova.
+    /// `semPermissao` com `conta_suspensa`. Reenvio é `contestacaoJaAberta` (409), sem protocolo.
     func pedirRevisaoDespacho(relato: String) async throws -> Protocolo
 
     // Estabelecimento
@@ -351,7 +351,8 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func exportarMeusDados() async throws -> Data
     /// Relatório dos turnos do período em CSV ou PDF (cartão #23, US20, RF22, RN17), no corpo da
     /// resposta. `.semTurnos` é o 204: o período não tem turnos e não há arquivo (UC13, 1a). O
-    /// estabelecimento que não é de quem chama é `semPermissao` (403).
+    /// estabelecimento que não é de quem chama é `semPermissao` (403). Datas omitidas cobrem os
+    /// últimos 15 dias; intervalo acima de 30 dias é `intervaloMaximoExcedido` (422).
     func exportarTurnos(_ pedido: PedidoExportacaoTurnos) async throws -> ResultadoExportacaoTurnos
 
     // Aplicativo e dispositivo
