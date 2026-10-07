@@ -246,9 +246,6 @@ struct CandidaturaEnviada: View {
             AccessibilityNotification.Announcement(Textos.retiradaTitulo).post()
             aoRetirar()
         }
-        .onChange(of: viewModel?.falha) { _, nova in
-            if let nova { AccessibilityNotification.Announcement(Textos.falha(nova)).post() }
-        }
         .onChange(of: avisoDaFalha, initial: true) { _, novo in quadro?.publicar(novo, de: Self.donoDosAvisos) }
         .onDisappear { quadro?.publicar(nil, de: Self.donoDosAvisos) }
     }

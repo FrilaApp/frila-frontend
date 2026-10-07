@@ -59,12 +59,6 @@ public struct AreaDeCandidatura: View {
         .task { await viewModel.conferirCandidatura() }
         .onChange(of: aviso, initial: true) { _, novo in quadro?.publicar(novo, de: Self.donoDosAvisos) }
         .onDisappear { quadro?.publicar(nil, de: Self.donoDosAvisos) }
-        .onChange(of: viewModel.estado) { _, novo in
-            guard case let .concluida(resultado) = novo else { return }
-            if let texto = Self.mensagemNoDetalhe(resultado) {
-                AccessibilityNotification.Announcement(texto).post()
-            }
-        }
     }
 
     private static let idDaRetirada = "candidatura-retirada"

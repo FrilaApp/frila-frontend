@@ -516,7 +516,9 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("000000")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.descendants(matching: .any)["codigo-erro"].waitForExistence(timeout: Espera.aparecer))
+        let aviso = app.descendants(matching: .any)["codigo-erro"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertEqual(aviso.label, "Código incorreto. Confira os números e tente novamente.")
     }
 
     func testMenorDeIdadeExibeRecusa() {
