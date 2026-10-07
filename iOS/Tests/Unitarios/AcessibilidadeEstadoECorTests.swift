@@ -22,7 +22,7 @@ struct AcessibilidadeEstadoECorTests {
             total: 20,
             taxaComparecimento: 0.95,
             turnosConsiderados: 20,
-            turnosRealizados: 21
+            turnosRealizados: 19
         )
         let semHistorico = Reputacao(
             positivas: 0,
@@ -41,7 +41,7 @@ struct AcessibilidadeEstadoECorTests {
         #expect(!descSemHistorico.isEmpty)
         #expect(descSemHistorico == "Sem histórico")
 
-        #expect(SeloReputacao.descricaoComparecimento(comHistorico)?.contains("Compareceu a 21 de 20 turnos") == true)
+        #expect(SeloReputacao.descricaoComparecimento(comHistorico)?.contains("Compareceu a 19 de 20 turnos") == true)
         #expect(SeloReputacao.descricaoComparecimento(semHistorico) == nil)
     }
 }

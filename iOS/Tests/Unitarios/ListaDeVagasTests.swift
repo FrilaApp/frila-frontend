@@ -1,6 +1,6 @@
 import Foundation
 @testable import FrilaApresentacao
-import FrilaDados
+@testable import FrilaDados
 import FrilaDominio
 import Testing
 
@@ -74,6 +74,34 @@ struct DiaDeSaoPauloTests {
 @MainActor
 @Suite("Lista de vagas (#104): estados, filtros e paginação")
 struct FeedVagasViewModelTests {
+    @Test("Nenhuma fixture tem mais turnos realizados que considerados")
+    func reputacoesDasFixturesRespeitamDenominador() throws {
+        let mapa = try #require(JSONSerialization.jsonObject(
+            with: FixturesDoContrato.dados("fixture-schemas")
+        ) as? [String: Any])
+
+        func conferir(_ valor: Any, caminho: String) {
+            if let objeto = valor as? [String: Any] {
+                if let realizados = objeto["turnos_realizados"] as? Int,
+                   let considerados = objeto["turnos_considerados"] as? Int {
+                    #expect(realizados <= considerados, Comment(rawValue: caminho))
+                }
+                for (chave, item) in objeto {
+                    conferir(item, caminho: "\(caminho).\(chave)")
+                }
+            } else if let lista = valor as? [Any] {
+                for (indice, item) in lista.enumerated() {
+                    conferir(item, caminho: "\(caminho)[\(indice)]")
+                }
+            }
+        }
+
+        for nome in mapa.keys.sorted() {
+            let dados = try FixturesDoContrato.dados(String(nome.dropLast(".json".count)))
+            conferir(try JSONSerialization.jsonObject(with: dados), caminho: nome)
+        }
+    }
+
     private func viewModel(_ fonte: FonteDeVagas, agora: Date = .now, pagina: Int = 30) -> FeedVagasViewModel {
         FeedVagasViewModel(
             buscarVagas: { try await fonte.buscar($0) },
