@@ -29,18 +29,18 @@ final class MinhasVagasUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10), "detalhe da vaga deve aparecer após o toque no cartão")
 
         let perfil = app.buttons["perfil-publico-82000000-0000-0000-0000-000000000002"]
-        XCTAssertTrue(perfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(perfil.waitForExistence(timeout: Espera.aparecer))
         perfil.tap()
-        XCTAssertTrue(app.staticTexts["Ana Cunha"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Ana Cunha"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts["7 de 7 chamariam de novo"].exists)
         XCTAssertTrue(app.staticTexts["Compareceu a 7 de 7 turnos"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10), "deve retornar ao detalhe da vaga")
 
         let contato = app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"]
-        XCTAssertTrue(contato.waitForExistence(timeout: 5))
+        XCTAssertTrue(contato.waitForExistence(timeout: Espera.aparecer))
         contato.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["contato-liberado-82000000-0000-0000-0000-000000000001"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["contato-liberado-82000000-0000-0000-0000-000000000001"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "+5561999990000")).firstMatch.exists)
     }
 }

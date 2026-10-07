@@ -18,7 +18,7 @@ final class RepublicarVagaUITests: XCTestCase {
         botaoRepublicar.tap()
 
         // Abre a tela de republicação com os dados copiados
-        XCTAssertTrue(app.descendants(matching: .any)["tela-republicar-vaga"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["tela-republicar-vaga"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts["Republicar vaga"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["cartao-dados-copiados-republicacao"].exists)
 
@@ -29,14 +29,14 @@ final class RepublicarVagaUITests: XCTestCase {
 
         // Toca em confirmar republicação
         let botaoConfirmar = app.buttons["botao-confirmar-republicacao"]
-        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: Espera.aparecer))
         botaoConfirmar.tap()
 
         // A folha fecha
         let telaRepublicar = app.descendants(matching: .any)["tela-republicar-vaga"]
         XCTAssertTrue(telaRepublicar.waitForNonExistence(timeout: 10))
 
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-republicacao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-republicacao"].waitForExistence(timeout: Espera.aparecer))
 
         // A lista de Minhas vagas permanece visível com a nova vaga ativa (seção Em alerta, Hoje ou Próximas)
         XCTAssertTrue(app.staticTexts["Minhas vagas"].waitForExistence(timeout: 10))
@@ -55,13 +55,13 @@ final class RepublicarVagaUITests: XCTestCase {
         XCTAssertTrue(vaga.waitForExistence(timeout: 10))
         vaga.tap()
         let republicar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "republicar-detalhe-vaga-")).firstMatch
-        XCTAssertTrue(republicar.waitForExistence(timeout: 5))
+        XCTAssertTrue(republicar.waitForExistence(timeout: Espera.aparecer))
         republicar.tap()
         let confirmar = app.buttons["botao-confirmar-republicacao"]
-        XCTAssertTrue(confirmar.waitForExistence(timeout: 5))
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
         confirmar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["tela-republicar-vaga"].waitForNonExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-republicacao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-republicacao"].waitForExistence(timeout: Espera.aparecer))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.staticTexts["Em alerta"].waitForExistence(timeout: 5)
                       || app.staticTexts["Hoje"].waitForExistence(timeout: 5)
@@ -94,19 +94,19 @@ final class RepublicarVagaUITests: XCTestCase {
         ]
 
         for (nome, elemento) in elementos {
-            XCTAssertTrue(elemento.waitForExistence(timeout: 5), "Elemento \(nome) deve existir")
+            XCTAssertTrue(elemento.waitForExistence(timeout: Espera.aparecer), "Elemento \(nome) deve existir")
             let frame = elemento.frame
             XCTAssertGreaterThanOrEqual(frame.minX, 0.0, "Elemento \(nome) minX=\(frame.minX) deve iniciar >= 0")
             XCTAssertLessThanOrEqual(frame.maxX, larguraTela, "Elemento \(nome) maxX=\(frame.maxX) deve caber na largura \(larguraTela)")
         }
 
         let dpInicio = app.datePickers["campo-inicio-republicacao"]
-        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5), "DatePicker Início deve existir")
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "DatePicker Início deve existir")
         trazerParaATela(dpInicio, em: app)
         XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
 
         let dpFim = app.datePickers["campo-fim-republicacao"]
-        XCTAssertTrue(dpFim.waitForExistence(timeout: 5), "DatePicker Fim deve existir")
+        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "DatePicker Fim deve existir")
         trazerParaATela(dpFim, em: app)
         XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
 

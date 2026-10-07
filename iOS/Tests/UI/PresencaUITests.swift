@@ -39,7 +39,7 @@ final class PresencaUITests: XCTestCase {
         let fazerCheckin = app.buttons["fazer-checkin"]
         XCTAssertTrue(fazerCheckin.waitForExistence(timeout: 10))
         fazerCheckin.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["explicacao-localizacao"].waitForExistence(timeout: 5), "a explicação vem antes do pedido de permissão")
+        XCTAssertTrue(app.descendants(matching: .any)["explicacao-localizacao"].waitForExistence(timeout: Espera.aparecer), "a explicação vem antes do pedido de permissão")
         app.buttons["permitir-localizacao"].tap()
     }
 
@@ -54,7 +54,7 @@ final class PresencaUITests: XCTestCase {
         XCTAssertFalse(app.buttons["fazer-checkin"].exists)
 
         let fazerCheckout = app.buttons["fazer-checkout"]
-        XCTAssertTrue(fazerCheckout.waitForExistence(timeout: 5))
+        XCTAssertTrue(fazerCheckout.waitForExistence(timeout: Espera.aparecer))
         fazerCheckout.tap()
         let checkout = app.descendants(matching: .any)["checkout-situacao"]
         XCTAssertTrue(checkout.waitForExistence(timeout: 10))
@@ -68,7 +68,7 @@ final class PresencaUITests: XCTestCase {
         fazerCheckinComPermissao(app)
 
         let fazerCheckout = app.buttons["fazer-checkout"]
-        XCTAssertTrue(fazerCheckout.waitForExistence(timeout: 5))
+        XCTAssertTrue(fazerCheckout.waitForExistence(timeout: Espera.aparecer))
         fazerCheckout.tap()
 
         let checkout = app.descendants(matching: .any)["checkout-situacao"]
@@ -85,7 +85,7 @@ final class PresencaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["checkin-situacao"].exists, "a 350 m nada é registrado sem a pessoa pedir")
         let manual = app.buttons["registro-manual"]
-        XCTAssertTrue(manual.waitForExistence(timeout: 5))
+        XCTAssertTrue(manual.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.buttons["tentar-gps"].exists)
         manual.tap()
 
@@ -99,9 +99,9 @@ final class PresencaUITests: XCTestCase {
         fazerCheckinComPermissao(app)
 
         XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["abrir-ajustes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["abrir-ajustes"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.buttons["registro-manual"].exists)
         app.buttons["cancelar-presenca"].tap()
-        XCTAssertTrue(app.buttons["fazer-checkin"].waitForExistence(timeout: 5), "desistir devolve o botão de check-in")
+        XCTAssertTrue(app.buttons["fazer-checkin"].waitForExistence(timeout: Espera.aparecer), "desistir devolve o botão de check-in")
     }
 }

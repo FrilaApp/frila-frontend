@@ -25,7 +25,7 @@ final class TurnoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(confirmar.exists)
         confirmar.tap()
 
-        XCTAssertTrue(app.staticTexts["Presença confirmada."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Presença confirmada."].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(pendentes.exists)
         XCTAssertFalse(confirmar.exists)
     }
@@ -37,10 +37,10 @@ final class TurnoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(acompanhar.waitForExistence(timeout: 15))
         acompanhar.tap()
 
-        XCTAssertTrue(app.staticTexts["Chegada"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Chegada"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts["Fez o check-in manual, sem confirmação pelo GPS."].exists)
         app.buttons["confirmar-presenca-\(turnoID)"].tap()
-        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testReabrirVagaPedeConfirmacaoEAvisaDaFalta() {
@@ -51,16 +51,16 @@ final class TurnoDoContratanteUITests: XCTestCase {
         reabrir.tap()
 
         let pergunta = app.alerts["Reabrir a vaga?"]
-        XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
+        XCTAssertTrue(pergunta.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(pergunta.staticTexts["Conta como falta para Ana Cunha, e a vaga volta a ser oferecida a outros profissionais."].exists)
         pergunta.buttons["Esperar"].tap()
-        XCTAssertTrue(reabrir.waitForExistence(timeout: 5))
+        XCTAssertTrue(reabrir.waitForExistence(timeout: Espera.aparecer))
 
         reabrir.tap()
-        XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
+        XCTAssertTrue(pergunta.waitForExistence(timeout: Espera.aparecer))
         pergunta.buttons["Reabrir vaga"].tap()
 
-        XCTAssertTrue(app.descendants(matching: .any)["resultado-do-acompanhamento"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-do-acompanhamento"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(reabrir.exists)
     }
 
@@ -93,7 +93,7 @@ final class TurnoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Posição aberta"].firstMatch.exists)
         // Voltar leva à lista, onde a mesma vaga está na seção Em alerta, com o tempo que falta.
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.staticTexts["Em alerta"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Em alerta"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["tempo-alerta-\(vagaID.uppercased())"].exists)
     }
 
@@ -104,7 +104,7 @@ final class TurnoDoContratanteUITests: XCTestCase {
         ])
 
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-checkin-\(turnoID)"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-confirmacao-\(turnoID)"].exists)
     }
@@ -116,7 +116,7 @@ final class TurnoDoContratanteUITests: XCTestCase {
         ])
 
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.staticTexts["Esta posição foi cancelada."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Esta posição foi cancelada."].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["cancelamento-causa-\(turnoID)"].exists)
         XCTAssertTrue(app.staticTexts["Cancelado pelo profissional."].exists)
         XCTAssertTrue(app.descendants(matching: .any)["cancelamento-falta-\(turnoID)"].exists)
@@ -133,7 +133,7 @@ final class TurnoDoContratanteUITests: XCTestCase {
         ])
 
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Presença verificada."].waitForExistence(timeout: Espera.aparecer))
         // Servidor antigo não manda os campos: nada novo aparece na tela
         XCTAssertFalse(app.descendants(matching: .any)["detalhe-checkin-\(turnoID)"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["detalhe-confirmacao-\(turnoID)"].exists)

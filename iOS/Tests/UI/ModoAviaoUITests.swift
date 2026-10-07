@@ -17,7 +17,7 @@ final class ModoAviaoUITests: XCTestCase {
 
     private func destinoDoWhatsApp(_ app: XCUIApplication) throws -> URL {
         let whatsapp = app.buttons["botao-whatsapp"]
-        XCTAssertTrue(whatsapp.waitForExistence(timeout: 5))
+        XCTAssertTrue(whatsapp.waitForExistence(timeout: Espera.aparecer))
         for _ in 0..<3 where !whatsapp.isHittable {
             app.swipeUp()
         }
@@ -26,7 +26,7 @@ final class ModoAviaoUITests: XCTestCase {
         let abertura = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "value BEGINSWITH %@", "https://wa.me/"), object: whatsapp
         )
-        XCTAssertEqual(XCTWaiter.wait(for: [abertura], timeout: 5), .completed, "o toque deve abrir a conversa no WhatsApp")
+        XCTAssertEqual(XCTWaiter.wait(for: [abertura], timeout: Espera.aparecer), .completed, "o toque deve abrir a conversa no WhatsApp")
         let valor = try XCTUnwrap(whatsapp.value as? String, "o abridor deve registrar o destino acionado pelo Link")
         let url = try XCTUnwrap(URL(string: valor), "destino capturado: \(valor)")
         XCTAssertEqual(url.scheme, "https")
@@ -76,17 +76,17 @@ final class ModoAviaoUITests: XCTestCase {
         for _ in 0..<20 where !turno.isHittable {
             semRede.swipeUp()
         }
-        XCTAssertTrue(turno.waitForExistence(timeout: 5), "o turno confirmado com rede está no cache")
+        XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer), "o turno confirmado com rede está no cache")
         turno.tap()
         XCTAssertTrue(semRede.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
-        XCTAssertTrue(telefone(semRede).waitForExistence(timeout: 5), "o contato do turno confirmado continua visível sem rede")
+        XCTAssertTrue(telefone(semRede).waitForExistence(timeout: Espera.aparecer), "o contato do turno confirmado continua visível sem rede")
         XCTAssertEqual(try destinoDoWhatsApp(semRede), destinoComRede, "o cache conserva o número e a mensagem do WhatsApp")
 
         // Sem rede não há o ponto da vaga para medir a distância: o check-in sai manual e vai para a fila.
         let fazerCheckin = semRede.buttons["fazer-checkin"]
         XCTAssertTrue(fazerCheckin.waitForExistence(timeout: 10))
         fazerCheckin.tap()
-        XCTAssertTrue(semRede.descendants(matching: .any)["explicacao-localizacao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(semRede.descendants(matching: .any)["explicacao-localizacao"].waitForExistence(timeout: Espera.aparecer))
         semRede.buttons["permitir-localizacao"].tap()
         let manual = semRede.buttons["registro-manual"]
         XCTAssertTrue(manual.waitForExistence(timeout: 10))
