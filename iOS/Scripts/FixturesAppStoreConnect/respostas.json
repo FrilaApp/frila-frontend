@@ -1,0 +1,16 @@
+{
+  "apps": [{"type":"apps","id":"app-1","attributes":{"name":"Frila","bundleId":"com.frila.org.app"}}],
+  "betaGroups": [{"type":"betaGroups","id":"grupo-1","attributes":{"name":"Equipe Frila","isInternalGroup":true,"hasAccessToAllBuilds":true}}],
+  "betaTesters": [{"type":"betaTesters","id":"tester-1","attributes":{"email":"primeiro@example.invalid"}}],
+  "membros": {"grupo-1":["tester-1"]},
+  "users": [
+    {"type":"users","id":"user-1","attributes":{"username":"primeiro@example.invalid","roles":["ADMIN"],"allAppsVisible":true}},
+    {"type":"users","id":"user-2","attributes":{"username":"segundo@example.invalid","roles":["DEVELOPER"],"allAppsVisible":false}},
+    {"type":"users","id":"user-3","attributes":{"username":"financeiro@example.invalid","roles":["FINANCE"],"allAppsVisible":true}},
+    {"type":"users","id":"user-4","attributes":{"username":"sem-acesso@example.invalid","roles":["DEVELOPER"],"allAppsVisible":false}}
+  ],
+  "visibleApps": {"user-2":["app-1"],"user-4":[]},
+  "appInfos": [{"type":"appInfos","id":"info-1","attributes":{"appStoreState":"PREPARE_FOR_SUBMISSION","appStoreAgeRating":"FOUR_PLUS","brazilAgeRating":"L"}}],
+  "ageRatingDeclaration": {"type":"ageRatingDeclarations","id":"idade-1","attributes":{"userGeneratedContent":false,"messagingAndChat":false,"ageAssurance":false,"ageRatingOverrideV2":"NONE"}},
+  "erro": {"errors":[{"status":"422","code":"ENTITY_ERROR.ATTRIBUTE.INVALID","detail":"segundo@example.invalid não elegível"}]}
+}
