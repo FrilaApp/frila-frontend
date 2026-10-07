@@ -2,6 +2,7 @@ import Foundation
 
 /// Textos provisórios da tela de histórico (#23): a alta fidelidade da v1.1 ainda não veio.
 public enum TextosHistoricoDeTurnos {
+    public static let intervaloMaximoExcedido = String(localized: "Escolha um período de até 30 dias para exportar os turnos.", bundle: bundleApresentacao)
     public static let titulo = String(localized: "Histórico de turnos", bundle: bundleApresentacao)
     public static let explicacao = String(
         localized: "Exporte os turnos de um período com data, função, horários registrados, valor acordado e contraparte. O valor é o combinado entre as partes, e não um pagamento feito pelo Frila. Turno não verificado sai marcado.",

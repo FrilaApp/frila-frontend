@@ -31,6 +31,7 @@ private final class ExportacaoNoBackend: URLProtocol {
         case "csv": (200, "text/csv; charset=utf-8", (try? FixturesDoContrato.arquivo("exportar-turnos", extensao: "csv")) ?? Data())
         case "pdf": (200, "application/pdf", (try? FixturesDoContrato.arquivo("exportar-turnos", extensao: "pdf")) ?? Data())
         case "vazio": (204, nil, Data())
+        case "intervalo": (422, "application/json", Data(#"{"code":"intervalo_maximo_excedido","message":"intervalo_maximo_excedido","details":null,"hint":null}"#.utf8))
         case "proibido": (403, "application/json", Data(#"{"code":"sem_permissao","message":"sem_permissao","details":null,"hint":null}"#.utf8))
         case "sessao": (401, "application/json", Data(#"{"code":401,"message":"Invalid JWT"}"#.utf8))
         case "json": (200, "application/json", Data(#"{"ok":true}"#.utf8))
@@ -162,7 +163,67 @@ struct ExportacaoDeTurnosTests {
         #expect(Set(corpo.allKeys.compactMap { $0 as? String }) == ["de", "ate", "formato"])
     }
 
+    @Test("0.2.37: cada data pode ser omitida no corpo, sem null nem período fabricado pelo app")
+    func datasOpcionais() throws {
+        let data = try #require(ContratoAPI.instante("2026-10-03T15:00:00Z"))
+        let casos = [PedidoExportacaoTurnos(formato: .csv), PedidoExportacaoTurnos(de: data, formato: .csv), PedidoExportacaoTurnos(ate: data, formato: .csv)]
+        for pedido in casos {
+            let corpo = try ContratoTests.objeto(ContratoAPI.ExportarTurnos(pedido))
+            #expect((corpo["de"] != nil) == (pedido.de != nil))
+            #expect((corpo["ate"] != nil) == (pedido.ate != nil))
+            #expect(corpo["formato"] as? String == "csv")
+        }
+    }
+
+    @Test("0.2.37: sem datas, últimos 15 dias; sem de, 15 dias antes de ate; sem ate, agora")
+    func padraoDeQuinzeDias() async throws {
+        let agora = try #require(ContratoAPI.instante("2026-10-03T15:00:00Z"))
+        let api = ApiClienteEmMemoria(relogio: RelogioFixo(agora: agora))
+        let semDatas = PedidoExportacaoTurnos(formato: .csv)
+        #expect(semDatas.instantes(agora: agora).ate == agora)
+        #expect(semDatas.instantes(agora: agora).de == agora.addingTimeInterval(-15 * 24 * 3600))
+        _ = try await api.exportarTurnos(semDatas)
+        let ate = agora.addingTimeInterval(-40 * 24 * 3600)
+        let soAte = PedidoExportacaoTurnos(ate: ate, formato: .pdf)
+        #expect(soAte.instantes(agora: agora).de == ate.addingTimeInterval(-15 * 24 * 3600))
+        _ = try await api.exportarTurnos(soAte)
+        _ = try await api.exportarTurnos(PedidoExportacaoTurnos(de: agora.addingTimeInterval(-30 * 24 * 3600), formato: .csv))
+        await #expect(throws: ErroDaApi(codigo: .intervaloMaximoExcedido)) {
+            try await api.exportarTurnos(PedidoExportacaoTurnos(de: agora.addingTimeInterval(-30 * 24 * 3600 - 0.001), formato: .csv))
+        }
+    }
+
+    @Test("Dublê: até 30 dias exatos passa; um milissegundo acima é intervalo_maximo_excedido e ordem inversa é campo_invalido/de")
+    func limiteDoDuble() async throws {
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let api = ApiClienteEmMemoria(relogio: RelogioFixo(agora: agora))
+        _ = try await api.exportarTurnos(PedidoExportacaoTurnos(de: agora, ate: agora.addingTimeInterval(30 * 24 * 3600), formato: .csv))
+        await #expect(throws: ErroDaApi(codigo: .intervaloMaximoExcedido)) {
+            try await api.exportarTurnos(PedidoExportacaoTurnos(de: agora, ate: agora.addingTimeInterval(30 * 24 * 3600 + 0.001), formato: .pdf))
+        }
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, detalhes: "de")) {
+            try await api.exportarTurnos(PedidoExportacaoTurnos(de: agora.addingTimeInterval(1), ate: agora, formato: .csv))
+        }
+    }
+
+    @Test("422 do cliente real preserva intervalo_maximo_excedido")
+    func intervaloMaximoDoCliente() async throws {
+        let api = try Self.cliente("intervalo.teste")
+        await #expect(throws: ErroDaApi(codigo: .intervaloMaximoExcedido)) {
+            try await api.exportarTurnos(PedidoExportacaoTurnos(periodo: try Self.outubro(), formato: .csv))
+        }
+    }
+
     // MARK: Cliente Supabase
+
+    @Test("Sem datas, o cliente real envia apenas formato e deixa a janela padrão para o servidor")
+    func datasOmitidasNaRede() async throws {
+        let api = try Self.cliente("csv.padrao.teste")
+        _ = try await api.exportarTurnos(PedidoExportacaoTurnos(formato: .csv))
+        let dados = try #require(ExportacaoNoBackend.pedido(em: "csv.padrao.teste")?.corpo)
+        let corpo = try #require(JSONSerialization.jsonObject(with: dados) as? NSDictionary)
+        #expect(corpo == ["formato": "csv"] as NSDictionary)
+    }
 
     @Test("200 text/csv: POST em /functions/v1/exportar-turnos, e o arquivo chega intacto")
     func csvChegaIntacto() async throws {
@@ -248,23 +309,23 @@ struct ExportacaoDeTurnosTests {
     @Test("Dublê: devolve o CSV e o PDF de exemplo, guarda o pedido e responde 204 no cenário sem turnos")
     func duble() async throws {
         let api = ApiClienteEmMemoria()
-        let csv = try await api.exportarTurnos(PedidoExportacaoTurnos(periodo: try Self.outubro(), formato: .csv))
+        let csv = try await api.exportarTurnos(PedidoExportacaoTurnos(periodo: try PeriodoDeExportacao(de: DataCivil("2026-10-01"), ate: DataCivil("2026-10-30")), formato: .csv))
         #expect(csv == .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: "csv")))
-        let pdf = try await api.exportarTurnos(PedidoExportacaoTurnos(periodo: try Self.outubro(), formato: .pdf, estabelecimentoID: Self.estabelecimento))
+        let pdf = try await api.exportarTurnos(PedidoExportacaoTurnos(periodo: try PeriodoDeExportacao(de: DataCivil("2026-10-01"), ate: DataCivil("2026-10-30")), formato: .pdf, estabelecimentoID: Self.estabelecimento))
         #expect(pdf == .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: "pdf")))
         #expect(await api.pedidosDeExportacaoDeTurnos.map(\.formato) == [.csv, .pdf])
 
         let vazio = ApiClienteEmMemoria(cenario: .exportarTurnosSemTurnos)
-        #expect(try await vazio.exportarTurnos(PedidoExportacaoTurnos(periodo: try Self.outubro(), formato: .csv)) == .semTurnos)
+        #expect(try await vazio.exportarTurnos(PedidoExportacaoTurnos(periodo: try PeriodoDeExportacao(de: DataCivil("2026-10-01"), ate: DataCivil("2026-10-30")), formato: .csv)) == .semTurnos)
     }
 
     @Test("Dublê: estabelecimento que não é da conta é 403, e os cenários de erro das exportações valem aqui também")
     func dubleErros() async throws {
-        let pedido = PedidoExportacaoTurnos(periodo: try Self.outubro(), formato: .csv, estabelecimentoID: UUID())
+        let pedido = PedidoExportacaoTurnos(periodo: try PeriodoDeExportacao(de: DataCivil("2026-10-01"), ate: DataCivil("2026-10-30")), formato: .csv, estabelecimentoID: UUID())
         let erro = await #expect(throws: ErroDaApi.self) { _ = try await ApiClienteEmMemoria().exportarTurnos(pedido) }
         #expect(erro?.codigo == .semPermissao)
 
-        let doProfissional = PedidoExportacaoTurnos(periodo: try Self.outubro(), formato: .csv)
+        let doProfissional = PedidoExportacaoTurnos(periodo: try PeriodoDeExportacao(de: DataCivil("2026-10-01"), ate: DataCivil("2026-10-30")), formato: .csv)
         await #expect(throws: ErroDaApi(codigo: .semRede)) {
             _ = try await ApiClienteEmMemoria(cenario: .exportarSemRede).exportarTurnos(doProfissional)
         }

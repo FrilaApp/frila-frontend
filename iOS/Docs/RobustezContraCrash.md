@@ -2,7 +2,7 @@
 
 Auditoria de `iOS/Sources` (as cinco camadas e a extensão de notificação) feita em 04/10/2026, a
 partir de `origin/main` (`d64b367`), à procura do que derruba o app com dado real do servidor, rede
-ruim ou uso fora do roteiro, que os testes com o dublê não pegam. O contrato espelhado é o 0.2.36.
+ruim ou uso fora do roteiro, que os testes com o dublê não pegam. O contrato espelhado é o 0.2.38.
 
 Gravidade: **derruba** fecha o app; **trava** deixa a pessoa sem sair de uma tela; **errado** mostra
 estado ou mensagem incorreta sem fechar nem travar. Situação: **corrigido** neste PR, **pendente**

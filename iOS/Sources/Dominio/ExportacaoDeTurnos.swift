@@ -35,6 +35,9 @@ public struct PeriodoDeExportacao: Equatable, Sendable {
         return seguinte.addingTimeInterval(-0.001)
     }
 
+    /// A janela usa instantes, como o servidor: no máximo 30 dias de 24 horas.
+    public var excedeLimite: Bool { fim.timeIntervalSince(inicio) > 30 * 24 * 3600 }
+
     /// Do dia 1 do mês de `hoje` até `hoje`: o mês corrente ainda não terminou.
     public static func esteMes(hoje: DataCivil) -> PeriodoDeExportacao {
         PeriodoDeExportacao(primeiroDia: (try? DataCivil(ano: hoje.ano, mes: hoje.mes, dia: 1)) ?? hoje, ultimoDia: hoje)
@@ -74,14 +77,32 @@ public struct PeriodoDeExportacao: Equatable, Sendable {
 /// Corpo de `POST /exportar-turnos`. Sem `estabelecimentoID`, valem os turnos de quem chama como
 /// profissional; o contratante manda o do estabelecimento dele.
 public struct PedidoExportacaoTurnos: Equatable, Sendable {
-    public let periodo: PeriodoDeExportacao
+    public let periodo: PeriodoDeExportacao?
+    public let de: Date?
+    public let ate: Date?
     public let formato: FormatoExportacao
     public let estabelecimentoID: UUID?
 
     public init(periodo: PeriodoDeExportacao, formato: FormatoExportacao, estabelecimentoID: UUID? = nil) {
         self.periodo = periodo
+        de = periodo.inicio
+        ate = periodo.fim
         self.formato = formato
         self.estabelecimentoID = estabelecimentoID
+    }
+
+    /// Cada ponta pode ser omitida: o servidor usa agora para `ate` e 15 dias antes de `ate` para `de`.
+    public init(de: Date? = nil, ate: Date? = nil, formato: FormatoExportacao, estabelecimentoID: UUID? = nil) {
+        periodo = nil
+        self.de = de
+        self.ate = ate
+        self.formato = formato
+        self.estabelecimentoID = estabelecimentoID
+    }
+
+    public func instantes(agora: Date) -> (de: Date, ate: Date) {
+        let fim = ate ?? agora
+        return (de ?? fim.addingTimeInterval(-15 * 24 * 3600), fim)
     }
 }
 

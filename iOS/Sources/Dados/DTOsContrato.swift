@@ -1268,10 +1268,11 @@ enum ContratoAPI {
 
     /// Corpo de `POST /exportar-turnos`. Os instantes levam milissegundos: o último é 23:59:59.999
     /// de São Paulo, e sem a fração o último segundo do período ficaria de fora. Sem estabelecimento,
-    /// a chave não vai, e o servidor usa os turnos de quem chama como profissional.
+    /// a chave não vai, e o servidor usa os turnos de quem chama como profissional. Datas omitidas
+    /// também não vão no corpo: a janela padrão é resolvida pelo servidor.
     struct ExportarTurnos: Encodable {
-        let de: String
-        let ate: String
+        let de: String?
+        let ate: String?
         let formato: FormatoExportacao
         let estabelecimentoID: UUID?
 
@@ -1281,8 +1282,8 @@ enum ContratoAPI {
         }
 
         init(_ pedido: PedidoExportacaoTurnos) {
-            de = ContratoAPI.textoComMilissegundos(pedido.periodo.inicio)
-            ate = ContratoAPI.textoComMilissegundos(pedido.periodo.fim)
+            de = pedido.de.map(ContratoAPI.textoComMilissegundos)
+            ate = pedido.ate.map(ContratoAPI.textoComMilissegundos)
             formato = pedido.formato
             estabelecimentoID = pedido.estabelecimentoID
         }

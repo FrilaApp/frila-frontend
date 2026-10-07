@@ -6,9 +6,9 @@ final class PorQueReceboVagasUITests: XCTestCase {
     private static let ax5 = "UICTContentSizeCategoryAccessibilityXXXL"
 
     /// Abre a folha a partir de Meu perfil, no cenário de sucesso do dublê.
-    private func abrirFolha(argumentos: [String] = []) -> XCUIApplication {
+    private func abrirFolha(cenario: String = "success", argumentos: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "success"] + argumentos
+        app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
@@ -80,6 +80,39 @@ final class PorQueReceboVagasUITests: XCTestCase {
         XCTAssertTrue(fechar.waitForExistence(timeout: 5))
         fechar.tap()
         XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+        let reabrir = app.buttons["perfil-por-que-recebo"]
+        rolarAte(reabrir, em: app)
+        reabrir.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-revisao-despacho"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["botao-contestar-despacho"].exists, "reabrir conserva o protocolo e não oferece outro pedido")
+    }
+
+    func testContestacaoJaAbertaExplica409EImpedeNovoPedidoAoReabrir() {
+        let app = abrirFolha(cenario: "despacho-contestacao-ja-aberta")
+        let contestar = app.buttons["botao-contestar-despacho"]
+        rolarAte(contestar, em: app)
+        contestar.tap()
+        let campo = app.descendants(matching: .any)["campo-relato-despacho"].firstMatch
+        XCTAssertTrue(campo.waitForExistence(timeout: 10))
+        campo.tap()
+        campo.typeText("Não recebi a vaga de sexta no Bistrô Ipê")
+        let enviar = app.buttons["botao-enviar-revisao"]
+        rolarAte(enviar, em: app)
+        enviar.tap()
+        let aviso = app.descendants(matching: .any)["status-revisao-ja-aberta"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        XCTAssertTrue(aviso.label.contains("Já existe uma contestação"))
+        XCTAssertTrue(aviso.label.contains("e-mail"))
+        XCTAssertFalse(app.buttons["botao-contestar-despacho"].exists)
+        XCTAssertFalse(app.buttons["botao-enviar-revisao"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["protocolo-revisao-despacho"].exists, "409 não devolve protocolo")
+        app.buttons["fechar-explicacao-vagas"].tap()
+        let reabrir = app.buttons["perfil-por-que-recebo"]
+        XCTAssertTrue(reabrir.waitForExistence(timeout: 10))
+        rolarAte(reabrir, em: app)
+        reabrir.tap()
+        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["botao-contestar-despacho"].exists)
     }
 
     /// Em AX5 nada corta nem some: as seções existem, Fechar fica tocável e os dois botões do

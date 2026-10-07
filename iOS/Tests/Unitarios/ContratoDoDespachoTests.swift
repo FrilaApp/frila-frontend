@@ -200,9 +200,10 @@ struct RecusasDoDespachoTests {
         #expect(erro?.detalhes == detalhes)
     }
 
-    @Test("A recusa de pedir_revisao_despacho chega tipada: campo, conta suspensa e limite", arguments: [
+    @Test("A recusa de pedir_revisao_despacho chega tipada: campo, conta suspensa, contestação existente e limite", arguments: [
         (401, "nao_autenticado", nil, CodigoErroAPI.naoAutenticado),
         (403, "sem_permissao", "conta_suspensa", .semPermissao),
+        (409, "contestacao_ja_aberta", nil, .contestacaoJaAberta),
         (422, "campo_obrigatorio", "relato", .campoObrigatorio),
         (422, "campo_invalido", "relato", .campoInvalido),
         (429, "limite_excedido", nil, .limiteExcedido),
