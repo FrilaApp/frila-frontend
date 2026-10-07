@@ -223,6 +223,31 @@ public enum ModoPreenchimento: String, Codable, Sendable {
     case selecao
 }
 
+/// A regra das 24 horas do modo seleção (RN24, contrato 0.2.38). O prazo de escolha é 24 h antes
+/// do início; a partir dele a vaga fecha sozinha. Uma posição que volta a ficar aberta a 24 h ou
+/// menos do início (cancelamento do escolhido, reabertura por atraso) é reposta em **urgência**:
+/// o primeiro elegível que se candidata é confirmado na hora (decisões D4 e D5, 07/10/2026).
+///
+/// O contrato não manda um campo que diga "esta posição é de urgência": a vaga de seleção ainda
+/// `publicada` com posição aberta dentro das 24 h só pode ser uma reposição, porque o agendador a
+/// teria fechado. É a única leitura do app que depende do relógio do aparelho, e só muda o que a
+/// tela explica; quem decide a candidatura continua sendo o servidor.
+public enum RegraDaSelecao {
+    public static let antecedencia: TimeInterval = 24 * 60 * 60
+
+    /// O instante em que a seleção fecha (RN24).
+    public static func prazoDeEscolha(inicio: Date) -> Date {
+        inicio.addingTimeInterval(-antecedencia)
+    }
+
+    /// Com 24 h ou menos para o início a posição aberta de uma vaga em seleção é reposta em urgência.
+    public static func reposicaoEmUrgencia(
+        modo: ModoPreenchimento, estado: EstadoVaga, posicoesAbertas: Int, inicio: Date, agora: Date
+    ) -> Bool {
+        modo == .selecao && estado == .publicada && posicoesAbertas > 0 && inicio.timeIntervalSince(agora) <= antecedencia
+    }
+}
+
 public enum EstadoVaga: String, Codable, Sendable {
     case publicada
     case preenchida
@@ -327,6 +352,16 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
             erros.append(.selecaoSemAntecedencia)
         }
         return erros
+    }
+}
+
+extension Vaga {
+    /// Como esta vaga é preenchida **agora**: a de seleção com posição aberta a 24 h ou menos do
+    /// início está em reposição por urgência (`RegraDaSelecao`), e é isso que a tela de quem
+    /// trabalha explica, em vez de "o estabelecimento escolhe entre os candidatos".
+    public func modoEfetivo(em agora: Date) -> ModoPreenchimento {
+        RegraDaSelecao.reposicaoEmUrgencia(modo: modo, estado: estado, posicoesAbertas: posicoesAbertas, inicio: periodo.inicio, agora: agora)
+            ? .urgencia : modo
     }
 }
 
@@ -501,11 +536,16 @@ public struct Candidato: Codable, Hashable, Identifiable, Sendable {
     public let candidaturaID: UUID
     public let profissional: PerfilPublico
     public let criadaEm: Date
+    /// `da_equipe` (contrato 0.2.38, decisão D7): o profissional está na equipe de confiança da
+    /// casa. Serve só ao selo "da sua equipe"; a lista continua em ordem de chegada (RN06).
+    /// Ausente na resposta vale `false`.
+    public let daEquipe: Bool
 
-    public init(candidaturaID: UUID, profissional: PerfilPublico, criadaEm: Date) {
+    public init(candidaturaID: UUID, profissional: PerfilPublico, criadaEm: Date, daEquipe: Bool = false) {
         self.candidaturaID = candidaturaID
         self.profissional = profissional
         self.criadaEm = criadaEm
+        self.daEquipe = daEquipe
     }
 
     public var id: UUID { candidaturaID }
@@ -813,6 +853,17 @@ public struct VagaNoPainel: Codable, Hashable, Sendable {
         self.alertaVagaVazia = alertaVagaVazia
         self.candidatosPendentes = candidatosPendentes
         self.posicoes = posicoes
+    }
+}
+
+extension VagaNoPainel {
+    /// Quantas posições ainda esperam alguém.
+    public var posicoesAbertas: Int { posicoes.count { $0.estado == .aberta } }
+
+    /// A vaga de seleção com posição aberta a 24 h ou menos do início: a posição é reposta em
+    /// urgência (`RegraDaSelecao`), e a casa não escolhe candidato nela.
+    public func reposicaoEmUrgencia(em agora: Date) -> Bool {
+        RegraDaSelecao.reposicaoEmUrgencia(modo: modo, estado: estado, posicoesAbertas: posicoesAbertas, inicio: vaga.periodo.inicio, agora: agora)
     }
 }
 

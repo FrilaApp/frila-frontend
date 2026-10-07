@@ -175,6 +175,91 @@ struct CandidatosDaVagaViewModelTests {
         #expect(cena.viewModel.resultado == nil && cena.viewModel.falha == nil && !cena.viewModel.desatualizada)
     }
 
+    @Test("O selo da equipe (da_equipe, 0.2.38) marca só quem está na equipe da casa e não reordena a lista")
+    func seloDaEquipeNaoReordena() async throws {
+        let cena = try await Cena.doCenario(.selecaoComCandidatoDaEquipe)
+        await cena.viewModel.carregar()
+
+        // Bruno é da equipe e continua em segundo: a ordem é a de chegada (RN06, D7).
+        #expect(cena.viewModel.candidatos.map(\.profissional.nome) == ["Ana Cunha", "Bruno Tavares", "Carla Menezes", "Diego Rocha"])
+        #expect(cena.viewModel.candidatos.map(\.daEquipe) == [false, true, false, false])
+        #expect(cena.viewModel.candidatos.map(\.criadaEm) == cena.viewModel.candidatos.map(\.criadaEm).sorted())
+        #expect(TextosDosCandidatos.daEquipe == "Da sua equipe")
+        // A escolha de quem é da equipe é a de sempre.
+        try await cena.escolher("Bruno Tavares")
+        #expect(cena.viewModel.resultado == .confirmado(nome: "Bruno Tavares", vagaPreenchida: true))
+    }
+
+    @Test("O prazo de escolha é 24 horas antes do início, no fuso de São Paulo (MS-RF02, D2)")
+    func prazoDeEscolha() throws {
+        let inicio = try #require(ISO8601DateFormatter().date(from: "2026-10-10T18:00:00Z"))
+        #expect(RegraDaSelecao.prazoDeEscolha(inicio: inicio) == inicio.addingTimeInterval(-24 * Cena.hora))
+        #expect(TextosDosCandidatos.prazoDeEscolha(inicio: inicio) == "Escolha até 09/10/2026 às 15:00, quando a vaga fecha.")
+    }
+
+    @Test("Reposição em urgência (D4 e D5): a vaga de seleção com posição aberta a 24 h ou menos do início não espera escolha")
+    func reposicaoEmUrgencia() throws {
+        let agora = Cena.agora
+        #expect(SituacaoDaSelecao(try vaga(estado: .publicada, posicoes: [.aberta], inicioEmHoras: 20), agora: agora) == .reposicaoEmUrgencia)
+        #expect(SituacaoDaSelecao(try vaga(estado: .publicada, posicoes: [.aberta], inicioEmHoras: 24), agora: agora) == .reposicaoEmUrgencia)
+        #expect(SituacaoDaSelecao(try vaga(estado: .publicada, posicoes: [.aberta], inicioEmHoras: 24.02), agora: agora) == .aberta)
+        // Sem posição aberta não há reposição: a vaga cheia dentro das 24 h é seleção concluída.
+        #expect(SituacaoDaSelecao(try vaga(estado: .preenchida, posicoes: [.confirmada], inicioEmHoras: 20), agora: agora) == .concluida)
+        // A posição aberta de uma vaga de urgência é só urgência.
+        #expect(SituacaoDaSelecao(try vaga(estado: .publicada, posicoes: [.aberta], modo: .urgencia, inicioEmHoras: 20), agora: agora) == .aberta)
+        #expect(!SituacaoDaSelecao.reposicaoEmUrgencia.listaCandidatos)
+        #expect(RotuloDaSelecao.detalhe(try vaga(estado: .publicada, posicoes: [.aberta], inicioEmHoras: 20), agora: agora) == "reposição em urgência")
+    }
+
+    @Test("A seleção que fechou com posição aberta diz quantas ficaram sem escolha (D1)")
+    func concluidaComPosicoesFechadas() throws {
+        #expect(SituacaoDaSelecao.posicoesFechadasSemEscolha(try vaga(estado: .preenchida, posicoes: [.confirmada])) == 0)
+        #expect(SituacaoDaSelecao.posicoesFechadasSemEscolha(try vaga(estado: .preenchida, posicoes: [.confirmada, .cancelada])) == 1)
+        #expect(SituacaoDaSelecao.posicoesFechadasSemEscolha(try vaga(estado: .preenchida, posicoes: [.confirmada, .cancelada, .cancelada])) == 2)
+        #expect(TextosDosCandidatos.concluida(posicoesFechadas: 0) == TextosDosCandidatos.concluida)
+        #expect(TextosDosCandidatos.concluida(posicoesFechadas: 1).hasPrefix("A seleção fechou 24 horas antes do início com 1 posição sem escolha."))
+        #expect(TextosDosCandidatos.concluida(posicoesFechadas: 2).hasPrefix("A seleção fechou 24 horas antes do início com 2 posições sem escolha."))
+    }
+
+    @Test("Posição reposta: a mais de 24 h a tela da casa volta a esperar escolha; a 24 h ou menos diz reposição em urgência, e a do profissional diz urgência")
+    func reposicaoNasTelasDosDoisLados() async throws {
+        let cena = try await Cena.publicada(posicoes: 1, candidatos: [Cena.perfil(1, "Ana Cunha")])
+        await cena.viewModel.carregar()
+        try await cena.escolher("Ana Cunha")
+        let posicao = try #require(try await cena.vagaNoPainel().posicoes.first { $0.estado == .confirmada }).id
+
+        // A 30 h do início: a posição reaberta volta a ser seleção.
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(-30 * Cena.hora))
+        let reabertura = try await cena.base.cancelarPosicao(id: posicao, motivo: "Imprevisto de agenda.")
+        #expect(reabertura.reaberta && reabertura.novaPosicaoID != nil)
+        var vaga = try await cena.vagaNoPainel()
+        #expect(SituacaoDaSelecao(vaga, agora: cena.relogio.agora) == .aberta)
+        #expect(try await cena.base.detalheDaVaga(id: cena.vagaID).modoEfetivo(em: cena.relogio.agora) == .selecao)
+        #expect(try await cena.base.candidatar(vagaID: cena.vagaID).estado == .pendente)
+
+        // A 20 h do início, a candidatura pendente já expirou e a vaga fechou (RN24); outra escolha
+        // cancela de novo, e agora a posição é reposta em urgência.
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(-25 * Cena.hora))
+        await cena.viewModel.carregar()
+        let pendente = try #require(cena.viewModel.candidatos.first)
+        cena.viewModel.pedirEscolha(pendente)
+        await cena.viewModel.confirmarEscolha()?.value
+        #expect(cena.viewModel.resultado == .confirmado(nome: pendente.profissional.nome, vagaPreenchida: true))
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(-20 * Cena.hora))
+        let segunda = try #require(try await cena.vagaNoPainel().posicoes.first { $0.estado == .confirmada }).id
+        let urgencia = try await cena.base.cancelarPosicao(id: segunda, motivo: "Imprevisto de agenda.")
+        #expect(urgencia.reaberta && urgencia.novaPosicaoID != nil)
+        vaga = try await cena.vagaNoPainel()
+        #expect(vaga.estado == .publicada && vaga.posicoesAbertas == 1)
+        #expect(SituacaoDaSelecao(vaga, agora: cena.relogio.agora) == .reposicaoEmUrgencia)
+        #expect(RotuloDaSelecao.detalhe(vaga, agora: cena.relogio.agora) == "reposição em urgência")
+        #expect(try await cena.base.detalheDaVaga(id: cena.vagaID).modoEfetivo(em: cena.relogio.agora) == .urgencia)
+        // O agendador não a fecha, e o primeiro que aceita é confirmado na hora, na posição reposta.
+        #expect(await cena.base.fecharSelecoes() == 0)
+        let confirmada = try await cena.base.candidatar(vagaID: cena.vagaID)
+        #expect(confirmada.estado == .confirmada && confirmada.turnoID != nil && confirmada.posicaoID == urgencia.novaPosicaoID)
+    }
+
     @Test("Vaga sem candidato carrega vazia, e não como falha")
     func vazio() async throws {
         let cena = try await Cena.publicada(candidatos: [])
@@ -471,9 +556,10 @@ struct CandidatosDaVagaViewModelTests {
     // MARK: O que o painel diz da seleção
 
     private func vaga(
-        estado: EstadoVaga, oculta: Bool = false, pendentes: Int = 0, posicoes: [EstadoPosicao], modo: ModoPreenchimento = .selecao
+        estado: EstadoVaga, oculta: Bool = false, pendentes: Int = 0, posicoes: [EstadoPosicao], modo: ModoPreenchimento = .selecao,
+        inicioEmHoras: Double = 72
     ) throws -> VagaNoPainel {
-        let inicio = Cena.agora.addingTimeInterval(72 * Cena.hora)
+        let inicio = Cena.agora.addingTimeInterval(inicioEmHoras * Cena.hora)
         let resumo = VagaResumo(
             id: UUID(), funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
             periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * Cena.hora)), valor: Dinheiro(centavos: 12000)

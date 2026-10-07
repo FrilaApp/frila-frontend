@@ -703,13 +703,16 @@ enum ContratoAPI {
         let candidaturaID: UUID
         let profissional: PerfilPublicoDTO
         let criadaEm: Date
+        /// Opcional na 0.2.38: o servidor anterior não o manda, e ausente vale `false`.
+        let daEquipe: Bool?
         enum CodingKeys: String, CodingKey {
             case profissional
             case candidaturaID = "candidatura_id"
             case criadaEm = "criada_em"
+            case daEquipe = "da_equipe"
         }
         func dominio() -> Candidato {
-            Candidato(candidaturaID: candidaturaID, profissional: profissional.dominio(), criadaEm: criadaEm)
+            Candidato(candidaturaID: candidaturaID, profissional: profissional.dominio(), criadaEm: criadaEm, daEquipe: daEquipe ?? false)
         }
     }
 

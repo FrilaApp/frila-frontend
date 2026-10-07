@@ -6212,6 +6212,96 @@
           }
         }
       }
+    },
+    "Da sua equipe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da sua equipe"
+          }
+        }
+      }
+    },
+    "Escolha até %@, quando a vaga fecha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha até %@, quando a vaga fecha."
+          }
+        }
+      }
+    },
+    "Posição em reposição por urgência: faltam 24 horas ou menos para o início, então o primeiro profissional elegível que aceitar é confirmado na hora. Não há candidatos para escolher.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição em reposição por urgência: faltam 24 horas ou menos para o início, então o primeiro profissional elegível que aceitar é confirmado na hora. Não há candidatos para escolher."
+          }
+        }
+      }
+    },
+    "reposição em urgência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "reposição em urgência"
+          }
+        }
+      }
+    },
+    "A seleção fechou 24 horas antes do início com 1 posição sem escolha. Os profissionais confirmados estão em Posições.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção fechou 24 horas antes do início com 1 posição sem escolha. Os profissionais confirmados estão em Posições."
+          }
+        }
+      }
+    },
+    "A seleção fechou 24 horas antes do início com %d posições sem escolha. Os profissionais confirmados estão em Posições.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção fechou 24 horas antes do início com %d posições sem escolha. Os profissionais confirmados estão em Posições."
+          }
+        }
+      }
+    },
+    "A seleção fica disponível para vagas que começam em mais de 24 horas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção fica disponível para vagas que começam em mais de 24 horas."
+          }
+        }
+      }
+    },
+    "Você terá até %@ para escolher. Depois disso a vaga fecha sozinha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você terá até %@ para escolher. Depois disso a vaga fecha sozinha."
+          }
+        }
+      }
+    },
+    "Prazo curto: você terá menos de 12 horas para escolher antes de a vaga fechar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prazo curto: você terá menos de 12 horas para escolher antes de a vaga fechar."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

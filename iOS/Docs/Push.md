@@ -145,6 +145,7 @@ tabela abaixo foi conferida nas migrações do frila-backend (`develop`, 6d96d88
 | `suspensao`, `reativacao` | a conta | nenhum | reavalia a conta | reavalia a conta |
 | `candidatura_recusada` | profissional | `vaga_id` | vaga indisponível: o estabelecimento escolheu outra pessoa | nada |
 | `selecao_encerrada` | os dois | `vaga_id` | vaga indisponível: a seleção foi encerrada | a vaga |
+| `selecao_lembrete` | casa | `vaga_id` | nada | a vaga, com os candidatos; se a seleção já fechou, a explicação |
 
 - **Vaga indisponível.** A vaga de um aviso que não aceita mais candidatura (preenchida, cancelada,
   encerrada, com o início já passado ou `404`) abre a tela própria, com a volta para a lista. Quem
@@ -153,6 +154,12 @@ tabela abaixo foi conferida nas migrações do frila-backend (`develop`, 6d96d88
 - **Avisos da seleção (#10).** `candidatura_recusada` e `selecao_encerrada` só trazem a vaga. A
   tela de vaga indisponível lê a candidatura da conta naquela vaga (`minhas_candidaturas`): a
   `recusada` e a `expirada` têm explicação própria; sem essa leitura, vale o estado da vaga.
+- **Lembrete da escolha (`selecao_lembrete`, contrato 0.2.38, decisão D6).** Vai a cada membro da
+  casa, uma vez por vaga, a 6 h ou menos do prazo de escolha e só com candidatura pendente. O toque
+  abre o detalhe da vaga em Minhas vagas, com a seção Candidatos; se a seleção já fechou, a seção
+  diz isso ("fechou sem escolha", "concluída") em vez de abrir uma lista vazia. Para quem trabalha
+  não abre nada. Título e corpo vêm do servidor (tabela em `TipoNotificacao` do contrato); o app
+  não os reescreve: a extensão só neutraliza o aviso de outra conta.
 - **Turno pelo id.** O aviso só traz o `turno_id`: a tela procura o turno entre os da conta. O que
   não está lá vira "Não encontramos este turno", e falha de leitura não vira "não encontrado".
 - **Suspensão e reativação** não têm tela no payload: o app reavalia a conta, e a situação dela

@@ -138,6 +138,38 @@ struct PublicarVagaSelecaoTests {
         #expect(await api.vagasCriadas == 1)
     }
 
+    @Test("A opção Seleção só é oferecida com o início a mais de 24 horas (MS-RF01)", arguments: [(3.0, false), (24.0, false), (24.02, true), (48.0, true)])
+    func selecaoDisponivel(horas: Double, disponivel: Bool) throws {
+        let vm = try modelo(inicioEmHoras: horas, modo: .urgencia) { _ in throw ErroDaApi(codigo: .desconhecido) }
+        #expect(vm.selecaoDisponivel == disponivel)
+    }
+
+    @Test("Se o início muda para 24 horas ou menos com a seleção escolhida, o modo volta a urgência")
+    func modoVoltaAUrgencia() throws {
+        let vm = try modelo(inicioEmHoras: 48, modo: .selecao) { _ in throw ErroDaApi(codigo: .desconhecido) }
+        vm.ajustarModoAoInicio()
+        #expect(vm.modo == .selecao)
+
+        vm.inicio = agora.addingTimeInterval(3 * Self.hora)
+        vm.ajustarModoAoInicio()
+        #expect(vm.modo == .urgencia && !vm.selecaoDisponivel && vm.prazoDeEscolha == nil)
+        #expect(vm.validar(), "em urgência a vaga de daqui a 3 horas é válida")
+    }
+
+    @Test("O prazo de escolha é 24 horas antes do início, só no modo seleção; com menos de 12 horas de janela o formulário avisa (D2)")
+    func prazoDeEscolha() throws {
+        let longa = try modelo(inicioEmHoras: 48, modo: .selecao) { _ in throw ErroDaApi(codigo: .desconhecido) }
+        #expect(longa.prazoDeEscolha == agora.addingTimeInterval(24 * Self.hora))
+        #expect(!longa.janelaDeEscolhaCurta)
+
+        let curta = try modelo(inicioEmHoras: 30, modo: .selecao) { _ in throw ErroDaApi(codigo: .desconhecido) }
+        #expect(curta.prazoDeEscolha == agora.addingTimeInterval(6 * Self.hora))
+        #expect(curta.janelaDeEscolhaCurta)
+
+        let urgencia = try modelo(inicioEmHoras: 48, modo: .urgencia) { _ in throw ErroDaApi(codigo: .desconhecido) }
+        #expect(urgencia.prazoDeEscolha == nil && !urgencia.janelaDeEscolhaCurta)
+    }
+
     @Test("Servidor que ainda recusa o modo seleção (campo_invalido em modo) aponta o campo do modo")
     func modoRecusadoPeloServidor() async throws {
         let fila = FilaDeTeste()

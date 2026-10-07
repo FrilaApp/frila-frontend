@@ -167,7 +167,7 @@ public struct TelaResultadoDaCandidatura: View {
             // O texto da urgência ("quem aceita primeiro") não vale para a vaga em que a casa escolhe.
             mensagem(
                 Textos.preenchidaTitulo,
-                vaga.modo == .selecao ? TextosDaCandidaturaEmSelecao.preenchidaEmSelecao : Textos.preenchidaMensagem,
+                vaga.modoEfetivo(em: .now) == .selecao ? TextosDaCandidaturaEmSelecao.preenchidaEmSelecao : Textos.preenchidaMensagem,
                 id: "resultado-vaga-preenchida"
             )
             voltar
