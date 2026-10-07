@@ -141,6 +141,19 @@ struct ContratoDoModoSelecaoTests {
         let bruno = candidatos[1].profissional
         #expect(bruno.funcoes == ["Garçom", "Bartender"])
         #expect(bruno.reputacao == Reputacao(positivas: 10, total: 12, taxaComparecimento: 0.9, turnosConsiderados: 20, turnosRealizados: 18))
+
+        // `da_equipe` (0.2.38, D7): lido como vem, ausente vale `false`, e a ordem segue a de chegada.
+        #expect(candidatos.map(\.daEquipe) == [false, true, false, false])
+        #expect(candidatos.map(\.criadaEm) == candidatos.map(\.criadaEm).sorted())
+    }
+
+    @Test("Candidato sem da_equipe (servidor anterior à 0.2.38) é lido com false, e com o campo é lido como veio")
+    func daEquipe() throws {
+        let semCampo = Data(#"{"candidatura_id":"70000000-0000-0000-0000-000000000001","criada_em":"2026-10-06T14:02:11Z","profissional":{"id":"80000000-0000-0000-0000-000000000001","tipo":"profissional","nome":"Ana Cunha","funcoes":[],"reputacao":{"positivas":0,"total":0,"taxa_comparecimento":null,"turnos_considerados":0,"turnos_realizados":0}}}"#.utf8)
+        let decodificador = ContratoAPI.decodificador()
+        #expect(try decodificador.decode(ContratoAPI.CandidatoDTO.self, from: semCampo).dominio().daEquipe == false)
+        let comCampo = Data(String(decoding: semCampo, as: UTF8.self).replacingOccurrences(of: #""criada_em""#, with: #""da_equipe":true,"criada_em""#).utf8)
+        #expect(try decodificador.decode(ContratoAPI.CandidatoDTO.self, from: comCampo).dominio().daEquipe == true)
     }
 
     @Test("minhas_candidaturas e retirar_candidatura devolvem a candidatura com o resumo da vaga e o estado")

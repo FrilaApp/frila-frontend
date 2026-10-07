@@ -59,6 +59,11 @@ private enum TextosPublicarVaga {
     static let modoUrgenciaExplicacao = String(localized: "O primeiro profissional que aceitar é confirmado na hora.", bundle: bundlePublicarVaga)
     static let modoSelecaoExplicacao = String(localized: "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.", bundle: bundlePublicarVaga)
     static let modoIndisponivel = String(localized: "O modo seleção ainda não está disponível. Publique no modo urgência.", bundle: bundlePublicarVaga)
+    /// MS-RF01: a opção Seleção só aparece com o início a mais de 24 horas (RN24).
+    static let modoSelecaoSoComAntecedencia = String(localized: "A seleção fica disponível para vagas que começam em mais de 24 horas.", bundle: bundlePublicarVaga)
+    /// D2 (0.2.38): o prazo exato de escolha, mostrado na publicação.
+    static let modoSelecaoPrazo = String(localized: "Você terá até %@ para escolher. Depois disso a vaga fecha sozinha.", bundle: bundlePublicarVaga)
+    static let modoSelecaoPrazoCurto = String(localized: "Prazo curto: você terá menos de 12 horas para escolher antes de a vaga fechar.", bundle: bundlePublicarVaga)
     static let voltar = String(localized: "Voltar", bundle: bundleApresentacao)
     static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
     static let publicacaoContinua = String(localized: "A publicação continua e será concluída quando a conexão voltar.", bundle: bundleApresentacao)
@@ -234,6 +239,14 @@ public final class PublicarVagaViewModel {
                 }
                 if valorTexto.isEmpty { valorTexto = "14000" }
                 if responsavelLocal.isEmpty { responsavelLocal = "Gerente de Teste" }
+                // `-FRILA_PUBLICAR_INICIO_EM_HORAS <n>`: o início daqui a n horas, para o teste de
+                // interface ver a opção Seleção com e sem as 24 horas.
+                let argumentos = ProcessInfo.processInfo.arguments
+                if let indice = argumentos.firstIndex(of: "-FRILA_PUBLICAR_INICIO_EM_HORAS"), argumentos.indices.contains(indice + 1),
+                   let horas = Double(argumentos[indice + 1]) {
+                    inicio = agora().addingTimeInterval(horas * 60 * 60)
+                    fim = inicio.addingTimeInterval(4 * 60 * 60)
+                }
             }
             #endif
         }
@@ -331,7 +344,34 @@ public final class PublicarVagaViewModel {
         }
     }
 
-    private static let antecedenciaDaSelecao: TimeInterval = 24 * 60 * 60
+    private static let antecedenciaDaSelecao = RegraDaSelecao.antecedencia
+    /// D2: abaixo disso a janela de escolha é "curta" e o formulário avisa. Inferência do app: o
+    /// requisito pede o aviso sem fixar o limite.
+    static let janelaDeEscolhaCurta: TimeInterval = 12 * 60 * 60
+
+    /// MS-RF01: a opção Seleção só é oferecida com o início a mais de 24 horas do relógio do
+    /// aparelho; o servidor continua recusando se o pedido chegar (`422 selecao_sem_antecedencia`).
+    public var selecaoDisponivel: Bool {
+        inicio > agora().addingTimeInterval(Self.antecedenciaDaSelecao)
+    }
+
+    /// D2 (MS-RF02): até quando a casa escolhe, 24 h antes do início; `nil` fora do modo seleção.
+    public var prazoDeEscolha: Date? {
+        guard modo == .selecao, selecaoDisponivel else { return nil }
+        return RegraDaSelecao.prazoDeEscolha(inicio: inicio)
+    }
+
+    /// A vaga nasce com menos de 12 horas para escolher: o formulário avisa antes de publicar.
+    public var janelaDeEscolhaCurta: Bool {
+        guard let prazo = prazoDeEscolha else { return false }
+        return prazo.timeIntervalSince(agora()) < Self.janelaDeEscolhaCurta
+    }
+
+    /// O início mudou: se a seleção deixou de caber, o modo volta a urgência, que é o que a tela
+    /// oferece. Chamado pela tela a cada mudança do início.
+    public func ajustarModoAoInicio() {
+        if modo == .selecao, !selecaoDisponivel { modo = .urgencia }
+    }
 
     private func tratar(_ erro: ErroDaApi) {
         if erro.codigo == .selecaoSemAntecedencia {
@@ -517,9 +557,13 @@ public struct TelaPublicarVaga: View {
                     CampoFrila(verbatim: TextosPublicarVaga.responsavel, texto: $model.responsavelLocal)
                 }
                 campo(.modo, titulo: TextosPublicarVaga.modo) {
+                    // MS-RF01: "Seleção" só com o início a mais de 24 horas; abaixo disso a opção
+                    // não aparece, e o modo volta a urgência se a data mudou depois da escolha.
                     Picker(TextosPublicarVaga.modo, selection: $model.modo) {
                         Text(verbatim: TextosPublicarVaga.modoUrgencia).tag(ModoPreenchimento.urgencia)
-                        Text(verbatim: TextosPublicarVaga.modoSelecao).tag(ModoPreenchimento.selecao)
+                        if model.selecaoDisponivel {
+                            Text(verbatim: TextosPublicarVaga.modoSelecao).tag(ModoPreenchimento.selecao)
+                        }
                     }
                     .pickerStyle(.segmented)
                     .accessibilityLabel(Text(verbatim: TextosPublicarVaga.modo))
@@ -528,7 +572,24 @@ public struct TelaPublicarVaga: View {
                         .font(.caption)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("modo-vaga-explicacao")
+                    if !model.selecaoDisponivel {
+                        Text(verbatim: TextosPublicarVaga.modoSelecaoSoComAntecedencia)
+                            .font(.caption)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityIdentifier("modo-selecao-indisponivel")
+                    }
+                    // D2: o prazo exato de escolha, e o aviso quando ele é curto.
+                    if let prazo = model.prazoDeEscolha {
+                        Text(verbatim: String(format: TextosPublicarVaga.modoSelecaoPrazo, FormatadorFrila().dataEHora(prazo)))
+                            .font(.caption.weight(.semibold))
+                            .accessibilityIdentifier("prazo-de-escolha-publicacao")
+                        if model.janelaDeEscolhaCurta {
+                            AvisoFrila(verbatim: TextosPublicarVaga.modoSelecaoPrazoCurto, tom: .alerta)
+                                .accessibilityIdentifier("prazo-de-escolha-curto")
+                        }
+                    }
                 }
+                .onChange(of: model.inicio) { _, _ in model.ajustarModoAoInicio() }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: TextosPublicarVaga.alerta).font(.headline)
                     if dynamicTypeSize.isAccessibilitySize {

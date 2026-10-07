@@ -141,7 +141,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
             }
             // O modo é uma frase: na meia coluna do Grid ela partia palavras a partir do AX1
             // ("estabeleci-mento"), e a auditoria do XCTest a dava como texto cortado.
-            campo(modoTitulo(vaga.modo), modoDetalhe(vaga.modo))
+            // A vaga de seleção com posição aberta a 24 h ou menos do início está em reposição por
+            // urgência (0.2.38, D4 e D5): o primeiro que aceitar é confirmado na hora.
+            campo(modoTitulo(vaga.modoEfetivo(em: .now)), modoDetalhe(vaga.modoEfetivo(em: .now)))
             Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -210,7 +212,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
     /// Na vaga de seleção o contato só é mostrado se a casa escolher a candidatura (RN10).
     private func avisoRN10(_ vaga: Vaga) -> String {
-        vaga.modo == .selecao
+        vaga.modoEfetivo(em: .now) == .selecao
             ? String(format: TextosDaCandidaturaEmSelecao.avisoRN10, vaga.estabelecimento.nome)
             : TextosDoProfissional.Detalhe.avisoRN10(vaga.estabelecimento.nome)
     }

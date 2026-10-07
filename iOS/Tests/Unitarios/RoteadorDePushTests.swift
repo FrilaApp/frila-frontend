@@ -64,6 +64,8 @@ struct CasoDoAviso: Sendable, CustomTestStringConvertible {
         CasoDoAviso(tipo: "reativacao", daConta: true),
         CasoDoAviso(tipo: "candidatura_recusada", payload: vagaID, profissional: .vaga(IDs.vaga)),
         CasoDoAviso(tipo: "selecao_encerrada", payload: vagaID, profissional: .vaga(IDs.vaga), contratante: .vaga(vagaID: IDs.vaga)),
+        // 0.2.38 (D6): o lembrete da escolha é só da casa, e leva aos candidatos da vaga.
+        CasoDoAviso(tipo: "selecao_lembrete", payload: vagaID, contratante: .vaga(vagaID: IDs.vaga)),
     ]
 
     /// O `userInfo` como chega do APNs: os campos de `data` na raiz, ao lado do `aps` e das chaves do FCM.
@@ -81,12 +83,13 @@ struct CasoDoAviso: Sendable, CustomTestStringConvertible {
 
 @Suite("Push: a tela que cada tipo de aviso abre (#8)")
 struct DestinoDeCadaTipoTests {
-    @Test("A tabela cobre os dezoito tipos do backend, e o app não conhece nenhum a mais")
+    @Test("A tabela cobre os dezenove tipos do backend, e o app não conhece nenhum a mais")
     func cobertura() {
         let doBackend: Set<String> = [
             "vaga", "vagas_agrupadas", "vaga_sem_elegiveis", "confirmacao", "lembrete_24h", "lembrete_3h",
             "inicio_sem_checkin", "atraso_15min", "fim_sem_checkout", "vaga_vazia", "checkin", "checkin_manual_pendente",
             "cancelamento", "avaliacao_disponivel", "suspensao", "reativacao", "candidatura_recusada", "selecao_encerrada",
+            "selecao_lembrete",
         ]
         #expect(Set(TipoDeAviso.allCases.map(\.rawValue)) == doBackend)
         #expect(Set(CasoDoAviso.todos.map(\.tipo)) == doBackend)

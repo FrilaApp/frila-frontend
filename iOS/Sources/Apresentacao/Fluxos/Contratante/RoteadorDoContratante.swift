@@ -21,8 +21,9 @@ public enum AvisoDoContratante: Equatable, Sendable {
     /// Os avisos que só informam sobre um turno: `confirmacao`, `lembrete_24h`, `lembrete_3h`,
     /// `checkin`, `fim_sem_checkout` e `avaliacao_disponivel`.
     case turno(turnoID: UUID)
-    /// Os avisos que só informam sobre uma vaga: `vaga_sem_elegiveis`, `cancelamento` e
-    /// `selecao_encerrada`.
+    /// Os avisos que só informam sobre uma vaga: `vaga_sem_elegiveis`, `cancelamento`,
+    /// `selecao_encerrada` e `selecao_lembrete` (0.2.38): o lembrete abre a vaga, onde estão os
+    /// candidatos; se a seleção já fechou, a vaga diz isso em vez de uma lista vazia.
     case vaga(vagaID: UUID)
 
     /// Lê o `tipo` e os ids como o servidor os envia. Aviso que não é para a casa, ou sem o id de
@@ -42,7 +43,7 @@ public enum AvisoDoContratante: Equatable, Sendable {
         case .confirmacao, .lembrete24h, .lembrete3h, .checkin, .fimSemCheckout, .avaliacaoDisponivel:
             guard let turnoID = id("turno_id") else { return nil }
             self = .turno(turnoID: turnoID)
-        case .vagaSemElegiveis, .cancelamento, .selecaoEncerrada:
+        case .vagaSemElegiveis, .cancelamento, .selecaoEncerrada, .selecaoLembrete:
             guard let vagaID = id("vaga_id") else { return nil }
             self = .vaga(vagaID: vagaID)
         case .vaga, .vagasAgrupadas, .inicioSemCheckin, .candidaturaRecusada, .suspensao, .reativacao, nil:
