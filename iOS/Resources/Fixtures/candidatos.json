@@ -36,7 +36,8 @@
         "turnos_realizados": 18
       }
     },
-    "criada_em": "2026-10-06T15:40:00Z"
+    "criada_em": "2026-10-06T15:40:00Z",
+    "da_equipe": true
   },
   {
     "candidatura_id": "70000000-0000-0000-0000-000000000003",
@@ -55,7 +56,8 @@
         "turnos_realizados": 0
       }
     },
-    "criada_em": "2026-10-06T18:05:47.310+00:00"
+    "criada_em": "2026-10-06T18:05:47.310+00:00",
+    "da_equipe": false
   },
   {
     "candidatura_id": "70000000-0000-0000-0000-000000000004",

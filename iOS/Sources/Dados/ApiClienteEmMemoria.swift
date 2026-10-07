@@ -70,6 +70,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Como `selecaoComCandidatos`, mas outro membro da casa ocupa a última posição antes: a
         /// primeira escolha responde `409 posicao_ja_preenchida`, e a releitura mostra quem ficou (RN19).
         case escolhaPerdeCorrida = "escolha-perde-corrida"
+        /// Como `selecaoComCandidatos`, com o segundo candidato (Bruno) na equipe de confiança da
+        /// casa: `da_equipe` vem `true` só para ele, e a ordem continua a de chegada (0.2.38, D7).
+        case selecaoComCandidatoDaEquipe = "selecao-com-candidato-da-equipe"
         /// Conta de contratante com a vaga de seleção que fechou sozinha 24 h antes do início, sem
         /// escolha: vaga `encerrada`, posição `cancelada` e candidaturas `expirada` (RN24).
         case selecaoEncerradaSemEscolha = "selecao-encerrada-sem-escolha"
@@ -127,6 +130,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
             self == .selecaoComCandidatos || self == .escolhaPerdeCorrida || self == .selecaoEncerradaSemEscolha
+                || self == .selecaoComCandidatoDaEquipe
         }
 
         /// Os cenários do modo seleção em que a conta é de profissional e já tem candidatura na vaga,
@@ -219,6 +223,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Posições novas que um cancelamento ou uma reabertura abriu, por vaga: o painel as mostra com
     /// o id que a chamada devolveu, e a próxima candidatura ocupa a primeira.
     private var posicoesReabertas: [UUID: [UUID]] = [:]
+    /// Contrato 0.2.38 (D4 e D5): as posições de vaga em seleção que voltaram a abrir a 24 h ou
+    /// menos do início, por vaga. São repostas em **urgência**: a candidatura confirma na hora, e
+    /// o fechamento das 24 h não as cancela. A mais de 24 h, a posição reaberta volta a ser seleção.
+    private var posicoesEmUrgencia: [UUID: Set<UUID>] = [:]
+    /// As posições reabertas por atraso (`reabrir_por_atraso`): aceitam candidatura depois do
+    /// início, até 1 h antes do fim (contrato 0.2.19, decisão 8zLfn0mt).
+    private var posicoesReabertasPorAtraso: Set<UUID> = []
     /// Ids das posições abertas que nenhum cancelamento abriu, por vaga. O painel os mostra, e a
     /// candidatura ou a escolha ocupa um deles: como no backend, a posição confirmada é uma que o
     /// painel já mostrava como aberta, e o id não muda de uma leitura para a outra.
@@ -322,6 +333,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
             if let casa = estabelecimentos.first, conta?.perfil == .profissional || cenario == .equipeDeConfiancaComMembro {
                 equipesDeConfianca[casa.id] = [perfilPublicoDeExemplo.id]
             }
+            if let casa = estabelecimentos.first, cenario == .selecaoComCandidatoDaEquipe, candidatosDeExemplo.count > 1 {
+                equipesDeConfianca[casa.id] = [candidatosDeExemplo[1].profissional.id]
+            }
             if let vagas {
                 self.vagas = vagas
             } else {
@@ -343,8 +357,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 #endif
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
-                case .selecaoComCandidatos, .escolhaPerdeCorrida, .vagaEmSelecao, .candidaturaPendente, .retirarSemRede,
-                     .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
+                case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,
+                     .retirarSemRede, .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
                 default: 24 * 60 * 60
                 }
                 let baseVaga = (cenario == .vagaEncerradaContratante || ehCicloContratante) ? Self.copia(vaga, estado: .encerrada) : vaga
@@ -1084,13 +1098,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
         // Chegar depois da última posição é o funcionamento normal do modo urgência (RN19).
         guard vaga.estado != .preenchida, vaga.posicoesAbertas > 0 else { throw erro("posicao_ja_preenchida") }
         guard vaga.estado == .publicada else { throw erro("vaga_encerrada") }
-        // Contrato 0.2.19: início já passado é vaga encerrada. A exceção do backend, a posição
-        // reaberta por atraso, que aceita candidatura até 1 h antes do fim, o dublê não modela.
+        // Contrato 0.2.19: início já passado é vaga encerrada, salvo a posição reaberta por atraso,
+        // que aceita candidatura até 1 h antes do fim (decisão 8zLfn0mt).
         let agora = relogio.agora
-        guard vaga.periodo.inicio > agora else { throw erro("vaga_encerrada") }
+        let reabertaPorAtraso = (posicoesReabertas[vagaID] ?? []).contains { posicoesReabertasPorAtraso.contains($0) }
+            && agora < vaga.periodo.fim.addingTimeInterval(-60 * 60)
+        guard vaga.periodo.inicio > agora || reabertaPorAtraso else { throw erro("vaga_encerrada") }
         // Contrato 0.2.24: na vaga de seleção a candidatura fica pendente, sem posição, turno nem
-        // contato, e a vaga não aceita candidatura a partir de 24 h antes do início (RN24).
-        if vaga.modo == .selecao {
+        // contato, e a vaga não aceita candidatura a partir de 24 h antes do início (RN24). A
+        // exceção é a posição reposta em urgência (0.2.38, D4 e D5): nela a candidatura segue o
+        // caminho da urgência, abaixo, e confirma na hora.
+        if vaga.modo == .selecao, posicaoEmUrgenciaAberta(vagaID) == nil {
             guard agora < vaga.periodo.inicio.addingTimeInterval(-Self.antecedenciaDaSelecao) else { throw erro("vaga_encerrada") }
             let candidaturaID: UUID
             if let minha = candidaturas.firstIndex(where: { $0.vagaID == vagaID && $0.daConta }) {
@@ -1144,15 +1162,19 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// Segue `candidatos_da_vaga` do backend (`20260929234100_modo_selecao.sql`): vaga que não existe
     /// é `404`; a de outra casa, `403 sem_permissao`; só os pendentes, por ordem de chegada, e nunca
-    /// pela reputação (RN06). Continua respondendo na vaga ocultada, fechada ou cheia.
+    /// pela reputação nem pela equipe (RN06). `da_equipe` (0.2.38, D7) diz quem está na equipe de
+    /// confiança da casa e não muda a ordem. Continua respondendo na vaga ocultada, fechada ou cheia.
     public func candidatosDaVaga(id: UUID) async throws -> [Candidato] {
         try verificarFalhaGeral()
         guard let vaga = vagas.first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         guard estabelecimentos.contains(where: { $0.id == vaga.estabelecimento.id }) else { throw erro("sem_permissao") }
+        let equipe = equipesDeConfianca[vaga.estabelecimento.id] ?? []
         return candidaturas
             .filter { $0.vagaID == id && $0.estado == .pendente }
             .sorted { $0.criadaEm != $1.criadaEm ? $0.criadaEm < $1.criadaEm : $0.id.uuidString < $1.id.uuidString }
-            .map { Candidato(candidaturaID: $0.id, profissional: $0.profissional, criadaEm: $0.criadaEm) }
+            .map {
+                Candidato(candidaturaID: $0.id, profissional: $0.profissional, criadaEm: $0.criadaEm, daEquipe: equipe.contains($0.profissional.id))
+            }
     }
 
     /// Segue `escolher_candidato` do backend (`20260929234100_modo_selecao.sql`), na ordem das recusas
@@ -1502,6 +1524,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         // Como no backend, as posições abertas passam a `cancelada` e continuam no painel.
         posicoesFechadas[id, default: []] += idsDasPosicoesAbertas(vaga)
         posicoesReabertas[id] = nil
+        posicoesEmUrgencia[id] = nil
         posicoesAbertasDoPainel[id] = nil
         expirarPendentes(da: id)
         vagas[indice] = Self.copia(vaga, posicoesAbertas: 0, estado: .cancelada)
@@ -1741,7 +1764,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// O fechamento automático de `privado.fechar_selecoes` (RN24), que no backend é um job a cada
     /// minuto e fica fora da API: a 24 h do início, a vaga de seleção ainda publicada fecha. As
     /// pendentes passam a `expirada`, as posições abertas a `cancelada`, e a vaga vai a `encerrada`
-    /// quando ninguém foi escolhido, ou a `preenchida` quando alguma posição foi. Devolve quantas fechou.
+    /// quando ninguém foi escolhido, ou a `preenchida` quando alguma posição foi. A posição reposta
+    /// em urgência (0.2.38, D4 e D5) fica aberta, e a vaga segue `publicada` por causa dela. Devolve
+    /// quantas vagas fechou, cada uma contada uma vez.
     @discardableResult
     public func fecharSelecoes() -> Int {
         let agora = relogio.agora
@@ -1751,12 +1776,21 @@ public actor ApiClienteEmMemoria: ApiCliente {
             guard vaga.modo == .selecao, vaga.estado == .publicada,
                   vaga.periodo.inicio.addingTimeInterval(-Self.antecedenciaDaSelecao) <= agora else { continue }
             expirarPendentes(da: vaga.id)
-            posicoesFechadas[vaga.id, default: []] += idsDasPosicoesAbertas(vaga)
-            posicoesReabertas[vaga.id] = nil
+            let emUrgencia = posicoesEmUrgencia[vaga.id] ?? []
+            let abertas = idsDasPosicoesAbertas(vaga)
+            posicoesFechadas[vaga.id, default: []] += abertas.filter { !emUrgencia.contains($0) }
+            posicoesReabertas[vaga.id] = (posicoesReabertas[vaga.id] ?? []).filter { emUrgencia.contains($0) }
             posicoesAbertasDoPainel[vaga.id] = nil
-            let escolhida = turnos.contains { $0.vaga.id == vaga.id }
-            vagas[indice] = Self.copia(vaga, posicoesAbertas: 0, estado: escolhida ? .preenchida : .encerrada)
-            fechadas += 1
+            let restantes = abertas.count { emUrgencia.contains($0) }
+            if restantes == 0 {
+                let escolhida = turnos.contains { $0.vaga.id == vaga.id }
+                vagas[indice] = Self.copia(vaga, posicoesAbertas: 0, estado: escolhida ? .preenchida : .encerrada)
+                fechadas += 1
+            } else {
+                // A posição reposta em urgência segura a vaga em `publicada`: o fechamento só
+                // expira os pendentes e cancela as outras abertas, e não conta a vaga como fechada.
+                vagas[indice] = Self.comPosicoesAbertas(restantes, em: vaga)
+            }
         }
         return fechadas
     }
@@ -1814,8 +1848,20 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return Array((reabertas + outras).prefix(vaga.posicoesAbertas))
     }
 
-    /// Ocupa uma posição aberta da vaga: a reaberta primeiro, depois a que o painel já mostrava.
+    /// A primeira posição aberta da vaga que foi reposta em urgência (0.2.38), se houver.
+    private func posicaoEmUrgenciaAberta(_ vagaID: UUID) -> UUID? {
+        guard let emUrgencia = posicoesEmUrgencia[vagaID] else { return nil }
+        return (posicoesReabertas[vagaID] ?? []).first { emUrgencia.contains($0) }
+    }
+
+    /// Ocupa uma posição aberta da vaga: a reposta em urgência primeiro, depois a reaberta, depois
+    /// a que o painel já mostrava.
     private func ocuparPosicaoAberta(_ vagaID: UUID) -> UUID {
+        if let id = posicaoEmUrgenciaAberta(vagaID) {
+            posicoesReabertas[vagaID]?.removeAll { $0 == id }
+            posicoesEmUrgencia[vagaID]?.remove(id)
+            return id
+        }
         if var reabertas = posicoesReabertas[vagaID], !reabertas.isEmpty {
             let id = reabertas.removeFirst()
             posicoesReabertas[vagaID] = reabertas
@@ -1888,10 +1934,19 @@ public actor ApiClienteEmMemoria: ApiCliente {
             let id = UUID()
             nova = id
             posicoesReabertas[vaga.id, default: []].append(id)
+            // Contrato 0.2.38 (D4 e D5): na vaga de seleção, a posição que volta a abrir a 24 h ou
+            // menos do início é reposta em urgência; a mais de 24 h volta a ser seleção. A
+            // reabertura por atraso vem sempre depois do início, portanto é sempre urgência.
+            if vaga.modo == .selecao, vaga.periodo.inicio.timeIntervalSince(agora) <= Self.antecedenciaDaSelecao {
+                posicoesEmUrgencia[vaga.id, default: []].insert(id)
+            }
+            if causa == .reaberturaPorAtraso { posicoesReabertasPorAtraso.insert(id) }
             vagas[daVaga] = Self.copia(
                 vaga, posicoesAbertas: vaga.posicoesAbertas + 1, estado: vaga.estado == .preenchida ? .publicada : vaga.estado
             )
         }
+        // `reaberta` só é verdadeiro quando a posição de fato voltou à fila (0.2.38): aqui, sempre
+        // que `nova` existe, porque a reposta em urgência não é cancelada pelo fechamento das 24 h.
         return ResultadoCancelamento(posicaoID: turno.posicaoID, falta: falta, reaberta: nova != nil, novaPosicaoID: nova)
     }
 

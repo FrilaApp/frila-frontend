@@ -1,6 +1,6 @@
 import Foundation
 
-/// Os dezoito avisos que o backend manda (`public.tipo_notificacao`). O valor é o `tipo` do payload.
+/// Os dezenove avisos que o backend manda (`public.tipo_notificacao`). O valor é o `tipo` do payload.
 public enum TipoDeAviso: String, CaseIterable, Sendable {
     case vaga
     case vagasAgrupadas = "vagas_agrupadas"
@@ -20,6 +20,9 @@ public enum TipoDeAviso: String, CaseIterable, Sendable {
     case reativacao
     case candidaturaRecusada = "candidatura_recusada"
     case selecaoEncerrada = "selecao_encerrada"
+    /// 0.2.38 (decisão D6): lembrete à casa, uma vez por vaga, a 6 h ou menos do prazo de escolha
+    /// e só com candidatura pendente.
+    case selecaoLembrete = "selecao_lembrete"
 }
 
 /// O que o toque numa notificação traz. O servidor só deixa passar o `tipo`, quatro ids e `reaberta`

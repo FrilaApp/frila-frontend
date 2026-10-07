@@ -47,6 +47,28 @@ enum TextosDosCandidatos {
     static let cartaoConcluida = String(localized: "seleção concluída", bundle: bundleApresentacao)
     static let cartaoFechadaSemEscolha = String(localized: "fechou sem escolha", bundle: bundleApresentacao)
     static let cartaoEncerrada = String(localized: "seleção encerrada", bundle: bundleApresentacao)
+    /// D7 (0.2.38): o selo de quem está na equipe de confiança da casa. Texto e ícone, nunca só cor.
+    static let daEquipe = String(localized: "Da sua equipe", bundle: bundleApresentacao)
+    /// MS-RF02 (D2): o prazo exato de escolha, 24 h antes do início (RN24).
+    static let prazoDeEscolha = String(localized: "Escolha até %@, quando a vaga fecha.", bundle: bundleApresentacao)
+    /// D4 e D5 (0.2.38): a posição que voltou a abrir a 24 h ou menos do início não espera escolha.
+    static let reposicaoEmUrgencia = String(localized: "Posição em reposição por urgência: faltam 24 horas ou menos para o início, então o primeiro profissional elegível que aceitar é confirmado na hora. Não há candidatos para escolher.", bundle: bundleApresentacao)
+    static let cartaoReposicaoEmUrgencia = String(localized: "reposição em urgência", bundle: bundleApresentacao)
+    /// D1: a seleção que fechou com posição aberta diz quantas ficaram sem ninguém.
+    static let concluidaComUmaPosicaoFechada = String(localized: "A seleção fechou 24 horas antes do início com 1 posição sem escolha. Os profissionais confirmados estão em Posições.", bundle: bundleApresentacao)
+    static let concluidaComPosicoesFechadas = String(localized: "A seleção fechou 24 horas antes do início com %d posições sem escolha. Os profissionais confirmados estão em Posições.", bundle: bundleApresentacao)
+
+    static func concluida(posicoesFechadas: Int) -> String {
+        switch posicoesFechadas {
+        case 0: concluida
+        case 1: concluidaComUmaPosicaoFechada
+        default: String(format: concluidaComPosicoesFechadas, posicoesFechadas)
+        }
+    }
+
+    static func prazoDeEscolha(inicio: Date) -> String {
+        String(format: prazoDeEscolha, FormatadorFrila().dataEHora(RegraDaSelecao.prazoDeEscolha(inicio: inicio)))
+    }
 
     /// A posição cancelada sem profissional, em vaga de seleção. Só é "fechada sem escolha" a que o
     /// fechamento das 24 h cancelou (RN24); a da vaga que a casa cancelou é posição cancelada.
@@ -321,11 +343,18 @@ enum SituacaoDaSelecao: Equatable {
     case fechadaSemEscolha
     /// Cancelada, ou encerrada depois de ter gente confirmada.
     case encerrada
+    /// Uma posição voltou a abrir a 24 h ou menos do início (cancelamento do escolhido ou
+    /// reabertura por atraso) e é reposta em urgência (0.2.38, D4 e D5): não há escolha.
+    case reposicaoEmUrgencia
 
-    init(_ vaga: VagaNoPainel) {
+    /// `agora` serve só à reposição em urgência, a única leitura pelo relógio (`RegraDaSelecao`).
+    init(_ vaga: VagaNoPainel, agora: Date = .now) {
         let temConfirmado = vaga.posicoes.contains { $0.estado == .confirmada || $0.estado == .cumprida }
         switch vaga.estado {
-        case .publicada: self = vaga.oculta ? .oculta : .aberta
+        // A vaga ocultada vem antes: nela ninguém se candidata, nem na posição reposta.
+        case .publicada where vaga.oculta: self = .oculta
+        case .publicada where vaga.reposicaoEmUrgencia(em: agora): self = .reposicaoEmUrgencia
+        case .publicada: self = .aberta
         case .preenchida: self = .concluida
         case .encerrada: self = temConfirmado ? .encerrada : .fechadaSemEscolha
         case .cancelada: self = .encerrada
@@ -334,6 +363,11 @@ enum SituacaoDaSelecao: Equatable {
 
     /// A lista só é pedida enquanto pode haver candidato pendente.
     var listaCandidatos: Bool { self == .aberta || self == .oculta }
+
+    /// As posições que o fechamento das 24 h cancelou sem ninguém (RN24): não têm profissional.
+    static func posicoesFechadasSemEscolha(_ vaga: VagaNoPainel) -> Int {
+        vaga.posicoes.count { $0.estado == .cancelada && $0.profissional == nil }
+    }
 }
 
 /// A seção "Candidatos" do detalhe da vaga em seleção, em Minhas vagas.
@@ -370,13 +404,19 @@ struct SecaoDeCandidatos: View {
             switch situacao {
             case .aberta:
                 Text(verbatim: TextosDosCandidatos.explicacao).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: TextosDosCandidatos.prazoDeEscolha(inicio: vaga.vaga.periodo.inicio))
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityIdentifier("prazo-de-escolha")
                 lista(podeEscolher: true)
             case .oculta:
                 AvisoFrila(verbatim: TextosDosCandidatos.vagaOculta, tom: .alerta)
                     .accessibilityIdentifier("selecao-vaga-oculta")
                 lista(podeEscolher: false)
+            case .reposicaoEmUrgencia:
+                AvisoFrila(verbatim: TextosDosCandidatos.reposicaoEmUrgencia, tom: .informativo)
+                    .accessibilityIdentifier("selecao-reposicao-em-urgencia")
             case .concluida:
-                AvisoFrila(verbatim: TextosDosCandidatos.concluida, tom: .informativo)
+                AvisoFrila(verbatim: TextosDosCandidatos.concluida(posicoesFechadas: SituacaoDaSelecao.posicoesFechadasSemEscolha(vaga)), tom: .informativo)
                     .accessibilityIdentifier("selecao-concluida")
             case .fechadaSemEscolha:
                 AvisoFrila(verbatim: TextosDosCandidatos.fechadaSemEscolha, tom: .alerta)
@@ -453,6 +493,20 @@ struct SecaoDeCandidatos: View {
         return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: perfil.nome).font(.headline)
+                if candidato.daEquipe {
+                    // O selo tem texto e ícone: não é só cor (D7). Fica junto dos dados, para o
+                    // leitor de tela dizê-lo com o nome. Não muda a ordem da lista (RN06).
+                    Label {
+                        Text(verbatim: TextosDosCandidatos.daEquipe)
+                    } icon: {
+                        Image(systemName: "checkmark.seal.fill")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FrilaCor.primaria)
+                    .padding(.horizontal, FrilaEspaco.pequeno)
+                    .padding(.vertical, FrilaEspaco.minimo)
+                    .background(FrilaCor.primaria.opacity(0.12), in: Capsule())
+                }
                 if !perfil.funcoes.isEmpty {
                     Text(verbatim: String(format: TextosDosCandidatos.funcoes, perfil.funcoes.joined(separator: ", ")))
                         .font(.subheadline)
@@ -535,9 +589,10 @@ struct RotuloDaSelecao: View {
         }
     }
 
-    static func detalhe(_ vaga: VagaNoPainel) -> String {
-        switch SituacaoDaSelecao(vaga) {
+    static func detalhe(_ vaga: VagaNoPainel, agora: Date = .now) -> String {
+        switch SituacaoDaSelecao(vaga, agora: agora) {
         case .aberta, .oculta: TextosDosCandidatos.pendentes(vaga.candidatosPendentes)
+        case .reposicaoEmUrgencia: TextosDosCandidatos.cartaoReposicaoEmUrgencia
         case .concluida: TextosDosCandidatos.cartaoConcluida
         case .fechadaSemEscolha: TextosDosCandidatos.cartaoFechadaSemEscolha
         case .encerrada: TextosDosCandidatos.cartaoEncerrada

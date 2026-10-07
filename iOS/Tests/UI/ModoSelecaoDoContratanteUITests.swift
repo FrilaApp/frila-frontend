@@ -185,46 +185,115 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(cartao.label.contains("fechou sem escolha"), cartao.label)
     }
 
-    // MARK: Critério 3
+    // MARK: D7: selo "da sua equipe"
 
-    func testPublicarEmSelecaoComMenosDe24HorasERecusadoNoCampoDoInicio() {
+    func testSeloDaSuaEquipeMarcaSoQuemEDaEquipeENaoReordenaOsCandidatos() {
+        let app = abrirVaga(cenario: "selecao-com-candidato-da-equipe")
+
+        // Bruno está na equipe de confiança da casa: o selo tem texto, e fica junto do nome.
+        XCTAssertTrue(app.descendants(matching: .any)["candidatos-da-vaga"].waitForExistence(timeout: 10))
+        let dadosDaAna = app.descendants(matching: .any)["dados-do-candidato-\(ana)"]
+        let dadosDoBruno = app.descendants(matching: .any)["dados-do-candidato-\(bruno)"]
+        XCTAssertTrue(dadosDoBruno.waitForExistence(timeout: 10))
+        XCTAssertTrue(dadosDoBruno.label.contains("Da sua equipe"), dadosDoBruno.label)
+        XCTAssertFalse(dadosDaAna.label.contains("Da sua equipe"), dadosDaAna.label)
+        rolarAte(app.descendants(matching: .any)["dados-do-candidato-\(carla)"], em: app)
+        XCTAssertFalse(app.descendants(matching: .any)["dados-do-candidato-\(carla)"].label.contains("Da sua equipe"))
+
+        // A ordem continua a de chegada: Ana, que chegou primeiro, fica acima de Bruno, que é da equipe.
+        rolarAte(dadosDaAna, em: app)
+        XCTAssertTrue(dadosDaAna.exists && dadosDoBruno.exists)
+        XCTAssertLessThan(dadosDaAna.frame.minY, dadosDoBruno.frame.minY, "o selo não pode pôr Bruno antes de Ana")
+
+        // O prazo de escolha está na tela (MS-RF02): 24 horas antes do início.
+        let prazo = app.staticTexts["prazo-de-escolha"]
+        rolarAte(prazo, em: app)
+        XCTAssertTrue(prazo.exists)
+        XCTAssertTrue(prazo.label.hasPrefix("Escolha até ") && prazo.label.hasSuffix(", quando a vaga fecha."), prazo.label)
+    }
+
+    // MARK: D6: lembrete da escolha
+
+    func testLembreteDaSelecaoAbreOsCandidatosDaVagaPeloToqueNoPush() {
+        // `selecao_lembrete` (0.2.38) pelo caminho inteiro do push: o roteador leva a casa à vaga.
+        let app = abrir(["-FRILA_SCENARIO", "selecao-com-candidatos", "-FRILA_PUSH", "selecao_lembrete", "-FRILA_PUSH_ID", vagaID])
+
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any)["candidatos-da-vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["dados-do-candidato-\(ana)"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["escolher-candidato-\(ana)"].exists, "o toque abre a lista; quem escolhe é a pessoa")
+        XCTAssertFalse(app.descendants(matching: .any)["resultado-da-escolha"].exists)
+    }
+
+    func testLembreteDaSelecaoComAVagaJaFechadaExplicaEmVezDeListaVazia() {
+        let app = abrir(["-FRILA_SCENARIO", "selecao-encerrada-sem-escolha", "-FRILA_PUSH", "selecao_lembrete", "-FRILA_PUSH_ID", vagaID])
+
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 15))
+        let fechada = app.descendants(matching: .any)["selecao-fechada-sem-escolha"]
+        XCTAssertTrue(fechada.waitForExistence(timeout: 10))
+        XCTAssertTrue(fechada.label.hasPrefix("A seleção fechou 24 horas antes do início sem nenhuma escolha."), fechada.label)
+        XCTAssertFalse(app.descendants(matching: .any)["candidatos-vazio"].exists, "a vaga fechada explica, e não mostra lista vazia")
+        XCTAssertFalse(app.buttons["escolher-candidato-\(ana)"].exists)
+    }
+
+    // MARK: Critério 3 e MS-RF01
+
+    func testPublicarComMenosDe24HorasNaoOfereceASelecaoEPublicaEmUrgencia() {
         let app = abrir(["-FRILA_SCENARIO", "contratante-sem-estabelecimento", "-FRILA_CADASTRO_UI_TEST"])
         let continuar = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuar.waitForExistence(timeout: 15))
         continuar.tap()
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
-        // O formulário abre em urgência, com a explicação do modo; o início padrão é daqui a 3 horas.
+        // O formulário abre em urgência; o início padrão é daqui a 3 horas, então "Seleção" não aparece.
         let modo = app.segmentedControls["modo-vaga-picker"]
         rolarAte(modo, em: app)
         XCTAssertTrue(modo.exists)
         XCTAssertTrue(modo.buttons["Urgência"].isSelected)
+        XCTAssertFalse(modo.buttons["Seleção"].exists, "com 24 horas ou menos a opção Seleção não é oferecida")
         let explicacao = app.staticTexts["modo-vaga-explicacao"]
         XCTAssertEqual(explicacao.label, "O primeiro profissional que aceitar é confirmado na hora.")
-        modo.buttons["Seleção"].tap()
-        XCTAssertTrue(modo.buttons["Seleção"].isSelected)
-        XCTAssertTrue(explicacao.label.contains("O início precisa estar a mais de 24 horas"), explicacao.label)
+        let indisponivel = app.staticTexts["modo-selecao-indisponivel"]
+        XCTAssertTrue(indisponivel.exists)
+        XCTAssertEqual(indisponivel.label, "A seleção fica disponível para vagas que começam em mais de 24 horas.")
+        XCTAssertFalse(app.staticTexts["prazo-de-escolha-publicacao"].exists)
 
+        // A vaga em urgência é publicada, e o fluxo termina em Minhas vagas.
         let publicar = app.buttons["publicar-vaga-botao"]
         rolarAte(publicar, em: app)
         publicar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+    }
 
-        // Recusada no aparelho, com a regra no campo do início, e a pessoa continua no formulário.
-        let erro = app.staticTexts["erro-publicacao-inicio"]
-        for _ in 0..<8 {
-            if erro.exists && erro.isHittable { break }
-            app.swipeDown()
-        }
-        XCTAssertTrue(erro.waitForExistence(timeout: 5))
-        XCTAssertEqual(erro.label, "Vagas no modo seleção exigem pelo menos 24 horas de antecedência.")
-        XCTAssertFalse(app.descendants(matching: .any)["minhas-vagas"].exists)
+    func testPublicarEmSelecaoComMaisDe24HorasMostraOPrazoDeEscolhaEAvisaQuandoEleECurto() {
+        // O início daqui a 30 horas: a seleção cabe, com 6 horas para escolher (D2).
+        let app = abrir(["-FRILA_SCENARIO", "contratante-sem-estabelecimento", "-FRILA_CADASTRO_UI_TEST", "-FRILA_PUBLICAR_INICIO_EM_HORAS", "30"])
+        let continuar = app.buttons["continuar-cadastro"]
+        XCTAssertTrue(continuar.waitForExistence(timeout: 15))
+        continuar.tap()
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
-        // A mesma vaga em urgência é publicada, e o fluxo termina em Minhas vagas.
+        let modo = app.segmentedControls["modo-vaga-picker"]
         rolarAte(modo, em: app)
-        modo.buttons["Urgência"].tap()
+        XCTAssertTrue(modo.buttons["Seleção"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["modo-selecao-indisponivel"].exists)
+        modo.buttons["Seleção"].tap()
+        XCTAssertTrue(modo.buttons["Seleção"].isSelected)
+        let prazo = app.staticTexts["prazo-de-escolha-publicacao"]
+        XCTAssertTrue(prazo.waitForExistence(timeout: 5))
+        XCTAssertTrue(prazo.label.hasPrefix("Você terá até ") && prazo.label.hasSuffix(" para escolher. Depois disso a vaga fecha sozinha."), prazo.label)
+        let curto = app.descendants(matching: .any)["prazo-de-escolha-curto"]
+        XCTAssertTrue(curto.waitForExistence(timeout: 5))
+        XCTAssertTrue(curto.label.contains("menos de 12 horas"), curto.label)
+
+        // Publicada em seleção: Minhas vagas mostra o cartão como seleção, sem candidato ainda.
+        let publicar = app.buttons["publicar-vaga-botao"]
         rolarAte(publicar, em: app)
         publicar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        let cartao = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Modo seleção")).firstMatch
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        XCTAssertTrue(cartao.label.contains("nenhum candidato ainda"), cartao.label)
     }
 
     // MARK: Acessibilidade

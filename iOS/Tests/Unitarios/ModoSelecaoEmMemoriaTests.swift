@@ -340,6 +340,87 @@ struct ModoSelecaoEmMemoriaTests {
         #expect(vaga.posicoes.first?.turnoID == confirmacao.turnoID && vaga.posicoes.first?.profissional == Cena.carla)
     }
 
+    // MARK: Reposição de posição (contrato 0.2.38, D4 e D5)
+
+    @Test("Escolhido cancela a mais de 24 h do início: a posição volta a ser seleção, com reaberta verdadeiro, e o fechamento das 24 h a cancela depois")
+    func cancelamentoAMaisDe24h() async throws {
+        let cena = try await Cena.montar(candidatos: [Cena.ana, Cena.bruno])
+        let confirmacao = try await cena.api.escolherCandidato(candidaturaID: cena.candidaturas[0])
+        #expect(try await cena.estadoDaVaga() == .preenchida)
+
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(-30 * hora))
+        let cancelamento = try await cena.api.cancelarPosicao(id: confirmacao.posicaoID, motivo: "Imprevisto de agenda.")
+        #expect(cancelamento.reaberta && cancelamento.novaPosicaoID != nil)
+        let vaga = try await cena.vagaNoPainel()
+        #expect(vaga.estado == .publicada && vaga.posicoes.map(\.estado).sorted(by: { $0.rawValue < $1.rawValue }) == [.aberta, .cancelada])
+        #expect(vaga.posicoes.contains { $0.id == cancelamento.novaPosicaoID && $0.estado == .aberta })
+        // Volta a ser seleção: a candidatura fica pendente, e a casa escolhe.
+        let nova = try await cena.api.candidatar(vagaID: cena.vagaID)
+        #expect(nova.estado == .pendente && nova.turnoID == nil)
+        #expect(try await cena.api.candidatosDaVaga(id: cena.vagaID).count == 1)
+        let escolha = try await cena.api.escolherCandidato(candidaturaID: nova.candidaturaID)
+        #expect(escolha.posicaoID == cancelamento.novaPosicaoID)
+
+        // Sem escolha, o fechamento das 24 h cancela a posição reaberta, como qualquer outra.
+        let outra = try await cena.api.cancelarPosicao(id: escolha.posicaoID, motivo: "Imprevisto de agenda.")
+        #expect(outra.reaberta)
+        cena.relogio.avancar(para: cena.fechamento)
+        #expect(await cena.api.fecharSelecoes() == 1)
+        #expect(try await cena.estadoDaVaga() == .encerrada)
+        #expect(try await cena.vagaNoPainel().posicoes.allSatisfy { $0.estado == .cancelada })
+    }
+
+    @Test("Escolhido cancela a 24 h ou menos do início: a posição é reposta em urgência, o agendador não a fecha e o primeiro que aceita é confirmado na hora")
+    func cancelamentoDentroDas24h() async throws {
+        let cena = try await Cena.montar(candidatos: [Cena.ana, Cena.bruno])
+        let confirmacao = try await cena.api.escolherCandidato(candidaturaID: cena.candidaturas[0])
+
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(-20 * hora))
+        let cancelamento = try await cena.api.cancelarPosicao(id: confirmacao.posicaoID, motivo: "Imprevisto de agenda.")
+        #expect(cancelamento.reaberta && cancelamento.novaPosicaoID != nil)
+        var vaga = try await cena.vagaNoPainel()
+        #expect(vaga.estado == .publicada && vaga.posicoes.contains { $0.id == cancelamento.novaPosicaoID && $0.estado == .aberta })
+
+        // O agendador passa e não fecha a vaga: a posição reposta continua aberta.
+        #expect(await cena.api.fecharSelecoes() == 0)
+        vaga = try await cena.vagaNoPainel()
+        #expect(vaga.estado == .publicada && vaga.posicoes.contains { $0.estado == .aberta })
+        // Não há escolha: a candidatura de quem ainda esperava (Bruno) já foi recusada ao encher a
+        // vaga, e escolher dentro das 24 h é vaga_encerrada.
+        await #expect(throws: ErroDaApi.self) { try await cena.api.escolherCandidato(candidaturaID: cena.candidaturas[1]) }
+        // O primeiro elegível que se candidata é confirmado na hora, na posição reposta, com contato.
+        let urgencia = try await cena.api.candidatar(vagaID: cena.vagaID)
+        #expect(urgencia.estado == .confirmada && urgencia.posicaoID == cancelamento.novaPosicaoID && urgencia.turnoID != nil && urgencia.contato != nil)
+        vaga = try await cena.vagaNoPainel()
+        #expect(vaga.estado == .preenchida)
+        #expect(vaga.posicoes.contains { $0.id == cancelamento.novaPosicaoID && $0.estado == .confirmada })
+        #expect(try await cena.api.minhasCandidaturas().first?.estado == .aceita)
+    }
+
+    @Test("Reabertura por atraso em vaga de seleção é sempre urgência: a posição aceita candidatura até 1 h antes do fim; a menos de 1 h do fim não reabre, e reaberta é falso")
+    func reaberturaPorAtraso() async throws {
+        let cena = try await Cena.montar(candidatos: [Cena.ana])
+        let confirmacao = try await cena.api.escolherCandidato(candidaturaID: cena.candidaturas[0])
+
+        cena.relogio.avancar(para: cena.inicio.addingTimeInterval(20 * 60))
+        let reabertura = try await cena.api.reabrirPorAtraso(posicaoID: confirmacao.posicaoID)
+        #expect(reabertura.falta && reabertura.reaberta && reabertura.novaPosicaoID != nil)
+        #expect(await cena.api.fecharSelecoes() == 0)
+        #expect(try await cena.estadoDaVaga() == .publicada)
+        // Depois do início, só a posição reaberta por atraso aceita candidatura, e ela confirma na hora.
+        let urgencia = try await cena.api.candidatar(vagaID: cena.vagaID)
+        #expect(urgencia.estado == .confirmada && urgencia.posicaoID == reabertura.novaPosicaoID)
+
+        // A menos de 1 h do fim a falta é marcada, mas a posição não volta à fila: reaberta é falso.
+        let cena2 = try await Cena.montar(candidatos: [Cena.ana])
+        let confirmacao2 = try await cena2.api.escolherCandidato(candidaturaID: cena2.candidaturas[0])
+        cena2.relogio.avancar(para: cena2.inicio.addingTimeInterval(4 * hora - 30 * 60))
+        let semReabertura = try await cena2.api.reabrirPorAtraso(posicaoID: confirmacao2.posicaoID)
+        #expect(semReabertura.falta && !semReabertura.reaberta && semReabertura.novaPosicaoID == nil)
+        #expect(try await cena2.vagaNoPainel().posicoes.allSatisfy { $0.estado == .cancelada })
+        await #expect(throws: ErroDaApi.self) { try await cena2.api.candidatar(vagaID: cena2.vagaID) }
+    }
+
     @Test("Cancelar a vaga de seleção expira as candidaturas que esperavam")
     func cancelarVagaExpiraPendentes() async throws {
         let cena = try await Cena.montar()
@@ -454,6 +535,24 @@ struct ModoSelecaoEmMemoriaTests {
         let confirmacao = try await api.escolherCandidato(candidaturaID: candidatos[2].candidaturaID)
         #expect(confirmacao.contato.nome == "Carla Menezes")
         #expect(try await api.candidatosDaVaga(id: vaga.id).isEmpty)
+    }
+
+    @Test("Cenário selecao-com-candidato-da-equipe: da_equipe só para quem está na equipe da casa, e a ordem continua a de chegada (0.2.38, D7)")
+    func cenarioComCandidatoDaEquipe() async throws {
+        let api = ApiClienteEmMemoria(cenario: .selecaoComCandidatoDaEquipe)
+        let vaga = try #require(try await api.vagasAbertas().first)
+        let candidatos = try await api.candidatosDaVaga(id: vaga.id)
+
+        #expect(candidatos.map(\.profissional.nome) == ["Ana Cunha", "Bruno Tavares", "Carla Menezes", "Diego Rocha"])
+        #expect(candidatos.map(\.daEquipe) == [false, true, false, false])
+        #expect(candidatos.map(\.criadaEm) == candidatos.map(\.criadaEm).sorted())
+        // A equipe da casa é a fonte, e não a fixture: é o que `equipe_de_confianca` lista.
+        let casa = try #require(try await api.meusEstabelecimentos().first)
+        #expect(try await api.equipeDeConfianca(estabelecimentoID: casa.id).map(\.nome) == ["Bruno Tavares"])
+        // Nos outros cenários ninguém da lista está na equipe.
+        let semEquipe = ApiClienteEmMemoria(cenario: .selecaoComCandidatos)
+        let outra = try #require(try await semEquipe.vagasAbertas().first)
+        #expect(try await semEquipe.candidatosDaVaga(id: outra.id).allSatisfy { !$0.daEquipe })
     }
 
     @Test("Cenário selecao-encerrada-sem-escolha: a vaga já fechou sozinha, sem candidato para escolher")
