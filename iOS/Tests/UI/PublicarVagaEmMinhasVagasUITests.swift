@@ -127,7 +127,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
 
         let entrada = app.buttons["publicar-vaga-entrada"]
-        XCTAssertTrue(entrada.waitForExistence(timeout: 5))
+        XCTAssertTrue(entrada.waitForExistence(timeout: Espera.aparecer))
         entrada.tap()
 
         let telaErro = app.descendants(matching: .any)["publicar-vaga-erro"]
@@ -135,7 +135,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Não foi possível concluir esta ação. Tente novamente."].exists)
 
         let voltar = app.buttons["voltar-para-minhas-vagas"]
-        XCTAssertTrue(voltar.waitForExistence(timeout: 5))
+        XCTAssertTrue(voltar.waitForExistence(timeout: Espera.aparecer))
         voltar.tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
@@ -151,12 +151,12 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let antes = vagas(app).count
 
         let entrada = app.buttons["publicar-vaga-entrada"]
-        XCTAssertTrue(entrada.waitForExistence(timeout: 5))
+        XCTAssertTrue(entrada.waitForExistence(timeout: Espera.aparecer))
         entrada.tap()
 
         // 1. Antes de publicar, o botão de fechar é "Cancelar" e não há aviso de publicação contínua
         let botaoFechar = app.buttons["cancelar-publicacao"]
-        XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoFechar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(botaoFechar.label, "Cancelar")
         XCTAssertFalse(app.descendants(matching: .any)["aviso-publicacao-continua"].exists)
 
@@ -165,7 +165,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         // 3. Permanece no formulário: aviso informativo aparece e o botão vira "Voltar"
         let avisoContinua = app.descendants(matching: .any)["aviso-publicacao-continua"]
-        XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "o aviso informativo de que a publicação continua deve aparecer")
+        XCTAssertTrue(avisoContinua.waitForExistence(timeout: Espera.aparecer), "o aviso informativo de que a publicação continua deve aparecer")
         XCTAssertTrue(app.staticTexts["A publicação continua e será concluída quando a conexão voltar."].exists)
         XCTAssertFalse(app.descendants(matching: .any)["aviso-erro-publicacao"].exists, "não deve exibir banner vermelho de erro sem rede")
         XCTAssertEqual(botaoFechar.label, "Voltar", "o botão de fechar passa a ser 'Voltar' quando a publicação ficou na fila")
@@ -180,12 +180,12 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         // 5. Ao abrir o formulário novamente, a vaga continua pendente (restaurada da fila com os campos preenchidos)
         entrada.tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
-        XCTAssertTrue(avisoContinua.waitForExistence(timeout: 5), "a vaga pendente na fila reabre com o aviso de continuação")
+        XCTAssertTrue(avisoContinua.waitForExistence(timeout: Espera.aparecer), "a vaga pendente na fila reabre com o aviso de continuação")
         XCTAssertFalse(app.descendants(matching: .any)["aviso-erro-publicacao"].exists, "não deve exibir aviso vermelho ao reabrir pendência")
         XCTAssertEqual(botaoFechar.label, "Voltar")
 
         let botaoTentarNovamente = app.buttons["publicar-vaga-botao"]
-        XCTAssertTrue(botaoTentarNovamente.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoTentarNovamente.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(botaoTentarNovamente.label, "Tentar novamente")
 
         let campoResponsavel = app.textFields["Quem recebe no local"]
@@ -210,13 +210,13 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         let dpInicio = app.datePickers["datepicker-inicio"]
         rolarAte(dpInicio, em: app)
-        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5), "DatePicker Início deve existir")
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "DatePicker Início deve existir")
         XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
         XCTAssertGreaterThan(dpInicio.pickerWheels.count, 0, "DatePicker Início deve conter rodas de seleção")
 
         let dpFim = app.datePickers["datepicker-fim"]
         rolarAte(dpFim, em: app)
-        XCTAssertTrue(dpFim.waitForExistence(timeout: 5), "DatePicker Fim deve existir")
+        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "DatePicker Fim deve existir")
         XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
         XCTAssertGreaterThan(dpFim.pickerWheels.count, 0, "DatePicker Fim deve conter rodas de seleção")
     }

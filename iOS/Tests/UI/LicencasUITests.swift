@@ -25,16 +25,16 @@ final class LicencasUITests: XCTestCase {
                       "o botão precisa estar inteiro dentro da área visível antes do toque")
         entrada.tap()
 
-        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: Espera.aparecer))
         let pacote = app.buttons["licenca-abseil-cpp-binary"]
-        XCTAssertTrue(pacote.waitForExistence(timeout: 5), "a lista não mostrou o primeiro pacote")
+        XCTAssertTrue(pacote.waitForExistence(timeout: Espera.aparecer), "a lista não mostrou o primeiro pacote")
         XCTAssertTrue(pacote.label.contains("Apache-2.0"), "a linha não mostra o tipo da licença: \(pacote.label)")
         anexar(app, "licencas-lista")
         pacote.tap()
 
-        XCTAssertTrue(app.navigationBars["abseil-cpp-binary"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["abseil-cpp-binary"].waitForExistence(timeout: Espera.aparecer))
         let texto = app.staticTexts["texto-da-licenca"]
-        XCTAssertTrue(texto.waitForExistence(timeout: 5))
+        XCTAssertTrue(texto.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(texto.label.contains("Apache License"), "o detalhe não mostra o texto da licença")
         anexar(app, "licencas-detalhe")
     }
@@ -48,26 +48,26 @@ final class LicencasUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
         let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer))
         botaoPerfil.tap()
 
-        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: Espera.aparecer))
 
         let botaoAjuda = app.buttons["perfil-ajuda"]
         if !botaoAjuda.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: Espera.aparecer))
         botaoAjuda.tap()
 
-        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: Espera.aparecer))
 
         let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
-        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(botaoLicencas.isHittable)
         botaoLicencas.tap()
 
-        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: Espera.aparecer))
 
         let navBar = app.navigationBars["Licenças de código aberto"]
         let janela = app.windows.firstMatch
@@ -76,7 +76,7 @@ final class LicencasUITests: XCTestCase {
         XCTAssertLessThan(navBar.frame.minY, janela.frame.height * 0.25, "A folha de licenças deve abrir em altura inteira (.large)")
 
         let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
-        XCTAssertTrue(pacote.waitForExistence(timeout: 5))
+        XCTAssertTrue(pacote.waitForExistence(timeout: Espera.aparecer))
         anexar(app, "licencas-folha-altura-inteira")
     }
 

@@ -6,7 +6,7 @@ final class FrilaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success", "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.buttons["Continuar"].exists)
     }
 
@@ -14,7 +14,7 @@ final class FrilaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testConflitoTipadoDoClienteChegaATela() {
@@ -22,9 +22,9 @@ final class FrilaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "vaga-preenchida"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["Validação do cliente"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Validação do cliente"].waitForExistence(timeout: Espera.aparecer))
         app.buttons["Simular vaga preenchida"].tap()
-        XCTAssertTrue(app.staticTexts["Esta vaga acabou de ser preenchida. Escolha outra oportunidade."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Esta vaga acabou de ser preenchida. Escolha outra oportunidade."].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testSolicitacaoDeAcessoChegaAoClienteSemExporOEmailNaTelaDeResultado() {
@@ -33,12 +33,12 @@ final class FrilaUITests: XCTestCase {
         app.launch()
 
         let email = app.textFields["validacao-email"]
-        XCTAssertTrue(email.waitForExistence(timeout: 5))
+        XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
         email.tap()
         email.digitarEEsperar("teste@frila.app")
         app.buttons["Enviar código"].tap()
 
-        XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.staticTexts["teste@frila.app"].exists)
     }
 
@@ -47,19 +47,19 @@ final class FrilaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["Nenhuma sessão neste aparelho."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Nenhuma sessão neste aparelho."].waitForExistence(timeout: Espera.aparecer))
         let email = app.textFields["validacao-email"]
         email.tap()
         email.digitarEEsperar("teste@frila.app")
         app.buttons["Enviar código"].tap()
-        XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: Espera.aparecer))
 
         let codigo = app.textFields["validacao-codigo"]
         codigo.tap()
         codigo.typeText("123456")
         app.buttons["Confirmar código"].tap()
 
-        XCTAssertTrue(app.staticTexts["Sessão ativa neste aparelho."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Sessão ativa neste aparelho."].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.staticTexts["teste@frila.app"].exists)
         XCTAssertFalse(app.staticTexts["123456"].exists)
     }
@@ -98,7 +98,7 @@ final class VagasUITests: XCTestCase {
         // O dublê só tem vaga de Garçom; filtrar por Bartender deixa a lista vazia.
         app.descendants(matching: .any)["filtro-funcao"].tap()
         let bartender = app.buttons["Bartender"]
-        XCTAssertTrue(bartender.waitForExistence(timeout: 5))
+        XCTAssertTrue(bartender.waitForExistence(timeout: Espera.aparecer))
         bartender.tap()
         XCTAssertTrue(app.descendants(matching: .any)["vagas-vazio"].waitForExistence(timeout: 10))
     }
@@ -172,7 +172,7 @@ final class CandidaturaUITests: XCTestCase {
             object: primeira
         )
         XCTAssertEqual(
-            XCTWaiter.wait(for: [tocavelFinal], timeout: 5), .completed,
+            XCTWaiter.wait(for: [tocavelFinal], timeout: Espera.aparecer), .completed,
             "o primeiro cartão de vaga deve ficar tocável na lista"
         )
 
@@ -250,7 +250,7 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("funcao-incompativel")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-funcao-incompativel"].waitForExistence(timeout: 10))
         let ajustar = app.buttons["ajustar-minhas-funcoes"]
-        XCTAssertTrue(ajustar.waitForExistence(timeout: 5))
+        XCTAssertTrue(ajustar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(ajustar.label, "Ajustar minhas funções")
         XCTAssertTrue(app.buttons["voltar-para-lista"].exists)
         ajustar.tap()
@@ -279,21 +279,21 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(contestar.exists)
         XCTAssertTrue(contestar.isEnabled)
         contestar.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-conta-suspensa"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["tela-conta-suspensa"].waitForExistence(timeout: Espera.aparecer))
         app.buttons["botao-contestar-suspensao"].tap()
         let relato = app.descendants(matching: .any)["campo-relato-contestacao"].firstMatch
-        XCTAssertTrue(relato.waitForExistence(timeout: 5))
+        XCTAssertTrue(relato.waitForExistence(timeout: Espera.aparecer))
         relato.tap()
         relato.typeText("Solicito a revisão da suspensão da minha conta")
         app.buttons["botao-enviar-contestacao"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["protocolo-contestacao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["protocolo-contestacao"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testResultadoComTamanhoDeAcessibilidadeMantemOBotaoDeVolta() {
         let app = abrirDetalheECandidatar("vaga-preenchida", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-preenchida"].waitForExistence(timeout: 10))
         let voltar = app.buttons["voltar-para-lista"]
-        XCTAssertTrue(voltar.waitForExistence(timeout: 5))
+        XCTAssertTrue(voltar.waitForExistence(timeout: Espera.aparecer))
         voltar.tap()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
@@ -516,7 +516,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("000000")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.descendants(matching: .any)["codigo-erro"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["codigo-erro"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testMenorDeIdadeExibeRecusa() {
@@ -563,7 +563,7 @@ final class AutenticacaoUITests: XCTestCase {
         rolarAte(continuar, app: app)
         continuar.tap()
 
-        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
     }
 
@@ -617,7 +617,7 @@ final class AutenticacaoUITests: XCTestCase {
         continuar.tap()
 
         // O sinal Declared Age Range diz que é menor de 18: recusa com a mensagem da RN20
-        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
     }
 
@@ -697,14 +697,14 @@ final class PerfilUITests: XCTestCase {
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         let horario = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
         XCTAssertTrue(funcao.waitForExistence(timeout: 10))
-        XCTAssertTrue(horario.waitForExistence(timeout: 5))
+        XCTAssertTrue(horario.waitForExistence(timeout: Espera.aparecer))
 
         app.tabBars.buttons["Meus turnos"].tap()
         XCTAssertFalse(funcao.waitForExistence(timeout: 2))
         app.tabBars.buttons["Vagas no DF"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
-        XCTAssertTrue(funcao.waitForExistence(timeout: 5), "as funções carregadas continuam no formulário")
+        XCTAssertTrue(funcao.waitForExistence(timeout: Espera.aparecer), "as funções carregadas continuam no formulário")
         XCTAssertTrue(horario.exists, "os horários carregados continuam no formulário")
     }
 
@@ -716,39 +716,39 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
         let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer))
         botaoPerfil.tap()
 
-        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: Espera.aparecer))
 
         let botaoAjuda = app.buttons["perfil-ajuda"]
         if !botaoAjuda.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: Espera.aparecer))
         botaoAjuda.tap()
 
-        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: Espera.aparecer))
 
         let suporte = app.descendants(matching: .any)["perfil-suporte"]
-        XCTAssertTrue(suporte.waitForExistence(timeout: 5), "perfil-suporte deve existir na tela de ajuda")
+        XCTAssertTrue(suporte.waitForExistence(timeout: Espera.aparecer), "perfil-suporte deve existir na tela de ajuda")
 
         let emailSuporte = app.descendants(matching: .any)["perfil-suporte-email"]
-        XCTAssertTrue(emailSuporte.waitForExistence(timeout: 5), "perfil-suporte-email deve existir na tela de ajuda")
+        XCTAssertTrue(emailSuporte.waitForExistence(timeout: Espera.aparecer), "perfil-suporte-email deve existir na tela de ajuda")
         XCTAssertTrue(emailSuporte.label.contains("suportefrila@gmail.com"), "o endereço de suporte deve ser visível")
 
         let linkTermos = app.descendants(matching: .any)["perfil-termos"]
         let linkPrivacidade = app.descendants(matching: .any)["perfil-privacidade"]
 
-        XCTAssertTrue(linkTermos.waitForExistence(timeout: 5), "perfil-termos deve existir na tela de ajuda")
-        XCTAssertTrue(linkPrivacidade.waitForExistence(timeout: 5), "perfil-privacidade deve existir na tela de ajuda")
+        XCTAssertTrue(linkTermos.waitForExistence(timeout: Espera.aparecer), "perfil-termos deve existir na tela de ajuda")
+        XCTAssertTrue(linkPrivacidade.waitForExistence(timeout: Espera.aparecer), "perfil-privacidade deve existir na tela de ajuda")
         XCTAssertTrue(linkTermos.isHittable)
         XCTAssertTrue(linkPrivacidade.isHittable)
         XCTAssertTrue(app.links["perfil-termos"].exists || linkTermos.elementType == .link || linkTermos.elementType == .button, "deve ser um link")
         XCTAssertTrue(app.links["perfil-privacidade"].exists || linkPrivacidade.elementType == .link || linkPrivacidade.elementType == .button, "deve ser um link")
 
         let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
-        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: Espera.aparecer), "perfil-licencas deve existir na tela de ajuda")
     }
 
     func testPerfilEstabelecimentoAbreAjudaComLinksDeTermosEPrivacidade() {
@@ -760,36 +760,36 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "botão de abrir perfil do estabelecimento deve existir")
         botaoPerfil.tap()
 
-        XCTAssertTrue(app.navigationBars["Perfil do estabelecimento"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Perfil do estabelecimento"].waitForExistence(timeout: Espera.aparecer))
 
         let botaoAjuda = app.buttons["perfil-ajuda"]
         if !botaoAjuda.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: Espera.aparecer))
         botaoAjuda.tap()
 
-        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: Espera.aparecer))
 
         let suporte = app.descendants(matching: .any)["perfil-suporte"]
-        XCTAssertTrue(suporte.waitForExistence(timeout: 5), "perfil-suporte deve existir na tela de ajuda")
+        XCTAssertTrue(suporte.waitForExistence(timeout: Espera.aparecer), "perfil-suporte deve existir na tela de ajuda")
 
         let emailSuporte = app.descendants(matching: .any)["perfil-suporte-email"]
-        XCTAssertTrue(emailSuporte.waitForExistence(timeout: 5), "perfil-suporte-email deve existir na tela de ajuda")
+        XCTAssertTrue(emailSuporte.waitForExistence(timeout: Espera.aparecer), "perfil-suporte-email deve existir na tela de ajuda")
         XCTAssertTrue(emailSuporte.label.contains("suportefrila@gmail.com"), "o endereço de suporte deve ser visível")
 
         let linkTermos = app.descendants(matching: .any)["perfil-termos"]
         let linkPrivacidade = app.descendants(matching: .any)["perfil-privacidade"]
 
-        XCTAssertTrue(linkTermos.waitForExistence(timeout: 5), "perfil-termos deve existir na tela de ajuda")
-        XCTAssertTrue(linkPrivacidade.waitForExistence(timeout: 5), "perfil-privacidade deve existir na tela de ajuda")
+        XCTAssertTrue(linkTermos.waitForExistence(timeout: Espera.aparecer), "perfil-termos deve existir na tela de ajuda")
+        XCTAssertTrue(linkPrivacidade.waitForExistence(timeout: Espera.aparecer), "perfil-privacidade deve existir na tela de ajuda")
         XCTAssertTrue(linkTermos.isHittable)
         XCTAssertTrue(linkPrivacidade.isHittable)
         XCTAssertTrue(app.links["perfil-termos"].exists || linkTermos.elementType == .link || linkTermos.elementType == .button, "deve ser um link")
         XCTAssertTrue(app.links["perfil-privacidade"].exists || linkPrivacidade.elementType == .link || linkPrivacidade.elementType == .button, "deve ser um link")
 
         let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
-        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: Espera.aparecer), "perfil-licencas deve existir na tela de ajuda")
     }
 
     func testMeuPerfilAjudaAbreLicencasDeTerceirosComPacoteConhecido() {
@@ -800,29 +800,29 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
         let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer))
         botaoPerfil.tap()
 
-        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: Espera.aparecer))
 
         let botaoAjuda = app.buttons["perfil-ajuda"]
         if !botaoAjuda.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoAjuda.waitForExistence(timeout: Espera.aparecer))
         botaoAjuda.tap()
 
-        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: Espera.aparecer))
 
         let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
-        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: 5), "perfil-licencas deve existir na tela de ajuda")
+        XCTAssertTrue(botaoLicencas.waitForExistence(timeout: Espera.aparecer), "perfil-licencas deve existir na tela de ajuda")
         XCTAssertTrue(botaoLicencas.isHittable)
         botaoLicencas.tap()
 
-        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: Espera.aparecer))
 
         let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
-        XCTAssertTrue(pacote.waitForExistence(timeout: 5), "a lista deve exibir pelo menos um pacote conhecido")
+        XCTAssertTrue(pacote.waitForExistence(timeout: Espera.aparecer), "a lista deve exibir pelo menos um pacote conhecido")
     }
 
     func testMeuPerfilAbreExplicacaoPorQueReceboVagasComTextoAprovado() {
@@ -833,10 +833,10 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
         let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer))
         botaoPerfil.tap()
 
-        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: Espera.aparecer))
 
         var botaoPorQueRecebo = app.buttons["perfil-por-que-recebo"]
         if !botaoPorQueRecebo.exists && !botaoPorQueRecebo.waitForExistence(timeout: 2) {
@@ -845,21 +845,21 @@ final class PerfilUITests: XCTestCase {
         if !botaoPorQueRecebo.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoPorQueRecebo.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoPorQueRecebo.waitForExistence(timeout: Espera.aparecer))
         botaoPorQueRecebo.tap()
 
-        XCTAssertTrue(app.navigationBars["Por que recebo vagas"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Por que recebo vagas"].waitForExistence(timeout: Espera.aparecer))
 
         let textoExplicacao = app.descendants(matching: .any)["perfil-explicacao-vagas"]
-        XCTAssertTrue(textoExplicacao.waitForExistence(timeout: 5), "o texto explicativo deve existir")
+        XCTAssertTrue(textoExplicacao.waitForExistence(timeout: Espera.aparecer), "o texto explicativo deve existir")
         let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
         XCTAssertEqual(textoExplicacao.label, fraseEsperada)
 
         let botaoFechar = app.buttons["fechar-explicacao-vagas"].exists ? app.buttons["fechar-explicacao-vagas"] : app.buttons["Fechar"]
-        XCTAssertTrue(botaoFechar.waitForExistence(timeout: 5), "o botão fechar deve existir")
+        XCTAssertTrue(botaoFechar.waitForExistence(timeout: Espera.aparecer), "o botão fechar deve existir")
         botaoFechar.tap()
 
-        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: Espera.aparecer))
     }
 }
 

@@ -23,7 +23,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         // 2.1 Botão de busca (lupa): alvo >= 44x44 pt
         let botaoBusca = app.buttons["buscar-endereco-botao"]
-        XCTAssertTrue(botaoBusca.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoBusca.waitForExistence(timeout: Espera.aparecer))
         XCTAssertAlvoMinimo(botaoBusca.frame.width, "Botão de busca deve ter largura >= 44 pt")
         XCTAssertAlvoMinimo(botaoBusca.frame.height, "Botão de busca deve ter altura >= 44 pt")
         XCTAssertTrue(botaoBusca.isHittable)
@@ -52,29 +52,29 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         // 2.4 Campo de Valor: altura >= 44 pt
         let campoValor = app.textFields["valor-vaga-campo"]
-        XCTAssertTrue(campoValor.waitForExistence(timeout: 5))
+        XCTAssertTrue(campoValor.waitForExistence(timeout: Espera.aparecer))
         XCTAssertAlvoMinimo(campoValor.frame.height, "Campo Valor deve ter altura >= 44 pt")
 
         // 2.5 Campo de Posições: altura >= 44 pt
         let campoPosicoes = app.textFields["posicoes-vaga-campo"]
-        XCTAssertTrue(campoPosicoes.waitForExistence(timeout: 5))
+        XCTAssertTrue(campoPosicoes.waitForExistence(timeout: Espera.aparecer))
         XCTAssertAlvoMinimo(campoPosicoes.frame.height, "Campo Posições deve ter altura >= 44 pt")
 
         // 3.9 Picker de Alerta: deve ter accessibilityLabel "Avisar se a vaga seguir vazia"
         let pickerAlerta = app.descendants(matching: .any)["alerta-vaga-picker"]
-        XCTAssertTrue(pickerAlerta.waitForExistence(timeout: 5))
+        XCTAssertTrue(pickerAlerta.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(pickerAlerta.label, "Avisar se a vaga seguir vazia")
 
         // 2.3 Botão "Mais opções": altura >= 44 pt
         let maisOpcoes = app.buttons["mais-opcoes-botao"]
-        XCTAssertTrue(maisOpcoes.waitForExistence(timeout: 5))
+        XCTAssertTrue(maisOpcoes.waitForExistence(timeout: Espera.aparecer))
         trazerParaATela(maisOpcoes, em: app)
         XCTAssertAlvoMinimo(maisOpcoes.frame.height, "Botão Mais opções deve ter altura >= 44 pt")
         maisOpcoes.tap()
 
         // 2.6 Campo de Observações: altura >= 44 pt mesmo vazio
         let campoObs = app.descendants(matching: .any)["observacoes-vaga-campo"]
-        XCTAssertTrue(campoObs.waitForExistence(timeout: 5))
+        XCTAssertTrue(campoObs.waitForExistence(timeout: Espera.aparecer))
         trazerParaATela(campoObs, em: app)
         XCTAssertAlvoMinimo(campoObs.frame.height, "Campo Observações deve ter altura >= 44 pt")
     }
@@ -123,14 +123,14 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         // Seletores de data Início e Fim tocáveis e contidos na tela em AX5
         let dpInicio = app.datePickers["datepicker-inicio"]
-        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5), "DatePicker Início deve existir")
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "DatePicker Início deve existir")
         trazerParaATela(dpInicio, em: app)
         XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela, "DatePicker Início extrapolou a largura")
         XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 0, "DatePicker Início fora à esquerda")
         XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
 
         let dpFim = app.datePickers["datepicker-fim"]
-        XCTAssertTrue(dpFim.waitForExistence(timeout: 5), "DatePicker Fim deve existir")
+        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "DatePicker Fim deve existir")
         trazerParaATela(dpFim, em: app)
         XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela, "DatePicker Fim extrapolou a largura")
         XCTAssertGreaterThanOrEqual(dpFim.frame.minX, 0, "DatePicker Fim fora à esquerda")
@@ -148,7 +148,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         // Toolbar: botão de Perfil do Estabelecimento deve abrir a folha do perfil
         let btnPerfil = app.buttons["Perfil do estabelecimento"]
-        XCTAssertTrue(btnPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(btnPerfil.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(btnPerfil.isHittable)
         btnPerfil.tap()
 
@@ -180,30 +180,30 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         // 3.4 NavigationTitle do perfil público
         let perfil = app.buttons["perfil-publico-82000000-0000-0000-0000-000000000002"]
-        XCTAssertTrue(perfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(perfil.waitForExistence(timeout: Espera.aparecer))
         perfil.tap()
 
         let barraPerfil = app.navigationBars["Perfil público"]
-        XCTAssertTrue(barraPerfil.waitForExistence(timeout: 5))
+        XCTAssertTrue(barraPerfil.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(barraPerfil.staticTexts["Perfil público"].exists)
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
         // 3.1 Link Ligar com Label acessível e alvo de toque >= 44 pt
         let contato = app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"]
-        XCTAssertTrue(contato.waitForExistence(timeout: 5))
+        XCTAssertTrue(contato.waitForExistence(timeout: Espera.aparecer))
         trazerParaATela(contato, em: app)
         contato.tap()
 
         let linkLigar = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Ligar'")).firstMatch
-        XCTAssertTrue(linkLigar.waitForExistence(timeout: 5))
+        XCTAssertTrue(linkLigar.waitForExistence(timeout: Espera.aparecer))
         trazerParaATela(linkLigar, em: app)
         XCTAssertAlvoMinimo(linkLigar.frame.height, "Link Ligar deve ter altura mínima de 44 pt")
         XCTAssertTrue(linkLigar.isHittable)
 
         // Verifica que o WhatsApp também mantém alvo de toque
         let linkWhatsApp = app.buttons.matching(NSPredicate(format: "label CONTAINS 'WhatsApp'")).firstMatch
-        XCTAssertTrue(linkWhatsApp.waitForExistence(timeout: 5))
+        XCTAssertTrue(linkWhatsApp.waitForExistence(timeout: Espera.aparecer))
         trazerParaATela(linkWhatsApp, em: app)
         XCTAssertAlvoMinimo(linkWhatsApp.frame.height, "Link WhatsApp deve ter altura mínima de 44 pt")
         XCTAssertTrue(linkWhatsApp.isHittable)
@@ -282,8 +282,8 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         let sim = app.buttons["resposta-sim"]
         let nao = app.buttons["resposta-nao"]
-        XCTAssertTrue(sim.waitForExistence(timeout: 5))
-        XCTAssertTrue(nao.waitForExistence(timeout: 5))
+        XCTAssertTrue(sim.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(nao.waitForExistence(timeout: Espera.aparecer))
         XCTAssertGreaterThanOrEqual(sim.frame.height, 44)
         XCTAssertGreaterThanOrEqual(nao.frame.height, 44)
 
@@ -330,8 +330,8 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         let sim = app.buttons["resposta-sim"]
         let nao = app.buttons["resposta-nao"]
-        XCTAssertTrue(sim.waitForExistence(timeout: 5))
-        XCTAssertTrue(nao.waitForExistence(timeout: 5))
+        XCTAssertTrue(sim.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(nao.waitForExistence(timeout: Espera.aparecer))
         XCTAssertGreaterThanOrEqual(sim.frame.height, 44)
         XCTAssertGreaterThanOrEqual(nao.frame.height, 44)
 

@@ -10,7 +10,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         let cartao = app.buttons["meu-turno-\(turnoID)"]
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
         tocar(cartao)
-        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testCheckinRecusadoSaiDaFilaEMostraAvisoNoTurnoCancelado() {
@@ -36,14 +36,14 @@ final class TurnoContrato0231UITests: XCTestCase {
         let aviso = app.descendants(matching: .any)["aviso-acao-recusada-checkin"].firstMatch
         XCTAssertTrue(aviso.waitForExistence(timeout: 10))
         let fechar = app.buttons["fechar-aviso-acao-recusada-checkin"]
-        XCTAssertTrue(fechar.waitForExistence(timeout: 5))
+        XCTAssertTrue(fechar.waitForExistence(timeout: Espera.aparecer))
         tocar(fechar)
         // 10 s, como as outras esperas do aviso: no runner da CI uma só consulta à árvore de
         // acessibilidade levou 4,2 s (execução 37504092755), e a espera de 5 s estourou na primeira.
         XCTAssertTrue(aviso.waitForNonExistence(timeout: 10), "o aviso não fechou depois do toque em fechar")
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
         tocar(app.buttons["meu-turno-\(turnoID)"])
-        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(aviso.exists, "o reconhecimento persiste ao reabrir a tela")
         XCTAssertFalse(app.buttons["fazer-checkin"].exists)
     }
@@ -67,11 +67,11 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
         XCTAssertTrue(cartao.label.contains("Turno cancelado"))
         tocar(cartao)
-        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
         let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
-        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(cancelamento.label.contains("Você cancelou este turno."))
         XCTAssertTrue(cancelamento.label.contains("Este cancelamento não contou como falta."))
         for id in ["presenca-do-turno", "contato-do-turno", "cartao-avaliacao-turno"] {
@@ -89,7 +89,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         app.launch()
         abrirTurno(app)
         let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
-        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(cancelamento.label.contains("O estabelecimento reabriu a posição por atraso."))
         XCTAssertTrue(cancelamento.label.contains("Este cancelamento contou como falta."))
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
@@ -101,7 +101,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         app.launchArguments.append("-FRILA_CACHE_VAZIO_UI_TEST")
         app.launch()
         abrirTurno(app)
-        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["estado-do-turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
         XCTAssertFalse(app.descendants(matching: .any)["cancelamento-do-turno"].exists)
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
@@ -114,7 +114,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         app.launch()
         abrirTurno(app)
         let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
-        XCTAssertTrue(cancelamento.waitForExistence(timeout: 5))
+        XCTAssertTrue(cancelamento.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(cancelamento.label.contains("Cancelamento registrado."))
         XCTAssertTrue(cancelamento.label.contains("Este cancelamento não contou como falta."))
     }
@@ -133,19 +133,19 @@ final class TurnoContrato0231UITests: XCTestCase {
         abrirTurno(app)
         let avaliar = app.buttons["Avaliar turno"]
         for _ in 0..<5 where !avaliar.isHittable { app.swipeUp() }
-        XCTAssertTrue(avaliar.waitForExistence(timeout: 5))
+        XCTAssertTrue(avaliar.waitForExistence(timeout: Espera.aparecer))
         tocar(avaliar)
-        XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["resposta-nao"].waitForExistence(timeout: Espera.aparecer))
         tocar(app.buttons["resposta-nao"])
         tocar(app.buttons["botao-enviar-avaliacao"])
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-avaliacao"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-avaliacao"].waitForExistence(timeout: Espera.aparecer))
         tocar(app.navigationBars["Avaliar turno"].buttons.firstMatch)
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
         tocar(app.tabBars.buttons["Vagas no DF"])
         tocar(app.buttons["abrir-meu-perfil"])
         let sair = app.buttons["Sair"]
         for _ in 0..<5 where !sair.isHittable { app.swipeUp() }
-        XCTAssertTrue(sair.waitForExistence(timeout: 5))
+        XCTAssertTrue(sair.waitForExistence(timeout: Espera.aparecer))
         tocar(sair)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
@@ -198,7 +198,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
         let habilitado = NSPredicate(format: "enabled == true")
         let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
-        _ = XCTWaiter.wait(for: [espera], timeout: 5)
+        _ = XCTWaiter.wait(for: [espera], timeout: Espera.aparecer)
         XCTAssertTrue(botaoEnviar.isEnabled)
         tocar(botaoEnviar)
 

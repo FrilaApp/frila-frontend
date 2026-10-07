@@ -26,7 +26,7 @@ public struct CatalogoDesignSystem: View {
                     secao("Campos") { CampoFrila("E-mail", texto: $texto); CampoCodigo(codigo: $codigo) }
                     secao("Filtros e reputação") {
                         FiltroPill("Perto de mim", selecionado: filtro) { filtro.toggle() }
-                        SeloReputacao(Reputacao(positivas: 18, total: 20, taxaComparecimento: 0.95, turnosConsiderados: 20, turnosRealizados: 21))
+                        SeloReputacao(Reputacao(positivas: 18, total: 20, taxaComparecimento: 0.95, turnosConsiderados: 20, turnosRealizados: 19))
                         SeloReputacao(Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0))
                     }
                     secao("Mensagens") { AvisoFrila("Sua ação será enviada quando a conexão voltar."); EstadoOffline(); EstadoPendente("Check-in aguardando envio") }
@@ -71,7 +71,7 @@ public struct CatalogoDesignSystem: View {
         guard let periodo = try? Periodo(inicio: inicio, fim: inicio.addingTimeInterval(14_400)) else {
             preconditionFailure("Preview contém período inválido")
         }
-        let reputacao = Reputacao(positivas: 18, total: 20, taxaComparecimento: 0.95, turnosConsiderados: 20, turnosRealizados: 21)
+        let reputacao = Reputacao(positivas: 18, total: 20, taxaComparecimento: 0.95, turnosConsiderados: 20, turnosRealizados: 19)
         return VagaNaLista(
             id: UUID(),
             funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "Salão"),

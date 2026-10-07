@@ -14,15 +14,15 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         // 2. No perfil, aciona o item "Excluir conta"
         let botaoIrParaExclusao = app.buttons["perfil-excluir-conta"]
-        XCTAssertTrue(botaoIrParaExclusao.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoIrParaExclusao.waitForExistence(timeout: Espera.aparecer))
         botaoIrParaExclusao.tap()
 
         // 3. Verifica a tela de exclusão de conta e suas consequências
         let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
-        XCTAssertTrue(telaExclusao.waitForExistence(timeout: 5))
+        XCTAssertTrue(telaExclusao.waitForExistence(timeout: Espera.aparecer))
 
         let aviso = app.descendants(matching: .any)["aviso-consequencias-exclusao"]
-        XCTAssertTrue(aviso.waitForExistence(timeout: 5))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
 
         let capturaExclusao = XCTAttachment(screenshot: app.screenshot())
         capturaExclusao.name = "TelaExclusaoDeConta"
@@ -39,13 +39,13 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         // 5. Aciona o botão de exclusão definitiva
         let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
-        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: Espera.aparecer))
         let botaoHabilitado = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "isEnabled == true"),
             object: botaoExcluir
         )
         XCTAssertEqual(
-            XCTWaiter.wait(for: [botaoHabilitado], timeout: 5), .completed,
+            XCTWaiter.wait(for: [botaoHabilitado], timeout: Espera.aparecer), .completed,
             "Botão de exclusão definitiva deve ser habilitado após confirmar as consequências"
         )
         if !botaoExcluir.isHittable {
@@ -78,12 +78,12 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         // 2. Na tela de perfil do estabelecimento, aciona "Excluir conta"
         let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
-        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: 5), "Botão de excluir conta do estabelecimento deve estar visível")
+        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: Espera.aparecer), "Botão de excluir conta do estabelecimento deve estar visível")
         botaoExcluir.tap()
 
         // 3. Chega à tela de exclusão de conta
         let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
-        XCTAssertTrue(telaExclusao.waitForExistence(timeout: 5), "Deve chegar à tela de exclusão de conta")
+        XCTAssertTrue(telaExclusao.waitForExistence(timeout: Espera.aparecer), "Deve chegar à tela de exclusão de conta")
     }
 
     func testContratanteComTurnosFuturosVisualizaVinculosEListaIncompletaNaExclusao() {
@@ -98,16 +98,16 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         // 2. Na tela de perfil do estabelecimento, aciona "Excluir conta"
         let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
-        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: 5), "Botão de excluir conta do estabelecimento deve estar visível")
+        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: Espera.aparecer), "Botão de excluir conta do estabelecimento deve estar visível")
         botaoExcluir.tap()
 
         // 3. Chega à tela de exclusão de conta
         let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
-        XCTAssertTrue(telaExclusao.waitForExistence(timeout: 5), "Deve chegar à tela de exclusão de conta")
+        XCTAssertTrue(telaExclusao.waitForExistence(timeout: Espera.aparecer), "Deve chegar à tela de exclusão de conta")
 
         // 4. Verifica que o turno futuro confirmado do estabelecimento é listado como vínculo
         let itemTurno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
-        XCTAssertTrue(itemTurno.waitForExistence(timeout: 5), "Turno futuro do contratante deve ser exibido")
+        XCTAssertTrue(itemTurno.waitForExistence(timeout: Espera.aparecer), "Turno futuro do contratante deve ser exibido")
         XCTAssertFalse(app.staticTexts["texto-sem-turnos-futuros"].exists)
         XCTAssertTrue(app.staticTexts["Turnos futuros vinculados à conta"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["aviso-lista-turnos-exclusao"].exists)
@@ -130,7 +130,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         // 3. Verifica que a tela de exclusão abre em folha
         let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
-        XCTAssertTrue(telaExclusao.waitForExistence(timeout: 5), "Tela de exclusão de conta deve ser apresentada")
+        XCTAssertTrue(telaExclusao.waitForExistence(timeout: Espera.aparecer), "Tela de exclusão de conta deve ser apresentada")
 
         // 4. Confirma consequências e executa a exclusão
         let toggle = app.switches["toggle-confirmar-consequencias"]
@@ -141,13 +141,13 @@ final class ExclusaoDeContaUITests: XCTestCase {
         }
 
         let botaoConfirmarDefinitivo = app.buttons["botao-excluir-conta-definitivo"]
-        XCTAssertTrue(botaoConfirmarDefinitivo.waitForExistence(timeout: 5))
+        XCTAssertTrue(botaoConfirmarDefinitivo.waitForExistence(timeout: Espera.aparecer))
         let botaoHabilitado = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "isEnabled == true"),
             object: botaoConfirmarDefinitivo
         )
         XCTAssertEqual(
-            XCTWaiter.wait(for: [botaoHabilitado], timeout: 5), .completed,
+            XCTWaiter.wait(for: [botaoHabilitado], timeout: Espera.aparecer), .completed,
             "Botão de exclusão definitiva deve ser habilitado após confirmar as consequências"
         )
         if !botaoConfirmarDefinitivo.isHittable {
@@ -174,10 +174,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         botaoPerfil.tap()
 
         let irParaExclusao = app.buttons["perfil-excluir-conta"]
-        XCTAssertTrue(irParaExclusao.waitForExistence(timeout: 5))
+        XCTAssertTrue(irParaExclusao.waitForExistence(timeout: Espera.aparecer))
         rolarAte(irParaExclusao, em: app)
         irParaExclusao.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-exclusao-de-conta"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["tela-exclusao-de-conta"].waitForExistence(timeout: Espera.aparecer))
         anexar(app, "ExclusaoEmAX5Topo")
         // Captura do item de consequência em AX5: o ícone vai acima do texto, sem invadi-lo.
         let consequencia = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Os turnos futuros'")).firstMatch
@@ -189,7 +189,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         // Em AX5 o elemento do Toggle é quase todo rótulo, e o toque no rótulo não alterna: vai no interruptor.
         let toggle = app.switches["toggle-confirmar-consequencias"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertTrue(toggle.waitForExistence(timeout: Espera.aparecer))
         let interruptor = toggle.switches.firstMatch
         rolarAte(interruptor, em: app)
         anexar(app, "ExclusaoEmAX5Rolada")
@@ -197,13 +197,13 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
         let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: botaoExcluir)
-        XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: 5), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: Espera.aparecer), .completed)
         rolarAte(botaoExcluir, em: app)
         botaoExcluir.tap()
 
         let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
         let confirmar = app.buttons["botao-confirmar-exclusao-dialogo"]
-        XCTAssertTrue(cancelar.waitForExistence(timeout: 5), "A confirmação deve ter o Cancelar")
+        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer), "A confirmação deve ter o Cancelar")
         anexar(app, "ConfirmacaoDeExclusaoEmAX5")
         XCTAssertTrue(cancelar.isHittable, "Em AX5, o Cancelar fica tocável sem rolar")
         XCTAssertTrue(confirmar.isHittable, "Em AX5, o Confirmar fica tocável sem rolar")
@@ -229,14 +229,14 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
     private func confirmarExclusaoNoDialogo(no app: XCUIApplication) {
         let botaoConfirmar = app.buttons.matching(identifier: "botao-confirmar-exclusao-dialogo").firstMatch
-        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: 5), "Diálogo de confirmação deve aparecer")
+        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: Espera.aparecer), "Diálogo de confirmação deve aparecer")
 
         let tocavel = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "isHittable == true"),
             object: botaoConfirmar
         )
         XCTAssertEqual(
-            XCTWaiter.wait(for: [tocavel], timeout: 5), .completed,
+            XCTWaiter.wait(for: [tocavel], timeout: Espera.aparecer), .completed,
             "Botão de confirmação de exclusão deve ficar tocável no diálogo"
         )
 

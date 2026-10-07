@@ -436,7 +436,7 @@ struct CatalogoStringsTests {
             Issue.record("Período de teste inválido")
             return
         }
-        let reputacao = Reputacao(positivas: 18, total: 20, taxaComparecimento: 0.95, turnosConsiderados: 20, turnosRealizados: 21)
+        let reputacao = Reputacao(positivas: 18, total: 20, taxaComparecimento: 0.95, turnosConsiderados: 20, turnosRealizados: 19)
 
         let vagaUmaPosicao = VagaNaLista(
             id: UUID(),

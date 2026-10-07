@@ -20,6 +20,25 @@ app="$1"
 info_plist="$app/Info.plist"
 [[ -f "$info_plist" ]] || falhar "Info.plist não encontrado no bundle: $info_plist"
 
+# O nome no plist sozinho não garante que o catálogo compilou o desenho do ícone.
+icone="$(python3 - "$info_plist" <<'PYICONE'
+import plistlib, sys
+with open(sys.argv[1], "rb") as arquivo:
+    info = plistlib.load(arquivo)
+primario = info.get("CFBundleIcons", {}).get("CFBundlePrimaryIcon", {})
+nome = info.get("CFBundleIconName") or primario.get("CFBundleIconName")
+print(nome if isinstance(nome, str) and nome.strip() else "")
+PYICONE
+)"
+[[ -n "$icone" ]] || falhar "bundle sem ícone: Info.plist não declara CFBundleIconName do ícone principal"
+[[ -f "$app/Assets.car" ]] || falhar "bundle sem ícone: Assets.car não encontrado"
+if ! catalogo="$(xcrun assetutil --info "$app/Assets.car" 2>/dev/null)"; then
+  falhar "não foi possível conferir o ícone em Assets.car"
+fi
+if ! printf '%s' "$catalogo" | python3 -c 'import json, sys; nome = sys.argv[1]; sys.exit(0 if any(a.get("Name") == nome and a.get("AssetType") == "Icon Image" for a in json.load(sys.stdin)) else 1)' "$icone"; then
+  falhar "bundle sem ícone: '$icone' não encontrado como imagem em Assets.car"
+fi
+
 # O valor tem de ser exatamente o booleano false: procurar <false/> no XML aceitaria um array ou
 # um dicionário que contivesse false, e a string "NO" não é o que o App Store Connect lê.
 criptografia="$(python3 - "$info_plist" <<'PYCRIPTO'
