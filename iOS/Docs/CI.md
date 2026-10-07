@@ -163,9 +163,90 @@ Regras do build:
    - `FRILA_SUPABASE_DEV_URL` e `FRILA_SUPABASE_DEV_PUBLISHABLE_KEY`;
    - `FRILA_SUPABASE_PROD_URL` e `FRILA_SUPABASE_PROD_PUBLISHABLE_KEY`;
    - `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64` e `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64`.
-3. **TestFlight.** No app `com.frila.org.app`, crie o grupo interno com os cinco e ligue a
-   distribuição automática. Assim cada build processado chega ao grupo sem outro passo. As notas "O
-   que testar" de cada build também são escritas no App Store Connect.
+3. **TestFlight.** Depois dos três segredos, use o workflow **App Store Connect** descrito abaixo
+   para preparar o grupo interno com os cinco, com acesso a todos os builds. As notas "O que testar"
+   de cada build continuam sendo escritas no App Store Connect.
+
+### Operar a App Store Connect pela API
+
+O `.github/workflows/app-store-connect.yml` só roda por `workflow_dispatch`, com os mesmos três
+segredos da chave de equipe Admin usados pelo TestFlight. `Scripts/app-store-connect.rb` assina
+um JWT ES256 em memória; nem a chave `.p8` nem o token viram arquivo ou artefato. Se faltar algum
+segredo, a primeira etapa depois do checkout falha indicando os nomes, antes de acessar a API.
+Esse workflow não compila nem envia o app.
+
+Em **Actions > App Store Connect > Run workflow**, no `main`:
+
+1. Rode primeiro `acao=conferir`, com `aplicar` desmarcado. O log mostra o app `com.frila.org.app`,
+   grupos, contagem de testadores por grupo, cada `appInfo` e suas respostas de classificação.
+   `conferir` sempre faz somente GET, mesmo se `aplicar` estiver marcado.
+2. Para o grupo, escolha `acao=grupo-interno`, informe o nome exato (padrão `Equipe Frila`) e os
+   cinco e-mails no campo `testadores`, separados por vírgula. Rode primeiro sem `aplicar` para ver
+   o plano e depois com `aplicar` para executá-lo. Um grupo interno com esse nome é reutilizado;
+   deve já ter `hasAccessToAllBuilds=true`. A API aceita esse atributo na criação, mas não no
+   `BetaGroupUpdateRequest`; se estiver desabilitado num grupo existente, o job para sem alterações.
+   Um nome externo ou duplicado também interrompe a operação.
+   Ninguém é removido. O script só inclui usuários que já constam na equipe, com papel elegível e
+   acesso ao app; ele não cria convites de equipe nem altera papéis ou permissões.
+3. Para a classificação, escolha `acao=classificacao` e confira `verificacao_idade`: marcado
+   quando a versão incluir Declared Age Range do PR 95, desmarcado caso contrário. O plano segue
+   o questionário do cartão #215: conteúdo gerado pelo usuário Sim, chat Não, os demais itens Não
+   ou Nenhum, fora de Made for Kids, e `ageRatingOverrideV2=EIGHTEEN_PLUS`. Para aplicar, marque
+   também `sem_referencias_alcool` **depois da confirmação pessoal** exigida pelo item 5 do arquivo
+   de passos. Sem essa confirmação, a consulta e o plano funcionam, mas a escrita é recusada.
+   Só um `appInfo` em `PREPARE_FOR_SUBMISSION` pode ser alterado. Se não existir, o script para;
+   não cria nem envia uma versão. Após o PATCH, relê e confere as respostas, mostrando antes e depois.
+
+E-mails não entram no repositório nem no log do script. Cada resultado usa **Testador 1, 2, …**, na
+ordem da lista do disparo, inclusive quando há repetição. Guarde essa ordem para identificar quem
+ficou de fora. Pendência de convite, papel ou acesso inadequado e recusas individuais da Apple são
+reportadas; o job termina com falha se alguém não pôde entrar, preservando as associações aceitas.
+Uma repetição consulta o estado atual e não duplica grupo nem associações. As entradas do disparo
+ficam no evento do GitHub Actions: não são um segredo do repositório. Restrinja o acesso ao workflow
+à equipe que já pode administrá-lo; não cole esses dados em PRs, exemplos ou relatórios.
+
+As entradas são lidas de `GITHUB_EVENT_PATH`, sem interpolação em comandos ou em `env:` que o runner
+imprimiria antes do mascaramento. O script registra máscaras `::add-mask::` para chave, linhas da
+chave, IDs, JWT e e-mails da entrada.
+Não use depuração de shell, não imprima as variáveis e não publique o payload do evento.
+
+Prova local sem rede e sem chave:
+
+```sh
+ruby iOS/Scripts/teste-app-store-connect.rb
+```
+
+As respostas são exemplos sintéticos em `Scripts/FixturesAppStoreConnect/respostas.json`; o
+transporte e a assinatura dos testes são fictícios. A prova real permanece pendente até a chave:
+autenticação e permissões, existência e editabilidade do `appInfo`, aceitação dos testadores e
+distribuição de um build processado. O log lê a classificação calculada no `appInfo` e verifica
+o override 18+. A apresentação **Operating Systems Earlier than Version 26** não foi encontrada
+nessa resposta da API e continua exigindo conferência separada; não é inferida como 18+.
+
+Fontes oficiais das chamadas:
+
+- [Autenticação JWT](https://developer.apple.com/documentation/appstoreconnectapi/generating-tokens-for-api-requests)
+  e [listar apps](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-apps).
+- [Criar grupo](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betagroups),
+  [atributos da criação](https://developer.apple.com/documentation/appstoreconnectapi/betagroupcreaterequest/data-data.dictionary/attributes-data.dictionary),
+  [limites dos atributos de atualização](https://developer.apple.com/documentation/appstoreconnectapi/betagroupupdaterequest/data-data.dictionary/attributes-data.dictionary),
+  [listar grupos do app](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-apps-_id_-betagroups)
+  e [listar testadores do grupo](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-betagroups-_id_-betatesters).
+- [Listar usuários da equipe](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-users),
+  [apps acessíveis ao usuário](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-users-_id_-visibleapps),
+  [listar testadores](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-betatesters),
+  [criar recurso TestFlight](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betatesters)
+  e [associar ao grupo](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betagroups-_id_-relationships-betatesters).
+- [Listar app infos](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-apps-_id_-appinfos),
+  [ler declaração](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-appinfos-_id_-ageratingdeclaration),
+  [alterar declaração](https://developer.apple.com/documentation/appstoreconnectapi/patch-v1-ageratingdeclarations-_id_)
+  e [atributos do questionário e override 18+](https://developer.apple.com/documentation/appstoreconnectapi/ageratingdeclarationupdaterequest/data-data.dictionary/attributes-data.dictionary).
+
+**Inferência:** `hasAccessToAllBuilds=true` corresponde à distribuição automática descrita na
+[ajuda da Apple](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers).
+A referência do atributo não explica essa equivalência; confirmar com o primeiro build processado.
+Os documentos de `appInfos` e da declaração permitem a edição antes de submeter o app à revisão;
+a ausência de exigência de build enviado nesse caminho também é inferência, a conferir no Frila.
 
 ### Mandar o 0.4 (20/10)
 

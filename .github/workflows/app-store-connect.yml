@@ -1,0 +1,74 @@
+name: App Store Connect
+
+# Metadados pela API, independente do envio do build. Só o disparo manual executa.
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "Consultar, preparar grupo interno ou responder a classificação"
+        type: choice
+        options: [conferir, grupo-interno, classificacao]
+        default: conferir
+        required: true
+      aplicar:
+        description: "Aplicar mudanças (desmarcado: apenas consulta e plano)"
+        type: boolean
+        default: false
+      testadores:
+        description: "E-mails da equipe, separados por vírgula; somente para grupo-interno"
+        type: string
+        required: false
+      grupo:
+        description: "Nome exato do grupo interno (reutiliza se já existir)"
+        type: string
+        default: Equipe Frila
+      verificacao_idade:
+        description: "A versão inclui Declared Age Range do PR 95 (Age Assurance = Sim)"
+        type: boolean
+        default: true
+      sem_referencias_alcool:
+        description: "Confirmei pessoalmente ausência de referências a álcool, tabaco e drogas"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-store-connect-metadados
+  cancel-in-progress: false
+
+jobs:
+  metadados:
+    name: Grupo interno e classificação pela API
+    runs-on: macos-26
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: iOS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Conferir os três segredos antes de qualquer chamada
+        env:
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          ASC_VALIDAR_SEGREDOS: "true"
+        run: ruby Scripts/app-store-connect.rb
+
+      - name: Testar o script sem rede e sem chave
+        run: ruby Scripts/teste-app-store-connect.rb
+
+      - name: Consultar ou aplicar metadados
+        env:
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          # Entradas são lidas do GITHUB_EVENT_PATH pelo script, sem env que
+          # o runner imprimiria antes de mascarar os e-mails.
+        run: ruby Scripts/app-store-connect.rb
