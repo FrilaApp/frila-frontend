@@ -83,7 +83,8 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
     }
 
     func testPublicarPorMinhasVagasOfereceModoSelecao() {
-        let app = abrir()
+        // MS-RF01 (0.2.38): a opção Seleção só aparece com o início a mais de 24 horas.
+        let app = abrir(["-FRILA_PUBLICAR_INICIO_EM_HORAS", "30"])
 
         XCTAssertTrue(app.buttons["publicar-vaga-entrada"].waitForExistence(timeout: 15))
         app.buttons["publicar-vaga-entrada"].tap()
@@ -101,6 +102,21 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         modo.buttons["Seleção"].tap()
         XCTAssertTrue(modo.buttons["Seleção"].isSelected)
         XCTAssertTrue(explicacao.label.contains("O início precisa estar a mais de 24 horas"), explicacao.label)
+    }
+
+    func testPublicarPorMinhasVagasSemAntecedenciaNaoOfereceSelecao() {
+        // MS-RF01 (0.2.38): com o início a 24 horas ou menos, o formulário só oferece Urgência.
+        let app = abrir(["-FRILA_PUBLICAR_INICIO_EM_HORAS", "6"])
+
+        XCTAssertTrue(app.buttons["publicar-vaga-entrada"].waitForExistence(timeout: 15))
+        app.buttons["publicar-vaga-entrada"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+
+        let modo = app.segmentedControls["modo-vaga-picker"]
+        rolarAte(modo, em: app)
+        XCTAssertTrue(modo.exists, "o seletor de modo continua na tela")
+        XCTAssertTrue(modo.buttons["Urgência"].isSelected)
+        XCTAssertFalse(modo.buttons["Seleção"].exists, "sem 24 horas de antecedência, Seleção não é oferecida")
     }
 
     func testErroAoLerEstabelecimentoMostraMensagemEVoltarReencontraLista() {
