@@ -110,8 +110,12 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
       distribuição e usa um certificado gerenciado na nuvem pela Apple. O certificado de distribuição
       e a chave privada dele não ficam no repositório nem nos segredos; o único segredo novo é a
       chave da API.
-   3. **Conferência** do app assinado: o `conferir-release.sh` (criptografia, privacidade, ganchos de
-      Debug, `aps-environment` de produção) e `get-task-allow` falso.
+   3. **Conferência** após descompactar o IPA: `diagnosticar-assinatura.py` verifica o archive e o
+      export com `codesign --verify --deep --strict`, incluindo cada framework e extensão. Registra
+      requisito designado, certificado, validade, equipe e correspondência com o perfil, sem
+      publicar binários ou o perfil inteiro. Assinatura inválida interrompe o fluxo antes dos
+      símbolos e do upload. Depois, `conferir-release.sh` confere criptografia, privacidade,
+      ganchos de Debug e `aps-environment` de produção; o script exige `get-task-allow` falso.
    4. **Símbolos**: o dSYM do app e o dos quatro frameworks vão ao Crashlytics do ambiente, com duas
       tentativas. Se não subirem, o build não vai ao TestFlight. A Apple também recebe os símbolos
       (`uploadSymbols`).
@@ -128,6 +132,57 @@ Regras do build:
   (`manageAppVersionAndBuildNumber` desligado).
 - **Criptografia:** o `Info.plist` declara `ITSAppUsesNonExemptEncryption` como `false`, conferido
   pelo `conferir-release.sh`. Por isso o build não pede a resposta manual sobre criptografia.
+
+### Diagnóstico do 90035 em 08/10/2026 UTC
+
+A [execução 37714291333](https://github.com/FrilaApp/frila-frontend/actions/runs/37714291333),
+`Frila-Beta` 0.4.0, provou a incompatibilidade Unicode no requisito designado da assinatura
+na nuvem. A comparação de `certificate leaf[subject.CN]` usa bytes diferentes:
+
+| Dado medido no IPA exportado | Resultado |
+|---|---|
+| Nome no requisito designado | `Cauê` em NFD: `65 cc 82` para `ê` |
+| Comparação do CN do certificado em NFC | `c3 aa` para `ê`; `codesign -R` termina com 0 |
+| Comparação do mesmo CN em NFD | `codesign -R` termina com 3 |
+| Verificação estrita do app, quatro frameworks e extensão | Código válido em disco, requisito designado não satisfeito; status 3 |
+| SHA-256 do certificado de distribuição na nuvem | `f65002c2bd0f9ad51df04557b3b6b9b27833803a9dc0326492a1f502c14c135f` |
+
+O archive passa na verificação estrita com Apple Development. O export usa Apple Distribution,
+equipe `8B7F7G3Y2U`, `get-task-allow=false` e `aps-environment=production` no app. Os perfis do
+app e da extensão contêm o SHA-256 do certificado usado. Certificado e perfis vencem em
+03/09/2027; o relógio registrado é 08/10/2026 UTC. A cadeia apresentada contém WWDR e Apple
+Root CA. Esses dados separam o defeito no requisito Unicode de troca de equipe, expiração,
+perfil incompatível ou export ainda assinado como Development.
+
+A [primeira execução de diagnóstico](https://github.com/FrilaApp/frila-frontend/actions/runs/37713601140)
+confirmou o archive, mas tentou ler o IPA antes de descompactá-lo e voltou a receber 90035 no
+upload. A segunda corrigiu a ordem e interrompeu o envio após mostrar a assinatura inválida.
+Foram duas execuções; **nenhum upload desta missão foi aceito pela Apple**.
+
+Prova local executada: um binário descartável assinado com o certificado local de distribuição
+da mesma equipe satisfaz o requisito com o CN em NFC. Reassiná-lo com o requisito em NFD
+reproduz `valid on disk` seguido de `does not satisfy its designated Requirement`.
+O certificado local tem SHA-256
+`38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`, diferente do certificado
+na nuvem. Isso prova a diferença na comparação; não prova um upload com assinatura local.
+
+A [Apple documenta a assinatura na nuvem e a seleção de certificado local](https://developer.apple.com/help/account/certificates/cloud-managed-certificates/)
+e o [fluxo com `xcodebuild -exportArchive` e chave da API](https://developer.apple.com/videos/play/wwdc2021/10204/).
+**Inferência:** fornecer à CI a identidade local de distribuição que passou na prova permite
+contornar a geração defeituosa do requisito pela assinatura na nuvem. Essa alternativa não
+foi executada: importar sua chave privada na CI exige uma configuração de credenciais fora
+do escopo desta missão. O PR adiciona diagnóstico e bloqueio de assinatura inválida; a
+correção da assinatura na nuvem e o upload aceito continuam pendentes para o Nick Fury.
+
+Regressão dos scripts, sem conta Apple ou credenciais:
+
+```sh
+python3 iOS/Scripts/teste-diagnosticar-assinatura.py
+```
+
+Os três testes executados cobrem código válido, requisito designado incompatível e caminho
+ausente. Não foi executada a suíte de testes do app iOS; as alterações são só nos scripts e
+nesta documentação.
 
 ### O que o Cauê faz uma vez
 

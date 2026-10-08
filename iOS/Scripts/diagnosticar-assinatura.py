@@ -46,13 +46,13 @@ for raiz in map(pathlib.Path, sys.argv[1:]):
                 sujeito = texto.split("issuer=", 1)[0]
                 cn = next((linha.strip()[3:] for linha in sujeito.splitlines()
                            if linha.strip().startswith("CN=")), None)
-                if cn:
+                if cn and not cn.isascii():
                     for forma in ("NFC", "NFD"):
                         valor = unicodedata.normalize(forma, cn).encode().hex()
                         requisito = f"=certificate leaf[subject.CN] = 0x{valor}"
                         codigo, _, erro = executar("codesign", "--verify", "--strict", "-R",
                                                     requisito, str(bundle))
-                        print(f"CN {forma} hex={valor}: status={codigo} {erro.decode(errors='replace').strip()}")
+                        print(f"Comparação do CN em {forma}: status={codigo} {erro.decode(errors='replace').strip()}")
             perfil = bundle / "embedded.mobileprovision"
             if perfil.exists():
                 codigo, saida, _ = executar("security", "cms", "-D", "-i", str(perfil))
