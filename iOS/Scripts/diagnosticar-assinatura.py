@@ -14,7 +14,13 @@ def executar(*args):
     return resultado.returncode, resultado.stdout, resultado.stderr
 
 
+if len(sys.argv) < 2:
+    sys.exit("error: informe o app assinado para conferir")
+
+falhas = 0
 for raiz in map(pathlib.Path, sys.argv[1:]):
+    if not raiz.exists():
+        sys.exit(f"error: código assinado não encontrado: {raiz}")
     bundles = [raiz, *sorted(raiz.glob("Frameworks/*.framework")),
                *sorted(raiz.glob("PlugIns/*.appex"))]
     for bundle in bundles:
@@ -22,6 +28,8 @@ for raiz in map(pathlib.Path, sys.argv[1:]):
         for opcoes in [("-dvv", "-r-"), ("--verify", "--deep", "--strict", "--verbose=4")]:
             codigo, saida, erro = executar("codesign", *opcoes, str(bundle))
             print(f"codesign {' '.join(opcoes)}: status={codigo}")
+            if codigo != 0:
+                falhas += 1
             print((saida + erro).decode(errors="replace").strip())
         with tempfile.TemporaryDirectory(prefix="frila-certificado-") as pasta:
             prefixo = str(pathlib.Path(pasta) / "certificado-")
@@ -56,3 +64,6 @@ for raiz in map(pathlib.Path, sys.argv[1:]):
                           f"aps={ent.get('aps-environment')}")
                     certificados = [hashlib.sha256(c).hexdigest() for c in dados.get("DeveloperCertificates", [])]
                     print(f"SHA256 certificados do perfil: {certificados}")
+
+if falhas:
+    sys.exit("error: assinatura inválida; envio ao TestFlight interrompido")
