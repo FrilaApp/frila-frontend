@@ -41,7 +41,7 @@ for raiz in map(pathlib.Path, sys.argv[1:]):
                 if cn:
                     for forma in ("NFC", "NFD"):
                         valor = unicodedata.normalize(forma, cn).encode().hex()
-                        requisito = f"certificate leaf[subject.CN] = 0x{valor}"
+                        requisito = f"=certificate leaf[subject.CN] = 0x{valor}"
                         codigo, _, erro = executar("codesign", "--verify", "--strict", "-R",
                                                     requisito, str(bundle))
                         print(f"CN {forma} hex={valor}: status={codigo} {erro.decode(errors='replace').strip()}")
