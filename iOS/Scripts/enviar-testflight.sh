@@ -181,6 +181,11 @@ exportar export "$EXPORTADO"
 IPA="$(find "$EXPORTADO" -maxdepth 1 -name '*.ipa' -print -quit)"
 [[ -n "$IPA" ]] || falhar "o export não gerou .ipa em $EXPORTADO"
 
+# Diagnóstico do 90035: somente metadados públicos, antes do envio.
+date -u
+security find-identity -v -p codesigning
+python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" "$APP_ARQUIVADO" "$IPA_ABERTO/Payload/Frila.app"
+
 # 3. Conferência do app assinado: criptografia, privacidade, ganchos de Debug e aps-environment de
 # produção vêm do conferir-release.sh; get-task-allow falso confirma a assinatura de distribuição.
 ditto -x -k "$IPA" "$IPA_ABERTO"
