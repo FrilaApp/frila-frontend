@@ -97,7 +97,11 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
 
 1. Confere a tag (no `main`, formato `vX.Y.Z`) ou as entradas do disparo manual, e calcula o número
    do build.
-2. Seleciona o Xcode 26.6 e restaura os pacotes SPM do cache da CI de PR, só para leitura.
+2. Seleciona o Xcode 26.6. `assinatura-local-ci.py` importa a identidade Apple Distribution num
+   keychain temporário, mantém os keychains anteriores na busca e prova o acesso à chave privada
+   assinando e verificando um binário descartável. Exige uma identidade válida da equipe do projeto.
+   O `.p12` é apagado logo após a importação; as credenciais e a senha aleatória do keychain são
+   mascaradas. Depois, restaura os pacotes SPM do cache da CI de PR, só para leitura.
 3. Gera o `Secrets.xcconfig` e o `GoogleService-Info.plist` do ambiente: dev para o Beta, prod para o
    Prod.
 4. Grava a chave `.p8` num arquivo temporário com permissão 600.
@@ -106,21 +110,26 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
       projeto. Com `-allowProvisioningUpdates` e a chave, o xcodebuild cria o perfil e o certificado
       de desenvolvimento que faltarem na máquina da CI. A assinatura ad hoc não serve: o Xcode exige
       perfil para o app iOS (medido em 03/10).
-   2. **Export** para o App Store Connect com assinatura automática. O Xcode cria o perfil de
-      distribuição e usa um certificado gerenciado na nuvem pela Apple. O certificado de distribuição
-      e a chave privada dele não ficam no repositório nem nos segredos; o único segredo novo é a
-      chave da API.
+   2. **Export** para o App Store Connect com assinatura automática e a identidade local importada.
+      `-allowProvisioningUpdates` e a chave da API permitem ao Xcode obter ou atualizar os perfis
+      automáticos. O keychain temporário fica primeiro na busca, sem alterar o keychain padrão usado
+      pelo archive Development. A conferência seguinte exige o certificado importado no IPA e nos
+      perfis, interrompendo o fluxo se o Xcode escolher outra identidade.
    3. **Conferência** após descompactar o IPA: `diagnosticar-assinatura.py` verifica o archive e o
       export com `codesign --verify --deep --strict`, incluindo cada framework e extensão. Registra
       requisito designado, certificado, validade, equipe e correspondência com o perfil, sem
-      publicar binários ou o perfil inteiro. Assinatura inválida interrompe o fluxo antes dos
+      publicar binários ou o perfil inteiro. No IPA, exige SHA-256 igual ao certificado importado em
+      cada binário; app e extensão precisam de perfil válido da equipe e do bundle, contendo esse
+      certificado e `get-task-allow=false`. Assinatura inválida interrompe o fluxo antes dos
       símbolos e do upload. Depois, `conferir-release.sh` confere criptografia, privacidade,
       ganchos de Debug e `aps-environment` de produção; o script exige `get-task-allow` falso.
    4. **Símbolos**: o dSYM do app e o dos quatro frameworks vão ao Crashlytics do ambiente, com duas
       tentativas. Se não subirem, o build não vai ao TestFlight. A Apple também recebe os símbolos
       (`uploadSymbols`).
    5. **Envio**: um segundo export, com `destination: upload` e a mesma assinatura.
-6. Apaga a chave, os segredos, o archive, o `.ipa` e o DerivedData, mesmo quando uma etapa falha.
+6. Restaura a lista anterior de keychains e apaga o keychain temporário com a identidade, mesmo
+   quando uma etapa falha. Um passo separado apaga a chave da API, os segredos, o archive, o `.ipa` e
+   o DerivedData.
    Nada vira artefato do Actions, porque o `.ipa` traz o plist do Firebase e a chave publicável do
    Supabase.
 
@@ -169,20 +178,50 @@ na nuvem. Isso prova a diferença na comparação; não prova um upload com assi
 A [Apple documenta a assinatura na nuvem e a seleção de certificado local](https://developer.apple.com/help/account/certificates/cloud-managed-certificates/)
 e o [fluxo com `xcodebuild -exportArchive` e chave da API](https://developer.apple.com/videos/play/wwdc2021/10204/).
 **Inferência:** fornecer à CI a identidade local de distribuição que passou na prova permite
-contornar a geração defeituosa do requisito pela assinatura na nuvem. Essa alternativa não
-foi executada: importar sua chave privada na CI exige uma configuração de credenciais fora
-do escopo desta missão. O PR adiciona diagnóstico e bloqueio de assinatura inválida; a
-correção da assinatura na nuvem e o upload aceito continuam pendentes para o Nick Fury.
+contornar a geração defeituosa do requisito pela assinatura na nuvem. A mudança agora prepara essa
+identidade na CI, autorizada pelo Cauê em 07/10. O export real com a nova configuração e o upload
+aceito ainda não foram executados: o teto de duas execuções foi consumido e exige nova autorização.
 
-Regressão dos scripts, sem conta Apple ou credenciais:
+#### Perfis e certificado local
+
+A mesma [execução de diagnóstico](https://github.com/FrilaApp/frila-frontend/actions/runs/37714291333)
+mostrou, nos perfis exportados **do app e da extensão**, o SHA-256 local
+`38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28` além do certificado da nuvem.
+Logo, a hipótese da retomada de que os perfis só incluíam o certificado da nuvem foi refutada pelo
+log. Para esse certificado local, ambos os perfis já satisfazem o vínculo certificado/perfil.
+
+A [Apple informa que o Xcode gerencia os perfis de distribuição no modo automático](https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile/)
+e que [o Xcode solicita um novo perfil quando nenhum perfil local atende aos requisitos](https://developer.apple.com/help/account/provisioning-profiles/edit-download-or-delete-profiles/).
+Mantemos `signingStyle=automatic`, `teamID` e `-allowProvisioningUpdates` nos dois exports, com a
+chave da API existente. Se for necessário um novo perfil, o Xcode pode criá-lo/atualizá-lo para a
+identidade disponível. Não usamos `signingCertificate`: o `xcodebuild -help` do Xcode 26.6 define
+essa opção para assinatura manual. Se o Xcode não obtiver um perfil compatível, o export falha;
+se exportar outra identidade ou perfil incompatível, a conferência bloqueia os símbolos e o upload.
+
+O ciclo do keychain segue o [exemplo oficial do GitHub para assinatura Xcode](https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/sign-xcode-applications),
+com permissões de arquivo 600, desbloqueio e autorização do codesign sem interação. A busca anterior
+é preservada e restaurada, e a limpeza fica registrada antes da importação, inclusive para o passo
+`always()` em caso de falha.
+
+Regressão dos scripts, sem conta Apple ou credenciais reais:
 
 ```sh
 python3 iOS/Scripts/teste-diagnosticar-assinatura.py
+python3 iOS/Scripts/teste-assinatura-local-ci.py
 ```
 
-Os três testes executados cobrem código válido, requisito designado incompatível e caminho
-ausente. Não foi executada a suíte de testes do app iOS; as alterações são só nos scripts e
-nesta documentação.
+Os 14 testes do diagnóstico cobrem assinatura válida, requisito designado incompatível, caminho
+inexistente, ausência/troca de certificado, perfis incompatíveis e extensão sem perfil. Os 9 testes
+do importador simulam `security`/`codesign`: importação, preservação/restauração de keychains,
+limpeza, credenciais ausentes/inválidas, equipe errada e falha de requisito designado, sem publicar
+saída de subprocessos que recebem segredos. Esses testes não provam a importação real do `.p12`.
+
+Também foi executada uma nova prova local com a chave já instalada no Mac, sem exportá-la:
+`codesign --verify --strict` e o requisito Apple Distribution/equipe passaram; o diagnóstico aceitou
+seu SHA-256 e bloqueou um SHA-256 diferente. O registro local é
+`.workers/homem-aranha/diagnostico-testflight/prova-local-distribuicao-autorizada.log`.
+Não foram executados `exportArchive`, upload nem a suíte do app iOS nesta preparação. Os binários
+descartáveis foram apagados; não houve DerivedData ou `.xcresult` local.
 
 ### O que o Cauê faz uma vez
 
@@ -209,6 +248,11 @@ nesta documentação.
    | `APP_STORE_CONNECT_API_KEY_ID` | o Key ID |
    | `APP_STORE_CONNECT_API_ISSUER_ID` | o Issuer ID |
    | `APP_STORE_CONNECT_API_KEY_P8` | o conteúdo do `.p8`, inteiro, com as linhas `BEGIN` e `END` |
+   | `APPLE_DISTRIBUTION_CERT_P12_BASE64` | `.p12` da identidade local Apple Distribution, com chave privada, codificado em base64 |
+   | `APPLE_DISTRIBUTION_CERT_P12_PASSWORD` | senha do `.p12` |
+
+   O Cauê exporta a identidade local com senha e grava os dois segredos de distribuição; o agente
+   não lê o `.p12`, a senha nem os valores dos segredos. A CI não altera a chave da API existente.
 
    O `.p8` pode ir direto do arquivo, sem passar pela tela:
    `gh secret set APP_STORE_CONNECT_API_KEY_P8 --repo FrilaApp/frila-frontend < AuthKey_XXXXXXXXXX.p8`.
@@ -218,7 +262,7 @@ nesta documentação.
    - `FRILA_SUPABASE_DEV_URL` e `FRILA_SUPABASE_DEV_PUBLISHABLE_KEY`;
    - `FRILA_SUPABASE_PROD_URL` e `FRILA_SUPABASE_PROD_PUBLISHABLE_KEY`;
    - `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64` e `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64`.
-3. **TestFlight.** Depois dos três segredos, use o workflow **App Store Connect** descrito abaixo
+3. **TestFlight.** Com os segredos configurados, use o workflow **App Store Connect** descrito abaixo
    para preparar o grupo interno com os cinco, com acesso a todos os builds. As notas "O que testar"
    de cada build continuam sendo escritas no App Store Connect.
 
@@ -358,23 +402,28 @@ Sem as três variáveis `ASC_*`, o script usa a conta logada no Xcode da máquin
 ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio; com
 `FRILA_MEDICAO=1`, o build de medição.
 
-### O que a primeira execução real ainda prova
+### Próxima validação da identidade local
 
-Em 03/10 o caminho rodou numa máquina do time, com `--sem-envio` e a conta do Xcode no lugar da
-chave. Passaram o archive, o export, a conferência do app assinado e os símbolos no Crashlytics. A
-máquina já tinha certificado de distribuição, então quatro coisas só a primeira execução no Actions
-prova:
-- se a chave Admin cria o que falta e assina na nuvem. O runner começa sem certificado nenhum.
-  Inferência: o archive pode criar um certificado Apple Development a cada execução. Se eles se
-  acumularem em Certificates, Identifiers & Profiles, revogue os antigos; o xcodebuild cria outro
-  quando precisar;
-- se o App Store Connect aceita o envio e o número do build;
-- se o `upload-symbols` roda no runner. Ele caiu com Segmentation fault num build de simulador em
-  30/09, e por isso tem duas tentativas;
-- quanto tempo o job leva.
+As duas execuções da investigação já provaram o archive e o defeito do export na nuvem. A próxima
+execução requer nova autorização de custo do Cauê, solicitada pelo Nick Fury, e confirmação de que
+o Cauê gravou os dois segredos. A preparação do PR foi publicada com `[skip ci]` para não disparar
+a CI de PR; nenhum workflow foi disparado nesta etapa.
 
-Um disparo manual com "Enviar ao TestFlight" desmarcado prova a assinatura na nuvem e os símbolos
-no runner, sem mandar nada ao TestFlight.
+Executar somente o build autorizado: `Frila-Beta`, versão `0.4.0`, `enviar=true`, sem ensaio de falha
+nem medição. Essa execução deve provar:
+
+- importação real do `.p12`, acesso à chave privada e requisito designado válido no runner;
+- assinatura do app, quatro frameworks e extensão com o SHA-256 importado, e perfis automáticos
+  válidos contendo esse certificado para app e extensão;
+- envio dos símbolos ao Crashlytics e aceitação do upload pelo App Store Connect;
+- restauração dos keychains e remoção da identidade temporária ao terminar.
+
+Ainda podem falhar: segredo ausente/base64 ou senha incorretos; certificado expirado, revogado,
+sem chave privada ou de outra equipe; ACL do keychain no runner; permissão da API ou obtenção de
+perfil compatível; Crashlytics; validação/processamento da Apple. A prova local não garante esses
+serviços. Se o export selecionar a identidade da nuvem novamente, o diagnóstico interrompe antes
+do envio. O segundo export (`destination=upload`) continua usando a mesma identidade disponível,
+mas a aceitação pela Apple só será comprovada na execução real.
 
 ### Custo
 
