@@ -340,9 +340,14 @@ public struct TelaCadastroEstabelecimento: View {
     @ViewBuilder private func campo<Conteudo: View>(_ titulo: String, campo: CampoCadastro, @ViewBuilder conteudo: () -> Conteudo) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(verbatim: titulo).font(.headline)
-            conteudo()
+            conteudo().erroDeCampoFrila(mensagemDoCampo(campo))
             if case let .campo(campoErro, regra)? = model.erro, campoErro == campo { Text(verbatim: erroCampo(regra)).font(.caption).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-campo-\(titulo.lowercased())") }
         }
+    }
+
+    private func mensagemDoCampo(_ campo: CampoCadastro) -> String? {
+        guard case let .campo(campoErro, regra)? = model.erro, campoErro == campo else { return nil }
+        return erroCampo(regra)
     }
 
     private func mensagem(_ erro: ErroDeCadastroEstabelecimento) -> String {

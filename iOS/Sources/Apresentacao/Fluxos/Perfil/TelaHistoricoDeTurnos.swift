@@ -208,9 +208,7 @@ public struct TelaHistoricoDeTurnos: View {
     private func anunciar(_ estado: HistoricoDeTurnosViewModel.Estado) {
         let texto: String? = switch estado {
         case .carregando: TextosHistoricoDeTurnos.gerando
-        case .semTurnos: TextosHistoricoDeTurnos.semTurnos
-        case let .erro(mensagem, _): mensagem
-        case .ocioso: nil
+        case .semTurnos, .erro, .ocioso: nil
         }
         if let texto { AccessibilityNotification.Announcement(texto).post() }
     }

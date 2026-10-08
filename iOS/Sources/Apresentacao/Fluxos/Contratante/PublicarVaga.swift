@@ -547,9 +547,9 @@ public struct TelaPublicarVaga: View {
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: TextosPublicarVaga.inclusos).font(.headline)
-                    seletorSimNao(TextosPublicarVaga.refeicao, valor: $model.refeicao)
-                    seletorSimNao(TextosPublicarVaga.transporte, valor: $model.transporte)
-                    seletorSimNao(TextosPublicarVaga.material, valor: $model.materialProprio)
+                    seletorSimNao(TextosPublicarVaga.refeicao, valor: $model.refeicao).erroDeCampoFrila(model.erros[.inclusos])
+                    seletorSimNao(TextosPublicarVaga.transporte, valor: $model.transporte).accessibilityHint(Text(verbatim: model.erros[.inclusos] ?? ""))
+                    seletorSimNao(TextosPublicarVaga.material, valor: $model.materialProprio).accessibilityHint(Text(verbatim: model.erros[.inclusos] ?? ""))
                     if let erro = model.erros[.inclusos] { Text(verbatim: erro).font(.caption).foregroundStyle(FrilaCor.perigo) }
                 }.padding(FrilaEspaco.medio).background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
                     .disabled(model.camposBloqueados)
@@ -627,7 +627,7 @@ public struct TelaPublicarVaga: View {
                 if model.mostrandoMaisOpcoes {
                     campoOpcional(.traje, titulo: TextosPublicarVaga.traje) { CampoFrila(verbatim: TextosPublicarVaga.traje, texto: $model.traje) }
                     VStack(alignment: .leading, spacing: 4) {
-                        seletorSimNao(TextosPublicarVaga.rateio, valor: Binding(get: { model.participaRateio ?? false }, set: { model.participaRateio = $0 }))
+                        seletorSimNao(TextosPublicarVaga.rateio, valor: Binding(get: { model.participaRateio ?? false }, set: { model.participaRateio = $0 })).erroDeCampoFrila(model.erros[.rateio])
                         if let erro = model.erros[.rateio] { Text(verbatim: erro).font(.caption).foregroundStyle(FrilaCor.perigo) }
                     }.disabled(model.camposBloqueados)
                     campoOpcional(.observacoes, titulo: TextosPublicarVaga.observacoes) {
@@ -706,10 +706,15 @@ public struct TelaPublicarVaga: View {
         }
     }
 
+    private func erroDoCampo(_ campo: CampoPublicacaoVaga) -> String? {
+        let erros = [model.erros[campo], campo == .local ? model.erros[.ponto] : nil].compactMap { $0 }
+        return erros.isEmpty ? nil : erros.joined(separator: ". ")
+    }
+
     @ViewBuilder private func campo<Conteudo: View>(_ campo: CampoPublicacaoVaga, titulo: String, @ViewBuilder conteudo: () -> Conteudo) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(verbatim: titulo).font(.headline)
-            conteudo()
+            conteudo().erroDeCampoFrila(erroDoCampo(campo))
             if let erro = model.erros[campo] { Text(verbatim: erro).font(.caption).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-publicacao-\(campo.rawValue)") }
         }
         .disabled(model.camposBloqueados)
@@ -718,7 +723,7 @@ public struct TelaPublicarVaga: View {
     private func campoOpcional<Conteudo: View>(_ campo: CampoPublicacaoVaga, titulo: String, @ViewBuilder conteudo: () -> Conteudo) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(verbatim: titulo).font(.headline)
-            conteudo()
+            conteudo().erroDeCampoFrila(erroDoCampo(campo))
             if let erro = model.erros[campo] { Text(verbatim: erro).font(.caption).foregroundStyle(FrilaCor.perigo) }
         }
             .disabled(model.camposBloqueados)

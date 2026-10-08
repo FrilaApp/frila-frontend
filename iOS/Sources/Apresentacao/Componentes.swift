@@ -66,6 +66,7 @@ public struct BotaoSecundario: View {
 }
 
 public struct CampoFrila: View {
+    @Environment(\.erroDeCampoFrila) private var erroDeCampo
     private let titulo: Text
     @Binding private var texto: String
 
@@ -87,10 +88,12 @@ public struct CampoFrila: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
             .accessibilityLabel(titulo)
+            .accessibilityHint(Text(verbatim: erroDeCampo ?? ""))
     }
 }
 
 public struct CampoCodigo: View {
+    @Environment(\.erroDeCampoFrila) private var erroDeCampo
     @Binding private var codigo: String
 
     public init(codigo: Binding<String>) { _codigo = codigo }
@@ -106,7 +109,7 @@ public struct CampoCodigo: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: 56)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
+            .accessibilityHint(erroDeCampo.map { Text(verbatim: $0) } ?? Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
     }
 }
 
@@ -190,15 +193,13 @@ public struct SeloReputacao: View {
 public struct AvisoFrila: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    public enum Tom { case informativo, alerta, erro }
-    private enum Conteudo {
-        case localizado(LocalizedStringKey)
-        case literal(String)
-    }
-    private let conteudo: Conteudo
+    @Environment(\.locale) private var locale
+
+    public enum Tom: Equatable, Sendable { case informativo, alerta, erro }
+    private let conteudo: ConteudoDoAnuncio
     private let tom: Tom
 
-    public init(_ texto: LocalizedStringKey, tom: Tom = .informativo) {
+    public init(_ texto: String.LocalizationValue, tom: Tom = .informativo) {
         self.conteudo = .localizado(texto)
         self.tom = tom
     }
@@ -225,6 +226,8 @@ public struct AvisoFrila: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(verbatim: String(textoResolvido.characters)))
+        .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(textoResolvido.characters), tom: tom)))
         .font(.callout)
         .foregroundStyle(cor)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -232,14 +235,8 @@ public struct AvisoFrila: View {
         .background(cor.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
     }
 
-    @ViewBuilder private var textoView: some View {
-        switch conteudo {
-        case let .localizado(chave):
-            Text(chave, bundle: bundleApresentacao)
-        case let .literal(texto):
-            Text(verbatim: texto)
-        }
-    }
+    private var textoResolvido: AttributedString { conteudo.resolver(locale: locale) }
+    private var textoView: Text { conteudo.texto(locale: locale) }
 
     private var cor: Color { switch tom { case .informativo: FrilaCor.primaria; case .alerta: FrilaCor.alerta; case .erro: FrilaCor.perigo } }
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }

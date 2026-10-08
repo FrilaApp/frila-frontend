@@ -50,7 +50,6 @@ struct SecaoDePresenca: View {
         }
         .onChange(of: viewModel.checkin) { _, _ in anunciar(situacaoDoCheckin?.texto) }
         .onChange(of: viewModel.checkout) { _, _ in anunciar(situacaoDoCheckout?.texto) }
-        .onChange(of: viewModel.mensagemDeErro) { _, erro in anunciar(erro) }
     }
 
     // MARK: Ações

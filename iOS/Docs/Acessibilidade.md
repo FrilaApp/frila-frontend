@@ -239,9 +239,13 @@ cortado do modo seleção no detalhe da vaga e um contraste em AX5 na exclusão 
 ## Fora da auditoria automática (para a parte humana do #71)
 
 - Ordem de foco e agrupamento do VoiceOver: não medidos aqui.
-- Anúncio de erro: `AvisoFrila` não anuncia ao aparecer; o campo com erro não é associado ao
-  aviso (`TelaEntrada.swift:48`, `TelaCadastro.swift:163`). As telas de resultado anunciam o
-  título (`TelasDaCandidatura.swift:139`).
+- Anúncio de erro: `AvisoFrila`, `EstadoErro` e o modificador base `erroDeCampoFrila` anunciam
+  ao aparecer e quando a mensagem muda, sem repetir em redesenhos. Erro e alerta usam prioridade
+  alta; informação aguarda. O modificador associa o erro à dica do controle e aos campos Frila
+  dentro dele. Os formulários de estabelecimento e publicação aplicam esse modificador aos
+  erros que já exibiam. Testes unitários cobrem texto, aparição e prioridade; XCUITest confere o
+  rótulo do aviso no fluxo de código incorreto. A fala, a interrupção, a espera entre anúncios e
+  a navegação campo a campo ainda precisam de pessoa com VoiceOver: XCUITest não observa a fala.
 - Cabeçalhos: os títulos da entrada ("Frila", "Digite o código", "Como você vai usar o Frila?")
   não tinham o traço `isHeader`. **Corrigido na rodada 3** (`TelaEntrada.swift`, `TelaCodigo.swift`
   e `TelaCadastro.swift`); os de perfil e das seções da aba Candidaturas já tinham.

@@ -38,16 +38,18 @@ public struct EstadoCarregando: View {
 }
 
 public struct EstadoErro: View {
-    private let mensagem: Text
+    @Environment(\.locale) private var locale
+    private let conteudo: ConteudoDoAnuncio
+    private var mensagem: Text { conteudo.texto(locale: locale) }
     private let tentarNovamente: () -> Void
 
-    public init(_ mensagem: LocalizedStringKey, tentarNovamente: @escaping () -> Void) {
-        self.mensagem = Text(mensagem, bundle: bundleApresentacao)
+    public init(_ mensagem: String.LocalizationValue, tentarNovamente: @escaping () -> Void) {
+        self.conteudo = .localizado(mensagem)
         self.tentarNovamente = tentarNovamente
     }
 
     public init(verbatim mensagem: String, tentarNovamente: @escaping () -> Void) {
-        self.mensagem = Text(verbatim: mensagem)
+        self.conteudo = .literal(mensagem)
         self.tentarNovamente = tentarNovamente
     }
 
@@ -62,6 +64,7 @@ public struct EstadoErro: View {
             .accessibilityElement(children: .combine)
             BotaoSecundario("Tentar novamente", acao: tentarNovamente)
         }
+        .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(conteudo.resolver(locale: locale).characters), tom: .erro)))
     }
 }
 
@@ -71,8 +74,8 @@ public struct EstadoOffline: View {
 }
 
 public struct EstadoPendente: View {
-    private let mensagem: LocalizedStringKey
-    public init(_ mensagem: LocalizedStringKey) { self.mensagem = mensagem }
+    private let mensagem: String.LocalizationValue
+    public init(_ mensagem: String.LocalizationValue) { self.mensagem = mensagem }
     public var body: some View { AvisoFrila(mensagem, tom: .informativo) }
 }
 
