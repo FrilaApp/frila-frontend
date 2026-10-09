@@ -567,9 +567,11 @@ private struct EntradaDoApp: View {
     private var fluxoProfissionalView: some View {
         #if DEBUG
         FluxoDoProfissional(api: api, contaID: contaID, roteador: roteador, repositorioTurnos: repositorioTurnos, localizacao: localizacao, fila: armazenamento, sair: acaoDeSair) {
-            Button("Catálogo") { mostrandoCatalogo = true }
-                .accessibilityShowsLargeContentViewer()
-                .accessibilityHint("Abre o catálogo de componentes, só em Debug")
+            Button { mostrandoCatalogo = true } label: {
+                Label("Catálogo", systemImage: "books.vertical")
+            }
+            .accessibilityShowsLargeContentViewer()
+            .accessibilityHint("Abre o catálogo de componentes, só em Debug")
         }
         .id(contaID)
         .sheet(isPresented: $mostrandoCatalogo) { catalogo }

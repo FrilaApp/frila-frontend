@@ -515,6 +515,7 @@ public struct TelaMinhasCandidaturas: View {
 }
 
 struct CartaoDaCandidatura: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let candidatura: Candidatura
     var turno: Turno? = nil
     private let formatador = FormatadorFrila()
@@ -529,15 +530,22 @@ struct CartaoDaCandidatura: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) {
-                    funcao
-                    Spacer()
-                    valor
-                }
+            if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     funcao
                     valor
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        funcao
+                        Spacer()
+                        valor
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        funcao
+                        valor
+                    }
                 }
             }
             Label {

@@ -171,6 +171,7 @@ public struct TelaVagas: View {
 
 /// Pílula de filtro que abre um menu. O estado ativo não depende só de cor: ganha um ícone.
 private struct PilulaDeFiltro: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let titulo: String
     let ativo: Bool
 
@@ -178,13 +179,13 @@ private struct PilulaDeFiltro: View {
         HStack(spacing: FrilaEspaco.minimo) {
             if ativo { Image(systemName: "checkmark").accessibilityHidden(true) }
             Text(verbatim: titulo)
-                .lineLimit(1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
             Image(systemName: "chevron.down").font(.caption).accessibilityHidden(true)
         }
         .font(.subheadline.weight(.semibold))
         .padding(.horizontal, FrilaEspaco.medio)
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : 0)
         .frame(minHeight: FrilaMetrica.alvoMinimo)
-        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .background(ativo ? FrilaCor.primaria.opacity(0.12) : FrilaCor.superficie, in: Capsule())
         .overlay(Capsule().stroke(ativo ? FrilaCor.primaria : FrilaCor.textoSecundario, lineWidth: 1))
         .foregroundStyle(FrilaCor.texto)

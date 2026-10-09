@@ -244,17 +244,22 @@ public struct AvisoFrila: View {
 
 
 public struct CartaoVaga: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let vaga: VagaNaLista
     private let formatador = FormatadorFrila()
     public init(_ vaga: VagaNaLista) { self.vaga = vaga }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            // Lado a lado quando cabem numa linha; empilhados nos tamanhos grandes, em que o HStack
-            // quebrava a função no meio da palavra ("Gar-çom") para caber ao lado do valor.
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
+            if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
+            } else {
+                // Lado a lado quando cabem numa linha; empilhados nos tamanhos grandes, em que o HStack
+                // quebrava a função no meio da palavra ("Gar-çom") para caber ao lado do valor.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
+                }
             }
             Text(verbatim: vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
