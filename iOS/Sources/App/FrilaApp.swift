@@ -46,6 +46,7 @@ struct FrilaApp: App {
             #if DEBUG
             if api is ApiClienteEmMemoria {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
+                CacheEquipeDeConfianca.compartilhado.limpar()
             }
             if Self.desativarAnimacoes {
                 MainActor.assumeIsolated {
@@ -374,6 +375,7 @@ private struct EntradaDoApp: View {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
+                CacheEquipeDeConfianca.compartilhado.limpar()
                 await aparelho.desvincular()
                 await canal.suspenderEntrega()
                 await canal.limparEntregues()
@@ -413,7 +415,10 @@ private struct EntradaDoApp: View {
             })
         )
         let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho, canal: canal,
-                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() })
+                                limparAvaliacoes: {
+                                    UserDefaultsArmazenamentoAvaliacoes().limpar()
+                                    CacheEquipeDeConfianca.compartilhado.limpar()
+                                })
         let observador = api as? any ObservadorDeSessao
         await withTaskGroup(of: Void.self) { grupo in
             grupo.addTask { await reenvio.acompanhar() }
@@ -722,7 +727,10 @@ private struct EntradaDoApp: View {
         // A saída suspende a entrega do sistema neste aparelho, antes e depois de falar com o
         // servidor, e tira da central o que a conta recebeu, para quem pegar o aparelho depois (RN15).
         await SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho, canal: canal,
-                                limparAvaliacoes: { UserDefaultsArmazenamentoAvaliacoes().limpar() }).sair()
+                                limparAvaliacoes: {
+                                    UserDefaultsArmazenamentoAvaliacoes().limpar()
+                                    CacheEquipeDeConfianca.compartilhado.limpar()
+                                }).sair()
         roteador.voltarParaLista()
         destinoAtual = nil
         await avaliarSessao()
