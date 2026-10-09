@@ -88,12 +88,8 @@ public struct FolhaSuporteTurno: View {
             VStack(spacing: FrilaEspaco.minimo) {
                 ForEach(MotivoSuporteTurno.allCases) { motivo in
                     Button {
-                        if reduzirMovimento {
+                        withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento)) {
                             viewModel.motivo = motivo
-                        } else {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                viewModel.motivo = motivo
-                            }
                         }
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {

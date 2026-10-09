@@ -88,6 +88,8 @@ jobs:
         run: |
           Scripts/teste-conferir-textos.sh
           Scripts/conferir-textos.sh
+          Scripts/teste-conferir-movimento.sh
+          Scripts/conferir-movimento.sh
 
       - name: Conferir que as duas partes somam a suíte
         run: |
