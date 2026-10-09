@@ -244,24 +244,39 @@ public struct FolhaSuporteTurno: View {
 
     private var secaoAcoes: some View {
         VStack(spacing: FrilaEspaco.medio) {
+            if let erro = viewModel.mensagemDeErro {
+                AvisoFrila(verbatim: erro, tom: .alerta)
+                    .accessibilityIdentifier("aviso-erro-suporte")
+            }
+
+            if let prot = viewModel.protocolo {
+                HStack(spacing: FrilaEspaco.minimo) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FrilaCor.sucesso)
+                    Text(verbatim: String(format: TextosDoSuporte.protocoloRegistrado, prot.protocoloCurto, FormatadorFrila().data(prot.prazoRespostaAte)))
+                        .font(.footnote)
+                        .foregroundStyle(FrilaCor.sucesso)
+                }
+                .accessibilityIdentifier("aviso-protocolo-suporte")
+            }
+
             if viewModel.falhaAoAbrirEmail {
                 AvisoFrila(verbatim: TextosDoSuporte.falhaAoAbrirEmail, tom: .alerta)
                     .accessibilityIdentifier("aviso-falha-email-suporte")
             }
 
             BotaoPrimario(verbatim: TextosDoSuporte.botaoEnviarEmail) {
-                if viewModel.podeEnviarEmailNativo {
-                    viewModel.mostrandoCompositorNativo = true
-                } else if let url = viewModel.urlMailto {
-                    openURL(url) { aceito in
-                        if !aceito {
-                            viewModel.registrarFalhaAoAbrirEmail()
+                Task {
+                    await viewModel.registrarEEnviar(abridorURL: { url in
+                        openURL(url) { aceito in
+                            if !aceito {
+                                viewModel.registrarFalhaAoAbrirEmail()
+                            }
                         }
-                    }
-                } else {
-                    viewModel.registrarFalhaAoAbrirEmail()
+                    })
                 }
             }
+            .disabled(viewModel.enviando)
             .accessibilityIdentifier("botao-enviar-email-suporte")
             .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaEnviarEmail))
 

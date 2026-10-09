@@ -90,7 +90,8 @@ public struct TelaMeuTurno: View {
     private var botaoSuporte: some View {
         Button {
             suporteModel = SuporteTurnoViewModel(
-                dados: ContextoSuporteTurno(turno: viewModel.turno)
+                dados: ContextoSuporteTurno(turno: viewModel.turno),
+                api: viewModel.api
             )
         } label: {
             Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
