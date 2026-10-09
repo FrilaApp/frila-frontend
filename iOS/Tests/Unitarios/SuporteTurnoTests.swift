@@ -313,6 +313,7 @@ struct SuporteTurnoTests {
         let vm = SuporteTurnoViewModel(
             dados: contexto,
             api: api,
+            motivoInicial: .outro,
             verificadorPodeEnviarEmail: { false }
         )
 
