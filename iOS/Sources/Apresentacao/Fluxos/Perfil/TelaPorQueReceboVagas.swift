@@ -170,6 +170,11 @@ public struct TelaPorQueReceboVagas: View {
             .accessibilityIdentifier("campo-relato-despacho")
 
             HStack {
+                if viewModel.relatoValido {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FrilaCor.sucesso)
+                        .accessibilityIdentifier("icone-relato-valido-despacho")
+                }
                 Text(verbatim: TextosPorQueReceboVagas.dicaRelato)
                     .font(.caption)
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
@@ -177,6 +182,8 @@ public struct TelaPorQueReceboVagas: View {
                 Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("contador-relato-despacho")
+                    .accessibilityLabel(Text(verbatim: viewModel.relatoValido ? TextosPorQueReceboVagas.relatoValidoAcessibilidade : "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
             }
 
             layoutDosBotoes {

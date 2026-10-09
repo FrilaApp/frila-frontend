@@ -1,3 +1,4 @@
+import FrilaApresentacao
 import XCTest
 
 /// "Por que recebo vagas" com os critérios reais e o pedido de revisão do despacho (#18).
@@ -61,8 +62,11 @@ final class PorQueReceboVagasUITests: XCTestCase {
 
         let campo = app.descendants(matching: .any)["campo-relato-despacho"].firstMatch
         XCTAssertTrue(campo.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.images["icone-relato-valido-despacho"].exists)
         campo.tap()
         campo.typeText("Não recebi a vaga de sexta no Bistrô Ipê")
+        XCTAssertTrue(app.images["icone-relato-valido-despacho"].exists)
+        XCTAssertEqual(app.staticTexts["contador-relato-despacho"].label, TextosPorQueReceboVagas.relatoValidoAcessibilidade)
 
         let enviar = app.buttons["botao-enviar-revisao"]
         rolarAte(enviar, em: app)

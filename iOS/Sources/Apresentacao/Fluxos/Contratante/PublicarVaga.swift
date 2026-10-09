@@ -772,11 +772,21 @@ public struct TelaPublicarVaga: View {
     private func botoesSimNao(valor: Binding<Bool>) -> some View {
         ForEach([(true, TextosPublicarVaga.sim), (false, TextosPublicarVaga.nao)], id: \.0) { escolha, rotulo in
             Button { valor.wrappedValue = escolha } label: {
-                Text(verbatim: rotulo).font(.subheadline.weight(.semibold)).frame(minWidth: 48, minHeight: FrilaMetrica.alvoMinimo)
-                    .background(valor.wrappedValue == escolha ? FrilaCor.texto : FrilaCor.superficie, in: Capsule())
-                    .foregroundStyle(valor.wrappedValue == escolha ? FrilaCor.fundo : FrilaCor.texto)
-                    .overlay(Capsule().stroke(FrilaCor.textoSecundario.opacity(0.4)))
-            }.buttonStyle(.plain).accessibilityAddTraits(valor.wrappedValue == escolha ? .isSelected : [])
+                HStack(spacing: FrilaEspaco.minimo) {
+                    if valor.wrappedValue == escolha {
+                        Image(systemName: "checkmark")
+                            .accessibilityIdentifier(escolha ? "icone-checkmark-sim" : "icone-checkmark-nao")
+                    }
+                    Text(verbatim: rotulo).font(.subheadline.weight(.semibold))
+                }
+                .padding(.horizontal, FrilaEspaco.minimo)
+                .frame(minWidth: 48, minHeight: FrilaMetrica.alvoMinimo)
+                .background(valor.wrappedValue == escolha ? FrilaCor.texto : FrilaCor.superficie, in: Capsule())
+                .foregroundStyle(valor.wrappedValue == escolha ? FrilaCor.fundo : FrilaCor.texto)
+                .overlay(Capsule().stroke(FrilaCor.textoSecundario.opacity(0.4)))
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(valor.wrappedValue == escolha ? .isSelected : [])
         }
     }
 

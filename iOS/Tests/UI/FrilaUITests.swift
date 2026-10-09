@@ -518,7 +518,7 @@ final class AutenticacaoUITests: XCTestCase {
 
         let aviso = app.descendants(matching: .any)["codigo-erro"]
         XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertEqual(aviso.label, "Código incorreto. Confira os números e tente novamente.")
+        XCTAssertEqual(aviso.label, "Erro: Código incorreto. Confira os números e tente novamente.")
     }
 
     func testMenorDeIdadeExibeRecusa() {

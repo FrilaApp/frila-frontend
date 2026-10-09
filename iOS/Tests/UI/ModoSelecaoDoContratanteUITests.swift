@@ -149,7 +149,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         // Outro membro da casa chegou antes: a tela explica e já mostra quem ficou com a posição.
         let falha = app.descendants(matching: .any)["falha-da-escolha"]
         XCTAssertTrue(falha.waitForExistence(timeout: 10))
-        XCTAssertEqual(falha.label, "Outra pessoa da sua equipe preencheu a última posição antes. Atualizamos a lista.")
+        XCTAssertEqual(falha.label, "Erro: Outra pessoa da sua equipe preencheu a última posição antes. Atualizamos a lista.")
         XCTAssertFalse(app.descendants(matching: .any)["resultado-da-escolha"].exists)
         XCTAssertFalse(app.buttons["escolher-candidato-\(ana)"].exists)
         XCTAssertFalse(app.buttons["escolher-candidato-\(carla)"].exists)
@@ -170,7 +170,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 15))
         let fechada = app.descendants(matching: .any)["selecao-fechada-sem-escolha"]
         XCTAssertTrue(fechada.waitForExistence(timeout: 10))
-        XCTAssertEqual(fechada.label, "A seleção fechou 24 horas antes do início sem nenhuma escolha. Os candidatos foram avisados e liberados.")
+        XCTAssertEqual(fechada.label, "Alerta: A seleção fechou 24 horas antes do início sem nenhuma escolha. Os candidatos foram avisados e liberados.")
         XCTAssertFalse(app.buttons["escolher-candidato-\(ana)"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["dados-do-candidato-\(ana)"].exists)
         XCTAssertTrue(app.staticTexts["0 de 1 confirmadas"].exists)
@@ -231,7 +231,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 15))
         let fechada = app.descendants(matching: .any)["selecao-fechada-sem-escolha"]
         XCTAssertTrue(fechada.waitForExistence(timeout: 10))
-        XCTAssertTrue(fechada.label.hasPrefix("A seleção fechou 24 horas antes do início sem nenhuma escolha."), fechada.label)
+        XCTAssertTrue(fechada.label.hasPrefix("Alerta: A seleção fechou 24 horas antes do início sem nenhuma escolha."), fechada.label)
         XCTAssertFalse(app.descendants(matching: .any)["candidatos-vazio"].exists, "a vaga fechada explica, e não mostra lista vazia")
         XCTAssertFalse(app.buttons["escolher-candidato-\(ana)"].exists)
     }
