@@ -53,7 +53,60 @@ Inventário e checklist sistemático das 43 telas da v1.0 do Frila avaliadas con
 
 O critério 71.1 permanece aberto: o checklist sistemático das 43 telas está preenchido, mas resta criar um cartão de correção por tela para as pendências identificadas.
 
+### Triagem da auditoria automática (rodadas de 03 e 04/10)
+
+123 achados brutos em 27 telas (tamanho padrão + AX5): 75 de contraste, 27 de Dynamic Type,
+15 de texto cortado, 4 de rótulo e 2 de alvo. Depois da triagem:
+
+| Situação | Quantos | Onde |
+|---|---|---|
+| Corrigido aqui (estrutura, arquivo livre) | 2 | `TelaExclusaoDeConta.swift`, `Componentes.swift` |
+| Corrigido em 04/10, quando os arquivos ficaram livres | 3 telas + 1 achado do QA + movimento | `PerfisDaConta.swift`, `TelaContaSuspensa.swift` (ícone; botões da contestação em AX5), `TelaDetalheVaga.swift` (modo seleção; rolagem com Reduzir Movimento) |
+| Corrigido por outros PRs depois de 04/10 | Meu turno, exclusão de conta, histórico, folha de cancelamento (`AvisoFrila`) | #133, #129 e #128 (seção "Rodada 3") |
+| Corrigido na rodada 3 | 2 achados da QA rodada 5 + cabeçalhos | `TelaDetalheVaga.swift` (Quando e Valor em AX5), `TelaVagas.swift` (Tentar novamente em AX5), títulos da entrada, do código e do cadastro |
+| Corrigido na rodada 4 (este PR) | Botões de toolbar, Minhas vagas, seleção não cromática no cadastro | `FluxoDoContratante.swift` (Fechar), `FluxoDoProfissional.swift`, `FrilaApp.swift`, `MinhasVagas.swift` (`VStack` nas seções ativas + `AnyLayout` no alerta em AX5), `TelaCadastro.swift` (ícone de seleção) |
+| Fica para a próxima rodada: arquivo ocupado | 1 tela | `PublicarVaga.swift` (date picker): arquivo ocupado pelo Thor em outra missão; resolver após merge do PR do Thor |
+| Fica para o design: decisão de layout ou visual | lista de vagas (AX1), contraste em 22 telas | tokens abaixo |
+| Falso positivo do XCTest ou controle do sistema | 15 + 2 + date picker + aba Candidaturas | `TextField`, MapKit, `UIDatePicker`, `ViewThatFits` (seção "Rodada de 04/10") |
+
 ## Estrutura: tela × problema × causa × situação
+
+Tipos: rótulo, traço, alvo, texto cortado, Dynamic Type, movimento. Tamanho: P = padrão, AX5.
+
+| Tela | Tamanho | Tipo | O que a auditoria apontou | Causa | Situação |
+|---|---|---|---|---|---|
+| Exclusão de conta | P | rótulo | `clock.badge.xmark` Image: rótulo não legível | `TelaExclusaoDeConta.swift:86`: ícone decorativo da lista de consequências sem `accessibilityHidden` | **corrigido aqui** |
+| Todas com `BotaoPrimario` | — | rótulo | (leitura de código) o botão perde o nome enquanto carrega: o conteúdo vira só o `ProgressView` | `Componentes.swift:24` | **corrigido aqui**: `accessibilityLabel(titulo)` fixo |
+| Conta suspensa | P | rótulo | `clock.badge.exclamationmark` Image: rótulo não legível | `TelaContaSuspensa.swift:66`: ícone decorativo sem `accessibilityHidden(true)` | **corrigido em 04/10**: `accessibilityHidden(true)` (`TelaContaSuspensa.swift:69`); o texto ao lado já diz o prazo. A tela saiu da falha esperada |
+| Conta suspensa (contestação) | AX5 | layout | (QA do Steve, 03/10, achado 3) "Enviar contestação" e "Cancelar" lado a lado se estrangulam | `TelaContaSuspensa.swift:192`: `HStack` fixo | **corrigido em 04/10**: empilham nos tamanhos de acessibilidade (`layoutDosBotoes`, `TelaContaSuspensa.swift:214`); teste `ContaSuspensaUITests.testBotoesDaContestacaoEmpilhamEmAX5` |
+| Perfil da conta (profissional) | P, AX5 | rótulo | `ana.cunha@frila.app` StaticText: rótulo não legível | `PerfisDaConta.swift:128`: a linha de e-mail é um `LabeledContent`, e o valor vira elemento solto; falta combinar título e valor (`accessibilityElement(children: .combine)` em `linha(_:_:)`, `PerfisDaConta.swift:179`) | **corrigido em 04/10**: `accessibilityElement(children: .combine)` em `linha(_:_:)` (`PerfisDaConta.swift:192`); o VoiceOver lê "E-mail, ana.cunha@frila.app", e do mesmo jeito Telefone, Funções e Horários disponíveis. A tela saiu da falha esperada |
+| Vagas (lista) | P, AX5 | Dynamic Type | função, valor, estabelecimento, horário, local, inclusos, reputação e "vagas abertas" do cartão não acompanham a fonte além de AX1 | `TelaVagas.swift`: `.dynamicTypeSize(...accessibility1)` no botão do cartão | pílulas corrigidas para AX5; cartão segue limitado a AX1 por decisão de layout do design (#139), pois sem o limite atinge 957 pt de altura em AX5 (excedendo a tela de 874 pt); mantida falha esperada estrita |
+| Vagas (lista) | P, AX5 | Dynamic Type | botão "Catálogo" da barra não acompanha a fonte | `FluxoDoProfissional.swift` e `FrilaApp.swift` (item de toolbar, Debug): item de barra não escala por desenho do sistema; o caminho é `accessibilityShowsLargeContentViewer()` | **corrigido na rodada 4**: `accessibilityShowsLargeContentViewer()` aplicado aos itens de toolbar (Catálogo, Meus turnos, Meu perfil) |
+| Perfil do estabelecimento | P, AX5 | Dynamic Type | botão "Fechar" da barra não acompanha a fonte | `FluxoDoContratante.swift:116` e `:136`: item de toolbar da folha | **corrigido pelo Thor**: botão Fechar adaptado com `Label` e `accessibilityShowsLargeContentViewer`; contraste de `LabeledContent` em `PerfisDaConta.swift` trocado para `FrilaCor.textoSecundario` (`TextSecondary`); a tela saiu da falha esperada estrita |
+| Candidaturas (aba) | P | Dynamic Type | "Garçom" e "R$ 120,00" (função e valor do cartão) "não mudam de tamanho" | `CandidaturaEmSelecao.swift:535`: `ViewThatFits` com duas cópias de função/valor | **corrigido pelo Thor**: `CartaoDaCandidatura` usa `VStack` em acessibilidade e `ViewThatFits` original nos demais tamanhos; a tela saiu da falha esperada e a auditoria passa estrita no padrão e em AX5 |
+| Candidaturas (aba) | AX5 | texto cortado | elemento sem identificação | `CandidaturaEmSelecao.swift:533-568` (cartão) | **corrigido pelo Thor**: com `VStack` em acessibilidade a tela saiu da falha esperada em AX5 |
+| Publicar vaga | AX5 | Dynamic Type | `_UIDatePickerCompactTimeLabel` e `UILabel` do date picker | `PublicarVaga.swift`: `DatePicker` do sistema não escala | **mantida falha esperada com motivo atualizado (critério 71.3)**: componentes de date picker do UIKit da Apple (`_UIDatePickerWheelsTimeLabel` e compacto) não escalam tipografia para AX5; mantida falha esperada conforme diretriz do Nick Fury |
+| Detalhe da vaga (seleção) | P | texto cortado | "o estabelecimento escolhe entre os candidatos" | `TelaDetalheVaga.swift:214` (`TextosDoProfissional.Detalhe.selecaoDetalhe`) numa linha que não quebra. Medido em 04/10: o texto quebra, mas fica preso à meia coluna do `Grid` (150 pt no padrão, 165 pt em AX5) e parte palavras a partir do AX1 ("estabeleci-mento") | **corrigido em 04/10**: o modo saiu do `Grid` para uma linha de largura inteira (`TelaDetalheVaga.swift:137`); a tela saiu da falha esperada (seção "Rodada de 04/10") |
+| Meu turno | P | texto cortado | "· quem recebe: Marina" | `TelaMeuTurno.swift:71`: texto num `HStack` ao lado do atalho de mapas, sem quebra | **corrigido pelo #133**: endereço e quem recebe passam para `ViewThatFits` com recuo para `VStack`, e o mapa virou elemento próprio, acionável e com alvo de 44 pt. Na auditoria da rodada 3 as duas telas de Meu turno não têm achado estrutural, no padrão e em AX5, e saíram da falha esperada |
+| Exclusão de conta (confirmação) | AX5 | layout | (QA do Steve, rodada 4, achado 1, bloqueava) o `confirmationDialog` do sistema empurrava o Cancelar para fora da tela, no SE e no iPhone 17 | `TelaExclusaoDeConta.swift`: título e mensagem longos no diálogo do sistema | **corrigido pelo #129**: folha própria, o texto rola e Cancelar e Confirmar ficam presos ao rodapé, o Cancelar primeiro; teste `ExclusaoDeContaUITests.testConfirmacaoEmAX5MostraCancelarTocavelECancelarNaoExclui` (SE e iPhone 17) |
+| Exclusão de conta (consequências) | AX5 | layout | (rodada 4, achado 2) ícone e texto colidem | `TelaExclusaoDeConta.swift`: símbolo preso num quadro fixo de 24 pt, crescendo com a fonte | **corrigido pelo #129**: o quadro acompanha a fonte (`@ScaledMetric`) e o ícone vai acima do texto nos tamanhos de acessibilidade |
+| Exclusão de conta, Histórico de turnos | AX5 | layout | (rodada 4, achado 3) o texto da rolagem passa por trás do Voltar e do título da barra inline | barra de navegação inline sem fundo | **corrigido pelo #129**: `toolbarBackground` com o fundo do tema, visível |
+| Histórico de turnos | AX5 | Dynamic Type | (rodada 4, achado 4) o controle segmentado CSV/PDF fica em ~13 pt | `UISegmentedControl` do sistema não escala | **corrigido pelo #129**: pílulas (`FiltroPill`) nos tamanhos de acessibilidade; teste `HistoricoDeTurnosUITests.testEmAX5OFormatoViraPilulasQueCrescemComOTexto` |
+| Folha de cancelamento | AX5 | layout | (QA do Steve, rodada 3, achado 2) o `AvisoFrila` hifenizava palavras ("cancela-", "compareci-") | `Componentes.swift` (`AvisoFrila`): ícone e texto lado a lado num `HStack` | **corrigido pelo #128**: o `AvisoFrila` empilha ícone e texto nos tamanhos de acessibilidade, em todas as telas que o usam |
+| Detalhe da vaga (Quando e Valor) | AX5 | layout | (QA do Steve, rodada 5, achado 1) o valor quebra no meio do número ("R$ 120,0" / "0"), no iPhone 17 e no SE | `TelaDetalheVaga.swift`: Quando e Valor lado a lado no `Grid` de duas colunas | **corrigido na rodada 3**: nos tamanhos de acessibilidade, Quando, Valor e Posições ficam um embaixo do outro; teste `AcessibilidadeDoProfissionalUITests.testDetalheDaVagaEmAX5EmpilhaQuandoEValorSemQuebrarOValor` |
+| Vagas (sem conexão) | AX5 | layout | (QA do Steve, rodada 5, achado 2) o aviso empurra o "Tentar novamente" para baixo da barra de abas flutuante | `TelaVagas.swift`: aviso e botão dentro da rolagem | **corrigido na rodada 3**: nos tamanhos de acessibilidade o botão fica preso ao rodapé, acima da barra, e o aviso rola (como a área de ação do detalhe da vaga); teste `AcessibilidadeDoProfissionalUITests.testSemConexaoEmAX5DeixaTentarNovamenteAcimaDaBarraDeAbas` |
+| Minhas vagas (presença a confirmar, turno em atraso) | P | Dynamic Type | (rodada 3) "partially unsupported" nos 7 textos dos cartões: função, valor, nome, data, local, "1 de 2 confirmadas" e "Hoje" | `MinhasVagas.swift:313`: as seções viraram `LazyVStack` no #127 (pendente 6 da robustez do #124, para não construir centenas de cartões). Com `VStack` o achado some. | **corrigido na rodada 4**: `VStack` nas seções ativas (`.emAlerta`, `.hoje`, `.proximas`) elimina a invalidação de nós de acessibilidade durante a auditoria; `LazyVStack` preservado em `.encerradas` para escalabilidade; `AnyLayout` no cartão de alerta em AX5; a tela saiu da falha esperada estrita |
+| Cadastro do estabelecimento, Publicar vaga | P | alvo | link "Legal" do mapa menor que 44 pt | `MKAttributionLabel` do MapKit (`CadastroEstabelecimento.swift:264`, `PublicarVaga.swift:405`) | sistema: não há API para o app |
+| Entrada, Código, Cadastro, Funções e horários, Cadastro do estabelecimento, Publicar vaga (mais opções) | P, AX5 | texto cortado | "Text of this UITextField may be clipped" | `Componentes.swift` (`CampoFrila`) e `TelaCodigo.swift`: flag do `UITextField` que o SwiftUI não expõe | falso positivo do XCTest; prova em `testCampoDeTextoCresceEmAX5` |
+
+Telas sem achado estrutural na rodada 3 (só contraste, ou nada): detalhe da vaga (inclusive com
+a candidatura enviada), candidatura confirmada, vaga preenchida, vaga encerrada, conflito de
+horário, candidatura com conta suspensa, Meus turnos, Meu turno (as duas), avaliação, perfil da
+conta, Funções e horários, exclusão de conta, conta suspensa, Minhas vagas (painel e encerradas),
+detalhe da vaga do contratante (com e sem contato), perfil público, republicar vaga e
+acompanhamento do turno.
+
+## Checklist das 43 telas × 9 critérios (71.1)
 
 Checklist sistemático das 43 telas da v1.0 na ordem exata do inventário aceito, avaliando as 9 colunas de critérios. Cada célula contém **ok** + prova (`arquivo:linha` ou teste), **falta** + o que falta, ou **não se aplica** + justificativa.
 A coluna "VoiceOver em aparelho" registra sempre **falta: pessoa com VoiceOver** (nenhum teste em aparelho físico realizado).
