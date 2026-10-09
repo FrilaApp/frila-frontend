@@ -4,6 +4,7 @@ import UIKit
 import MessageUI
 
 /// Representable para apresentar o compositor nativo de e-mail do iOS (MFMailComposeViewController).
+@MainActor
 public struct CompositorDeEmailNativo: UIViewControllerRepresentable {
     public let destinatarios: [String]
     public let assunto: String
@@ -41,6 +42,7 @@ public struct CompositorDeEmailNativo: UIViewControllerRepresentable {
 
     public func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
 
+    @MainActor
     public final class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
         private let aoConcluir: (@Sendable (Result<MFMailComposeResult, any Error>) -> Void)?
 
@@ -49,7 +51,7 @@ public struct CompositorDeEmailNativo: UIViewControllerRepresentable {
             super.init()
         }
 
-        public func mailComposeController(
+        nonisolated public func mailComposeController(
             _ controller: MFMailComposeViewController,
             didFinishWith result: MFMailComposeResult,
             error: (any Error)?
