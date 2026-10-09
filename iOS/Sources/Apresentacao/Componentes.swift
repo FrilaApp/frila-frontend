@@ -254,7 +254,12 @@ public struct CartaoVaga: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
             } else {
-                HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
+                // Lado a lado quando cabem numa linha; empilhados nos tamanhos grandes, em que o HStack
+                // quebrava a função no meio da palavra ("Gar-çom") para caber ao lado do valor.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
+                }
             }
             Text(verbatim: vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
             Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")

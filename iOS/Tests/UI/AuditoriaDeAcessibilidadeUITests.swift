@@ -142,13 +142,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         XCTExpectFailure("\(tela): \(motivo)", options: opcoes) { auditar(app, tela: tela) }
     }
 
-    // MARK: - Motivos das falhas esperadas (o relatório tem o detalhe por arquivo:linha)
-
-    private static let listaDeVagasLimitadaAAX1 = "o cartão da vaga e as pílulas de filtro não acompanham o Dynamic Type: TelaVagas.swift limita o cartão e as pílulas a AX1 por decisão de layout do #139 (a alta fidelidade do #15 decide)"
-    private static let abaCandidaturasComViewThatFits = "falso positivo do XCTest: no tamanho padrão, Função e Valor do CartaoDaCandidatura (CandidaturaEmSelecao.swift) saem como Dynamic Type 'partially unsupported', mas o texto escala (função de 20 para 63 pt de altura em AX5) e o achado some quando o ViewThatFits vira um layout só; trocar o layout é decisão da alta fidelidade"
-    private static let abaCandidaturasComViewThatFitsEmAX5 = "provável falso positivo do XCTest: em AX5, às vezes, 'texto cortado' sem elemento no CartaoDaCandidatura (CandidaturaEmSelecao.swift); a captura não mostra corte e o achado some quando o ViewThatFits vira um layout só"
-    private static let perfilDoEstabelecimentoBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
-    private static let publicarVagaComDatePicker = "o UIDatePicker do sistema (compacto e wheel) não acompanha o Dynamic Type em AX5 por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
+    private static let publicarVagaComDatePicker = "o UIDatePicker do sistema não acompanha o Dynamic Type em AX5 (no cadastro) e no tamanho padrão e AX5 (em Minhas vagas) por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
 
     // MARK: - Profissional
 
@@ -352,7 +346,11 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
         tocar(app.buttons["continuar-cadastro"], em: app)
         guard esperar(app.staticTexts["Publicar vaga"], "Publicar vaga deve abrir") else { return }
-        auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker)
+        if ax5 {
+            auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker, estrito: true)
+        } else {
+            auditar(app, tela: "publicar-vaga")
+        }
 
         tocar(app.buttons["mais-opcoes-botao"], em: app)
         guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
@@ -446,7 +444,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         tocar(entrada, em: app)
         guard esperar(elemento("publicar-vaga-formulario", em: app), "O formulário de publicar vaga deve abrir") else { return }
 
-        auditar(app, tela: "publicar-vaga-em-minhas-vagas", pendente: Self.publicarVagaComDatePicker)
+        auditar(app, tela: "publicar-vaga-em-minhas-vagas", pendente: Self.publicarVagaComDatePicker, estrito: true)
     }
 
     func testPublicarVagaEmMinhasVagas() { publicarVagaEmMinhasVagas(ax5: false) }

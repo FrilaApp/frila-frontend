@@ -536,10 +536,16 @@ struct CartaoDaCandidatura: View {
                     valor
                 }
             } else {
-                HStack(alignment: .firstTextBaseline) {
-                    funcao
-                    Spacer()
-                    valor
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        funcao
+                        Spacer()
+                        valor
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        funcao
+                        valor
+                    }
                 }
             }
             Label {
