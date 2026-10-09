@@ -152,23 +152,23 @@ final class SuporteTurnoUITests: XCTestCase {
         XCTAssertTrue(subtituloMotivo.waitForExistence(timeout: Espera.aparecer), "O subtítulo de motivo deve estar visível")
         XCTAssertTrue(subtituloMotivo.ehCabecalho, "O subtítulo de motivo deve ser cabeçalho para VoiceOver")
 
+        salvarCapturaDaFolha(app.screenshot(), nome: "folha-suporte-padrao.png")
+
         // 2. Subtítulo da seção de relato
         let subtituloRelato = app.staticTexts["Descrição do ocorrido"]
-        if !subtituloRelato.isHittable {
+        if !subtituloRelato.waitForExistence(timeout: Espera.aparecer) {
             app.swipeUp()
+            XCTAssertTrue(subtituloRelato.waitForExistence(timeout: Espera.aparecer), "O subtítulo de relato deve estar visível")
         }
-        XCTAssertTrue(subtituloRelato.waitForExistence(timeout: Espera.aparecer), "O subtítulo de relato deve estar visível")
         XCTAssertTrue(subtituloRelato.ehCabecalho, "O subtítulo de relato deve ser cabeçalho para VoiceOver")
 
         // 3. Subtítulo da seção de dados do turno
         let subtituloDados = app.staticTexts["Identificação do turno"]
-        if !subtituloDados.isHittable {
+        if !subtituloDados.waitForExistence(timeout: Espera.aparecer) {
             app.swipeUp()
+            XCTAssertTrue(subtituloDados.waitForExistence(timeout: Espera.aparecer), "O subtítulo de dados do turno deve estar visível")
         }
-        XCTAssertTrue(subtituloDados.waitForExistence(timeout: Espera.aparecer), "O subtítulo de dados do turno deve estar visível")
         XCTAssertTrue(subtituloDados.ehCabecalho, "O subtítulo de dados do turno deve ser cabeçalho para VoiceOver")
-
-        salvarCapturaDaFolha(app.screenshot(), nome: "folha-suporte-padrao.png")
     }
 
     /// Captura da folha de suporte em tamanho de acessibilidade (AX5) para conferência de layout e texto cortado (71.1).
@@ -185,11 +185,28 @@ final class SuporteTurnoUITests: XCTestCase {
         let folha = app.descendants(matching: .any)["folha-suporte-turno"]
         XCTAssertTrue(folha.waitForExistence(timeout: 10), "A folha de suporte deve abrir em AX5")
 
+        // 1. Subtítulo da seção de motivo
         let subtituloMotivo = app.staticTexts["Motivo do suporte"]
         XCTAssertTrue(subtituloMotivo.waitForExistence(timeout: Espera.aparecer), "O subtítulo de motivo deve estar visível em AX5")
         XCTAssertTrue(subtituloMotivo.ehCabecalho, "O subtítulo de motivo deve ser cabeçalho em AX5")
 
         salvarCapturaDaFolha(app.screenshot(), nome: "folha-suporte-ax5.png")
+
+        // 2. Subtítulo da seção de relato
+        let subtituloRelato = app.staticTexts["Descrição do ocorrido"]
+        if !subtituloRelato.waitForExistence(timeout: Espera.aparecer) {
+            app.swipeUp()
+            XCTAssertTrue(subtituloRelato.waitForExistence(timeout: Espera.aparecer), "O subtítulo de relato deve estar visível em AX5")
+        }
+        XCTAssertTrue(subtituloRelato.ehCabecalho, "O subtítulo de relato deve ser cabeçalho em AX5")
+
+        // 3. Subtítulo da seção de dados do turno
+        let subtituloDados = app.staticTexts["Identificação do turno"]
+        if !subtituloDados.waitForExistence(timeout: Espera.aparecer) {
+            app.swipeUp()
+            XCTAssertTrue(subtituloDados.waitForExistence(timeout: Espera.aparecer), "O subtítulo de dados do turno deve estar visível em AX5")
+        }
+        XCTAssertTrue(subtituloDados.ehCabecalho, "O subtítulo de dados do turno deve ser cabeçalho em AX5")
     }
 
     private func salvarCapturaDaFolha(_ screenshot: XCUIScreenshot, nome: String) {
