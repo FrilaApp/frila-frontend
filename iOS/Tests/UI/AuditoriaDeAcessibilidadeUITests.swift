@@ -147,7 +147,6 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private static let porQueReceboVagasBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
     private static let confirmacaoExclusaoTextoCortado = "o XCTest aponta texto cortado nos botões e textos da folha de confirmação de exclusão (TelaExclusaoDeConta.swift)"
     private static let ajudaDoPerfilAchados = "a tela de ajuda tem achados de Dynamic Type no botão Fechar da barra (ToolbarItem) e texto com seleção (perfil-suporte-email) apontado como alvo pequeno e rótulo não legível"
-    private static let publicarVagaMaisOpcoesTextoInacessivel = "a rolagem de mais opções expõe texto classificado pelo XCTest como potencialmente inacessível (PublicarVaga.swift, branch concorrente)"
 
     // MARK: - Profissional
 
@@ -472,7 +471,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         tocar(app.buttons["mais-opcoes-botao"], em: app)
         guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
         app.swipeUp()
-        auditar(app, tela: "publicar-vaga-mais-opcoes", pendente: Self.publicarVagaMaisOpcoesTextoInacessivel, estrito: false)
+        auditar(app, tela: "publicar-vaga-mais-opcoes")
     }
 
     func testCadastroDoEstabelecimentoEPublicarVaga() { cadastroDoEstabelecimentoEPublicarVaga(ax5: false) }
