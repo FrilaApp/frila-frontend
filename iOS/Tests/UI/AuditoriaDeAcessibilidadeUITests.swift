@@ -597,6 +597,68 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testPublicarVagaErroAoLerCasa() { publicarVagaErroAoLerCasa(ax5: false) }
     func testPublicarVagaErroAoLerCasaEmAX5() { publicarVagaErroAoLerCasa(ax5: true) }
+
+    // MARK: - Turno, segurança e push (Parte 2 do #71.1)
+
+    private func folhaDeCancelamento(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "turno-confirmado-perto", "-FRILA_CACHE_VAZIO_UI_TEST"
+        ], ax5: ax5)
+        guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
+        tocar(app.tabBars.buttons["Meus turnos"], em: app)
+        let turno = app.buttons["meu-turno-23000000-0000-0000-0000-000000000001"]
+        guard esperar(turno, "O turno confirmado deve estar na lista") else { return }
+        tocar(turno, em: app)
+        guard esperar(app.navigationBars["Meu turno"], "Meu turno deve abrir") else { return }
+        tocar(app.buttons["cancelar-turno"], em: app)
+        guard esperar(elemento("folha-de-cancelamento", em: app), "A folha de cancelamento deve abrir") else { return }
+        auditar(app, tela: "folha-de-cancelamento")
+        app.swipeUp()
+        auditar(app, tela: "folha-de-cancelamento-rolada")
+    }
+
+    func testFolhaDeCancelamento() { folhaDeCancelamento(ax5: false) }
+    func testFolhaDeCancelamentoEmAX5() { folhaDeCancelamento(ax5: true) }
+
+    private func explicacaoDoPush(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "success", "-FRILA_PERMISSAO_PUSH", "nao-pedida"
+        ], ax5: ax5)
+        let explicar = app.buttons["explicar-notificacoes"]
+        guard esperar(explicar, "O aviso de permissão deve aparecer") else { return }
+        tocar(explicar, em: app)
+        guard esperar(elemento("explicacao-do-push", em: app), "A explicação das notificações deve abrir") else { return }
+        auditar(app, tela: "explicacao-do-push")
+        app.swipeUp()
+        auditar(app, tela: "explicacao-do-push-rolada")
+    }
+
+    func testExplicacaoDoPush() { explicacaoDoPush(ax5: false) }
+    func testExplicacaoDoPushEmAX5() { explicacaoDoPush(ax5: true) }
+
+    private func vagaIndisponivelDoPush(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "success", "-FRILA_PUSH", "vaga",
+            "-FRILA_PUSH_ID", "99999999-0000-0000-0000-000000000001"
+        ], ax5: ax5)
+        guard esperar(elemento("vaga-indisponivel", em: app), "A vaga indisponível do push deve abrir") else { return }
+        auditar(app, tela: "vaga-indisponivel-push")
+    }
+
+    func testVagaIndisponivelDoPush() { vagaIndisponivelDoPush(ax5: false) }
+    func testVagaIndisponivelDoPushEmAX5() { vagaIndisponivelDoPush(ax5: true) }
+
+    private func turnoDoAvisoNaoEncontrado(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "success", "-FRILA_PUSH", "lembrete_3h",
+            "-FRILA_PUSH_ID", "99999999-0000-0000-0000-000000000001"
+        ], ax5: ax5)
+        guard esperar(elemento("turno-do-aviso-nao-encontrado", em: app), "O turno não encontrado do push deve abrir") else { return }
+        auditar(app, tela: "turno-do-aviso-nao-encontrado")
+    }
+
+    func testTurnoDoAvisoNaoEncontrado() { turnoDoAvisoNaoEncontrado(ax5: false) }
+    func testTurnoDoAvisoNaoEncontradoEmAX5() { turnoDoAvisoNaoEncontrado(ax5: true) }
 }
 
 private extension XCUIAccessibilityAuditType {
