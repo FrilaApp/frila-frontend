@@ -47,10 +47,8 @@ public struct TelaHistoricoDeTurnos: View {
             // No iPhone SE o aviso nasce abaixo da dobra, atrás da barra de abas: a tela rola até ele.
             .onChange(of: model.estado) { _, novo in
                 guard novo == .semTurnos || novo.ehErro else { return }
-                if reduzirMovimento {
+                withAnimation(FrilaMovimento.animacao(reduzir: reduzirMovimento)) {
                     rolagem.scrollTo(Self.idDoResultado, anchor: .bottom)
-                } else {
-                    withAnimation { rolagem.scrollTo(Self.idDoResultado, anchor: .bottom) }
                 }
             }
         }

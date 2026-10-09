@@ -42,6 +42,14 @@ public enum FrilaMetrica {
     public static let larguraMaximaDeLeitura: CGFloat = 680
 }
 
+/// Ponto único para controle de animações respeitando a preferência de Reduzir Movimento (#71.4).
+/// Quando `reduzir` é verdadeiro, retorna `nil` para que a transição ocorra de forma imediata sem deslocamento.
+public enum FrilaMovimento {
+    public static func animacao(_ animacao: Animation = .default, reduzir: Bool) -> Animation? {
+        reduzir ? nil : animacao
+    }
+}
+
 public extension View {
     func cartaoFrila() -> some View {
         padding(FrilaEspaco.medio)

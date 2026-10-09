@@ -61,5 +61,11 @@ struct AcessibilidadeEstadoECorTests {
         #expect(AvisoFrila.rotuloAcessibilidade(texto: texto, tom: .alerta) == "Alerta: \(texto)")
         #expect(AvisoFrila.rotuloAcessibilidade(texto: texto, tom: .erro) == "Erro: \(texto)")
         #expect(AvisoFrila.rotuloAcessibilidade(texto: texto, tom: .informativo) == texto)
+    @Test("FrilaMovimento.animacao respeita preferência de Reduzir Movimento (71.4)")
+    func animacaoRespeitaReduzirMovimento() {
+        #expect(FrilaMovimento.animacao(reduzir: true) == nil)
+        #expect(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: true) == nil)
+        #expect(FrilaMovimento.animacao(reduzir: false) != nil)
+        #expect(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: false) != nil)
     }
 }
