@@ -329,6 +329,12 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     // MARK: Confiança e direitos
 
+    public func abrirSuporte(turnoID: UUID, categoria: CategoriaSuporte, chave: UUID) async throws -> Protocolo {
+        let params = ContratoAPI.AbrirSuporte(turnoID: turnoID, categoria: categoria, chave: chave)
+        let resposta: ContratoAPI.ProtocoloDTO = try await rpc("abrir_suporte", params: params)
+        return try converter { try resposta.dominio() }
+    }
+
     public func denunciar(_ denuncia: Denuncia) async throws -> Protocolo {
         let resposta: ContratoAPI.ProtocoloDTO = try await rpc("denunciar", params: ContratoAPI.Denunciar(denuncia))
         return try converter { try resposta.dominio() }

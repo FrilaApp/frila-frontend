@@ -337,6 +337,10 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada
 
     // Confiança e direitos
+    /// Abre chamado de suporte a partir de um turno (contrato 0.2.40, UC14, RF23, RN15). Devolve o protocolo
+    /// com prazo de resposta de até 5 dias úteis. Idempotente pela chave. Conta suspensa recebe `semPermissao` (403)
+    /// com `details: conta_suspensa`. Teto diário de 5 chamados novos por conta devolve `limiteExcedido` (429).
+    func abrirSuporte(turnoID: UUID, categoria: CategoriaSuporte, chave: UUID) async throws -> Protocolo
     func denunciar(_ denuncia: Denuncia) async throws -> Protocolo
     /// Imediato e idempotente: bloquear de novo devolve o bloqueio que já existe. O alvo é sempre
     /// do outro perfil (profissional bloqueia estabelecimento, e contratante, profissional); alvo do

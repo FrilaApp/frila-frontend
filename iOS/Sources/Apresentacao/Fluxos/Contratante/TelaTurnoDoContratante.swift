@@ -214,7 +214,8 @@ struct TelaTurnoDoContratante: View {
     private func botaoSuporte(_ turno: TurnoAcompanhado) -> some View {
         Button {
             suporteModel = SuporteTurnoViewModel(
-                dados: ContextoSuporteTurno(turnoAcompanhado: turno)
+                dados: ContextoSuporteTurno(turnoAcompanhado: turno),
+                api: api
             )
         } label: {
             Text(verbatim: TextosDoSuporte.botaoAjudaTurno)

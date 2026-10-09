@@ -83,6 +83,9 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada { try await base.cancelarVaga(id: id, motivo: motivo) }
 
     // Confiança e direitos
+    func abrirSuporte(turnoID: UUID, categoria: CategoriaSuporte, chave: UUID) async throws -> Protocolo {
+        try await base.abrirSuporte(turnoID: turnoID, categoria: categoria, chave: chave)
+    }
     func denunciar(_ denuncia: Denuncia) async throws -> Protocolo { try await base.denunciar(denuncia) }
     func bloquear(_ alvo: Alvo) async throws -> Bloqueio { try await base.bloquear(alvo) }
     func situacaoDaConta() async throws -> SituacaoDaConta { try await base.situacaoDaConta() }
