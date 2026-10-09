@@ -113,8 +113,10 @@ public struct FluxoDoContratante: View {
                 )
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
+                        Button {
                             mostrandoPerfilEstabelecimento = false
+                        } label: {
+                            Label(String(localized: "Fechar", bundle: bundleApresentacao), systemImage: "xmark")
                         }
                         .accessibilityShowsLargeContentViewer()
                     }

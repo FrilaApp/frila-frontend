@@ -33,7 +33,9 @@ import XCTest
 final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private static let ax5 = "UICTContentSizeCategoryAccessibilityXXXL"
     private static let ligada = ProcessInfo.processInfo.environment["FRILA_AUDITORIA_DE_ACESSIBILIDADE"] == "1"
+        || ProcessInfo.processInfo.environment["TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE"] == "1"
     private static let soRegistra = ProcessInfo.processInfo.environment["FRILA_AUDITORIA_SO_REGISTRA"] == "1"
+        || ProcessInfo.processInfo.environment["TEST_RUNNER_FRILA_AUDITORIA_SO_REGISTRA"] == "1"
 
     private let vagaID = "40000000-0000-0000-0000-000000000001"
     private let turnoEncerradoID = "22000000-0000-0000-0000-000000000001"
@@ -146,7 +148,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private static let abaCandidaturasComViewThatFits = "falso positivo do XCTest: no tamanho padrão, Função e Valor do CartaoDaCandidatura (CandidaturaEmSelecao.swift) saem como Dynamic Type 'partially unsupported', mas o texto escala (função de 20 para 63 pt de altura em AX5) e o achado some quando o ViewThatFits vira um layout só; trocar o layout é decisão da alta fidelidade"
     private static let abaCandidaturasComViewThatFitsEmAX5 = "provável falso positivo do XCTest: em AX5, às vezes, 'texto cortado' sem elemento no CartaoDaCandidatura (CandidaturaEmSelecao.swift); a captura não mostra corte e o achado some quando o ViewThatFits vira um layout só"
     private static let perfilDoEstabelecimentoBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em FluxoDoContratante.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
-    private static let publicarVagaComDatePicker = "o UIDatePicker compacto do sistema não acompanha o Dynamic Type em AX5 (PublicarVaga.swift: fica para depois do PR do Thor)"
+    private static let publicarVagaComDatePicker = "o UIDatePicker do sistema (compacto e wheel) não acompanha o Dynamic Type em AX5 por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
 
     // MARK: - Profissional
 
@@ -190,7 +192,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
 
         guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
-        auditar(app, tela: "vagas", pendente: Self.listaDeVagasLimitadaAAX1, estrito: true)
+        auditar(app, tela: "vagas")
 
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         guard esperar(primeira, "A lista deve ter vaga") else { return }
@@ -232,12 +234,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(aba, "A aba Candidaturas deve existir") else { return }
         aba.tap()
         guard esperar(elemento("tela-minhas-candidaturas", em: app), "A aba deve abrir") else { return }
-        // No padrão o achado vem em toda rodada (estrito); em AX5, só às vezes.
-        auditar(
-            app, tela: "candidaturas",
-            pendente: ax5 ? Self.abaCandidaturasComViewThatFitsEmAX5 : Self.abaCandidaturasComViewThatFits,
-            estrito: !ax5
-        )
+        auditar(app, tela: "candidaturas")
 
         let pendente = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'candidatura-'")).firstMatch
         guard esperar(pendente, "A candidatura pendente deve estar na lista") else { return }
@@ -359,6 +356,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
         tocar(app.buttons["mais-opcoes-botao"], em: app)
         guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
+        app.swipeUp()
         auditar(app, tela: "publicar-vaga-mais-opcoes")
     }
 
@@ -433,7 +431,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(perfil, "O botão do perfil do estabelecimento deve existir") else { return }
         perfil.tap()
         guard esperar(app.buttons["estabelecimento-excluir-conta"], "O perfil do estabelecimento deve abrir") else { return }
-        auditar(app, tela: "perfil-estabelecimento", pendente: Self.perfilDoEstabelecimentoBotaoBarra, estrito: true)
+        auditar(app, tela: "perfil-estabelecimento")
     }
 
     func testPerfilDoEstabelecimento() { perfilDoEstabelecimento(ax5: false) }

@@ -188,6 +188,7 @@ public struct TelaMeuPerfilProfissional: View {
     private func linha(_ titulo: String, _ valor: String) -> some View {
         LabeledContent {
             Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
+                .foregroundStyle(FrilaCor.textoSecundario)
         } label: {
             Text(verbatim: titulo)
         }
@@ -261,12 +262,14 @@ public struct TelaPerfilEstabelecimento: View {
                         if let tipo = estabelecimento.tipo {
                             LabeledContent {
                                 Text(verbatim: tipo.descricaoPerfil)
+                                    .foregroundStyle(FrilaCor.textoSecundario)
                             } label: {
                                 Text(verbatim: TextosPerfilConta.tipo)
                             }
                         }
                         LabeledContent {
                             Text(verbatim: estabelecimento.papel.descricaoPerfil)
+                                .foregroundStyle(FrilaCor.textoSecundario)
                         } label: {
                             Text(verbatim: TextosPerfilConta.papel)
                         }
