@@ -244,6 +244,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var resultadosDeCancelamento: [UUID: (autor: UUID, resultado: ResultadoCancelamento)] = [:]
     private var vagasCanceladas: [UUID: (autor: UUID, resultado: VagaCancelada)] = [:]
     private var denunciasPorChave: [UUID: Protocolo] = [:]
+    private var suportesPorChave: [UUID: Protocolo] = [:]
+    private var chamadosDeSuportePorDia: [DataCivil: Int] = [:]
     private var bloqueios: [Alvo: Bloqueio] = [:]
     /// Suspensão dos cenários de conta suspensa e contestação respondida.
     private var suspensao: Suspensao?
@@ -352,9 +354,6 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
                 case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
                 case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60 + 30 * 60
-                #if DEBUG
-                case .cicloContratanteTurnoConcluido: -10 * 60 * 60
-                #endif
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,
@@ -1534,6 +1533,37 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     // MARK: Confiança e direitos
+
+    /// Segue `abrir_suporte` do backend (contrato 0.2.40, UC14, RF23, RN15):
+    /// 1. Exige conta autenticada (401);
+    /// 2. Exige conta ativa: conta suspensa recebe 403 `sem_permissao` com `details: conta_suspensa`;
+    /// 3. Idempotência por `chave`: reenvio devolve o mesmo protocolo gravado e não conta no limite diário;
+    /// 4. Turno precisa existir e pertencer a quem chama (como profissional ou membro da vaga): senão 404 `nao_encontrado`;
+    /// 5. Limite diário: no máximo 5 chamados por dia (429 `limite_excedido`).
+    public func abrirSuporte(turnoID: UUID, categoria: CategoriaSuporte, chave: UUID) async throws -> Protocolo {
+        try verificarFalhaGeral()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        if suspensao != nil { throw erro("sem_permissao", detalhes: "conta_suspensa") }
+        if let gravado = suportesPorChave[chave] { return gravado }
+
+        let turnosPossiveis = turnos + turnosCancelados
+        guard turnosPossiveis.contains(where: { $0.id == turnoID }) else {
+            throw erro("nao_encontrado")
+        }
+
+        guard let hoje = DataCivil.deSaoPaulo(relogio.agora) else {
+            throw erro("falha_inesperada")
+        }
+        let contagemHoje = chamadosDeSuportePorDia[hoje] ?? 0
+        guard contagemHoje < 5 else {
+            throw erro("limite_excedido")
+        }
+
+        let protocolo = try novoProtocolo(.suporte)
+        suportesPorChave[chave] = protocolo
+        chamadosDeSuportePorDia[hoje] = contagemHoje + 1
+        return protocolo
+    }
 
     /// Segue `denunciar` do backend (`20260929100000_denunciar_e_bloquear.sql`): a chave decide antes
     /// de qualquer validação, e reenviar devolve o mesmo protocolo; relato em branco é `422

@@ -1,6 +1,7 @@
 import Foundation
 @testable import FrilaApresentacao
 import FrilaDominio
+import FrilaDados
 import Testing
 
 private final class CaixaCopia: @unchecked Sendable {
@@ -198,7 +199,7 @@ struct SuporteTurnoTests {
 
         #expect(vm.copiadoComSucesso)
         #expect(caixa.texto.contains("Assunto: [Turno 11111111-2222-3333-4444-555555555555] Garçom"))
-        #expect(caixa.texto.contains("Para: suportefrila@gmail.com"))
+        #expect(caixa.texto.contains("Para: suporte@frila.app"))
         #expect(caixa.texto.contains(contexto.endereco))
     }
 
@@ -269,6 +270,125 @@ struct SuporteTurnoTests {
         })
 
         #expect(!vm.falhaAoAbrirEmail)
+    }
+
+    // MARK: - Testes da RPC abrir_suporte (contrato 0.2.40)
+
+    private final class ApiDeSuporteTeste: ApiClienteEncaminhador, @unchecked Sendable {
+        var chamados: [(turnoID: UUID, categoria: CategoriaSuporte, chave: UUID)] = []
+        var falha: ErroDaApi?
+        var protocolosPorChave: [UUID: Protocolo] = [:]
+        var contagemPorDia: Int = 0
+
+        init(falha: ErroDaApi? = nil) {
+            self.falha = falha
+            super.init()
+        }
+
+        override func abrirSuporte(turnoID: UUID, categoria: CategoriaSuporte, chave: UUID) async throws -> Protocolo {
+            if let falha { throw falha }
+            if let gravado = protocolosPorChave[chave] { return gravado }
+            if contagemPorDia >= 5 {
+                throw ErroDaApi(codigo: .limiteExcedido)
+            }
+            contagemPorDia += 1
+            chamados.append((turnoID, categoria, chave))
+            let protocolo = Protocolo(
+                ocorrenciaID: UUID(uuidString: "12345678-aaaa-bbbb-cccc-dddddddddddd")!,
+                tipo: .suporte,
+                criadaEm: Date(),
+                prazoRespostaAte: try! DataCivil("2026-10-16")
+            )
+            protocolosPorChave[chave] = protocolo
+            return protocolo
+        }
+    }
+
+    @Test("Cenário 9: registrarEEnviar chama abrirSuporte e atualiza protocolo e assunto")
+    func registrarEEnviarComSucesso() async throws {
+        let contexto = criarContextoExemplo()
+        let api = ApiDeSuporteTeste()
+
+        var urlAberta: URL?
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            api: api,
+            motivoInicial: .outro,
+            verificadorPodeEnviarEmail: { false }
+        )
+
+        #expect(vm.protocolo == nil)
+        #expect(!vm.assuntoEmail.contains("[Frila Suporte #"))
+
+        await vm.registrarEEnviar(abridorURL: { url in urlAberta = url })
+
+        #expect(vm.protocolo != nil)
+        guard let prot = vm.protocolo else { return }
+        #expect(prot.tipo == .suporte)
+        #expect(!prot.protocoloCurto.isEmpty)
+        #expect(prot.protocoloCurto == "12345678")
+        #expect(vm.assuntoEmail == "[Frila Suporte #12345678] \(contexto.funcao)")
+        #expect(urlAberta?.absoluteString.contains("12345678") == true)
+        #expect(vm.mensagemDeErro == nil)
+        #expect(api.chamados.count == 1)
+        #expect(api.chamados[0].turnoID == contexto.turnoID)
+        #expect(api.chamados[0].categoria == .outro)
+    }
+
+    @Test("Cenário 10: registrarEEnviar com conta suspensa exibe mensagem amigável sem abrir e-mail")
+    func registrarEEnviarComContaSuspensa() async throws {
+        let contexto = criarContextoExemplo()
+        let api = ApiDeSuporteTeste(falha: ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa"))
+
+        var urlAberta: URL?
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            api: api,
+            verificadorPodeEnviarEmail: { false }
+        )
+
+        await vm.registrarEEnviar(abridorURL: { url in urlAberta = url })
+
+        #expect(vm.protocolo == nil)
+        #expect(vm.mensagemDeErro == TextosDoSuporte.contaSuspensa)
+        #expect(urlAberta == nil)
+    }
+
+    @Test("Cenário 11: registrarEEnviar após 5 chamados no mesmo dia acusa limite excedido")
+    func registrarEEnviarLimiteExcedido() async throws {
+        let contexto = criarContextoExemplo()
+        let api = ApiDeSuporteTeste()
+
+        for _ in 1...5 {
+            _ = try await api.abrirSuporte(turnoID: contexto.turnoID, categoria: .outro, chave: UUID())
+        }
+
+        var urlAberta: URL?
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            api: api,
+            verificadorPodeEnviarEmail: { false }
+        )
+
+        await vm.registrarEEnviar(abridorURL: { url in urlAberta = url })
+
+        #expect(vm.protocolo == nil)
+        #expect(vm.mensagemDeErro == TextosDoSuporte.limiteExcedido)
+        #expect(urlAberta == nil)
+    }
+
+    @Test("Cenário 12: Idempotência por chave reutiliza o mesmo protocolo")
+    func idempotenciaDeChave() async throws {
+        let contexto = criarContextoExemplo()
+        let api = ApiDeSuporteTeste()
+
+        let chaveFixa = UUID()
+        let prot1 = try await api.abrirSuporte(turnoID: contexto.turnoID, categoria: .atraso, chave: chaveFixa)
+        let prot2 = try await api.abrirSuporte(turnoID: contexto.turnoID, categoria: .atraso, chave: chaveFixa)
+
+        #expect(prot1.ocorrenciaID == prot2.ocorrenciaID)
+        #expect(prot1.protocoloCurto == prot2.protocoloCurto)
+        #expect(api.chamados.count == 1)
     }
 }
 

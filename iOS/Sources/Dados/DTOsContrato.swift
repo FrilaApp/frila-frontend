@@ -1233,6 +1233,24 @@ enum ContratoAPI {
         }
     }
 
+    struct AbrirSuporte: Encodable {
+        let turnoID: UUID
+        let categoria: String
+        let chave: UUID
+
+        init(turnoID: UUID, categoria: CategoriaSuporte, chave: UUID) {
+            self.turnoID = turnoID
+            self.categoria = categoria.rawValue
+            self.chave = chave
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case turnoID = "turno_id"
+            case categoria
+            case chave
+        }
+    }
+
     struct BloqueioDTO: Decodable {
         let alvoTipo: TipoPerfilPublico
         let alvoID: UUID

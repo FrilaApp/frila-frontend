@@ -32,11 +32,15 @@ public enum TextosDoSuporte {
 
     public static let secaoAcoes = String(localized: "Envio do e-mail", bundle: bundleApresentacao)
     public static let botaoEnviarEmail = String(localized: "Abrir e-mail de suporte", bundle: bundleApresentacao)
-    public static let dicaEnviarEmail = String(localized: "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com", bundle: bundleApresentacao)
+    public static let dicaEnviarEmail = String(localized: "Abre o compositor de e-mail com os dados pré-preenchidos para suporte@frila.app", bundle: bundleApresentacao)
     public static let botaoCopiarDados = String(localized: "Copiar dados do e-mail", bundle: bundleApresentacao)
     public static let dicaCopiarDados = String(localized: "Copia o assunto e o corpo formatados para colar no seu aplicativo de e-mail", bundle: bundleApresentacao)
     public static let dadosCopiados = String(localized: "Dados copiados para a área de transferência.", bundle: bundleApresentacao)
     public static let falhaAoAbrirEmail = String(localized: "Não foi possível abrir o aplicativo de e-mail. Você pode copiar os dados abaixo e enviá-los de outro aplicativo.", bundle: bundleApresentacao)
+    public static let limiteExcedido = String(localized: "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suporte@frila.app.", bundle: bundleApresentacao)
+    public static let contaSuspensa = String(localized: "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suporte@frila.app.", bundle: bundleApresentacao)
+    public static let erroAoRegistrarChamado = String(localized: "Não foi possível registrar o chamado. Tente novamente.", bundle: bundleApresentacao)
+    public static let protocoloRegistrado = String(localized: "Protocolo #%@ gerado. Prazo de resposta até %@.", bundle: bundleApresentacao)
     public static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
     public static let emailSuporteRotulo = String(localized: "Destinatário oficial: %@", bundle: bundleApresentacao)
 }

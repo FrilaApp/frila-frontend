@@ -99,34 +99,59 @@ public enum MotivoSuporteTurno: String, CaseIterable, Identifiable, Hashable, Eq
     public var ehRiscoSeguranca: Bool {
         self == .riscoSeguranca
     }
+
+    /// Mapeia para a categoria oficial do contrato 0.2.40 (UC14, RF23).
+    public var categoriaSuporte: CategoriaSuporte {
+        switch self {
+        case .riscoSeguranca: .seguranca
+        case .atrasoOuImprevisto: .atraso
+        case .problemaNoLocal: .endereco
+        case .dificuldadePresenca: .conduta
+        case .outro: .outro
+        }
+    }
 }
 
-/// View model para a folha de acionamento do suporte no turno (US22, RF23).
+/// View model para a folha de acionamento do suporte no turno (US22, RF23, contrato 0.2.40).
 @MainActor @Observable
 public final class SuporteTurnoViewModel: Identifiable {
     public let dados: ContextoSuporteTurno
     public let emailDestino: String
+    public let api: (any ApiCliente)?
     public var motivo: MotivoSuporteTurno
     public var relato: String
     public private(set) var copiadoComSucesso: Bool = false
     public private(set) var falhaAoAbrirEmail: Bool = false
     public var mostrandoCompositorNativo: Bool = false
 
+    /// Chave de idempotência (SU-RN02, F1). Permanece a mesma em tentativas do mesmo chamado.
+    public let chaveIdempotente: UUID
+    /// Protocolo devolvido pela RPC abrir_suporte (contrato 0.2.40).
+    public private(set) var protocolo: Protocolo?
+    /// Indica se a RPC está sendo executada.
+    public private(set) var enviando: Bool = false
+    /// Mensagem de recusa amigável (403 conta suspensa, 429 limite diário, etc.).
+    public private(set) var mensagemDeErro: String?
+
     private let verificadorPodeEnviarEmail: (@Sendable () -> Bool)?
     private let copiador: (@Sendable (String) -> Void)?
 
     public init(
         dados: ContextoSuporteTurno,
-        emailDestino: String = EnderecosOficiais.padrao.emailSuporte,
+        api: (any ApiCliente)? = nil,
+        emailDestino: String = "suporte@frila.app",
         motivoInicial: MotivoSuporteTurno = .atrasoOuImprevisto,
         relatoInicial: String = "",
+        chaveIdempotente: UUID = UUID(),
         verificadorPodeEnviarEmail: (@Sendable () -> Bool)? = nil,
         copiador: (@Sendable (String) -> Void)? = nil
     ) {
         self.dados = dados
+        self.api = api
         self.emailDestino = emailDestino
         self.motivo = motivoInicial
         self.relato = relatoInicial
+        self.chaveIdempotente = chaveIdempotente
         self.verificadorPodeEnviarEmail = verificadorPodeEnviarEmail
         self.copiador = copiador
     }
@@ -135,9 +160,12 @@ public final class SuporteTurnoViewModel: Identifiable {
         motivo.ehRiscoSeguranca
     }
 
-    /// Assunto padronizado com o ID do turno para triagem e ingestão no backend (#21 e #256).
+    /// Assunto padronizado com o protocolo curto quando registrado, ou identificador do turno (contrato 0.2.40, SU-RN04).
     public var assuntoEmail: String {
-        "[Turno \(dados.turnoID)] \(dados.funcao)"
+        if let protocolo {
+            return "[Frila Suporte #\(protocolo.protocoloCurto)] \(dados.funcao)"
+        }
+        return "[Turno \(dados.turnoID)] \(dados.funcao)"
     }
 
     /// Corpo estruturado com as partes, horários e relato.
@@ -145,21 +173,29 @@ public final class SuporteTurnoViewModel: Identifiable {
         let relatoLimpo = relato.trimmingCharacters(in: .whitespacesAndNewlines)
         let relatoFinal = relatoLimpo.isEmpty ? "Nenhum relato adicional informado." : relatoLimpo
 
-        return """
-        Identificação do Turno:
-        - ID: \(dados.turnoID)
-        - Função: \(dados.funcao)
-        - Contratante: \(dados.contratante)
-        - Profissional: \(dados.profissional)
-        - Horário: \(dados.horarioFormatado)
-        - Local: \(dados.endereco)
+        var linhas = [
+            "Identificação do Turno:",
+            "- ID: \(dados.turnoID)",
+            "- Função: \(dados.funcao)",
+            "- Contratante: \(dados.contratante)",
+            "- Profissional: \(dados.profissional)",
+            "- Horário: \(dados.horarioFormatado)",
+            "- Local: \(dados.endereco)"
+        ]
 
-        Motivo do Chamado:
-        \(motivo.rotulo)
+        if let protocolo {
+            linhas.append("- Protocolo: #\(protocolo.protocoloCurto)")
+            linhas.append("- Prazo de resposta: até \(FormatadorFrila().data(protocolo.prazoRespostaAte))")
+        }
 
-        Relato:
-        \(relatoFinal)
-        """
+        linhas.append("")
+        linhas.append("Motivo do Chamado:")
+        linhas.append(motivo.rotulo)
+        linhas.append("")
+        linhas.append("Relato:")
+        linhas.append(relatoFinal)
+
+        return linhas.joined(separator: "\n")
     }
 
     /// Conteúdo completo para cópia (caso o usuário envie de outro cliente).
@@ -216,6 +252,39 @@ public final class SuporteTurnoViewModel: Identifiable {
     /// Registra que a tentativa de abertura do e-mail não teve sucesso pelo sistema.
     public func registrarFalhaAoAbrirEmail() {
         falhaAoAbrirEmail = true
+    }
+
+    /// Abre o suporte chamando a RPC abrir_suporte e, em seguida, dispara o cliente de e-mail (SU-RF03).
+    public func registrarEEnviar(abridorURL: ((URL) -> Void)? = nil) async {
+        mensagemDeErro = nil
+        falhaAoAbrirEmail = false
+
+        if let api, protocolo == nil {
+            enviando = true
+            defer { enviando = false }
+            do {
+                let prot = try await api.abrirSuporte(
+                    turnoID: dados.turnoID,
+                    categoria: motivo.categoriaSuporte,
+                    chave: chaveIdempotente
+                )
+                self.protocolo = prot
+            } catch let erro as ErroDaApi {
+                if erro.codigo == .semPermissao && erro.detalhes == "conta_suspensa" {
+                    mensagemDeErro = TextosDoSuporte.contaSuspensa
+                } else if erro.codigo == .limiteExcedido {
+                    mensagemDeErro = TextosDoSuporte.limiteExcedido
+                } else {
+                    mensagemDeErro = TextosDoSuporte.erroAoRegistrarChamado
+                }
+                return
+            } catch {
+                mensagemDeErro = TextosDoSuporte.erroAoRegistrarChamado
+                return
+            }
+        }
+
+        abrirEmail(comAbridorURL: abridorURL)
     }
 
     /// Aciona a abertura de e-mail: se nativo disponível, abre compositor; senão, dispara URL mailto.
