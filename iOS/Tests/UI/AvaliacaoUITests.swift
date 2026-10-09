@@ -50,6 +50,9 @@ final class AvaliacaoUITests: XCTestCase {
         XCTAssertTrue(sim.waitForExistence(timeout: Espera.aparecer))
         sim.tap()
 
+        XCTAssertTrue(app.images["icone-checkmark-sim"].exists)
+        XCTAssertFalse(app.images["icone-checkmark-nao"].exists)
+
         let enviar = app.buttons["botao-enviar-avaliacao"]
         XCTAssertTrue(enviar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(enviar.isEnabled)
@@ -57,6 +60,8 @@ final class AvaliacaoUITests: XCTestCase {
 
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
         XCTAssertTrue(confirmacao.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(confirmacao.label.hasPrefix("Alerta:"))
+        XCTAssertFalse(confirmacao.label.hasPrefix("Erro:"))
         XCTAssertFalse(enviar.exists)
         XCTAssertFalse(sim.isEnabled)
     }

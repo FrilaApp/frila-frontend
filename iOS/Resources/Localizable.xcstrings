@@ -6322,6 +6322,36 @@
           }
         }
       }
+    },
+    "Alerta: ": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alerta: "
+          }
+        }
+      }
+    },
+    "Erro: ": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erro: "
+          }
+        }
+      }
+    },
+    "Mínimo de caracteres atendido": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mínimo de caracteres atendido"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

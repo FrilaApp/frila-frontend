@@ -31,6 +31,7 @@ public enum TextosPorQueReceboVagas {
     public static let labelRelato = String(localized: "O que aconteceu", bundle: bundleApresentacao)
     public static let promptRelato = String(localized: "Conte qual vaga esperava receber e por quê…", bundle: bundleApresentacao)
     public static let dicaRelato = String(localized: "Mínimo de 10 caracteres.", bundle: bundleApresentacao)
+    public static let relatoValidoAcessibilidade = String(localized: "Mínimo de caracteres atendido", bundle: bundleApresentacao)
     public static let botaoEnviar = String(localized: "Enviar pedido", bundle: bundleApresentacao)
     public static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
     public static let pedidoEnviado = String(localized: "Pedido de revisão enviado", bundle: bundleApresentacao)

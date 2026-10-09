@@ -183,6 +183,11 @@ public struct TelaContaSuspensa: View {
             .accessibilityIdentifier("campo-relato-contestacao")
 
             HStack {
+                if viewModel.relatoValido {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FrilaCor.sucesso)
+                        .accessibilityIdentifier("icone-relato-valido-contestacao")
+                }
                 Text(verbatim: TextosContaSuspensa.dicaRelato)
                     .font(.caption)
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
@@ -190,6 +195,8 @@ public struct TelaContaSuspensa: View {
                 Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("contador-relato-contestacao")
+                    .accessibilityLabel(Text(verbatim: viewModel.relatoValido ? TextosContaSuspensa.relatoValidoAcessibilidade : "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
             }
 
             layoutDosBotoes {
