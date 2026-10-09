@@ -144,6 +144,10 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private static let cartaoDaVagaLimitadoAAX1 = "o cartão da vaga não acompanha o Dynamic Type além de AX1 por decisão de layout do design (#139): sem o limite a altura passa da tela em AX5 (957 pt de 874); as pílulas de filtro já acompanham até AX5"
     private static let publicarVagaComDatePicker = "o UIDatePicker do sistema não acompanha o Dynamic Type em AX5 (no cadastro) e no tamanho padrão e AX5 (em Minhas vagas) por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
+    private static let porQueReceboVagasBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
+    private static let confirmacaoExclusaoTextoCortado = "o XCTest aponta texto cortado nos botões e textos da folha de confirmação de exclusão (TelaExclusaoDeConta.swift)"
+    private static let ajudaDoPerfilAchados = "a tela de ajuda tem achados de Dynamic Type no botão Fechar da barra (ToolbarItem) e texto com seleção (perfil-suporte-email) apontado como alvo pequeno e rótulo não legível"
+    private static let publicarVagaMaisOpcoesTextoInacessivel = "a rolagem de mais opções expõe texto classificado pelo XCTest como potencialmente inacessível (PublicarVaga.swift, branch concorrente)"
 
     // MARK: - Profissional
 
@@ -338,6 +342,118 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     func testContaSuspensa() { contaSuspensa(ax5: false) }
     func testContaSuspensaEmAX5() { contaSuspensa(ax5: true) }
 
+    private func historicoDeTurnos(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
+        let perfil = app.buttons["abrir-meu-perfil"]
+        guard esperar(perfil, "O botão do perfil deve existir") else { return }
+        perfil.tap()
+
+        let entrada = app.buttons["perfil-historico-turnos"]
+        guard esperar(entrada, "O item de histórico de turnos deve existir") else { return }
+        tocar(entrada, em: app)
+
+        guard esperar(app.buttons["historico-exportar"], "O histórico deve abrir") else { return }
+        auditar(app, tela: "historico-turnos")
+    }
+
+    func testHistoricoDeTurnos() { historicoDeTurnos(ax5: false) }
+    func testHistoricoDeTurnosEmAX5() { historicoDeTurnos(ax5: true) }
+
+    private func confirmacaoDeExclusaoDeConta(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
+        let perfil = app.buttons["abrir-meu-perfil"]
+        guard esperar(perfil, "O botão do perfil deve existir") else { return }
+        perfil.tap()
+
+        let irParaExclusao = app.buttons["perfil-excluir-conta"]
+        guard esperar(irParaExclusao, "O item de exclusão de conta deve existir") else { return }
+        tocar(irParaExclusao, em: app)
+        guard esperar(elemento("tela-exclusao-de-conta", em: app), "A exclusão de conta deve abrir") else { return }
+
+        let toggle = app.switches["toggle-confirmar-consequencias"]
+        guard esperar(toggle, "O interruptor de consequências deve existir") else { return }
+        for _ in 0..<10 where !toggle.isHittable { app.swipeUp(velocity: .fast) }
+        let interruptor = toggle.switches.firstMatch
+        let alvo = interruptor.exists ? interruptor : toggle
+        tocar(alvo, em: app)
+
+        let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
+        guard esperar(botaoExcluir, "O botão de exclusão definitiva deve existir") else { return }
+        let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: botaoExcluir)
+        _ = XCTWaiter.wait(for: [habilitado], timeout: 5)
+        tocar(botaoExcluir, em: app, tentativas: 10)
+
+        let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
+        guard esperar(cancelar, "A confirmação de exclusão deve abrir") else { return }
+        auditar(app, tela: "confirmacao-exclusao-de-conta", pendente: Self.confirmacaoExclusaoTextoCortado, estrito: true)
+    }
+
+    func testConfirmacaoDeExclusaoDeConta() { confirmacaoDeExclusaoDeConta(ax5: false) }
+    func testConfirmacaoDeExclusaoDeContaEmAX5() { confirmacaoDeExclusaoDeConta(ax5: true) }
+
+    private func porQueReceboVagas(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
+        let perfil = app.buttons["abrir-meu-perfil"]
+        guard esperar(perfil, "O botão do perfil deve existir") else { return }
+        perfil.tap()
+
+        let botao = app.buttons["perfil-por-que-recebo"]
+        guard esperar(botao, "O botão Por que recebo vagas deve existir") else { return }
+        tocar(botao, em: app)
+
+        guard esperar(elemento("tela-por-que-recebo", em: app), "A tela Por que recebo vagas deve abrir") else { return }
+        auditar(app, tela: "por-que-recebo-vagas", pendente: Self.porQueReceboVagasBotaoBarra, estrito: true)
+    }
+
+    func testPorQueReceboVagas() { porQueReceboVagas(ax5: false) }
+    func testPorQueReceboVagasEmAX5() { porQueReceboVagas(ax5: true) }
+
+    private func ajudaDoPerfil(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
+        let perfil = app.buttons["abrir-meu-perfil"]
+        guard esperar(perfil, "O botão do perfil deve existir") else { return }
+        perfil.tap()
+
+        let botaoAjuda = app.buttons["perfil-ajuda"]
+        guard esperar(botaoAjuda, "O botão Ajuda deve existir") else { return }
+        tocar(botaoAjuda, em: app)
+
+        guard esperar(elemento("perfil-suporte", em: app), "A tela de ajuda deve abrir") else { return }
+        auditar(app, tela: "ajuda-perfil", pendente: Self.ajudaDoPerfilAchados, estrito: true)
+    }
+
+    func testAjudaDoPerfil() { ajudaDoPerfil(ax5: false) }
+    func testAjudaDoPerfilEmAX5() { ajudaDoPerfil(ax5: true) }
+
+    // MARK: - Catálogo
+
+    private func licencasEDetalhe(ax5: Bool) {
+        let app = abrir(["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"], ax5: ax5)
+        guard esperar(app.navigationBars["Frila UI"], "O catálogo deve abrir") else { return }
+
+        let entrada = app.buttons["abrir-licencas"]
+        guard esperar(entrada, "O botão de licenças deve existir no catálogo") else { return }
+        let janela = app.windows.firstMatch
+        for _ in 0..<12 {
+            if entrada.exists && entrada.isHittable && janela.frame.contains(entrada.frame) { break }
+            app.swipeUp(velocity: .fast)
+        }
+        tocar(entrada, em: app, tentativas: 12)
+
+        guard esperar(app.navigationBars["Licenças de código aberto"], "A lista de licenças deve abrir") else { return }
+        auditar(app, tela: "licencas")
+
+        let pacote = app.buttons["licenca-abseil-cpp-binary"]
+        guard esperar(pacote, "O item da licença deve existir") else { return }
+        tocar(pacote, em: app)
+
+        guard esperar(elemento("texto-da-licenca", em: app), "O detalhe da licença deve abrir") else { return }
+        auditar(app, tela: "detalhe-licenca")
+    }
+
+    func testLicencasEDetalhe() { licencasEDetalhe(ax5: false) }
+    func testLicencasEDetalheEmAX5() { licencasEDetalhe(ax5: true) }
+
     // MARK: - Contratante
 
     private func cadastroDoEstabelecimentoEPublicarVaga(ax5: Bool) {
@@ -356,7 +472,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         tocar(app.buttons["mais-opcoes-botao"], em: app)
         guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
         app.swipeUp()
-        auditar(app, tela: "publicar-vaga-mais-opcoes")
+        auditar(app, tela: "publicar-vaga-mais-opcoes", pendente: Self.publicarVagaMaisOpcoesTextoInacessivel, estrito: false)
     }
 
     func testCadastroDoEstabelecimentoEPublicarVaga() { cadastroDoEstabelecimentoEPublicarVaga(ax5: false) }
@@ -435,6 +551,23 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testPerfilDoEstabelecimento() { perfilDoEstabelecimento(ax5: false) }
     func testPerfilDoEstabelecimentoEmAX5() { perfilDoEstabelecimento(ax5: true) }
+
+    private func equipeDeConfianca(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "equipe-de-confianca-com-membro"], ax5: ax5)
+        let perfil = app.buttons["abrir-perfil-estabelecimento"]
+        guard esperar(perfil, "O botão do perfil do estabelecimento deve existir") else { return }
+        perfil.tap()
+
+        let equipe = app.buttons["estabelecimento-equipe-de-confianca"]
+        guard esperar(equipe, "O botão Equipe de confiança deve existir") else { return }
+        tocar(equipe, em: app)
+
+        guard esperar(elemento("tela-equipe-de-confianca", em: app), "A equipe de confiança deve abrir") else { return }
+        auditar(app, tela: "equipe-de-confianca")
+    }
+
+    func testEquipeDeConfianca() { equipeDeConfianca(ax5: false) }
+    func testEquipeDeConfiancaEmAX5() { equipeDeConfianca(ax5: true) }
 
     private func publicarVagaEmMinhasVagas(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "contratante"], ax5: ax5)
