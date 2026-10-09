@@ -84,6 +84,7 @@ public struct FolhaSuporteTurno: View {
             Text(verbatim: TextosDoSuporte.secaoMotivo)
                 .font(.footnote.bold())
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(spacing: FrilaEspaco.minimo) {
                 ForEach(MotivoSuporteTurno.allCases) { motivo in
@@ -174,6 +175,7 @@ public struct FolhaSuporteTurno: View {
             Text(verbatim: TextosDoSuporte.secaoRelato)
                 .font(.footnote.bold())
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
 
             TextField(
                 TextosDoSuporte.promptRelato,
@@ -198,6 +200,7 @@ public struct FolhaSuporteTurno: View {
             Text(verbatim: TextosDoSuporte.secaoDados)
                 .font(.footnote.bold())
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 itemDado(rotulo: TextosDoSuporte.rotuloFuncao, valor: viewModel.dados.funcao)

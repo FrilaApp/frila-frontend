@@ -50,9 +50,13 @@ public struct TelaExclusaoDeConta: View {
                 Text(verbatim: TextosExclusaoDeConta.dialogoTitulo)
                     .font(.title3.bold())
                     .foregroundStyle(FrilaCor.texto)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Text(verbatim: TextosExclusaoDeConta.dialogoMensagem)
                     .foregroundStyle(FrilaCor.texto)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(FrilaEspaco.medio)
@@ -71,6 +75,8 @@ public struct TelaExclusaoDeConta: View {
                     Text(verbatim: TextosExclusaoDeConta.dialogoConfirmar)
                         .font(.headline)
                         .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
                 }
@@ -83,7 +89,7 @@ public struct TelaExclusaoDeConta: View {
             .background(FrilaCor.fundo)
         }
         .background(FrilaCor.fundo)
-        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium])
+        .presentationDetents([.large])
     }
 
     private var avisoPrincipal: some View {

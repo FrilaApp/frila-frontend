@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 @MainActor
@@ -135,5 +136,94 @@ final class SuporteTurnoUITests: XCTestCase {
         XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer), "Folha de suporte deve abrir ao tocar no botão de ajuda")
         app.buttons["botao-fechar-suporte"].tap()
         XCTAssertFalse(folha.exists)
+    }
+
+    /// Subtítulos de seção da folha de suporte possuem traço de cabeçalho para navegação por seção no VoiceOver (71.1).
+    func testSubtitulosDeSecaoDaFolhaDeSuporteSaoCabecalhos() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ABRIR_SUPORTE_TURNO", "-FRILA_SCENARIO", "success", "-FRILA_CACHE_VAZIO_UI_TEST"]
+        app.launch()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 10), "A folha de suporte no turno deve estar visível")
+
+        // 1. Subtítulo da seção de motivo
+        let subtituloMotivo = app.staticTexts["Motivo do suporte"]
+        XCTAssertTrue(subtituloMotivo.waitForExistence(timeout: Espera.aparecer), "O subtítulo de motivo deve estar visível")
+        XCTAssertTrue(subtituloMotivo.ehCabecalho, "O subtítulo de motivo deve ser cabeçalho para VoiceOver")
+
+        salvarCapturaDaFolha(app.screenshot(), nome: "folha-suporte-padrao.png")
+
+        // 2. Subtítulo da seção de relato
+        let subtituloRelato = app.staticTexts["Descrição do ocorrido"]
+        if !subtituloRelato.waitForExistence(timeout: Espera.aparecer) {
+            app.swipeUp()
+            XCTAssertTrue(subtituloRelato.waitForExistence(timeout: Espera.aparecer), "O subtítulo de relato deve estar visível")
+        }
+        XCTAssertTrue(subtituloRelato.ehCabecalho, "O subtítulo de relato deve ser cabeçalho para VoiceOver")
+
+        // 3. Subtítulo da seção de dados do turno
+        let subtituloDados = app.staticTexts["Identificação do turno"]
+        if !subtituloDados.waitForExistence(timeout: Espera.aparecer) {
+            app.swipeUp()
+            XCTAssertTrue(subtituloDados.waitForExistence(timeout: Espera.aparecer), "O subtítulo de dados do turno deve estar visível")
+        }
+        XCTAssertTrue(subtituloDados.ehCabecalho, "O subtítulo de dados do turno deve ser cabeçalho para VoiceOver")
+    }
+
+    /// Captura da folha de suporte em tamanho de acessibilidade (AX5) para conferência de layout e texto cortado (71.1).
+    func testFolhaDeSuporteEmAX5() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ABRIR_SUPORTE_TURNO",
+            "-FRILA_SCENARIO", "success",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 10), "A folha de suporte deve abrir em AX5")
+
+        // 1. Subtítulo da seção de motivo
+        let subtituloMotivo = app.staticTexts["Motivo do suporte"]
+        XCTAssertTrue(subtituloMotivo.waitForExistence(timeout: Espera.aparecer), "O subtítulo de motivo deve estar visível em AX5")
+        XCTAssertTrue(subtituloMotivo.ehCabecalho, "O subtítulo de motivo deve ser cabeçalho em AX5")
+
+        salvarCapturaDaFolha(app.screenshot(), nome: "folha-suporte-ax5.png")
+
+        // 2. Subtítulo da seção de relato
+        let subtituloRelato = app.staticTexts["Descrição do ocorrido"]
+        if !subtituloRelato.waitForExistence(timeout: Espera.aparecer) {
+            app.swipeUp()
+            XCTAssertTrue(subtituloRelato.waitForExistence(timeout: Espera.aparecer), "O subtítulo de relato deve estar visível em AX5")
+        }
+        XCTAssertTrue(subtituloRelato.ehCabecalho, "O subtítulo de relato deve ser cabeçalho em AX5")
+
+        // 3. Subtítulo da seção de dados do turno
+        let subtituloDados = app.staticTexts["Identificação do turno"]
+        if !subtituloDados.waitForExistence(timeout: Espera.aparecer) {
+            app.swipeUp()
+            XCTAssertTrue(subtituloDados.waitForExistence(timeout: Espera.aparecer), "O subtítulo de dados do turno deve estar visível em AX5")
+        }
+        XCTAssertTrue(subtituloDados.ehCabecalho, "O subtítulo de dados do turno deve ser cabeçalho em AX5")
+    }
+
+    private func salvarCapturaDaFolha(_ screenshot: XCUIScreenshot, nome: String) {
+        let anexo = XCTAttachment(screenshot: screenshot)
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+
+        let pasta = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/missoes/capturas/2026-10-09-cabecalhos-suporte"
+        try? FileManager.default.createDirectory(atPath: pasta, withIntermediateDirectories: true)
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: "\(pasta)/\(nome)"))
+    }
+}
+
+private extension XCUIElement {
+    var ehCabecalho: Bool {
+        let traits = (value(forKey: "traits") as? NSNumber)?.uint64Value ?? (value(forKey: "traits") as? UInt64) ?? 0
+        return (traits & UIAccessibilityTraits.header.rawValue) != 0
     }
 }
