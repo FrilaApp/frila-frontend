@@ -253,7 +253,7 @@ public struct FolhaSuporteTurno: View {
                 HStack(spacing: FrilaEspaco.minimo) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(FrilaCor.sucesso)
-                    Text(verbatim: String(format: TextosDoSuporte.protocoloRegistrado, prot.protocoloCurto, FormatadorFrila().data(prot.prazoRespostaAte.dataEmBrasilia)))
+                    Text(verbatim: String(format: TextosDoSuporte.protocoloRegistrado, prot.protocoloCurto, FormatadorFrila().data(prot.prazoRespostaAte)))
                         .font(.footnote)
                         .foregroundStyle(FrilaCor.sucesso)
                 }

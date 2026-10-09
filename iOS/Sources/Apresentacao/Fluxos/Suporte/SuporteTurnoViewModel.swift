@@ -185,7 +185,7 @@ public final class SuporteTurnoViewModel: Identifiable {
 
         if let protocolo {
             linhas.append("- Protocolo: #\(protocolo.protocoloCurto)")
-            linhas.append("- Prazo de resposta: até \(FormatadorFrila().data(protocolo.prazoRespostaAte.dataEmBrasilia))")
+            linhas.append("- Prazo de resposta: até \(FormatadorFrila().data(protocolo.prazoRespostaAte))")
         }
 
         linhas.append("")
