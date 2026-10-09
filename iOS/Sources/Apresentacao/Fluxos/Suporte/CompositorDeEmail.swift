@@ -49,6 +49,7 @@ public struct CompositorDeEmailNativo: UIViewControllerRepresentable {
             super.init()
         }
 
+        @MainActor
         public func mailComposeController(
             _ controller: MFMailComposeViewController,
             didFinishWith result: MFMailComposeResult,

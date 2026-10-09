@@ -1554,7 +1554,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
             throw erro("nao_encontrado")
         }
 
-        let hoje = DataCivil.deSaoPaulo(relogio.agora)
+        guard let hoje = DataCivil.deSaoPaulo(relogio.agora) else {
+            throw erro("falha_inesperada")
+        }
         let contagemHoje = chamadosDeSuportePorDia[hoje] ?? 0
         guard contagemHoje < 5 else {
             throw erro("limite_excedido")
