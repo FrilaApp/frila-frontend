@@ -61,10 +61,8 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 // O aviso novo entra na rolagem, que pode estar em outro ponto: a tela vai até ele.
                 .onChange(of: avisosDaAcao.avisos) { _, avisos in
                     guard !avisos.isEmpty else { return }
-                    if reduzirMovimento {
+                    withAnimation(FrilaMovimento.animacao(reduzir: reduzirMovimento)) {
                         rolagem.scrollTo(Self.idDosAvisos, anchor: .top)
-                    } else {
-                        withAnimation { rolagem.scrollTo(Self.idDosAvisos, anchor: .top) }
                     }
                 }
         }
