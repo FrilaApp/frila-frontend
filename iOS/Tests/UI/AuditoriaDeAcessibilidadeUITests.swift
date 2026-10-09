@@ -142,6 +142,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         XCTExpectFailure("\(tela): \(motivo)", options: opcoes) { auditar(app, tela: tela) }
     }
 
+    private static let cartaoDaVagaLimitadoAAX1 = "o cartão da vaga não acompanha o Dynamic Type além de AX1 por decisão de layout do design (#139): sem o limite a altura passa da tela em AX5 (957 pt de 874); as pílulas de filtro já acompanham até AX5"
     private static let publicarVagaComDatePicker = "o UIDatePicker do sistema não acompanha o Dynamic Type em AX5 (no cadastro) e no tamanho padrão e AX5 (em Minhas vagas) por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
 
     // MARK: - Profissional
@@ -186,7 +187,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
 
         guard esperar(app.navigationBars["Vagas no DF"], "A lista deve abrir") else { return }
-        auditar(app, tela: "vagas")
+        auditar(app, tela: "vagas", pendente: Self.cartaoDaVagaLimitadoAAX1, estrito: true)
 
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
         guard esperar(primeira, "A lista deve ter vaga") else { return }

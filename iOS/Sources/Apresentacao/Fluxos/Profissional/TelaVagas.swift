@@ -115,6 +115,7 @@ public struct TelaVagas: View {
                 ForEach(vagas) { vaga in
                     Button { abrir(vaga.id) } label: { CartaoVaga(vaga) }
                         .buttonStyle(.plain)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .accessibilityIdentifier("vaga-\(vaga.id.uuidString)")
                         .accessibilityHint(Text("Abre o detalhe da vaga", bundle: bundleApresentacao))
                         .task { if vaga.id == vagas.last?.id { await viewModel.carregarMais() } }
