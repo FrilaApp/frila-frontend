@@ -919,12 +919,35 @@ public enum TipoDeProtocolo: String, Codable, Sendable {
     }
 }
 
+/// Categoria do chamado de suporte no turno (contrato 0.2.40, UC14).
+public enum CategoriaSuporte: String, CaseIterable, Codable, Sendable {
+    case endereco
+    case atraso
+    case conduta
+    case seguranca
+    case outro
+
+    public init(from decoder: Decoder) throws {
+        let valor = try decoder.singleValueContainer().decode(String.self)
+        self = CategoriaSuporte(rawValue: valor) ?? .outro
+    }
+}
+
 /// Registro de algo que a Equipe Frila responde por e-mail em até 5 dias úteis.
 public struct Protocolo: Codable, Hashable, Sendable {
     public let ocorrenciaID: UUID
     public let tipo: TipoDeProtocolo
     public let criadaEm: Date
     public let prazoRespostaAte: DataCivil
+
+    /// Os 8 primeiros caracteres hexadecimais de `ocorrenciaID` sem hifens, em maiúsculas (contrato 0.2.40).
+    public var protocoloCurto: String {
+        Self.calcularProtocoloCurto(ocorrenciaID)
+    }
+
+    public static func calcularProtocoloCurto(_ id: UUID) -> String {
+        String(id.uuidString.replacingOccurrences(of: "-", with: "").prefix(8)).uppercased()
+    }
 
     public init(ocorrenciaID: UUID, tipo: TipoDeProtocolo, criadaEm: Date, prazoRespostaAte: DataCivil) {
         self.ocorrenciaID = ocorrenciaID

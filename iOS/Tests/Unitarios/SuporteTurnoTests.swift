@@ -198,7 +198,7 @@ struct SuporteTurnoTests {
 
         #expect(vm.copiadoComSucesso)
         #expect(caixa.texto.contains("Assunto: [Turno 11111111-2222-3333-4444-555555555555] Garçom"))
-        #expect(caixa.texto.contains("Para: suportefrila@gmail.com"))
+        #expect(caixa.texto.contains("Para: suporte@frila.app"))
         #expect(caixa.texto.contains(contexto.endereco))
     }
 
@@ -269,6 +269,99 @@ struct SuporteTurnoTests {
         })
 
         #expect(!vm.falhaAoAbrirEmail)
+    }
+
+    // MARK: - Testes da RPC abrir_suporte (contrato 0.2.40)
+
+    @Test("Cenário 9: registrarEEnviar chama abrirSuporte e atualiza protocolo e assunto")
+    func registrarEEnviarComSucesso() async throws {
+        let contexto = criarContextoExemplo()
+        let turno = try criarTurno(id: contexto.turnoID)
+        let base = try ApiClienteEmMemoria.comSessao(perfil: .profissional, turnos: [turno])
+        let api = ApiClienteEncaminhador(base: base)
+
+        var urlAberta: URL?
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            api: api,
+            verificadorPodeEnviarEmail: { false }
+        )
+
+        #expect(vm.protocolo == nil)
+        #expect(!vm.assuntoEmail.contains("[Frila Suporte #"))
+
+        await vm.registrarEEnviar(abridorURL: { url in urlAberta = url })
+
+        #expect(vm.protocolo != nil)
+        guard let prot = vm.protocolo else { return }
+        #expect(prot.tipo == .suporte)
+        #expect(!prot.protocoloCurto.isEmpty)
+        #expect(prot.protocoloCurto.count == 8)
+        #expect(vm.assuntoEmail == "[Frila Suporte #\(prot.protocoloCurto)] \(contexto.funcao)")
+        #expect(urlAberta?.absoluteString.contains(prot.protocoloCurto) == true)
+        #expect(vm.mensagemDeErro == nil)
+    }
+
+    @Test("Cenário 10: registrarEEnviar com conta suspensa exibe mensagem amigável sem abrir e-mail")
+    func registrarEEnviarComContaSuspensa() async throws {
+        let contexto = criarContextoExemplo()
+        let turno = try criarTurno(id: contexto.turnoID)
+        let base = try ApiClienteEmMemoria.comSessao(cenario: "conta-suspensa", turnos: [turno])
+        let api = ApiClienteEncaminhador(base: base)
+
+        var urlAberta: URL?
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            api: api,
+            verificadorPodeEnviarEmail: { false }
+        )
+
+        await vm.registrarEEnviar(abridorURL: { url in urlAberta = url })
+
+        #expect(vm.protocolo == nil)
+        #expect(vm.mensagemDeErro == TextosDoSuporte.contaSuspensa)
+        #expect(urlAberta == nil)
+    }
+
+    @Test("Cenário 11: registrarEEnviar após 5 chamados no mesmo dia acusa limite excedido")
+    func registrarEEnviarLimiteExcedido() async throws {
+        let contexto = criarContextoExemplo()
+        let turno = try criarTurno(id: contexto.turnoID)
+        let base = try ApiClienteEmMemoria.comSessao(perfil: .profissional, turnos: [turno])
+        let api = ApiClienteEncaminhador(base: base)
+
+        // Abre 5 chamados diferentes
+        for _ in 1...5 {
+            _ = try await api.abrirSuporte(turnoID: contexto.turnoID, categoria: .outro, chave: UUID())
+        }
+
+        var urlAberta: URL?
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            api: api,
+            verificadorPodeEnviarEmail: { false }
+        )
+
+        await vm.registrarEEnviar(abridorURL: { url in urlAberta = url })
+
+        #expect(vm.protocolo == nil)
+        #expect(vm.mensagemDeErro == TextosDoSuporte.limiteExcedido)
+        #expect(urlAberta == nil)
+    }
+
+    @Test("Cenário 12: Idempotência por chave reutiliza o mesmo protocolo")
+    func idempotenciaDeChave() async throws {
+        let contexto = criarContextoExemplo()
+        let turno = try criarTurno(id: contexto.turnoID)
+        let base = try ApiClienteEmMemoria.comSessao(perfil: .profissional, turnos: [turno])
+        let api = ApiClienteEncaminhador(base: base)
+
+        let chaveFixa = UUID()
+        let prot1 = try await api.abrirSuporte(turnoID: contexto.turnoID, categoria: .atraso, chave: chaveFixa)
+        let prot2 = try await api.abrirSuporte(turnoID: contexto.turnoID, categoria: .atraso, chave: chaveFixa)
+
+        #expect(prot1.ocorrenciaID == prot2.ocorrenciaID)
+        #expect(prot1.protocoloCurto == prot2.protocoloCurto)
     }
 }
 
