@@ -3,7 +3,7 @@ import Foundation
 import FrilaDominio
 import Testing
 
-@Suite("Contrato 0.2.38")
+@Suite("Contrato 0.2.40")
 struct ContratoTests {
     static func objeto(_ valor: some Encodable) throws -> NSDictionary {
         let dados = try JSONEncoder().encode(valor)
@@ -20,7 +20,7 @@ struct ContratoTests {
     @Test("As fixtures declaram a versão do contrato espelhado")
     func versao() throws {
         struct Versao: Decodable { let version: String }
-        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.38")
+        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.40")
     }
 
     @Test("Fixtures da 0.2.31 cobrem turno cancelado, avaliação dada e servidor anterior")
@@ -307,6 +307,24 @@ struct ContratoTests {
         #expect(throws: ErroDeConversao(campo: "valor_centavos")) {
             try decodificador.decode([ContratoAPI.TurnoDTO].self, from: resumo).map { try $0.dominio() }
         }
+    }
+
+    @Test("Protocolo decodifica tipo suporte (contrato 0.2.40)")
+    func protocoloSuporte() throws {
+        let json = """
+        {
+            "ocorrencia_id": "6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88",
+            "tipo": "suporte",
+            "criada_em": "2026-10-08T14:00:00Z",
+            "prazo_resposta_ate": "2026-10-15"
+        }
+        """
+        let dto = try ContratoAPI.decodificador().decode(ContratoAPI.ProtocoloDTO.self, from: Data(json.utf8))
+        #expect(dto.tipo == .suporte)
+        let dominio = try dto.dominio()
+        #expect(dominio.tipo == .suporte)
+        let prazoEsperado = try DataCivil("2026-10-15")
+        #expect(dominio.prazoRespostaAte == prazoEsperado)
     }
 
     /// A fixture com um campo trocado no objeto, ou no primeiro item quando ela é uma lista.

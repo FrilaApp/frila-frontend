@@ -22,7 +22,7 @@ public enum ResultadoDaCandidatura: Equatable, Sendable {
     /// `409 vaga_encerrada`: a vaga foi cancelada, encerrada ou o início já passou.
     case vagaEncerrada
     case inelegivel(MotivoInelegivel)
-    /// `422 inelegivel/perfil_suspenso` no `candidatar`, ou `403 sem_permissao/conta_suspensa`.
+    /// `422 inelegivel/perfil_suspenso` no `candidatar`.
     case contaSuspensa
     /// `404 nao_encontrado`: a vaga não existe mais ou não está visível.
     case naoEncontrada
@@ -173,7 +173,6 @@ public final class CandidaturaViewModel {
         case (.inelegivel, "perfil_suspenso"): return .contaSuspensa
         case (.inelegivel, "funcao_incompativel"): return .inelegivel(.funcaoIncompativel)
         case let (.inelegivel, detalhes): return .inelegivel(.outro(detalhes: detalhes))
-        case (.semPermissao, "conta_suspensa"): return .contaSuspensa
         case (.naoEncontrado, _): return .naoEncontrada
         default: return .falha(erro)
         }

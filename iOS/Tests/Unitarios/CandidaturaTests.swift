@@ -105,10 +105,10 @@ struct CandidaturaViewModelTests {
         #expect(vm.estado == .concluida(.inelegivel(.turnoSobreposto)))
     }
 
-    @Test("Outros códigos: função incompatível, 403 conta suspensa, 404, sem rede",
+    @Test("Outros códigos: função incompatível, inelegível por perfil suspenso, 404, sem rede",
           arguments: [
               (ErroDaApi(codigo: .inelegivel, detalhes: "funcao_incompativel"), ResultadoDaCandidatura.inelegivel(.funcaoIncompativel)),
-              (ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa"), .contaSuspensa),
+              (ErroDaApi(codigo: .inelegivel, detalhes: "perfil_suspenso"), .contaSuspensa),
               (ErroDaApi(codigo: .naoEncontrado), .naoEncontrada),
               (ErroDaApi(codigo: .semRede), .falha(ErroDaApi(codigo: .semRede))),
           ])
