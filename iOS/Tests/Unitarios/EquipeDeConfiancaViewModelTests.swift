@@ -11,6 +11,13 @@ private func perfil(_ id: UUID, _ nome: String) -> PerfilPublico {
     PerfilPublico(id: id, tipo: .profissional, nome: nome, funcoes: ["Garçom"], reputacao: Reputacao(positivas: 1, total: 1, taxaComparecimento: 1, turnosConsiderados: 1, turnosRealizados: 1))
 }
 
+private final class Contador: @unchecked Sendable {
+    private let trava = NSLock()
+    private var _valor = 0
+    var valor: Int { trava.withLock { _valor } }
+    func incrementar() { trava.withLock { _valor += 1 } }
+}
+
 @MainActor
 @Suite("Equipe de confiança: View Models (#24)")
 struct EquipeDeConfiancaViewModelTests {
@@ -149,5 +156,126 @@ struct EquipeDeConfiancaViewModelTests {
         await vm.incluir()
         #expect(vm.mensagemErro == TextosEquipeDeConfianca.semTurnoCumprido)
         #expect(vm.situacao == .foraDaEquipe)
+    }
+
+    @Test("Dois botões do mesmo estabelecimento fazem uma só leitura; nova leitura ocorre após incluir e após remover")
+    func leituraUnicaEInvalidacaoAoIncluirERemover() async throws {
+        let contador = Contador()
+        let biaID = UUID(uuidString: "80000000-0000-0000-0000-000000000002")!
+        let cache = CacheEquipeDeConfianca()
+
+        let listar: @Sendable (UUID) async throws -> [PerfilPublico] = { _ in
+            contador.incrementar()
+            return [perfil(anaID, "Ana")]
+        }
+
+        let vm1 = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+            cache: cache,
+            listar: listar,
+            incluir: { $0 }
+        )
+        let vm2 = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: biaID),
+            cache: cache,
+            listar: listar,
+            incluir: { $0 }
+        )
+
+        // Dois botões do mesmo estabelecimento:
+        await vm1.carregar()
+        await vm2.carregar()
+
+        #expect(vm1.situacao == .naEquipe)
+        #expect(vm2.situacao == .foraDaEquipe)
+        #expect(contador.valor == 1, "dois botões do mesmo estabelecimento devem fazer apenas uma leitura")
+
+        // Incluir invalida o cache, disparando nova leitura:
+        await vm2.incluir()
+        #expect(vm2.situacao == .naEquipe)
+        await vm2.carregar()
+        #expect(contador.valor == 2, "após incluir, deve ocorrer nova leitura na próxima consulta")
+
+        // Remover da equipe invalida o cache, disparando nova leitura:
+        let vmEquipe = EquipeDeConfiancaViewModel(
+            estabelecimentoID: casaID,
+            cache: cache,
+            listar: listar,
+            remover: { $0 }
+        )
+        await vmEquipe.remover(perfil(anaID, "Ana"))
+        await vm1.carregar()
+        #expect(contador.valor == 3, "após remover, deve ocorrer nova leitura na próxima consulta")
+    }
+
+    @Test("Dois botões do mesmo estabelecimento concorrentes deduplicam a requisição em voo")
+    func leituraConcorrenteDeduplica() async throws {
+        let contador = Contador()
+        let biaID = UUID(uuidString: "80000000-0000-0000-0000-000000000002")!
+        let cache = CacheEquipeDeConfianca()
+
+        let listar: @Sendable (UUID) async throws -> [PerfilPublico] = { _ in
+            try await Task.sleep(nanoseconds: 30_000_000)
+            contador.incrementar()
+            return [perfil(anaID, "Ana")]
+        }
+
+        let vm1 = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+            cache: cache,
+            listar: listar,
+            incluir: { $0 }
+        )
+        let vm2 = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: biaID),
+            cache: cache,
+            listar: listar,
+            incluir: { $0 }
+        )
+
+        async let c1: () = vm1.carregar()
+        async let c2: () = vm2.carregar()
+        _ = await (c1, c2)
+
+        #expect(contador.valor == 1)
+        #expect(vm1.situacao == .naEquipe)
+        #expect(vm2.situacao == .foraDaEquipe)
+    }
+
+    @Test("Abrir N turnos do mesmo estabelecimento no dublê faz apenas uma chamada à API com cache compartilhado")
+    func contagemDeChamadasAoAbrirNTurnos() async throws {
+        final class ApiClienteComContagem: ApiClienteEncaminhador, @unchecked Sendable {
+            let contador = Contador()
+            var chamadasEquipe: Int { contador.valor }
+            override func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico] {
+                contador.incrementar()
+                return try await super.equipeDeConfianca(estabelecimentoID: estabelecimentoID)
+            }
+        }
+
+        let api = ApiClienteComContagem(base: ApiClienteEmMemoria(cenario: .painelContratante))
+        let cache = CacheEquipeDeConfianca()
+
+        // Abrir 3 turnos do mesmo estabelecimento:
+        for _ in 0..<3 {
+            let vm = IncluirNaEquipeViewModel(
+                membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+                api: api,
+                cache: cache
+            )
+            await vm.carregar()
+        }
+        #expect(api.chamadasEquipe == 1, "ao abrir 3 turnos com cache, apenas 1 chamada a equipeDeConfianca deve ocorrer")
+
+        // Abrir mais 7 turnos (total 10 turnos) do mesmo estabelecimento:
+        for _ in 3..<10 {
+            let vm = IncluirNaEquipeViewModel(
+                membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+                api: api,
+                cache: cache
+            )
+            await vm.carregar()
+        }
+        #expect(api.chamadasEquipe == 1, "ao abrir 10 turnos com cache, continua sendo apenas 1 chamada a equipeDeConfianca")
     }
 }

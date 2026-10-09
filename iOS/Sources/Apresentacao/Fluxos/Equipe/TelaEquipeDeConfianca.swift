@@ -11,8 +11,8 @@ public struct TelaEquipeDeConfianca: View {
         _viewModel = State(initialValue: viewModel)
     }
 
-    public init(api: any ApiCliente, estabelecimentoID: UUID) {
-        self.init(viewModel: EquipeDeConfiancaViewModel(estabelecimentoID: estabelecimentoID, api: api))
+    public init(api: any ApiCliente, estabelecimentoID: UUID, cache: CacheEquipeDeConfianca = .compartilhado) {
+        self.init(viewModel: EquipeDeConfiancaViewModel(estabelecimentoID: estabelecimentoID, api: api, cache: cache))
     }
 
     public var body: some View {
@@ -110,9 +110,15 @@ struct BotaoIncluirNaEquipe: View {
     @State private var model: IncluirNaEquipeViewModel
     private let identificador: String
 
-    init(perfil: PerfilPublico, estabelecimentoID: UUID, api: any ApiCliente, identificador: String = "incluir-na-equipe") {
+    init(
+        perfil: PerfilPublico,
+        estabelecimentoID: UUID,
+        api: any ApiCliente,
+        cache: CacheEquipeDeConfianca = .compartilhado,
+        identificador: String = "incluir-na-equipe"
+    ) {
         let membro = MembroDaEquipe(estabelecimentoID: estabelecimentoID, profissionalID: perfil.id)
-        _model = State(initialValue: IncluirNaEquipeViewModel(membro: membro, api: api))
+        _model = State(initialValue: IncluirNaEquipeViewModel(membro: membro, api: api, cache: cache))
         self.identificador = identificador
     }
 

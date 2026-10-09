@@ -302,6 +302,7 @@ struct TelaTurnoDoContratante: View {
                 if turno.posicao.verificacao == .verificado, let estabelecimentoID = viewModel.painel?.estabelecimentoID {
                     BotaoIncluirNaEquipe(
                         perfil: profissional, estabelecimentoID: estabelecimentoID, api: api,
+                        cache: .compartilhado,
                         identificador: "incluir-na-equipe-\(turno.posicao.id)"
                     )
                     .id(profissional.id)

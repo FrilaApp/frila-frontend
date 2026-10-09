@@ -17,6 +17,51 @@ enum MensagensDaEquipe {
         }
     }
 }
+/// Cache de leitura da equipe de confiança por estabelecimento (#24). Deduplica requisições concorrentes
+/// em voo e reaproveita a lista para os múltiplos botões e aberturas de turno da mesma casa, invalidando
+/// na inclusão e na remoção.
+@MainActor @Observable
+public final class CacheEquipeDeConfianca {
+    public static let compartilhado = CacheEquipeDeConfianca()
+
+    private var equipes: [UUID: [PerfilPublico]] = [:]
+    private var tarefasEmVoo: [UUID: Task<[PerfilPublico], Error>] = [:]
+
+    public init() {}
+
+    public func equipe(
+        estabelecimentoID: UUID,
+        listar: @escaping @Sendable (UUID) async throws -> [PerfilPublico]
+    ) async throws -> [PerfilPublico] {
+        if let emCache = equipes[estabelecimentoID] {
+            return emCache
+        }
+        if let tarefa = tarefasEmVoo[estabelecimentoID] {
+            return try await tarefa.value
+        }
+        let tarefa = Task {
+            try await listar(estabelecimentoID)
+        }
+        tarefasEmVoo[estabelecimentoID] = tarefa
+        defer { tarefasEmVoo[estabelecimentoID] = nil }
+        do {
+            let resultado = try await tarefa.value
+            equipes[estabelecimentoID] = resultado
+            return resultado
+        } catch {
+            throw error
+        }
+    }
+
+    public func invalidar(estabelecimentoID: UUID) {
+        equipes.removeValue(forKey: estabelecimentoID)
+    }
+
+    public func limpar() {
+        equipes.removeAll()
+        tarefasEmVoo.removeAll()
+    }
+}
 
 /// A tela "Equipe de confiança" do estabelecimento (#24): lista `equipeDeConfianca` e remove com
 /// `removerDaEquipe`, depois da confirmação na tela.
@@ -37,22 +82,30 @@ public final class EquipeDeConfiancaViewModel {
     public private(set) var aviso: String?
     public let estabelecimentoID: UUID
 
+    private let cache: CacheEquipeDeConfianca
     private let listarEquipe: @Sendable (UUID) async throws -> [PerfilPublico]
     private let removerMembro: @Sendable (MembroDaEquipe) async throws -> MembroDaEquipe
 
     public init(
         estabelecimentoID: UUID,
+        cache: CacheEquipeDeConfianca = CacheEquipeDeConfianca(),
         listar: @escaping @Sendable (UUID) async throws -> [PerfilPublico],
         remover: @escaping @Sendable (MembroDaEquipe) async throws -> MembroDaEquipe
     ) {
         self.estabelecimentoID = estabelecimentoID
+        self.cache = cache
         listarEquipe = listar
         removerMembro = remover
     }
 
-    public convenience init(estabelecimentoID: UUID, api: any ApiCliente) {
+    public convenience init(
+        estabelecimentoID: UUID,
+        api: any ApiCliente,
+        cache: CacheEquipeDeConfianca = CacheEquipeDeConfianca()
+    ) {
         self.init(
             estabelecimentoID: estabelecimentoID,
+            cache: cache,
             listar: { try await api.equipeDeConfianca(estabelecimentoID: $0) },
             remover: { try await api.removerDaEquipe($0) }
         )
@@ -86,6 +139,7 @@ public final class EquipeDeConfiancaViewModel {
             let restantes = membros.filter { $0.id != perfil.id }
             estado = restantes.isEmpty ? .vazio : .conteudo(restantes)
             aviso = TextosEquipeDeConfianca.removido
+            cache.invalidar(estabelecimentoID: estabelecimentoID)
         } catch {
             mensagemErro = MensagensDaEquipe.texto(error)
         }
@@ -107,22 +161,30 @@ public final class IncluirNaEquipeViewModel {
     public private(set) var mensagemErro: String?
     public let membro: MembroDaEquipe
 
+    private let cache: CacheEquipeDeConfianca
     private let listarEquipe: @Sendable (UUID) async throws -> [PerfilPublico]
     private let incluirMembro: @Sendable (MembroDaEquipe) async throws -> MembroDaEquipe
 
     public init(
         membro: MembroDaEquipe,
+        cache: CacheEquipeDeConfianca = CacheEquipeDeConfianca(),
         listar: @escaping @Sendable (UUID) async throws -> [PerfilPublico],
         incluir: @escaping @Sendable (MembroDaEquipe) async throws -> MembroDaEquipe
     ) {
         self.membro = membro
+        self.cache = cache
         listarEquipe = listar
         incluirMembro = incluir
     }
 
-    public convenience init(membro: MembroDaEquipe, api: any ApiCliente) {
+    public convenience init(
+        membro: MembroDaEquipe,
+        api: any ApiCliente,
+        cache: CacheEquipeDeConfianca = CacheEquipeDeConfianca()
+    ) {
         self.init(
             membro: membro,
+            cache: cache,
             listar: { try await api.equipeDeConfianca(estabelecimentoID: $0) },
             incluir: { try await api.incluirNaEquipe($0) }
         )
@@ -131,7 +193,7 @@ public final class IncluirNaEquipeViewModel {
     /// Falhou a leitura: o botão aparece mesmo assim, e o servidor responde na inclusão.
     public func carregar() async {
         do {
-            let equipe = try await listarEquipe(membro.estabelecimentoID)
+            let equipe = try await cache.equipe(estabelecimentoID: membro.estabelecimentoID, listar: listarEquipe)
             situacao = equipe.contains { $0.id == membro.profissionalID } ? .naEquipe : .foraDaEquipe
         } catch {
             situacao = .foraDaEquipe
@@ -146,6 +208,7 @@ public final class IncluirNaEquipeViewModel {
         do {
             _ = try await incluirMembro(membro)
             situacao = .naEquipe
+            cache.invalidar(estabelecimentoID: membro.estabelecimentoID)
         } catch {
             mensagemErro = MensagensDaEquipe.texto(error)
         }
