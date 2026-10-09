@@ -145,8 +145,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private static let cartaoDaVagaLimitadoAAX1 = "o cartão da vaga não acompanha o Dynamic Type além de AX1 por decisão de layout do design (#139): sem o limite a altura passa da tela em AX5 (957 pt de 874); as pílulas de filtro já acompanham até AX5"
     private static let publicarVagaComDatePicker = "o UIDatePicker do sistema não acompanha o Dynamic Type em AX5 (no cadastro) e no tamanho padrão e AX5 (em Minhas vagas) por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
     private static let porQueReceboVagasBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
-    private static let confirmacaoExclusaoTextoCortado = "o XCTest aponta texto cortado nos botões e textos da folha de confirmação de exclusão (TelaExclusaoDeConta.swift)"
-    private static let ajudaDoPerfilAchados = "a tela de ajuda tem achados de Dynamic Type no botão Fechar da barra (ToolbarItem) e texto com seleção (perfil-suporte-email) apontado como alvo pequeno e rótulo não legível"
+    private static let ajudaDoPerfilAchados = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
 
     // MARK: - Profissional
 
@@ -384,7 +383,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
         let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
         guard esperar(cancelar, "A confirmação de exclusão deve abrir") else { return }
-        auditar(app, tela: "confirmacao-exclusao-de-conta", pendente: Self.confirmacaoExclusaoTextoCortado, estrito: true)
+        auditar(app, tela: "confirmacao-exclusao-de-conta")
     }
 
     func testConfirmacaoDeExclusaoDeConta() { confirmacaoDeExclusaoDeConta(ax5: false) }
@@ -470,7 +469,15 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
         tocar(app.buttons["mais-opcoes-botao"], em: app)
         guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
-        app.swipeUp()
+        let botaoPublicar = app.buttons["publicar-vaga-botao"]
+        for _ in 0..<8 where !botaoPublicar.isHittable {
+            app.swipeUp(velocity: .fast)
+        }
+        let estacionado = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"),
+            object: botaoPublicar
+        )
+        _ = XCTWaiter.wait(for: [estacionado], timeout: 5)
         auditar(app, tela: "publicar-vaga-mais-opcoes")
     }
 
