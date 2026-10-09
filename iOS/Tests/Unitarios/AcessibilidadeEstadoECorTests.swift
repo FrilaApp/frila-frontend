@@ -44,4 +44,22 @@ struct AcessibilidadeEstadoECorTests {
         #expect(SeloReputacao.descricaoComparecimento(comHistorico)?.contains("Compareceu a 19 de 20 turnos") == true)
         #expect(SeloReputacao.descricaoComparecimento(semHistorico) == nil)
     }
+
+    @Test("RespostaSimNao exibe checkmark apenas na opção selecionada")
+    func respostaSimNaoCheckmark() {
+        #expect(RespostaSimNao.exibeCheckmark(opcao: true, resposta: true))
+        #expect(!RespostaSimNao.exibeCheckmark(opcao: false, resposta: true))
+        #expect(!RespostaSimNao.exibeCheckmark(opcao: true, resposta: false))
+        #expect(RespostaSimNao.exibeCheckmark(opcao: false, resposta: false))
+        #expect(!RespostaSimNao.exibeCheckmark(opcao: true, resposta: nil))
+        #expect(!RespostaSimNao.exibeCheckmark(opcao: false, resposta: nil))
+    }
+
+    @Test("AvisoFrila inclui prefixo no rótulo de acessibilidade conforme o tom")
+    func avisoFrilaRotuloPorTom() {
+        let texto = "Mensagem de teste"
+        #expect(AvisoFrila.rotuloAcessibilidade(texto: texto, tom: .alerta) == "Alerta: \(texto)")
+        #expect(AvisoFrila.rotuloAcessibilidade(texto: texto, tom: .erro) == "Erro: \(texto)")
+        #expect(AvisoFrila.rotuloAcessibilidade(texto: texto, tom: .informativo) == texto)
+    }
 }

@@ -13,6 +13,7 @@ public enum TextosContaSuspensa {
     public static let promptRelato = String(localized: "Descreva seus argumentos para contestar a suspensão…", bundle: bundleApresentacao)
     public static let labelRelato = String(localized: "Motivos da contestação", bundle: bundleApresentacao)
     public static let dicaRelato = String(localized: "Mínimo de 10 caracteres.", bundle: bundleApresentacao)
+    public static let relatoValidoAcessibilidade = String(localized: "Mínimo de caracteres atendido", bundle: bundleApresentacao)
     public static let botaoEnviar = String(localized: "Enviar contestação", bundle: bundleApresentacao)
     public static let enviando = String(localized: "Enviando contestação…", bundle: bundleApresentacao)
     public static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)

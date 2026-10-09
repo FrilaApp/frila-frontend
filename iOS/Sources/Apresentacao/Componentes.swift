@@ -226,13 +226,28 @@ public struct AvisoFrila: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(verbatim: String(textoResolvido.characters)))
+        .accessibilityLabel(Text(verbatim: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom)))
         .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(textoResolvido.characters), tom: tom)))
         .font(.callout)
         .foregroundStyle(cor)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
         .background(cor.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+    }
+
+    public static func prefixo(tom: Tom) -> String {
+        switch tom {
+        case .alerta:
+            return String(localized: "Alerta: ", bundle: bundleApresentacao)
+        case .erro:
+            return String(localized: "Erro: ", bundle: bundleApresentacao)
+        case .informativo:
+            return ""
+        }
+    }
+
+    public static func rotuloAcessibilidade(texto: String, tom: Tom) -> String {
+        "\(prefixo(tom: tom))\(texto)"
     }
 
     private var textoResolvido: AttributedString { conteudo.resolver(locale: locale) }
@@ -332,12 +347,22 @@ public struct RespostaSimNao: View {
         .accessibilityLabel(rotuloAcessibilidade)
     }
 
+    public static func exibeCheckmark(opcao: Bool, resposta: Bool?) -> Bool {
+        opcao == resposta
+    }
+
     private func escolha(_ titulo: LocalizedStringKey, valor: Bool, icone: String) -> some View {
         Button { resposta = valor } label: {
-            Label {
-                Text(titulo, bundle: bundleApresentacao)
-            } icon: {
-                Image(systemName: icone)
+            HStack(spacing: FrilaEspaco.minimo) {
+                if Self.exibeCheckmark(opcao: valor, resposta: resposta) {
+                    Image(systemName: "checkmark")
+                        .accessibilityIdentifier(valor ? "icone-checkmark-sim" : "icone-checkmark-nao")
+                }
+                Label {
+                    Text(titulo, bundle: bundleApresentacao)
+                } icon: {
+                    Image(systemName: icone)
+                }
             }
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
             .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))

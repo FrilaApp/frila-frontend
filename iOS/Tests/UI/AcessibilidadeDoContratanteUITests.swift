@@ -112,7 +112,12 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             trazerParaATela(nao, em: app)
             XCTAssertLessThanOrEqual(nao.frame.maxX, larguraTela, "Não[\(i)] extrapolou a largura")
             XCTAssertTrue(nao.isHittable)
+
+            sim.tap()
         }
+
+        XCTAssertTrue(app.images["icone-checkmark-sim"].exists)
+        XCTAssertFalse(app.images["icone-checkmark-nao"].exists)
 
         // 1.1 e 1.2 Campos contidos na tela
         let campoValor = app.textFields["valor-vaga-campo"]

@@ -1,3 +1,4 @@
+import FrilaApresentacao
 import XCTest
 
 @MainActor
@@ -68,8 +69,11 @@ final class ContaSuspensaUITests: XCTestCase {
         // 2. Preenche o relato com pelo menos 10 caracteres válidos
         let campoRelato = app.descendants(matching: .any)["campo-relato-contestacao"].firstMatch
         XCTAssertTrue(campoRelato.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(app.images["icone-relato-valido-contestacao"].exists)
         campoRelato.tap()
         campoRelato.typeText("Contestação com motivos fundamentados pela parte")
+        XCTAssertTrue(app.images["icone-relato-valido-contestacao"].exists)
+        XCTAssertEqual(app.staticTexts["contador-relato-contestacao"].label, TextosContaSuspensa.relatoValidoAcessibilidade)
 
         // 3. Envia a contestação
         let botaoEnviar = app.buttons["botao-enviar-contestacao"]
