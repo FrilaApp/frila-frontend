@@ -659,6 +659,26 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testTurnoDoAvisoNaoEncontrado() { turnoDoAvisoNaoEncontrado(ax5: false) }
     func testTurnoDoAvisoNaoEncontradoEmAX5() { turnoDoAvisoNaoEncontrado(ax5: true) }
+
+    private static let folhaDeDenunciaBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em AcoesDeSeguranca.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
+
+    private func folhaDeDenuncia(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "success", "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"
+        ], ax5: ax5)
+        let vaga = app.buttons["vaga-\(vagaID)"]
+        guard esperar(vaga, "A vaga deve estar na lista") else { return }
+        tocar(vaga, em: app)
+        guard esperar(elemento("tela-detalhe-vaga", em: app), "O detalhe deve abrir") else { return }
+        tocar(app.buttons["denunciar"], em: app)
+        guard esperar(app.buttons["motivo-denuncia"], "A folha de denúncia deve abrir") else { return }
+        auditar(app, tela: "folha-de-denuncia", pendente: Self.folhaDeDenunciaBotaoBarra, estrito: true)
+        app.swipeUp()
+        auditar(app, tela: "folha-de-denuncia-rolada", pendente: Self.folhaDeDenunciaBotaoBarra, estrito: true)
+    }
+
+    func testFolhaDeDenuncia() { folhaDeDenuncia(ax5: false) }
+    func testFolhaDeDenunciaEmAX5() { folhaDeDenuncia(ax5: true) }
 }
 
 private extension XCUIAccessibilityAuditType {
