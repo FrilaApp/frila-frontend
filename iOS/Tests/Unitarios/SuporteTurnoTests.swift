@@ -1,6 +1,7 @@
 import Foundation
 @testable import FrilaApresentacao
 import FrilaDominio
+import FrilaDados
 import Testing
 
 private final class CaixaCopia: @unchecked Sendable {
