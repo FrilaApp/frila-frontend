@@ -18,6 +18,38 @@ private final class Contador: @unchecked Sendable {
     func incrementar() { trava.withLock { _valor += 1 } }
 }
 
+private actor TravaAssincrona {
+    private var iniciou = false
+    private var liberado = false
+    private var continuacaoInicio: CheckedContinuation<Void, Never>?
+    private var continuacaoLiberacao: CheckedContinuation<Void, Never>?
+
+    func esperar() async {
+        iniciou = true
+        continuacaoInicio?.resume()
+        continuacaoInicio = nil
+        if !liberado {
+            await withCheckedContinuation { cont in
+                continuacaoLiberacao = cont
+            }
+        }
+    }
+
+    func esperarInicio() async {
+        if !iniciou {
+            await withCheckedContinuation { cont in
+                continuacaoInicio = cont
+            }
+        }
+    }
+
+    func liberar() {
+        liberado = true
+        continuacaoLiberacao?.resume()
+        continuacaoLiberacao = nil
+    }
+}
+
 @MainActor
 @Suite("Equipe de confiança: View Models (#24)")
 struct EquipeDeConfiancaViewModelTests {
@@ -277,5 +309,105 @@ struct EquipeDeConfiancaViewModelTests {
             await vm.carregar()
         }
         #expect(api.chamadasEquipe == 1, "ao abrir 10 turnos com cache, continua sendo apenas 1 chamada a equipeDeConfianca")
+    }
+
+    @Test("Limpar o cache faz a leitura seguinte ir de novo à API")
+    func limparCacheForcaNovaLeitura() async {
+        let contador = Contador()
+        let cache = CacheEquipeDeConfianca()
+        let listar: @Sendable (UUID) async throws -> [PerfilPublico] = { _ in
+            contador.incrementar()
+            return [perfil(anaID, "Ana")]
+        }
+        let vm = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+            cache: cache,
+            listar: listar,
+            incluir: { $0 }
+        )
+
+        await vm.carregar()
+        #expect(contador.valor == 1)
+        await vm.carregar()
+        #expect(contador.valor == 1)
+
+        cache.limpar()
+        await vm.carregar()
+        #expect(contador.valor == 2, "após limpar o cache, a leitura seguinte deve ir de novo à API")
+    }
+
+    @Test("Tela da equipe atualiza o cache com o que leu, e o botão do turno responde pelo cache com a lista nova")
+    func carregarTelaEquipeAtualizaCacheParaBotao() async {
+        let contador = Contador()
+        let cache = CacheEquipeDeConfianca()
+        let biaID = UUID(uuidString: "80000000-0000-0000-0000-000000000002")!
+
+        let vmEquipe = EquipeDeConfiancaViewModel(
+            estabelecimentoID: casaID,
+            cache: cache,
+            listar: { _ in
+                contador.incrementar()
+                return [perfil(anaID, "Ana"), perfil(biaID, "Bia")]
+            },
+            remover: { $0 }
+        )
+        await vmEquipe.carregar()
+        #expect(contador.valor == 1)
+
+        // Botão do turno para Bia agora consulta pelo cache: não deve gerar nova leitura à API e deve achar Bia na equipe
+        let vmBotao = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: biaID),
+            cache: cache,
+            listar: { _ in
+                contador.incrementar()
+                return []
+            },
+            incluir: { $0 }
+        )
+        await vmBotao.carregar()
+        #expect(contador.valor == 1, "o botão deve responder pelo cache atualizado pela tela de equipe, sem nova leitura")
+        #expect(vmBotao.situacao == .naEquipe, "o botão deve ver a lista nova populada pela tela de equipe")
+    }
+
+    @Test("Invalidar durante leitura em voo impede que o resultado desatualizado entre no cache")
+    func invalidarDuranteLeituraEmVooDescartaResultadoDoCache() async {
+        let contador = Contador()
+        let cache = CacheEquipeDeConfianca()
+        let trava = TravaAssincrona()
+
+        let vm1 = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+            cache: cache,
+            listar: { _ in
+                contador.incrementar()
+                await trava.esperar()
+                return [perfil(anaID, "Ana")]
+            },
+            incluir: { $0 }
+        )
+
+        let tarefaCarregamento = Task {
+            await vm1.carregar()
+        }
+
+        await trava.esperarInicio()
+        #expect(contador.valor == 1)
+
+        cache.invalidar(estabelecimentoID: casaID)
+
+        await trava.liberar()
+        _ = await tarefaCarregamento.value
+
+        let vm2 = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+            cache: cache,
+            listar: { _ in
+                contador.incrementar()
+                return [perfil(anaID, "Ana")]
+            },
+            incluir: { $0 }
+        )
+        await vm2.carregar()
+        #expect(contador.valor == 2, "a próxima chamada deve ir à API porque a leitura em voo foi invalidada")
     }
 }

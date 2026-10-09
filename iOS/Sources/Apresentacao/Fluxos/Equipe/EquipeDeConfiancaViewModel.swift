@@ -20,12 +20,13 @@ enum MensagensDaEquipe {
 /// Cache de leitura da equipe de confiança por estabelecimento (#24). Deduplica requisições concorrentes
 /// em voo e reaproveita a lista para os múltiplos botões e aberturas de turno da mesma casa, invalidando
 /// na inclusão e na remoção.
-@MainActor @Observable
-public final class CacheEquipeDeConfianca {
+public final class CacheEquipeDeConfianca: @unchecked Sendable {
     public static let compartilhado = CacheEquipeDeConfianca()
 
+    private let trava = NSLock()
     private var equipes: [UUID: [PerfilPublico]] = [:]
     private var tarefasEmVoo: [UUID: Task<[PerfilPublico], Error>] = [:]
+    private var geracoes: [UUID: Int] = [:]
 
     public init() {}
 
@@ -33,33 +34,71 @@ public final class CacheEquipeDeConfianca {
         estabelecimentoID: UUID,
         listar: @escaping @Sendable (UUID) async throws -> [PerfilPublico]
     ) async throws -> [PerfilPublico] {
-        if let emCache = equipes[estabelecimentoID] {
+        let (emCache, tarefaExistente, geracaoAoIniciar) = trava.withLock { () -> ([PerfilPublico]?, Task<[PerfilPublico], Error>?, Int) in
+            if let emCache = equipes[estabelecimentoID] {
+                return (emCache, nil, 0)
+            }
+            let geracao = geracoes[estabelecimentoID, default: 0]
+            if let tarefa = tarefasEmVoo[estabelecimentoID] {
+                return (nil, tarefa, geracao)
+            }
+            let tarefa = Task {
+                try await listar(estabelecimentoID)
+            }
+            tarefasEmVoo[estabelecimentoID] = tarefa
+            return (nil, tarefa, geracao)
+        }
+
+        if let emCache {
             return emCache
         }
-        if let tarefa = tarefasEmVoo[estabelecimentoID] {
-            return try await tarefa.value
+        guard let tarefa = tarefaExistente else {
+            return []
         }
-        let tarefa = Task {
-            try await listar(estabelecimentoID)
+
+        defer {
+            trava.withLock {
+                if tarefasEmVoo[estabelecimentoID] == tarefa {
+                    tarefasEmVoo.removeValue(forKey: estabelecimentoID)
+                }
+            }
         }
-        tarefasEmVoo[estabelecimentoID] = tarefa
-        defer { tarefasEmVoo[estabelecimentoID] = nil }
-        do {
-            let resultado = try await tarefa.value
-            equipes[estabelecimentoID] = resultado
-            return resultado
-        } catch {
-            throw error
+
+        let resultado = try await tarefa.value
+        trava.withLock {
+            if geracoes[estabelecimentoID, default: 0] == geracaoAoIniciar {
+                equipes[estabelecimentoID] = resultado
+            }
+        }
+        return resultado
+    }
+
+    public func gravar(estabelecimentoID: UUID, membros: [PerfilPublico]) {
+        trava.withLock {
+            geracoes[estabelecimentoID, default: 0] += 1
+            equipes[estabelecimentoID] = membros
         }
     }
 
     public func invalidar(estabelecimentoID: UUID) {
-        equipes.removeValue(forKey: estabelecimentoID)
+        trava.withLock {
+            geracoes[estabelecimentoID, default: 0] += 1
+            equipes.removeValue(forKey: estabelecimentoID)
+            tarefasEmVoo.removeValue(forKey: estabelecimentoID)
+        }
     }
 
     public func limpar() {
-        equipes.removeAll()
-        tarefasEmVoo.removeAll()
+        trava.withLock {
+            for chave in equipes.keys {
+                geracoes[chave, default: 0] += 1
+            }
+            for chave in tarefasEmVoo.keys {
+                geracoes[chave, default: 0] += 1
+            }
+            equipes.removeAll()
+            tarefasEmVoo.removeAll()
+        }
     }
 }
 
@@ -121,6 +160,7 @@ public final class EquipeDeConfiancaViewModel {
         do {
             let membros = try await listarEquipe(estabelecimentoID)
             estado = membros.isEmpty ? .vazio : .conteudo(membros)
+            cache.gravar(estabelecimentoID: estabelecimentoID, membros: membros)
         } catch let erroApi as ErroDaApi where erroApi.codigo == .semRede {
             estado = .semRede
         } catch {
