@@ -384,7 +384,10 @@ struct TelaAjudaPerfil: View {
                         Text(verbatim: enderecos.emailSuporte)
                             .font(.footnote)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                            .contentShape(Rectangle())
                             .textSelection(.enabled)
+                            .accessibilityLabel(Text(verbatim: "\(TextosPerfilConta.email): \(enderecos.emailSuporte)"))
                             .accessibilityIdentifier("perfil-suporte-email")
 
                         Text(verbatim: TextosPerfilConta.prazoSuporte)
@@ -429,6 +432,7 @@ struct TelaAjudaPerfil: View {
                     TelaLicencas()
                 } label: {
                     Text(verbatim: TextosPerfilConta.licencas)
+                        .font(.body)
                         .foregroundStyle(FrilaCor.texto)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                         .contentShape(Rectangle())
