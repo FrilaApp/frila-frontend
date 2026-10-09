@@ -910,6 +910,7 @@ public enum TipoDeProtocolo: String, Codable, Sendable {
     case denuncia
     case contestacao
     case revisaoDespacho = "revisao_despacho"
+    case suporte
 
     /// Tipo novo de protocolo cai em `denuncia`: o tipo é informativo, nenhuma tela decide nada por ele; o número e o prazo é que importam.
     public init(from decoder: Decoder) throws {

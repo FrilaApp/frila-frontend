@@ -389,7 +389,7 @@ struct SupabaseDaSprint2Tests {
 
 // MARK: - Valor novo do contrato (robustez antes do TestFlight)
 
-/// O contrato muda mais rápido que o app (0.2.38 hoje). Com a fixture do espelho e um valor trocado
+/// O contrato muda mais rápido que o app (0.2.40 hoje). Com a fixture do espelho e um valor trocado
 /// por um que este app não conhece, cada campo cai em uma de duas regras, e nenhuma delas é queda:
 /// - tolerado: o campo fica sem valor (ou no `outro`) e o resto da resposta segue;
 /// - recusado: a decodificação do item falha; numa lista o cliente descarta só o item, numa resposta
