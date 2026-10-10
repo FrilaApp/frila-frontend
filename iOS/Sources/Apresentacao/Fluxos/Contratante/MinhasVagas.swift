@@ -562,7 +562,10 @@ private struct TelaDetalheVagaContratante: View {
                             .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
                     }
                 }
-                Text(verbatim: vaga.vaga.funcao).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
+                Text(verbatim: vaga.vaga.funcao)
+                    .font(.largeTitle.bold())
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("funcao-vaga-detalhe-\(vaga.vaga.id)")
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: vaga.vaga.local)
                     Text(verbatim: periodo(vaga.vaga.periodo))

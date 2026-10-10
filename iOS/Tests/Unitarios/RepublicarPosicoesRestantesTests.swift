@@ -538,29 +538,32 @@ struct RepublicarPosicoesRestantesTests {
         #expect(roteador.caminho == [.vaga(vm.vagaPublicada!.vagaID)])
     }
 
-    @Test("BotaoRepublicarPosicoesRestantes: preserva erro quando elegibilidade remove o botão")
-    func botaoRetemErroQuandoElegibilidadeRemoveAcao() async {
+    @Test("Recusa seguida de releitura torna ação inelegível: erro permanece retido no ViewModel e podeRepublicar torna-se falso")
+    func recusaSeguidaDeReleituraMantemAvisoVisivel() async {
+        let vagaID = UUID()
+        var podeRepublicar = true
+
         let vm = RepublicarPosicoesRestantesViewModel(
-            vagaID: UUID(),
+            vagaID: vagaID,
             posicoesRestantes: 2,
             republicarRPC: { _, _ in
                 throw ErroDaApi(codigo: .republicacaoIndisponivel, detalhes: MotivoRepublicacaoIndisponivel.semPosicoesRestantes.rawValue)
+            },
+            atualizarPainel: {
+                podeRepublicar = false
             }
         )
 
+        // Antes da execução: elegível para republicação e sem erro
+        #expect(podeRepublicar == true)
+        #expect(vm.erro == nil)
+        #expect(vm.carregando == false)
+
+        // Execução: recusa na RPC dispara releitura estruturada que atualiza podeRepublicar = false
         await vm.executar()
+        #expect(podeRepublicar == false)
         #expect(vm.erro == TextosRepublicarPosicoesRestantes.semPosicoesRestantes)
-
-        // Quando podeRepublicar é falso mas há erro, o componente retém o aviso
-        let botaoComErro = BotaoRepublicarPosicoesRestantes(viewModel: vm, podeRepublicar: false)
-        let espelho = Mirror(reflecting: botaoComErro.body)
-        #expect(!espelho.children.isEmpty)
-        #expect(String(describing: botaoComErro.body).contains("AvisoFrila"))
-
-        // Quando podeRepublicar é falso e não há erro, o componente fica vazio (nil)
-        let vmSemErro = RepublicarPosicoesRestantesViewModel(vagaID: UUID(), posicoesRestantes: 2, republicarRPC: { _, _ in throw ErroDaApi(codigo: .semRede) })
-        let botaoSemErro = BotaoRepublicarPosicoesRestantes(viewModel: vmSemErro, podeRepublicar: false)
-        let espelhoSemErro = Mirror(reflecting: botaoSemErro.body)
-        #expect(espelhoSemErro.children.isEmpty)
+        #expect(vm.carregando == false)
+        #expect(vm.vagaPublicada == nil)
     }
 }

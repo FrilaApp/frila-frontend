@@ -214,6 +214,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var vagasCriadas = 0
     public private(set) var chamadasARepublicarPosicoesRestantes = 0
     public var erroSimuladoRepublicarPosicoesRestantes: ErroDaApi?
+    public var simularFalhaTransitoriaRepublicar: Bool = false
+    private var chavePrimeiraTentativaRepublicar: UUID?
     private var republicadasDe: [UUID: UUID] = [:]
     private var publicacoesPorChave: [UUID: VagaPublicada] = [:]
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
@@ -270,11 +272,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
         cenario: Cenario = .sucesso,
         relogio: any Relogio = RelogioDoSistema(),
         vagas: [Vaga]? = nil,
-        sessaoAtivaInicial: Bool = false
+        sessaoAtivaInicial: Bool = false,
+        erroSimuladoRepublicarPosicoesRestantes: ErroDaApi? = nil,
+        simularFalhaTransitoriaRepublicar: Bool = false
     ) {
         self.cenario = cenario
         self.relogio = relogio
         self.sessaoAtiva = sessaoAtivaInicial
+        self.erroSimuladoRepublicarPosicoesRestantes = erroSimuladoRepublicarPosicoesRestantes
+        self.simularFalhaTransitoriaRepublicar = simularFalhaTransitoriaRepublicar
         do {
             envelopes = try FixturesDoContrato.erros()
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
@@ -594,10 +600,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
     #if DEBUG
     /// Só em Debug (#96): o Release não lê argumentos de lançamento.
     public static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> ApiClienteEmMemoria {
+        var erroRepublicar: ErroDaApi?
+        if let indiceErro = argumentos.firstIndex(of: "-FRILA_REPUBLICAR_RECUSA"), argumentos.indices.contains(indiceErro + 1) {
+            erroRepublicar = ErroDaApi(
+                codigo: .republicacaoIndisponivel,
+                detalhes: argumentos[indiceErro + 1]
+            )
+        }
+        let falhaTransitoria = argumentos.contains("-FRILA_REPUBLICAR_FALHA_TRANSITORIA")
+
         let semSessaoArgumento = argumentos.contains("-FRILA_ABRIR_CATALOGO") || argumentos.contains("-FRILA_ENTRADA")
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
-            return ApiClienteEmMemoria(sessaoAtivaInicial: !semSessaoArgumento)
+            return ApiClienteEmMemoria(
+                sessaoAtivaInicial: !semSessaoArgumento,
+                erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
+                simularFalhaTransitoriaRepublicar: falhaTransitoria
+            )
         }
         let cenariosSemSessao: Set<Cenario> = [.primeiroAcesso, .entrada, .menorDeIdade, .codigoErrado, .codigoExpirado]
         let sessaoAtiva = !semSessaoArgumento && !cenariosSemSessao.contains(cenario)
@@ -606,7 +625,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         } else if !sessaoAtiva {
             DestinoGuardado.limpar()
         }
-        return ApiClienteEmMemoria(cenario: cenario, sessaoAtivaInicial: sessaoAtiva)
+        return ApiClienteEmMemoria(
+            cenario: cenario,
+            sessaoAtivaInicial: sessaoAtiva,
+            erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
+            simularFalhaTransitoriaRepublicar: falhaTransitoria
+        )
     }
     #endif
 
@@ -1047,7 +1071,35 @@ public actor ApiClienteEmMemoria: ApiCliente {
         chamadasARepublicarPosicoesRestantes += 1
         try verificarFalhaGeral()
 
+        #if DEBUG
+        if let arquivoChaves = ProcessInfo.processInfo.environment["FRILA_CHAVES_ARQUIVO"], !arquivoChaves.isEmpty {
+            let linha = "\(chave.uuidString)\n"
+            if let handle = FileHandle(forWritingAtPath: arquivoChaves) {
+                handle.seekToEndOfFile()
+                if let data = linha.data(using: .utf8) {
+                    handle.write(data)
+                }
+                try? handle.close()
+            } else {
+                try? linha.write(toFile: arquivoChaves, atomically: true, encoding: .utf8)
+            }
+        }
+
+        if simularFalhaTransitoriaRepublicar && chamadasARepublicarPosicoesRestantes == 1 {
+            chavePrimeiraTentativaRepublicar = chave
+            throw ErroDaApi(codigo: .semRede)
+        }
+        #endif
+
         if let erroSimulado = erroSimuladoRepublicarPosicoesRestantes {
+            if let index = vagas.firstIndex(where: { $0.id == vagaID }) {
+                let atual = vagas[index]
+                if erroSimulado.detalhes == MotivoRepublicacaoIndisponivel.semPosicoesRestantes.rawValue {
+                    vagas[index] = Self.copia(atual, posicoes: 0)
+                } else if erroSimulado.detalhes == MotivoRepublicacaoIndisponivel.vagaCancelada.rawValue {
+                    vagas[index] = Self.copia(atual, estado: .cancelada)
+                }
+            }
             throw erroSimulado
         }
 
@@ -1087,8 +1139,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         // 7. Publica vaga nova em urgência
+        let novoID = (cenario == .selecaoEncerradaSemEscolha && original.id == UUID(uuidString: "40000000-0000-0000-0000-000000000001")!)
+            ? UUID(uuidString: "50000000-0000-0000-0000-000000000001")!
+            : UUID()
         let novaVaga = Vaga(
-            id: UUID(),
+            id: novoID,
             estabelecimento: original.estabelecimento,
             funcao: original.funcao,
             periodo: original.periodo,
