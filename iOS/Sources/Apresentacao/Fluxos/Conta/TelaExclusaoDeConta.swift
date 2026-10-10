@@ -229,7 +229,7 @@ public struct TelaExclusaoDeConta: View {
         .background(
             viewModel.confirmouConsequencias && !viewModel.excluindo
                 ? FrilaCor.perigo
-                : FrilaCor.textoSecundario.opacity(0.35),
+                : FrilaCor.borda,
             in: RoundedRectangle(cornerRadius: FrilaRaio.medio)
         )
         .disabled(!viewModel.confirmouConsequencias || viewModel.excluindo)

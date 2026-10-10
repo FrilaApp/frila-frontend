@@ -79,7 +79,7 @@ public struct FolhaDeCancelamento: View {
             .padding(FrilaEspaco.medio)
             .frame(minHeight: FrilaMetrica.alvoMinimo)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
             .accessibilityIdentifier("detalhes-do-cancelamento")
         } else {
             Text(verbatim: TextosDoCancelamento.motivoObrigatorio)

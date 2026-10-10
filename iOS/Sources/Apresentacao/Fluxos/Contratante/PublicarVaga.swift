@@ -637,7 +637,7 @@ public struct TelaPublicarVaga: View {
                             .padding(FrilaEspaco.medio)
                             .frame(minHeight: FrilaMetrica.alvoMinimo)
                             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
                             .accessibilityIdentifier("observacoes-vaga-campo")
                     }
                 }
@@ -685,7 +685,7 @@ public struct TelaPublicarVaga: View {
                 .padding(.horizontal, FrilaEspaco.medio)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
                 .accessibilityLabel(Text(verbatim: TextosPublicarVaga.valor))
                 .accessibilityIdentifier("valor-vaga-campo")
             Text(verbatim: TextosPublicarVaga.valorAjuda).font(.caption).foregroundStyle(FrilaCor.sucesso)
@@ -700,7 +700,7 @@ public struct TelaPublicarVaga: View {
                 .padding(.horizontal, FrilaEspaco.medio)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
                 .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
                 .accessibilityIdentifier("posicoes-vaga-campo")
         }
