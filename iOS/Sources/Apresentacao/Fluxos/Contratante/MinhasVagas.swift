@@ -360,6 +360,7 @@ public struct TelaMinhasVagas: View {
         }
         .modifier(ConfirmacaoDeReabertura(viewModel: acompanhamento))
         .environment(bloqueios)
+        .environment(roteador)
         .task { await carregar() }
         // O aviso do push diz que algo mudou na casa: o painel é relido para a tela que ele abre.
         .onChange(of: roteador.avisosAbertos) { Task { await carregar() } }
@@ -397,6 +398,15 @@ public struct TelaMinhasVagas: View {
                     .tint(FrilaCor.primaria)
                     .accessibilityIdentifier("republicar-vaga-\(vaga.vaga.id)")
                 }
+                BotaoRepublicarPosicoesRestantes(
+                    vagaID: vaga.vaga.id,
+                    posicoesRestantes: vaga.republicavelEmUrgencia ?? 0,
+                    api: api,
+                    podeRepublicar: vaga.podeRepublicarEmUrgencia,
+                    aoNavegarParaVaga: { roteador.abrirVaga(id: $0) },
+                    atualizarPainel: { await carregar() },
+                    idAcessibilidade: "republicar-urgencia-vaga-\(vaga.vaga.id)"
+                )
             }
         }
     }
@@ -458,6 +468,7 @@ public struct TelaMinhasVagas: View {
 /// A vaga pelo id, que é o que a lista e o aviso de vaga vazia trazem. Lê o painel do
 /// acompanhamento, que já reflete uma confirmação ou reabertura feita agora.
 private struct DestinoDaVagaDoContratante: View {
+    @Environment(RoteadorDoContratante.self) private var roteador: RoteadorDoContratante?
     let viewModel: MinhasVagasViewModel
     let acompanhamento: AcompanhamentoViewModel
     let vagaID: UUID
@@ -481,7 +492,8 @@ private struct DestinoDaVagaDoContratante: View {
                     await viewModel.carregar()
                     await acompanhamento.carregar()
                     return acompanhamento.falhouAoCarregar ? nil : acompanhamento.vaga(id: vagaID)
-                }
+                },
+                roteador: roteador
             )
         } else if acompanhamento.falhouAoCarregar {
             // Sem leitura que tenha dado certo, não dá para dizer que a vaga não existe.
@@ -510,6 +522,7 @@ private struct DestinoDaVagaDoContratante: View {
 
 private struct TelaDetalheVagaContratante: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueios
+    @Environment(RoteadorDoContratante.self) private var roteadorDoAmbiente: RoteadorDoContratante?
     let vaga: VagaNoPainel
     let api: any ApiCliente
     let fila: (any FilaDeAcoes)?
@@ -520,6 +533,10 @@ private struct TelaDetalheVagaContratante: View {
     var aoRepublicar: (@Sendable () async -> Void)? = nil
     /// Relê o painel depois de uma escolha e devolve a vaga como ficou; `nil` se a leitura falhou (#10).
     var relerVaga: @MainActor () async -> VagaNoPainel? = { nil }
+    var roteador: RoteadorDoContratante? = nil
+    private var roteadorEfetivo: RoteadorDoContratante? {
+        roteador ?? roteadorDoAmbiente
+    }
     @State private var contatos: [UUID: Contato] = [:]
     @State private var carregandoContato: Set<UUID> = []
     @State private var errosContato: [UUID: String] = [:]
@@ -545,7 +562,10 @@ private struct TelaDetalheVagaContratante: View {
                             .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
                     }
                 }
-                Text(verbatim: vaga.vaga.funcao).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
+                Text(verbatim: vaga.vaga.funcao)
+                    .font(.largeTitle.bold())
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("funcao-vaga-detalhe-\(vaga.vaga.id)")
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: vaga.vaga.local)
                     Text(verbatim: periodo(vaga.vaga.periodo))
@@ -571,6 +591,20 @@ private struct TelaDetalheVagaContratante: View {
                     .tint(FrilaCor.primaria)
                     .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
                 }
+
+                BotaoRepublicarPosicoesRestantes(
+                    vagaID: vaga.vaga.id,
+                    posicoesRestantes: vaga.republicavelEmUrgencia ?? 0,
+                    api: api,
+                    podeRepublicar: vaga.podeRepublicarEmUrgencia,
+                    aoNavegarParaVaga: { id in
+                        roteadorEfetivo?.abrirVaga(id: id)
+                    },
+                    atualizarPainel: {
+                        _ = await relerVaga()
+                    },
+                    idAcessibilidade: "republicar-urgencia-detalhe-vaga-\(vaga.vaga.id)"
+                )
 
                 if let acompanhamento, acompanhamento.podeCancelarVaga(vaga) {
                     BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloVaga) { cancelamento = acompanhamento.criarCancelamento(da: vaga) }

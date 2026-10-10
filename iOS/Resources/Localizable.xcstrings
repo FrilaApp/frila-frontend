@@ -6352,6 +6352,186 @@
           }
         }
       }
+    },
+    "Republicando posições restantes…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Republicando posições restantes…"
+          }
+        }
+      }
+    },
+    "Posições restantes republicadas em urgência!": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições restantes republicadas em urgência!"
+          }
+        }
+      }
+    },
+    "Republicar 1 posição em urgência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Republicar 1 posição em urgência"
+          }
+        }
+      }
+    },
+    "Republicar %d posições em urgência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Republicar %d posições em urgência"
+          }
+        }
+      }
+    },
+    "As posições restantes desta vaga já foram republicadas em urgência.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As posições restantes desta vaga já foram republicadas em urgência."
+          }
+        }
+      }
+    },
+    "Todas as posições desta vaga foram preenchidas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas as posições desta vaga foram preenchidas."
+          }
+        }
+      }
+    },
+    "A seleção desta vaga ainda está em andamento.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A seleção desta vaga ainda está em andamento."
+          }
+        }
+      }
+    },
+    "O turno desta vaga já começou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O turno desta vaga já começou."
+          }
+        }
+      }
+    },
+    "Esta vaga foi cancelada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga foi cancelada."
+          }
+        }
+      }
+    },
+    "Apenas vagas no modo seleção podem ser republicadas com este atalho.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apenas vagas no modo seleção podem ser republicadas com este atalho."
+          }
+        }
+      }
+    },
+    "Apenas contas de contratante podem republicar vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apenas contas de contratante podem republicar vagas."
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa e não pode republicar vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa e não pode republicar vagas."
+          }
+        }
+      }
+    },
+    "Não foi possível republicar as posições restantes. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível republicar as posições restantes. Tente novamente."
+          }
+        }
+      }
+    },
+    "A republicação desta vaga não está disponível.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A republicação desta vaga não está disponível."
+          }
+        }
+      }
+    },
+    "Esta vaga foi ocultada pela moderação e não pode ser republicada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga foi ocultada pela moderação e não pode ser republicada."
+          }
+        }
+      }
+    },
+    "Você não tem permissão para republicar esta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não tem permissão para republicar esta vaga."
+          }
+        }
+      }
+    },
+    "A vaga original não foi encontrada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga original não foi encontrada."
+          }
+        }
+      }
+    },
+    "Sem conexão com a internet. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão com a internet. Tente novamente."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

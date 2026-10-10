@@ -841,10 +841,13 @@ public struct VagaNoPainel: Codable, Hashable, Sendable {
     public let alertaVagaVazia: Bool
     public let candidatosPendentes: Int
     public let posicoes: [PosicaoNoPainel]
+    /// 0.2.41: Quantas posições republicar_posicoes_restantes republicaria agora, ou nulo quando a
+    /// vaga não é republicável por esse caminho. O botão só aparece quando for > 0.
+    public let republicavelEmUrgencia: Int?
 
     public init(
         vaga: VagaResumo, modo: ModoPreenchimento, estado: EstadoVaga, oculta: Bool = false, alertaVagaVazia: Bool,
-        candidatosPendentes: Int, posicoes: [PosicaoNoPainel]
+        candidatosPendentes: Int, posicoes: [PosicaoNoPainel], republicavelEmUrgencia: Int? = nil
     ) {
         self.vaga = vaga
         self.modo = modo
@@ -853,10 +856,17 @@ public struct VagaNoPainel: Codable, Hashable, Sendable {
         self.alertaVagaVazia = alertaVagaVazia
         self.candidatosPendentes = candidatosPendentes
         self.posicoes = posicoes
+        self.republicavelEmUrgencia = republicavelEmUrgencia
     }
 }
 
 extension VagaNoPainel {
+    /// O botão "Republicar N posições em urgência" só aparece quando maior que zero (0.2.41, D1-C).
+    public var podeRepublicarEmUrgencia: Bool {
+        guard let republicavelEmUrgencia else { return false }
+        return republicavelEmUrgencia > 0
+    }
+
     /// Quantas posições ainda esperam alguém.
     public var posicoesAbertas: Int { posicoes.count { $0.estado == .aberta } }
 

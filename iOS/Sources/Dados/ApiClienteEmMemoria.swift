@@ -212,6 +212,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var chavesPublicacaoRecebidas: [UUID] = []
     public private(set) var publicacoesRecebidas: [PublicacaoVaga] = []
     public private(set) var vagasCriadas = 0
+    public private(set) var chamadasARepublicarPosicoesRestantes = 0
+    public var erroSimuladoRepublicarPosicoesRestantes: ErroDaApi?
+    public var simularFalhaTransitoriaRepublicar: Bool = false
+    private var chavePrimeiraTentativaRepublicar: UUID?
+    private var republicadasDe: [UUID: UUID] = [:]
     private var publicacoesPorChave: [UUID: VagaPublicada] = [:]
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
@@ -267,11 +272,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
         cenario: Cenario = .sucesso,
         relogio: any Relogio = RelogioDoSistema(),
         vagas: [Vaga]? = nil,
-        sessaoAtivaInicial: Bool = false
+        sessaoAtivaInicial: Bool = false,
+        erroSimuladoRepublicarPosicoesRestantes: ErroDaApi? = nil,
+        simularFalhaTransitoriaRepublicar: Bool = false
     ) {
         self.cenario = cenario
         self.relogio = relogio
         self.sessaoAtiva = sessaoAtivaInicial
+        self.erroSimuladoRepublicarPosicoesRestantes = erroSimuladoRepublicarPosicoesRestantes
+        self.simularFalhaTransitoriaRepublicar = simularFalhaTransitoriaRepublicar
         do {
             envelopes = try FixturesDoContrato.erros()
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
@@ -591,10 +600,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
     #if DEBUG
     /// Só em Debug (#96): o Release não lê argumentos de lançamento.
     public static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> ApiClienteEmMemoria {
+        var erroRepublicar: ErroDaApi?
+        if let indiceErro = argumentos.firstIndex(of: "-FRILA_REPUBLICAR_RECUSA"), argumentos.indices.contains(indiceErro + 1) {
+            erroRepublicar = ErroDaApi(
+                codigo: .republicacaoIndisponivel,
+                detalhes: argumentos[indiceErro + 1]
+            )
+        }
+        let falhaTransitoria = argumentos.contains("-FRILA_REPUBLICAR_FALHA_TRANSITORIA")
+
         let semSessaoArgumento = argumentos.contains("-FRILA_ABRIR_CATALOGO") || argumentos.contains("-FRILA_ENTRADA")
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
-            return ApiClienteEmMemoria(sessaoAtivaInicial: !semSessaoArgumento)
+            return ApiClienteEmMemoria(
+                sessaoAtivaInicial: !semSessaoArgumento,
+                erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
+                simularFalhaTransitoriaRepublicar: falhaTransitoria
+            )
         }
         let cenariosSemSessao: Set<Cenario> = [.primeiroAcesso, .entrada, .menorDeIdade, .codigoErrado, .codigoExpirado]
         let sessaoAtiva = !semSessaoArgumento && !cenariosSemSessao.contains(cenario)
@@ -603,7 +625,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         } else if !sessaoAtiva {
             DestinoGuardado.limpar()
         }
-        return ApiClienteEmMemoria(cenario: cenario, sessaoAtivaInicial: sessaoAtiva)
+        return ApiClienteEmMemoria(
+            cenario: cenario,
+            sessaoAtivaInicial: sessaoAtiva,
+            erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
+            simularFalhaTransitoriaRepublicar: falhaTransitoria
+        )
     }
     #endif
 
@@ -862,6 +889,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 // crítica e antes do início. A janela do dublê é a padrão, de 3 horas.
                 let vazia = vaga.estado == .publicada && vaga.posicoesAbertas > 0 && agora < vaga.periodo.inicio
                     && vaga.periodo.inicio.timeIntervalSince(agora) <= 3 * 60 * 60
+                let analiseRepublicacao = calcularRepublicacaoDaSelecao(vaga: vaga)
+                let republicavel = (analiseRepublicacao.motivo == nil && (analiseRepublicacao.restantes ?? 0) > 0) ? analiseRepublicacao.restantes : nil
                 return VagaNoPainel(
                     vaga: vaga.resumo, modo: vaga.modo, estado: vaga.estado, oculta: vaga.oculta, alertaVagaVazia: vazia,
                     // Como `candidatos_pendentes` do backend: o candidato que a casa bloqueou não entra
@@ -869,7 +898,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     candidatosPendentes: candidaturas.count {
                         $0.vagaID == vaga.id && $0.estado == .pendente && bloqueios[Alvo($0.profissional)] == nil
                     },
-                    posicoes: confirmadas + canceladas + fechadas + abertas
+                    posicoes: confirmadas + canceladas + fechadas + abertas,
+                    republicavelEmUrgencia: republicavel
                 )
             },
             // Check-in manual que ninguém da casa confirmou ainda, do mais antigo para o mais novo.
@@ -998,6 +1028,148 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 participaRateio: original.participaRateio, observacoes: original.observacoes, modo: original.modo, chave: chave
             )
         )
+    }
+
+    /// Fonte única da RPC e do painel (RR-RN01, RR-RN03, RR-RN05).
+    private func calcularRepublicacaoDaSelecao(vaga: Vaga) -> (restantes: Int?, motivo: MotivoRepublicacaoIndisponivel?) {
+        // RR-RN01: Só vale para vaga de origem de modo seleção
+        guard vaga.modo == .selecao else {
+            return (nil, .naoESelecao)
+        }
+        // RR-RN01: Vaga publicada (seleção em curso)
+        if vaga.estado == .publicada {
+            return (nil, .selecaoEmCurso)
+        }
+        // RR-RN01: Vaga cancelada pela casa
+        if vaga.estado == .cancelada {
+            return (nil, .vagaCancelada)
+        }
+        // RR-RN01: inicio_em ainda no futuro
+        if relogio.agora >= vaga.periodo.inicio {
+            return (nil, .jaComecou)
+        }
+        // RR-RN05: Uma ativa por vez (publicada ou preenchida) da mesma origem
+        let temAtiva = vagas.contains { outra in
+            republicadasDe[outra.id] == vaga.id && (outra.estado == .publicada || outra.estado == .preenchida)
+        }
+        if temAtiva {
+            return (nil, .jaRepublicada)
+        }
+        // RR-RN03: posicoes da origem menos confirmadas ou cumpridas
+        let confirmadasOuCumpridas = turnos.count { turno in
+            turno.vaga.id == vaga.id && (turno.estado == nil || turno.estado == .confirmada || turno.estado == .cumprida)
+        }
+        let restantes = vaga.posicoes - confirmadasOuCumpridas
+        if restantes <= 0 {
+            return (nil, .semPosicoesRestantes)
+        }
+        return (restantes, nil)
+    }
+
+    /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
+    public func republicarPosicoesRestantes(vagaID: UUID, chave: UUID) async throws -> VagaPublicada {
+        chamadasARepublicarPosicoesRestantes += 1
+        try verificarFalhaGeral()
+
+        #if DEBUG
+        if let arquivoChaves = ProcessInfo.processInfo.environment["FRILA_CHAVES_ARQUIVO"], !arquivoChaves.isEmpty {
+            let linha = "\(chave.uuidString)\n"
+            if let handle = FileHandle(forWritingAtPath: arquivoChaves) {
+                handle.seekToEndOfFile()
+                if let data = linha.data(using: .utf8) {
+                    handle.write(data)
+                }
+                try? handle.close()
+            } else {
+                try? linha.write(toFile: arquivoChaves, atomically: true, encoding: .utf8)
+            }
+        }
+
+        if simularFalhaTransitoriaRepublicar && chamadasARepublicarPosicoesRestantes == 1 {
+            chavePrimeiraTentativaRepublicar = chave
+            throw ErroDaApi(codigo: .semRede)
+        }
+        #endif
+
+        if let erroSimulado = erroSimuladoRepublicarPosicoesRestantes {
+            if let index = vagas.firstIndex(where: { $0.id == vagaID }) {
+                let atual = vagas[index]
+                if erroSimulado.detalhes == MotivoRepublicacaoIndisponivel.semPosicoesRestantes.rawValue {
+                    vagas[index] = Self.copia(atual, posicoes: 0)
+                } else if erroSimulado.detalhes == MotivoRepublicacaoIndisponivel.vagaCancelada.rawValue {
+                    vagas[index] = Self.copia(atual, estado: .cancelada)
+                }
+            }
+            throw erroSimulado
+        }
+
+        // 1. Sem sessão: 401 nao_autenticado
+        guard conta != nil else { throw erro("nao_autenticado") }
+
+        // 2. Exigir perfil de contratante (RR-RN06): profissional recebe 422 perfil_incompativel
+        guard conta?.perfil == .contratante else { throw erro("perfil_incompativel") }
+
+        // Conta suspensa: 403 sem_permissao com details: conta_suspensa
+        if suspensao != nil { throw erro("sem_permissao", detalhes: "conta_suspensa") }
+
+        // 4. Origem inexistente: 404 nao_encontrado. Origem de outra casa: 403 sem_permissao
+        guard let original = vagas.first(where: { $0.id == vagaID }) else {
+            throw erro("nao_encontrado")
+        }
+        guard estabelecimentos.contains(where: { $0.id == original.estabelecimento.id }) else {
+            throw erro("sem_permissao")
+        }
+
+        // 5. Reenvio pela chave (RR-RN04 / passo 5 do requisito):
+        if let existente = publicacoesPorChave[chave] {
+            return existente
+        }
+
+        // 5. Origem oculta: 422 vaga_oculta
+        guard !original.oculta else { throw erro("vaga_oculta") }
+
+        // 6. Elegibilidade e sobras (RR-RN01, RR-RN03, RR-RN05):
+        let analise = calcularRepublicacaoDaSelecao(vaga: original)
+        if let motivo = analise.motivo {
+            throw erro("republicacao_indisponivel", detalhes: motivo.rawValue)
+        }
+
+        guard let restantes = analise.restantes, restantes > 0 else {
+            throw erro("republicacao_indisponivel", detalhes: MotivoRepublicacaoIndisponivel.semPosicoesRestantes.rawValue)
+        }
+
+        // 7. Publica vaga nova em urgência
+        let novoID = (cenario == .selecaoEncerradaSemEscolha && original.id == UUID(uuidString: "40000000-0000-0000-0000-000000000001")!)
+            ? UUID(uuidString: "50000000-0000-0000-0000-000000000001")!
+            : UUID()
+        let novaVaga = Vaga(
+            id: novoID,
+            estabelecimento: original.estabelecimento,
+            funcao: original.funcao,
+            periodo: original.periodo,
+            local: original.local,
+            regiaoAdministrativa: original.regiaoAdministrativa,
+            ponto: original.ponto,
+            valor: original.valor,
+            posicoes: restantes,
+            posicoesAbertas: restantes,
+            inclusos: original.inclusos,
+            responsavelLocal: original.responsavelLocal,
+            traje: original.traje,
+            participaRateio: original.participaRateio,
+            observacoes: original.observacoes,
+            modo: .urgencia,
+            estado: .publicada,
+            publicadoEm: relogio.agora
+        )
+        vagas.append(novaVaga)
+        vagasCriadas += 1
+        republicadasDe[novaVaga.id] = original.id
+
+        let posicoesIDs = (0..<restantes).map { _ in UUID() }
+        let resposta = VagaPublicada(vagaID: novaVaga.id, posicoes: posicoesIDs)
+        publicacoesPorChave[chave] = resposta
+        return resposta
     }
 
     public func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] {
@@ -1771,6 +1943,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
         vagas[indice] = Self.copia(vagas[indice], oculta: oculta)
     }
 
+    /// Para testes: altera o estabelecimento da vaga para simular uma vaga pertencente a outra casa.
+    public func alterarEstabelecimento(vagaID: UUID, estabelecimentoID: UUID) {
+        guard let indice = vagas.firstIndex(where: { $0.id == vagaID }) else { return }
+        let original = vagas[indice]
+        let outroEstab = PerfilPublico(
+            id: estabelecimentoID, tipo: .estabelecimento, nome: "Outro Estabelecimento",
+            funcoes: [], reputacao: original.estabelecimento.reputacao
+        )
+        vagas[indice] = Self.copia(original, estabelecimento: outroEstab)
+    }
+
     // MARK: Modo seleção, fora da porta
 
     /// Outro profissional se candidata à vaga de seleção. Fica fora da porta `ApiCliente`: o dublê
@@ -2085,11 +2268,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// A vaga com o que o dublê muda nela; o que não vier fica como está.
     private static func copia(
-        _ vaga: Vaga, periodo: Periodo? = nil, posicoes: Int? = nil, posicoesAbertas: Int? = nil, modo: ModoPreenchimento? = nil,
+        _ vaga: Vaga, estabelecimento: PerfilPublico? = nil, periodo: Periodo? = nil, posicoes: Int? = nil, posicoesAbertas: Int? = nil, modo: ModoPreenchimento? = nil,
         estado: EstadoVaga? = nil, oculta: Bool? = nil, publicadoEm: Date? = nil
     ) -> Vaga {
         Vaga(
-            id: vaga.id, estabelecimento: vaga.estabelecimento, funcao: vaga.funcao, periodo: periodo ?? vaga.periodo,
+            id: vaga.id, estabelecimento: estabelecimento ?? vaga.estabelecimento, funcao: vaga.funcao, periodo: periodo ?? vaga.periodo,
             local: vaga.local, regiaoAdministrativa: vaga.regiaoAdministrativa, ponto: vaga.ponto, distanciaKm: vaga.distanciaKm,
             valor: vaga.valor, posicoes: posicoes ?? vaga.posicoes, posicoesAbertas: posicoesAbertas ?? vaga.posicoesAbertas,
             inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal, traje: vaga.traje,
