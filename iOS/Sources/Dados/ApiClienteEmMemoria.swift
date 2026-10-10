@@ -1060,17 +1060,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
         // Conta suspensa: 403 sem_permissao com details: conta_suspensa
         if suspensao != nil { throw erro("sem_permissao", detalhes: "conta_suspensa") }
 
-        // 3. Reenvio pela chave antes do resto (RR-RN04 / passo 5 do requisito):
-        if let existente = publicacoesPorChave[chave] {
-            return existente
-        }
-
         // 4. Origem inexistente: 404 nao_encontrado. Origem de outra casa: 403 sem_permissao
         guard let original = vagas.first(where: { $0.id == vagaID }) else {
             throw erro("nao_encontrado")
         }
         guard estabelecimentos.contains(where: { $0.id == original.estabelecimento.id }) else {
             throw erro("sem_permissao")
+        }
+
+        // 5. Reenvio pela chave (RR-RN04 / passo 5 do requisito):
+        if let existente = publicacoesPorChave[chave] {
+            return existente
         }
 
         // 5. Origem oculta: 422 vaga_oculta

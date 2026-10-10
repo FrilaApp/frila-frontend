@@ -413,4 +413,154 @@ struct RepublicarPosicoesRestantesTests {
         roteador.abrir(aviso!)
         #expect(roteador.caminho == [.vaga(vagaID)])
     }
+
+    @Test("Dublê em memória: 404 e 403 precedem reenvio por chave previamente gravada")
+    func ordemDeConferenciasDublePrecedeChave() async throws {
+        let m = try await Montagem.montar(posicoes: 2)
+        m.relogio.avancar(para: m.inicio.addingTimeInterval(-20 * hora))
+        _ = await m.api.fecharSelecoes()
+
+        let chaveGravada = UUID()
+        let pub1 = try await m.api.republicarPosicoesRestantes(vagaID: m.vagaID, chave: chaveGravada)
+        #expect(pub1.posicoes.count == 2)
+
+        // 1. Vaga inexistente com a MESMA chave gravada: deve responder 404 e NÃO 200 via chave
+        var erroInexistente: ErroDaApi?
+        do {
+            _ = try await m.api.republicarPosicoesRestantes(vagaID: UUID(), chave: chaveGravada)
+        } catch let err as ErroDaApi {
+            erroInexistente = err
+        }
+        #expect(erroInexistente?.codigo == .naoEncontrado)
+
+        // 2. Vaga de outra casa com a MESMA chave gravada: deve responder 403 e NÃO 200 via chave
+        await m.api.alterarEstabelecimento(vagaID: m.vagaID, estabelecimentoID: UUID())
+        var erroOutraCasa: ErroDaApi?
+        do {
+            _ = try await m.api.republicarPosicoesRestantes(vagaID: m.vagaID, chave: chaveGravada)
+        } catch let err as ErroDaApi {
+            erroOutraCasa = err
+        }
+        #expect(erroOutraCasa?.codigo == .semPermissao)
+    }
+
+    @Test("Ciclo de vida estável: retentativa após semRede preserva chave; troca de vaga não reutiliza chave")
+    func cicloDeVidaEstavelERetencaoDeChave() async {
+        let vagaA = UUID()
+        let vagaB = UUID()
+        let coletor = ColetorChaves()
+
+        let vm = RepublicarPosicoesRestantesViewModel(
+            vagaID: vagaA,
+            posicoesRestantes: 2,
+            republicarRPC: { _, chave in
+                coletor.adicionar(chave)
+                throw ErroDaApi(codigo: .semRede)
+            }
+        )
+
+        // Primeira tentativa falha com semRede
+        await vm.executar()
+        #expect(vm.erro == TextosRepublicarPosicoesRestantes.semRede)
+        let chaveA = vm.chaveAtual
+        #expect(chaveA != nil)
+
+        // Segunda tentativa na mesma vaga: reusa chaveA
+        await vm.executar()
+        #expect(coletor.chaves.count == 2)
+        #expect(coletor.chaves[0] == coletor.chaves[1])
+        #expect(vm.chaveAtual == chaveA)
+
+        // VM de outra vaga: deve gerar nova chave distinta
+        let coletorB = ColetorChaves()
+        let vmB = RepublicarPosicoesRestantesViewModel(
+            vagaID: vagaB,
+            posicoesRestantes: 2,
+            republicarRPC: { _, chave in
+                coletorB.adicionar(chave)
+                throw ErroDaApi(codigo: .semRede)
+            }
+        )
+        await vmB.executar()
+        let chaveB = vmB.chaveAtual
+        #expect(chaveB != nil)
+        #expect(chaveB != chaveA)
+    }
+
+    @Test("Retenção de erro: recusa aguarda atualização estruturada e retém mensagem de erro")
+    func recusaRetemMensagemEAguardaAtualizacaoEstruturada() async {
+        let vagaID = UUID()
+        var atualizouPainel = false
+
+        let vm = RepublicarPosicoesRestantesViewModel(
+            vagaID: vagaID,
+            posicoesRestantes: 2,
+            republicarRPC: { _, _ in
+                throw ErroDaApi(codigo: .republicacaoIndisponivel, detalhes: MotivoRepublicacaoIndisponivel.semPosicoesRestantes.rawValue)
+            },
+            atualizarPainel: {
+                atualizouPainel = true
+            }
+        )
+
+        await vm.executar()
+
+        #expect(atualizouPainel == true)
+        #expect(vm.erro == TextosRepublicarPosicoesRestantes.semPosicoesRestantes)
+        #expect(vm.carregando == false)
+    }
+
+    @Test("Navegação no detalhe abre ID retornado pela RPC e atualiza o painel")
+    func navegacaoAbreIDRetornadoPelaRPC() async throws {
+        let m = try await Montagem.montar(posicoes: 2)
+        m.relogio.avancar(para: m.inicio.addingTimeInterval(-20 * hora))
+        _ = await m.api.fecharSelecoes()
+
+        let roteador = RoteadorDoContratante()
+        var painelAtualizado = false
+
+        let vm = RepublicarPosicoesRestantesViewModel(
+            vagaID: m.vagaID,
+            posicoesRestantes: 2,
+            api: m.api,
+            aoNavegarParaVaga: { id in
+                roteador.abrirVaga(id: id)
+            },
+            atualizarPainel: {
+                painelAtualizado = true
+            }
+        )
+
+        await vm.executar()
+
+        #expect(painelAtualizado == true)
+        #expect(vm.vagaPublicada != nil)
+        #expect(roteador.caminho == [.vaga(vm.vagaPublicada!.vagaID)])
+    }
+
+    @Test("BotaoRepublicarPosicoesRestantes: preserva erro quando elegibilidade remove o botão")
+    func botaoRetemErroQuandoElegibilidadeRemoveAcao() async {
+        let vm = RepublicarPosicoesRestantesViewModel(
+            vagaID: UUID(),
+            posicoesRestantes: 2,
+            republicarRPC: { _, _ in
+                throw ErroDaApi(codigo: .republicacaoIndisponivel, detalhes: MotivoRepublicacaoIndisponivel.semPosicoesRestantes.rawValue)
+            }
+        )
+
+        await vm.executar()
+        #expect(vm.erro == TextosRepublicarPosicoesRestantes.semPosicoesRestantes)
+
+        // Quando podeRepublicar é falso mas há erro, o componente retém o aviso
+        let botaoComErro = BotaoRepublicarPosicoesRestantes(viewModel: vm, podeRepublicar: false)
+        let espelho = Mirror(reflecting: botaoComErro.body)
+        #expect(!espelho.children.isEmpty)
+        #expect(String(describing: botaoComErro.body).contains("AvisoFrila"))
+
+        // Quando podeRepublicar é falso e não há erro, o componente fica vazio (nil)
+        let vmSemErro = RepublicarPosicoesRestantesViewModel(vagaID: UUID(), posicoesRestantes: 2, republicarRPC: { _, _ in throw ErroDaApi(codigo: .semRede) })
+        let botaoSemErro = BotaoRepublicarPosicoesRestantes(viewModel: vmSemErro, podeRepublicar: false)
+        let espelhoSemErro = Mirror(reflecting: botaoSemErro.body)
+        #expect(espelhoSemErro.children.isEmpty)
+    }
 }

@@ -4,8 +4,6 @@ import SwiftUI
 
 public enum TextosRepublicarPosicoesRestantes {
     public static let republicando = String(localized: "Republicando posições restantes…", bundle: bundleApresentacao)
-    public static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundleApresentacao)
-    public static let sucesso = String(localized: "Posições restantes republicadas em urgência!", bundle: bundleApresentacao)
 
     public static func rotuloBotao(_ posicoes: Int) -> String {
         if posicoes == 1 {
@@ -36,7 +34,7 @@ public enum TextosRepublicarPosicoesRestantes {
 @MainActor @Observable
 public final class RepublicarPosicoesRestantesViewModel {
     public let vagaID: UUID
-    public let posicoesRestantes: Int
+    public private(set) var posicoesRestantes: Int
     public private(set) var carregando = false
     public private(set) var erro: String?
     public private(set) var vagaPublicada: VagaPublicada?
@@ -45,15 +43,13 @@ public final class RepublicarPosicoesRestantesViewModel {
     private let republicarRPC: @Sendable (UUID, UUID) async throws -> VagaPublicada
     private let aoNavegarParaVaga: @MainActor (UUID) -> Void
     private let atualizarPainel: @MainActor () async -> Void
-    private let buscarVagaRepublicada: (@MainActor () -> UUID?)?
 
     public init(
         vagaID: UUID,
         posicoesRestantes: Int,
         api: any ApiCliente,
         aoNavegarParaVaga: @escaping @MainActor (UUID) -> Void = { _ in },
-        atualizarPainel: @escaping @MainActor () async -> Void = {},
-        buscarVagaRepublicada: (@MainActor () -> UUID?)? = nil
+        atualizarPainel: @escaping @MainActor () async -> Void = {}
     ) {
         self.vagaID = vagaID
         self.posicoesRestantes = posicoesRestantes
@@ -62,7 +58,6 @@ public final class RepublicarPosicoesRestantesViewModel {
         }
         self.aoNavegarParaVaga = aoNavegarParaVaga
         self.atualizarPainel = atualizarPainel
-        self.buscarVagaRepublicada = buscarVagaRepublicada
     }
 
     public init(
@@ -70,15 +65,18 @@ public final class RepublicarPosicoesRestantesViewModel {
         posicoesRestantes: Int,
         republicarRPC: @escaping @Sendable (UUID, UUID) async throws -> VagaPublicada,
         aoNavegarParaVaga: @escaping @MainActor (UUID) -> Void = { _ in },
-        atualizarPainel: @escaping @MainActor () async -> Void = {},
-        buscarVagaRepublicada: (@MainActor () -> UUID?)? = nil
+        atualizarPainel: @escaping @MainActor () async -> Void = {}
     ) {
         self.vagaID = vagaID
         self.posicoesRestantes = posicoesRestantes
         self.republicarRPC = republicarRPC
         self.aoNavegarParaVaga = aoNavegarParaVaga
         self.atualizarPainel = atualizarPainel
-        self.buscarVagaRepublicada = buscarVagaRepublicada
+    }
+
+    public func atualizarPosicoesRestantes(_ novas: Int) {
+        guard novas > 0 else { return }
+        posicoesRestantes = novas
     }
 
     public func executar() async {
@@ -98,45 +96,34 @@ public final class RepublicarPosicoesRestantesViewModel {
             aoNavegarParaVaga(resposta.vagaID)
         } catch let erroApi as ErroDaApi {
             carregando = false
-            tratarErroApi(erroApi)
+            await tratarErroApi(erroApi)
         } catch {
             carregando = false
             erro = TextosRepublicarPosicoesRestantes.semRede
         }
     }
 
-    private func tratarErroApi(_ erroApi: ErroDaApi) {
+    private func tratarErroApi(_ erroApi: ErroDaApi) async {
         switch erroApi.codigo {
         case .republicacaoIndisponivel:
             let motivo = erroApi.detalhes.flatMap(MotivoRepublicacaoIndisponivel.init(rawValue:))
             switch motivo {
             case .jaRepublicada:
-                Task {
-                    await atualizarPainel()
-                    if let novaVagaID = buscarVagaRepublicada?() {
-                        aoNavegarParaVaga(novaVagaID)
-                    }
-                }
                 erro = TextosRepublicarPosicoesRestantes.jaRepublicada
             case .semPosicoesRestantes:
-                Task { await atualizarPainel() }
                 erro = TextosRepublicarPosicoesRestantes.semPosicoesRestantes
             case .selecaoEmCurso:
-                Task { await atualizarPainel() }
                 erro = TextosRepublicarPosicoesRestantes.selecaoEmCurso
             case .jaComecou:
-                Task { await atualizarPainel() }
                 erro = TextosRepublicarPosicoesRestantes.jaComecou
             case .vagaCancelada:
-                Task { await atualizarPainel() }
                 erro = TextosRepublicarPosicoesRestantes.vagaCancelada
             case .naoESelecao:
-                Task { await atualizarPainel() }
                 erro = TextosRepublicarPosicoesRestantes.naoESelecao
             case nil:
-                Task { await atualizarPainel() }
                 erro = TextosRepublicarPosicoesRestantes.republicacaoIndisponivelGenerico
             }
+            await atualizarPainel()
         case .vagaOculta:
             erro = TextosRepublicarPosicoesRestantes.vagaOculta
         case .semPermissao:
@@ -158,40 +145,98 @@ public final class RepublicarPosicoesRestantesViewModel {
 }
 
 public struct BotaoRepublicarPosicoesRestantes: View {
-    @Bindable var viewModel: RepublicarPosicoesRestantesViewModel
-    var idAcessibilidade: String = "botao-republicar-posicoes-restantes"
+    @State private var viewModel: RepublicarPosicoesRestantesViewModel
+    private let podeRepublicar: Bool
+    private let posicoesRestantes: Int
+    var idAcessibilidade: String
 
-    public init(viewModel: RepublicarPosicoesRestantesViewModel, idAcessibilidade: String = "botao-republicar-posicoes-restantes") {
-        self.viewModel = viewModel
+    public init(
+        viewModel: RepublicarPosicoesRestantesViewModel,
+        podeRepublicar: Bool = true,
+        idAcessibilidade: String = "botao-republicar-posicoes-restantes"
+    ) {
+        _viewModel = State(initialValue: viewModel)
+        self.podeRepublicar = podeRepublicar
+        self.posicoesRestantes = viewModel.posicoesRestantes
+        self.idAcessibilidade = idAcessibilidade
+    }
+
+    public init(
+        vagaID: UUID,
+        posicoesRestantes: Int,
+        api: any ApiCliente,
+        podeRepublicar: Bool = true,
+        aoNavegarParaVaga: @escaping @MainActor (UUID) -> Void = { _ in },
+        atualizarPainel: @escaping @MainActor () async -> Void = {},
+        idAcessibilidade: String = "botao-republicar-posicoes-restantes"
+    ) {
+        _viewModel = State(initialValue: RepublicarPosicoesRestantesViewModel(
+            vagaID: vagaID,
+            posicoesRestantes: posicoesRestantes,
+            api: api,
+            aoNavegarParaVaga: aoNavegarParaVaga,
+            atualizarPainel: atualizarPainel
+        ))
+        self.podeRepublicar = podeRepublicar
+        self.posicoesRestantes = posicoesRestantes
+        self.idAcessibilidade = idAcessibilidade
+    }
+
+    public init(
+        vagaID: UUID,
+        posicoesRestantes: Int,
+        podeRepublicar: Bool = true,
+        republicarRPC: @escaping @Sendable (UUID, UUID) async throws -> VagaPublicada,
+        aoNavegarParaVaga: @escaping @MainActor (UUID) -> Void = { _ in },
+        atualizarPainel: @escaping @MainActor () async -> Void = {},
+        idAcessibilidade: String = "botao-republicar-posicoes-restantes"
+    ) {
+        _viewModel = State(initialValue: RepublicarPosicoesRestantesViewModel(
+            vagaID: vagaID,
+            posicoesRestantes: posicoesRestantes,
+            republicarRPC: republicarRPC,
+            aoNavegarParaVaga: aoNavegarParaVaga,
+            atualizarPainel: atualizarPainel
+        ))
+        self.podeRepublicar = podeRepublicar
+        self.posicoesRestantes = posicoesRestantes
         self.idAcessibilidade = idAcessibilidade
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Button {
-                Task { await viewModel.executar() }
-            } label: {
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    if viewModel.carregando {
-                        ProgressView()
-                            .tint(FrilaCor.sobrePrimaria)
-                        Text(verbatim: TextosRepublicarPosicoesRestantes.republicando)
-                    } else {
-                        Image(systemName: "bolt.fill")
-                        Text(verbatim: TextosRepublicarPosicoesRestantes.rotuloBotao(viewModel.posicoesRestantes))
+        if podeRepublicar || viewModel.erro != nil {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                if podeRepublicar {
+                    Button {
+                        Task { await viewModel.executar() }
+                    } label: {
+                        HStack(spacing: FrilaEspaco.pequeno) {
+                            if viewModel.carregando {
+                                ProgressView()
+                                    .tint(FrilaCor.sobrePrimaria)
+                                Text(verbatim: TextosRepublicarPosicoesRestantes.republicando)
+                            } else {
+                                Image(systemName: "bolt.fill")
+                                    .accessibilityHidden(true)
+                                Text(verbatim: TextosRepublicarPosicoesRestantes.rotuloBotao(viewModel.posicoesRestantes))
+                            }
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(FrilaCor.primaria)
+                    .disabled(viewModel.carregando)
+                    .accessibilityIdentifier(idAcessibilidade)
                 }
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(FrilaCor.primaria)
-            .disabled(viewModel.carregando)
-            .accessibilityIdentifier(idAcessibilidade)
 
-            if let erro = viewModel.erro {
-                AvisoFrila(verbatim: erro, tom: .alerta)
-                    .accessibilityIdentifier("\(idAcessibilidade)-erro")
+                if let erro = viewModel.erro {
+                    AvisoFrila(verbatim: erro, tom: .alerta)
+                        .accessibilityIdentifier("\(idAcessibilidade)-erro")
+                }
+            }
+            .onChange(of: posicoesRestantes) { _, novas in
+                viewModel.atualizarPosicoesRestantes(novas)
             }
         }
     }
