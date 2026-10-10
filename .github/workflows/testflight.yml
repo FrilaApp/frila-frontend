@@ -134,6 +134,16 @@ jobs:
             exit 1
           fi
 
+      - name: Importar Apple Distribution no keychain temporário
+        env:
+          APPLE_DISTRIBUTION_CERT_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12_BASE64 }}
+          APPLE_DISTRIBUTION_CERT_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12_PASSWORD }}
+        run: |
+          set +x
+          FRILA_EQUIPE="$(sed -n 's/^ *DEVELOPMENT_TEAM: *//p' project.yml | head -1)"
+          export FRILA_EQUIPE
+          python3 Scripts/assinatura-local-ci.py importar
+
       - name: Instalar o XcodeGen fixado
         run: |
           curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
@@ -203,6 +213,10 @@ jobs:
           opcoes=()
           [[ "$FRILA_ENVIAR" == 1 ]] || opcoes+=(--sem-envio)
           Scripts/enviar-testflight.sh "$FRILA_ESQUEMA" "$FRILA_VERSAO" ${opcoes[@]+"${opcoes[@]}"}
+
+      - name: Restaurar keychains e apagar identidade de distribuição
+        if: always()
+        run: python3 Scripts/assinatura-local-ci.py apagar
 
       - name: Apagar chave, segredos e temporários
         if: always()
