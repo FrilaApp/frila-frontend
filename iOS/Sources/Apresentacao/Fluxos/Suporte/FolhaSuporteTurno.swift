@@ -67,6 +67,7 @@ public struct FolhaSuporteTurno: View {
                 .foregroundStyle(FrilaCor.primaria)
                 .font(.title3)
                 .accessibilityIdentifier(reduzirMovimento ? "icone-prazo-sem-movimento" : "icone-prazo")
+                .accessibilityLabel(Text(verbatim: TextosDoSuporte.rotuloIconePrazo))
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosDoSuporte.avisoPrazo)
                     .font(.subheadline)
@@ -216,31 +217,19 @@ public struct FolhaSuporteTurno: View {
         .accessibilityIdentifier("secao-dados-turno")
     }
 
-    /// Rótulo e valor lado a lado; em tamanho de acessibilidade (AX5) ou valor comprido, um
-    /// embaixo do outro, para o VoiceOver ler o par inteiro e nada ficar espremido.
+    /// Rótulo e valor em bloco vertical com quebra de linha natural no Dynamic Type e AX5,
+    /// para o VoiceOver ler o par combinado e nada ficar espremido nem cortado.
     private func itemDado(rotulo: String, valor: String) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: "\(rotulo):")
-                    .font(.caption.bold())
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                Spacer()
-                Text(verbatim: valor)
-                    .font(.caption)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.trailing)
-            }
-            .fixedSize(horizontal: true, vertical: false)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(verbatim: "\(rotulo):")
-                    .font(.caption.bold())
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                Text(verbatim: valor)
-                    .font(.caption)
-                    .foregroundStyle(FrilaCor.texto)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: "\(rotulo):")
+                .font(.caption.bold())
+                .foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: valor)
+                .font(.caption)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
     }

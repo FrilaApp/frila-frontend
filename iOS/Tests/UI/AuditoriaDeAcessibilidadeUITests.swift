@@ -686,6 +686,21 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testFolhaDeDenuncia() { folhaDeDenuncia(ax5: false) }
     func testFolhaDeDenunciaEmAX5() { folhaDeDenuncia(ax5: true) }
+
+    private static let folhaDeSuporteBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em FolhaSuporteTurno.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
+
+    private func folhaDeSuporte(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_ABRIR_SUPORTE_TURNO", "-FRILA_SCENARIO", "success", "-FRILA_CACHE_VAZIO_UI_TEST"
+        ], ax5: ax5)
+        guard esperar(elemento("folha-suporte-turno", em: app), "A folha de suporte no turno deve abrir") else { return }
+        auditar(app, tela: "folha-de-suporte", pendente: Self.folhaDeSuporteBotaoBarra, estrito: true)
+        app.swipeUp()
+        auditar(app, tela: "folha-de-suporte-rolada", pendente: Self.folhaDeSuporteBotaoBarra, estrito: true)
+    }
+
+    func testFolhaDeSuporte() { folhaDeSuporte(ax5: false) }
+    func testFolhaDeSuporteEmAX5() { folhaDeSuporte(ax5: true) }
 }
 
 private extension XCUIAccessibilityAuditType {
