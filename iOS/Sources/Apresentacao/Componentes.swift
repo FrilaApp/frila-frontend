@@ -86,7 +86,7 @@ public struct CampoFrila: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: FrilaMetrica.alvoMinimo)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.textoSecundario.opacity(0.35)))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
             .accessibilityLabel(titulo)
             .accessibilityHint(Text(verbatim: erroDeCampo ?? ""))
     }

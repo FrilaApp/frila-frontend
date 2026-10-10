@@ -40,14 +40,14 @@ Cada ocorrência foi classificada em:
 | `iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCodigo.swift:76` | `.stroke(... FrilaCor.textoSecundario.opacity(0.35))` | **(c)** | **Corrigido** | Substituído pelo novo token `FrilaCor.borda` criado em `DesignTokens.swift`. Arquivo livre. |
 | `iOS/Sources/Apresentacao/Fluxos/Conta/TelaContaSuspensa.swift:179` | `.stroke(FrilaCor.textoSecundario.opacity(0.35))` | **(c)** | **Corrigido** | Substituído pelo novo token `FrilaCor.borda` criado em `DesignTokens.swift`. Arquivo livre. |
 | `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaVagas.swift:173` | `.background(ativo ? FrilaCor.primaria.opacity(0.12) : ...)` | **(c)** | **Aceito / Sugestão** | Usa token `FrilaCor.primaria` com 12% de opacidade para pílula selecionada. Sugere-se token `FrilaCor.primariaAtenuada` para o design system. |
-| `iOS/Sources/Apresentacao/Componentes.swift:86` | `.stroke(FrilaCor.textoSecundario.opacity(0.35))` | **(c)** | **Ocupado pelo PR #110** | Contorno de campo em `CampoFrila`. Sugere-se adotar `FrilaCor.borda` após merge do PR #110. |
+| `iOS/Sources/Apresentacao/Componentes.swift:89` | `.stroke(FrilaCor.borda)` | **(c)** | **Corrigido** | Contorno de campo em `CampoFrila`. Substituído pelo token `FrilaCor.borda`. |
 | `iOS/Sources/Apresentacao/Componentes.swift:206` | `.foregroundStyle(cor)` | **(b)** | **Ocupado pelo PR #110** | `AvisoFrila`: `cor` computada na linha 213 mapeia `tom` exclusivamente para `FrilaCor.primaria`, `FrilaCor.alerta` ou `FrilaCor.perigo`. Conforme. |
 | `iOS/Sources/Apresentacao/Componentes.swift:209` | `.background(cor.opacity(0.12)...)` | **(c)** | **Ocupado pelo PR #110** | Fundo de aviso com opacidade de 12% da cor do tom. Conforme, com proposta de tokenização de atenuação. |
 | `iOS/Sources/Apresentacao/Componentes.swift:330` | `Capsule().fill(FrilaCor.textoSecundario.opacity(0.4))` | **(c)** | **Ocupado pelo PR #110** | Alça do bottom sheet modal. Conforme; sugere-se token `FrilaCor.alcaModal`. |
-| `iOS/Sources/Apresentacao/Fluxos/Conta/TelaExclusaoDeConta.swift:186` | `FrilaCor.textoSecundario.opacity(0.35)` | **(c)** | **Ocupado pelo PR #110** | Fundo desabilitado do botão destrutivo. Sugere-se adotar `FrilaCor.borda` após merge do PR #110. |
-| `iOS/Sources/Apresentacao/Fluxos/Contratante/PublicarVaga.swift:492, 528, 543` | `.stroke(FrilaCor.textoSecundario.opacity(0.35))` | **(c)** | **Ocupado pelos PRs #73 e #103** | Contorno de caixas de formulário. Sugere-se adotar `FrilaCor.borda` após merge dos PRs. |
+| `iOS/Sources/Apresentacao/Fluxos/Conta/TelaExclusaoDeConta.swift:232` | `FrilaCor.borda` | **(c)** | **Corrigido** | Fundo desabilitado do botão destrutivo. Substituído pelo token `FrilaCor.borda`. |
+| `iOS/Sources/Apresentacao/Fluxos/Contratante/PublicarVaga.swift:640, 688, 703` | `.stroke(FrilaCor.borda)` | **(c)** | **Corrigido** | Contorno de caixas de formulário. Substituído pelo token `FrilaCor.borda`. |
 | `iOS/Sources/Apresentacao/Fluxos/Contratante/PublicarVaga.swift:624` | `.stroke(FrilaCor.textoSecundario.opacity(0.4))` | **(c)** | **Ocupado pelos PRs #73 e #103** | Contorno de pílula de seleção. Sugere-se unificar para `FrilaCor.borda`. |
-| `iOS/Sources/Apresentacao/Fluxos/Cancelamento/FolhaDeCancelamento.swift:62` | `.stroke(FrilaCor.textoSecundario.opacity(0.35))` | **(c)** | **Ocupado pela branch #39 (Thor)** | Contorno do campo de motivo. Sugere-se adotar `FrilaCor.borda` após merge da branch #39. |
+| `iOS/Sources/Apresentacao/Fluxos/Cancelamento/FolhaDeCancelamento.swift:82` | `.stroke(FrilaCor.borda)` | **(c)** | **Corrigido** | Contorno do campo de motivo. Substituído pelo token `FrilaCor.borda`. |
 
 ---
 
