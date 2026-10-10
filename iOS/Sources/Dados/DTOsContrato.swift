@@ -583,6 +583,15 @@ enum ContratoAPI {
         }
     }
 
+    struct RepublicarPosicoesRestantes: Encodable {
+        let vagaID: UUID
+        let chave: UUID
+        enum CodingKeys: String, CodingKey {
+            case vagaID = "vaga_id"
+            case chave
+        }
+    }
+
     struct FiltroVagasDTO: Encodable {
         let latitude: Double?
         let longitude: Double?
@@ -1062,11 +1071,13 @@ enum ContratoAPI {
         let posicoes: [PosicaoNoPainelDTO]
         /// Posições que vieram com valor que este app não conhece (estado novo, por exemplo) e saíram.
         let posicoesDescartadas: Int
+        let republicavelEmUrgencia: Int?
 
         enum CodingKeys: String, CodingKey {
             case vaga, modo, estado, oculta, posicoes
             case alertaVagaVazia = "alerta_vaga_vazia"
             case candidatosPendentes = "candidatos_pendentes"
+            case republicavelEmUrgencia = "republicavel_em_urgencia"
         }
 
         init(from decoder: Decoder) throws {
@@ -1077,6 +1088,7 @@ enum ContratoAPI {
             oculta = try container.decode(Bool.self, forKey: .oculta)
             alertaVagaVazia = try container.decode(Bool.self, forKey: .alertaVagaVazia)
             candidatosPendentes = try container.decode(Int.self, forKey: .candidatosPendentes)
+            republicavelEmUrgencia = try container.decodeIfPresent(Int.self, forKey: .republicavelEmUrgencia)
             let lidas = try container.decode([ItemTolerante<PosicaoNoPainelDTO>].self, forKey: .posicoes)
             posicoes = lidas.compactMap(\.valor)
             posicoesDescartadas = lidas.count - posicoes.count
@@ -1090,7 +1102,8 @@ enum ContratoAPI {
                 oculta: oculta,
                 alertaVagaVazia: alertaVagaVazia,
                 candidatosPendentes: candidatosPendentes,
-                posicoes: posicoes.map { $0.dominio() }
+                posicoes: posicoes.map { $0.dominio() },
+                republicavelEmUrgencia: republicavelEmUrgencia
             )
         }
     }

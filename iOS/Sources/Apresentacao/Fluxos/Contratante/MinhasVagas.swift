@@ -397,6 +397,18 @@ public struct TelaMinhasVagas: View {
                     .tint(FrilaCor.primaria)
                     .accessibilityIdentifier("republicar-vaga-\(vaga.vaga.id)")
                 }
+                if vaga.podeRepublicarEmUrgencia, let restantes = vaga.republicavelEmUrgencia {
+                    BotaoRepublicarPosicoesRestantes(
+                        viewModel: RepublicarPosicoesRestantesViewModel(
+                            vagaID: vaga.vaga.id,
+                            posicoesRestantes: restantes,
+                            api: api,
+                            aoNavegarParaVaga: { roteador.abrirVaga(id: $0) },
+                            atualizarPainel: { await carregar() }
+                        ),
+                        idAcessibilidade: "republicar-urgencia-vaga-\(vaga.vaga.id)"
+                    )
+                }
             }
         }
     }
@@ -510,6 +522,7 @@ private struct DestinoDaVagaDoContratante: View {
 
 private struct TelaDetalheVagaContratante: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueios
+    @Environment(RoteadorDoContratante.self) private var roteador: RoteadorDoContratante?
     let vaga: VagaNoPainel
     let api: any ApiCliente
     let fila: (any FilaDeAcoes)?
@@ -570,6 +583,21 @@ private struct TelaDetalheVagaContratante: View {
                     .buttonStyle(.borderedProminent)
                     .tint(FrilaCor.primaria)
                     .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
+                }
+
+                if vaga.podeRepublicarEmUrgencia, let restantes = vaga.republicavelEmUrgencia {
+                    BotaoRepublicarPosicoesRestantes(
+                        viewModel: RepublicarPosicoesRestantesViewModel(
+                            vagaID: vaga.vaga.id,
+                            posicoesRestantes: restantes,
+                            api: api,
+                            aoNavegarParaVaga: { roteador?.abrirVaga(id: $0) },
+                            atualizarPainel: {
+                                _ = await relerVaga()
+                            }
+                        ),
+                        idAcessibilidade: "republicar-urgencia-detalhe-vaga-\(vaga.vaga.id)"
+                    )
                 }
 
                 if let acompanhamento, acompanhamento.podeCancelarVaga(vaga) {

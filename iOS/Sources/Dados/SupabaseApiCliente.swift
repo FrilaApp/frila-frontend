@@ -227,6 +227,12 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    public func republicarPosicoesRestantes(vagaID: UUID, chave: UUID) async throws -> VagaPublicada {
+        let params = ContratoAPI.RepublicarPosicoesRestantes(vagaID: vagaID, chave: chave)
+        let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc("republicar_posicoes_restantes", params: params)
+        return resposta.dominio()
+    }
+
     public func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] {
         try await lista("vagas_abertas", params: ContratoAPI.FiltroVagasDTO(filtro)) { (item: ContratoAPI.VagaNaListaDTO) in try item.dominio() }
     }

@@ -34,10 +34,21 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case semSuspensaoAtiva = "sem_suspensao_ativa"
     case contestacaoJaAberta = "contestacao_ja_aberta"
     case limiteExcedido = "limite_excedido"
+    case republicacaoIndisponivel = "republicacao_indisponivel"
     case contaSuspensa = "conta_suspensa"
     case semRede = "sem_rede"
     case respostaInvalida = "resposta_invalida"
     case desconhecido
+}
+
+/// Os 6 motivos de recusa da operação republicar_posicoes_restantes (contrato 0.2.41, RR-RN01/03/05).
+public enum MotivoRepublicacaoIndisponivel: String, Codable, CaseIterable, Sendable {
+    case naoESelecao = "nao_e_selecao"
+    case selecaoEmCurso = "selecao_em_curso"
+    case vagaCancelada = "vaga_cancelada"
+    case jaComecou = "ja_comecou"
+    case semPosicoesRestantes = "sem_posicoes_restantes"
+    case jaRepublicada = "ja_republicada"
 }
 
 public extension CodigoErroAPI {

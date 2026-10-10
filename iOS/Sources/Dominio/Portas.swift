@@ -281,6 +281,8 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func funcoes() async throws -> [Funcao]
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
+    /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
+    func republicarPosicoesRestantes(vagaID: UUID, chave: UUID) async throws -> VagaPublicada
     func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista]
     func detalheDaVaga(id: UUID) async throws -> Vaga
     func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura

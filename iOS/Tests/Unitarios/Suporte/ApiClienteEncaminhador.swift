@@ -48,6 +48,7 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func funcoes() async throws -> [Funcao] { try await base.funcoes() }
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada { try await base.publicarVaga(publicacao) }
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada { try await base.republicarVaga(id: id, periodo: periodo, chave: chave) }
+    func republicarPosicoesRestantes(vagaID: UUID, chave: UUID) async throws -> VagaPublicada { try await base.republicarPosicoesRestantes(vagaID: vagaID, chave: chave) }
     func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista] { try await base.vagasAbertas(filtro) }
     func detalheDaVaga(id: UUID) async throws -> Vaga { try await base.detalheDaVaga(id: id) }
     func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura { try await base.candidatar(vagaID: vagaID) }
