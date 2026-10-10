@@ -5,6 +5,7 @@ public enum TextosDoSuporte {
     public static let botaoAjudaTurno = String(localized: "Ajuda no turno", bundle: bundleApresentacao)
     public static let dicaAjudaTurno = String(localized: "Abre suporte por e-mail com os dados do turno pré-preenchidos", bundle: bundleApresentacao)
     public static let avisoPrazo = String(localized: "Respondemos em até 5 dias úteis. Não há atendimento ao vivo.", bundle: bundleApresentacao)
+    public static let rotuloIconePrazo = String(localized: "Prazo de resposta", bundle: bundleApresentacao)
 
     public static let secaoMotivo = String(localized: "Motivo do suporte", bundle: bundleApresentacao)
     public static let motivoRiscoSeguranca = String(localized: "Risco à segurança ou emergência", bundle: bundleApresentacao)
