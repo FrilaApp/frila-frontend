@@ -34,4 +34,12 @@ Sem valor, Dev, Beta e Prod não voltam ao simulado: falham na CI e, localmente,
 
 Rotação: gere o novo valor no provedor, rode `Scripts/generate-supabase-secrets.sh` e atualize o segredo do GitHub, valide, revogue o antigo e registre data/responsável. Nunca imprima chaves, token, e-mail, telefone ou coordenada em log.
 
+## Decisão de arquitetura: padronização no `frila-dev` e dispensa de Docker local
+
+Por decisão de produto e infraestrutura liderada pelo Cauê em 07/10/2026, **não há obrigatoriedade nem necessidade de subir infraestrutura local via Docker/Supabase CLI** por outros desenvolvedores do time:
+1. **Servidor oficial de desenvolvimento:** O ambiente `frila-dev` é o backend centralizado e compartilhado oficial para desenvolvimento e validação integrada do app.
+2. **Desenvolvimento local autônomo:** Localmente, os testes unitários e de interface rodam de forma autônoma e determinística utilizando o cliente em memória (`ApiClienteEmMemoria` com cenários `-FRILA_SCENARIO`), eliminando fricção de setup local, dependência de daemon Docker ou discrepâncias de seeds locais.
+3. **Resolução do Cartão ZqmkOaHn (Critério 4):** A subida de ambiente local independente via Docker é formalmente substituída pela conexão direta ao `frila-dev` (configurado via `Configurations/Dev.xcconfig` e segredos gerenciados), permitindo que qualquer desenvolvedor clone o repositório e execute o projeto imediatamente sem passos manuais de provisionamento de containers.
+
 O bundle ID definitivo é `com.frila.org.app`. O mesmo identificador deve ser usado no Apple Developer, App Store Connect e nos apps iOS dos projetos Firebase Dev e Prod. Os frameworks internos usam identificadores derivados (`com.frila.org.app.dominio`, `.dados`, `.apresentacao`, `.infraestrutura`).
+
