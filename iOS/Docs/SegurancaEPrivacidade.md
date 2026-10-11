@@ -97,6 +97,24 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
    é coletada: o feed usa o `ponto_base` do servidor, nunca a posição do aparelho
    (`FeedVagasViewModel.swift:100`).
 
+## Direitos de Conteúdo e Diretrizes da App Store
+
+Consolidação para submissão do build 1.0 à App Store e preenchimento dos formulários regulatórios no App Store Connect:
+
+1. **Conformidade com a Diretriz 1.2 da Apple (User-Generated Content):**
+   - **Filtro de termos ofensivos:** Validação prévia em todos os campos livres (`observacoes`, `traje`, `responsavel_local` em `publicar_vaga`, relatos de contestação e perfis). O backend rejeita termos ofensivos com erro 422 `campo_invalido` (`supabase/tests/510_moderacao_do_texto.sql`).
+   - **Canal de denúncia acessível:** Acesso direto à denúncia em pontos de interação e perfis (`Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift`, `FolhaDeDenuncia` e `SegurancaViewModel.swift`), com seleção de motivo categorizado (`assedio`, `discriminacao`, `riscoSeguranca`, `outro`) e geração de protocolo rastreável de ocorrência.
+   - **Bloqueio mútuo de usuários:** Mecanismo ativo e imediato de bloqueio (`bloquear` em `AcoesDeSeguranca.swift`), impedindo que as duas partes voltem a se cruzar em vagas, candidaturas ou notificações.
+   - **Moderação e prazo de resposta em até 24 h:** Plantão operacional com fila dedicada (`privado.moderacao_pendente()`). Conteúdo reportado é ocultado administrativamente pela equipe (`privado.operacao_moderar_texto`) em até 24 horas corridas ininterruptas (inclusive fins de semana), atendendo ao prazo estrito da Diretriz 1.2 sem prejudicar a vaga ou turnos já confirmados.
+2. **Declaração de Direitos de Conteúdo e Propriedade Intelectual:**
+   - O aplicativo declara não conter, não reproduzir e não exibir conteúdo de terceiros protegido por direitos autorais ou marcas sem a devida autorização ou licenciamento legal.
+   - Todo conteúdo textual ou imagético do aplicativo é de titularidade própria do Frila ou gerado pelos próprios usuários autenticados sob os Termos de Uso da plataforma.
+   - O catálogo de dependências externas de código aberto é auditado e exportado via `iOS/Scripts/gerar-licencas.py`, com 100% dos pacotes do `Package.resolved` mapeados e atribuídos em `iOS/Resources/Licencas.json` (licenças Apache-2.0, BSD, MIT, Zlib) e validados na tela de licenças do app (`TelaLicencas.swift`, `LicencasTests.swift`, `LicencasUITests.swift`).
+3. **Uso de Marcas da Apple, Selo Oficial e Mockups Autorizados:**
+   - Cumprimento estrito das Diretrizes de Identidade da Apple (Apple Identity Guidelines).
+   - Uso exclusivo do selo oficial "Download on the App Store" / "Baixar na App Store" nas peças de divulgação e landing pages, mantendo dimensões, cores, tipografia e área de respiro obrigatória conforme o guia da Apple.
+   - Uso de molduras de aparelhos (mockups) exclusivamente derivados dos modelos e especificações oficiais disponibilizados no Apple Design Resources, sem modificação, distorção ou inclusão de elementos gráficos de terceiros no hardware ilustrado.
+
 ## Como repetir
 
 ```sh
