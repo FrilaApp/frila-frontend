@@ -58,7 +58,7 @@ Logs completos do `xcb.sh`, preservados também na pasta própria de evidências
 - Unitários: `.workers/vigia/logs-xcodebuild/homem-aranha-20261010-222600-74707.log`.
 - Preparação sem projeto: `.workers/vigia/logs-xcodebuild/homem-aranha-20261010-222249-62846.log`.
 
-Cópias completas locais: `/Users/cauecarneiro/Documents/Projetos/Apps/.workers/homem-aranha/evidencias/2026-10-10-republicar-vaga-encerrada/{ui,unit}-xcb-completo.log`. Os bundles de resultados e o DerivedData são removidos depois da extração, para devolver espaço em disco. A captura, o manifesto e os resumos permanecem neste PR.
+Cópias completas locais, com caminho relativo à raiz do repositório: `../evidencias/2026-10-10-republicar-vaga-encerrada/{ui,unit}-xcb-completo.log`. Os bundles de resultados e o DerivedData são removidos depois da extração, para devolver espaço em disco. A captura, o manifesto e os resumos permanecem neste PR.
 
 ## Minuta para o Trello
 
