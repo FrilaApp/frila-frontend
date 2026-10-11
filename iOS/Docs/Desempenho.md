@@ -167,7 +167,7 @@ mediria um app mais lento do que o de verdade.
 
 ## Números do simulador
 
-São números **de simulador**, de 03/10/2026, num Mac compartilhado com outros builds. Nenhum
+São números **de simulador**, de 10/10/2026, num Mac compartilhado com outros builds. Nenhum
 deles vale para os critérios, que pedem um iPhone antigo em 4G. Os de 4G e 3G no simulador
 (Network Link Conditioner) ficam para quando a ferramenta estiver instalada no Mac.
 
@@ -177,11 +177,17 @@ por servidor:
 
 | Tela | n | p50 | p95 | máx | Coleta anterior: p95 / máx |
 |---|---|---|---|---|---|
-| Lista de vagas (puxar para atualizar) | 20 | 1 ms | 2 ms | 2 ms | 1 ms / 2 ms |
-| Detalhe da vaga | 21 | 29 ms | 40 ms | 68 ms | 47 ms / 58 ms |
-| Meu turno | 20 | 24 ms | 35 ms | 42 ms | 35 ms / 53 ms |
+| Lista de vagas (puxar para atualizar) | 20 | 1 ms | 1 ms | 1 ms | 2 ms / 2 ms |
+| Detalhe da vaga | 21 | 25 ms | 28 ms | 40 ms | 40 ms / 68 ms |
+| Meu turno | 20 | 23 ms | 26 ms | 43 ms | 35 ms / 42 ms |
 
 O detalhe tem 21 medições porque a parte de Meu turno abre mais uma vaga para se candidatar.
+
+**Tráfego de rede da sessão com dublê** (mesma coleta pelo `testColetaVinteAberturasDeCadaTela`, consulta e candidatura com cache limpo):
+
+| Sessão | Requisições | Total de bytes | Observação |
+|---|---|---|---|
+| Consulta e candidatura (dublê) | 0 | 0 B | Dublê em memória (`-FRILA_SCENARIO success`), sem tráfego HTTP |
 
 **Bytes, contra o frila-dev** (simulador, Debug-Dev com `-FRILA_MEDICAO`, abertura do app sem
 sessão, até a tela de entrada). O frila-dev ainda não tem todas as migrações (a
