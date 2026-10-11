@@ -57,18 +57,25 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertAlvoMinimo(marcador.frame.width)
         XCTAssertAlvoMinimo(marcador.frame.height)
 
-        let coordenadaInicial = marcador.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let pontoInicial = coordenadaInicial.screenPoint
-        let coordenadaFinal = coordenadaInicial.withOffset(CGVector(dx: 120, dy: -80))
-        let pontoDeSoltura = coordenadaFinal.screenPoint
+        let frameInicial = marcador.frame
+        let pontoInicial = CGPoint(x: frameInicial.midX, y: frameInicial.midY)
+        let pontoDeSoltura = CGPoint(x: pontoInicial.x + 120, y: pontoInicial.y - 80)
+        let referenciaEstatica = app.coordinate(withNormalizedOffset: .zero)
+        let coordenadaInicial = referenciaEstatica.withOffset(CGVector(dx: pontoInicial.x, dy: pontoInicial.y))
+        let coordenadaFinal = referenciaEstatica.withOffset(CGVector(dx: pontoDeSoltura.x, dy: pontoDeSoltura.y))
 
         // Segura 0.2s no destino para que o despachador processe todos os eventos de movimento antes da soltura.
         coordenadaInicial.press(forDuration: 0.2, thenDragTo: coordenadaFinal, withVelocity: .default, thenHoldForDuration: 0.2)
 
-        // Espera a condição: marcador parado com coordenadas atualizadas após o arrasto.
-        let marcadorMoveu = NSPredicate { _, _ in (marcador.value as? String) != valorInicial }
-        let expectativaMarcador = XCTNSPredicateExpectation(predicate: marcadorMoveu, object: marcador)
-        XCTAssertEqual(XCTWaiter.wait(for: [expectativaMarcador], timeout: Espera.aparecer), .completed, "O marcador deve atualizar as coordenadas após o arrasto.")
+        // Espera a condição: marcador visível, valor geográfico atualizado e ponta do marcador no destino dentro da tolerância.
+        let marcadorNoDestino = NSPredicate { _, _ in
+            guard marcador.exists else { return false }
+            guard let valorAtual = marcador.value as? String, valorAtual != valorInicial else { return false }
+            let ponta = CGPoint(x: marcador.frame.midX, y: marcador.frame.midY + 15)
+            return abs(ponta.x - pontoDeSoltura.x) <= 12 && abs(ponta.y - pontoDeSoltura.y) <= 12
+        }
+        let expectativaMarcador = XCTNSPredicateExpectation(predicate: marcadorNoDestino, object: marcador)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaMarcador], timeout: Espera.aparecer), .completed, "O marcador deve atualizar as coordenadas e assentar no destino do arrasto.")
 
         guard let valorFinal = marcador.value as? String,
               let (latFinal, lonFinal) = extrairCoordenadas(valorFinal) else {
