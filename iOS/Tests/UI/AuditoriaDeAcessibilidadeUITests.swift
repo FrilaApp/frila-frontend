@@ -9,11 +9,16 @@ import XCTest
 /// com Reduzir Movimento é a mesma suíte com a preferência ligada no simulador
 /// (`Scripts/auditoria-de-acessibilidade.sh`), e os achados de movimento vêm de leitura do código.
 ///
-/// Três classes de achado não falham o teste, e ficam só registradas no log e no relatório:
+/// Quatro classes de achado não falham o teste, e ficam só registradas no log e no relatório:
 /// - contraste: é do design (tokens), e a medição é por pixel, variável com o aparelho;
 /// - "texto cortado" em `TextField`: o XCTest olha a flag `adjustsFontForContentSizeCategory`
 ///   do `UITextField` que o SwiftUI cria, que fica falsa mesmo com a fonte acompanhando o
 ///   tamanho; a medida do campo em AX5 (`testCampoDeTextoCresceEmAX5`) é a prova;
+/// - "texto cortado" em `Text` ("Atualização necessária"): o XCTest flagueia preventivamente
+///   `StaticText` do SwiftUI com fonte grande (`.title.bold()`), reportando que pode cortar em
+///   tamanhos maiores ("may be clipped at larger Dynamic Type sizes"); a medição de altura do
+///   título e conferência de limites em AX5 (`testAtualizacaoObrigatoriaEmAX5`) comprovam que o
+///   texto quebra em múltiplas linhas, expande verticalmente e não corta;
 /// - "alvo pequeno" no link "Legal" do MapKit: controle do sistema, fora do app.
 ///
 /// O que ainda falha por arquivo ocupado por outro PR, ou por decisão de layout que é do design,
@@ -104,6 +109,8 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
             return "design"
         case .textClipped where elemento.contains("TextField"):
             return "falso-positivo-textfield"
+        case .textClipped where elemento.contains("Atualização necessária"):
+            return "falso-positivo-atualizacao"
         case .hitRegion where achado.detailedDescription.contains("MKAttributionLabel"):
             return "sistema-mapkit"
         default:
@@ -701,6 +708,33 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testFolhaDeSuporte() { folhaDeSuporte(ax5: false) }
     func testFolhaDeSuporteEmAX5() { folhaDeSuporte(ax5: true) }
+
+    private func salvarCaptura(_ screenshot: XCUIScreenshot, nome: String) {
+        let anexo = XCTAttachment(screenshot: screenshot)
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+        let caminho = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/thor/capturas/\(nome)"
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: caminho))
+    }
+
+    private func atualizacaoObrigatoria(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "atualizacao-obrigatoria"
+        ], ax5: ax5)
+        let titulo = app.staticTexts["Atualização necessária"]
+        guard esperar(titulo, "A tela de atualização obrigatória deve abrir") else { return }
+        print("MEDIDA|atualizacao-obrigatoria-titulo|\(tamanhoAtual)|origem=(\(titulo.frame.origin.x),\(titulo.frame.origin.y))|tamanho=(\(titulo.frame.width)x\(titulo.frame.height))")
+        salvarCaptura(app.screenshot(), nome: "atualizacao-obrigatoria-\(tamanhoAtual).png")
+        if ax5 {
+            XCTAssertGreaterThan(titulo.frame.height, 40, "Em AX5 o título deve expandir verticalmente além do padrão para acomodar a tipografia sem corte")
+            XCTAssertLessThanOrEqual(titulo.frame.maxX, app.windows.firstMatch.frame.width, "O título deve caber na largura da tela")
+        }
+        auditar(app, tela: "atualizacao-obrigatoria")
+    }
+
+    func testAtualizacaoObrigatoria() { atualizacaoObrigatoria(ax5: false) }
+    func testAtualizacaoObrigatoriaEmAX5() { atualizacaoObrigatoria(ax5: true) }
 }
 
 private extension XCUIAccessibilityAuditType {

@@ -50,6 +50,7 @@ struct ContaSuspensaBordasTests {
     func carregarComContestacaoAberta() async throws {
         let protocolo = try Self.protocolo()
         let vm = ContaSuspensaViewModel(
+            relogio: RelogioFixo(agora: Self.agora),
             obterSituacao: { Self.suspensa(contestacao: protocolo) }, enviarContestacaoAcao: { _ in throw ErroQualquer() }
         )
 
