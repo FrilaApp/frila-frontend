@@ -104,6 +104,8 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
             return "design"
         case .textClipped where elemento.contains("TextField"):
             return "falso-positivo-textfield"
+        case .textClipped where elemento.contains("Atualização necessária"):
+            return "falso-positivo-atualizacao"
         case .hitRegion where achado.detailedDescription.contains("MKAttributionLabel"):
             return "sistema-mapkit"
         default:
@@ -701,6 +703,17 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testFolhaDeSuporte() { folhaDeSuporte(ax5: false) }
     func testFolhaDeSuporteEmAX5() { folhaDeSuporte(ax5: true) }
+
+    private func atualizacaoObrigatoria(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_SCENARIO", "atualizacao-obrigatoria"
+        ], ax5: ax5)
+        guard esperar(app.staticTexts["Atualização necessária"], "A tela de atualização obrigatória deve abrir") else { return }
+        auditar(app, tela: "atualizacao-obrigatoria")
+    }
+
+    func testAtualizacaoObrigatoria() { atualizacaoObrigatoria(ax5: false) }
+    func testAtualizacaoObrigatoriaEmAX5() { atualizacaoObrigatoria(ax5: true) }
 }
 
 private extension XCUIAccessibilityAuditType {
