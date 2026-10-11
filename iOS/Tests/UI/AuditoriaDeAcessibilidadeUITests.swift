@@ -714,8 +714,6 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         anexo.name = nome
         anexo.lifetime = .keepAlways
         add(anexo)
-        let caminho = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/thor/capturas/\(nome)"
-        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: caminho))
     }
 
     private func atualizacaoObrigatoria(ax5: Bool) {
