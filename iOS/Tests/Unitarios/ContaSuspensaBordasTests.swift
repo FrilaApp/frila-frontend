@@ -19,7 +19,8 @@ struct ContaSuspensaBordasTests {
     }
 
     private nonisolated static func protocolo() throws -> Protocolo {
-        Protocolo(ocorrenciaID: UUID(), tipo: .contestacao, criadaEm: agora, prazoRespostaAte: try DataCivil(ano: 2026, mes: 10, dia: 10))
+        let prazo = try #require(DataCivil.deSaoPaulo(agora, somandoDias: 6))
+        return Protocolo(ocorrenciaID: UUID(), tipo: .contestacao, criadaEm: agora, prazoRespostaAte: prazo)
     }
 
     @Test("Carregar sem rede, com erro da API ou com erro desconhecido mostra a mensagem certa e não muda a situação")
@@ -51,7 +52,8 @@ struct ContaSuspensaBordasTests {
         let protocolo = try Self.protocolo()
         let vm = ContaSuspensaViewModel(
             relogio: RelogioFixo(agora: Self.agora),
-            obterSituacao: { Self.suspensa(contestacao: protocolo) }, enviarContestacaoAcao: { _ in throw ErroQualquer() }
+            obterSituacao: { Self.suspensa(contestacao: protocolo) },
+            enviarContestacaoAcao: { _ in throw ErroQualquer() }
         )
 
         await vm.carregar()
