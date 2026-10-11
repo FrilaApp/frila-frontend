@@ -97,6 +97,40 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
    é coletada: o feed usa o `ponto_base` do servidor, nunca a posição do aparelho
    (`FeedVagasViewModel.swift:100`).
 
+## Requisitos de Envio da Apple: Manifestos e Criptografia (Diretrizes 2.1 e 5.1.2)
+
+Consolidação para submissão do app à App Store e TestFlight, garantindo conformidade regulatória contínua e eliminando questionários manuais de conformidade de exportação:
+
+1. **Declaração e Isenção de Criptografia (`ITSAppUsesNonExemptEncryption` — Diretriz 2.1):**
+   - **Embasamento regulatório (EAR e Diretriz 2.1 da Apple):** O aplicativo utiliza exclusivamente criptografia padrão de transporte (HTTPS/TLS) disponibilizada pelo sistema operacional iOS via `URLSession` para comunicação com os serviços backend (`SupabaseApiCliente.swift`) e Firebase (`TelemetriaCrashlytics.swift`), além de APIs nativas do Keychain (`Security.framework`, `ArmazenamentoKeychain.swift`, `SessaoNoKeychainDoAparelho.swift`) para guarda de tokens. O aplicativo não implementa algoritmos criptográficos proprietários, cifras customizadas ou recursos não isentos sob as normas de exportação dos EUA (EAR, Categoria 5, Parte 2, Nota 4) e regras da Apple.
+   - **Configuração no projeto:**
+     - `iOS/Sources/App/Info.plist`: chave `ITSAppUsesNonExemptEncryption` definida com o valor booleano `<false/>`.
+     - `iOS/project.yml`: configuração de build `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO` no target principal `Frila`.
+   - **Validação automatizada de release:** O script `iOS/Scripts/conferir-release.sh` (linhas 47–54) inspeciona o `Info.plist` do pacote compilado e reprova o build caso `ITSAppUsesNonExemptEncryption` esteja ausente ou diferente do booleano `false`.
+   - **Resultado operacional:** O TestFlight e o App Store Connect dispensam a cada novo upload perguntas manuais sobre conformidade de exportação de criptografia e não exigem código ERN/CCATS.
+
+2. **Manifesto de Privacidade (`PrivacyInfo.xcprivacy` — Diretriz 5.1.2):**
+   - **Empacotamento nos alvos:** O manifesto de privacidade é incluído tanto no bundle da aplicação principal (`iOS/Resources/PrivacyInfo.xcprivacy`, vinculado via `project.yml:170`) quanto em cada framework dinâmico e extensão (`iOS/Resources/Frameworks/PrivacyInfo.xcprivacy`, vinculado aos targets `FrilaDominio`, `FrilaDados`, `FrilaApresentacao`, `FrilaInfraestrutura` e `FrilaNotificationService` em `project.yml:67,82,105,120,146`).
+   - **Rastreamento (`NSPrivacyTracking`):** Definido como `false` e lista `NSPrivacyTrackingDomains` vazia em todos os manifestos. O app não utiliza IDFA, não inclui o framework AppTrackingTransparency (`NSUserTrackingUsageDescription` ausente) e não compartilha dados de usuários com terceiros para fins de publicidade direcionada ou rastreamento entre apps e sites.
+   - **Inventário de Dados Coletados (`NSPrivacyCollectedDataTypes`):**
+     - `Name`: Nome civil do usuário no cadastro (`CadastroConta`), vinculado à identidade, sem rastreamento, para funcionamento do app (`AppFunctionality`).
+     - `Email Address`: E-mail de autenticação por código OTP (`SupabaseApiCliente.swift:45`), vinculado, sem rastreamento (`AppFunctionality`).
+     - `Phone Number`: Telefone para contato operacional e segurança dos turnos confirmados, vinculado, sem rastreamento (`AppFunctionality`).
+     - `Physical Address`: Endereço de realização das vagas do estabelecimento contratante (`CadastroEstabelecimento.swift`), vinculado, sem rastreamento (`AppFunctionality`).
+     - `Precise Location`: Ponto base escolhido pelo profissional em seu perfil (`PerfilProfissionalViewModel.swift:108-110`). O GPS no momento do check-in/check-out não é enviado ao servidor nem transmitido pela rede; apenas a distância calculada localmente (`distanciaMetros`) é enviada (`SupabaseApiCliente.swift:435-443`).
+     - `User ID`: Identificadores UUID de autenticação e conta (`usuarioID`/`conta_id`), vinculados, sem rastreamento (`AppFunctionality`).
+     - `Other User Content`: Relatos de denúncia, contestação e avaliações mútuas entre profissionais e contratantes, vinculados, sem rastreamento (`AppFunctionality`).
+     - `Other Data Types`: Data de nascimento para validação de maioridade legal, vinculada, sem rastreamento (`AppFunctionality`).
+     - `Crash Data` e `Other Diagnostic Data`: Diagnósticos e registros de travamento via Firebase Crashlytics (`TelemetriaCrashlytics.swift`), sem identificador de usuário (`setUserID` não utilizado), não vinculados e sem rastreamento (`AppFunctionality`).
+     - `Device ID`: Identificador FCM/APNs do aparelho para envio de notificações transacionais de turnos e ID de instalação do Crashlytics, vinculado à conta para entrega do push, sem rastreamento (`AppFunctionality`).
+   - **Auditoria de APIs com Motivos Requeridos (Required Reason APIs — `NSPrivacyAccessedAPITypes`):**
+     - `NSPrivacyAccessedAPICategoryUserDefaults`: Categoria utilizada e declarada com os motivos `CA92.1` (leitura/gravação de dados acessíveis exclusivamente pelo app: `UserDefaultsArmazenamentoAvaliacoes` em `AvaliacaoTurnoViewModel.swift:28`, `DestinoGuardado.swift:16`, `DestinoAposEntrada.swift:66`, `MedicaoDeDesempenho.swift:47`) e `1C8F.1` (compartilhamento de dados via App Group `group.com.frila.org.app` para sincronização do `vinculo_id` do push com a Notification Service Extension em `VinculoDoPush.swift:13,27` e `NotificationService.swift:38`).
+     - `NSPrivacyAccessedAPICategoryFileTimestamp`: Categoria auditada e **não utilizada** (nenhum uso de `creationDate`, `modificationDate`, `fileModificationDate`, `stat` ou `getattrlist` em `iOS/Sources/`).
+     - `NSPrivacyAccessedAPICategorySystemBootTime`: Categoria auditada e **não utilizada** (nenhum uso de `systemUptime`, `mach_absolute_time` ou `sysctl` em `iOS/Sources/`).
+     - `NSPrivacyAccessedAPICategoryDiskSpace`: Categoria auditada e **não utilizada** (nenhum uso de `volumeAvailableCapacity`, `volumeTotalCapacity` ou `statfs` em `iOS/Sources/`).
+     - `NSPrivacyAccessedAPICategoryActiveKeyboards`: Categoria auditada e **não utilizada** (nenhum uso de `activeInputModes` ou APIs de teclados ativos em `iOS/Sources/`).
+   - **Verificação contínua:** `iOS/Scripts/conferir-release.sh:100` valida a presença física do `PrivacyInfo.xcprivacy` no bundle de release, e `iOS/Tests/Unitarios/CanalDePushTests.swift:101-111` testa programaticamente a conformidade das propriedades do manifesto.
+
 ## Como repetir
 
 ```sh
