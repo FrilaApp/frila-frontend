@@ -1,0 +1,55 @@
+◇ Test run started.
+◇ Suite "RepublicarVagaViewModelTests" started.
+◇ Test "Vaga encerrada preserva função, valor, localização e instruções sem redigitação" started.
+✔ Test "Vaga encerrada preserva função, valor, localização e instruções sem redigitação" passed after 0.004 seconds.
+◇ Test "Republicação bem-sucedida preenche resultado e conclui" started.
+✔ Test "Republicação bem-sucedida preenche resultado e conclui" passed after 0.001 seconds.
+◇ Test "Validação local: início no passado" started.
+✔ Test "Validação local: início no passado" passed after 0.001 seconds.
+◇ Test "Validação local: fim antes ou igual ao início" started.
+✔ Test "Validação local: fim antes ou igual ao início" passed after 0.001 seconds.
+◇ Test "Validação local: turno com menos de 2 horas (RN03)" started.
+✔ Test "Validação local: turno com menos de 2 horas (RN03)" passed after 0.001 seconds.
+◇ Test "Validação local: turno com mais de 16 horas (RN03)" started.
+✔ Test "Validação local: turno com mais de 16 horas (RN03)" passed after 0.001 seconds.
+◇ Test "Validação local: modo seleção com menos de 24 horas de antecedência (RN24)" started.
+✔ Test "Validação local: modo seleção com menos de 24 horas de antecedência (RN24)" passed after 0.001 seconds.
+◇ Test "Erro 404 nao_encontrado: mensagem correta e campos desbloqueados" started.
+✔ Test "Erro 404 nao_encontrado: mensagem correta e campos desbloqueados" passed after 0.001 seconds.
+◇ Test "Erro 403 sem_permissao: mensagem correta" started.
+✔ Test "Erro 403 sem_permissao: mensagem correta" passed after 0.001 seconds.
+◇ Test "Erro 422 vaga_oculta (contrato 0.2.23): mensagem correta" started.
+✔ Test "Erro 422 vaga_oculta (contrato 0.2.23): mensagem correta" passed after 0.001 seconds.
+◇ Test "Erro 422 perfil_incompativel: mensagem correta" started.
+✔ Test "Erro 422 perfil_incompativel: mensagem correta" passed after 0.001 seconds.
+◇ Test "Sem rede: trava campos, gera chave, mantém pendência e permite reenviar sem erro vermelho" started.
+✔ Test "Sem rede: trava campos, gera chave, mantém pendência e permite reenviar sem erro vermelho" passed after 0.001 seconds.
+◇ Test "Reenvio com a mesma chave após falha de rede" started.
+✔ Test "Reenvio com a mesma chave após falha de rede" passed after 0.001 seconds.
+◇ Test "Toque duplo enquanto enviando não chama a API duas vezes" started.
+✔ Test "Toque duplo enquanto enviando não chama a API duas vezes" passed after 0.058 seconds.
+◇ Test "68-B1: Fila injetada persiste operação completa antes do envio e sucesso remove sem deixar órfãos" started.
+✔ Test "68-B1: Fila injetada persiste operação completa antes do envio e sucesso remove sem deixar órfãos" passed after 0.001 seconds.
+◇ Test "68-B1: Recuperação de tentativa pendente ao reabrir a folha restaura período, chave e bloqueio" started.
+✔ Test "68-B1: Recuperação de tentativa pendente ao reabrir a folha restaura período, chave e bloqueio" passed after 0.001 seconds.
+◇ Test "68-B2: Alteração de data durante o envio é bloqueada e não afeta o reenvio idempotente" started.
+✔ Test "68-B2: Alteração de data durante o envio é bloqueada e não afeta o reenvio idempotente" passed after 0.001 seconds.
+◇ Test "Sincronizador comprova publicação, período e chave; fila vazia não basta" started.
+✔ Test "Sincronizador comprova publicação, período e chave; fila vazia não basta" passed after 0.020 seconds.
+◇ Test "Resposta perdida: fechar e reabrir conserva fila real, chave, período e única vaga" started.
+✔ Test "Resposta perdida: fechar e reabrir conserva fila real, chave, período e única vaga" passed after 0.005 seconds.
+◇ Test "Recusa anterior não impede destravar a republicação atual" started.
+✔ Test "Recusa anterior não impede destravar a republicação atual" passed after 0.001 seconds.
+◇ Test "Recusa definitiva remove republicação da fila real sem registrar sucesso" started.
+◇ Test case passing 1 argument codigo → .naoEncontrado to "Recusa definitiva remove republicação da fila real sem registrar sucesso" started.
+◇ Test "Reabrir bloqueia confirmação até ler tentativa, sem criar outra chave" started.
+✔ Test "Reabrir bloqueia confirmação até ler tentativa, sem criar outra chave" passed after 0.001 seconds.
+◇ Test "Falha ao ler fila bloqueia nova tentativa em vez de gerar outra chave" started.
+✔ Test "Falha ao ler fila bloqueia nova tentativa em vez de gerar outra chave" passed after 0.001 seconds.
+◇ Test "Início padrão de vaga em seleção é 25 h e abre sem erro de validação" started.
+✔ Test "Início padrão de vaga em seleção é 25 h e abre sem erro de validação" passed after 0.001 seconds.
+◇ Test "Início padrão de vaga em urgência continua 3 h" started.
+✔ Test "Início padrão de vaga em urgência continua 3 h" passed after 0.001 seconds.
+✔ Suite "RepublicarVagaViewModelTests" passed after 0.118 seconds.
+✔ Test run with 25 tests in 1 suite passed after 0.118 seconds.
+** TEST SUCCEEDED **

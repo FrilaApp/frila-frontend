@@ -1,0 +1,9 @@
+{
+  "duration": "0,0048s",
+  "durationInSeconds": 0.0047986507415771484,
+  "name": "Vaga encerrada preserva função, valor, localização e instruções sem redigitação",
+  "nodeIdentifier": "RepublicarVagaViewModelTests/preservaDadosDaVagaEncerradaSemRedigitar()",
+  "nodeIdentifierURL": "test://com.apple.xcode/Frila/FrilaTests/RepublicarVagaViewModelTests/preservaDadosDaVagaEncerradaSemRedigitar()",
+  "nodeType": "Test Case",
+  "result": "Passed"
+}

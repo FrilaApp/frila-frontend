@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "3B6B2793-E0C6-4803-93E6-DFC3DFDF7C7D.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "republicar-vaga_0_452A65F8-EEA6-4272-B985-466A9EBE6F1C.png",
+        "timestamp" : 1791681931.235
+      }
+    ],
+    "testIdentifier" : "RepublicarVagaUITests/testRepublicarVagaEncerradaCaminhoFeliz()",
+    "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/RepublicarVagaUITests/testRepublicarVagaEncerradaCaminhoFeliz"
+  }
+]
