@@ -1,0 +1,9 @@
+{
+  "id": "6ab26b4b90776ef8688bf253",
+  "name": "US18 · Exibição Clara de Reputação com Denominador e Taxa de Comparecimento · MUST · 5 pt",
+  "desc": "**Persona:** Marcos (Contratante) e Lucas (Profissional) · **RF / RN:** RF16 · **Prioridade:** MUST HAVE · **Pontos:** 5\n**Entra em:** v1.0 (MVP, 13/11/2026) · **Épico:** ÉPICO 6: Confiança e Reputação Binária\n\n### Narrativa\n> Como contratante avaliando um candidato ou profissional avaliando um local,\n> quero ver exatamente quantos turnos a pessoa já cumpriu e a proporção real de recomendações (ex: 18 de 20 contratantes chamariam de novo - 90%),\n> para tomar uma decisão baseada em histórico comprovado e sem notas mascaradas.\n\n### Critérios de aceitação (BDD)\n**Cenário 1: Exibição transparente no card de perfil**\n- **Dado que** o usuário abre o perfil de um profissional ou contratante,\n- **Quando** o app renderiza o total de turnos concluídos, a taxa de comparecimento (turnos com presença divididos pelos turnos confirmados) e o indicador binário com denominador explícito,\n- **Então** nenhuma média decimal de estrelas é mostrada em nenhum lugar do sistema, e perfil sem histórico aparece como 'Sem histórico'.\n\n### Ajustes do quadro (entram no Backlog v1.2.1)\n- Taxa de comparecimento = turnos com presença verificada ÷ (esses turnos + faltas). Falta é não aparecer ou cancelar com menos de 24 h do início; turno não verificado não entra na conta. A tela mostra o número de turnos considerados junto da taxa (RN08).\n\n### Tarefas técnicas\nProcure neste quadro os cartões cuja linha 'História / requisito' cita US18.\n\n### Referência\nHistórias de Usuário e Backlog v1.2.0 (Frila_Historias_de_Usuario_e_Backlog.docx), seção 3.",
+  "url": "https://trello.com/c/5uYZydYW/124-us18-exibi%C3%A7%C3%A3o-clara-de-reputa%C3%A7%C3%A3o-com-denominador-e-taxa-de-comparecimento-must-5-pt",
+  "idShort": 124,
+  "idList": "6ab2688a385c4f270078258e",
+  "checklists": []
+}

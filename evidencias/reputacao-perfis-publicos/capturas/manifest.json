@@ -1,0 +1,86 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "D920B1DF-78C6-4522-905D-C39D2B0FC76A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "ax5-perfil-carla_0_1E816CAC-F951-4B53-BE08-5E578EE6857A.png",
+        "timestamp" : 1791729461.455
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "65BF1615-23C5-423D-B4C6-411A143DE7C7.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "ax5-candidatos-carla_0_1A88D0D7-24A9-49D2-BDA5-AA67614E30FB.png",
+        "timestamp" : 1791729456.525
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "AFE98BC1-D0EA-44F7-93EE-7A0692730400.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "ax5-perfil-bruno_0_E2DD71ED-B960-44AA-9532-9A87CBF09035.png",
+        "timestamp" : 1791729452.077
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "B12EEB26-8E37-4F45-92C7-AF522FA65285.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "ax5-candidatos-bruno_0_C4CB03A1-4F22-4F92-85D5-0F7BCC5B1623.png",
+        "timestamp" : 1791729447.135
+      }
+    ],
+    "testIdentifier" : "ReputacaoDosPerfisPublicosUITests/testPerfisComESemHistoricoEmAX5()",
+    "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ReputacaoDosPerfisPublicosUITests/testPerfisComESemHistoricoEmAX5"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "1D4BC7A5-2C68-47BF-9A1E-AC939EB59A54.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "padrao-perfil-carla_0_5D0090E3-EABB-4977-AE47-15CF90FFAFE2.png",
+        "timestamp" : 1791729485.702
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "9413FBCE-4F81-40A8-93CA-E4A868F084AB.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "padrao-candidatos-carla_0_F5BA4A80-F3F1-4B87-91AD-14F5ACF091BC.png",
+        "timestamp" : 1791729480.785
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "D410F673-9000-4010-8CFD-552C290A2D37.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "padrao-perfil-bruno_0_5EB61125-5EE2-4979-AA1A-CEB960F0FB9A.png",
+        "timestamp" : 1791729478.848
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+        "deviceName" : "Homem-Aranha",
+        "exportedFileName" : "8B040F38-B831-4F93-939B-B0ACA3AD1387.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "padrao-candidatos-bruno_0_618C8B0D-C02E-41F0-AE7B-10018F030F6D.png",
+        "timestamp" : 1791729473.92
+      }
+    ],
+    "testIdentifier" : "ReputacaoDosPerfisPublicosUITests/testPerfisComESemHistoricoNoTamanhoPadrao()",
+    "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ReputacaoDosPerfisPublicosUITests/testPerfisComESemHistoricoNoTamanhoPadrao"
+  }
+]

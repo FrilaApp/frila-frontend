@@ -1,0 +1,8 @@
+Test Case '-[FrilaUITests.ReputacaoDosPerfisPublicosUITests testPerfisComESemHistoricoEmAX5]' started.
+Test Case '-[FrilaUITests.ReputacaoDosPerfisPublicosUITests testPerfisComESemHistoricoEmAX5]' passed (36.946 seconds).
+Test Case '-[FrilaUITests.ReputacaoDosPerfisPublicosUITests testPerfisComESemHistoricoNoTamanhoPadrao]' started.
+Test Case '-[FrilaUITests.ReputacaoDosPerfisPublicosUITests testPerfisComESemHistoricoNoTamanhoPadrao]' passed (24.159 seconds).
+	 Executed 2 tests, with 0 failures (0 unexpected) in 61.105 (61.107) seconds
+	 Executed 2 tests, with 0 failures (0 unexpected) in 61.105 (61.108) seconds
+	 Executed 2 tests, with 0 failures (0 unexpected) in 61.105 (61.109) seconds
+** TEST SUCCEEDED **
