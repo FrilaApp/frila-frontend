@@ -55,7 +55,7 @@ Todos os campos foram redigidos segundo as diretrizes de UX Writing do Frila (`G
 
 ### 2.5 Descrição Completa (*Description*)
 - **Limite oficial da Apple:** **4.000 caracteres**
-- **Contagem de caracteres deste texto:** **1.893 caracteres**
+- **Contagem de caracteres deste texto:** **1.866 caracteres**
 - **Texto completo:**
 
 ```text
@@ -81,7 +81,7 @@ O Frila não desconta do valor pago pelo turno (RN01). Todo valor informado na v
 SEGURANÇA E CONFIANÇA:
 • Exclusivo para maiores de 18 anos.
 • Confirmação de presença no local do estabelecimento por aproximação geográfica.
-• Ferramentas de proteção: bloqueio mútuo e canal de denúncia com análise pela Equipe Frila em até 24 horas.
+• Ferramentas de proteção: bloqueio mútuo e canal de denúncia de irregularidades.
 • Avaliações mútuas ao término de cada turno confirmado.
 
 Atuação no Distrito Federal (Brasília e regiões administrativas).
@@ -110,7 +110,7 @@ Todas as URLs apontam para domínios institucionais sob protocolo seguro HTTPS e
 
 | Campo no App Store Connect | URL Oficial | Arquivo Fonte no Repositório | Descrição do Conteúdo |
 |---|---|---|---|
-| **URL de Suporte (*Support URL*)** | `https://frila.app/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suporte@frila.app`), procedimentos de denúncia e FAQ. |
+| **URL de Suporte (*Support URL*)** | `https://frila.app/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suportefrila@gmail.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
 | **URL de Marketing (*Marketing URL*)** | `https://frila.app` | `https://frila.app` | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
 | **URL de Privacidade (*Privacy Policy URL*)** | `https://frila.app/privacidade` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
 | **Termos de Uso (*Terms of Use / EULA*)** | `https://frila.app/termos` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
@@ -146,7 +146,7 @@ Dados obrigatórios inseridos no App Store Connect para permitir a validação c
 ### 5.1 Contato da Equipe de Revisão
 - **Nome:** `[A DEFINIR: Nome do Responsável Técnico]`
 - **Sobrenome:** `[A DEFINIR: Sobrenome do Responsável Técnico]`
-- **E-mail corporativo:** `suporte@frila.app`
+- **E-mail de contato:** `suportefrila@gmail.com`
 - **Telefone:** `[A DEFINIR: Telefone comercial da empresa]`
 
 ### 5.2 Contas de Demonstração para Testes (*Demo Accounts*)
@@ -172,7 +172,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 > 2. Perfis do App: Uma conta atua como Contratante (publica vagas) e a outra como Profissional (candidata-se e registra check-in).
 > 3. Geolocalização: O check-in do profissional requer proximidade física com o endereço do estabelecimento. Para testar o check-in no simulador, configure a localização simulada para as coordenadas do estabelecimento demo (Asa Sul, Brasília: Latitude -15.8080, Longitude -47.8890).
 > 4. Conteúdo Gerado por Usuários (Diretriz 1.2): O aplicativo inclui moderação ativa, botão nativo de denúncia de irregularidades e bloqueio mútuo definitivo de usuários acessível nos detalhes do turno e do perfil.
-> 5. Para qualquer dúvida durante a revisão, estamos à disposição pelo e-mail suporte@frila.app.
+> 5. Para qualquer dúvida durante a revisão, estamos à disposição pelo e-mail suportefrila@gmail.com.
 
 ---
 
@@ -186,7 +186,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 | **Sem "grátis" no nome/subtítulo** | Diretriz 2.3.7 da Apple | Conforme | O nome e o subtítulo não contêm termos como "grátis", "free", preços ou símbolos de moeda. |
 | **Palavras-chave $\le$ 100 caracteres** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 97 caracteres / 97 bytes, sem concorrentes e sem espaços supérfluos. |
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
-| **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Conforme | Descrição enfatiza moderação em 24h, botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). |
+| **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Conforme | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Canal de atendimento informa prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`). |
 | **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme | URLs públicas seguras em HTTPS, sem rastreadores de terceiros e com canal oficial do titular. |
 
 ---
@@ -199,7 +199,7 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 |---|---|---|
 | **Aprovação dos Textos da Ficha** | Júlia e Fabrício | Revisão final e aprovação conjunta dos textos de descrição, subtítulo e palavras-chave. |
 | **Definição das Frases das Capturas** | Fabrício e Júlia | Redação das frases informativas sobre as capturas de tela (Screenshots) até 29/10 (Sprint 2/3). |
-| **Configuração das Contas Demo** | Lead Técnico / Cauê | Criação dos usuários de demonstração e código OTP fixo para o App Review no Supabase. |
+| **Configuração das Contas Demo** | Lead Técnico / Cauê | Criação dos usuários de demonstração e código OTP fixo para o App Review no Supabase (`demo-…@frila.app` como pendência). |
 | **Inserção no App Store Connect** | Cauê | Preenchimento dos campos cadastrados no painel oficial do App Store Connect quando o binário for submetido. |
 
 ---
@@ -209,3 +209,4 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 | Data | Autor | Alteração |
 |---|---|---|
 | 2026-10-12 | Doutor Estranho | Elaboração da ficha completa da App Store: nome, subtítulo, palavras-chave com contagem exata, descrição auditada, What's New, URLs públicas, classificação 17+/18+, dados para revisão e checklist contra Diretrizes 2.3 e Guia de Voz (cartão PFWvegZa, T-0019). |
+| 2026-10-12 | Doutor Estranho | Ajustes de devolução (PR 223): e-mail oficial atualizado para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`), remoção do prazo de 24h na descrição em favor do prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`) e confirmação da página pública de suporte mesclada no PR 215. |
