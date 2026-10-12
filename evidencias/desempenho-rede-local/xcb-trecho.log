@@ -1,0 +1,22 @@
+✔ Test "p95 pelo posto mais próximo: com 20 medições, é a 19ª menor" passed after 0.001 seconds.
+✔ Test "Percentil de uma medição é ela mesma, e sem medição não há percentil" passed after 0.001 seconds.
+✔ Test "As medições ficam no aparelho entre execuções e somem com Zerar" passed after 0.007 seconds.
+✔ Test "O relatório só tem números e diz se a sessão ficou abaixo de 1 MB" passed after 0.003 seconds.
+✔ Test "A soma de bytes ignora o que veio do cache local" passed after 0.001 seconds.
+MEDICOES HTTP local: requisições=5 enviados=2595 B recebidos=5365 B total=7960 B limite=1000000 B
+✔ Test "Sessão HTTP local com cache vazio: lista, três detalhes e candidatura abaixo de 1 MB" passed after 0.214 seconds.
+✔ Test "A abertura termina na mudança que publica o conteúdo, e não no fim da carga" passed after 0.371 seconds.
+✔ Test "Puxar para atualizar com vagas novas mede até a lista nova" passed after 0.034 seconds.
+✔ Test "Puxar para atualizar sem novidade mede até o retorno da carga" passed after 0.033 seconds.
+✔ Test "Erro ou falta de rede não entram na medição" passed after 0.023 seconds.
+✔ Test "Sem registro (Debug sem -FRILA_MEDICAO), a tela só carrega" passed after 0.064 seconds.
+✔ Test "Confirmação guarda o contato antes da primeira leitura de meus_turnos" passed after 0.028 seconds.
+✔ Test "Contato separado vence no limite do contrato, mesmo quando o turno ainda está no cache" passed after 0.006 seconds.
+✔ Test "Sair da conta apaga também o contato recebido antes da lista de turnos" passed after 0.007 seconds.
+✔ Test "Banco V2 migra conservando turnos e recusas; contato persiste ao reabrir o arquivo" passed after 0.733 seconds.
+✔ Test "Contato recebido no detalhe sobrevive à releitura de meus_turnos sem contato e abre sem rede" passed after 0.005 seconds.
+✔ Test "Modo avião de ponta a ponta: lista Meus turnos e detalhe do turno exibem contato e dados a partir do cache SwiftData" passed after 0.004 seconds.
+✔ Test "Modo avião com relógio adiantado (> 7 dias): contato expira pelo relógio do aparelho mesmo sem rede" passed after 0.003 seconds.
+✔ Test run with 18 tests in 2 suites passed after 1.545 seconds.
+Test Case '-[FrilaUITests.ModoAviaoUITests testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila]' passed (32.481 seconds).
+** TEST SUCCEEDED **

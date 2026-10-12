@@ -167,7 +167,7 @@ mediria um app mais lento do que o de verdade.
 
 ## Números do simulador
 
-São números **de simulador**, de 10/10/2026, num Mac compartilhado com outros builds. Nenhum
+São números **de simulador**, de 10 e 11/10/2026, num Mac compartilhado com outros builds. Nenhum
 deles vale para os critérios, que pedem um iPhone antigo em 4G. Os de 4G e 3G no simulador
 (Network Link Conditioner) ficam para quando a ferramenta estiver instalada no Mac.
 
@@ -183,11 +183,27 @@ por servidor:
 
 O detalhe tem 21 medições porque a parte de Meu turno abre mais uma vaga para se candidatar.
 
-**Tráfego de rede da sessão com dublê** (mesma coleta pelo `testColetaVinteAberturasDeCadaTela`, consulta e candidatura com cache limpo):
+**Tráfego de rede da sessão com dublê HTTP local**, em 11/10/2026. O teste
+`MedicaoDeDesempenhoTests.bytesDaSessaoComHTTPReal` usa o cliente Supabase do app e o
+`MedidorDeRede`, com um servidor em `127.0.0.1` que devolve as fixtures do contrato. A sessão
+efêmera começa com cache e registro vazios: uma lista, três consultas ao detalhe da mesma vaga
+da fixture e uma candidatura confirmada. As cinco rotas são verificadas, e o teste exige bytes
+enviados diferentes de zero e bytes recebidos suficientes para os cinco corpos de resposta.
 
-| Sessão | Requisições | Total de bytes | Observação |
-|---|---|---|---|
-| Consulta e candidatura (dublê) | 0 | 0 B | Dublê em memória (`-FRILA_SCENARIO success`), sem tráfego HTTP |
+| Sessão | Requisições | Enviados | Recebidos | Total (contador do app) |
+|---|---|---|---|---|
+| Lista, três detalhes e candidatura (HTTP local) | 5 | 2.595 B | 5.365 B | 7.960 B |
+
+Essa execução passa o limite de menos de 1.000.000 B **para estas fixtures**, pelo contador de
+HTTP do app. Não mede TLS, DNS, Firebase, respostas de produção ou tráfego celular. A coleta
+anterior, com o dublê em memória (`-FRILA_SCENARIO success`), deu 0 requisições e 0 B; esse zero
+não comprova o orçamento de uma sessão pela rede.
+
+Na mesma validação, passaram os 18 testes unitários das suítes `MedicaoDeDesempenhoTests` e
+`ModoAviaoMeuTurnoTests` e o teste de interface `ModoAviaoUITests`: após confirmar um turno e
+reabrir o app com o dublê sem rede, os dados e o contato permanecem legíveis e o check-in vai
+para a fila local. São 19 testes aprovados, sem falhas nem pulos. A prova e o comando ficam em
+[`evidencias/desempenho-rede-local`](../../evidencias/desempenho-rede-local).
 
 **Bytes, contra o frila-dev** (simulador, Debug-Dev com `-FRILA_MEDICAO`, abertura do app sem
 sessão, até a tela de entrada). O frila-dev ainda não tem todas as migrações (a

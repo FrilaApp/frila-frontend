@@ -1,0 +1,239 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+      "deviceName" : "Homem-Aranha",
+      "modelName" : "iPhone 17",
+      "osBuildNumber" : "23F77",
+      "osVersion" : "26.5",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "0,00088s",
+                  "durationInSeconds" : 0.0008847713470458984,
+                  "name" : "p95 pelo posto mais próximo: com 20 medições, é a 19ª menor",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/percentilDeVinteMedicoes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/percentilDeVinteMedicoes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,000016s",
+                  "durationInSeconds" : 1.5974044799804688e-05,
+                  "name" : "Percentil de uma medição é ela mesma, e sem medição não há percentil",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/percentilNasBordas()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/percentilNasBordas()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0072s",
+                  "durationInSeconds" : 0.007216930389404297,
+                  "name" : "As medições ficam no aparelho entre execuções e somem com Zerar",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/registroGuardadoEZerado()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/registroGuardadoEZerado()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0031s",
+                  "durationInSeconds" : 0.0031118392944335938,
+                  "name" : "O relatório só tem números e diz se a sessão ficou abaixo de 1 MB",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/relatorioEmTexto()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/relatorioEmTexto()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,000062s",
+                  "durationInSeconds" : 6.198883056640625e-05,
+                  "name" : "A soma de bytes ignora o que veio do cache local",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/somaDeBytes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/somaDeBytes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,21s",
+                  "durationInSeconds" : 0.21450185775756836,
+                  "name" : "Sessão HTTP local com cache vazio: lista, três detalhes e candidatura abaixo de 1 MB",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/bytesDaSessaoComHTTPReal()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/bytesDaSessaoComHTTPReal()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,37s",
+                  "durationInSeconds" : 0.3715052604675293,
+                  "name" : "A abertura termina na mudança que publica o conteúdo, e não no fim da carga",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/aberturaTerminaNoConteudo()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/aberturaTerminaNoConteudo()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,034s",
+                  "durationInSeconds" : 0.03397011756896973,
+                  "name" : "Puxar para atualizar com vagas novas mede até a lista nova",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/atualizarComNovidade()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/atualizarComNovidade()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,034s",
+                  "durationInSeconds" : 0.03362703323364258,
+                  "name" : "Puxar para atualizar sem novidade mede até o retorno da carga",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/atualizarSemNovidade()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/atualizarSemNovidade()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,023s",
+                  "durationInSeconds" : 0.02311396598815918,
+                  "name" : "Erro ou falta de rede não entram na medição",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/falhaNaoRegistra()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/falhaNaoRegistra()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,064s",
+                  "durationInSeconds" : 0.0641789436340332,
+                  "name" : "Sem registro (Debug sem -FRILA_MEDICAO), a tela só carrega",
+                  "nodeIdentifier" : "MedicaoDeDesempenhoTests/semRegistroSoCarrega()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests/semRegistroSoCarrega()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Medição de desempenho (#73)",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/MedicaoDeDesempenhoTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "duration" : "0,028s",
+                  "durationInSeconds" : 0.028393983840942383,
+                  "name" : "Confirmação guarda o contato antes da primeira leitura de meus_turnos",
+                  "nodeIdentifier" : "ModoAviaoMeuTurnoTests/contatoDaConfirmacaoFicaNoCache()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests/contatoDaConfirmacaoFicaNoCache()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0065s",
+                  "durationInSeconds" : 0.006479978561401367,
+                  "name" : "Contato separado vence no limite do contrato, mesmo quando o turno ainda está no cache",
+                  "nodeIdentifier" : "ModoAviaoMeuTurnoTests/contatoGuardadoVence()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests/contatoGuardadoVence()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,007s",
+                  "durationInSeconds" : 0.0069768428802490234,
+                  "name" : "Sair da conta apaga também o contato recebido antes da lista de turnos",
+                  "nodeIdentifier" : "ModoAviaoMeuTurnoTests/sairApagaContatoGuardado()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests/sairApagaContatoGuardado()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,73s",
+                  "durationInSeconds" : 0.7334249019622803,
+                  "name" : "Banco V2 migra conservando turnos e recusas; contato persiste ao reabrir o arquivo",
+                  "nodeIdentifier" : "ModoAviaoMeuTurnoTests/migracaoDoContatoEmDisco()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests/migracaoDoContatoEmDisco()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0058s",
+                  "durationInSeconds" : 0.0057599544525146484,
+                  "name" : "Contato recebido no detalhe sobrevive à releitura de meus_turnos sem contato e abre sem rede",
+                  "nodeIdentifier" : "ModoAviaoMeuTurnoTests/contatoDoDetalheFicaNoCache()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests/contatoDoDetalheFicaNoCache()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,004s",
+                  "durationInSeconds" : 0.003998279571533203,
+                  "name" : "Modo avião de ponta a ponta: lista Meus turnos e detalhe do turno exibem contato e dados a partir do cache SwiftData",
+                  "nodeIdentifier" : "ModoAviaoMeuTurnoTests/modoAviaoPontaAPontaListaEDetalheComContato()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests/modoAviaoPontaAPontaListaEDetalheComContato()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0036s",
+                  "durationInSeconds" : 0.003643035888671875,
+                  "name" : "Modo avião com relógio adiantado (> 7 dias): contato expira pelo relógio do aparelho mesmo sem rede",
+                  "nodeIdentifier" : "ModoAviaoMeuTurnoTests/modoAviaoContatoExpiraPeloRelogioDoAparelho()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests/modoAviaoContatoExpiraPeloRelogioDoAparelho()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Modo avião do Meu turno (#73 e #109): persistência, lista e detalhe com contato legíveis",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests/ModoAviaoMeuTurnoTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "FrilaTests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaTests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Passed"
+        },
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "32s",
+                  "durationInSeconds" : 32.48073399066925,
+                  "name" : "testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila()",
+                  "nodeIdentifier" : "ModoAviaoUITests/testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ModoAviaoUITests/testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ModoAviaoUITests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ModoAviaoUITests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "FrilaUITests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests",
+          "nodeType" : "UI test bundle",
+          "result" : "Passed"
+        }
+      ],
+      "name" : "Frila-Local",
+      "nodeType" : "Test Plan",
+      "result" : "Passed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

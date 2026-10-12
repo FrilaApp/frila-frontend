@@ -1,0 +1,51 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "85940BCB-553C-4145-8F8E-E83423D86431",
+      "deviceName" : "Homem-Aranha",
+      "modelName" : "iPhone 17",
+      "osBuildNumber" : "23F77",
+      "osVersion" : "26.5",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "duration" : "Ran for 32 segundos",
+  "durationInSeconds" : 32.48073399066925,
+  "hasMediaAttachments" : false,
+  "hasPerformanceMetrics" : false,
+  "startTime" : 1791770991.344,
+  "testDescription" : "Test case with 1 run",
+  "testIdentifier" : "ModoAviaoUITests/testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila()",
+  "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ModoAviaoUITests/testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila",
+  "testName" : "testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila()",
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ],
+  "testResult" : "Passed",
+  "testRuns" : [
+    {
+      "children" : [
+        {
+          "duration" : "32s",
+          "durationInSeconds" : 32.48073399066925,
+          "name" : "Test Scheme Action",
+          "nodeIdentifier" : "1",
+          "nodeIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ModoAviaoUITests/testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila",
+          "nodeType" : "Test Plan Configuration",
+          "result" : "Passed"
+        }
+      ],
+      "details" : "iOS Simulator 26.5",
+      "duration" : "32s",
+      "durationInSeconds" : 32.48073399066925,
+      "name" : "iPhone 17",
+      "nodeIdentifier" : "85940BCB-553C-4145-8F8E-E83423D86431",
+      "nodeType" : "Device",
+      "result" : "Passed"
+    }
+  ]
+}
