@@ -4,11 +4,15 @@ on:
   pull_request:
     paths:
       - "iOS/**"
+      - "!iOS/**/*.md"
+      - "!iOS/Docs/**"
       - ".github/workflows/ios.yml"
   push:
     branches: [main]
     paths:
       - "iOS/**"
+      - "!iOS/**/*.md"
+      - "!iOS/Docs/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
 
