@@ -129,7 +129,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     func testPilulaDeFiltroNaoDependeApenasDeCor() {
         let app = abrirCatalogo()
         let pilula = app.buttons["Perto de mim"]
-        XCTAssertTrue(pilula.waitForExistence(timeout: 5))
+        XCTAssertTrue(pilula.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(pilula.isSelected, "o catálogo abre com o filtro ligado")
         XCTAssertEqual(pilula.value as? String, "filtro ativo", "Pílula de filtro selecionada deve comunicar estado ativo")
 
@@ -139,7 +139,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
             predicate: NSPredicate(format: "exists == true AND isSelected == false AND value != %@", "filtro ativo"),
             object: pilula
         )
-        XCTAssertEqual(XCTWaiter.wait(for: [filtroDesmarcado], timeout: 5), .completed,
+        XCTAssertEqual(XCTWaiter.wait(for: [filtroDesmarcado], timeout: Espera.aparecer), .completed,
                        "O toque deve atualizar a seleção e o valor de acessibilidade da pílula")
 
         XCTAssertFalse(pilula.isSelected)
