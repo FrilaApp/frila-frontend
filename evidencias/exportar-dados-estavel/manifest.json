@@ -1,0 +1,80 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CEF93014-23BF-4F01-B535-6C1777ED08C9",
+        "deviceName" : "Thor",
+        "exportedFileName" : "15F84C18-F34B-4932-B303-7FF273935545.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "perfil-profissional-exportar-erro-servidor_0_232E1E7A-06ED-40FA-A67B-7E0A5E9B9B4B.png",
+        "timestamp" : 1791775342.002
+      }
+    ],
+    "testIdentifier" : "ExportarDadosUITests/testExportarMeusDadosErroServidorMostraAvisoDeErro()",
+    "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ExportarDadosUITests/testExportarMeusDadosErroServidorMostraAvisoDeErro"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CEF93014-23BF-4F01-B535-6C1777ED08C9",
+        "deviceName" : "Thor",
+        "exportedFileName" : "968D8B5C-C795-4542-91F0-741686C0CD73.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "perfil-estabelecimento-folha-compartilhamento_0_EE155BAC-D89B-4169-AA7D-735CD7B19C59.png",
+        "timestamp" : 1791775350.942
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CEF93014-23BF-4F01-B535-6C1777ED08C9",
+        "deviceName" : "Thor",
+        "exportedFileName" : "89CD33F9-AC2D-4EB4-BA9D-F686B2123FC6.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "perfil-estabelecimento-com-item-exportar_0_B62A4EB4-460C-4E42-9754-B9462508D732.png",
+        "timestamp" : 1791775349.345
+      }
+    ],
+    "testIdentifier" : "ExportarDadosUITests/testExportarMeusDadosNoPerfilEstabelecimentoAbreCompartilhamento()",
+    "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ExportarDadosUITests/testExportarMeusDadosNoPerfilEstabelecimentoAbreCompartilhamento"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CEF93014-23BF-4F01-B535-6C1777ED08C9",
+        "deviceName" : "Thor",
+        "exportedFileName" : "A6BECBC2-EE95-4219-A7D3-A481A15B7BFA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "perfil-profissional-folha-compartilhamento_0_7EF18418-29A3-44B6-A8AA-8723EB741F46.png",
+        "timestamp" : 1791775359.972
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CEF93014-23BF-4F01-B535-6C1777ED08C9",
+        "deviceName" : "Thor",
+        "exportedFileName" : "13287301-40AA-45C1-8813-9CF35D62B360.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "perfil-profissional-com-item-exportar_0_A57BE468-ED5B-491F-9310-1B092E322375.png",
+        "timestamp" : 1791775358.368
+      }
+    ],
+    "testIdentifier" : "ExportarDadosUITests/testExportarMeusDadosNoPerfilProfissionalAbreCompartilhamento()",
+    "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ExportarDadosUITests/testExportarMeusDadosNoPerfilProfissionalAbreCompartilhamento"
+  },
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "CEF93014-23BF-4F01-B535-6C1777ED08C9",
+        "deviceName" : "Thor",
+        "exportedFileName" : "53169FD7-4694-4F7A-9B6D-4C44193F9AB7.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "perfil-profissional-exportar-sem-rede_0_DB49D95E-F537-4F65-A813-6187D7E7D489.png",
+        "timestamp" : 1791775367.668
+      }
+    ],
+    "testIdentifier" : "ExportarDadosUITests/testExportarMeusDadosSemRedeMostraAvisoDeErro()",
+    "testIdentifierURL" : "test://com.apple.xcode/Frila/FrilaUITests/ExportarDadosUITests/testExportarMeusDadosSemRedeMostraAvisoDeErro"
+  }
+]
