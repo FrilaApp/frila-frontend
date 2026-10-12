@@ -132,6 +132,10 @@ final class AvaliacaoUITests: XCTestCase {
 
     func testPerguntaSimNaoEmOrdemComRotuloValorESelecao() {
         let app = abrir()
+        defer {
+            _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
+            app.terminate()
+        }
         let ids = ["pergunta-avaliacao", "resposta-sim", "resposta-nao"]
         let elementos = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier IN %@", ids)).allElementsBoundByIndex
