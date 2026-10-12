@@ -1,6 +1,6 @@
-/Users/cauecarneiro/Documents/Projetos/Apps/.workers/hulk/frila-frontend/iOS/Tests/UI/ExclusaoDeContaUITests.swift:258: error: -[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoEmAX5] : XCTAssertTrue failed
+~/Documents/Projetos/Apps/.workers/hulk/frila-frontend/iOS/Tests/UI/ExclusaoDeContaUITests.swift:258: error: -[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoEmAX5] : XCTAssertTrue failed
 Test Case '-[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoEmAX5]' failed (15.012 seconds).
-/Users/cauecarneiro/Documents/Projetos/Apps/.workers/hulk/frila-frontend/iOS/Tests/UI/ExclusaoDeContaUITests.swift:258: error: -[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao] : XCTAssertTrue failed
+~/Documents/Projetos/Apps/.workers/hulk/frila-frontend/iOS/Tests/UI/ExclusaoDeContaUITests.swift:258: error: -[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao] : XCTAssertTrue failed
 Test Case '-[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao]' failed (10.607 seconds).
 	 Executed 2 tests, with 2 failures (0 unexpected) in 25.619 (25.621) seconds
 	 Executed 2 tests, with 2 failures (0 unexpected) in 25.619 (25.622) seconds
