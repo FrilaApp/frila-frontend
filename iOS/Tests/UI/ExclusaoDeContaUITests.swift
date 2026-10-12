@@ -215,6 +215,100 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertFalse(app.textFields["entrada-email"].exists, "Cancelar não volta para a entrada")
     }
 
+    func testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao() {
+        conferirCancelamentoDoContratante(ax5: false)
+    }
+
+    func testContratanteComTurnosCancelaExclusaoEmAX5() {
+        conferirCancelamentoDoContratante(ax5: true)
+    }
+
+    private func conferirCancelamentoDoContratante(ax5: Bool) {
+        // Falha interrompe o fluxo antes de tocar qualquer controle da próxima etapa.
+        continueAfterFailure = false
+        let tamanho = ax5 ? "AX5" : "Padrao"
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "painel-contratante"]
+        if ax5 {
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        }
+        app.launch()
+
+        let perfil = app.buttons["abrir-perfil-estabelecimento"]
+        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
+        perfil.tap()
+        let abrirExclusao = app.buttons["estabelecimento-excluir-conta"]
+        XCTAssertTrue(abrirExclusao.waitForExistence(timeout: Espera.aparecer))
+        rolarAte(abrirExclusao, em: app)
+        conferirAlvo(abrirExclusao, em: app)
+        anexar(app, "Contratante\(tamanho)Perfil")
+        abrirExclusao.tap()
+
+        let tela = app.descendants(matching: .any)["tela-exclusao-de-conta"]
+        XCTAssertTrue(tela.waitForExistence(timeout: Espera.aparecer))
+        let consequencias = app.descendants(matching: .any)["aviso-consequencias-exclusao"]
+        XCTAssertTrue(consequencias.waitForExistence(timeout: Espera.aparecer))
+        anexar(app, "Contratante\(tamanho)Consequencias")
+
+        let turno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer))
+        // O VStack identifica o vínculo, mas a área acessível pertence aos textos filhos.
+        let funcaoDoTurno = turno.staticTexts.firstMatch
+        XCTAssertTrue(funcaoDoTurno.exists)
+        rolarAte(funcaoDoTurno, em: app)
+        XCTAssertFalse(app.staticTexts["texto-sem-turnos-futuros"].exists)
+        anexar(app, "Contratante\(tamanho)TurnoFuturo")
+
+        let aviso = app.descendants(matching: .any)["aviso-lista-turnos-exclusao"]
+        XCTAssertTrue(aviso.exists, "A lista parcial deve ser apresentada como incompleta")
+        rolarAte(aviso, em: app)
+        anexar(app, "Contratante\(tamanho)ListaIncompleta")
+
+        let consentimento = app.switches["toggle-confirmar-consequencias"]
+        let interruptor = consentimento.switches.firstMatch
+        rolarAte(interruptor, em: app)
+        conferirAlvo(consentimento, em: app)
+        let excluir = app.buttons["botao-excluir-conta-definitivo"]
+        XCTAssertTrue(excluir.exists)
+        XCTAssertFalse(excluir.isEnabled, "Listar vínculos não substitui o consentimento explícito")
+        anexar(app, "Contratante\(tamanho)SemConsentimento")
+        interruptor.tap()
+        let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: excluir)
+        XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: Espera.aparecer), .completed)
+        rolarAte(excluir, em: app)
+        conferirAlvo(excluir, em: app)
+        anexar(app, "Contratante\(tamanho)ComConsentimento")
+        excluir.tap()
+
+        let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
+        let confirmar = app.buttons["botao-confirmar-exclusao-dialogo"]
+        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
+        let dialogoTocavel = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: cancelar)
+        XCTAssertEqual(XCTWaiter.wait(for: [dialogoTocavel], timeout: Espera.aparecer), .completed)
+        for botao in [cancelar, confirmar] {
+            conferirAlvo(botao, em: app)
+            XCTAssertGreaterThanOrEqual(botao.frame.minY, app.windows.firstMatch.frame.minY)
+            XCTAssertLessThanOrEqual(botao.frame.maxY, app.windows.firstMatch.frame.maxY)
+        }
+        anexar(app, "Contratante\(tamanho)Confirmacao")
+        cancelar.tap()
+
+        let fechou = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cancelar)
+        XCTAssertEqual(XCTWaiter.wait(for: [fechou], timeout: Espera.aparecer), .completed)
+        XCTAssertTrue(tela.exists, "Cancelar mantém a tela da conta")
+        XCTAssertFalse(app.textFields["entrada-email"].exists, "Cancelar não encerra a sessão")
+        XCTAssertTrue(excluir.isEnabled, "Cancelar a confirmação permite reconsiderar a ação")
+        anexar(app, "Contratante\(tamanho)Cancelada")
+    }
+
+    private func conferirAlvo(_ elemento: XCUIElement, em app: XCUIApplication) {
+        XCTAssertTrue(elemento.isHittable)
+        XCTAssertAlvoMinimo(elemento.frame.width)
+        XCTAssertAlvoMinimo(elemento.frame.height)
+        XCTAssertGreaterThanOrEqual(elemento.frame.minX, app.windows.firstMatch.frame.minX)
+        XCTAssertLessThanOrEqual(elemento.frame.maxX, app.windows.firstMatch.frame.maxX)
+    }
+
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication) {
         for _ in 0..<10 where !elemento.isHittable { app.swipeUp() }
         XCTAssertTrue(elemento.isHittable, "\(elemento) não ficou tocável")
