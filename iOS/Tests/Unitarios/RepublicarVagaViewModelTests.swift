@@ -65,6 +65,56 @@ struct RepublicarVagaViewModelTests {
         )
     }
 
+    @Test("Vaga encerrada preserva função, valor, localização e instruções sem redigitação")
+    @MainActor
+    func preservaDadosDaVagaEncerradaSemRedigitar() async throws {
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let cenario = ApiClienteEmMemoria(
+            cenario: .vagaEncerradaContratante, relogio: RelogioRepublicacao(agora: base))
+        let origemDoCenario = try await origem(api: cenario, base: base)
+        let exemplo = try await cenario.detalheDaVaga(id: origemDoCenario.id)
+        let instrucoes = "Apresentar-se à responsável antes do início do turno."
+        // A fixture tem observações nulas; texto preenchido detecta perda das instruções.
+        let original = Vaga(
+            id: exemplo.id, estabelecimento: exemplo.estabelecimento, funcao: exemplo.funcao,
+            periodo: exemplo.periodo, local: exemplo.local, regiaoAdministrativa: exemplo.regiaoAdministrativa,
+            ponto: exemplo.ponto, valor: exemplo.valor, posicoes: exemplo.posicoes,
+            posicoesAbertas: exemplo.posicoesAbertas, inclusos: exemplo.inclusos,
+            responsavelLocal: exemplo.responsavelLocal, traje: exemplo.traje,
+            participaRateio: exemplo.participaRateio, observacoes: instrucoes,
+            modo: exemplo.modo, estado: exemplo.estado, publicadoEm: exemplo.publicadoEm)
+        let api = ApiRepublicacaoRegistrada(base: ApiClienteEmMemoria(
+            cenario: .vagaEncerradaContratante, relogio: RelogioRepublicacao(agora: base), vagas: [original]))
+        let vaga = try await origem(api: api, base: base)
+        #expect(vaga.id == original.id)
+        #expect(vaga.estado == .encerrada)
+        #expect(original.periodo.fim < base)
+        let viewModel = RepublicarVagaViewModel(vagaOriginal: vaga, api: api, agora: { base })
+        let novoPeriodo = try Periodo(inicio: viewModel.inicio, fim: viewModel.fim)
+
+        // Confirma com os valores iniciais, sem reinserir campos nem editar o período.
+        await viewModel.republicar()
+
+        let publicada = try #require(viewModel.resultado)
+        let nova = try await api.detalheDaVaga(id: publicada.vagaID)
+        #expect(nova.id != original.id)
+        #expect(nova.estado == .publicada)
+        #expect(nova.periodo == novoPeriodo)
+        #expect(nova.periodo != original.periodo)
+        #expect(nova.funcao == original.funcao)
+        #expect(nova.valor == original.valor)
+        #expect(nova.local == original.local)
+        #expect(nova.regiaoAdministrativa == original.regiaoAdministrativa)
+        #expect(nova.ponto == original.ponto)
+        #expect(nova.observacoes == instrucoes)
+        #expect(nova.observacoes == original.observacoes)
+        #expect(nova.traje == original.traje)
+        #expect(nova.responsavelLocal == original.responsavelLocal)
+        let chamadas = await api.registro.recebidas
+        #expect(chamadas.count == 1)
+        #expect(chamadas.first?.id == original.id)
+    }
+
     @Test("Republicação bem-sucedida preenche resultado e conclui")
     @MainActor
     func sucessoRepublicacao() async throws {

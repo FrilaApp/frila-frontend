@@ -1,0 +1,28 @@
+Test Suite 'Selected tests' started at 2026-10-10 22:25:22.917.
+Test Suite 'FrilaUITests.xctest' started at 2026-10-10 22:25:22.918.
+Test Suite 'RepublicarVagaUITests' started at 2026-10-10 22:25:22.918.
+Test Case '-[FrilaUITests.RepublicarVagaUITests testRepublicarVagaEncerradaCaminhoFeliz]' started.
+    t =     7.02s Waiting 10.0s for "tela-republicar-vaga" Any to exist
+    t =     8.10s     Checking `Expect predicate `existsNoRetry == 1` for object "tela-republicar-vaga" Any`
+    t =     8.10s         Checking existence of `"tela-republicar-vaga" Any`
+    t =     8.16s Checking existence of `"cartao-dados-copiados-republicacao" Any`
+    t =     8.32s Waiting 10.0s for "botao-confirmar-republicacao" Button to exist
+    t =     9.40s     Checking `Expect predicate `existsNoRetry == 1` for object "botao-confirmar-republicacao" Button`
+    t =     9.41s         Checking existence of `"botao-confirmar-republicacao" Button`
+    t =     9.43s Tap "botao-confirmar-republicacao" Button
+    t =     9.43s     Find the "botao-confirmar-republicacao" Button
+    t =     9.45s     Check for interrupting elements affecting "botao-confirmar-republicacao" Button
+    t =     9.77s Waiting 10.0s for "tela-republicar-vaga" Any to not exist
+    t =    10.84s     Checking `Expect predicate `existsNoRetry == 0` for object "tela-republicar-vaga" Any`
+    t =    10.84s         Checking existence of `"tela-republicar-vaga" Any`
+    t =    10.88s Waiting 10.0s for "aviso-sucesso-republicacao" Any to exist
+    t =    11.94s     Checking `Expect predicate `existsNoRetry == 1` for object "aviso-sucesso-republicacao" Any`
+    t =    11.94s         Checking existence of `"aviso-sucesso-republicacao" Any`
+Test Case '-[FrilaUITests.RepublicarVagaUITests testRepublicarVagaEncerradaCaminhoFeliz]' passed (14.396 seconds).
+Test Suite 'RepublicarVagaUITests' passed at 2026-10-10 22:25:37.315.
+	 Executed 1 test, with 0 failures (0 unexpected) in 14.396 (14.397) seconds
+Test Suite 'FrilaUITests.xctest' passed at 2026-10-10 22:25:37.316.
+	 Executed 1 test, with 0 failures (0 unexpected) in 14.396 (14.398) seconds
+Test Suite 'Selected tests' passed at 2026-10-10 22:25:37.316.
+	 Executed 1 test, with 0 failures (0 unexpected) in 14.396 (14.398) seconds
+** TEST SUCCEEDED **
