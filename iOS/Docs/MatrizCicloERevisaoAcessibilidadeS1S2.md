@@ -1,4 +1,4 @@
-# Matriz de Execução do Ciclo Ponta a Ponta e Laudo de Acessibilidade S1/S2
+# Matriz de Execução do Ciclo Ponta a Ponta e Laudo de Acessibilidade S1/S2/S3
 
 **Data:** 11/10/2026  
 **Auditor:** Loki (QA e Revisão de Acessibilidade)  
@@ -7,6 +7,7 @@
 - [AZI1goKB](https://trello.com/c/AZI1goKB) — S2 · QA · Testes de ponta a ponta do ciclo e roteiro de teste manual
 - [NoKH0SN8](https://trello.com/c/NoKH0SN8) — S1 · QA + Design · Revisão de design, acessibilidade e textos das telas do Sprint 1
 - [SIPQtYWH](https://trello.com/c/SIPQtYWH) — S2 · QA + Design · Revisão de design, acessibilidade e textos das telas do Sprint 2
+- [wiLKWHYl](https://trello.com/c/wiLKWHYl) — S3 · iOS + Design · Acessibilidade completa: VoiceOver, Dynamic Type, contraste e alvos
 
 ---
 
@@ -156,7 +157,68 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
 
 ---
 
-## 4. O Que Ficou Pendente para o Cauê (Execução Física / Humana)
+## 4. Revisão de Design, Acessibilidade e Textos do Sprint 3 (wiLKWHYl / #71)
+
+### 4.1. Telas Cobertas no Sprint 3
+1. **Licenças de Código Aberto e Detalhe:** `TelaLicencas.swift`, `TelaDetalheLicenca`
+2. **Histórico de Turnos:** `TelaHistoricoDeTurnos.swift`
+3. **Equipe de Confiança (Contratante):** `TelaEquipeDeConfianca.swift`
+4. **Ajuda e Suporte do Perfil:** `TelaAjudaPerfil.swift`
+5. **Critérios de Matching ("Por que recebo vagas"):** `TelaPorQueReceboVagas.swift`
+6. **Painel do Contratante e Vagas Encerradas:** `MinhasVagas.swift`, `TelaRepublicarVaga.swift`
+7. **Candidaturas em Seleção:** `TelaMinhasCandidaturas.swift`
+8. **Destinos de Notificação Push:** `TelaExplicacaoDoPush.swift`, `DestinosDoAviso.swift`
+
+### 4.2. Execução da Auditoria de Acessibilidade no Simulador
+A suíte `AuditoriaDeAcessibilidadeUITests` direcionada para as telas do Sprint 3 foi executada no simulador Loki via fila `xcb.sh`:
+
+- **Comando:**
+```sh
+env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_SO_REGISTRA=1 \
+  ~/Documents/Projetos/Apps/.workers/vigia/xcb.sh "Loki" -- xcodebuild test \
+  -project iOS/Frila.xcodeproj -scheme Frila-Local \
+  -destination "platform=iOS Simulator,id=01CDB658-019C-451A-B3EB-CB7CF09352E9" \
+  -derivedDataPath /Users/cauecarneiro/Documents/Projetos/Apps/.workers/antigravity/build/DerivedData \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testLicencasEDetalhe \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testLicencasEDetalheEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testAjudaDoPerfil \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testAjudaDoPerfilEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testHistoricoDeTurnos \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testHistoricoDeTurnosEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testPorQueReceboVagas \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testPorQueReceboVagasEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testEquipeDeConfianca \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testEquipeDeConfiancaEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testMinhasVagasDetalheEPerfilPublico \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testMinhasVagasDetalheEPerfilPublicoEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testRepublicarVaga \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testRepublicarVagaEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testCandidaturasEmSelecao \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testCandidaturasEmSelecaoEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testExplicacaoDoPush \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testExplicacaoDoPushEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testVagaIndisponivelDoPush \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testVagaIndisponivelDoPushEmAX5 \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testTurnoDoAvisoNaoEncontrado \
+  -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testTurnoDoAvisoNaoEncontradoEmAX5
+```
+- **Resultado:** 22 testes executados / 22 aprovados (100% verde).
+- **Tempo total:** 289.639s.
+- **Log integral:** `/Users/cauecarneiro/Documents/Projetos/Apps/.workers/vigia/logs-xcodebuild/loki-20261011-233741-20815.log`.
+
+### 4.3. Avaliação dos Critérios de Interface e Casos de Borda
+1. **Comprovação em AX5 (Dynamic Type XXXL):**
+   - Nenhuma tela corta texto ou esconde botão.
+   - Em `TelaLicencas`, `TelaHistoricoDeTurnos` e `TelaPorQueReceboVagas`, os textos e cartões expandem verticalmente com scroll sem sobreposição.
+   - Botões de ação primária e secundária preservam alvos de toque ≥ 44 pt.
+2. **Contraste de Telas do Sprint 3:**
+   - As telas de Licenças, Detalhe da licença, Histórico de turnos e Equipe de confiança foram auditadas sem nenhum erro de contraste registrado no log.
+3. **Respeito a Reduzir Movimento:**
+   - `TelaHistoricoDeTurnos.swift:50` consulta ativamente `accessibilityReduceMotion` antes de acionar a rolagem suave.
+
+---
+
+## 5. O Que Ficou Pendente para o Cauê (Execução Física / Humana)
 
 Conforme divisão de papéis estabelecida na triagem noturna, as tarefas abaixo dependem de aparelhos físicos, credenciais proprietárias e alinhamento humano:
 
@@ -170,3 +232,6 @@ Conforme divisão de papéis estabelecida na triagem noturna, as tarefas abaixo 
 3. **Para o Cartão SIPQtYWH:**
    - `[ ]` Disparar e receber os pushes de teste da planilha em aparelho físico (APNs em tela bloqueada).
    - `[ ]` Obter validação estética final com Fabrício no Trello.
+4. **Para o Cartão wiLKWHYl:**
+   - `[ ]` Realizar a navegação completa dos fluxos "Publicar uma vaga" e "Candidatar-se e fazer check-in" só com VoiceOver por alguém que não desenvolveu o app, em aparelho físico.
+   - `[ ]` Confrontar as telas do build de 04/11 contra os frames aprovados pelo Fabrício por escrito no Trello.
