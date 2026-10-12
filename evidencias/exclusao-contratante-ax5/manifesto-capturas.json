@@ -1,0 +1,54 @@
+[
+  {
+    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "captura": "ContratanteAX5Consequencias.png",
+    "origem": {
+      "configurationName": "Test Scheme Action",
+      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+      "deviceName": "Hulk",
+      "exportedFileName": "19CBBA5C-9FE7-48B8-8702-F8D809FA201B.png",
+      "isAssociatedWithFailure": false,
+      "suggestedHumanReadableName": "ContratanteAX5Consequencias_0_4EA88ACF-8186-4813-AD06-D28C016515BE.png",
+      "timestamp": 1791770656.954
+    }
+  },
+  {
+    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "captura": "ContratanteAX5Perfil.png",
+    "origem": {
+      "configurationName": "Test Scheme Action",
+      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+      "deviceName": "Hulk",
+      "exportedFileName": "0C4CE505-752B-4251-BE4B-BCA85955C178.png",
+      "isAssociatedWithFailure": false,
+      "suggestedHumanReadableName": "ContratanteAX5Perfil_0_DE445277-D116-46D1-A183-2F41AD8BA0B4.png",
+      "timestamp": 1791770654.389
+    }
+  },
+  {
+    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "captura": "ContratantePadraoConsequencias.png",
+    "origem": {
+      "configurationName": "Test Scheme Action",
+      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+      "deviceName": "Hulk",
+      "exportedFileName": "E12F7923-D860-425C-8045-C3B4ECFCF46F.png",
+      "isAssociatedWithFailure": false,
+      "suggestedHumanReadableName": "ContratantePadraoConsequencias_0_FC178E07-464C-4F4F-BE14-B2555B7BC018.png",
+      "timestamp": 1791770667.383
+    }
+  },
+  {
+    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "captura": "ContratantePadraoPerfil.png",
+    "origem": {
+      "configurationName": "Test Scheme Action",
+      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+      "deviceName": "Hulk",
+      "exportedFileName": "025128EA-D4D8-4C8F-B28E-0176DAE19ED9.png",
+      "isAssociatedWithFailure": false,
+      "suggestedHumanReadableName": "ContratantePadraoPerfil_0_6A981898-BABD-4D98-B20F-5C2FFA73F741.png",
+      "timestamp": 1791770664.837
+    }
+  }
+]

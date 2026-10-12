@@ -252,7 +252,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         let turno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer))
-        // O VStack identifica o vínculo, mas a área acessível pertence aos textos filhos.
+        // Pendente: a rodada de 11/10 não encontrou staticTexts neste elemento; ver evidências do PR.
         let funcaoDoTurno = turno.staticTexts.firstMatch
         XCTAssertTrue(funcaoDoTurno.exists)
         rolarAte(funcaoDoTurno, em: app)

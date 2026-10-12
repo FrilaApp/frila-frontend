@@ -3,5 +3,8 @@
   "dispositivo": "com.apple.CoreSimulator.SimDeviceType.iPhone-17",
   "nome": "Hulk",
   "udid": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
-  "base": "57470a6aa45a2a45931c8dd34b61ecc35ea856a9"
+  "base": "57470a6aa45a2a45931c8dd34b61ecc35ea856a9",
+  "xcode": "27.0",
+  "buildXcode": "27A266a",
+  "commitTestado": "082b08efc60c9099909c14bc883e169e6f6910da"
 }

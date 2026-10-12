@@ -1,47 +1,45 @@
 # Exclusão de conta do contratante: padrão e AX5
 
-Recorte do [cartão #71](https://trello.com/c/wiLKWHYl). A suíte existente cobria o cancelamento em AX5 pelo profissional; os dois novos testes percorrem o contratante com turnos futuros (`painel-contratante`).
+Recorte do [cartão #71](https://trello.com/c/wiLKWHYl), preservado no [PR 201 em rascunho](https://github.com/FrilaApp/frila-frontend/pull/201). **Parcial, não aprovado.** Somente testes e evidências; sem alteração de produção.
 
-## Execução
+## Resultado da retomada em 11/10
 
-Estado: **parcial, não aprovado**, interrompido pela nova missão `2026-10-11-hulk-pagina-publica.md`. A primeira tentativa parou antes do build porque o `.xcodeproj` não estava gerado (saída 74); resolvido com `xcodegen generate`, versão 2.45.3. A rodada seguinte executou 7 casos: 5 existentes passaram e os 2 novos falharam por usar o contêiner do turno como alvo tocável. A captura padrão mostra o turno visível. O teste foi corrigido para consultar o texto filho; a validação desse ajuste não iniciou os testes porque o simulador recusou o runner com `Application failed preflight checks` / `Busy`. Nenhuma CI remota executada.
+A suíte executou **7 testes: 5 existentes passaram, 2 novos falharam, 0 pulados**, em 104,947 s. O runner iniciou normalmente. Os novos casos padrão e AX5 falharam em `ExclusaoDeContaUITests.swift:257`: o elemento do turno existe, mas `turno.staticTexts.firstMatch.exists` retorna falso. A captura padrão mostra o conteúdo do turno na tela. Inferência: o seletor pressupõe uma hierarquia de acessibilidade que o XCTest não expõe; esta falha não comprova defeito de apresentação do app.
 
-Comando, a partir de `iOS/`:
+A primeira rodada havia falhado ao exigir que o contêiner do turno fosse tocável. O ajuste para texto filho também falhou. Execuções encerradas pela regra de parar quando o mesmo problema retorna. **Um bloqueio pendente: identificação do turno nos dois testes novos. Nenhuma CI remota executada.** O PR permanece em rascunho porque não ficou verde.
+
+Comando executado a partir de `iOS/`, após obter a vez com `vez.sh hulk --segurar 20` e aguardar `xcrun simctl bootstatus 1D91FAA0-595D-4C54-87BC-FCF91A7CA94D -b`:
 
 ```sh
-xcodegen generate
 ~/Documents/Projetos/Apps/.workers/vigia/xcb.sh hulk -- xcodebuild test \
   -project Frila.xcodeproj -scheme Frila-Local \
   -destination 'platform=iOS Simulator,id=1D91FAA0-595D-4C54-87BC-FCF91A7CA94D' \
   -derivedDataPath ../../derived-exclusao-ax5 \
-  -resultBundlePath ../../exclusao-ax5-validacao.xcresult \
-  -only-testing:FrilaUITests/ExclusaoDeContaUITests -parallel-testing-enabled NO -collect-test-diagnostics never
+  -resultBundlePath ../../exclusao-ax5-retomada.xcresult \
+  -only-testing:FrilaUITests/ExclusaoDeContaUITests \
+  -parallel-testing-enabled NO -collect-test-diagnostics never
 ```
 
-Os caminhos de DerivedData e xcresult são próprios do Hulk, fora do repositório, e são removidos depois da exportação das provas. O ambiente veio de `xcrun simctl list devices available -j`: [ambiente.json](ambiente.json).
+O projeto ignorado foi gerado com XcodeGen 2.45.3. Ambiente real em [ambiente.json](ambiente.json): Hulk, iPhone 17, iOS 26.5, Xcode 27.0 (27A266a). A vez foi devolvida ao finalizar. DerivedData e xcresult são temporários próprios, removidos após exportar as provas. O comentário do seletor foi corrigido após a execução; não houve mudança de comportamento dos testes.
 
-## O que os testes verificam
+## Capturas revisadas e limites da prova
 
-| Etapa | Prova automatizada |
-|---|---|
-| Perfil do estabelecimento | Acesso à exclusão tocável, com alvo mínimo e dentro da largura da janela |
-| Consequências | A tela apresenta o aviso antes da confirmação |
-| Turno futuro | O vínculo da fixture está presente; o estado sem turnos não aparece |
-| Lista incompleta | O aviso de limitação continua presente no fluxo do contratante |
-| Consentimento | Excluir permanece desabilitado até alternar o interruptor |
-| Confirmação | Cancelar e Excluir ficam tocáveis, com alvo mínimo de 44 pt e inteiros na janela |
-| Cancelamento | A confirmação fecha; a tela da conta continua e o campo da entrada não aparece |
+Cada arquivo corresponde a uma captura independente da execução retomada; origem e identificador do teste estão no [manifesto](manifesto-capturas.json).
 
-O auxiliar comum de alvo mínimo admite 0,01 pt para arredondamento do frame. Cada etapa possui uma captura independente por tamanho; os nomes começam com `ContratantePadrao` ou `ContratanteAX5`.
+| Etapa alcançada | Padrão | AX5 | Resultado observado |
+|---|---|---|---|
+| Acesso pelo perfil | [Perfil padrão](ContratantePadraoPerfil.png) | [Perfil AX5](ContratanteAX5Perfil.png) | Botão Excluir conta tocável, alvo mínimo de 44 pt com tolerância de 0,01 pt e dentro da largura da janela |
+| Abertura das consequências | [Consequências padrão](ContratantePadraoConsequencias.png) | [Consequências AX5](ContratanteAX5Consequencias.png) | Tela e aviso encontrados; em AX5 a captura cobre somente o início da tela rolável |
 
-## Limites
+As cinco etapas posteriores dos dois casos novos **não foram executadas** devido à falha do seletor: rolagem/visibilidade do turno, aviso de lista incompleta, consentimento antes/depois, confirmação com geometria dos botões e cancelamento. Não há capturas nem aprovação dessas etapas nos novos casos. O teste antigo de vínculos/lista incompleta passou, assim como o cancelamento AX5 do profissional; isso não substitui a prova nova do contratante.
 
-Este recorte não comprova a acessibilidade de todas as telas nem encerra o cartão #71. VoiceOver por pessoa independente e aparelho físico não foram executados: estão fora desta missão, que usa o dublê local no simulador. Não há alteração de código de produção.
+VoiceOver por pessoa independente, aparelho físico e demais telas estão fora do recorte e não foram executados. O cartão #71 não está encerrado.
 
-## Provas e retomada
+## Provas
 
-- Primeira suíte: [resumo-primeira-rodada.json](resumo-primeira-rodada.json); xcb `hulk-20261011-112146-51068.log`.
-- Validação do ajuste: xcb `hulk-20261011-113656-81124.log`, saída 65 antes de executar casos, falha de preflight do runner.
-- Ambos os logs ficam em `.workers/vigia/logs-xcodebuild/`.
-- Falta executar a suíte com o ajuste, revisar/exportar as capturas de todas as etapas e executar a única CI após o teste local passar.
-- Bloqueios pendentes: 1 (runner não iniciou). A coleta longa da primeira rodada consumiu 10 minutos e foi desativada na segunda pela opção documentada do Xcode.
+- Rodada retomada: [resumo-retomada.json](resumo-retomada.json) e [trecho do log](xcb-retomada-trecho.log). Log completo: `.workers/vigia/logs-xcodebuild/hulk-20261011-230259-58197.log`.
+- Primeira suíte: [resumo-primeira-rodada.json](resumo-primeira-rodada.json); log `hulk-20261011-112146-51068.log`.
+- Tentativa intermediária: log `hulk-20261011-113656-81124.log`, saída 65 antes dos casos por `Application failed preflight checks` / `Busy`; esse bloqueio não voltou na retomada.
+- A tentativa inicial anterior às suítes parou por projeto ausente, resolvido com XcodeGen.
+
+Próximo passo, sob nova orientação: inspecionar a árvore acessível do turno, corrigir o seletor e executar novamente a suíte local. Só depois de verde, completar as capturas e retirar o rascunho respeitando o limite de uma CI remota.
