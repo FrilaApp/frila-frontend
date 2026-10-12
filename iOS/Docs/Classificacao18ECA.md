@@ -1,5 +1,10 @@
 # Classificação 18+ — Conformidade ECA Digital e Declared Age Range
 
+> **⚠️ RASCUNHO — PENDENTE DE PARECER JURÍDICO**
+> Este documento é um rascunho de síntese regulatória. Os textos normativos e a análise de
+> conformidade aguardam validação pelo parecer formal dos mentores da Academy antes de serem
+> adotados em comunicações oficiais.
+
 Dossiê elaborado em 11/10/2026 na branch `docs/classificacao-18-eca` a partir de `origin/main`
 para atender ao cartão do Trello [lJSyGK6q](https://trello.com/c/lJSyGK6q)
 (S1 · Jurídico + iOS · Maioridade: classificação 18+, ECA Digital e Declared Age Range).
@@ -71,6 +76,8 @@ Estende a classificação indicativa (antes restrita a audiovisual) a aplicativo
 eletrônicos. Introduz a faixa "não recomendado para menores de 6 anos" e avalia interatividade
 (contato com adultos desconhecidos, compras, IA). Para o Frila, a classificação resultante é
 **18+** por envolver contato direto com adultos desconhecidos e intermediação de trabalho.
+
+**Fonte:** [gov.br/mj — Portaria 1.048](https://www.gov.br/mj/pt-br/assuntos/seus-direitos/classificacao-1/legislacao/portaria-1048.pdf/view)
 
 ---
 
@@ -179,6 +186,7 @@ adesão. Estão redigidos em linguagem clara, conforme exige a LGPD (art. 14, §
 | Lei 15.211/2025 (ECA Digital) | [planalto.gov.br](https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/L15211.htm) |
 | LGPD — Lei 13.709/2018 | [planalto.gov.br](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm) |
 | Decreto 6.481/2008 (Lista TIP) | [planalto.gov.br](https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2008/decreto/d6481.htm) |
+| Portaria MJSP 1.048/2025 (Classificação Indicativa) | [gov.br/mj](https://www.gov.br/mj/pt-br/assuntos/seus-direitos/classificacao-1/legislacao/portaria-1048.pdf/view) |
 | Apple — Age Ratings | [developer.apple.com](https://developer.apple.com/help/app-store-connect/reference/age-ratings/) |
 | Apple — Declared Age Range | [developer.apple.com](https://developer.apple.com/documentation/deviceactivity/declaredagerange) |
 | App Store Review Guidelines | [developer.apple.com](https://developer.apple.com/app-store/review/guidelines/) |
