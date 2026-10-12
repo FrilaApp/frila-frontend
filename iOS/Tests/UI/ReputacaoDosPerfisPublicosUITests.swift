@@ -73,13 +73,21 @@ final class ReputacaoDosPerfisPublicosUITests: XCTestCase {
 
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication) {
         let janela = app.windows.firstMatch.frame
+        let centroVisivel = (janela.minY + 100 + janela.maxY - 40) / 2
         for _ in 0..<12 {
-            if elemento.exists, elemento.isHittable {
+            if elemento.exists {
                 let quadro = elemento.frame
-                if quadro.minY >= janela.minY + 100, quadro.maxY <= janela.maxY - 40 { return }
-                if quadro.minY < janela.minY + 100 { app.swipeDown(); continue }
+                if elemento.isHittable, quadro.minY >= janela.minY + 100,
+                   quadro.maxY <= janela.maxY - 40 { return }
+                // Arrastos limitados evitam ultrapassar o alvo e oscilar em AX5.
+                let limite = janela.height * 0.35
+                let deslocamento = max(-limite, min(limite, centroVisivel - quadro.midY))
+                let inicio = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                let fim = inicio.withOffset(CGVector(dx: 0, dy: deslocamento))
+                inicio.press(forDuration: 0.05, thenDragTo: fim, withVelocity: .slow, thenHoldForDuration: 0.1)
+            } else {
+                app.swipeUp()
             }
-            app.swipeUp()
         }
         XCTFail("Elemento não ficou inteiramente visível: \(elemento.identifier)")
     }
