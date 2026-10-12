@@ -24,9 +24,11 @@ public struct TelaExplicacaoDoPush: View {
                     .accessibilityHidden(true)
                 Text(verbatim: TextosDoPush.Explicacao.titulo)
                     .font(.largeTitle.bold())
+                    .foregroundStyle(FrilaCor.texto)
                     .accessibilityAddTraits(.isHeader)
                 Text(verbatim: TextosDoPush.Explicacao.mensagem(perfil))
                     .font(.body)
+                    .foregroundStyle(FrilaCor.texto)
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     ForEach(TextosDoPush.Explicacao.itens(perfil), id: \.self) { item in
                         Label {
