@@ -20,7 +20,7 @@ suficiente do elemento, Dynamic Type, texto cortado e traços. Ela **não** conf
 agrupamento, anúncio de erro nem movimento; isso é a parte humana do #71. Movimento foi levantado
 por leitura do código (seção "Movimento").
 
-Três classes de achado ficam registradas no log (`AUDITORIA|tela|tamanho|tipo|classe|…`) e não
+Quatro classes de achado ficam registradas no log (`AUDITORIA|tela|tamanho|tipo|classe|…`) e não
 falham a suíte:
 
 - **contraste** (classe `design`): é do design; a medição é por pixel e varia com o aparelho;
@@ -31,6 +31,11 @@ falham a suíte:
   com a fonte acompanhando o tamanho. A prova é `testCampoDeTextoCresceEmAX5`: o campo de e-mail
   da entrada, com mínimo de 44 pt, cresce em AX5. O achado aparece em todo `CampoFrila` e no campo
   do código;
+- **"texto cortado" em `Text` ("Atualização necessária")** (classe `falso-positivo-atualizacao`):
+  o XCTest emite aviso preventivo de `textClipped` para `StaticText` do SwiftUI com `.title.bold()`
+  ("may be clipped at larger Dynamic Type sizes"). A prova é `testAtualizacaoObrigatoriaEmAX5`:
+  o título sem limite de linhas quebra em múltiplas linhas, expande a altura para acomodar a
+  tipografia aumentada e cabe inteiramente dentro dos limites da tela;
 - **"alvo pequeno" no link "Legal" do mapa** (classe `sistema-mapkit`): é o `MKAttributionLabel`
   do MapKit, controle do sistema, fora do app (`CadastroEstabelecimento.swift:264` e
   `PublicarVaga.swift:405`).
@@ -48,10 +53,10 @@ Inventário e checklist sistemático das 44 telas e fluxos da v1.0 do Frila (cob
 
 | Situação da célula | Quantidade | Percentual | Detalhamento |
 |---|---|---|---|
-| **ok** | 260 | 65,66% | Requisitos atendidos e comprovados por testes automatizados (`AuditoriaDeAcessibilidadeUITests.swift`) ou leitura de código |
-| **falta** | 54 | 13,64% | 44 em VoiceOver em aparelho (100% das telas sem teste físico com pessoa com deficiência visual); 8 em contraste (pendências de design); 2 por ausência de teste de auditoria na Atualização obrigatória (padrão e AX5, PR #182) |
-| **não se aplica** | 82 | 20,70% | 41 em Reduzir Movimento (telas estáticas sem animação); 33 em estado só por cor (telas sem seleção de estado por cor); 8 nas 2 folhas nativas do sistema iOS |
-| **Total** | **396** | **100,00%** | **Soma de verificação exata:** 260 (ok) + 54 (falta) + 82 (não se aplica) = 396 células |
+| **ok** | 262 | 66,16% | Requisitos atendidos e comprovados por testes automatizados (`AuditoriaDeAcessibilidadeUITests.swift`) ou leitura de código |
+| **falta** | 52 | 13,13% | 44 em VoiceOver em aparelho (100% das telas sem teste físico com pessoa com deficiência visual); 8 em contraste (pendências de design) |
+| **não se aplica** | 82 | 20,71% | 41 em Reduzir Movimento (telas estáticas sem animação); 33 em estado só por cor (telas sem seleção de estado por cor); 8 nas 2 folhas nativas do sistema iOS |
+| **Total** | **396** | **100,00%** | **Soma de verificação exata:** 262 (ok) + 52 (falta) + 82 (não se aplica) = 396 células |
 
 O critério 71.1 e handoff do cartão #168: checklist central e sistemático das 44 telas preenchido e conferido com 100% de cobertura da camada de Apresentação (View, Rota/Fluxo, testes automatizados e critérios de acessibilidade).
 
@@ -157,7 +162,7 @@ A coluna "VoiceOver em aparelho" registra **falta: pessoa com VoiceOver** em tod
 | Explicação de notificações push | TelaExplicacaoDoPush | Push / TelasDaPermissaoDePush | ok: AuditoriaDeAcessibilidadeUITests.swift:643 (`testExplicacaoDoPush`) | ok: AuditoriaDeAcessibilidadeUITests.swift:644 (`testExplicacaoDoPushEmAX5`) | ok: TelasDaPermissaoDePush.swift:24,42,47 (ícone hidden, botões nomeados) | ok: TelasDaPermissaoDePush.swift:27 (`isHeader` no título principal) | ok: TelasDaPermissaoDePush.swift:42,47 (botões >= 44 pt) | falta: "Contrast failed" no título "Vaga nova na sua função e na sua região" e no texto explicativo, em AX5 (classe design; log homem-aranha-20261009-163555-65398.log) | não se aplica: tela sem animação | não se aplica: tela sem seleção de estado por cor | falta: pessoa com VoiceOver |
 | Vaga indisponível (Aviso Push) | TelaVagaIndisponivel | Push / DestinosDoAviso | ok: AuditoriaDeAcessibilidadeUITests.swift:655 (`testVagaIndisponivelDoPush`) | ok: AuditoriaDeAcessibilidadeUITests.swift:656 (`testVagaIndisponivelDoPushEmAX5`) | ok: DestinosDoAviso.swift:141,144 (children: .combine em título/mensagem, botão voltar) | ok: DestinosDoAviso.swift:137 (`isHeader` no título da mensagem) | ok: DestinosDoAviso.swift:144 (BotaoSecundario >= 44 pt) | falta: "Contrast failed" em `voltar-para-lista`, em AX5 (classe design; log homem-aranha-20261009-163555-65398.log) | não se aplica: tela sem animação | não se aplica: tela sem seleção de estado por cor | falta: pessoa com VoiceOver |
 | Turno do aviso não encontrado (Push) | DestinoDoAviso (`DestinosDoAviso.swift:230`) | Push / DestinosDoAviso | ok: AuditoriaDeAcessibilidadeUITests.swift:667 (`testTurnoDoAvisoNaoEncontrado`) | ok: AuditoriaDeAcessibilidadeUITests.swift:668 (`testTurnoDoAvisoNaoEncontradoEmAX5`) | ok: DestinosDoAviso.swift:251,253 (children: .combine em título/mensagem, botão ver turnos) | ok: DestinosDoAviso.swift:247 (`isHeader` no título da mensagem) | ok: DestinosDoAviso.swift:253 (BotaoSecundario >= 44 pt) | ok: AuditoriaDeAcessibilidadeUITests.swift:667 (sem achados de contraste no padrão e em AX5 nesta rodada) | não se aplica: tela sem animação | não se aplica: tela sem seleção de estado por cor | falta: pessoa com VoiceOver |
-| Atualização obrigatória | TelaAtualizacaoObrigatoria | Apresentacao / AtualizacaoObrigatoria | falta: sem teste de auditoria automática | falta: sem teste de auditoria automática em AX5 | ok: AtualizacaoObrigatoria.swift:88,91 (ícone hidden, botão nomeado) | ok: AtualizacaoObrigatoria.swift:89,92 (título com accessibilityAddTraits(.isHeader), conferido no código) | ok: AtualizacaoObrigatoria.swift:91 (BotaoPrimario >= 44 pt) | falta: sem auditoria de contraste | não se aplica: tela sem animação | não se aplica: tela sem seleção de estado por cor | falta: pessoa com VoiceOver |
+| Atualização obrigatória | TelaAtualizacaoObrigatoria | Apresentacao / AtualizacaoObrigatoria | ok: AuditoriaDeAcessibilidadeUITests.swift:734 (`testAtualizacaoObrigatoria`) | ok: AuditoriaDeAcessibilidadeUITests.swift:735 (`testAtualizacaoObrigatoriaEmAX5`) | ok: AtualizacaoObrigatoria.swift:88,91 (ícone hidden, botão nomeado) | ok: AtualizacaoObrigatoria.swift:92 (título com accessibilityAddTraits(.isHeader)) | ok: AtualizacaoObrigatoria.swift:91 (BotaoPrimario >= 44 pt) | falta: sem auditoria de contraste | não se aplica: tela sem animação | não se aplica: tela sem seleção de estado por cor | falta: pessoa com VoiceOver |
 | Compartilhamento / exportação de dados | FolhaCompartilhamento / ItemExportarDados | Perfil / ItemExportarDados | não se aplica: folha nativa do sistema iOS (Acessibilidade.md:32) | não se aplica: folha nativa do sistema iOS (Acessibilidade.md:32) | ok: ItemExportarDados.swift:60,61 (rótulo e dica no botão que abre a folha) | não se aplica: folha nativa do sistema iOS | ok: ItemExportarDados.swift:55 (minHeight 44 pt no botão do app que abre) | não se aplica: folha nativa do sistema iOS | não se aplica: folha nativa do sistema iOS | não se aplica: folha nativa do sistema iOS | falta: pessoa com VoiceOver |
 | Compositor de e-mail nativo | CompositorDeEmailNativo | Suporte / CompositorDeEmail | não se aplica: folha nativa do sistema iOS (Acessibilidade.md:32) | não se aplica: folha nativa do sistema iOS (Acessibilidade.md:32) | ok: FolhaSuporteTurno.swift:270 (dica no botão que abre o compositor) | não se aplica: folha nativa do sistema iOS | ok: FolhaSuporteTurno.swift:256 (BotaoPrimario >= 44 pt no botão do app que abre) | não se aplica: folha nativa do sistema iOS | não se aplica: folha nativa do sistema iOS | não se aplica: folha nativa do sistema iOS | falta: pessoa com VoiceOver |
 
