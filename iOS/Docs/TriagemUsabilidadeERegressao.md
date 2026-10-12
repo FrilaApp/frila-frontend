@@ -19,7 +19,7 @@ A classificação de severidade alinha o impacto na experiência da pessoa usuá
 
 ## 2. Mapeamento do Caminho Feliz Automatizado (`CicloDePontaAPontaUITests.swift`)
 
-A suíte `CicloDePontaAPontaUITests.swift` valida ponta a ponta o ciclo completo de operação da plataforma Frila, desde a contratação até a avaliação mútua.
+A suíte `CicloDePontaAPontaUITests.swift` valida ponta a ponta o ciclo completo de operação da plataforma Frila, desde a contratação até a avaliação mútua. A matriz detalhada de execução sincronizada para testes manuais com dois iPhones físicos reais está documentada em [MatrizCicloERevisaoAcessibilidadeS1S2.md](MatrizCicloERevisaoAcessibilidadeS1S2.md) (Cartão Trello [AZI1goKB](https://trello.com/c/AZI1goKB)).
 
 ### Etapa 1: Publicação de Vaga pelo Contratante (`test01_ContratantePublicaVagaUrgenciaEVeEmMinhasVagas`)
 
