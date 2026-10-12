@@ -8,8 +8,8 @@ import XCTest
 final class NotificacaoDePushUITests: XCTestCase {
     /// `vaga.json` do dublê.
     private let vagaID = "40000000-0000-0000-0000-000000000001"
-    /// `turnos.json` do dublê.
-    private let turnoID = "60000000-0000-0000-0000-000000000001"
+    /// `turnos.json` do dublê / cenário de turno confirmado.
+    private let turnoID = "23000000-0000-0000-0000-000000000001"
     private let sistema = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 
     override func setUp() {
@@ -47,11 +47,17 @@ final class NotificacaoDePushUITests: XCTestCase {
     private func tocarNaNotificacao(tipo: String = "vaga") {
         let notificacao = sistema.staticTexts["Aviso simulado: \(tipo)"].firstMatch
         if !notificacao.waitForExistence(timeout: 15) {
-            // Se o banner expirou para a central de notificações, abre a central para tocar
-            sistema.swipeDown()
+            // Se o banner expirou para a central de notificações, arrasta da borda superior para baixo
+            abrirCentralDeNotificacoes()
         }
         XCTAssertTrue(notificacao.waitForExistence(timeout: 15), "a notificação de \(tipo) aparece")
         notificacao.tap()
+    }
+
+    private func abrirCentralDeNotificacoes() {
+        let topo = sistema.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.01))
+        let meio = sistema.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+        topo.press(forDuration: 0.1, thenDragTo: meio)
     }
 
     private func conferirDetalheDaVaga(_ app: XCUIApplication) {
@@ -68,7 +74,7 @@ final class NotificacaoDePushUITests: XCTestCase {
     }
 
     func testToqueComOAppAbertoEmNotificacaoDeTurnoAbreMeuTurno() {
-        let app = abrir(push: "confirmacao", id: turnoID, notificacaoEm: 6)
+        let app = abrir(cenario: "turno-confirmado-perto", push: "confirmacao", id: turnoID, notificacaoEm: 6)
 
         tocarNaNotificacao(tipo: "confirmacao")
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 20), "o toque na notificação de turno abre Meu turno")
@@ -83,13 +89,14 @@ final class NotificacaoDePushUITests: XCTestCase {
     }
 
     func testToqueComOAppFechadoAbreODestino() {
-        let app = abrir(notificacaoEm: 15)
+        let app = abrir(notificacaoEm: 6)
 
-        // Dá tempo de o aparelho ser registrado para a conta e a notificação ser agendada.
-        sleep(2)
+        // Aguarda a confirmação de que a notificação foi agendada no sistema antes de fechar o app.
+        XCTAssertTrue(app.descendants(matching: .any)["push-simulado-agendado"].waitForExistence(timeout: 10), "a notificação deve ser agendada antes de fechar o app")
         app.terminate()
         tocarNaNotificacao()
         // O sistema abre o app sem argumento nenhum: quem leva ao destino é o toque.
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15), "o app deve abrir em resposta ao toque")
         conferirDetalheDaVaga(app)
     }
 }

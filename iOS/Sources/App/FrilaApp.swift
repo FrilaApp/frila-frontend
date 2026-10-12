@@ -243,6 +243,7 @@ private struct EntradaDoApp: View {
     #if DEBUG
     @State private var mostrandoCatalogo = false
     @State private var rotaInicialAplicada = false
+    @State private var pushSimuladoAgendado = false
     #endif
 
     init(_ dependencias: Dependencias, armazenamento: ArmazenamentoSwiftData?, navegacao: NavegacaoDoApp) {
@@ -321,6 +322,15 @@ private struct EntradaDoApp: View {
         #if DEBUG || FRILA_MEDICAO
         .overlay(alignment: .bottomTrailing) {
             if RegistroDeMedicoes.ativo { BotaoDeMedicoes() }
+        }
+        #endif
+        #if DEBUG
+        .overlay {
+            if pushSimuladoAgendado {
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier("push-simulado-agendado")
+            }
         }
         #endif
         .environment(permissaoDePush)
@@ -655,6 +665,7 @@ private struct EntradaDoApp: View {
                 identifier: UUID().uuidString, content: conteudo,
                 trigger: UNTimeIntervalNotificationTrigger(timeInterval: segundos, repeats: false)
             ))
+            pushSimuladoAgendado = true
             return
         }
         rotaInicialAplicada = true
