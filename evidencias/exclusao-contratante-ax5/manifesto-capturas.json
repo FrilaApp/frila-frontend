@@ -1,54 +1,178 @@
 [
   {
-    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
-    "captura": "ContratanteAX5Consequencias.png",
-    "origem": {
-      "configurationName": "Test Scheme Action",
-      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
-      "deviceName": "Hulk",
-      "exportedFileName": "19CBBA5C-9FE7-48B8-8702-F8D809FA201B.png",
-      "isAssociatedWithFailure": false,
-      "suggestedHumanReadableName": "ContratanteAX5Consequencias_0_4EA88ACF-8186-4813-AD06-D28C016515BE.png",
-      "timestamp": 1791770656.954
-    }
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "7B30FF48-420B-49CC-8A9C-26608E499A31.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5Cancelada_0_B311BEF9-5269-4519-9CF0-549B93B1324B.png",
+    "timestamp": 1791771317.404,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5Cancelada.png"
   },
   {
-    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
-    "captura": "ContratanteAX5Perfil.png",
-    "origem": {
-      "configurationName": "Test Scheme Action",
-      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
-      "deviceName": "Hulk",
-      "exportedFileName": "0C4CE505-752B-4251-BE4B-BCA85955C178.png",
-      "isAssociatedWithFailure": false,
-      "suggestedHumanReadableName": "ContratanteAX5Perfil_0_DE445277-D116-46D1-A183-2F41AD8BA0B4.png",
-      "timestamp": 1791770654.389
-    }
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "3C92607B-76F6-4B6C-82C7-9E1CC11A6F18.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5Confirmacao_0_298937B6-801A-44AA-824F-7EB39A74F92B.png",
+    "timestamp": 1791771315.801,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5Confirmacao.png"
   },
   {
-    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
-    "captura": "ContratantePadraoConsequencias.png",
-    "origem": {
-      "configurationName": "Test Scheme Action",
-      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
-      "deviceName": "Hulk",
-      "exportedFileName": "E12F7923-D860-425C-8045-C3B4ECFCF46F.png",
-      "isAssociatedWithFailure": false,
-      "suggestedHumanReadableName": "ContratantePadraoConsequencias_0_FC178E07-464C-4F4F-BE14-B2555B7BC018.png",
-      "timestamp": 1791770667.383
-    }
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "3CC63E1B-8603-45CF-A3CB-E72D245EA301.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5ComConsentimento_0_FDD5C116-35EE-42DB-A36E-F5A09CF972F9.png",
+    "timestamp": 1791771312.779,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5ComConsentimento.png"
   },
   {
-    "teste": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
-    "captura": "ContratantePadraoPerfil.png",
-    "origem": {
-      "configurationName": "Test Scheme Action",
-      "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
-      "deviceName": "Hulk",
-      "exportedFileName": "025128EA-D4D8-4C8F-B28E-0176DAE19ED9.png",
-      "isAssociatedWithFailure": false,
-      "suggestedHumanReadableName": "ContratantePadraoPerfil_0_6A981898-BABD-4D98-B20F-5C2FFA73F741.png",
-      "timestamp": 1791770664.837
-    }
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "C290607D-9DFA-41C6-8F3D-263BF71DECBB.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5SemConsentimento_0_3EC879E2-036D-4C00-A5A0-529126169F95.png",
+    "timestamp": 1791771310.775,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5SemConsentimento.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "7FDA5A5E-5A09-45F9-90BC-2A29ECCEDE6F.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5ListaIncompleta_0_36C84EA2-3697-4D07-8991-725E296BCB40.png",
+    "timestamp": 1791771304.947,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5ListaIncompleta.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "69EE1B4C-5CEE-44E6-9E42-A7D9C9F33CA7.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5TurnoFuturo_0_32842F5F-E9EB-4FF2-949B-4655DF9C4669.png",
+    "timestamp": 1791771304.502,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5TurnoFuturo.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "6C5B1F50-3BC4-47F4-9214-86BD01BBF900.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5Consequencias_0_22421313-3712-4260-AA2F-85DC36601B7A.png",
+    "timestamp": 1791771292.487,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5Consequencias.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "D0CA86E7-DFEE-4585-ADAE-05DD51D5B47E.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratanteAX5Perfil_0_DF060F5C-772B-428F-B0C3-A2BCCF6C587C.png",
+    "timestamp": 1791771289.879,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoEmAX5()",
+    "arquivo": "ContratanteAX5Perfil.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "AA37FB00-72C4-4F81-A0CA-48BB9853A0C4.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoCancelada_0_0F7E51C2-749B-4E95-897E-C7FCE28E74BD.png",
+    "timestamp": 1791771337.01,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoCancelada.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "4BD439D4-3EBC-467C-B13F-CF5932D158AD.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoConfirmacao_0_875F384B-1D6B-4EEC-BE20-9292C0CF38ED.png",
+    "timestamp": 1791771335.404,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoConfirmacao.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "DFBDCB87-BBEC-4112-807C-514FCF5FA7C8.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoComConsentimento_0_5E1DA4F6-C601-43CD-94C7-F5A4DF7C48C5.png",
+    "timestamp": 1791771332.385,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoComConsentimento.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "54BA29F4-AF68-4282-A37C-B3FBFAC75DB7.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoSemConsentimento_0_63A1DB23-9A6C-45D3-AD6E-D76AFA95471C.png",
+    "timestamp": 1791771329.436,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoSemConsentimento.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "06BABBA4-30B9-41A6-A8D0-3857FB371E76.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoListaIncompleta_0_4A40712B-4410-48C1-BC2F-0D13D5674081.png",
+    "timestamp": 1791771328.796,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoListaIncompleta.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "5FBA0050-5B98-4FE5-8F5D-F4DC5273BDFA.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoTurnoFuturo_0_D14D86CC-FD3F-4AD3-A7D3-1651EF599C61.png",
+    "timestamp": 1791771328.392,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoTurnoFuturo.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "BEE7D59F-7933-4238-8F1F-E6072FF37787.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoConsequencias_0_FBD17DEF-0E2B-40E1-8BBD-8464B809ACD7.png",
+    "timestamp": 1791771326.771,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoConsequencias.png"
+  },
+  {
+    "configurationName": "Test Scheme Action",
+    "deviceId": "1D91FAA0-595D-4C54-87BC-FCF91A7CA94D",
+    "deviceName": "Hulk",
+    "exportedFileName": "5900EDD6-1CBC-42E4-8996-A4E3E5DBAF31.png",
+    "isAssociatedWithFailure": false,
+    "suggestedHumanReadableName": "ContratantePadraoPerfil_0_F252982D-1BD6-4571-A625-6F6E5BBEF9BE.png",
+    "timestamp": 1791771324.12,
+    "testIdentifier": "ExclusaoDeContaUITests/testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao()",
+    "arquivo": "ContratantePadraoPerfil.png"
   }
 ]

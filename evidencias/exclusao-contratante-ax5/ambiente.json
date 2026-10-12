@@ -6,5 +6,8 @@
   "base": "57470a6aa45a2a45931c8dd34b61ecc35ea856a9",
   "xcode": "27.0",
   "buildXcode": "27A266a",
-  "commitTestado": "082b08efc60c9099909c14bc883e169e6f6910da"
+  "commitTestado": "082b08efc60c9099909c14bc883e169e6f6910da",
+  "commitBaseUltimaValidacao": "b26df9811d28b669d75ee5d3452902f56a385ce0",
+  "sha256TesteValidado": "2d38a63d79c8fd8cb147a3f265433c1c681e839476e5155a5f7571f2d7427d85",
+  "nota": "A rodada final validou o arquivo de teste com o SHA-256 acima sobre commitBaseUltimaValidacao; commitTestado identifica a rodada anterior de 7 casos."
 }

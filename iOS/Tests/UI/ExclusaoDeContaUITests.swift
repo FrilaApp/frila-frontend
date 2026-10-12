@@ -250,11 +250,13 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertTrue(consequencias.waitForExistence(timeout: Espera.aparecer))
         anexar(app, "Contratante\(tamanho)Consequencias")
 
-        let turno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
-        XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer))
-        // Pendente: a rodada de 11/10 não encontrou staticTexts neste elemento; ver evidências do PR.
-        let funcaoDoTurno = turno.staticTexts.firstMatch
-        XCTAssertTrue(funcaoDoTurno.exists)
+        // A hierarquia real propaga o identifier do turno aos quatro textos, sem contêiner pai.
+        let funcaoDoTurno = app.staticTexts.matching(NSPredicate(
+            format: "identifier == %@ AND label == %@",
+            "item-turno-futuro-82000000-0000-0000-0000-000000000001", "Garçom"
+        )).element
+        print("HULK_HIERARQUIA_\(tamanho)_INICIO\n\(app.debugDescription)\nHULK_HIERARQUIA_\(tamanho)_FIM")
+        XCTAssertTrue(funcaoDoTurno.waitForExistence(timeout: Espera.aparecer))
         rolarAte(funcaoDoTurno, em: app)
         XCTAssertFalse(app.staticTexts["texto-sem-turnos-futuros"].exists)
         anexar(app, "Contratante\(tamanho)TurnoFuturo")
