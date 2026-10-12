@@ -1,6 +1,6 @@
 # Integração contínua
 
-O workflow `.github/workflows/ios.yml` roda em pull requests e pushes que mexem em `iOS/**` (ignorando alterações restritas a Markdown `!iOS/**/*.md` e `!iOS/Docs/**`) ou no próprio workflow, em dois jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limite de 90 minutos por job. Um push novo cancela a execução anterior do mesmo PR ou branch. PRs que tocam apenas documentação não disparam a suíte, liberando a fila e economizando minutos de macOS.
+O workflow `.github/workflows/ios.yml` roda em pull requests que mexem em `iOS/**` (ignorando alterações restritas a Markdown `!iOS/**/*.md` e `!iOS/Docs/**`) ou no próprio workflow, em dois jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limite de 90 minutos por job. A suíte completa do `main` roda diariamente às 06h UTC e por `workflow_dispatch`. Um push novo cancela a execução anterior do mesmo PR; execuções agendadas e manuais têm grupos de concurrency próprios. PRs que tocam apenas documentação não disparam a suíte, liberando a fila e economizando minutos de macOS.
 
 ## Duas partes
 
@@ -67,7 +67,7 @@ Desde 24/09 a etapa 12 compila com o `frila-prod` ([Dependências externas](Exte
 
 Custo: o repositório é privado e cada minuto macOS consome cerca de dez vezes a cota de um minuto Linux. O orçamento de Actions da organização está em US$ 0 com bloqueio de uso adicional, então esgotar a cota interrompe a CI sem gerar cobrança.
 
-Tempo da CI de PR: no PR #66, em 02/10/2026, a execução levou 39m45s. Os testes do `Frila-Local` tomaram 25m45s, a compilação deles 2m35s, e os builds do Dev, do Beta e do Prod, 1m59s, 4m20s e 3m44s. Nada roda duas vezes: o workflow só dispara em pull request e em push no `main`, e um push novo cancela a execução anterior do mesmo PR. O limite subiu de 45 para 70 minutos quando os testes de interface do push (#8) entraram, e para 90 minutos em 04/10/2026 após o crescimento da suíte de testes de interface (ciclo ponta a ponta e fluxos de cancelamento com motivo), evitando cancelamentos perto do fim que desperdiçam 70 minutos e voltam inteiros à fila. PRs que alteram apenas documentação (`!iOS/**/*.md`, `!iOS/Docs/**`) não disparam o workflow, poupando ~100 minutos de macOS por PR; PRs que alteram apenas testes (`iOS/Tests/**`) rodam os testes, mas pulam os builds de Release (`Frila-Dev`, `Frila-Beta` e `Frila-Prod`) e suas conferências, economizando cerca de 7m30s a 8m30s por execução. Separar os três builds num job paralelo encurtaria a espera, mas gastaria mais cota, porque a preparação e a compilação dos pacotes se repetiriam; não foi feito.
+Tempo da CI de PR: no PR #66, em 02/10/2026, a execução levou 39m45s. Os testes do `Frila-Local` tomaram 25m45s, a compilação deles 2m35s, e os builds do Dev, do Beta e do Prod, 1m59s, 4m20s e 3m44s. Na época, o workflow disparava em pull request e em push no `main`, e um push novo cancelava a execução anterior do mesmo PR. O limite subiu de 45 para 70 minutos quando os testes de interface do push (#8) entraram, e para 90 minutos em 04/10/2026 após o crescimento da suíte de testes de interface (ciclo ponta a ponta e fluxos de cancelamento com motivo), evitando cancelamentos perto do fim que desperdiçam 70 minutos e voltam inteiros à fila. PRs que alteram apenas documentação (`!iOS/**/*.md`, `!iOS/Docs/**`) não disparam o workflow, poupando ~100 minutos de macOS por PR; PRs que alteram apenas testes (`iOS/Tests/**`) rodam os testes, mas pulam os builds de Release (`Frila-Dev`, `Frila-Beta` e `Frila-Prod`) e suas conferências, economizando cerca de 7m30s a 8m30s por execução. Separar os três builds num job paralelo encurtaria a espera, mas gastaria mais cota, porque a preparação e a compilação dos pacotes se repetiriam; não foi feito.
 
 Em outubro de 2026 o job único chegou perto do limite: na 37244334865 (push no `main`, 05/10) ele terminou em 85m45s, 75 deles no passo de testes. A primeira tentativa do PR #147 separou a interface num job e deixou os unitários e os builds de Release em outro. O job de interface levou 81m09s na 37241695780 e foi cortado nos 90 minutos na 37251084274. Nessa execução, as 16 primeiras classes levaram 46,5 minutos, contra 38,8 na 37241695780. Daí as duas partes de hoje, com os builds de Release na parte 2 em vez de num terceiro job.
 
@@ -85,6 +85,99 @@ Para disparar à mão no `main` (ex.: antes de tag de TestFlight):
 ```sh
 gh workflow run ios.yml --ref main
 ```
+
+## Medição de PR e CI em 12/10/2026
+
+Amostra fixa obtida por `gh run list --limit 40 --json databaseId,conclusion,createdAt,updatedAt,headBranch,event`, antes deste PR. As 40 execuções retornadas pertencem ao `ios.yml`: 18 passaram, 10 falharam e 12 foram canceladas. Dados de etapas vêm de `gh api repos/FrilaApp/frila-frontend/actions/runs/<id>/jobs?per_page=100`; tentativas anteriores vêm de `/attempts/<n>/jobs`. Os logs de falha foram lidos com `gh run view <id> --attempt <n> --log-failed`, filtrando os diagnósticos reais `##[error]`, sem contar o texto dos comandos como erro.
+
+Inferência: relógio é `updatedAt - createdAt`, incluindo fila e espera por reexecução. Minutos de macOS são a soma de `completed_at - started_at` de cada job executado, em todas as tentativas. Jobs aprovados reapresentados na tentativa seguinte são deduplicados pelo nome e pelos horários, para não contar duas vezes o mesmo trabalho. É ocupação observada do runner, sem multiplicador de cobrança nem arredondamento por minuto. Uma execução cancelada não é uma prova de suíte completa.
+
+| Amostra | Execuções | Mediana de relógio, min | Mediana de macOS, min |
+|---|---:|---:|---:|
+| Todas | 40 | 72.91 | 110.02 |
+| Aprovadas, incluindo reexecuções | 18 | 112.82 | 118.12 |
+| Aprovadas na primeira tentativa | 15 | 103.93 | 117.62 |
+
+Os números de cada execução ficam abaixo. Fonte de cada linha: página da execução e metadados dos jobs dessa execução.
+
+| Execução | Resultado | Tentativas | Relógio, min | macOS, min |
+|---|---|---:|---:|---:|
+| [38234482503](https://github.com/FrilaApp/frila-frontend/actions/runs/38234482503) | failure | 1 | 67.05 | 126.67 |
+| [38227733237](https://github.com/FrilaApp/frila-frontend/actions/runs/38227733237) | success | 1 | 61.93 | 117.95 |
+| [38226467370](https://github.com/FrilaApp/frila-frontend/actions/runs/38226467370) | failure | 1 | 68.05 | 130.17 |
+| [38216257700](https://github.com/FrilaApp/frila-frontend/actions/runs/38216257700) | failure | 1 | 76.65 | 76.33 |
+| [38215604811](https://github.com/FrilaApp/frila-frontend/actions/runs/38215604811) | success | 2 | 110.85 | 168.63 |
+| [38215055981](https://github.com/FrilaApp/frila-frontend/actions/runs/38215055981) | failure | 1 | 69.17 | 120.70 |
+| [38210713834](https://github.com/FrilaApp/frila-frontend/actions/runs/38210713834) | cancelled | 1 | 57.25 | 108.47 |
+| [38209791089](https://github.com/FrilaApp/frila-frontend/actions/runs/38209791089) | cancelled | 1 | 13.38 | 24.67 |
+| [38205877694](https://github.com/FrilaApp/frila-frontend/actions/runs/38205877694) | cancelled | 1 | 54.55 | 3.92 |
+| [38205720848](https://github.com/FrilaApp/frila-frontend/actions/runs/38205720848) | cancelled | 1 | 2.47 | 2.85 |
+| [38204793157](https://github.com/FrilaApp/frila-frontend/actions/runs/38204793157) | success | 1 | 134.93 | 122.90 |
+| [38201170765](https://github.com/FrilaApp/frila-frontend/actions/runs/38201170765) | success | 1 | 135.33 | 118.32 |
+| [38200440540](https://github.com/FrilaApp/frila-frontend/actions/runs/38200440540) | success | 1 | 133.88 | 106.27 |
+| [38199793161](https://github.com/FrilaApp/frila-frontend/actions/runs/38199793161) | cancelled | 1 | 9.73 | 19.43 |
+| [38199334771](https://github.com/FrilaApp/frila-frontend/actions/runs/38199334771) | cancelled | 1 | 95.48 | 16.40 |
+| [38199224104](https://github.com/FrilaApp/frila-frontend/actions/runs/38199224104) | failure | 1 | 102.07 | 106.58 |
+| [38198484847](https://github.com/FrilaApp/frila-frontend/actions/runs/38198484847) | cancelled | 1 | 13.10 | 23.73 |
+| [38197917880](https://github.com/FrilaApp/frila-frontend/actions/runs/38197917880) | success | 1 | 117.72 | 96.38 |
+| [38197380903](https://github.com/FrilaApp/frila-frontend/actions/runs/38197380903) | cancelled | 1 | 8.17 | 16.27 |
+| [38195226860](https://github.com/FrilaApp/frila-frontend/actions/runs/38195226860) | cancelled | 1 | 91.18 | 95.45 |
+| [38195190782](https://github.com/FrilaApp/frila-frontend/actions/runs/38195190782) | failure | 1 | 143.02 | 110.07 |
+| [38194882234](https://github.com/FrilaApp/frila-frontend/actions/runs/38194882234) | success | 1 | 161.63 | 126.85 |
+| [38194800402](https://github.com/FrilaApp/frila-frontend/actions/runs/38194800402) | cancelled | 1 | 56.97 | 57.07 |
+| [38193874852](https://github.com/FrilaApp/frila-frontend/actions/runs/38193874852) | success | 1 | 82.67 | 117.62 |
+| [38190911547](https://github.com/FrilaApp/frila-frontend/actions/runs/38190911547) | success | 1 | 114.80 | 118.53 |
+| [38190908779](https://github.com/FrilaApp/frila-frontend/actions/runs/38190908779) | success | 1 | 59.62 | 113.88 |
+| [38190829419](https://github.com/FrilaApp/frila-frontend/actions/runs/38190829419) | cancelled | 1 | 62.15 | 113.70 |
+| [38175884230](https://github.com/FrilaApp/frila-frontend/actions/runs/38175884230) | success | 1 | 59.83 | 111.28 |
+| [38172870868](https://github.com/FrilaApp/frila-frontend/actions/runs/38172870868) | cancelled | 1 | 44.12 | 11.02 |
+| [38168810693](https://github.com/FrilaApp/frila-frontend/actions/runs/38168810693) | success | 1 | 146.35 | 111.47 |
+| [38168778372](https://github.com/FrilaApp/frila-frontend/actions/runs/38168778372) | success | 2 | 386.93 | 155.20 |
+| [38168644182](https://github.com/FrilaApp/frila-frontend/actions/runs/38168644182) | failure | 1 | 115.30 | 109.48 |
+| [38168624486](https://github.com/FrilaApp/frila-frontend/actions/runs/38168624486) | success | 1 | 103.93 | 113.80 |
+| [38168621318](https://github.com/FrilaApp/frila-frontend/actions/runs/38168621318) | success | 1 | 59.87 | 96.85 |
+| [38166754146](https://github.com/FrilaApp/frila-frontend/actions/runs/38166754146) | success | 1 | 62.93 | 121.62 |
+| [38162148668](https://github.com/FrilaApp/frila-frontend/actions/runs/38162148668) | success | 1 | 65.68 | 118.28 |
+| [38147538344](https://github.com/FrilaApp/frila-frontend/actions/runs/38147538344) | failure | 1 | 110.78 | 108.85 |
+| [38147273572](https://github.com/FrilaApp/frila-frontend/actions/runs/38147273572) | success | 2 | 270.52 | 156.87 |
+| [38147187284](https://github.com/FrilaApp/frila-frontend/actions/runs/38147187284) | failure | 1 | 89.05 | 95.02 |
+| [38147026271](https://github.com/FrilaApp/frila-frontend/actions/runs/38147026271) | failure | 1 | 60.03 | 109.97 |
+
+Inferência: nas 15 execuções aprovadas na primeira tentativa, a mediana por etapa foi 3,80 min para `build-for-testing` (30 jobs), 53,17 min para os testes da parte 1 (15 jobs), 41,70 min para os testes da parte 2 (15 jobs), 1,97 min para Dev, 5,07 min para Beta e 4,30 min para Prod (11 jobs com cada build). Restaurar SPM levou 0,28 min (30 jobs). Capturas não têm etapa própria: estão incluídas na interface. Duração isolada das capturas não encontrada nos metadados de etapas, buscados nos 40 jobs e nos logs de falha; não tratar o tempo da interface como tempo de captura.
+
+### Falhas e repetições
+
+| Teste ou portão | Execuções com o diagnóstico | Diagnóstico lido |
+|---|---|---|
+| `Carregar com a contestação já aberta no servidor entra em análise e bloqueia nova contestação` | 38147026271, 38147187284, 38147538344 | `emAnalise` falso |
+| `testExportarMeusDadosErroServidorMostraAvisoDeErro` | 38168644182 | Botão ausente e falha no toque |
+| `testToqueComOAppAbertoEmNotificacaoDeTurnoAbreMeuTurno` | 38195190782 | Destino esperado ausente |
+| `testPerguntaSimNaoEmOrdemComRotuloValorESelecao` | 38199224104 | Falha ao terminar o app |
+| `testEnvioDeAvaliacaoPelaRotaDiretaMostraConfirmacao` | 38215055981 | Confirmação ausente |
+| `testPerfisComESemHistoricoEmAX5` | 38216257700, 38226467370 | Perfil não inteiramente visível |
+| `Conferir textos, tokens e datas dos dublês` | 38216257700 | Três datas fixas nos dublês; também houve falha de interface na parte 2 |
+| `testEnderecoEQuemRecebeDoTurnoCanceladoNaoCortamEmAX5` | 38234482503 | `XCTAssertTrue` reprovou |
+
+Além dessas dez execuções reprovadas, três execuções terminaram aprovadas depois de uma segunda tentativa no mesmo commit: 38147273572 (`testPilulaDeFiltroNaoDependeApenasDeCor`, falha ao terminar o app), 38168778372 (`testToqueComOAppFechadoAbreODestino`, destino ausente) e 38215604811 (`testCapturasDoCatalogoEmAX5`, timeout ao lançar o app). Inferência: são três repetições compatíveis com instabilidade, comprovadas pelo mesmo SHA e pela mudança de resultado; isso não prova a causa do erro. Cada uma repetiu somente a parte reprovada. Não foi encontrada outra reexecução no mesmo SHA na amostra; branches iguais com commits distintos não contam como repetição de instável.
+
+### Mudança e alternativas
+
+O workflow inicia o boot depois de escolher o simulador e aguarda `simctl bootstatus -b` antes dos testes. Assim o boot pode terminar durante `build-for-testing`, sem alterar os testes selecionados. `-parallel-testing-enabled NO` fica explícito nas duas partes para manter um único simulador por runner. Os portões de contrato, os builds de Release e a publicação do xcresult de falha continuam obrigatórios nas mesmas condições.
+
+| Medida | Decisão | Ganho estimado e risco |
+|---|---|---|
+| Antecipar boot e esperar prontidão | Implementada | Inferência: de 0 a 3,80 min por job podem sobrepor a espera de boot, usando a mediana da compilação como limite superior da estimativa. Ganho real fica na comparação do PR. Risco: CPU dividida durante a compilação pode reduzir esse ganho. Falha de boot continua reprovando o job. |
+| Cache de SPM | Mantido | Já existe e foi usado na amostra. Ganho adicional desta missão: 0 min. |
+| Cache de DerivedData | Adiado | `[A DEFINIR]`: não há comparação de cache frio/quente de módulos. Produtos de build contêm configuração injetada e permanecem fora do cache. |
+| Cancelar execução anterior e excluir docs e `.workers` | Mantido | Já existe. Ganho adicional: 0 min; `iOS/Contrato/**` continua disparando os portões. Não trocar por `paths-ignore` amplo. |
+| Unitários separados de toda a interface | Descartado | O documento registra a tentativa anterior: interface inteira excedeu 90 min. Ganho seguro não encontrado. |
+| Terceiro job só de Release | Adiado | `[A DEFINIR]`: poupa o trecho de Release no caminho crítico, mas repete preparação e pode aumentar fila/cota. Não há runner adicional garantido. |
+| Quarentena | Não aplicada | Nenhum teste removido, pulado ou enfraquecido. Ainda é preciso diagnóstico e ticket específico antes de propor quarentena; falha de assert não é automaticamente instável. |
+| Reexecutar automaticamente job reprovado | Adiado | `[A DEFINIR]`: três tentativas históricas já repetem somente a parte reprovada. Automação exigiria permissão de escrita em Actions e classificação de falhas; repetição incondicional pode esconder regressão. Para repetir somente jobs reprovados, usar `gh run rerun <id> --failed`. |
+
+O limite desta missão é duas execuções de CI, confirmado pelo Nick Fury. A tabela antes/depois, o resultado dos checks e os tempos da execução deste PR serão registrados no corpo do PR, após a CI. Uma execução por desenho é evidência pontual, não uma estimativa confiável de melhora da mediana futura.
+
+`AGENTS.md` não foi alterado. Sugestão para o Nick Fury: registrar o teto explícito de CI por missão, exigir `gh run rerun <id> --failed` ao repetir instável identificado e conservar o SHA e o motivo de cada reexecução. Os scripts locais de prova e merge foram apenas lidos. `merge-quando-verde.sh` confere conclusão e SHA; `prova-e-merge.sh` já espera o boot antes da prova local. A fila do `xcb.sh` é da máquina local e não se aplica aos runners independentes do GitHub.
 
 ## Mandar um build ao TestFlight
 

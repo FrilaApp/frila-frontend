@@ -149,6 +149,8 @@ jobs:
             exit 1
           fi
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          # O boot roda durante a compilação; bootstatus confirma o término antes dos testes.
+          xcrun simctl boot "$UDID"
 
       - name: Compilar os testes do Frila-Local (sem backend)
         run: |
@@ -168,12 +170,14 @@ jobs:
           LISTA="$(Scripts/partes-dos-testes.sh argumentos 1)"
           PARTE=()
           while IFS= read -r argumento; do PARTE+=("$argumento"); done <<< "$LISTA"
+          xcrun simctl bootstatus "${{ steps.simulador.outputs.udid }}" -b
           xcodebuild test-without-building \
             -project Frila.xcodeproj \
             -scheme Frila-Local \
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
+            -parallel-testing-enabled NO \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
@@ -335,6 +339,8 @@ jobs:
             exit 1
           fi
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          # O boot roda durante a compilação; bootstatus confirma o término antes dos testes.
+          xcrun simctl boot "$UDID"
 
       # Compila antes de gerar o Secrets.xcconfig dos builds de Release: o Shared.xcconfig o inclui
       # quando existe, e o Frila-Local não deve levar chave de backend.
@@ -413,12 +419,14 @@ jobs:
           LISTA="$(Scripts/partes-dos-testes.sh argumentos 2)"
           PARTE=()
           while IFS= read -r argumento; do PARTE+=("$argumento"); done <<< "$LISTA"
+          xcrun simctl bootstatus "${{ steps.simulador.outputs.udid }}" -b
           xcodebuild test-without-building \
             -project Frila.xcodeproj \
             -scheme Frila-Local \
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
+            -parallel-testing-enabled NO \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
