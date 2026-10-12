@@ -452,4 +452,39 @@ struct DestinosDoAvisoTests {
         let fora = literais.filter { chaves[$0] == nil }
         #expect(fora.isEmpty, "textos fora do catálogo: \(fora)")
     }
+
+    @Test("Fixtures .apns para simctl push decodificam e geram o destino correto no roteador")
+    func fixturesApnsDecodificamECaminhamParaDestino() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let pastaFixtures = raiz.appending(path: "Tests/Fixtures/Push")
+        let arquivos = ["vaga.apns", "confirmacao-profissional.apns", "checkin-manual-contratante.apns", "lembrete-turno.apns", "cancelamento.apns"]
+        for nome in arquivos {
+            let url = pastaFixtures.appending(path: nome)
+            let dados = try Data(contentsOf: url)
+            let json = try JSONSerialization.jsonObject(with: dados) as? [String: Any]
+            let payload = try #require(json)
+            #expect(payload["Simulator Target Bundle"] as? String == "com.frila.org.app")
+            #expect(payload["aps"] != nil)
+            let tipo = try #require(payload["tipo"] as? String)
+
+            if tipo == "vaga" {
+                let decisao = RoteadorDePush.decidir(payload: payload, entregueEm: depois, conta: conta(.profissional))
+                #expect(decisao == .abrir(.profissional(.vaga(IDs.vaga))))
+            } else if tipo == "confirmacao" {
+                let decisaoProf = RoteadorDePush.decidir(payload: payload, entregueEm: depois, conta: conta(.profissional))
+                #expect(decisaoProf == .abrir(.profissional(.turno(IDs.turno))))
+            } else if tipo == "checkin_manual_pendente" {
+                let decisaoContr = RoteadorDePush.decidir(payload: payload, entregueEm: depois, conta: conta(.contratante))
+                let turnoCasa = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
+                #expect(decisaoContr == .abrir(.contratante(.checkinManualPendente(turnoID: turnoCasa))))
+            } else if tipo == "lembrete_3h" {
+                let decisaoProf = RoteadorDePush.decidir(payload: payload, entregueEm: depois, conta: conta(.profissional))
+                #expect(decisaoProf == .abrir(.profissional(.turno(IDs.turno))))
+            } else if tipo == "cancelamento" {
+                let decisaoProf = RoteadorDePush.decidir(payload: payload, entregueEm: depois, conta: conta(.profissional))
+                #expect(decisaoProf == .abrir(.profissional(.meusTurnos)))
+            }
+        }
+    }
 }
