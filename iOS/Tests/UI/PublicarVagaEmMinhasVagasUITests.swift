@@ -33,7 +33,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.5)
         valor.digitarEEsperar("18000", esperado: "180,00")
         app.swipeUp()
-        app.buttons["publicar-vaga-botao"].tap()
+        tocar(app.buttons["publicar-vaga-botao"])
     }
 
     func testContratanteComEstabelecimentoPublicaASegundaVagaEElaApareceNaLista() {
@@ -44,7 +44,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let antes = vagas(app).count
         let entrada = app.buttons["publicar-vaga-entrada"]
         XCTAssertTrue(entrada.isHittable, "a entrada fica à vista com a lista cheia, e não só na lista vazia")
-        entrada.tap()
+        tocar(entrada)
 
         preencherEPublicar(app)
 
@@ -60,10 +60,10 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 15))
         let antes = vagas(app).count
-        app.buttons["publicar-vaga-entrada"].tap()
+        tocar(app.buttons["publicar-vaga-entrada"])
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        app.buttons["cancelar-publicacao"].tap()
+        tocar(app.buttons["cancelar-publicacao"])
 
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
         XCTAssertEqual(vagas(app).count, antes)
@@ -74,7 +74,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["publicar-vaga-entrada"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.descendants(matching: .any)["explicacao-do-push"].exists)
-        app.buttons["publicar-vaga-entrada"].tap()
+        tocar(app.buttons["publicar-vaga-entrada"])
 
         preencherEPublicar(app)
 

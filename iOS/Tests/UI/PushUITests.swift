@@ -32,7 +32,7 @@ final class PushUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Vaga encerrada"].exists)
         XCTAssertFalse(app.buttons["candidatar"].exists)
 
-        app.buttons["voltar-para-lista"].tap()
+        tocar(app.buttons["voltar-para-lista"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
@@ -49,7 +49,7 @@ final class PushUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-aviso-nao-encontrado"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.descendants(matching: .any)["tela-meu-turno"].exists)
 
-        app.buttons["ver-meus-turnos"].tap()
+        tocar(app.buttons["ver-meus-turnos"])
         XCTAssertTrue(app.descendants(matching: .any)["tela-meus-turnos"].waitForExistence(timeout: 10))
     }
 
