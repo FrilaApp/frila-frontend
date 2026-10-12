@@ -10,15 +10,32 @@ Documento de especificação e catálogo de modelos de e-mails transacionais e o
 
 ---
 
-## 1. Diretrizes de Design e Entregabilidade
+## 1. Diretrizes de Design, Entregabilidade e Fontes Oficiais
 
-Os e-mails transacionais do Frila são projetados para máxima entregabilidade, acessibilidade e clareza, especialmente para evitar filtros de spam no Gmail e iCloud Mail.
+Os e-mails transacionais do Frila são projetados para máxima entregabilidade, acessibilidade e clareza, evitando filtros de spam no Gmail e iCloud Mail.
 
-### 1.1 Princípios de Construção
+### 1.1 Fontes Oficiais de Endereços, URLs e Prazos
+
+Todos os endereços, domínios, números e parâmetros utilizados neste documento derivam de fontes verificadas no repositório:
+
+| Parâmetro / Variável | Valor / Formato | Fonte Verificada | Observação de Governança |
+|---|---|---|---|
+| `{{email_suporte}}` | `suportefrila@gmail.com` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:22`<br>`iOS/Docs/AjudaESuporte.md:19` | E-mail oficial padrão do produto injetado na camada de apresentação (`EnderecosOficiais.padrao.emailSuporte`). |
+| `{{destinatario_time}}` | `[A DEFINIR]` | Cartão Trello `oYSwLrIS` | Destinatário da lista operacional técnica. Não definido em código; mantido como variável a configurar na infraestrutura. |
+| `{{link_painel}}` | `[A DEFINIR]` | Cartão Trello `oYSwLrIS` | URL do painel de monitoramento do backend. Mantido como variável a configurar. |
+| Domínio / Termos | `https://frila.app/termos` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:20` | URL pública oficial dos Termos de Uso. |
+| Domínio / Privacidade | `https://frila.app/privacidade` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:21`<br>`iOS/Docs/PaginaPublica/VALIDACAO.md:99` | URL pública oficial da Política de Privacidade. |
+| Domínio do site | `https://frila.app` | `EnderecosOficiais.swift:20-21` | Host base derivado das páginas legais oficiais. |
+| Validade do código de entrada | *"Ele vale por pouco tempo e para uma única entrada."* | Sem prazo no contrato público (`iOS/Contrato/openapi.yaml:1109-1180`) | O arquivo `frila-backend/supabase/config.toml:219` define `otp_expiry = 600` (10 min local). Porém, como a validade em minutos não está contratualizada na especificação da API nem nos Requisitos (RF01), o texto segue a regra de **sem promessa de tempo**, omitindo números não contratados. Definição formal pendente para Cauê/João Paulo. |
+| Prazo de moderação de denúncia | *Até 24 horas* | Diretriz 1.2 da App Store<br>`iOS/Docs/AjudaESuporte.md:51,62` | Compromisso exigido pela Apple para triagem de conteúdo abusivo gerado por usuários. |
+| Prazo de resposta da Equipe Frila | *Até 5 dias úteis* | LGPD art. 20<br>`iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:393`<br>`frila-backend/supabase/functions/enviar-email/modelos.ts:85,106` | Prazo legal e regulamentar do suporte negocial, contestações e revisões de despacho. |
+| Telefones de emergência | 190 e 180 | Requisitos v1.5.0 (RF23, UC14)<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift` | Canais públicos de atendimento policial (190) e violência contra a mulher (180). |
+
+### 1.2 Princípios de Construção Visual
 1. **Sem dependências externas de imagem:** Não há carregamento de imagens remotas, rastreadores ou fontes externas via web. A identidade visual usa a marca em texto formatado (*wordmark* CSS). Isso impede bloqueio de exibição nos clientes de e-mail e garante carregamento instantâneo.
 2. **Compatibilidade com modo escuro:** O leiaute utiliza cores neutras com estilos inline e regras CSS que preservam contraste legível tanto no modo claro quanto no modo escuro do Apple Mail e Gmail.
 3. **Visibilidade do código na notificação:** O código de acesso de 6 dígitos é posicionado no início do assunto e no pré-cabeçalho, permitindo leitura direta na notificação do sistema ou na lista de mensagens sem necessidade de abrir o e-mail.
-4. **Marcação de variáveis:** Todas as variáveis dinâmicas utilizam o formato padronizado `{{variavel}}` (duplas chaves sem espaços internos).
+4. **Marcação uniforme de variáveis:** Todas as variáveis dinâmicas utilizam o formato padronizado `{{variavel}}` (duplas chaves sem espaços internos).
 5. **Zero dados pessoais em trânsito (RN15, LGPD):** Nenhum e-mail transacional replica relatos de denúncia, nomes da outra parte envolvida, CPFs ou textos livres. O acompanhamento é feito exclusivamente por meio de números de protocolo.
 6. **Ausência de comissão e promessas de tempo:** Os textos seguem com rigor o Guia de Voz do produto: nenhuma menção a "comissão" e nenhuma promessa subjetiva de rapidez.
 
@@ -30,11 +47,13 @@ E-mail disparado durante o fluxo de entrada e cadastro (RF01, UC09, UC10). A pes
 
 - **Gatilho:** Solicitação de código na tela de entrada do aplicativo.
 - **Destinatário:** E-mail informado pelo usuário.
-- **Variáveis:** `{{codigo}}` (código de 6 dígitos gerado pelo serviço de autenticação).
+- **Variáveis:**
+  - `{{codigo}}` (código de 6 dígitos gerado pelo serviço de autenticação).
+  - `{{email_suporte}}` (e-mail oficial de suporte: `suportefrila@gmail.com`).
 
 ### 2.1 Metadados do E-mail
 - **Assunto:** `{{codigo}} é seu código de entrada no Frila`
-- **Pré-cabeçalho:** `Use este código de 6 dígitos para entrar na sua conta. Ele vale por 10 minutos.`
+- **Pré-cabeçalho:** `Use este código de 6 dígitos para entrar na sua conta. Ele vale por pouco tempo e para uma única entrada.`
 
 ### 2.2 Versão Texto Simples
 
@@ -43,13 +62,13 @@ Frila
 
 Seu código de entrada: {{codigo}}
 
-Digite este código no aplicativo para entrar na sua conta. Ele vale por 10 minutos e serve para uma única validação.
+Digite este código no aplicativo para entrar na sua conta. Ele vale por pouco tempo e para uma única entrada.
 
 Se você não solicitou este código, ignore esta mensagem. Ninguém consegue entrar na sua conta sem o código de acesso.
 
 --
 Frila · Turnos avulsos e trabalho pontual
-suporte@frila.app · https://frila.app
+{{email_suporte}} · https://frila.app
 ```
 
 ### 2.3 Versão HTML
@@ -88,7 +107,7 @@ suporte@frila.app · https://frila.app
   </style>
 </head>
 <body>
-  <div class="preview-text">Use este código de 6 dígitos para entrar na sua conta. Ele vale por 10 minutos.</div>
+  <div class="preview-text">Use este código de 6 dígitos para entrar na sua conta. Ele vale por pouco tempo e para uma única entrada.</div>
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: transparent;">
     <tr>
       <td align="center">
@@ -98,12 +117,12 @@ suporte@frila.app · https://frila.app
           <div class="code-box">
             <span class="code-value">{{codigo}}</span>
           </div>
-          <p class="info">Digite este código no aplicativo para continuar. Ele vale por 10 minutos e serve para uma única validação.</p>
+          <p class="info">Digite este código no aplicativo para continuar. Ele vale por pouco tempo e para uma única entrada.</p>
           <p class="security-note">Se você não solicitou este código, ignore esta mensagem. Ninguém consegue entrar na sua conta sem o código de acesso.</p>
         </div>
         <div class="footer">
           Frila · Turnos avulsos e trabalho pontual<br>
-          <a href="https://frila.app">frila.app</a> · <a href="mailto:suporte@frila.app">suporte@frila.app</a>
+          <a href="https://frila.app">frila.app</a> · <a href="mailto:{{email_suporte}}">{{email_suporte}}</a>
         </div>
       </td>
     </tr>
@@ -125,6 +144,7 @@ E-mail de confirmação enviado à pessoa que submeteu uma denúncia de conteúd
   - `{{protocolo_curto}}` (primeiros 8 caracteres alfanuméricos em maiúsculas).
   - `{{categoria}}` (motivo classificado: Assédio, Discriminação, Risco à segurança ou Outro).
   - `{{data_abertura}}` (data formatada no padrão DD/MM/AAAA).
+  - `{{email_suporte}}` (e-mail oficial de suporte: `suportefrila@gmail.com`).
 
 ### 3.1 Metadados do E-mail
 - **Assunto:** `[Frila] Recebemos sua denúncia · Protocolo {{protocolo_curto}}`
@@ -150,7 +170,7 @@ Em caso de risco imediato, procure a autoridade policial pelos números 190 (Pol
 
 --
 Equipe Frila · Moderação e Segurança
-suporte@frila.app · https://frila.app
+{{email_suporte}} · https://frila.app
 ```
 
 ### 3.3 Versão HTML
@@ -218,7 +238,7 @@ suporte@frila.app · https://frila.app
         </div>
         <div class="footer">
           Equipe Frila · Moderação e Segurança<br>
-          <a href="https://frila.app">frila.app</a> · <a href="mailto:suporte@frila.app">suporte@frila.app</a>
+          <a href="https://frila.app">frila.app</a> · <a href="mailto:{{email_suporte}}">{{email_suporte}}</a>
         </div>
       </td>
     </tr>
@@ -241,6 +261,7 @@ E-mail de confirmação enviado quando o usuário registra uma contestação for
   - `{{tipo_contestacao}}` (Suspensão de conta ou Revisão de despacho).
   - `{{data_abertura}}` (data formatada no padrão DD/MM/AAAA).
   - `{{prazo_resposta}}` (data correspondente ao quinto dia útil).
+  - `{{email_suporte}}` (e-mail oficial de suporte: `suportefrila@gmail.com`).
 
 ### 4.1 Metadados do E-mail
 - **Assunto:** `[Frila] Recebemos sua contestação · Protocolo {{protocolo_curto}}`
@@ -265,7 +286,7 @@ Guarde o número do seu protocolo para referência.
 
 --
 Equipe Frila · Atendimento e Conformidade
-suporte@frila.app · https://frila.app
+{{email_suporte}} · https://frila.app
 ```
 
 ### 4.3 Versão HTML
@@ -325,7 +346,7 @@ suporte@frila.app · https://frila.app
         </div>
         <div class="footer">
           Equipe Frila · Atendimento e Conformidade<br>
-          <a href="https://frila.app">frila.app</a> · <a href="mailto:suporte@frila.app">suporte@frila.app</a>
+          <a href="https://frila.app">frila.app</a> · <a href="mailto:{{email_suporte}}">{{email_suporte}}</a>
         </div>
       </td>
     </tr>
@@ -341,13 +362,14 @@ suporte@frila.app · https://frila.app
 E-mail de notificação técnica operacional enviado à Equipe Frila quando o monitoramento do backend identifica falha em serviços essenciais (fila de mensagens, gateway de autenticação ou anomalia operacional).
 
 - **Gatilho:** Disparo do monitoramento interno (job agendado ou detector de integridade).
-- **Destinatário:** Grupo operacional da Equipe Frila (`alerta@frila.app` ou lista técnica configurada).
+- **Destinatário:** `{{destinatario_time}}` `[A DEFINIR]`.
 - **Variáveis:**
+  - `{{destinatario_time}}` (`[A DEFINIR]` na infraestrutura operacional).
   - `{{codigo_alerta}}` (código técnico do evento, ex.: `FILA_PUSH_BLOQUEADA`, `TAXA_FALHA_RPC`).
   - `{{servico}}` (componente afetado: Postgres, Edge Functions, APNs, SMTP).
   - `{{instante}}` (data e hora no fuso oficial de Brasília: DD/MM/AAAA às HH:mm).
-  - `{{detalhe_metrica}}` (valor numérico observado, ex.: `42 falhas em 5 minutos`).
-  - `{{link_painel}}` (URL direta para o dashboard de operação/diagnóstico).
+  - `{{detalhe_metrica}}` (valor numérico observado, ex.: `42 falhas`).
+  - `{{link_painel}}` (`[A DEFINIR]` na infraestrutura operacional).
 
 ### 5.1 Metadados do E-mail
 - **Assunto:** `[Frila Alerta] {{codigo_alerta}} · {{servico}}`
@@ -448,11 +470,14 @@ Monitoramento Frila · Infraestrutura e Confiabilidade
 | **Quatro modelos especificados (código, denúncia, contestação e alerta)** | Concluído | Seções 2, 3, 4 e 5 completas com assunto, pré-cabeçalho, corpo e rodapé. |
 | **Versões completas em HTML e texto simples** | Concluído | Todos os 4 modelos contam com código HTML independente e bloco de texto simples. |
 | **HTML sem recursos externos e legível em modo escuro** | Concluído | Zero imagens remotas, CSS inline, paleta sem dependências e estilos dark mode testados. |
-| **Código no assunto e legível na notificação sem abrir o e-mail** | Concluído | Assunto: `{{codigo}} é seu código de entrada no Frila`; pré-cabeçalho com `{{codigo}}`. |
-| **Prazos normativos corretos (24h moderação, 5 dias úteis suporte/contestação)** | Concluído | Seção 3 (denúncia) e Seção 4 (contestação) alinhados à Diretriz 1.2 e LGPD art. 20. |
+| **Código no assunto e legível na notificação sem abrir o e-mail** | Concluído | Assunto: `{{codigo}} é seu código de entrada no Frila`; pré-cabeçalho iniciado pelo código. |
+| **Prazos normativos corretos (24h moderação, 5 dias úteis suporte/contestação)** | Concluído | Seção 3 (denúncia) e Seção 4 (contestação) alinhados à Diretriz 1.2 da App Store e LGPD art. 20. |
 | **Telefones de emergência 190 e 180 no modelo de denúncia** | Concluído | Seção 3 (texto simples e HTML) com destaque para atendimento policial e mulher. |
-| **Alerta do time sem dados pessoais** | Concluído | Seção 5 restrita a métricas operacionais, instante e links do painel (RN15). |
-| **Terminologia do Guia de Voz e ausência da palavra "comissão"** | Concluído | Vocabulário auditado contra `GuiaDeVoz.md`, sem "comissão" e sem promessas de tempo. |
+| **Alerta do time sem dados pessoais e com destinatário/link a definir** | Concluído | Seção 5 restrita a métricas operacionais, instante, `{{destinatario_time}} [A DEFINIR]` e `{{link_painel}} [A DEFINIR]`. |
+| **Endereços oficiais ancorados em fontes verificadas** | Concluído | Tabela 1.1 com fontes de `EnderecosOficiais.swift`, `AjudaESuporte.md` e `VALIDACAO.md`. Variável `{{email_suporte}}` ancorada em `suportefrila@gmail.com`. |
+| **Sem promessa de tempo na validade do código** | Concluído | Validade descrita como *"Ele vale por pouco tempo e para uma única entrada"*, sem número de minutos inventado. |
+| **Terminologia do Guia de Voz e ausência da palavra "comissão"** | Concluído | Vocabulário auditado contra `GuiaDeVoz.md`, sem "comissão". |
 | **Conferência de scripts (`conferir-textos.sh`)** | Concluído | `iOS/Scripts/conferir-textos.sh` aprovado sem erros. |
-| **Critério de entrega na caixa de entrada (Gmail e iCloud) com captura no Trello** | Em falta | Depende da infraestrutura de SMTP próprio no Supabase Auth e testes externos de entrega. |
+| **Validação da entrega na caixa de entrada (Gmail e iCloud) com captura no Trello** | Em falta | Depende da infraestrutura de SMTP próprio no Supabase Auth e testes externos de envio. |
 | **Aprovação dos textos pela Júlia** | Em falta | Depende de validação e aprovação formal pela Júlia no cartão Trello. |
+| **Homologação formal do prazo de validade do código OTP** | Em falta | Definição formal do prazo de expiração (se 10 min de `config.toml` deve ir para o texto) para Cauê/João Paulo. |
