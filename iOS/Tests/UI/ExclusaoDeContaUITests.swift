@@ -255,7 +255,6 @@ final class ExclusaoDeContaUITests: XCTestCase {
             format: "identifier == %@ AND label == %@",
             "item-turno-futuro-82000000-0000-0000-0000-000000000001", "Garçom"
         )).element
-        print("HULK_HIERARQUIA_\(tamanho)_INICIO\n\(app.debugDescription)\nHULK_HIERARQUIA_\(tamanho)_FIM")
         XCTAssertTrue(funcaoDoTurno.waitForExistence(timeout: Espera.aparecer))
         rolarAte(funcaoDoTurno, em: app)
         XCTAssertFalse(app.staticTexts["texto-sem-turnos-futuros"].exists)
