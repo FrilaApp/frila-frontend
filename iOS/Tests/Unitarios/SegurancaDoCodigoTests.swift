@@ -1,4 +1,6 @@
 import Foundation
+import FrilaApresentacao
+import FrilaDados
 import Testing
 
 /// Busca estática no código do app (critério 4 do #53): os logs de execução são auditados por
@@ -119,5 +121,53 @@ struct SegurancaDoCodigoTests {
             }
         }
         #expect(achados.isEmpty, "log com dado sensível em \(achados)")
+    }
+
+    // MARK: - Acessibilidade e Colagem do Código (JayUsWVo)
+
+    @Test("Entrada de código suporta colagem direta limitando a 6 dígitos e filtrando caracteres mistos")
+    @MainActor
+    func colagemDeCodigoFiltraELimita() {
+        let api = ApiClienteEmMemoria()
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+
+        // Código colado com mais de 6 caracteres limita em 6 dígitos
+        vm.codigo = "12345678"
+        #expect(vm.codigo == "123456")
+        #expect(vm.codigoValido)
+
+        // Código colado com caracteres mistos filtra apenas dígitos e limita em 6
+        vm.codigo = "12ab34cd5678"
+        #expect(vm.codigo == "123456")
+        #expect(vm.codigoValido)
+    }
+
+    @Test("VoiceOver anuncia dígitos separadamente com vírgula para leitura dígito a dígito")
+    @MainActor
+    func acessibilidadeVoiceOverDigitoADigito() {
+        let api = ApiClienteEmMemoria()
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+
+        vm.codigo = "123456"
+        #expect(vm.textoAcessibilidadeCodigo == "1, 2, 3, 4, 5, 6")
+    }
+
+    @Test("Campo de código vazio retorna string localizada Vazio para o VoiceOver")
+    @MainActor
+    func acessibilidadeCodigoVazio() {
+        let api = ApiClienteEmMemoria()
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+
+        vm.codigo = ""
+        #expect(vm.textoAcessibilidadeCodigo == "Vazio")
+    }
+
+    @Test("TelaCodigo amarra colagem direta (.oneTimeCode) e leitura VoiceOver (.accessibilityValue)")
+    func telaCodigoConfiguraColagemEAcessibilidade() throws {
+        let tela = try #require(try Self.arquivosSwift().first { $0.nome.contains("TelaCodigo.swift") })
+        let codigo = tela.linhas.joined(separator: "\n")
+        #expect(codigo.contains(".textContentType(.oneTimeCode)"))
+        #expect(codigo.contains(".accessibilityValue(viewModel.textoAcessibilidadeCodigo)"))
+        #expect(codigo.contains(".accessibilityIdentifier(\"codigo-campo\")"))
     }
 }
