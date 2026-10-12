@@ -88,12 +88,14 @@ jobs:
             exit 1
           fi
 
-      - name: Conferir textos e tokens da Apresentação
+      - name: Conferir textos, tokens e datas dos dublês
         run: |
           Scripts/teste-conferir-textos.sh
           Scripts/conferir-textos.sh
           Scripts/teste-conferir-movimento.sh
           Scripts/conferir-movimento.sh
+          Scripts/teste-conferir-datas-fixas.sh
+          Scripts/conferir-datas-fixas.sh
 
       - name: Conferir que as duas partes somam a suíte
         run: |

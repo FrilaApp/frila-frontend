@@ -59,6 +59,8 @@ O script confere o plist e o bundle ID `com.frila.org.app` e grava em `Resources
 
 ```sh
 python3 Scripts/validate-fixtures.py
+Scripts/teste-conferir-datas-fixas.sh
+Scripts/conferir-datas-fixas.sh
 Scripts/gerar-projeto.sh
 Scripts/contrato-em-dia.sh
 xcodebuild test  -project Frila.xcodeproj -scheme Frila-Local -destination 'platform=iOS Simulator,name=<iPhone disponível>'
@@ -69,6 +71,8 @@ xcodebuild build -project Frila.xcodeproj -scheme Frila-Prod -destination 'gener
 A CI roda a mesma sequência; ver [Integração contínua](Docs/CI.md).
 
 Dublê de teste que conforma a `ApiCliente` herda de `ApiClienteEncaminhador` (`Tests/Unitarios/Suporte/`), que encaminha tudo para um `ApiClienteEmMemoria`, e sobrescreve só o que quer espiar ou trocar. Operação nova na porta ganha o encaminhamento lá, uma vez, e nenhum dublê quebra.
+
+O portão `conferir-datas-fixas.sh` recusa literais ISO e componentes de data com ano 2025/2026 nos tipos de dublê de `Tests/**`, incluindo extensões. Use um `Relogio` injetável e monte instantes/prazos a partir de `relogio.agora`; para dias civis, use `DataCivil.deSaoPaulo`. Comentários e datas de formato/contrato fora desses tipos ficam fora do recorte. O autoteste e a varredura rodam na CI junto da conferência de textos. [Prova do portão e das três fixtures corrigidas](Docs/Evidencias/2026-10-12-conferir-datas-fixas.md).
 
 ### Validação manual do cliente da API (#53)
 

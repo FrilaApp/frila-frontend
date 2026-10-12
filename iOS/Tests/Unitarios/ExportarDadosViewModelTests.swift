@@ -13,9 +13,15 @@ struct ExportarDadosViewModelTests {
     }
 
     private final class DubleApiExportar: ApiClienteEncaminhador, @unchecked Sendable {
-        var resultado: Result<Data, Error> = .success(Data("{\"gerado_em\":\"2026-10-02T12:00:00Z\"}".utf8))
+        var resultado: Result<Data, Error>
         var chamadasExportar = 0
         var atrasoEmNanosegundos: UInt64?
+
+        init(relogio: any Relogio = RelogioDoSistema()) {
+            let agoraISO = ISO8601DateFormatter().string(from: relogio.agora)
+            resultado = .success(Data("{\"gerado_em\":\"\(agoraISO)\"}".utf8))
+            super.init()
+        }
 
         override func exportarMeusDados() async throws -> Data {
             chamadasExportar += 1
@@ -47,8 +53,8 @@ struct ExportarDadosViewModelTests {
 
     @Test("Sucesso: gera arquivo temporário, prepara para compartilhar e limpa estado de erro")
     func sucessoGeraArquivoEPreparaCompartilhamento() async throws {
-        let duble = DubleApiExportar()
         let relogio = RelogioFixo(agora: Date(timeIntervalSince1970: 1_790_000_000))
+        let duble = DubleApiExportar(relogio: relogio)
         let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: diretorioTeste) }
@@ -73,7 +79,8 @@ struct ExportarDadosViewModelTests {
         #expect(FileManager.default.fileExists(atPath: url.path))
 
         let conteudo = try Data(contentsOf: url)
-        #expect(conteudo == Data("{\"gerado_em\":\"2026-10-02T12:00:00Z\"}".utf8))
+        let agoraISO = ISO8601DateFormatter().string(from: relogio.agora)
+        #expect(conteudo == Data("{\"gerado_em\":\"\(agoraISO)\"}".utf8))
         #expect(duble.chamadasExportar == 1)
 
         vm.folhaCompartilhamentoFechada()
@@ -81,8 +88,8 @@ struct ExportarDadosViewModelTests {
 
     @Test("Arquivo exportado fica na classe de proteção completa: cifrado com o aparelho bloqueado")
     func arquivoExportadoTemProtecaoCompleta() async throws {
-        let duble = DubleApiExportar()
         let relogio = RelogioFixo(agora: Date(timeIntervalSince1970: 1_790_000_000))
+        let duble = DubleApiExportar(relogio: relogio)
         let diretorioTeste = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: diretorioTeste, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: diretorioTeste) }
