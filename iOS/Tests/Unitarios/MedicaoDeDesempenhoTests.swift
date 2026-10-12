@@ -1,4 +1,5 @@
 import Foundation
+import Network
 import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
@@ -75,6 +76,60 @@ struct MedicaoDeDesempenhoTests {
         #expect(MedidorDeRede.somar([.init(pelaRede: false, enviados: 10, recebidos: 10)]) == nil)
     }
 
+    @Test("Sessão HTTP local com cache vazio: lista, três detalhes e candidatura abaixo de 1 MB", .timeLimit(.minutes(1)))
+    func bytesDaSessaoComHTTPReal() async throws {
+        let lista = try FixturesDoContrato.dados("vagas-abertas")
+        let detalhe = try FixturesDoContrato.dados("vaga")
+        let candidatura = try FixturesDoContrato.dados("candidatura-urgencia")
+        let servidor = try ServidorHTTPDeMedicao(respostas: [
+            "/rest/v1/rpc/vagas_abertas": lista,
+            "/rest/v1/rpc/detalhe_vaga": detalhe,
+            "/rest/v1/rpc/candidatar": candidatura
+        ])
+        defer { servidor.parar() }
+        let url = try await servidor.iniciar()
+        let (registro, _) = registroIsolado()
+        registro.zerar()
+        let configuracao = URLSessionConfiguration.ephemeral
+        configuracao.urlCache = URLCache(memoryCapacity: 1_000_000, diskCapacity: 0, diskPath: nil)
+        configuracao.urlCache?.removeAllCachedResponses()
+        configuracao.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuracao.timeoutIntervalForRequest = 5
+        let sessao = URLSession(configuration: configuracao, delegate: MedidorDeRede(registro: registro), delegateQueue: nil)
+        defer { sessao.invalidateAndCancel() }
+        let cliente = SupabaseApiCliente(
+            url: url, chavePublicavel: "sb_publishable_teste", telemetria: TelemetryNula(),
+            sessaoHTTP: sessao, armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria()
+        )
+        #expect(configuracao.urlCache?.currentMemoryUsage == 0)
+        #expect(registro.resumo().bytesTotais == 0)
+
+        let vagas = try await cliente.vagasAbertas(FiltroVagas())
+        let vaga = try #require(vagas.first)
+        for _ in 0..<3 {
+            #expect(try await cliente.detalheDaVaga(id: vaga.id).id == vaga.id)
+        }
+        guard try await cliente.candidatar(vagaID: vaga.id).estado == .confirmada else {
+            Issue.record("A fixture deve confirmar a candidatura")
+            return
+        }
+        // O delegate pode terminar de publicar as métricas depois da resposta do cliente.
+        let prazo = ContinuousClock.now.advanced(by: .seconds(2))
+        while registro.resumo().requisicoes < 5, ContinuousClock.now < prazo {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let resumo = registro.resumo()
+        #expect(servidor.rotasRecebidas == [
+            "/rest/v1/rpc/vagas_abertas", "/rest/v1/rpc/detalhe_vaga",
+            "/rest/v1/rpc/detalhe_vaga", "/rest/v1/rpc/detalhe_vaga", "/rest/v1/rpc/candidatar"
+        ])
+        #expect(resumo.requisicoes == 5)
+        #expect(resumo.bytesEnviados > 0, "0 B não prova o contador HTTP")
+        #expect(resumo.bytesRecebidos >= Int64(lista.count + 3 * detalhe.count + candidatura.count))
+        #expect(resumo.bytesTotais < ResumoDasMedicoes.limiteDaSessao)
+        print("MEDICOES HTTP local: requisições=\(resumo.requisicoes) enviados=\(resumo.bytesEnviados) B recebidos=\(resumo.bytesRecebidos) B total=\(resumo.bytesTotais) B limite=\(ResumoDasMedicoes.limiteDaSessao) B")
+    }
+
     @Test("A abertura termina na mudança que publica o conteúdo, e não no fim da carga")
     @MainActor
     func aberturaTerminaNoConteudo() async {
@@ -142,6 +197,77 @@ struct MedicaoDeDesempenhoTests {
 
     private func milissegundos(_ duracao: Duration) -> Double {
         Double(duracao.components.seconds) * 1000 + Double(duracao.components.attoseconds) / 1e15
+    }
+}
+
+/// Dublê HTTP na interface loopback: usa o transporte real para a URLSession produzir métricas.
+/// As respostas são imutáveis; as rotas observadas têm trava. Não guarda cabeçalhos ou credenciais.
+private final class ServidorHTTPDeMedicao: @unchecked Sendable {
+    private let listener: NWListener
+    private let fila = DispatchQueue(label: "frila.testes.medicao-http")
+    private let respostas: [String: Data]
+    private let trava = NSLock()
+    private var rotas: [String] = []
+    var rotasRecebidas: [String] { trava.withLock { rotas } }
+
+    init(respostas: [String: Data]) throws {
+        self.respostas = respostas
+        let parametros = NWParameters.tcp
+        parametros.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
+        listener = try NWListener(using: parametros)
+    }
+
+    func iniciar() async throws -> URL {
+        try await withCheckedThrowingContinuation { continuacao in
+            listener.stateUpdateHandler = { [self] estado in
+                switch estado {
+                case .ready:
+                    listener.stateUpdateHandler = nil
+                    guard let porta = listener.port,
+                          let url = URL(string: "http://127.0.0.1:\(porta.rawValue)") else {
+                        continuacao.resume(throwing: URLError(.badURL))
+                        return
+                    }
+                    continuacao.resume(returning: url)
+                case let .failed(erro):
+                    listener.stateUpdateHandler = nil
+                    continuacao.resume(throwing: erro)
+                default: break
+                }
+            }
+            listener.newConnectionHandler = { [weak self] conexao in
+                guard let self else { conexao.cancel(); return }
+                conexao.start(queue: self.fila)
+                self.receber(conexao, acumulado: Data())
+            }
+            listener.start(queue: fila)
+        }
+    }
+
+    func parar() { listener.cancel() }
+
+    private func receber(_ conexao: NWConnection, acumulado: Data) {
+        conexao.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [self] dados, _, fim, erro in
+            let completo = acumulado + (dados ?? Data())
+            guard erro == nil else { conexao.cancel(); return }
+            if let separador = completo.range(of: Data("\r\n\r\n".utf8)) {
+                let cabecalho = String(decoding: completo[..<separador.lowerBound], as: UTF8.self)
+                let linhas = cabecalho.components(separatedBy: "\r\n")
+                let tamanho = linhas.first { $0.lowercased().hasPrefix("content-length:") }
+                    .flatMap { Int($0.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespaces) ?? "") } ?? 0
+                if completo.count >= separador.upperBound + tamanho {
+                    let rota = linhas.first?.split(separator: " ").dropFirst().first.map(String.init) ?? ""
+                    trava.withLock { rotas.append(rota) }
+                    let corpo = respostas[rota] ?? Data("{}".utf8)
+                    let status = respostas[rota] == nil ? "404 Not Found" : "200 OK"
+                    let resposta = Data("HTTP/1.1 \(status)\r\nContent-Type: application/json\r\nContent-Length: \(corpo.count)\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n".utf8) + corpo
+                    conexao.send(content: resposta, completion: .contentProcessed { _ in conexao.cancel() })
+                    return
+                }
+            }
+            guard !fim else { conexao.cancel(); return }
+            receber(conexao, acumulado: completo)
+        }
     }
 }
 
