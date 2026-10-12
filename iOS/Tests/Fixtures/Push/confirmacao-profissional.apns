@@ -1,0 +1,13 @@
+{
+  "Simulator Target Bundle": "com.frila.org.app",
+  "aps": {
+    "alert": {
+      "title": "Turno confirmado",
+      "body": "Seu turno de Garçom foi confirmado"
+    },
+    "sound": "default"
+  },
+  "tipo": "confirmacao",
+  "vaga_id": "40000000-0000-0000-0000-000000000001",
+  "turno_id": "60000000-0000-0000-0000-000000000001"
+}

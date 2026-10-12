@@ -216,11 +216,21 @@ contra o dublê; o `conferir-release.sh` reprova o binário de Release que tiver
 Para passar pelo sistema, como o push de verdade, junte `-FRILA_PERMISSAO_PUSH sistema` e
 `-FRILA_PUSH_NOTIFICACAO_EM <segundos>`: o payload vai numa notificação local, e o toque nela chega
 pelo `AppDelegate`, com o app aberto, em segundo plano ou fechado (`NotificacaoDePushUITests`).
-O simulador também aceita um push remoto simulado, sem APNs, com a permissão já concedida:
+O simulador também aceita um push remoto simulado, sem APNs, com a permissão já concedida.
+Os payloads de fixture ficam em `Tests/Fixtures/Push/` (`vaga.apns`, `confirmacao-profissional.apns`,
+`checkin-manual-contratante.apns`, `lembrete-turno.apns`, `cancelamento.apns`):
 
 ```bash
-xcrun simctl push <UDID> com.frila.org.app aviso.apns
-# aviso.apns: {"aps":{"alert":{"title":"Frila","body":"Vaga nova"}},"tipo":"vaga","vaga_id":"<uuid>"}
+# Validar sintaxe dos payloads APNs:
+Scripts/simular-push.sh --validar
+
+# Enviar push de vaga ou turno pelo script (detecta simulador Booted):
+Scripts/simular-push.sh vaga [UDID]
+Scripts/simular-push.sh confirmacao [UDID]
+Scripts/simular-push.sh checkin [UDID]
+
+# Ou diretamente pelo simctl:
+xcrun simctl push <UDID> com.frila.org.app Tests/Fixtures/Push/vaga.apns
 ```
 
 ## Roteiro de teste no aparelho

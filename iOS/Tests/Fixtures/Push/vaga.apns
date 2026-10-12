@@ -1,0 +1,12 @@
+{
+  "Simulator Target Bundle": "com.frila.org.app",
+  "aps": {
+    "alert": {
+      "title": "Nova vaga disponível",
+      "body": "Garçom / Garçonete no Asa Sul"
+    },
+    "sound": "default"
+  },
+  "tipo": "vaga",
+  "vaga_id": "40000000-0000-0000-0000-000000000001"
+}

@@ -8,6 +8,8 @@ import XCTest
 final class NotificacaoDePushUITests: XCTestCase {
     /// `vaga.json` do dublê.
     private let vagaID = "40000000-0000-0000-0000-000000000001"
+    /// `turnos.json` do dublê.
+    private let turnoID = "60000000-0000-0000-0000-000000000001"
     private let sistema = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 
     override func setUp() {
@@ -15,11 +17,12 @@ final class NotificacaoDePushUITests: XCTestCase {
     }
 
     /// Abre o app com a permissão de verdade e a notificação agendada para dali a `segundos`.
-    private func abrir(notificacaoEm segundos: Int) -> XCUIApplication {
+    private func abrir(cenario: String = "success", push tipo: String = "vaga", id: String? = nil, notificacaoEm segundos: Int) -> XCUIApplication {
+        let idUsado = id ?? (tipo == "vaga" ? vagaID : turnoID)
         let app = XCUIApplication()
         app.launchArguments = [
-            "-FRILA_SCENARIO", "success", "-FRILA_PERMISSAO_PUSH", "sistema",
-            "-FRILA_PUSH", "vaga", "-FRILA_PUSH_ID", vagaID, "-FRILA_PUSH_NOTIFICACAO_EM", "\(segundos)",
+            "-FRILA_SCENARIO", cenario, "-FRILA_PERMISSAO_PUSH", "sistema",
+            "-FRILA_PUSH", tipo, "-FRILA_PUSH_ID", idUsado, "-FRILA_PUSH_NOTIFICACAO_EM", "\(segundos)",
         ]
         app.launch()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
@@ -41,13 +44,13 @@ final class NotificacaoDePushUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
-    private func tocarNaNotificacao() {
-        let notificacao = sistema.staticTexts["Aviso simulado: vaga"].firstMatch
+    private func tocarNaNotificacao(tipo: String = "vaga") {
+        let notificacao = sistema.staticTexts["Aviso simulado: \(tipo)"].firstMatch
         if !notificacao.waitForExistence(timeout: 15) {
             // Se o banner expirou para a central de notificações, abre a central para tocar
             sistema.swipeDown()
         }
-        XCTAssertTrue(notificacao.waitForExistence(timeout: 15), "a notificação aparece")
+        XCTAssertTrue(notificacao.waitForExistence(timeout: 15), "a notificação de \(tipo) aparece")
         notificacao.tap()
     }
 
@@ -62,6 +65,13 @@ final class NotificacaoDePushUITests: XCTestCase {
 
         tocarNaNotificacao()
         conferirDetalheDaVaga(app)
+    }
+
+    func testToqueComOAppAbertoEmNotificacaoDeTurnoAbreMeuTurno() {
+        let app = abrir(push: "confirmacao", id: turnoID, notificacaoEm: 6)
+
+        tocarNaNotificacao(tipo: "confirmacao")
+        XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 20), "o toque na notificação de turno abre Meu turno")
     }
 
     func testToqueComOAppEmSegundoPlanoAbreODestino() {

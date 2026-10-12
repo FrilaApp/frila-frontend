@@ -1,0 +1,12 @@
+{
+  "Simulator Target Bundle": "com.frila.org.app",
+  "aps": {
+    "alert": {
+      "title": "Lembrete de turno",
+      "body": "Seu turno começa em 3 horas"
+    },
+    "sound": "default"
+  },
+  "tipo": "lembrete_3h",
+  "turno_id": "60000000-0000-0000-0000-000000000001"
+}

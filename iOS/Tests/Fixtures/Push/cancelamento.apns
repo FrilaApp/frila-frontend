@@ -1,0 +1,14 @@
+{
+  "Simulator Target Bundle": "com.frila.org.app",
+  "aps": {
+    "alert": {
+      "title": "Turno cancelado",
+      "body": "O turno foi cancelado pelo estabelecimento"
+    },
+    "sound": "default"
+  },
+  "tipo": "cancelamento",
+  "posicao_id": "50000000-0000-0000-0000-000000000001",
+  "vaga_id": "40000000-0000-0000-0000-000000000001",
+  "reaberta": "false"
+}

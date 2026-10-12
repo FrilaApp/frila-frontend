@@ -1,0 +1,13 @@
+{
+  "Simulator Target Bundle": "com.frila.org.app",
+  "aps": {
+    "alert": {
+      "title": "Check-in manual pendente",
+      "body": "Confirme a presença do profissional no local"
+    },
+    "sound": "default"
+  },
+  "tipo": "checkin_manual_pendente",
+  "vaga_id": "40000000-0000-0000-0000-000000000001",
+  "turno_id": "82000000-0000-0000-0000-000000000001"
+}
