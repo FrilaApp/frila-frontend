@@ -491,7 +491,9 @@ final class AutenticacaoUITests: XCTestCase {
         app.buttons["codigo-entrar"].tap()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        app.buttons["abrir-meu-perfil"].tap()
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "o botão para abrir o perfil deve aparecer na barra")
+        botaoPerfil.tap()
         XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 10))
         app.buttons["Sair"].tap()
 
