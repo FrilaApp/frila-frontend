@@ -28,18 +28,28 @@ Este documento consolida as bases normativas exigidas pela Apple, os rascunhos d
 Conforme critério já auditado e atendido no app (PRs #34 e #178):
 - **Localização no Código:** `iOS/Sources/Apresentacao/TelaLicencas.swift` e `TelaDetalheLicenca.swift`.
 - **Acesso pelo Usuário:** Acessível via Perfil > Ajuda e Suporte (`TelaAjudaPerfil.swift:431-440`) com navegação nativa e acessibilidade completa.
-- **Dependências Catalogadas:**
-  - `Abseil C++` (Apache 2.0)
-  - `BoringSSL-GRPC` (OpenSSL / BSD-style)
-  - `Firebase SDK` (Apache 2.0)
-  - `GoogleDataTransport` (Apache 2.0)
-  - `GoogleUtilities` (Apache 2.0)
-  - `gRPC-Swift` / `gRPC-Core` (Apache 2.0)
-  - `GTMSessionFetcher` (Apache 2.0)
-  - `nanopb` (zlib License)
-  - `Promises` (Apache 2.0)
-  - `SwiftProtobuf` (Apache 2.0)
-  - `Supabase-Swift` (MIT License)
+- **Fonte da Auditoria:** Extraído diretamente dos 20 pacotes resolvidos em `iOS/Package.resolved` e catalogados no recurso de produção `iOS/Resources/Licencas.json` por meio do script de automação `iOS/Scripts/gerar-licencas.py`.
+- **Dependências Catalogadas (20 pacotes em `iOS/Package.resolved` e `iOS/Resources/Licencas.json`):**
+  1. `abseil-cpp-binary` (v1.2024072200.0) — Apache-2.0
+  2. `app-check` (v11.3.2) — Apache-2.0
+  3. `firebase-ios-sdk` (v12.19.2) — Apache-2.0
+  4. `google-ads-on-device-conversion-ios-sdk` (v3.7.0) — Apache-2.0
+  5. `googleappmeasurement` (v12.19.2) — Apache-2.0
+  6. `googledatatransport` (v10.1.1) — Apache-2.0
+  7. `googleutilities` (v8.1.3) — Apache-2.0
+  8. `grpc-binary` (v1.69.1) — Apache-2.0
+  9. `gtm-session-fetcher` (v5.3.1) — Apache-2.0
+  10. `interop-ios-for-google-sdks` (v101.0.0) — Apache-2.0
+  11. `leveldb` (v1.22.5) — BSD-3-Clause
+  12. `nanopb` (v2.30910.1) — Zlib
+  13. `promises` (v2.4.1) — Apache-2.0
+  14. `supabase-swift` (v2.55.2) — MIT
+  15. `swift-asn1` (v1.7.3) — Apache-2.0
+  16. `swift-clocks` (v1.1.1) — MIT
+  17. `swift-concurrency-extras` (v1.4.1) — MIT
+  18. `swift-crypto` (v4.5.2) — Apache-2.0
+  19. `swift-http-types` (v1.8.0) — Apache-2.0
+  20. `xctest-dynamic-overlay` (v1.13.1) — MIT
 
 Todas as dependências possuem textos de licença integrais e avisos de direitos autorais exibidos no aplicativo, em plena conformidade com as cláusulas de redistribuição de cada mantenedor.
 
@@ -90,7 +100,7 @@ No portal **App Store Connect**, sob a seção **Informações do App (*App Info
 - **Resposta Recomendada:** **Sim (*Yes*)**.
 - **Fundamentação Técnica e Jurídica:**
   1. **Conteúdo dos Usuários (UGC):** O Frila possui licença contratual expressa, conferida por meio do aceite obrigatório dos Termos de Uso no momento do primeiro acesso e cadastro no app (`CadastroUsuarioView.swift`, botão `cadastro-termos`), conforme Cláusula de Licença de Conteúdo detalhada na Seção 3 deste documento.
-  2. **Bibliotecas de Terceiros:** Todos os SDKs embutidos são regidos por licenças de código aberto permissivas (Apache 2.0, MIT, zlib), cujas exigências de atribuição são plenamente cumpridas na tela nativa `TelaLicencas.swift`.
+  2. **Bibliotecas de Terceiros:** Todos os SDKs embutidos são regidos por licenças de código aberto permissivas (Apache-2.0, MIT, BSD-3-Clause, Zlib), cujas exigências de atribuição são plenamente cumpridas na tela nativa `TelaLicencas.swift` com base no catálogo derivado de `iOS/Package.resolved` e consolidado em `iOS/Resources/Licencas.json`.
   3. **Serviços de Mapa (MapKit):** O uso do MapKit decorre da adesão regular ao *Apple Developer Program License Agreement*.
 
 ### 4.2 Rascunho da Declaração Formal para a Equipe de Revisão da Apple (App Review Notes)
