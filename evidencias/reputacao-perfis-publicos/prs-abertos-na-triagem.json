@@ -1,0 +1,228 @@
+[
+  {
+    "files": [
+      {
+        "path": "iOS/Docs/AppStoreMetadados.md",
+        "additions": 171,
+        "deletions": 0,
+        "changeType": "ADDED"
+      }
+    ],
+    "headRefName": "docs/ios-ficha-app-store-metadados-78",
+    "number": 188,
+    "title": "docs(ios): ficha de metadados para o App Store Connect (#78)"
+  },
+  {
+    "files": [
+      {
+        "path": "iOS/Docs/AjudaESuporte.md",
+        "additions": 86,
+        "deletions": 0,
+        "changeType": "ADDED"
+      }
+    ],
+    "headRefName": "docs/ios-auditoria-ajuda-e-suporte-182",
+    "number": 187,
+    "title": "docs(ios): auditar pontos de ajuda, suporte e termos (#182) [skip ci]"
+  },
+  {
+    "files": [
+      {
+        "path": "iOS/Docs/SegurancaEPrivacidade.md",
+        "additions": 18,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "docs/ios-licencas-conformidade-loja-6br4qElo",
+    "number": 186,
+    "title": "docs(ios): documenta direitos de conteudo e diretrizes da app store (#6br4qElo)"
+  },
+  {
+    "files": [
+      {
+        "path": "iOS/Docs/Desempenho.md",
+        "additions": 10,
+        "deletions": 4,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "test/ios-medicao-desempenho-simulador-57hJ7FV0",
+    "number": 185,
+    "title": "docs(desempenho): atualizar números de baseline do simulador de 10/10/2026 (#73)"
+  },
+  {
+    "files": [
+      {
+        "path": "iOS/Tests/UI/AcessibilidadeDoCatalogoUITests.swift",
+        "additions": 8,
+        "deletions": 1,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "diag/ios-main-vermelho-pilula-filtro",
+    "number": 184,
+    "title": "test(ui): sincronizar estado acessível da pílula de filtro"
+  },
+  {
+    "files": [
+      {
+        "path": "iOS/Docs/Environments.md",
+        "additions": 8,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "docs/ios-ambientes-segredos-dossie-ZqmkOaHn",
+    "number": 183,
+    "title": "docs(ambientes): formalizar padronização no frila-dev e resolução do cartão ZqmkOaHn"
+  },
+  {
+    "files": [
+      {
+        "path": "iOS/Docs/Acessibilidade.md",
+        "additions": 7,
+        "deletions": 2,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "iOS/Tests/UI/AuditoriaDeAcessibilidadeUITests.swift",
+        "additions": 35,
+        "deletions": 1,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "iOS/Tests/Unitarios/ContaSuspensaBordasTests.swift",
+        "additions": 1,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "feat/ios-acessibilidade-atualizacao-obrigatoria-71",
+    "number": 182,
+    "title": "test(ios): cobre tela de atualização obrigatória na auditoria de acessibilidade (#71)"
+  },
+  {
+    "files": [
+      {
+        "path": "iOS/Tests/Unitarios/SegurancaDoCodigoTests.swift",
+        "additions": 50,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "test/ios-prova-voiceover-codigo-JayUsWVo",
+    "number": 181,
+    "title": "test(ios): provar suporte a colagem e VoiceOver na tela de código (JayUsWVo)"
+  },
+  {
+    "files": [
+      {
+        "path": "evidencias/republicar-vaga-encerrada/README.md",
+        "additions": 67,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "evidencias/republicar-vaga-encerrada/manifest-ui.json",
+        "additions": 17,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "evidencias/republicar-vaga-encerrada/preservacao-resultado.json",
+        "additions": 9,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "evidencias/republicar-vaga-encerrada/republicar-vaga.png",
+        "additions": 0,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "evidencias/republicar-vaga-encerrada/ui-resumo.json",
+        "additions": 45,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "evidencias/republicar-vaga-encerrada/ui-xcb-trecho.log",
+        "additions": 28,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "evidencias/republicar-vaga-encerrada/unit-resumo.json",
+        "additions": 48,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "evidencias/republicar-vaga-encerrada/unit-xcb-trecho.log",
+        "additions": 55,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "iOS/Tests/Unitarios/RepublicarVagaViewModelTests.swift",
+        "additions": 50,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "test/ios-prova-republicar-vaga-encerrada",
+    "number": 180,
+    "title": "testes(iOS): comprovar republicação de vaga encerrada"
+  },
+  {
+    "files": [
+      {
+        "path": ".github/workflows/testflight.yml",
+        "additions": 14,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "iOS/Docs/CI.md",
+        "additions": 130,
+        "deletions": 26,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "iOS/Scripts/assinatura-local-ci.py",
+        "additions": 142,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "iOS/Scripts/diagnosticar-assinatura.py",
+        "additions": 123,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "iOS/Scripts/enviar-testflight.sh",
+        "additions": 14,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "iOS/Scripts/teste-assinatura-local-ci.py",
+        "additions": 155,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "iOS/Scripts/teste-diagnosticar-assinatura.py",
+        "additions": 168,
+        "deletions": 0,
+        "changeType": "ADDED"
+      }
+    ],
+    "headRefName": "fix/ios-assinatura-testflight-homem-aranha",
+    "number": 163,
+    "title": "ci(ios): prepara identidade local para corrigir assinatura do TestFlight"
+  }
+]
