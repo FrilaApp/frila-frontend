@@ -31,15 +31,15 @@ Todas as metas operacionais do piloto são vinculadas às seções e KPIs defini
 
 | Meta Operacional | KPI Vinculado | Seção em `PlanoDeMetricas.md` | Linha de Base (Entrevistas) | Meta Alvo do Piloto |
 |---|---|---|---|---|
-| **North Star do Piloto** | Turnos concluídos com presença verificada por semana no DF | Seção 2 (`PlanoDeMetricas.md:2.1`) | Zero (mercado informal) | `[A DEFINIR]` turnos verificados/semana |
-| **Meta 1: Liquidez da Oferta** | Taxa de Preenchimento de Vagas (Fill Rate) | Seção 3, KPI 1 (`PlanoDeMetricas.md:3`) | ~70% de cobertura no WhatsApp | $\ge$ `[A DEFINIR]`% de confirmação |
-| **Meta 2: Presença no Turno** | Taxa de Comparecimento (Show-up Rate) | Seção 3, KPI 3 (`PlanoDeMetricas.md:3`) | 20% a 35% de faltas no WhatsApp | $\ge$ `[A DEFINIR]`% com check-in verificado |
-| **Meta 3: Agilidade de Resposta** | Tempo Mediano de Confirmação | Seção 3, KPI 2 (`PlanoDeMetricas.md:3`) | 2 h a 24 h em grupos informais | Mediana observada $\le$ `[A DEFINIR]` horas |
-| **Meta 4: Satisfação de Par** | Avaliações Positivas Mútuas | Seção 3, KPI 4 (`PlanoDeMetricas.md:3`) | Inexistente (feedback só em atrito) | $\ge$ `[A DEFINIR]`% de avaliações mútuas positivas |
-| **Meta 5: Engajamento B2B** | Vagas por Estabelecimento por Semana | Seção 3, KPI 5 (`PlanoDeMetricas.md:3`) | 2 a 5 vagas/fim de semana por bar | Média de `[A DEFINIR]` vagas/semana por casa |
-| **Meta 6: Recontratação** | Retenção D7 / Recontratação pelo App | Seção 3, KPI 6 (`PlanoDeMetricas.md:3`) | Recontratação informal por telefone | $\ge$ `[A DEFINIR]`% de contratantes com $\ge 2$ turnos |
-| **Meta 7: SLA de Despacho** | RNF03 (Despacho $\le 30$ s da publicação) | Seção 3, KPI 7 (`PlanoDeMetricas.md:3`) | Requisito técnico de infraestrutura | $100\%$ das vagas despachadas em $\le 30$ s |
-| **Meta 8: Entrega de Push** | RNF02 (Entrega provedor $\le 60$ s) | Seção 3, KPI 8 (`PlanoDeMetricas.md:3`) | Requisito técnico de infraestrutura | $\ge 99\%$ aceitas pelo provedor em $\le 60$ s |
+| **North Star do Piloto** | Turnos concluídos com presença verificada por semana no DF | Seção 2 (`PlanoDeMetricas.md#2`) | `[A DEFINIR]` (a extrair das entrevistas com bares/restaurantes) | `[A DEFINIR]` turnos verificados/semana |
+| **Meta 1: Liquidez da Oferta** | Taxa de Preenchimento de Vagas (Fill Rate) | Seção 3, KPI 1 (`PlanoDeMetricas.md#3`) | `[A DEFINIR]` (cobertura relatada no WhatsApp, a extrair das entrevistas) | $\ge$ `[A DEFINIR]`% de confirmação |
+| **Meta 2: Presença no Turno** | Taxa de Comparecimento (Show-up Rate) | Seção 3, KPI 3 (`PlanoDeMetricas.md#3`) | `[A DEFINIR]` (frequência de faltas relatada no WhatsApp, a extrair das entrevistas) | $\ge$ `[A DEFINIR]`% com check-in verificado |
+| **Meta 3: Agilidade de Resposta** | Tempo Mediano de Confirmação | Seção 3, KPI 2 (`PlanoDeMetricas.md#3`) | `[A DEFINIR]` (tempo de resolução no WhatsApp, a extrair das entrevistas) | Mediana observada $\le$ `[A DEFINIR]` |
+| **Meta 4: Satisfação de Par** | Avaliações Positivas Mútuas | Seção 3, KPI 4 (`PlanoDeMetricas.md#3`) | `[A DEFINIR]` (feedback em canais informais, a extrair das entrevistas) | $\ge$ `[A DEFINIR]`% de avaliações mútuas positivas |
+| **Meta 5: Engajamento B2B** | Vagas por Estabelecimento por Semana | Seção 3, KPI 5 (`PlanoDeMetricas.md#3`) | `[A DEFINIR]` (demanda de extras por fim de semana, a extrair das entrevistas) | Média de `[A DEFINIR]` vagas/semana por casa |
+| **Meta 6: Recontratação** | Retenção D7 / Recontratação pelo App | Seção 3, KPI 6 (`PlanoDeMetricas.md#3`) | `[A DEFINIR]` (recontratação informal, a extrair das entrevistas) | $\ge$ `[A DEFINIR]`% de contratantes com $\ge 2$ turnos |
+| **Meta 7: SLA de Despacho** | RNF03 (Despacho $\le 30$ s da publicação) | Seção 3, KPI 7 (`PlanoDeMetricas.md#3`) | Requisito técnico RNF03 (`iOS/Contrato/openapi.yaml:1379`) | $100\%$ das vagas despachadas em $\le 30$ s |
+| **Meta 8: Entrega de Push** | RNF02 (Entrega provedor $\le 60$ s) | Seção 3, KPI 8 (`PlanoDeMetricas.md#3`) | Requisito técnico RNF02 (`iOS/Contrato/openapi.yaml:2457, 2496`) | $\ge 99\%$ aceitas pelo provedor em $\le 60$ s |
 
 ---
 
@@ -84,13 +84,13 @@ Para manter a operação estável, garantir conformidade e acompanhar os indicad
 1. **Liquidez sustentada:** Atingimento de $\ge$ `[A DEFINIR]`% na taxa de preenchimento e $\ge$ `[A DEFINIR]`% na taxa de comparecimento.
 2. **Meta North Star atingida:** Conclusão de $\ge$ `[A DEFINIR]` turnos com presença comprovada por semana.
 3. **Privacidade e Segurança:** Zero incidentes de vazamento ou exposição de dados pessoais (`LGPD.md`).
-4. **Estabilidade Técnica:** Estabilidade de sessões $\ge 99\%$ livre de crashes no Crashlytics e conformidade plena com RNF02 e RNF03.
+4. **Estabilidade Técnica:** Estabilidade de sessões $\ge$ `[A DEFINIR]`% livre de crashes no Crashlytics e conformidade plena com RNF02 e RNF03.
 
 ### 5.2 Critérios de Parada Imediata (Contingência / Kill Switch)
 O piloto será interrompido ou pausado preventivamente caso ocorra:
 1. **Incidente de segurança ou violação de dados:** Qualquer suspeita ou confirmação de vazamento de dados pessoais aciona a Fase 1 do Plano de Resposta a Incidentes (`LGPD.md:129-134`).
 2. **Colapso no sistema de notificações:** Interrupção total do envio de pushes via APNs/FCM superior a 24 horas consecutivas.
-3. **Instabilidade crítica do binário:** Crash contínuo no fluxo principal (candidatura ou check-in) afetando mais de 5% dos usuários ativos sem resolução por hotfix em 12 horas.
+3. **Instabilidade crítica do binário:** Crash contínuo no fluxo principal (candidatura ou check-in) afetando mais de `[A DEFINIR]`% dos usuários ativos sem resolução por hotfix em 12 horas.
 4. **Abuso ou risco à integridade física:** Ocorrências graves que ultrapassem a capacidade de moderação e triagem da equipe.
 
 ---
@@ -210,7 +210,7 @@ Os itens abaixo dependem de definições nominais e aprovação dos responsávei
 |---|---|---|
 | **Aprovação do Plano pelos Sócios** | Júlia, Cauê, Fabrício e demais sócios | Aprovação formal dos cinco sócios do Frila até 06/11 (Critério Trello jffFlUZ9). |
 | **Definição Nominal da Escala** | Júlia e Cauê | Substituir os marcadores `[A DEFINIR]` pelos nomes dos membros da equipe na escala de 13/11 a 04/12. |
-| **Calibração Numérica das Metas** | Júlia e Cauê | Substituir os marcadores `[A DEFINIR]` nas metas de preenchimento, comparecimento e turnos semanais. |
+| **Extração de Linhas de Base e Calibração de Metas** | Júlia e Cauê | Extrair das entrevistas qualitativas as linhas de base (frequência de faltas, tempo no WhatsApp) e definir os valores numéricos `[A DEFINIR]` das metas e critérios. |
 | **Inclusão no Deck da Review 2** | Júlia e Cauê | Citar o resumo das datas, metas e escala operacional no deck da Review 2 da Academy. |
 
 ---
