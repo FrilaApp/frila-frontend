@@ -11,6 +11,6 @@ O módulo `FrilaApresentacao` concentra os tokens e componentes SwiftUI. Cores v
 
 ## Componentes iniciais
 
-Botões primário/secundário, campo comum, código de acesso, pill de filtro, cartão de vaga, selo de reputação, aviso, folha e avaliação sim/não. Estados reutilizáveis cobrem carregando, vazio, erro com retry, offline e envio pendente.
+Botões primário/secundário, campo comum, código de acesso, pill de filtro, cartão de vaga, selo de reputação, aviso, folha e avaliação sim/não. Estados reutilizáveis cobrem carregando, vazio, erro com retry, offline e envio pendente (detalhados em [PadroesDeEstado.md](PadroesDeEstado.md)).
 
 `CatalogoDesignSystem` é a referência executável em Debug e inclui preview com Dynamic Type de acessibilidade.
