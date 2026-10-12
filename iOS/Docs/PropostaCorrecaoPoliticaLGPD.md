@@ -29,10 +29,10 @@ Assunto: Ajuste do trecho sobre expiração de contato na Seção 6 da Política
      > *"Contato do turno. Sai apenas pela RPC contato_do_turno, depois da confirmação e até 7 dias após o fim (RN10). Base legal: execução do contrato, LGPD art. 7º, V."*
 
 2. **Contrato OpenAPI:**
-   - `iOS/Contrato/openapi.yaml:4498`: regra RN10 (`contato_visivel_ate` calculado em `fim_em + 7 days`).
+   - `iOS/Contrato/openapi.yaml:2386`: regra RN10 (`contato_visivel_ate` calculado em `fim_em + 7 days`).
 
 3. **Aplicativo iOS:**
-   - **Com rede:** `iOS/Sources/Dados/SupabaseApiCliente.swift:282-284` chama `meus_turnos` da API, exibindo turnos anteriores de 2 a 7 dias com contato consultável. A interface declara o prazo em `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:42` e `iOS/Docs/GuiaDeVoz.md:304` (*"Liberado com a confirmação. Fica visível até 7 dias depois do turno."*).
+   - **Com rede:** `iOS/Sources/Dados/SupabaseApiCliente.swift:282-284` chama `meus_turnos` da API, exibindo turnos anteriores de 2 a 7 dias com contato consultável. A interface declara o prazo em `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:59,115` e `iOS/Docs/GuiaDeVoz.md:304` (*"Liberado com a confirmação. Fica visível até 7 dias depois do turno."*).
    - **Sem rede (cache offline):** `iOS/Sources/Dados/TurnosComCache.swift:6-8` e `iOS/Sources/Dados/CacheSwiftData.swift:182-187` (`let limite = instante.addingTimeInterval(-24 * 60 * 60)`). O descarte em 24 h após o fim ocorre **apenas no cache local offline** para economia e integridade de armazenamento em modo avião.
 
 ---
