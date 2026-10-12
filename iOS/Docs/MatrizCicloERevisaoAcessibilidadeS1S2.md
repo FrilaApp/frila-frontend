@@ -21,13 +21,13 @@ A suíte completa `CicloDePontaAPontaUITests` foi executada no simulador Loki vi
 ~/Documents/Projetos/Apps/.workers/vigia/xcb.sh "Loki" -- xcodebuild test \
   -project iOS/Frila.xcodeproj -scheme Frila-Local \
   -destination "platform=iOS Simulator,id=01CDB658-019C-451A-B3EB-CB7CF09352E9" \
-  -derivedDataPath /Users/cauecarneiro/Documents/Projetos/Apps/.workers/antigravity/build/DerivedData \
+  -derivedDataPath ~/Documents/Projetos/Apps/.workers/antigravity/build/DerivedData \
   -only-testing:FrilaUITests/CicloDePontaAPontaUITests
 ```
 
 - **Resultado:** 4 testes executados / 4 aprovados (100% verde).
 - **Tempo total:** 170.548s.
-- **Log integral:** `/Users/cauecarneiro/Documents/Projetos/Apps/.workers/vigia/logs-xcodebuild/loki-20261011-225818-43497.log`.
+- **Log integral:** `.workers/vigia/logs-xcodebuild/loki-20261011-225818-43497.log`.
 
 | Caso de Teste | Transição Validada | Tempo | Situação |
 |---|---|---|---|
@@ -121,7 +121,7 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
   ~/Documents/Projetos/Apps/.workers/vigia/xcb.sh "Loki" -- xcodebuild test \
   -project iOS/Frila.xcodeproj -scheme Frila-Local \
   -destination "platform=iOS Simulator,id=01CDB658-019C-451A-B3EB-CB7CF09352E9" \
-  -derivedDataPath /Users/cauecarneiro/Documents/Projetos/Apps/.workers/antigravity/build/DerivedData \
+  -derivedDataPath ~/Documents/Projetos/Apps/.workers/antigravity/build/DerivedData \
   -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testMeuTurnoComPresenca \
   -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testMeuTurnoComPresencaEmAX5 \
   -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testMeusTurnosMeuTurnoEAvaliacao \
@@ -139,7 +139,7 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
 ```
 - **Resultado:** 14 testes executados / 14 aprovados (100% verde).
 - **Tempo total:** 193.568s.
-- **Log integral:** `/Users/cauecarneiro/Documents/Projetos/Apps/.workers/vigia/logs-xcodebuild/loki-20261011-232209-96208.log`.
+- **Log integral:** `.workers/vigia/logs-xcodebuild/loki-20261011-232209-96208.log`.
 
 ### 3.3. Avaliação dos Critérios de Interface e Casos de Borda
 1. **Contingência de Check-in e Check-out:**
@@ -178,7 +178,7 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
   ~/Documents/Projetos/Apps/.workers/vigia/xcb.sh "Loki" -- xcodebuild test \
   -project iOS/Frila.xcodeproj -scheme Frila-Local \
   -destination "platform=iOS Simulator,id=01CDB658-019C-451A-B3EB-CB7CF09352E9" \
-  -derivedDataPath /Users/cauecarneiro/Documents/Projetos/Apps/.workers/antigravity/build/DerivedData \
+  -derivedDataPath ~/Documents/Projetos/Apps/.workers/antigravity/build/DerivedData \
   -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testLicencasEDetalhe \
   -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testLicencasEDetalheEmAX5 \
   -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests/testAjudaDoPerfil \
@@ -204,7 +204,7 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
 ```
 - **Resultado:** 22 testes executados / 22 aprovados (100% verde).
 - **Tempo total:** 289.639s.
-- **Log integral:** `/Users/cauecarneiro/Documents/Projetos/Apps/.workers/vigia/logs-xcodebuild/loki-20261011-233741-20815.log`.
+- **Log integral:** `.workers/vigia/logs-xcodebuild/loki-20261011-233741-20815.log`.
 
 ### 4.3. Avaliação dos Critérios de Interface e Casos de Borda
 1. **Comprovação em AX5 (Dynamic Type XXXL):**

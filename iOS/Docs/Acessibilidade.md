@@ -256,7 +256,7 @@ Auditoria e ajustes do cartão #71 (critério 3) com foco em Dynamic Type (AX5),
 ## Rodada 5 (11/10, Sprint 3 — Cobertura do Cartão wiLKWHYl / #71)
 
 Auditoria focal das telas e fluxos de apoio do Sprint 3 no simulador Loki (`01CDB658-019C-451A-B3EB-CB7CF09352E9`), iOS 26.5, Xcode 26.6, via fila `xcb.sh`.
-Log de execução integral: `/Users/cauecarneiro/Documents/Projetos/Apps/.workers/vigia/logs-xcodebuild/loki-20261011-233741-20815.log`.
+Log de execução integral: `.workers/vigia/logs-xcodebuild/loki-20261011-233741-20815.log`.
 Suíte: `AuditoriaDeAcessibilidadeUITests.swift` (22 testes executados / 22 aprovados em 289.639s).
 
 ### Telas auditadas e resultados (modo padrão e AX5)
