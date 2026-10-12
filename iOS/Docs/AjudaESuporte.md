@@ -45,10 +45,8 @@ Nas telas de perfil e configurações, a auditoria confirmou que todos os pontos
 
 ### 1.2 Divergência Identificada de Canais de Suporte
 A auditoria identificou uma bifurcação entre dois canais de suporte no repositório:
-- **Canal em `EnderecosOficiais.padrao` (`EnderecosOficiais.swift:22`):** Configurado como `"suportefrila@gmail.com"`, verificado por testes de unidade e UI (`PerfisDaContaTests.swift:65,90,105`, `FrilaUITests.swift:740,781`, `ContaSuspensaUITests.swift:131`).
-- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `"suporte@frila.app"`, alinhado à documentação de requisitos (`frila-docs/requisitos/ingestao-email-suporte-v1.1.md:13`).
-
-**Recomendação:** Unificar o e-mail padrão de `EnderecosOficiais` para `"suporte@frila.app"` em ciclo coordenado com a atualização dos testes que fixam asserções em `suportefrila@gmail.com`. Até essa unificação em código, o aplicativo opera com `suportefrila@gmail.com` nas telas de perfil e `suporte@frila.app` nos fluxos de turno.
+- **Canal em `EnderecosOficiais.padrao` (`EnderecosOficiais.swift:22`):** Configurado como `"suportefrila@gmail.com"` (vigente), verificado por testes de unidade e UI (`PerfisDaContaTests.swift:65,90,105`, `FrilaUITests.swift:740,781`, `ContaSuspensaUITests.swift:131`).
+- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `"suporte@frila.app"`, alternativa citada em `frila-docs/requisitos/ingestao-email-suporte-v1.1.md:13`, decisão pendente (decisão do Cauê). O canal vigente das telas de perfil permanece `suportefrila@gmail.com`.
 
 ---
 
@@ -67,7 +65,7 @@ A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuá
 - **Prazo de Atendimento / SLA de 24 horas (Ponto de Atenção):**
   - O texto informativo geral de perfil indica `"Respondemos em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 393; Fonte: Visão 7.2 e RF23).
   - O protocolo de denúncia (`AcoesDeSeguranca.swift:83-89`) calcula a data limite a partir de `protocolo.prazoRespostaAte`, que no backend (`privado.prazo_de_resposta`) projeta o quinto dia útil.
-  - Para conformidade estrita com a Diretriz 1.2 da App Store, a Equipe Frila opera triagem operacional de denúncias e conteúdo ofensivo em até 24 horas, mantendo os 5 dias úteis para o parecer conclusivo ou suporte negocial comum. Qualquer compromisso público de 24 horas na interface do app requer homologação prévia da PO Júlia e adequação de texto [A DEFINIR].
+  - Para cumprir formalmente a Diretriz 1.2 da App Store durante a revisão da Apple, o canal de moderação e denúncias de conteúdo ofensivo deve assegurar SLA operacional de triagem em até 24 horas (distinto do suporte negocial geral de 5 dias úteis) — decisão pendente. O 24 h não entra em texto de interface nem como fato.
 
 ---
 
@@ -115,12 +113,12 @@ Mapeamento integral de todos os itens normativos das Seções 7.2 e 7.3 do Docum
 Redação proposta em conformidade estrita com o `iOS/Docs/GuiaDeVoz.md` (tom direto, sem culpa, sem falsas promessas de tempo, sem a palavra "comissão", vocabulário unificado e formatos monetários e horários padronizados).
 
 ### 4.1 Diretrizes Normativas Aplicadas aos Textos
-1. **Identificação do suporte:** Canal oficial centralizado da Equipe Frila.
-   - E-mail padrão atual no app: `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`).
-   - E-mail normativo v1.1: `suporte@frila.app` (`ingestao-email-suporte-v1.1.md:13`).
+1. **Identificação do suporte:** Canal oficial vigente da Equipe Frila.
+   - E-mail vigente no app e no perfil: `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`).
+   - Alternativa citada em `ingestao-email-suporte-v1.1.md:13`: `suporte@frila.app` (decisão pendente).
 2. **Prazo de resposta institucional:**
    - `"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."` (Fonte: Visão 7.2 e RF23 / `TextosDoSuporte.swift:7`).
-   - Nenhum outro prazo foi inventado. Compromissos de 24 horas específicos da moderação da App Store permanecem operacionais e não constam em promessa de interface até validação jurídica [A DEFINIR].
+   - Nenhum outro prazo foi inventado. O prazo de 24 horas da Diretriz 1.2 da App Store não entra em texto de interface nem como fato (decisão pendente sobre SLA operacional).
 3. **Ausência de comissão:** Uso da expressão aprovada `"O Frila não desconta do valor pago pelo turno"`.
 4. **Sem jargões promocionais:** Banidos termos como "grátis", "100% gratuito", "em poucos toques" e "em instantes".
 
