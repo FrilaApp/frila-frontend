@@ -44,7 +44,7 @@ public struct TelaCodigo: View {
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityAddTraits(.isHeader)
 
-                    Text("Enviamos um código de 6 dígitos para \(viewModel.email). Ele vale por pouco tempo.", bundle: bundleApresentacao)
+                    Text("Digite o código de 6 dígitos enviado para \(viewModel.email).", bundle: bundleApresentacao)
                         .font(.body)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
@@ -105,7 +105,7 @@ public struct TelaCodigo: View {
                 }
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                    BotaoPrimario("Entrar", carregando: viewModel.carregando) {
+                    BotaoPrimario("Confirmar código", carregando: viewModel.carregando) {
                         Task {
                             if let destino = await viewModel.confirmarCodigo() {
                                 aoConcluir(destino)

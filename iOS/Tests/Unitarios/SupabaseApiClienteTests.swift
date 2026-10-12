@@ -119,6 +119,6 @@ struct SupabaseApiClienteTests {
         }
         #expect(erro?.codigo == .posicaoJaPreenchida)
         #expect(erro?.detalhes == "ultima_posicao")
-        #expect(erro.map(MensagemDoErroAPI.texto) == "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.")
+        #expect(erro.map(MensagemDoErroAPI.texto) == "Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga.")
     }
 }

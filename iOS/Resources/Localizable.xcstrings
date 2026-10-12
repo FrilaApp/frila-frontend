@@ -301,28 +301,6 @@
         }
       }
     },
-    "%lld vagas abertas": {
-      "localizations": {
-        "pt-BR": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld vaga aberta"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld vagas abertas"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "(61) 9 0000-0000": {
       "localizations": {
         "pt-BR": {
@@ -409,16 +387,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "A avaliação só fica disponível após o término do turno e com presença confirmada."
-          }
-        }
-      }
-    },
-    "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A função desta vaga não está no seu perfil. Você pode ajustar suas funções no perfil."
           }
         }
       }
@@ -1233,26 +1201,6 @@
         }
       }
     },
-    "Como você vai usar o Frila?": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Como você vai usar o Frila?"
-          }
-        }
-      }
-    },
-    "Complete seu perfil com o ponto de partida para ver as vagas por distância.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Complete seu perfil com o ponto de partida para ver as vagas por distância."
-          }
-        }
-      }
-    },
     "Confira o campo indicado.": {
       "localizations": {
         "pt-BR": {
@@ -1633,26 +1581,6 @@
         }
       }
     },
-    "Você deixa de concorrer a esta vaga. Enquanto ela aceitar candidaturas, dá para se candidatar de novo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você deixa de concorrer a esta vaga. Enquanto ela aceitar candidaturas, dá para se candidatar de novo."
-          }
-        }
-      }
-    },
-    "Você não concorre mais a esta vaga.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você não concorre mais a esta vaga."
-          }
-        }
-      }
-    },
     "É pela notificação que você fica sabendo de uma vaga nova perto de você, na hora em que ela é publicada.": {
       "localizations": {
         "pt-BR": {
@@ -1679,16 +1607,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "E-mail"
-          }
-        }
-      }
-    },
-    "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ela foi cancelada, encerrada ou o horário de início já passou. Nada muda na sua reputação."
           }
         }
       }
@@ -1743,16 +1661,6 @@
         }
       }
     },
-    "Enviamos um código de 6 dígitos para %@. Ele vale por pouco tempo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enviamos um código de 6 dígitos para %@. Ele vale por pouco tempo."
-          }
-        }
-      }
-    },
     "Enviando candidatura…": {
       "localizations": {
         "pt-BR": {
@@ -1793,36 +1701,6 @@
         }
       }
     },
-    "Essa vaga já foi preenchida": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Essa vaga já foi preenchida"
-          }
-        }
-      }
-    },
-    "Essa vaga não está mais aberta": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Essa vaga não está mais aberta"
-          }
-        }
-      }
-    },
-    "Essa vaga pede outra função": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Essa vaga pede outra função"
-          }
-        }
-      }
-    },
     "Esta avaliação já foi registrada.": {
       "localizations": {
         "pt-BR": {
@@ -1859,16 +1737,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta posição não pode mais ser cancelada."
-          }
-        }
-      }
-    },
-    "Esta vaga acabou de ser preenchida. Escolha outra oportunidade.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta vaga acabou de ser preenchida. Escolha outra oportunidade."
           }
         }
       }
@@ -2079,16 +1947,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Informe a data de nascimento no formato dd/mm/aaaa."
-          }
-        }
-      }
-    },
-    "Informe de 1 a 200 vagas.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Informe de 1 a 200 vagas."
           }
         }
       }
@@ -2693,16 +2551,6 @@
         }
       }
     },
-    "O Frila não aceitou a candidatura para esta vaga.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O Frila não aceitou a candidatura para esta vaga."
-          }
-        }
-      }
-    },
     "O GPS indica que você está a cerca de %lld m do endereço da vaga.": {
       "localizations": {
         "pt-BR": {
@@ -2749,16 +2597,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "O horário de início e fim não podem ser iguais."
-          }
-        }
-      }
-    },
-    "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O horário desta vaga coincide com um turno seu já confirmado. Não dá para estar em dois turnos ao mesmo tempo."
           }
         }
       }
@@ -2813,16 +2651,6 @@
         }
       }
     },
-    "O valor é integral: o Frila não desconta taxa do turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O valor é integral: o Frila não desconta taxa do turno."
-          }
-        }
-      }
-    },
     "Observações": {
       "localizations": {
         "pt-BR": {
@@ -2839,16 +2667,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Olá! Sou o profissional do turno de %@ em %@ no %@."
-          }
-        }
-      }
-    },
-    "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Outra pessoa aceitou antes. No modo urgência, quem aceita primeiro fica com a vaga. Nada muda na sua reputação."
           }
         }
       }
@@ -2879,16 +2697,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Participa do rateio dos 10%"
-          }
-        }
-      }
-    },
-    "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar."
           }
         }
       }
@@ -3073,16 +2881,6 @@
         }
       }
     },
-    "Quero contratar para o meu negócio": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quero contratar para o meu negócio"
-          }
-        }
-      }
-    },
     "Quero trabalhar em turnos": {
       "localizations": {
         "pt-BR": {
@@ -3119,16 +2917,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "R$ 0,00"
-          }
-        }
-      }
-    },
-    "Receber código": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Receber código"
           }
         }
       }
@@ -3869,36 +3657,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você está confirmado"
-          }
-        }
-      }
-    },
-    "Você fez muitas tentativas. Aguarde um instante e tente novamente.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você fez muitas tentativas. Aguarde um instante e tente novamente."
-          }
-        }
-      }
-    },
-    "Você já tem um turno nesse horário": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você já tem um turno nesse horário"
-          }
-        }
-      }
-    },
-    "Você não pode se candidatar a esta vaga": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você não pode se candidatar a esta vaga"
           }
         }
       }
@@ -6493,16 +6251,6 @@
         }
       }
     },
-    "Esta vaga foi ocultada pela moderação e não pode ser republicada.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta vaga foi ocultada pela moderação e não pode ser republicada."
-          }
-        }
-      }
-    },
     "Você não tem permissão para republicar esta vaga.": {
       "localizations": {
         "pt-BR": {
@@ -6529,6 +6277,278 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem conexão com a internet. Tente novamente."
+          }
+        }
+      }
+    },
+    "Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga."
+          }
+        }
+      }
+    },
+    "Novas vagas aparecerão aqui.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novas vagas aparecerão aqui."
+          }
+        }
+      }
+    },
+    "%lld posições abertas": {
+      "localizations": {
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld posição aberta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld posições abertas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Informe de 1 a 200 posições.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe de 1 a 200 posições."
+          }
+        }
+      }
+    },
+    "Sua candidatura a esta vaga será retirada. Enquanto ela aceitar candidaturas, dá para se candidatar de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua candidatura a esta vaga será retirada. Enquanto ela aceitar candidaturas, dá para se candidatar de novo."
+          }
+        }
+      }
+    },
+    "Sua candidatura a esta vaga foi retirada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua candidatura a esta vaga foi retirada."
+          }
+        }
+      }
+    },
+    "Complete seu perfil com o ponto base para ver as vagas por distância.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete seu perfil com o ponto base para ver as vagas por distância."
+          }
+        }
+      }
+    },
+    "Digite o código de 6 dígitos enviado para %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite o código de 6 dígitos enviado para %@."
+          }
+        }
+      }
+    },
+    "Você fez muitas tentativas. Aguarde antes de tentar novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você fez muitas tentativas. Aguarde antes de tentar novamente."
+          }
+        }
+      }
+    },
+    "Esta vaga está em revisão pela Equipe Frila e não pode ser republicada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga está em revisão pela Equipe Frila e não pode ser republicada."
+          }
+        }
+      }
+    },
+    "Perfil de contratante: publique vagas e acompanhe quem vai trabalhar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil de contratante: publique vagas e acompanhe quem vai trabalhar."
+          }
+        }
+      }
+    },
+    "Enviar código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar código"
+          }
+        }
+      }
+    },
+    "Confirmar código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar código"
+          }
+        }
+      }
+    },
+    "Como você quer usar o Frila?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como você quer usar o Frila?"
+          }
+        }
+      }
+    },
+    "Quero publicar vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quero publicar vagas"
+          }
+        }
+      }
+    },
+    "O valor é integral: o Frila não desconta do valor pago pelo turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O valor é integral: o Frila não desconta do valor pago pelo turno."
+          }
+        }
+      }
+    },
+    "Vaga preenchida": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga preenchida"
+          }
+        }
+      }
+    },
+    "Esta posição acabou de ser preenchida por outro profissional. No modo urgência, quem confirma primeiro fica com a vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta posição acabou de ser preenchida por outro profissional. No modo urgência, quem confirma primeiro fica com a vaga."
+          }
+        }
+      }
+    },
+    "Vaga encerrada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga encerrada"
+          }
+        }
+      }
+    },
+    "Esta vaga foi encerrada, cancelada ou o horário de início já passou.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga foi encerrada, cancelada ou o horário de início já passou."
+          }
+        }
+      }
+    },
+    "Horário coincidente": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horário coincidente"
+          }
+        }
+      }
+    },
+    "Você já tem um turno confirmado que coincide com o horário desta vaga. Não é possível assumir dois turnos ao mesmo tempo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você já tem um turno confirmado que coincide com o horário desta vaga. Não é possível assumir dois turnos ao mesmo tempo."
+          }
+        }
+      }
+    },
+    "Função diferente": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Função diferente"
+          }
+        }
+      }
+    },
+    "Esta vaga exige uma função que não está cadastrada no seu perfil profissional.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga exige uma função que não está cadastrada no seu perfil profissional."
+          }
+        }
+      }
+    },
+    "Candidatura não permitida": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatura não permitida"
+          }
+        }
+      }
+    },
+    "Você não cumpre todos os critérios necessários para se candidatar a esta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não cumpre todos os critérios necessários para se candidatar a esta vaga."
           }
         }
       }

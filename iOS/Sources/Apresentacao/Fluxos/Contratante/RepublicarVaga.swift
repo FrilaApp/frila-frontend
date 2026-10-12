@@ -40,7 +40,7 @@ public enum TextosRepublicarVaga {
     // Mensagens de erro da API (contrato /rpc/republicar_vaga e publicar_vaga)
     public static let naoEncontrado = String(localized: "A vaga original não foi encontrada.", bundle: bundleApresentacao)
     public static let semPermissao = String(localized: "Você não tem permissão para republicar esta vaga.", bundle: bundleApresentacao)
-    public static let vagaOculta = String(localized: "Esta vaga foi ocultada pela moderação e não pode ser republicada.", bundle: bundleApresentacao)
+    public static let vagaOculta = String(localized: "Esta vaga está em revisão pela Equipe Frila e não pode ser republicada.", bundle: bundleApresentacao)
     public static let perfilIncompativel = String(localized: "Apenas contratantes podem republicar vagas.", bundle: bundleApresentacao)
     public static let semRede = String(localized: "Sem conexão com a internet. A solicitação foi guardada para envio.", bundle: bundleApresentacao)
     public static let erroGenerico = String(localized: "Não foi possível republicar a vaga. Tente novamente.", bundle: bundleApresentacao)
