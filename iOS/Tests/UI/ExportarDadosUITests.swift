@@ -85,12 +85,22 @@ final class ExportarDadosUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "exportar-erro-servidor"]
         app.launch()
 
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10), "Feed inicial de vagas deve carregar")
         let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Botão de abrir perfil deve estar visível")
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer), "Botão de abrir perfil deve estar visível")
         botaoPerfil.tap()
+
+        let barraPerfil = app.navigationBars["Meu perfil"]
+        if !barraPerfil.waitForExistence(timeout: 3) && botaoPerfil.isHittable {
+            botaoPerfil.tap()
+        }
+        XCTAssertTrue(barraPerfil.waitForExistence(timeout: Espera.aparecer), "Navegação para o perfil deve ser concluída")
 
         let botaoExportar = app.buttons["perfil-exportar-dados"]
         XCTAssertTrue(botaoExportar.waitForExistence(timeout: Espera.aparecer), "Botão exportar dados deve existir no perfil")
+        if !botaoExportar.isHittable {
+            app.swipeUp()
+        }
         botaoExportar.tap()
 
         let avisoErro = app.descendants(matching: .any)["aviso-erro-exportar-dados"]
