@@ -1,0 +1,5 @@
+Test Case '-[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoEmAX5]' passed (38.006 seconds).
+Test Case '-[FrilaUITests.ExclusaoDeContaUITests testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao]' passed (19.516 seconds).
+	 Executed 2 tests, with 0 failures (0 unexpected) in 57.521 (57.523) seconds
+	 Executed 2 tests, with 0 failures (0 unexpected) in 57.521 (57.524) seconds
+	 Executed 2 tests, with 0 failures (0 unexpected) in 57.521 (57.525) seconds

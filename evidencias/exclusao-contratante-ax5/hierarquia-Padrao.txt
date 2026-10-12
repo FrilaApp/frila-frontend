@@ -1,0 +1,95 @@
+Attributes: Application, 0x1083ad900, pid: 78563, label: 'Frila'
+Element subtree:
+ →Application, 0x1083ad900, pid: 78563, label: 'Frila'
+    Window (Main), 0x1083ada40, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x1083adb80, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x1083adcc0, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x1083ade00, {{-402.0, -874.0}, {1206.0, 2622.0}}
+          Other, 0x1083adf40, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x1083ae080, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x1083ae1c0, {{201.0, 451.0}, {0.0, 0.0}}
+              Button, 0x1083ae300, {{290.0, 62.0}, {44.0, 44.0}}, identifier: 'abrir-perfil-estabelecimento', label: 'Perfil do estabelecimento'
+              Button, 0x1083ae440, {{349.3, 74.0}, {29.3, 20.3}}, identifier: 'sair-fluxo-contratante', label: 'Sair'
+              Other, 0x1083ae580, {{0.0, 106.0}, {402.0, 768.0}}, identifier: 'minhas-vagas'
+                NavigationBar, 0x1083ae6c0, {{0.0, 116.0}, {402.0, 54.0}}, identifier: 'Minhas vagas'
+                  StaticText, 0x1083ae800, {{146.7, 127.7}, {108.3, 20.7}}, label: 'Minhas vagas'
+                Other, 0x1083ae940, {{0.0, 106.0}, {402.0, 768.0}}
+                  Other, 0x1083aea80, {{0.0, 106.0}, {402.0, 768.0}}
+                    Other, 0x1083aebc0, {{0.0, 106.0}, {402.0, 768.0}}
+                      Other, 0x1083aed00, {{0.0, 106.0}, {402.0, 768.0}}
+                        ScrollView, 0x1083aee40, {{0.0, 106.0}, {402.0, 768.0}}
+                          Other, 0x1083aef80, {{0.0, 106.0}, {402.0, 768.0}}
+                            Other, 0x1083af0c0, {{0.0, 106.0}, {402.0, 118.8}}
+                          Other, 0x1083af200, {{0.0, 106.0}, {402.0, 768.0}}
+                          Other, 0x1083af340, {{0.0, 170.0}, {402.0, 473.7}}
+                            StaticText, 0x1083af480, {{16.0, 186.0}, {217.0, 40.7}}, label: 'Minhas vagas'
+                            StaticText, 0x1083af5c0, {{16.0, 242.7}, {75.7, 20.3}}, label: 'Bistrô Ipê'
+                            Button, 0x1083af700, {{16.0, 279.0}, {370.0, 44.0}}, identifier: 'publicar-vaga-entrada', label: 'Publicar vaga'
+                            StaticText, 0x1083af840, {{16.0, 339.0}, {84.7, 24.0}}, label: 'Próximas'
+                            Button, 0x1083af980, {{16.0, 371.0}, {370.0, 256.7}}, identifier: 'vaga-contratante-40000000-0000-0000-0000-000000000001', label: 'Garçom, CLS 405, Asa Sul, Brasília - DF, 12 de out. de 2026, 23:12 – 13 de out. de 2026, 03:12, R$ 120,00, 1 de 2 confirmadas, Ana Cunha, Ver posições e confirmações'
+                              StaticText, 0x1083afac0, {{48.0, 403.0}, {62.7, 20.3}}, label: 'Garçom'
+                              StaticText, 0x1083afc00, {{48.0, 431.3}, {209.7, 18.0}}, label: 'CLS 405, Asa Sul, Brasília - DF'
+                              StaticText, 0x1083afd40, {{48.0, 457.3}, {284.0, 38.0}}, label: '12 de out. de 2026, 23:12 – 13 de out. de 2026, 03:12'
+                              StaticText, 0x1083afe80, {{48.0, 503.3}, {72.3, 18.0}}, label: 'R$ 120,00'
+                              StaticText, 0x1083aa6c0, {{48.0, 529.3}, {135.3, 18.0}}, label: '1 de 2 confirmadas'
+                              StaticText, 0x114a5c000, {{48.0, 555.3}, {74.7, 18.0}}, label: 'Ana Cunha'
+                              StaticText, 0x114a5c140, {{48.0, 581.3}, {169.7, 14.3}}, label: 'Ver posições e confirmações'
+                          Other, 0x114a5c280, {{369.0, 170.0}, {30.0, 642.0}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                            Other, 0x114a5c3c0, {{396.0, 638.0}, {3.0, 171.0}}
+                          Other, 0x114a5c500, {{369.0, 170.0}, {30.0, 642.0}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                            Other, 0x114a5c640, {{396.0, 638.0}, {3.0, 171.0}}
+                Other, 0x114a5c780, {{0.0, 106.0}, {402.0, 768.0}}
+                  Other, 0x114a5c8c0, {{0.0, 106.0}, {402.0, 768.0}}
+      Other, 0x114a5ca00, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114a5cb40, {{-402.0, -874.0}, {1206.0, 2622.0}}
+        Other, 0x114a5cc80, {{0.0, 62.0}, {402.0, 812.0}}
+          Other, 0x114a5cdc0, {{0.0, 62.0}, {402.0, 812.0}}
+            Other, 0x114a5cf00, {{0.0, 62.0}, {402.0, 812.0}}
+              Other, 0x114a5d040, {{0.0, 62.0}, {402.0, 812.0}}
+                Other, 0x114a5d180, {{0.0, 62.0}, {402.0, 812.0}}
+                  Other, 0x114a5d2c0, {{0.0, 62.0}, {402.0, 812.0}}
+                    NavigationBar, 0x114a5d400, {{0.0, 78.0}, {402.0, 54.0}}, identifier: 'Excluir conta'
+                      Button, 0x114a5d540, {{16.0, 78.0}, {44.0, 44.0}}, identifier: 'BackButton', label: 'Perfil do estabelecimento'
+                      StaticText, 0x114a5d680, {{149.7, 89.7}, {102.3, 20.7}}, label: 'Excluir conta'
+                    Other, 0x114a5d7c0, {{0.0, 62.0}, {402.0, 812.0}}
+                      Other, 0x114a5d900, {{0.0, 62.0}, {402.0, 812.0}}
+                        Other, 0x114a5da40, {{0.0, 62.0}, {402.0, 812.0}}
+                          Other, 0x114a5db80, {{0.0, 62.0}, {402.0, 812.0}}
+                            ScrollView, 0x114a5dcc0, {{0.0, 62.0}, {402.0, 812.0}}, identifier: 'tela-exclusao-de-conta'
+                              Other, 0x114a5de00, {{0.0, 62.0}, {402.0, 812.0}}
+                                Other, 0x114a5df40, {{0.0, 62.0}, {402.0, 124.8}}
+                              Other, 0x114a5e080, {{0.0, 62.0}, {402.0, 812.0}}
+                              Other, 0x114a5e1c0, {{0.0, 132.0}, {402.0, 836.3}}
+                                StaticText, 0x114a5e300, {{16.0, 148.0}, {370.0, 72.3}}, identifier: 'aviso-consequencias-exclusao', label: 'Alerta: Atenção: a exclusão da sua conta é permanente e não poderá ser desfeita.'
+                                  Image, 0x114a5e440, {{33.7, 166.0}, {16.7, 15.0}}, identifier: 'exclamationmark.triangle.fill', label: 'Aviso'
+                                  StaticText, 0x114a5e580, {{60.0, 164.0}, {280.3, 40.3}}, label: 'Atenção: a exclusão da sua conta é permanente e não poderá ser desfeita.'
+                                StaticText, 0x114a5e6c0, {{32.0, 252.3}, {290.7, 20.3}}, label: 'O que acontece ao excluir sua conta:'
+                                StaticText, 0x114a5e800, {{64.0, 282.7}, {279.0, 38.0}}, label: 'Seus dados pessoais cadastrados serão anonimizados definitivamente.'
+                                StaticText, 0x114a5e940, {{64.0, 332.7}, {296.3, 98.0}}, label: 'Os turnos futuros do profissional são cancelados sem falta. Para contratantes, o cancelamento ocorre quando a conta é o único membro do estabelecimento. Turnos em andamento seguem até o fim.'
+                                StaticText, 0x114a5ea80, {{64.0, 442.7}, {264.7, 38.0}}, label: 'O prazo para a exclusão completa das cópias de backup é de até 15 dias.'
+                                StaticText, 0x114a5ebc0, {{32.0, 530.7}, {269.3, 20.3}}, label: 'Turnos futuros vinculados à conta'
+                                StaticText, 0x114a5ed00, {{40.0, 567.0}, {56.0, 18.0}}, identifier: 'item-turno-futuro-82000000-0000-0000-0000-000000000001', label: 'Garçom'
+                                StaticText, 0x114a5ee40, {{40.0, 589.0}, {61.7, 14.3}}, identifier: 'item-turno-futuro-82000000-0000-0000-0000-000000000001', label: 'Ana Cunha'
+                                StaticText, 0x114a5ef80, {{40.0, 607.3}, {119.3, 14.3}}, identifier: 'item-turno-futuro-82000000-0000-0000-0000-000000000001', label: 'seg 23:12 – ter 03:12'
+                                StaticText, 0x114a5f0c0, {{40.0, 625.7}, {173.7, 14.3}}, identifier: 'item-turno-futuro-82000000-0000-0000-0000-000000000001', label: 'CLS 405, Asa Sul, Brasília - DF'
+                                StaticText, 0x114a5f200, {{32.0, 656.0}, {338.0, 114.3}}, identifier: 'aviso-lista-turnos-exclusao', label: 'A lista pode estar incompleta: consultamos os próximos 12 meses dos estabelecimentos. Você pode continuar com a exclusão.'
+                                  Image, 0x114a5f340, {{49.3, 673.7}, {16.0, 16.0}}, identifier: 'info.circle.fill', label: 'Informações'
+                                  StaticText, 0x114a5f480, {{74.7, 672.0}, {261.0, 82.3}}, label: 'A lista pode estar incompleta: consultamos os próximos 12 meses dos estabelecimentos. Você pode continuar com a exclusão.'
+                                Switch, 0x114a5f5c0, {{32.0, 818.3}, {338.0, 58.0}}, identifier: 'toggle-confirmar-consequencias', label: 'Estou ciente das consequências e confirmo a exclusão definitiva da minha conta', value: 0
+                                  StaticText, 0x114a5f700, {{32.0, 818.3}, {245.0, 58.0}}, label: 'Estou ciente das consequências e confirmo a exclusão definitiva da minha conta'
+                                  Switch, 0x114a5f840, {{309.0, 833.3}, {63.0, 28.0}}, value: 0
+                                Button, 0x114a5f980, {{16.0, 908.3}, {370.0, 44.0}}, identifier: 'botao-excluir-conta-definitivo', label: 'Excluir minha conta definitivamente', Disabled
+                              Other, 0x114a5fac0, {{369.0, 132.0}, {30.0, 680.0}}, label: 'Barra de rolagem vertical, 2 páginas', value: 0%
+                                Other, 0x114a5fc00, {{396.0, 198.0}, {3.0, 611.0}}
+                              Other, 0x114a5fd40, {{369.0, 132.0}, {30.0, 680.0}}, label: 'Barra de rolagem vertical, 2 páginas', value: 0%
+                                Other, 0x114a5fe80, {{396.0, 198.0}, {3.0, 611.0}}
+                    Other, 0x114a60000, {{0.0, 62.0}, {402.0, 812.0}}
+                      Other, 0x114a60140, {{0.0, 62.0}, {402.0, 812.0}}
+Path to element:
+ →Application, 0x1083ad900, pid: 78563, label: 'Frila'
+Query chain:
+ →Find: Target Application 'com.frila.org.app'
+  Output: {
+    Application, 0x114a60280, pid: 78563, label: 'Frila'
+  }
+
