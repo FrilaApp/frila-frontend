@@ -32,26 +32,26 @@ A avaliação divide-se estritamente por build disponível:
 O profissional participante simula sua primeira experiência com o aplicativo Frila no Distrito Federal, sem ter recebido instruções prévias da equipe.
 
 #### Tarefa P1: Acesso Inicial e Definição de Ponto Base (Build 0.4)
-- **Objetivo Operacional:** Realizar a entrada com número de telefone e código SMS, aceitar os termos de uso e política de privacidade, e salvar ao menos uma função e seu ponto base (bairro/região do DF).
-- **Ponto de Partida:** Tela de boas-vindas / Entrada (`EntradaEmailView` / telefone e código).
+- **Objetivo Operacional:** Realizar a entrada com e-mail e código de acesso, aceitar os termos de uso e política de privacidade, e salvar ao menos uma função e seu ponto base (bairro/região do DF).
+- **Ponto de Partida:** Tela de entrada inicial (`TelaEntrada`).
 - **Instrução Neutra ao Participante:**  
   > *"Imagine que você instalou o Frila pela primeira vez para encontrar turnos em bares e restaurantes no DF. Faça seu cadastro inicial e deixe o app pronto para uso."*
 - **Critério de Sucesso Estrito:**
-  - **Sem ajuda (Sucesso RNF09):** O profissional digita o telefone, insere o código recebido, confirma a declaração de maioridade e termos legais, seleciona sua função e conclui o cadastro sem perguntar ao moderador como avançar.
+  - **Sem ajuda (Sucesso RNF09):** O profissional insere o e-mail em `TelaEntrada`, digita o código recebido em `TelaCodigo`, seleciona a opção "Quero trabalhar em turnos" (`cadastro-perfil-profissional`) em `TelaCadastro`, preenche os dados pessoais (nome, telefone com WhatsApp, data de nascimento, declaração de maioridade e termos de uso), define sua função e ponto base em `TelaPerfilProfissional` e conclui o cadastro sem perguntar ao moderador como avançar.
   - **Com ajuda (Falha RNF09):** O moderador precisa explicar o que é "ponto base", onde clicar para prosseguir ou esclarecer o código de verificação.
   - **Não concluiu:** Desistência, erro de validação sem recuperação ou travamento da tela.
-- **Caminho Esperado na Interface:** `EntradaView` $\to$ `TelaCodigo` $\to$ `SelecaoPerfilView` (Profissional) $\to$ `CadastroUsuarioView` $\to$ `PerfilFuncoesEHorariosView` $\to$ `AbaVagasView`.
+- **Caminho Esperado na Interface:** `TelaEntrada` $\to$ `TelaCodigo` $\to$ `TelaCadastro` (escolha de perfil "Quero trabalhar em turnos", dados pessoais e termos) $\to$ `TelaPerfilProfissional` (funções, horários e ponto base) $\to$ `TelaVagas` (aba `Vagas`).
 
 #### Tarefa P2: Descoberta e Candidatura sem Ajuda — *Métrica Central RNF09* (Build 0.4)
 - **Objetivo Operacional:** Localizar uma vaga compatível no mural "Vagas no DF" e submeter uma candidatura sem intervenção técnica.
-- **Ponto de Partida:** Aba `Vagas` (`ListaVagasView`).
+- **Ponto de Partida:** Aba `Vagas` (`TelaVagas`).
 - **Instrução Neutra ao Participante:**  
   > *"Você tem a noite de hoje livre e deseja trabalhar como garçom (ou auxiliar). Encontre uma vaga que atenda ao seu horário e demonstre seu interesse nela."*
 - **Critério de Sucesso Estrito:**
-  - **Sem ajuda (Sucesso RNF09):** O participante examina a listagem, toca no cartão da vaga, lê os detalhes (horário, local no DF e valor fechado do turno sem descontos) e aciona o botão principal de candidatura (`candidatar`).
+  - **Sem ajuda (Sucesso RNF09):** O participante examina a listagem em `TelaVagas`, toca no cartão da vaga, lê os detalhes em `TelaDetalheVaga` (horário, local no DF e valor fechado do turno sem descontos) e aciona o botão principal de candidatura (`candidatar`).
   - **Com ajuda (Falha RNF09):** O participante não identifica onde tocar para ver os detalhes, confunde o modo de urgência com o modo seleção, ou solicita ajuda para saber se a candidatura foi realmente registrada.
   - **Não concluiu:** Abandono da tarefa, toque repetido sem resposta ou fechamento inesperado do aplicativo.
-- **Caminho Esperado na Interface:** `ListaVagasView` $\to$ `DetalheVagaView` $\to$ Toque em `Candidatar-me` $\to$ `ResultadoCandidaturaView` (`resultado-confirmada` ou `resultado-aguardando`).
+- **Caminho Esperado na Interface:** `TelaVagas` $\to$ `TelaDetalheVaga` $\to$ Toque em "Candidatar-me" (`candidatar`) $\to$ `TelaResultadoDaCandidatura` (`resultado-confirmada`).
 
 #### Tarefa P3: Visualização do Turno e Contato Liberado — RN10 (Build 0.4)
 - **Objetivo Operacional:** Consultar o turno confirmado na aba `Meus turnos` e identificar o canal direto de comunicação com o estabelecimento contratante.
@@ -59,10 +59,10 @@ O profissional participante simula sua primeira experiência com o aplicativo Fr
 - **Instrução Neutra ao Participante:**  
   > *"Sua presença foi confirmada para esse turno. Como você faria para ver o endereço completo e entrar em contato com o responsável pelo bar antes de ir?"*
 - **Critério de Sucesso Estrito:**
-  - **Sem ajuda (Sucesso RNF09):** O participante navega até a aba `Meus turnos`, abre o cartão do turno confirmado e localiza os dados de contato do contratante (botão de WhatsApp / telefone do estabelecimento liberados após a confirmação, conforme RN10).
+  - **Sem ajuda (Sucesso RNF09):** O participante navega até a aba `Meus turnos` (`TelaMeusTurnos`), abre o cartão do turno confirmado e localiza os dados de contato do contratante em `TelaMeuTurno` (botão de WhatsApp / telefone do estabelecimento liberados após a confirmação, conforme RN10).
   - **Com ajuda (Falha RNF09):** O participante procura os dados de contato dentro da aba `Vagas` ou não compreende onde acessar seus turnos ativos.
   - **Não concluiu:** Não localiza a tela de detalhes do turno ou não identifica as informações de contato.
-- **Caminho Esperado na Interface:** Aba `Meus turnos` (`MeusTurnosView`) $\to$ Cartão `meu-turno-*` $\to$ `MeuTurnoView` $\to$ Cartão `contato-do-turno`.
+- **Caminho Esperado na Interface:** Aba `Meus turnos` (`TelaMeusTurnos`) $\to$ Cartão `meu-turno-*` $\to$ `TelaMeuTurno` $\to$ Cartão `contato-do-turno`.
 
 #### Tarefa P4: Percepção de Reputação e Decisão — *Investigação Matriz CSD* (Build 0.4)
 - **Objetivo Operacional:** Avaliar a compreensão do modelo de reputação binária e taxa de comparecimento do Frila, medindo a percepção de segurança sem notas por estrelas.
@@ -72,9 +72,9 @@ O profissional participante simula sua primeira experiência com o aplicativo Fr
 - **Critério de Registro:** Não se trata de aprovação/reprovação funcional, mas de registro qualitativo neutro sobre a clareza do modelo binário do Frila (RN13 / Guia de Voz).
 
 #### Tarefas Complementares para Build Interno (Se Disponível até 29/10)
-- **Tarefa P5 (Presença):** Realizar check-in presencial no início do turno (geolocalização ou contingência manual sem GPS, conforme `TriagemUsabilidadeERegressao.md:65`).
-- **Tarefa P6 (Avaliação):** Responder à pergunta única de encerramento do turno: *"Você trabalharia nesse local de novo? (Sim / Não)"*.
-- **Tarefa P7 (Privacidade):** Localizar o botão de exclusão definitiva de conta no menu `Perfil` (LGPD).
+- **Tarefa P5 (Presença):** Realizar check-in presencial no início do turno (geolocalização ou contingência manual sem GPS em `TelaMeuTurno`).
+- **Tarefa P6 (Avaliação):** Responder à pergunta única de encerramento do turno em `TelaAvaliacao`: *"Você trabalharia nesse local de novo? (Sim / Não)"*.
+- **Tarefa P7 (Privacidade):** Localizar o botão de exclusão definitiva de conta (`TelaExclusaoDeConta`) acessado pelo menu `Perfil` (LGPD).
 - *Nota:* Caso o build interno instalado no aparelho de teste não contenha estas telas até o dia da sessão, marcar formalmente como **"Não testado nesta rodada"**.
 
 ---
@@ -84,34 +84,34 @@ O profissional participante simula sua primeira experiência com o aplicativo Fr
 O contratante participante (gerente, proprietário ou responsável por escala de bar/restaurante no DF) simula a publicação e o acompanhamento de uma demanda operacional urgente.
 
 #### Tarefa C1: Primeiro Acesso e Cadastro do Estabelecimento (Build 0.4)
-- **Objetivo Operacional:** Criar o acesso do gestor, preencher dados essenciais do estabelecimento (nome fantasia, endereço e bairro no DF) e alcançar a tela principal de contratação.
-- **Ponto de Partida:** Tela de entrada do aplicativo.
+- **Objetivo Operacional:** Criar o acesso do gestor, preencher dados essenciais do estabelecimento (nome fantasia, documento e endereço no DF) e alcançar a tela principal de contratação.
+- **Ponto de Partida:** Tela de entrada inicial (`TelaEntrada`).
 - **Instrução Neutra ao Participante:**  
   > *"Imagine que você gerencia um restaurante na Asa Sul e precisa cadastrar seu estabelecimento para cobrir um desfalque na escala de hoje. Conclua seu cadastro inicial."*
 - **Critério de Sucesso Estrito:**
-  - **Sem ajuda (Sucesso RNF09):** O contratante realiza a autenticação por código, escolhe o perfil de contratante, preenche nome do local e endereço, e atinge a aba `Minhas vagas` de forma autônoma.
+  - **Sem ajuda (Sucesso RNF09):** O contratante realiza a autenticação por código em `TelaEntrada` e `TelaCodigo`, escolhe a opção "Quero contratar para o meu negócio" (`cadastro-perfil-contratante`) em `TelaCadastro`, preenche dados pessoais e termos legais, completa os dados do local em `TelaCadastroEstabelecimento` (nome fantasia, documento e endereço no DF) e atinge a aba `Minhas vagas` (`TelaMinhasVagas`) de forma autônoma.
   - **Com ajuda (Falha RNF09):** O contratante não compreende a separação entre dados pessoais e dados do estabelecimento, ou precisa de suporte para validar o endereço.
   - **Não concluiu:** Abandono ou falha de validação bloqueante.
-- **Caminho Esperado na Interface:** `EntradaView` $\to$ `TelaCodigo` $\to$ `SelecaoPerfilView` (Contratante) $\to$ `CadastroUsuarioView` $\to$ `CadastroEstabelecimentoView` $\to$ `MinhasVagasView`.
+- **Caminho Esperado na Interface:** `TelaEntrada` $\to$ `TelaCodigo` $\to$ `TelaCadastro` (escolha de perfil "Quero contratar para o meu negócio", dados pessoais e termos) $\to$ `TelaCadastroEstabelecimento` (nome fantasia, documento e endereço no DF) $\to$ `TelaMinhasVagas` (aba `Minhas vagas`).
 
 #### Tarefa C2: Publicar uma Vaga para Hoje — *Métrica Central RNF09* (Build 0.4)
 - **Objetivo Operacional:** Publicar uma vaga para a data corrente em modo urgência, informando função, horário de entrada/saída e remuneração total líquida, sem auxílio do moderador.
-- **Ponto de Partida:** Aba `Minhas vagas` ou botão de nova vaga.
+- **Ponto de Partida:** Aba `Minhas vagas` (`TelaMinhasVagas`) através do botão "Publicar vaga" (`publicar-vaga-entrada`).
 - **Instrução Neutra ao Participante:**  
   > *"Faltou um auxiliar de cozinha para o turno de hoje à noite, das 18h às 23h. O valor fechado que você pagará ao profissional pelo turno cumprido é de R$ 140. Publique essa vaga no aplicativo."*
 - **Critério de Sucesso Estrito:**
-  - **Sem ajuda (Sucesso RNF09):** O contratante localiza o formulário de publicação (`PublicarVagaView`), seleciona a função correta, define o horário, insere o valor do turno (R$ 140,00 integral, confirmando que não há cobrança de taxa nem desconto sobre o valor exibido) e aciona `Publicar vaga`.
+  - **Sem ajuda (Sucesso RNF09):** O contratante aciona o botão "Publicar vaga" (`publicar-vaga-entrada`) em `TelaMinhasVagas`, preenche os campos em `TelaPublicarVaga` (função, horários de início e fim, valor do turno de R$ 140,00 integral sem cobrança de taxas nem descontos) e aciona o botão de envio "Publicar vaga" (`publicar-vaga-botao`).
   - **Com ajuda (Falha RNF09):** O participante tem dúvidas sobre como configurar o horário, questiona o moderador sobre cobranças e descontos ou não encontra o botão de envio.
   - **Não concluiu:** Erro impeditivo de validação, encerramento do app ou incapacidade de finalizar o envio.
-- **Caminho Esperado na Interface:** `MinhasVagasView` $\to$ Botão `Nova vaga` $\to$ `PublicarVagaView` $\to$ Preenchimento dos campos $\to$ Toque em `publicar-vaga-botao` $\to$ Confirmação e retorno ao mural.
+- **Caminho Esperado na Interface:** `TelaMinhasVagas` $\to$ Botão "Publicar vaga" (`publicar-vaga-entrada`) $\to$ `TelaPublicarVaga` $\to$ Preenchimento dos campos $\to$ Botão "Publicar vaga" (`publicar-vaga-botao`) $\to$ Confirmação e retorno a `TelaMinhasVagas`.
 
 #### Tarefa C3: Acompanhamento da Vaga Publicada (Build 0.4)
 - **Objetivo Operacional:** Visualizar a vaga ativa na aba `Minhas vagas`, verificando o status de preenchimento e posições em aberto.
-- **Ponto de Partida:** Aba `Minhas vagas` (`MinhasVagasView`).
+- **Ponto de Partida:** Aba `Minhas vagas` (`TelaMinhasVagas`).
 - **Instrução Neutra ao Participante:**  
   > *"A vaga foi criada. Onde você confere se ela já está visível e quantas vagas ainda faltam preencher?"*
 - **Critério de Sucesso Estrito:**
-  - **Sem ajuda (Sucesso RNF09):** O contratante localiza o cartão da vaga em `Minhas vagas`, identifica o status de urgência e a contagem de posições restantes (ex.: "0 de 1 preenchida").
+  - **Sem ajuda (Sucesso RNF09):** O contratante localiza o cartão da vaga em `TelaMinhasVagas`, identifica o status de urgência e a contagem de posições restantes (ex.: "0 de 1 preenchida").
   - **Com ajuda (Falha RNF09):** O contratante navega para abas incorretas ou não compreende a sinalização de status da vaga.
   - **Não concluiu:** Não encontra a vaga publicada na listagem.
 
@@ -123,8 +123,8 @@ O contratante participante (gerente, proprietário ou responsável por escala de
 - **Critério de Registro:** Anotar detalhadamente a percepção de segurança da decisão: o contratante sente falta de notas de 1 a 5 estrelas? A taxa de comparecimento (turnos cumpridos vs faltas) é suficiente para a contratação?
 
 #### Tarefas Complementares para Build Interno (Se Disponível até 29/10)
-- **Tarefa C5 (Acompanhamento e Avaliação):** Abrir o turno encerrado, verificar confirmação de presença e submeter a avaliação do contratante: *"Chamaria este profissional de novo? (Sim / Não)"*.
-- **Tarefa C6 (Privacidade):** Localizar o fluxo de exclusão de dados do estabelecimento em `Perfil`.
+- **Tarefa C5 (Acompanhamento e Avaliação):** Abrir o turno encerrado em `TelaTurnoDoContratante`, verificar confirmação de presença e submeter a avaliação do contratante em `TelaAvaliacao`: *"Chamaria este profissional de novo? (Sim / Não)"*.
+- **Tarefa C6 (Privacidade):** Localizar o fluxo de exclusão de dados do estabelecimento (`TelaExclusaoDeConta`) em `Perfil`.
 - *Nota:* Registrar como **"Não testado nesta rodada"** se ausente no build do aparelho.
 
 ---
@@ -210,11 +210,11 @@ A folha de registro deve ser preenchida individualmente por sessão (5 sessões 
 
 ### 3.1 Cabeçalho Padronizado da Sessão
 
-- **Código da Sessão:** `[SES-MOD-01]` *(Numerar de 01 a 05)*
-- **Data e Hora:** `____/10/2026` às `____:____`
-- **Perfil do Participante:** `[ ] Profissional de primeira viagem` | `[ ] Contratante de primeira viagem`
-- **Aparelho e Sistema:** iPhone `_________`, iOS `______`
-- **Build Avaliado:** `[ ] TestFlight 0.4` | `[ ] Build Interno do iPhone de Teste`
+- **Código da Sessão:** SES-MOD-01 *(Numerar de 01 a 05)*
+- **Data e Hora:** ____/10/2026 às ____:____
+- **Perfil do Participante:** [ ] Profissional de primeira viagem | [ ] Contratante de primeira viagem
+- **Aparelho e Sistema:** iPhone _________, iOS ______
+- **Build Avaliado:** [ ] TestFlight 0.4 | [ ] Build Interno do iPhone de Teste
 - **Moderador:** Júlia | **Relator/Anotador:** Fabrício
 
 ---
@@ -223,13 +223,13 @@ A folha de registro deve ser preenchida individualmente por sessão (5 sessões 
 
 | ID Tarefa | Tarefa Avaliada | Desfecho (RNF09) | Tempo (mm:ss) | Ponto de Atrito / Onde Travou | Severidade do Defeito | Comportamento / Citação Literal Anônima |
 |:---|:---|:---:|:---:|:---|:---:|:---|
-| **T1** | Primeiro acesso e cadastro inicial | `[ ] Sem ajuda`<br>`[ ] Com ajuda`<br>`[ ] Não concluiu` | `__:__` | *Tela / campo onde houve dúvida:* | `[ ] Nenhuma`<br>`[ ] Leve`<br>`[ ] Média`<br>`[ ] Grave`<br>`[ ] Bloqueante` | *"..."* |
-| **T2** | **Ação Central RNF09:**<br>Candidatura (Prof.) ou Publicação (Contr.) | `[ ] Sem ajuda`<br>`[ ] Com ajuda`<br>`[ ] Não concluiu` | `__:__` | *Tela / botão onde houve hesitação:* | `[ ] Nenhuma`<br>`[ ] Leve`<br>`[ ] Média`<br>`[ ] Grave`<br>`[ ] Bloqueante` | *"..."* |
-| **T3** | Visualização de Contato (Prof.) ou Conferência da Vaga (Contr.) | `[ ] Sem ajuda`<br>`[ ] Com ajuda`<br>`[ ] Não concluiu` | `__:__` | *Dificuldade de navegação ou visualização:* | `[ ] Nenhuma`<br>`[ ] Leve`<br>`[ ] Média`<br>`[ ] Grave`<br>`[ ] Bloqueante` | *"..."* |
-| **T4** | **Pergunta CSD:**<br>Interpretação de "7 de 7" e comparecimento | `[ ] Compreendeu`<br>`[ ] Confuso`<br>`[ ] Não entendeu` | `__:__` | *Dúvida entre estrelas vs binário:* | `[ ] Nenhuma`<br>`[ ] Leve`<br>`[ ] Média`<br>`[ ] Grave` | *"..."* |
-| **T5** | *[Build Interno]* Check-in presencial no local | `[ ] Sem ajuda`<br>`[ ] Com ajuda`<br>`[ ] Não testado` | `__:__` | *Permissão GPS ou contingência manual:* | `[ ] Nenhuma`<br>`[ ] Grave`<br>`[ ] Bloqueante` | *"..."* |
-| **T6** | *[Build Interno]* Check-out e avaliação mútua | `[ ] Sem ajuda`<br>`[ ] Com ajuda`<br>`[ ] Não testado` | `__:__` | *Envio da avaliação:* | `[ ] Nenhuma`<br>`[ ] Leve`<br>`[ ] Média`<br>`[ ] Grave` | *"..."* |
-| **T7** | *[Build Interno]* Fluxo de exclusão de conta (LGPD) | `[ ] Sem ajuda`<br>`[ ] Com ajuda`<br>`[ ] Não testado` | `__:__` | *Localização do botão em Perfil:* | `[ ] Nenhuma`<br>`[ ] Leve`<br>`[ ] Média` | *"..."* |
+| **T1** | Primeiro acesso e cadastro inicial | [ ] Sem ajuda<br>[ ] Com ajuda<br>[ ] Não concluiu | __:__ | *Tela / campo onde houve dúvida:* | [ ] Nenhuma<br>[ ] Leve<br>[ ] Média<br>[ ] Grave<br>[ ] Bloqueante | *"..."* |
+| **T2** | **Ação Central RNF09:**<br>Candidatura (Prof.) ou Publicação (Contr.) | [ ] Sem ajuda<br>[ ] Com ajuda<br>[ ] Não concluiu | __:__ | *Tela / botão onde houve hesitação:* | [ ] Nenhuma<br>[ ] Leve<br>[ ] Média<br>[ ] Grave<br>[ ] Bloqueante | *"..."* |
+| **T3** | Visualização de Contato (Prof.) ou Conferência da Vaga (Contr.) | [ ] Sem ajuda<br>[ ] Com ajuda<br>[ ] Não concluiu | __:__ | *Dificuldade de navegação ou visualização:* | [ ] Nenhuma<br>[ ] Leve<br>[ ] Média<br>[ ] Grave<br>[ ] Bloqueante | *"..."* |
+| **T4** | **Pergunta CSD:**<br>Interpretação de "7 de 7" e comparecimento | [ ] Compreendeu<br>[ ] Confuso<br>[ ] Não entendeu | __:__ | *Dúvida entre estrelas vs binário:* | [ ] Nenhuma<br>[ ] Leve<br>[ ] Média<br>[ ] Grave | *"..."* |
+| **T5** | *[Build Interno]* Check-in presencial no local | [ ] Sem ajuda<br>[ ] Com ajuda<br>[ ] Não testado | __:__ | *Permissão GPS ou contingência manual:* | [ ] Nenhuma<br>[ ] Grave<br>[ ] Bloqueante | *"..."* |
+| **T6** | *[Build Interno]* Check-out e avaliação mútua | [ ] Sem ajuda<br>[ ] Com ajuda<br>[ ] Não testado | __:__ | *Envio da avaliação:* | [ ] Nenhuma<br>[ ] Leve<br>[ ] Média<br>[ ] Grave | *"..."* |
+| **T7** | *[Build Interno]* Fluxo de exclusão de conta (LGPD) | [ ] Sem ajuda<br>[ ] Com ajuda<br>[ ] Não testado | __:__ | *Localização do botão em Perfil:* | [ ] Nenhuma<br>[ ] Leve<br>[ ] Média | *"..."* |
 
 ---
 
@@ -244,12 +244,12 @@ A folha de registro deve ser preenchida individualmente por sessão (5 sessões 
 
 ### 3.4 Consolidação da Sessão
 
-- **Total de tarefas centrais concluídas sem ajuda:** `____ de ____`
-- **Atingimento do critério RNF09 nesta sessão:** `[ ] Sim (100% sem ajuda)` | `[ ] Parcial` | `[ ] Não`
-- **Total de defeitos identificados:** `___ Bloqueantes` | `___ Graves` | `___ Médios` | `___ Leves`
+- **Total de tarefas centrais concluídas sem ajuda:** ____ de ____
+- **Atingimento do critério RNF09 nesta sessão:** [ ] Sim (100% sem ajuda) | [ ] Parcial | [ ] Não
+- **Total de defeitos identificados:** ___ Bloqueantes | ___ Graves | ___ Médios | ___ Leves
 - **Síntese qualitativa do relator (máx. 3 linhas):**
-  > `__________________________________________________________________________________________`
-  > `__________________________________________________________________________________________`
+  > __________________________________________________________________________________________
+  > __________________________________________________________________________________________
 
 ---
 
@@ -273,23 +273,23 @@ Este modelo deve ser preenchido por Fabrício e Júlia no dia **29/10/2026** par
 
 | Perfil | Ação Central Avaliada | Meta do RNF09 | Resultado Sessões Moderadas | Resultado Testadores Externos (N=10) | Status RNF09 |
 |:---|:---|:---:|:---:|:---:|:---:|
-| **Profissional** | Candidatar-se a uma vaga sem ajuda | Conclusão autônoma sem assistência | `[ ___ / 3 ]` sem ajuda | `[ ___ % ]` sem ajuda | `[ ] Aprovado`<br>`[ ] Reprovado` |
-| **Contratante** | Publicar uma vaga para hoje sem ajuda | Conclusão autônoma sem assistência | `[ ___ / 2 ]` sem ajuda | `[ ___ % ]` sem ajuda | `[ ] Aprovado`<br>`[ ] Reprovado` |
+| **Profissional** | Candidatar-se a uma vaga sem ajuda | Conclusão autônoma sem assistência | [ ___ / 3 ] sem ajuda | [ ___ % ] sem ajuda | [ ] Aprovado<br>[ ] Reprovado |
+| **Contratante** | Publicar uma vaga para hoje sem ajuda | Conclusão autônoma sem assistência | [ ___ / 2 ] sem ajuda | [ ___ % ] sem ajuda | [ ] Aprovado<br>[ ] Reprovado |
 
 - **Evolução em Relação à Rodada 1 (Protótipo de Alta Fidelidade, 06 a 09/10):**
-  - *Profissional:* `[Descrever se o atrito diminuiu na tela de candidatura real]`
-  - *Contratante:* `[Descrever se a publicação para hoje no modo urgência ficou compreensível]`
+  - *Profissional:* [Descrever se o atrito diminuiu na tela de candidatura real]
+  - *Contratante:* [Descrever se a publicação para hoje no modo urgência ficou compreensível]
 
 ---
 
 ### 4.3 Investigação CSD: Percepção da Reputação "7 de 7"
 - **Pergunta Avaliada:** *"Você chamaria este profissional? O que o 7 de 7 te diz?"*
 - **Aderência dos Contratantes (N=2 moderados + contratantes externos):**  
-  `[ ] Compreensão imediata da reputação binária (chamaria de novo)`  
-  `[ ] Confusão com sistema de notas de 1 a 5 estrelas`  
-  `[ ] Exigência de histórico detalhado de comparecimento`
+  [ ] Compreensão imediata da reputação binária (chamaria de novo)  
+  [ ] Confusão com sistema de notas de 1 a 5 estrelas  
+  [ ] Exigência de histórico detalhado de comparecimento
 - **Síntese da Percepção de Segurança:**  
-  > `[Resumo em até 3 linhas sobre como a ausência de notas subjetivas foi recebida pelo público]`
+  > [Resumo em até 3 linhas sobre como a ausência de notas subjetivas foi recebida pelo público]
 
 ---
 
@@ -299,20 +299,20 @@ Conforme os critérios de aceite do cartão Q4ZZwnMR, todos os defeitos **Bloque
 
 | ID | Severidade | Tela / Componente | Descrição do Atrito / Causa Raiz | Impacto no Usuário | Cartão Trello Aberto (até 29/10) |
 |:---|:---:|:---|:---|:---|:---:|
-| **DEF-01** | `Bloqueante` | `[Ex.: PublicarVagaView]` | `[Ex.: Falha no seletor de horário]` | Impede publicação | `[Link / ID]` |
-| **DEF-02** | `Grave` | `[Ex.: MeuTurnoView]` | `[Ex.: Contato WhatsApp demora a liberar]` | Insegurança pós-aceite | `[Link / ID]` |
-| **DEF-03** | `Grave` | `[Ex.: DetalheVagaView]` | `[Ex.: Dúvida se o valor de R$ 140 é bruto ou líquido]` | Risco de conflito | `[Link / ID]` |
-| **DEF-04** | `Médio` | `[Ex.: SelecaoPerfilView]` | `[Ex.: Toque duplo fecha modal inesperadamente]` | Atrito navegacional | Backlog S3 |
-| **DEF-05** | `Leve` | `[Ex.: CatalogoDesignSystem]` | `[Ex.: Rótulo desalinhado em tela compacta]` | Cosmético | Backlog v1.0.1 |
+| **DEF-01** | Bloqueante | `TelaPublicarVaga` | Ex.: Falha no seletor de horário | Impede publicação | Link / ID |
+| **DEF-02** | Grave | `TelaMeuTurno` | Ex.: Contato WhatsApp demora a liberar | Insegurança pós-aceite | Link / ID |
+| **DEF-03** | Grave | `TelaDetalheVaga` | Ex.: Dúvida se o valor de R$ 140 é bruto ou líquido | Risco de conflito | Link / ID |
+| **DEF-04** | Médio | `TelaCadastro` | Ex.: Toque duplo fecha modal inesperadamente | Atrito navegacional | Backlog S3 |
+| **DEF-05** | Leve | `CatalogoDesignSystem` | Ex.: Rótulo desalinhado em tela compacta | Cosmético | Backlog v1.0.1 |
 
 ---
 
 ### 4.5 Funcionalidades Não Testadas nesta Rodada (Registro Formal)
 
 Em conformidade estrita com o escopo aprovado no cartão Q4ZZwnMR:
-- `[ ] Check-in presencial no local:` `[Não testado / Testado parcialmente no iPhone de teste]`
-- `[ ] Avaliação mútua de turno:` `[Não testado / Testado parcialmente no iPhone de teste]`
-- `[ ] Exclusão de conta (LGPD):` `[Não testado / Testado no build interno]`
+- [ ] Check-in presencial no local: [Não testado / Testado parcialmente no iPhone de teste]
+- [ ] Avaliação mútua de turno: [Não testado / Testado parcialmente no iPhone de teste]
+- [ ] Exclusão de conta (LGPD): [Não testado / Testado no build interno]
 - **Justificativa Registrada:** As telas não integradas no build estável até 29/10 foram postergadas para a suíte de testes de interface automatizados (`CicloDePontaAPontaUITests.swift`) e validação assistida no Piloto (13/11 a 04/12).
 
 ---
@@ -345,26 +345,26 @@ Instrumento de coleta assíncrona encaminhado aos 10 testadores externos do Test
 - [ ] Ao enviar a candidatura ou publicar a vaga
 - [ ] Ao tentar acessar os dados de contato ou meus turnos
 - [ ] Não tive nenhuma dificuldade
-- [ ] Outro (especifique): `________________________________________________`
+- [ ] Outro (especifique): ________________________________________________
 
 #### 5. Clareza dos Valores e Regras do Turno:
 *"O valor exibido na vaga ficou claro para você como o valor integral a ser pago pelo turno cumprido, sem descontos ou taxas adicionais?"*
 - [ ] **Sim, totalmente claro e direto.**
 - [ ] **Não, fiquei em dúvida se haveria algum desconto ou taxa.**
-- [ ] Comentário: `________________________________________________________`
+- [ ] Comentário: ________________________________________________________
 
 #### 6. Interpretação da Reputação (Pergunta CSD):
 *"Ao visualizar um perfil com a informação '7 de 7 chamariam de novo' (ou '100% de comparecimento'), o que essa informação transmitiu para você?"*
 - [ ] Segurança total de que a pessoa é confiável e comparece aos turnos.
 - [ ] Fiquei em dúvida e preferiria uma nota de 1 a 5 estrelas.
 - [ ] Achei confuso e não entendi o que o número significava.
-- [ ] Comentário: `________________________________________________________`
+- [ ] Comentário: ________________________________________________________
 
 #### 7. Estabilidade do Aplicativo:
 *"Durante o seu teste, o aplicativo fechou sozinho (crash) ou travou em alguma tela?"*
 - [ ] **Não, funcionou perfeitamente sem travar.**
-- [ ] **Sim, fechou sozinho.** (Em qual momento/tela? `_______________________`)
-- [ ] **Sim, a tela travou e não respondeu.** (Em qual tela? `_______________`)
+- [ ] **Sim, fechou sozinho.** (Em qual momento/tela? _______________________)
+- [ ] **Sim, a tela travou e não respondeu.** (Em qual tela? _______________)
 
 #### 8. Comentário Aberto:
 *"O que mais chamou sua atenção ou o que você mudaria para tornar o Frila mais fácil de usar no dia a dia?"*
