@@ -9,14 +9,19 @@ import Testing
 struct ExclusaoDeContaViewModelTests {
 
     private final class DublePortaExclusao: ExclusaoDeContaPorta, @unchecked Sendable {
-        var resultado: Result<ExclusaoDeConta, Error> = .success(
-            ExclusaoDeConta(
-                perfilRemovidoEm: Date(),
-                dadosApagadosAte: try! DataCivil("2026-10-16"),
-                turnosCancelados: 0
-            )
-        )
+        var resultado: Result<ExclusaoDeConta, Error>
         var chamadasExcluir = 0
+
+        init(relogio: any Relogio = RelogioDoSistema()) {
+            let agora = relogio.agora
+            resultado = .success(
+                ExclusaoDeConta(
+                    perfilRemovidoEm: agora,
+                    dadosApagadosAte: DataCivil.deSaoPaulo(agora, somandoDias: 15)!,
+                    turnosCancelados: 0
+                )
+            )
+        }
 
         func excluirConta() async throws -> ExclusaoDeConta {
             chamadasExcluir += 1

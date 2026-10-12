@@ -279,9 +279,11 @@ struct SuporteTurnoTests {
         var falha: ErroDaApi?
         var protocolosPorChave: [UUID: Protocolo] = [:]
         var contagemPorDia: Int = 0
+        private let relogio: any Relogio
 
-        init(falha: ErroDaApi? = nil) {
+        init(falha: ErroDaApi? = nil, relogio: any Relogio = RelogioDoSistema()) {
             self.falha = falha
+            self.relogio = relogio
             super.init()
         }
 
@@ -293,11 +295,12 @@ struct SuporteTurnoTests {
             }
             contagemPorDia += 1
             chamados.append((turnoID, categoria, chave))
+            let agora = relogio.agora
             let protocolo = Protocolo(
                 ocorrenciaID: UUID(uuidString: "12345678-aaaa-bbbb-cccc-dddddddddddd")!,
                 tipo: .suporte,
-                criadaEm: Date(),
-                prazoRespostaAte: try! DataCivil("2026-10-16")
+                criadaEm: agora,
+                prazoRespostaAte: DataCivil.deSaoPaulo(agora, somandoDias: 7)!
             )
             protocolosPorChave[chave] = protocolo
             return protocolo
