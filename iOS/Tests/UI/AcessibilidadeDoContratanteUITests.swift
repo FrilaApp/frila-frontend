@@ -47,7 +47,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
-        app.buttons["continuar-cadastro"].tap()
+        tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
         // 2.4 Campo de Valor: altura >= 44 pt
@@ -90,7 +90,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         ])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
-        app.buttons["continuar-cadastro"].tap()
+        tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
         let larguraTela = app.windows.firstMatch.frame.width
@@ -148,14 +148,14 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
-        app.buttons["continuar-cadastro"].tap()
+        tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
         // Toolbar: botão de Perfil do Estabelecimento deve abrir a folha do perfil
         let btnPerfil = app.buttons["Perfil do estabelecimento"]
         XCTAssertTrue(btnPerfil.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(btnPerfil.isHittable)
-        btnPerfil.tap()
+        tocar(btnPerfil)
 
         // 3.11 Botão Exportar dados não pode vazar referências a cartões (#219/#50)
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '#219' OR label CONTAINS '#50'")).firstMatch.exists)
