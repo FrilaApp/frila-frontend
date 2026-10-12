@@ -133,7 +133,14 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         XCTAssertTrue(pilula.isSelected, "o catálogo abre com o filtro ligado")
         XCTAssertEqual(pilula.value as? String, "filtro ativo", "Pílula de filtro selecionada deve comunicar estado ativo")
 
-        pilula.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        pilula.tap()
+
+        let filtroDesmarcado = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND isSelected == false AND value != %@", "filtro ativo"),
+            object: pilula
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [filtroDesmarcado], timeout: 5), .completed,
+                       "O toque deve atualizar a seleção e o valor de acessibilidade da pílula")
 
         XCTAssertFalse(pilula.isSelected)
         XCTAssertNotEqual(pilula.value as? String, "filtro ativo", "Pílula desmarcada não deve ter valor ativo")
