@@ -29,7 +29,7 @@ final class PushUITests: XCTestCase {
         let app = abrir("success", push: "vaga", id: idDesconhecido)
 
         XCTAssertTrue(app.descendants(matching: .any)["vaga-indisponivel"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.staticTexts["Essa vaga não está mais aberta"].exists)
+        XCTAssertTrue(app.staticTexts["Vaga encerrada"].exists)
         XCTAssertFalse(app.buttons["candidatar"].exists)
 
         app.buttons["voltar-para-lista"].tap()

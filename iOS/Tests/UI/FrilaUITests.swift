@@ -24,7 +24,7 @@ final class FrilaUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Validação do cliente"].waitForExistence(timeout: Espera.aparecer))
         app.buttons["Simular vaga preenchida"].tap()
-        XCTAssertTrue(app.staticTexts["Esta vaga acabou de ser preenchida. Escolha outra oportunidade."].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.staticTexts["Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga."].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testSolicitacaoDeAcessoChegaAoClienteSemExporOEmailNaTelaDeResultado() {
@@ -331,7 +331,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         app.buttons["cadastro-perfil-profissional"].tap()
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
@@ -538,7 +538,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
         nome.typeText("Menor de Idade")
@@ -590,7 +590,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
         nome.typeText("Menor Pelo Sistema")
@@ -640,7 +640,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
         nome.typeText("Novo Usuário")

@@ -325,19 +325,19 @@ struct DetalheVagaViewModelTests {
         #expect(descricao.contains("*z*"))
     }
 
-    @Test("Cartão de vaga inclui local, inclusos e vagas abertas no rótulo de acessibilidade")
+    @Test("Cartão de vaga inclui local, inclusos e posições abertas no rótulo de acessibilidade")
     func rotuloDeAcessibilidadeDoCartao() async throws {
         let vaga = try #require(try await vagasDoDuble().first)
         let cartao = CartaoVaga(vaga)
         let rotulo = cartao.rotuloDeAcessibilidade
         #expect(rotulo.contains(vaga.local))
-        #expect(rotulo.contains("\(vaga.posicoesAbertas) vagas abertas"))
+        #expect(rotulo.contains("\(vaga.posicoesAbertas) posições abertas"))
         if vaga.inclusos.refeicao {
             #expect(rotulo.contains("Refeição"))
         }
     }
 
-    @Test("Rótulo de acessibilidade usa singular quando há 1 vaga aberta")
+    @Test("Rótulo de acessibilidade usa singular quando há 1 posição aberta")
     func rotuloDeAcessibilidadeSingular() async throws {
         let base = try #require(try await vagasDoDuble().first)
         let vaga = VagaNaLista(
@@ -346,6 +346,6 @@ struct DetalheVagaViewModelTests {
             valor: base.valor, posicoesAbertas: 1, inclusos: base.inclusos, modo: base.modo
         )
         let cartao = CartaoVaga(vaga)
-        #expect(cartao.rotuloDeAcessibilidade.contains("1 vaga aberta"))
+        #expect(cartao.rotuloDeAcessibilidade.contains("1 posição aberta"))
     }
 }

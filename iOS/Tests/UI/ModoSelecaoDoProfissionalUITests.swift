@@ -39,7 +39,7 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         retirar.tap()
         let pergunta = app.alerts["Retirar a candidatura?"]
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
-        XCTAssertTrue(pergunta.staticTexts["Você deixa de concorrer a esta vaga. Enquanto ela aceitar candidaturas, dá para se candidatar de novo."].exists)
+        XCTAssertTrue(pergunta.staticTexts["Sua candidatura a esta vaga será retirada. Enquanto ela aceitar candidaturas, dá para se candidatar de novo."].exists)
         pergunta.buttons[resposta].tap()
     }
 

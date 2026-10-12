@@ -38,7 +38,7 @@ public struct TelaCadastro: View {
                     Spacer()
                 }
 
-                Text("Como você vai usar o Frila?", bundle: bundleApresentacao)
+                Text("Como você quer usar o Frila?", bundle: bundleApresentacao)
                     .font(.title2.bold())
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityAddTraits(.isHeader)
@@ -54,8 +54,8 @@ public struct TelaCadastro: View {
 
                     cartaoPerfil(
                         perfil: .contratante,
-                        titulo: String(localized: "Quero contratar para o meu negócio", bundle: bundleApresentacao),
-                        descricao: String(localized: "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar.", bundle: bundleApresentacao),
+                        titulo: String(localized: "Quero publicar vagas", bundle: bundleApresentacao),
+                        descricao: String(localized: "Perfil de contratante: publique vagas e acompanhe quem vai trabalhar.", bundle: bundleApresentacao),
                         identificador: "cadastro-perfil-contratante"
                     )
                 }

@@ -54,7 +54,7 @@ struct ErrosAPITests {
     }
 
     @Test("Todo 409 novo ou existente chega tipado à camada de apresentação", arguments: [
-        ("posicao_ja_preenchida", CodigoErroAPI.posicaoJaPreenchida, "Esta vaga acabou de ser preenchida. Escolha outra oportunidade."),
+        ("posicao_ja_preenchida", CodigoErroAPI.posicaoJaPreenchida, "Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga."),
         ("vaga_encerrada", CodigoErroAPI.vagaEncerrada, "Esta vaga não está mais disponível."),
         ("checkin_pendente", CodigoErroAPI.checkinPendente, "Faça o check-in antes de continuar."),
         ("checkin_ja_confirmado", CodigoErroAPI.checkinJaConfirmado, "Este check-in já foi confirmado."),

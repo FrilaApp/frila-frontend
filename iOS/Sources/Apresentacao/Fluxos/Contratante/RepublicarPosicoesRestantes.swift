@@ -21,7 +21,7 @@ public enum TextosRepublicarPosicoesRestantes {
     public static let naoESelecao = String(localized: "Apenas vagas no modo seleção podem ser republicadas com este atalho.", bundle: bundleApresentacao)
 
     // Outras recusas
-    public static let vagaOculta = String(localized: "Esta vaga foi ocultada pela moderação e não pode ser republicada.", bundle: bundleApresentacao)
+    public static let vagaOculta = String(localized: "Esta vaga está em revisão pela Equipe Frila e não pode ser republicada.", bundle: bundleApresentacao)
     public static let perfilIncompativel = String(localized: "Apenas contas de contratante podem republicar vagas.", bundle: bundleApresentacao)
     public static let semPermissao = String(localized: "Você não tem permissão para republicar esta vaga.", bundle: bundleApresentacao)
     public static let contaSuspensa = String(localized: "Sua conta está suspensa e não pode republicar vagas.", bundle: bundleApresentacao)

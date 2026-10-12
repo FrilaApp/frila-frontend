@@ -172,7 +172,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
 
         botao.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.5)).tap()
 
-        let apareceu = app.staticTexts["Esta vaga acabou de ser preenchida. Escolha outra oportunidade."].waitForExistence(timeout: 5)
+        let apareceu = app.staticTexts["Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga."].waitForExistence(timeout: 5)
         if !apareceu {
             let captura = XCTAttachment(screenshot: app.screenshot())
             captura.name = "falha-toque-lateral"
