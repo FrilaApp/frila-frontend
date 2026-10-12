@@ -7,21 +7,16 @@ on:
       - "!iOS/**/*.md"
       - "!iOS/Docs/**"
       - ".github/workflows/ios.yml"
-  push:
-    branches: [main]
-    paths:
-      - "iOS/**"
-      - "!iOS/**/*.md"
-      - "!iOS/Docs/**"
-      - ".github/workflows/ios.yml"
+  schedule:
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ios-${{ github.event.pull_request.number || (github.event_name == 'schedule' && 'schedule') || format('manual-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TEST_RUNNER_CI: "true"
