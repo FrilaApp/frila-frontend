@@ -73,6 +73,19 @@ Em outubro de 2026 o job único chegou perto do limite: na 37244334865 (push no 
 
 Paralelismo de testes no simulador: medido e descartado em 03/10/2026 no PR #102. Tentar rodar os testes em paralelo no xcodebuild (`-parallel-testing-enabled YES -maximum-parallel-testing-workers 2`) subiu o tempo do passo de testes de 42-53 minutos para 67m45s (estourando o limite de 70 minutos do workflow) e causou 8 falhas espúrias por lentidão extrema. O runner `macos-26` do GitHub Actions tem apenas 3 vCPUs; subir e manter dois clones de simulador concorrentes sobrecarrega a CPU (só o boot inicial levou 10m20s) e quebra a sincronização de acessibilidade do XCUITest. O simulador único sequencial é 15 a 25 minutos mais rápido e 100% determinístico. Não ligue paralelismo de simulador na CI sem runners com mais núcleos dedicados.
 
+## Suíte completa no main: agendada
+
+Desde 12/10/2026, o `ios.yml` não dispara mais a cada push no `main`. A suíte completa roda agendada diariamente às 06h UTC e por disparo manual.
+
+Motivo e números do mapa (11–12/10/2026):
+- Em 29 h, de 14 pushes no `main`, apenas 2 terminaram verdes: 9 foram cancelados pelo merge seguinte (`cancel-in-progress`), desperdiçando 362 minutos de runner macOS e 399,5 minutos de fila sem validar nada; 3 falharam.
+- Cada PR já passa na suíte completa antes do merge; repetir a execução a cada push congestionava os runners macOS.
+
+Para disparar à mão no `main` (ex.: antes de tag de TestFlight):
+```sh
+gh workflow run ios.yml --ref main
+```
+
 ## Mandar um build ao TestFlight
 
 O workflow `.github/workflows/testflight.yml` arquiva, assina, confere e manda o app ao TestFlight
