@@ -171,7 +171,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 > 1. Autenticação: O aplicativo utiliza autenticação segura sem senha via código de 6 dígitos (OTP). Para testar, utilize as duas contas de demonstração fornecidas acima com o código de teste informado.
 > 2. Perfis do App: Uma conta atua como Contratante (publica vagas) e a outra como Profissional (candidata-se e registra check-in).
 > 3. Geolocalização: O check-in do profissional requer proximidade física com o endereço do estabelecimento. Para testar o check-in no simulador, configure a localização simulada para as coordenadas do estabelecimento demo (Asa Sul, Brasília: Latitude -15.8080, Longitude -47.8890).
-> 4. Conteúdo Gerado por Usuários (Diretriz 1.2): O aplicativo inclui moderação ativa, botão nativo de denúncia de irregularidades e bloqueio mútuo definitivo de usuários acessível nos detalhes do turno e do perfil.
+> 4. Conteúdo Gerado por Usuários (Diretriz 1.2): O aplicativo inclui moderação ativa, botão nativo de denúncia de irregularidades e bloqueio mútuo definitivo de usuários acessível nos detalhes do turno e do perfil. A moderação de denúncias conta com triagem em até 24 h; resposta formal em até 5 dias úteis.
 > 5. Para qualquer dúvida durante a revisão, estamos à disposição pelo e-mail suportefrila@gmail.com.
 
 ---
@@ -186,7 +186,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 | **Sem "grátis" no nome/subtítulo** | Diretriz 2.3.7 da Apple | Conforme | O nome e o subtítulo não contêm termos como "grátis", "free", preços ou símbolos de moeda. |
 | **Palavras-chave $\le$ 100 caracteres** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 97 caracteres / 97 bytes, sem concorrentes e sem espaços supérfluos. |
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
-| **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Conforme | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Canal de atendimento informa prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`). |
+| **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Conforme | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Moderação de denúncias: triagem em até 24 h; resposta formal em até 5 dias úteis (decisão do Cauê em 12/10/2026). Canal de atendimento geral informa prazo do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`). |
 | **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme | URLs públicas seguras em HTTPS, sem rastreadores de terceiros e com canal oficial do titular. |
 
 ---
@@ -210,3 +210,4 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 |---|---|---|
 | 2026-10-12 | Doutor Estranho | Elaboração da ficha completa da App Store: nome, subtítulo, palavras-chave com contagem exata, descrição auditada, What's New, URLs públicas, classificação 17+/18+, dados para revisão e checklist contra Diretrizes 2.3 e Guia de Voz (cartão PFWvegZa, T-0019). |
 | 2026-10-12 | Doutor Estranho | Ajustes de devolução (PR 223): e-mail oficial atualizado para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`), remoção do prazo de 24h na descrição em favor do prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`) e confirmação da página pública de suporte mesclada no PR 215. |
+| 2026-10-12 | Steve Rogers | Aplicação da decisão do Cauê (12/10/2026) sobre SLA da Diretriz 1.2: triagem de denúncias em até 24 h; resposta formal em até 5 dias úteis. |

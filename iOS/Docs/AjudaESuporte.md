@@ -62,10 +62,10 @@ A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuá
 - **Mecanismo de Denúncia (Conforme):** `FolhaDeDenuncia` (`iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:62-150`), integrada à RPC `denunciar` (valida alvo, motivo, relato de no mínimo 10 caracteres e gera protocolo de acompanhamento).
 - **Mecanismo de Bloqueio (Conforme):** `BotaoBloquear` (`iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:20-60`), executando bloqueio definitivo entre profissional e estabelecimento para impedir visualizações mútuas, candidaturas e notificações.
 - **Informações de Contato (Conforme):** Disponibilizadas em `TelaAjudaPerfil` (`PerfisDaConta.swift:348-450`) com e-mail clicável e copiável.
-- **Prazo de Atendimento / SLA de 24 horas (Ponto de Atenção):**
+- **Prazo de Atendimento / SLA de Moderação (Conforme):**
   - O texto informativo geral de perfil indica `"Respondemos em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 393; Fonte: Visão 7.2 e RF23).
   - O protocolo de denúncia (`AcoesDeSeguranca.swift:83-89`) calcula a data limite a partir de `protocolo.prazoRespostaAte`, que no backend (`privado.prazo_de_resposta`) projeta o quinto dia útil.
-  - Para cumprir formalmente a Diretriz 1.2 da App Store durante a revisão da Apple, o canal de moderação e denúncias de conteúdo ofensivo deve assegurar SLA operacional de triagem em até 24 horas (distinto do suporte negocial geral de 5 dias úteis) — decisão pendente. O 24 h não entra em texto de interface nem como fato.
+  - Para cumprir formalmente a Diretriz 1.2 da App Store, a moderação e denúncia de conteúdo conta com triagem em até 24 h; resposta formal em até 5 dias úteis (decisão do Cauê em 12/10/2026 acatando a recomendação).
 
 ---
 
@@ -116,9 +116,9 @@ Redação proposta em conformidade estrita com o `iOS/Docs/GuiaDeVoz.md` (tom di
 1. **Identificação do suporte:** Canal oficial vigente da Equipe Frila.
    - E-mail vigente no app e no perfil: `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`).
    - Alternativa citada em `ingestao-email-suporte-v1.1.md:13`: `suporte@frila.app` (decisão pendente).
-2. **Prazo de resposta institucional:**
-   - `"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."` (Fonte: Visão 7.2 e RF23 / `TextosDoSuporte.swift:7`).
-   - Nenhum outro prazo foi inventado. O prazo de 24 horas da Diretriz 1.2 da App Store não entra em texto de interface nem como fato (decisão pendente sobre SLA operacional).
+2. **Prazo de resposta institucional e SLA de moderação:**
+   - Suporte geral no aplicativo: `"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."` (Fonte: Visão 7.2 e RF23 / `TextosDoSuporte.swift:7`).
+   - Moderação e denúncia de conteúdo: triagem em até 24 h; resposta formal em até 5 dias úteis (Diretriz 1.2 da App Store; decisão do Cauê em 12/10/2026).
 3. **Ausência de comissão:** Uso da expressão aprovada `"O Frila não desconta do valor pago pelo turno"`.
 4. **Sem jargões promocionais:** Banidos termos como "grátis", "100% gratuito", "em poucos toques" e "em instantes".
 

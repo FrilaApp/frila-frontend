@@ -27,7 +27,7 @@ Todos os endereços, domínios, números e parâmetros utilizados neste document
 | Domínio / Privacidade | `https://frila.app/privacidade` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:21`<br>`iOS/Docs/PaginaPublica/VALIDACAO.md:99` | URL pública oficial da Política de Privacidade. |
 | Domínio do site | `https://frila.app` | `EnderecosOficiais.swift:20-21` | Host base derivado das páginas legais oficiais. |
 | Validade do código de entrada | *"Ele vale por pouco tempo e para uma única entrada."* | Sem prazo no contrato público (`iOS/Contrato/openapi.yaml:1109-1180`) | O arquivo `frila-backend/supabase/config.toml:219` define `otp_expiry = 600` (10 min local). Porém, como a validade em minutos não está contratualizada na especificação da API nem nos Requisitos (RF01), o texto segue a regra de **sem promessa de tempo**, omitindo números não contratados. Definição formal pendente para Cauê/João Paulo. |
-| Prazo de resposta de denúncias e suporte | *Até 5 dias úteis* | `iOS/Docs/AjudaESuporte.md:59-62`<br>`iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:393` | Prazo exibido no aplicativo (`TextosPerfilConta.prazoSuporte`) e projetado pelo backend (`protocolo.prazoRespostaAte`). |
+| Prazo de moderação e denúncias | *Triagem em até 24 h; resposta formal em até 5 dias úteis* | Diretriz 1.2 da App Store<br>Decisão do Cauê (12/10/2026)<br>`iOS/Docs/AjudaESuporte.md:59-62` | Denúncias de conteúdo: triagem em até 24 h (Diretriz 1.2 da App Store; decisão do Cauê em 12/10/2026); resposta formal ao denunciante em até 5 dias úteis. Suporte geral exibido no aplicativo em até 5 dias úteis (`TextosPerfilConta.prazoSuporte`). |
 | Prazo de resposta a contestações | *Até 5 dias úteis* | LGPD art. 20<br>`frila-backend/supabase/functions/enviar-email/modelos.ts:85,106` | Prazo legal e regulamentar do suporte negocial, contestações e revisões de despacho. |
 | Telefones de emergência | 190 e 180 | Requisitos v1.5.0 (RF23, UC14)<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift` | Canais públicos de atendimento policial (190) e violência contra a mulher (180). |
 
@@ -162,7 +162,7 @@ Referência curta: {{protocolo_curto}}
 Categoria: {{categoria}}
 Data de registro: {{data_abertura}}
 
-As denúncias são analisadas pela nossa equipe e respondidas em até 5 dias úteis.
+As denúncias passam por triagem em até 24 h; resposta formal em até 5 dias úteis.
 
 Guarde este número de protocolo: é por meio dele que nossa equipe acompanha o caso.
 
@@ -230,7 +230,7 @@ Equipe Frila · Moderação e Segurança
             <div class="protocol-line"><strong>Categoria:</strong> {{categoria}}</div>
             <div class="protocol-line"><strong>Data de registro:</strong> {{data_abertura}}</div>
           </div>
-          <p class="text-body">As denúncias são analisadas pela nossa equipe e respondidas em até 5 dias úteis. Guarde este número de protocolo para acompanhar o caso.</p>
+          <p class="text-body">As denúncias passam por triagem em até 24 h; resposta formal em até 5 dias úteis. Guarde este número de protocolo para acompanhar o caso.</p>
           <div class="emergency-box">
             <div class="emergency-title">Orientação de segurança</div>
             <p class="emergency-text">Em caso de risco imediato, procure a autoridade policial pelos números 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher). O Frila não substitui o atendimento de emergência.</p>
@@ -471,20 +471,20 @@ Monitoramento Frila · Infraestrutura e Confiabilidade
 | **Versões completas em HTML e texto simples** | Concluído | Todos os 4 modelos contam com código HTML independente e bloco de texto simples. |
 | **HTML sem recursos externos e legível em modo escuro** | Concluído | Zero imagens remotas, CSS inline, paleta sem dependências e estilos dark mode testados. |
 | **Código no assunto e legível na notificação sem abrir o e-mail** | Concluído | Assunto: `{{codigo}} é seu código de entrada no Frila`; pré-cabeçalho iniciado pelo código. |
-| **Prazos normativos alinhados ao aplicativo (em até 5 dias úteis)** | Concluído | Seção 3 (denúncia) e Seção 4 (contestação) alinhados a `TextosPerfilConta.prazoSuporte` e `protocolo.prazoRespostaAte`. |
+| **Prazos normativos alinhados ao aplicativo e à Diretriz 1.2** | Concluído | Seção 3 (denúncia: triagem em até 24 h; resposta formal em até 5 dias úteis, decisão do Cauê em 12/10/2026) e Seção 4 (contestação: em até 5 dias úteis) alinhados aos normativos. |
 | **Telefones de emergência 190 e 180 no modelo de denúncia** | Concluído | Seção 3 (texto simples e HTML) com destaque para atendimento policial e mulher. |
 | **Alerta do time sem dados pessoais e com destinatário/link a definir** | Concluído | Seção 5 restrita a métricas operacionais, instante, `{{destinatario_time}} [A DEFINIR]` e `{{link_painel}} [A DEFINIR]`. |
 | **Endereços oficiais ancorados em fontes verificadas** | Concluído | Tabela 1.1 com fontes de `EnderecosOficiais.swift`, `AjudaESuporte.md` e `VALIDACAO.md`. Variável `{{email_suporte}}` ancorada em `suportefrila@gmail.com`. |
 | **Sem promessa de tempo na validade do código** | Concluído | Validade descrita como *"Ele vale por pouco tempo e para uma única entrada"*, sem número de minutos inventado. |
 | **Terminologia do Guia de Voz e ausência da palavra "comissão"** | Concluído | Vocabulário auditado contra `GuiaDeVoz.md`, sem "comissão". |
 | **Conferência de scripts (`conferir-textos.sh`)** | Concluído | `iOS/Scripts/conferir-textos.sh` aprovado sem erros. |
-| **Definição sobre promessa de SLA de 24 horas para moderação de denúncias** | Em falta | Ponto de atenção de `iOS/Docs/AjudaESuporte.md:59-62` (Diretriz 1.2 da App Store vs. 5º dia útil projetado por `protocolo.prazoRespostaAte` no backend) pendente de decisão para Cauê/João Paulo. Não incluído como promessa no corpo do e-mail. |
+| **Definição sobre promessa de SLA de 24 horas para moderação de denúncias** | Concluído | Decisão do Cauê em 12/10/2026 acatando a recomendação da Diretriz 1.2 da App Store: denúncia de conteúdo com triagem em até 24 h; resposta formal em até 5 dias úteis (incorporado ao Modelo 2). |
 | **Validação da entrega na caixa de entrada (Gmail e iCloud) com captura no Trello** | Em falta | Depende da infraestrutura de SMTP próprio no Supabase Auth e testes externos de envio. |
 | **Aprovação dos textos pela Júlia** | Em falta | Depende de validação e aprovação formal pela Júlia no cartão Trello. |
 | **Homologação formal do prazo de validade do código OTP** | Em falta | Definição formal do prazo de expiração (se 10 min de `config.toml` deve ir para o texto) para Cauê/João Paulo. |
 
 ### 6.1 Decisões Pendentes (Cauê e João Paulo)
 
-1. **SLA de triagem de moderação (24 horas vs. 5 dias úteis):** O aplicativo exibe *"Respondemos em até 5 dias úteis"* (`TextosPerfilConta.prazoSuporte`) e o backend projeta a data de resposta para o 5º dia útil (`protocolo.prazoRespostaAte`). Conforme registrado em `iOS/Docs/AjudaESuporte.md:59-62`, a Diretriz 1.2 da App Store exige triagem de conteúdo abusivo em até 24 horas. Cabe a Cauê e João Paulo definir se o SLA operacional interno de 24 horas deve ser anunciado ao usuário por e-mail ou mantido apenas como meta interna de triagem sem promessa expressa.
+1. **SLA de triagem de moderação (Definido pelo Cauê em 12/10/2026):** Decisão formal do Cauê: "acato a sua recomendação". Denúncia de conteúdo conta com triagem em até 24 h (Diretriz 1.2 da App Store); resposta formal ao denunciante em até 5 dias úteis. Aplicado ao Modelo 2 (Protocolo de Denúncia) em texto simples e HTML.
 2. **Prazo numérico de validade do código OTP:** Definir se a validade técnica de 10 minutos (`frila-backend/supabase/config.toml:219`) deve ser anunciada textualmente no e-mail aos usuários ou mantida no formato neutro atual (*"Ele vale por pouco tempo e para uma única entrada"*).
 3. **Destinatário e infraestrutura do alerta do time:** Definir o e-mail real de monitoramento (`{{destinatario_time}}`) e a URL do painel (`{{link_painel}}`).
