@@ -29,7 +29,7 @@ Em `iOS/Tests/UI/ExportarDadosUITests.swift`:
 
 ## Cinco execuções consecutivas aprovadas
 
-Executadas via `/Users/cauecarneiro/Documents/Projetos/Apps/.workers/vigia/xcb.sh "Thor"` no esquema `Frila-Local`:
+Executadas via `.workers/vigia/xcb.sh "Thor"` no esquema `Frila-Local`:
 - **Ambiente:** iPhone 17 (simulador Thor, UDID `CEF93014-23BF-4F01-B535-6C1777ED08C9`), iOS 26.5 (build 23F77).
 - **Resultados:**
   1. Execução 1: Aprovado em 11.362 s ([resumo](execucao-1-resumo.json), log `thor-20261012-001947-88518.log`)
