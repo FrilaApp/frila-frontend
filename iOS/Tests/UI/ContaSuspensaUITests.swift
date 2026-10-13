@@ -77,8 +77,7 @@ final class ContaSuspensaUITests: XCTestCase {
 
         // 3. Envia a contestação
         let botaoEnviar = app.buttons["botao-enviar-contestacao"]
-        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: Espera.aparecer))
-        botaoEnviar.tap()
+        tocar(botaoEnviar)
 
         // 4. Protocolo e estado "em análise" são exibidos (Critério 2)
         let statusAnalise = app.descendants(matching: .any)["status-em-analise"]

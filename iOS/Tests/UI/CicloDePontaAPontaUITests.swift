@@ -232,6 +232,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
         XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
+        esperarHabilitado(botaoEnviar, true)
         XCTAssertTrue(botaoEnviar.isEnabled)
         tocar(botaoEnviar)
 
@@ -311,6 +312,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
         XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
+        esperarHabilitado(botaoEnviar, true)
         XCTAssertTrue(botaoEnviar.isEnabled)
         tocar(botaoEnviar)
 
