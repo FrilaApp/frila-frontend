@@ -318,6 +318,37 @@ struct PresencaDoTurnoViewModelTests {
         #expect(cena.api.checkins.map(\.distanciaMetros) == [150])
     }
 
+    @Test("Definir ponto da vaga atualiza estado interno e dispensa busca do detalhe na rede")
+    func definirPontoDaVagaAtualizaEstadoInterno() async throws {
+        let cena = try await Cena.montar()
+        let leitor = cena.leitor()
+        let vm = cena.viewModel(leitor, comPonto: false)
+
+        #expect(cena.api.detalhes == 0)
+
+        // Atribui as coordenadas via método público
+        vm.definir(pontoDaVaga: cena.ponto)
+
+        // Ao iniciar, o ViewModel utiliza o ponto configurado internamente sem chamar detalheDaVaga
+        await vm.iniciar(.checkin)
+        #expect(cena.api.detalhes == 0)
+        #expect(vm.verificacao == .verificado)
+        #expect(cena.api.checkins.map(\.distanciaMetros) == [150])
+    }
+
+    @Test("Ponto configurado via definir(pontoDaVaga:) é considerado na verificação de proximidade")
+    func definirPontoDaVagaConsideradoNaProximidade() async throws {
+        let cena = try await Cena.montar()
+        let vm = cena.viewModel(cena.leitor(a: 350), comPonto: false)
+
+        // Configura o ponto da vaga
+        vm.definir(pontoDaVaga: cena.ponto)
+
+        // Ao iniciar com leitor a 350m do ponto configurado, a proximidade é avaliada contra ele
+        await vm.iniciar(.checkin)
+        #expect(vm.etapa == .semGPS(.checkin, .longe(distanciaMetros: 350)))
+    }
+
     @Test("Depois de uma falha, tentar o GPS de novo é um toque novo, com instante novo")
     func tentarDeNovo() async throws {
         let cena = try await Cena.montar()
