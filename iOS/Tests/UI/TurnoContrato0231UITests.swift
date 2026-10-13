@@ -217,16 +217,6 @@ final class TurnoContrato0231UITests: XCTestCase {
         conferirAvaliacaoNegativa(app)
     }
 
-    private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
-        if !elemento.isHittable || !elemento.isEnabled {
-            let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
-            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-            _ = XCTWaiter.wait(for: [espera], timeout: 5)
-        }
-        elemento.tap()
-    }
-
     private func conferirAvaliacaoNegativa(_ app: XCUIApplication) {
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: 10))
         let status = app.staticTexts["Turno avaliado · Resposta: Não"]
