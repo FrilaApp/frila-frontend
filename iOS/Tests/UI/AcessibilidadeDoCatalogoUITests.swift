@@ -71,14 +71,20 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         esperarEstabilizacaoDeFrame(elemento)
     }
 
-    /// Percorre o catálogo inteiro em AX5 e confere cada botão e campo que aparece na tela.
+    /// Percorre o catálogo inteiro em AX5 e confere cada botão, campo e texto contra corte (truncamento), rótulo e alvo de 44 pt (#9bWsp2he).
     func testTodoControleTemRotuloEAlvoMinimoEmAX5() {
         let app = abrirCatalogo(tamanho: Self.ax5)
         var conferidos = Set<String>()
         var problemas: [String] = []
         let fim = app.buttons["abrir-licencas"]
 
+        let pastaEvidencias = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/evidencias/fila-13-10/estranho-ax5-catalogo"
         let janela = app.windows.firstMatch.frame
+
+        // 1. Auditoria inicial contra corte de texto (E32 / .textClipped)
+        problemas.append(contentsOf: auditarTextoCortado(em: app, etapa: "topo"))
+
+        var alcancouFim = false
         for _ in 0..<20 {
             let controles = app.buttons.allElementsBoundByIndex + app.textFields.allElementsBoundByIndex
             for controle in controles {
@@ -89,21 +95,66 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
                 guard !conferidos.contains(chave) else { continue }
                 guard controle.isHittable else { continue }
                 conferidos.insert(chave)
-                if controle.label.trimmingCharacters(in: .whitespaces).isEmpty
-                    && controle.placeholderValue?.isEmpty != false {
+
+                let label = controle.label.trimmingCharacters(in: .whitespaces)
+                if label.isEmpty && controle.placeholderValue?.isEmpty != false {
                     problemas.append("sem rótulo: \(controle.elementType) \(controle.identifier)")
                 }
                 if !AlvoMinimo.atende(quadro.height) || !AlvoMinimo.atende(quadro.width) {
                     problemas.append("alvo \(Int(quadro.width))×\(Int(quadro.height)) pt: \(controle.label)")
                 }
+
+                // 2. Asserção contra corte/truncamento nos controles: dentro da janela e sem elisão (...)
+                if quadro.minX < 0 || quadro.maxX > janela.width {
+                    problemas.append("controle vaza lateralmente da janela (\(quadro.minX)...\(quadro.maxX) pt): \(label)")
+                }
+                if label.contains("…") || label.contains("...") {
+                    problemas.append("controle com texto elidido/truncado em AX5: \(label)")
+                }
             }
-            if fim.exists && fim.isHittable { break }
+
+            if fim.exists && fim.isHittable {
+                alcancouFim = true
+                break
+            }
             app.swipeUp()
         }
 
-        XCTAssertTrue(fim.isHittable, "o percurso não alcançou o fim do catálogo")
+        XCTAssertTrue(alcancouFim || fim.isHittable, "o percurso não alcançou o fim do catálogo")
         XCTAssertGreaterThan(conferidos.count, 8, "o percurso não encontrou os controles do catálogo")
+
+        // 3. Auditoria final contra corte de texto (.textClipped) ao alcançar o fim do catálogo
+        problemas.append(contentsOf: auditarTextoCortado(em: app, etapa: "fim"))
+
+        if !problemas.isEmpty {
+            let captura = app.screenshot()
+            let anexo = XCTAttachment(screenshot: captura)
+            anexo.name = "falha-catalogo-ax5-corte"
+            anexo.lifetime = .keepAlways
+            add(anexo)
+            try? captura.pngRepresentation.write(to: URL(fileURLWithPath: "\(pastaEvidencias)/falha-catalogo-ax5-corte.png"))
+        }
+
         XCTAssertTrue(problemas.isEmpty, problemas.joined(separator: "\n"))
+    }
+
+    private func auditarTextoCortado(em app: XCUIApplication, etapa: String) -> [String] {
+        var achados: [String] = []
+        do {
+            try app.performAccessibilityAudit(for: [.textClipped]) { achado in
+                let elementoDesc = achado.element.map { "\($0)" } ?? "-"
+                // O UITextField do sistema tem rolagem horizontal interna e reporta falso positivo em AX5 (AuditoriaDeAcessibilidadeUITests:110)
+                if elementoDesc.contains("TextField") {
+                    return true
+                }
+                let detalhe = achado.detailedDescription.replacingOccurrences(of: "\n", with: " ")
+                achados.append("texto cortado (audit \(etapa)): \(achado.compactDescription) | \(elementoDesc) | \(detalhe)")
+                return false
+            }
+        } catch {
+            achados.append("falha na auditoria de acessibilidade (\(etapa)): \(error)")
+        }
+        return achados
     }
 
     /// O alvo de 44 pt só vale se a borda também responde: um frame transparente sem
