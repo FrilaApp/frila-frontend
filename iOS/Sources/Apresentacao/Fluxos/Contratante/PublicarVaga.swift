@@ -448,6 +448,8 @@ public struct TelaPublicarVaga: View {
     public var body: some View {
         NavigationStack {
             formulario
+                // O texto já rolado não deve continuar legível por trás da barra.
+                .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
                 .toolbar {
                     // Quem veio de Minhas vagas tem para onde voltar; no primeiro acesso, não.
                     if let aoCancelar {
