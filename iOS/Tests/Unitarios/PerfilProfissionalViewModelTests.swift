@@ -374,6 +374,76 @@ struct PerfilProfissionalViewModelTests {
         #expect((r1 && !r2) || (!r1 && r2))
         #expect(api.chamadasCriarPerfil == 1)
     }
+
+    @Test("Texto em branco ou somente espaços descarta busca e zera sugestões")
+    func buscarEnderecoComTextoEmBrancoDescartaBusca() async {
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: -15.7938, longitude: -47.8827)))
+        var executouBusca = false
+        let vm = PerfilProfissionalViewModel(
+            api: ApiClienteEmMemoria(),
+            buscarPontoBase: { _ in
+                executouBusca = true
+                return [item]
+            }
+        )
+        vm.enderecoTexto = "Asa Norte"
+        await vm.buscarEndereco()
+        #expect(vm.sugestoes.count == 1)
+
+        executouBusca = false
+        vm.enderecoTexto = "   \n\t "
+        await vm.buscarEndereco()
+
+        #expect(!executouBusca)
+        #expect(vm.sugestoes.isEmpty)
+        #expect(vm.carregandoBusca == false)
+    }
+
+    @Test("Consulta com texto válido recebe query tratada e popula sugestões")
+    func buscarEnderecoValidoPopulaSugestoes() async {
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: -15.7938, longitude: -47.8827)))
+        var queryRecebida: String?
+        let vm = PerfilProfissionalViewModel(
+            api: ApiClienteEmMemoria(),
+            buscarPontoBase: { query in
+                queryRecebida = query
+                return [item]
+            }
+        )
+        vm.enderecoTexto = "  Asa Sul, Brasília  "
+        await vm.buscarEndereco()
+
+        #expect(queryRecebida == "Asa Sul, Brasília")
+        #expect(vm.sugestoes.count == 1)
+        #expect(vm.carregandoBusca == false)
+    }
+
+    @Test("Falha na busca injetada limpa sugestões sem propagar erro")
+    func buscarEnderecoComFalhaLimpaSugestoesSemPropagarErro() async {
+        struct ErroDeBusca: Error {}
+        final class Estado: @unchecked Sendable {
+            var deveFalhar = false
+        }
+        let estado = Estado()
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: -15.7938, longitude: -47.8827)))
+        let vm = PerfilProfissionalViewModel(
+            api: ApiClienteEmMemoria(),
+            buscarPontoBase: { _ in
+                if estado.deveFalhar { throw ErroDeBusca() }
+                return [item]
+            }
+        )
+        vm.enderecoTexto = "Asa Sul"
+        await vm.buscarEndereco()
+        #expect(vm.sugestoes.count == 1)
+
+        estado.deveFalhar = true
+        vm.enderecoTexto = "Endereço qualquer"
+        await vm.buscarEndereco()
+
+        #expect(vm.sugestoes.isEmpty)
+        #expect(vm.carregandoBusca == false)
+    }
 }
 
 // MARK: - Dublê de testes
