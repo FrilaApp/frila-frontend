@@ -714,6 +714,8 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         anexo.name = nome
         anexo.lifetime = .keepAlways
         add(anexo)
+        let pasta = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/evidencias/fila-13-10/estranho-ax5"
+        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: "\(pasta)/\(nome)"))
     }
 
     private func atualizacaoObrigatoria(ax5: Bool) {
@@ -733,6 +735,57 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testAtualizacaoObrigatoria() { atualizacaoObrigatoria(ax5: false) }
     func testAtualizacaoObrigatoriaEmAX5() { atualizacaoObrigatoria(ax5: true) }
+
+    private func secaoDeCandidatos(ax5: Bool) {
+        let app = abrir(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "selecao-com-candidatos"], ax5: ax5)
+        guard esperar(app.navigationBars["Minhas vagas"], "Minhas vagas deve abrir") else { return }
+
+        let vaga = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
+        guard esperar(vaga, "A vaga de seleção deve existir") else { return }
+        tocar(vaga, em: app)
+
+        guard esperar(elemento("candidatos-da-vaga", em: app), "A seção de candidatos deve abrir") else { return }
+        salvarCaptura(app.screenshot(), nome: "secao-candidatos-selecao-\(tamanhoAtual).png")
+        auditar(app, tela: "secao-candidatos-selecao")
+    }
+
+    func testSecaoDeCandidatos() { secaoDeCandidatos(ax5: false) }
+    func testSecaoDeCandidatosEmAX5() { secaoDeCandidatos(ax5: true) }
+
+    private func destinoAvaliacaoDoContratante(ax5: Bool) {
+        let app = abrir([
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "ciclo-contratante-turno-concluido"
+        ], ax5: ax5)
+        guard esperar(elemento("minhas-vagas", em: app), "Minhas vagas deve abrir") else { return }
+
+        let vaga = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
+        guard esperar(vaga, "A vaga concluída deve existir") else { return }
+        tocar(vaga, em: app)
+
+        guard esperar(elemento("detalhe-vaga-contratante", em: app), "O detalhe da vaga deve abrir") else { return }
+
+        let acompanhar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'acompanhar-turno-'")).firstMatch
+        guard esperar(acompanhar, "O botão de acompanhar turno deve existir") else { return }
+        tocar(acompanhar, em: app)
+
+        guard esperar(elemento("turno-do-contratante", em: app), "A tela de acompanhamento deve abrir") else { return }
+
+        let cartaoAvaliacao = elemento("cartao-avaliacao-turno", em: app)
+        guard esperar(cartaoAvaliacao, "O cartão de avaliação deve existir") else { return }
+
+        let botaoAvaliar = app.buttons["botao-abrir-avaliacao"]
+        let botaoAlternativo = app.buttons["Avaliar turno"]
+        let botaoEfetivo = botaoAvaliar.exists ? botaoAvaliar : botaoAlternativo
+        tocar(botaoEfetivo, em: app)
+
+        guard esperar(app.navigationBars["Avaliar turno"], "A avaliação do contratante deve abrir") else { return }
+        salvarCaptura(app.screenshot(), nome: "avaliacao-contratante-\(tamanhoAtual).png")
+        auditar(app, tela: "avaliacao-contratante")
+    }
+
+    func testDestinoAvaliacaoDoContratante() { destinoAvaliacaoDoContratante(ax5: false) }
+    func testDestinoAvaliacaoDoContratanteEmAX5() { destinoAvaliacaoDoContratante(ax5: true) }
 }
 
 private extension XCUIAccessibilityAuditType {
