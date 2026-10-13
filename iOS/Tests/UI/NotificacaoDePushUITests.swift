@@ -56,8 +56,9 @@ final class NotificacaoDePushUITests: XCTestCase {
     }
 
     private func abrirCentralDeNotificacoes() {
-        let topo = sistema.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.01))
-        let meio = sistema.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+        // Arrasta da borda superior esquerda para baixo para abrir a Central de Notificações, evitando o Spotlight no Springboard
+        let topo = sistema.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.001))
+        let meio = sistema.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.7))
         topo.press(forDuration: 0.1, thenDragTo: meio)
     }
 
@@ -99,6 +100,7 @@ final class NotificacaoDePushUITests: XCTestCase {
         // Aguarda a confirmação de que a notificação foi agendada no sistema antes de fechar o app.
         XCTAssertTrue(app.descendants(matching: .any)["push-simulado-agendado"].waitForExistence(timeout: 10), "a notificação deve ser agendada antes de fechar o app")
         app.terminate()
+        XCTAssertTrue(sistema.wait(for: .runningForeground, timeout: 10), "o Springboard deve estar ativo após fechar o app")
         tocarNaNotificacao()
         // O sistema abre o app sem argumento nenhum: quem leva ao destino é o toque.
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15), "o app deve abrir em resposta ao toque")
