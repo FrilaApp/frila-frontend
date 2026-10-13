@@ -240,4 +240,43 @@ struct MinhasVagasTests {
         let tela = TelaMinhasVagas(viewModel: vm, api: ApiClienteEmMemoria())
         #expect(String(reflecting: type(of: tela.body)).contains("LazyVStack"), "as seções do painel precisam ser lazy")
     }
+
+    @Test("Classifica vagas encerradas, canceladas ou com período terminado antes de agora")
+    func classificarEncerradas() throws {
+        let vm = try viewModel([])
+        let encerrada = try vaga(id: "73000000-0000-0000-0000-000000000001", inicioEm: 3_600, estado: .encerrada)
+        let cancelada = try vaga(id: "73000000-0000-0000-0000-000000000002", inicioEm: 3_600, estado: .cancelada)
+        let passada = try vaga(id: "73000000-0000-0000-0000-000000000003", inicioEm: -7_200, duracao: 3_600)
+
+        #expect(vm.classificar(encerrada) == .encerradas)
+        #expect(vm.classificar(cancelada) == .encerradas)
+        #expect(vm.classificar(passada) == .encerradas)
+    }
+
+    @Test("Classifica vaga com alerta de vaga vazia ativo na seção em alerta")
+    func classificarEmAlerta() throws {
+        let vm = try viewModel([])
+        let alerta = try vaga(id: "73000000-0000-0000-0000-000000000004", inicioEm: 3_600, alerta: true)
+
+        #expect(vm.classificar(alerta) == .emAlerta)
+    }
+
+    @Test("Classifica vagas com início ou término no mesmo dia civil na seção hoje")
+    func classificarHoje() throws {
+        let vm = try viewModel([])
+        let inicioHoje = try vaga(id: "73000000-0000-0000-0000-000000000005", inicioEm: 7_200)
+        let terminoHoje = try vaga(id: "73000000-0000-0000-0000-000000000006", inicioEm: -1_800, duracao: 3_600)
+
+        #expect(vm.classificar(inicioHoje) == .hoje)
+        #expect(vm.classificar(terminoHoje) == .hoje)
+    }
+
+    @Test("Classifica vagas futuras fora do dia civil atual na seção próximas")
+    func classificarProximas() throws {
+        let vm = try viewModel([])
+        let proxima = try vaga(id: "73000000-0000-0000-0000-000000000007", inicioEm: 172_800)
+
+        #expect(vm.classificar(proxima) == .proximas)
+    }
 }
+
