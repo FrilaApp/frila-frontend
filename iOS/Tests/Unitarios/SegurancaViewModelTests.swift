@@ -215,4 +215,35 @@ struct SegurancaViewModelTests {
         #expect(bloqueios.contem(perfil))
         #expect(bloqueios.contem(Alvo(perfil)))
     }
+
+    // MARK: - BloqueiosDaSessao.filtrar
+
+    @Test("Sessão sem bloqueios preserva todas as vagas")
+    func sessaoSemBloqueiosPreservaTodasAsVagas() async throws {
+        let bloqueios = BloqueiosDaSessao()
+        let vagas = try await ApiClienteEmMemoria().vagasAbertas(.todas)
+        let resultado = bloqueios.filtrar(vagas)
+        #expect(resultado.count == vagas.count)
+        #expect(resultado == vagas)
+    }
+
+    @Test("Filtragem de vaga de estabelecimento bloqueado")
+    func filtragemDeVagaDeEstabelecimentoBloqueado() async throws {
+        let bloqueios = BloqueiosDaSessao()
+        let vagas = try await ApiClienteEmMemoria().vagasAbertas(.todas)
+        let alvoVaga = try #require(vagas.first)
+        bloqueios.registrar(Alvo(alvoVaga.estabelecimento))
+        let filtradas = bloqueios.filtrar(vagas)
+        let esperadas = vagas.filter { $0.estabelecimento.id != alvoVaga.estabelecimento.id }
+        #expect(filtradas.count == esperadas.count)
+        #expect(!filtradas.contains(where: { $0.estabelecimento.id == alvoVaga.estabelecimento.id }))
+    }
+
+    @Test("Lista vazia permanece vazia")
+    func listaVaziaPermaneceVazia() {
+        let bloqueios = BloqueiosDaSessao()
+        bloqueios.registrar(Alvo(tipo: .estabelecimento, id: UUID()))
+        let filtradas = bloqueios.filtrar([])
+        #expect(filtradas.isEmpty)
+    }
 }

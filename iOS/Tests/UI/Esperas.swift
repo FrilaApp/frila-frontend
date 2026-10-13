@@ -17,6 +17,14 @@ func tocar(_ elemento: XCUIElement, timeout: TimeInterval = Espera.aparecer, fil
     elemento.tap()
 }
 
+/// Aguarda até que o elemento obtenha foco do teclado (`hasKeyboardFocus`).
+@discardableResult
+func esperarFocoDoTeclado(_ elemento: XCUIElement, timeout: TimeInterval = Espera.aparecer) -> Bool {
+    let predicado = NSPredicate(format: "hasKeyboardFocus == true")
+    let espera = XCTNSPredicateExpectation(predicate: predicado, object: elemento)
+    return XCTWaiter.wait(for: [espera], timeout: timeout) == .completed
+}
+
 /// Aguarda até que o estado de habilitação (`isEnabled`) do elemento seja o esperado.
 @discardableResult
 func esperarHabilitado(_ elemento: XCUIElement, _ habilitado: Bool = true, timeout: TimeInterval = Espera.aparecer) -> Bool {
