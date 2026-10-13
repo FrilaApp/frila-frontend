@@ -64,10 +64,33 @@ private final class RelogioSimulado: Relogio, @unchecked Sendable {
     init(_ agora: Date) { self.agora = agora }
 }
 
+private struct ArmazenamentoComRegistroFalso: ArmazenamentoAvaliacoes {
+    var dataRegistro: Date?
+    var registros: [UUID: [UUID: Date]] = [:]
+
+    init(dataRegistro: Date? = nil, registros: [UUID: [UUID: Date]] = [:]) {
+        self.dataRegistro = dataRegistro
+        self.registros = registros
+    }
+
+    func resposta(para turnoID: UUID, contaID: UUID) -> Bool? { nil }
+    func registradaEm(para turnoID: UUID, contaID: UUID) -> Date? {
+        registros[contaID]?[turnoID] ?? dataRegistro
+    }
+    func salvar(resposta: Bool, para turnoID: UUID, contaID: UUID) {}
+    func jaRegistrada(para turnoID: UUID, contaID: UUID) -> Bool { false }
+    func registrarSemResposta(para turnoID: UUID, contaID: UUID) {}
+    func remover(para turnoID: UUID, contaID: UUID) {}
+    func limpar() {}
+}
+
 private func criarTurno(
     fim: Date,
     verificacao: Verificacao = .verificado,
-    podeAvaliar: Bool = true
+    podeAvaliar: Bool = true,
+    avaliacao: Avaliacao? = nil,
+    avaliacaoInformada: Bool? = nil,
+    avaliacaoLidaEm: Date? = nil
 ) throws -> Turno {
     let inicio = fim.addingTimeInterval(-4 * 3600)
     let vaga = VagaResumo(
@@ -88,7 +111,10 @@ private func criarTurno(
         contatoVisivelAte: fim.addingTimeInterval(7 * 24 * 3600),
         verificacao: verificacao,
         valorAcordado: vaga.valor,
-        podeAvaliar: podeAvaliar
+        podeAvaliar: podeAvaliar,
+        avaliacao: avaliacao,
+        avaliacaoInformada: avaliacaoInformada,
+        avaliacaoLidaEm: avaliacaoLidaEm
     )
 }
 
@@ -690,6 +716,85 @@ struct AvaliacaoTurnoViewModelTests {
         await SincronizadorAcoes(fila: fila, api: api).sincronizar()
         #expect(api.chamadasAvaliar.isEmpty)
         #expect(try await fila.pendentes().count == 2)
+    }
+
+    // MARK: - podeUsarReserva(para:contaID:) (E33)
+
+    @Test("Reserva de avaliação: turno nulo permite usar reserva local")
+    func podeUsarReservaComTurnoNulo() {
+        let armazenamento = ArmazenamentoComRegistroFalso()
+        #expect(armazenamento.podeUsarReserva(para: nil, contaID: contaID))
+    }
+
+    @Test("Reserva de avaliação: quando servidor não informa avaliação, permite usar reserva")
+    func podeUsarReservaQuandoServidorNaoInformaAvaliacao() throws {
+        let armazenamento = ArmazenamentoComRegistroFalso()
+        let turnoExplicito = try criarTurno(fim: agora, avaliacaoInformada: false)
+        #expect(!turnoExplicito.servidorInformaAvaliacao)
+        #expect(armazenamento.podeUsarReserva(para: turnoExplicito, contaID: contaID))
+
+        let turnoOmitido = try criarTurno(fim: agora, avaliacaoInformada: nil)
+        #expect(!turnoOmitido.servidorInformaAvaliacao)
+        #expect(armazenamento.podeUsarReserva(para: turnoOmitido, contaID: contaID))
+    }
+
+    @Test("Reserva de avaliação: servidor informa avaliação mas instante de leitura é nulo, permite usar reserva")
+    func podeUsarReservaQuandoServidorInformaSemInstanteDeLeitura() throws {
+        let armazenamento = ArmazenamentoComRegistroFalso()
+        let turnoInformado = try criarTurno(fim: agora, avaliacaoInformada: true, avaliacaoLidaEm: nil)
+        #expect(turnoInformado.servidorInformaAvaliacao)
+        #expect(turnoInformado.avaliacaoLidaEm == nil)
+        #expect(armazenamento.podeUsarReserva(para: turnoInformado, contaID: contaID))
+
+        let turnoComVoto = try criarTurno(
+            fim: agora,
+            avaliacao: Avaliacao(turnoID: UUID(), resposta: true, criadaEm: agora),
+            avaliacaoLidaEm: nil
+        )
+        #expect(turnoComVoto.servidorInformaAvaliacao)
+        #expect(turnoComVoto.avaliacaoLidaEm == nil)
+        #expect(armazenamento.podeUsarReserva(para: turnoComVoto, contaID: contaID))
+    }
+
+    @Test("Reserva de avaliação: servidor informa com leitura definida sem voto local impede uso da reserva")
+    func podeUsarReservaSemVotoLocal() throws {
+        let leitura = agora
+        let armazenamento = ArmazenamentoComRegistroFalso(dataRegistro: nil)
+        let turno = try criarTurno(fim: agora, avaliacaoInformada: true, avaliacaoLidaEm: leitura)
+        #expect(turno.servidorInformaAvaliacao)
+        #expect(turno.avaliacaoLidaEm == leitura)
+        #expect(armazenamento.registradaEm(para: turno.id, contaID: contaID) == nil)
+        #expect(!armazenamento.podeUsarReserva(para: turno, contaID: contaID))
+    }
+
+    @Test("Reserva de avaliação: voto local anterior à leitura no servidor impede uso da reserva")
+    func podeUsarReservaComVotoLocalAnteriorALeitura() throws {
+        let leitura = agora
+        let votoAnterior = leitura.addingTimeInterval(-60)
+        let armazenamento = ArmazenamentoComRegistroFalso(dataRegistro: votoAnterior)
+        let turno = try criarTurno(fim: agora, avaliacaoInformada: true, avaliacaoLidaEm: leitura)
+        #expect(armazenamento.registradaEm(para: turno.id, contaID: contaID) == votoAnterior)
+        #expect(!armazenamento.podeUsarReserva(para: turno, contaID: contaID))
+    }
+
+    @Test("Reserva de avaliação: voto local posterior à leitura no servidor permite uso da reserva")
+    func podeUsarReservaComVotoLocalPosteriorALeitura() throws {
+        let leitura = agora
+        let votoPosterior = leitura.addingTimeInterval(60)
+        let armazenamento = ArmazenamentoComRegistroFalso(dataRegistro: votoPosterior)
+        let turno = try criarTurno(fim: agora, avaliacaoInformada: true, avaliacaoLidaEm: leitura)
+        #expect(armazenamento.registradaEm(para: turno.id, contaID: contaID) == votoPosterior)
+        #expect(armazenamento.podeUsarReserva(para: turno, contaID: contaID))
+    }
+
+    @Test("Reserva de avaliação: voto local no mesmo instante da leitura impede uso da reserva")
+    func podeUsarReservaComVotoNoMesmoInstanteDaLeitura() throws {
+        let mesmoInstante = agora
+        let armazenamento = ArmazenamentoComRegistroFalso(dataRegistro: mesmoInstante)
+        let turno = try criarTurno(fim: agora, avaliacaoInformada: true, avaliacaoLidaEm: mesmoInstante)
+        #expect(armazenamento.registradaEm(para: turno.id, contaID: contaID) == mesmoInstante)
+        #expect(turno.avaliacaoLidaEm == mesmoInstante)
+        #expect(!armazenamento.podeUsarReserva(para: turno, contaID: contaID))
     }
 
 }
