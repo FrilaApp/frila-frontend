@@ -12,17 +12,17 @@ final class LicencasUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: 10))
 
         let entrada = app.buttons["abrir-licencas"]
-        let janela = app.windows.firstMatch
+        let barraCatalogo = app.navigationBars["Frila UI"]
         for _ in 0..<12 {
             if entrada.exists && entrada.isHittable {
-                let areaVisivel = janela.frame.insetBy(dx: 0, dy: entrada.frame.height)
-                if areaVisivel.contains(entrada.frame) { break }
+                if areaVisivel(app, abaixoDa: barraCatalogo).contains(entrada.frame) { break }
             }
             app.swipeUp()
         }
         XCTAssertTrue(entrada.isHittable, "a entrada das licenças não apareceu no catálogo")
-        XCTAssertTrue(janela.frame.insetBy(dx: 0, dy: entrada.frame.height).contains(entrada.frame),
+        XCTAssertTrue(areaVisivel(app, abaixoDa: barraCatalogo).contains(entrada.frame),
                       "o botão precisa estar inteiro dentro da área visível antes do toque")
+        anexar(app, "catalogo-entrada-licencas-visivel")
         entrada.tap()
 
         XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: Espera.aparecer))
@@ -63,8 +63,17 @@ final class LicencasUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Ajuda"].waitForExistence(timeout: Espera.aparecer))
 
         let botaoLicencas = app.descendants(matching: .any)["perfil-licencas"]
+        let barraAjuda = app.navigationBars["Ajuda"]
+        for _ in 0..<12 {
+            if botaoLicencas.exists && botaoLicencas.isHittable &&
+                areaVisivel(app, abaixoDa: barraAjuda).contains(botaoLicencas.frame) { break }
+            app.swipeUp()
+        }
         XCTAssertTrue(botaoLicencas.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(botaoLicencas.isHittable)
+        XCTAssertTrue(areaVisivel(app, abaixoDa: barraAjuda).contains(botaoLicencas.frame),
+                      "a entrada das licenças precisa estar inteira abaixo da barra da Ajuda")
+        anexar(app, "ajuda-entrada-licencas-visivel")
         botaoLicencas.tap()
 
         XCTAssertTrue(app.navigationBars["Licenças de código aberto"].waitForExistence(timeout: Espera.aparecer))
@@ -78,6 +87,13 @@ final class LicencasUITests: XCTestCase {
         let pacote = app.descendants(matching: .any)["licenca-abseil-cpp-binary"]
         XCTAssertTrue(pacote.waitForExistence(timeout: Espera.aparecer))
         anexar(app, "licencas-folha-altura-inteira")
+    }
+
+    /// Usa os limites da janela e da barra, sem uma margem que cresce com a fonte do botão.
+    private func areaVisivel(_ app: XCUIApplication, abaixoDa barra: XCUIElement) -> CGRect {
+        let janela = app.windows.firstMatch.frame
+        return CGRect(x: janela.minX, y: barra.frame.maxY, width: janela.width,
+                      height: janela.maxY - barra.frame.maxY)
     }
 
     /// A interface é provisória: a captura fica no resultado do teste para quem for revisar.
