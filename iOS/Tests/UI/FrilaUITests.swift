@@ -159,7 +159,7 @@ final class CandidaturaUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10), "a tela de vagas deve aparecer")
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
-        XCTAssertTrue(primeira.waitForExistence(timeout: 25), "a primeira vaga deve aparecer na lista após o carregamento inicial")
+        XCTAssertTrue(primeira.waitForExistence(timeout: Espera.aparecer), "a primeira vaga deve aparecer na lista após o carregamento inicial")
 
         if !primeira.isHittable {
             let tocavel = XCTNSPredicateExpectation(
@@ -888,35 +888,24 @@ extension XCUIElement {
     /// "Informe um e-mail válido." e a tela do código nunca abria. Para campos com máscara onde
     /// a formatação intermediária varia durante a edição, informe `esperado` para validar
     /// contenção do texto ou equivalência dos dígitos numéricos.
-    func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = 15, file: StaticString = #filePath, line: UInt = #line) {
+    func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = Espera.aparecer, file: StaticString = #filePath, line: UInt = #line) {
         typeText(texto)
         let valorEsperado = esperado ?? (texto.hasSuffix("\n") ? String(texto.dropLast()) : texto)
-        let limite = Date().addingTimeInterval(timeout)
-        while Date() < limite {
-            if let atual = value as? String {
-                if let esperado {
-                    if atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber)) {
-                        return
-                    }
-                } else if atual == valorEsperado {
-                    return
-                }
-            }
-            Thread.sleep(forTimeInterval: 0.1)
-        }
-        if let atual = value as? String {
+        let predicado = NSPredicate { elemento, _ in
+            guard let elemento = elemento as? XCUIElement, let atual = elemento.value as? String else { return false }
             if let esperado {
-                if atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber)) {
-                    return
-                }
-            } else if atual == valorEsperado {
-                return
+                return atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber))
             }
+            return atual == valorEsperado
         }
-        XCTAssertEqual(
-            value as? String, valorEsperado,
-            "O campo deveria mostrar \"\(valorEsperado)\" depois da digitação", file: file, line: line
-        )
+        let espera = XCTNSPredicateExpectation(predicate: predicado, object: self)
+        let resultado = XCTWaiter.wait(for: [espera], timeout: timeout)
+        if resultado != .completed {
+            XCTAssertEqual(
+                value as? String, valorEsperado,
+                "O campo deveria mostrar \"\(valorEsperado)\" depois da digitação", file: file, line: line
+            )
+        }
     }
 }
 

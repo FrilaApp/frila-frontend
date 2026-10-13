@@ -40,3 +40,11 @@ func esperarSelecionado(_ elemento: XCUIElement, _ selecionado: Bool = true, tim
     let espera = XCTNSPredicateExpectation(predicate: predicado, object: elemento)
     return XCTWaiter.wait(for: [espera], timeout: timeout) == .completed
 }
+
+/// Aguarda a estabilização do frame do elemento (cessar momentum de rolagem).
+func esperarEstabilizacaoDeFrame(_ elemento: XCUIElement, timeout: TimeInterval = 2.0) {
+    let predicado = NSPredicate(format: "isHittable == true")
+    let espera = XCTNSPredicateExpectation(predicate: predicado, object: elemento)
+    _ = XCTWaiter.wait(for: [espera], timeout: timeout)
+}
+

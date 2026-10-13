@@ -253,7 +253,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         ])
 
         let minhasVagas = app.descendants(matching: .any)["minhas-vagas"]
-        XCTAssertTrue(minhasVagas.waitForExistence(timeout: 15))
+        XCTAssertTrue(minhasVagas.waitForExistence(timeout: Espera.aparecer))
 
         let vaga = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
         XCTAssertTrue(vaga.waitForExistence(timeout: 10))
@@ -303,7 +303,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         ])
 
         let minhasVagas = app.descendants(matching: .any)["minhas-vagas"]
-        XCTAssertTrue(minhasVagas.waitForExistence(timeout: 15))
+        XCTAssertTrue(minhasVagas.waitForExistence(timeout: Espera.aparecer))
 
         let vaga = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
         XCTAssertTrue(vaga.waitForExistence(timeout: 10))
