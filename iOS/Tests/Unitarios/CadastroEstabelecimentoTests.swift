@@ -126,6 +126,30 @@ struct CadastroEstabelecimentoTests {
             regiaoAdministrativa: cadastro.regiaoAdministrativa, ponto: cadastro.ponto
         )
     }
+
+    @Test(
+        "Buscar endereço com texto vazio ou composto apenas de espaços não dispara busca nem altera sugestões",
+        arguments: ["", "   ", "   \n\t  "]
+    )
+    func buscarEnderecoComTextoVazioNaoDisparaBusca(entrada: String) async {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        vm.endereco = entrada
+        await vm.buscarEndereco()
+        #expect(!vm.carregandoBusca)
+        #expect(vm.sugestoes.isEmpty)
+    }
+
+    @Test("Buscar endereço com espaços em branco preserva sugestões existentes sem ativar carregamento")
+    func buscarEnderecoComEspacosPreservaSugestoes() async {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let ponto = CLLocationCoordinate2D(latitude: -15.78, longitude: -47.93)
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: ponto))
+        vm.sugestoes = [item]
+        vm.endereco = "   \n  "
+        await vm.buscarEndereco()
+        #expect(!vm.carregandoBusca)
+        #expect(vm.sugestoes.count == 1)
+    }
 }
 
 /// O que a tela mandou para `cadastrar_estabelecimento`.
