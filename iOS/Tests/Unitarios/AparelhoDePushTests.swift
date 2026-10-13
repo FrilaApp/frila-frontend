@@ -439,6 +439,41 @@ struct AparelhoDePushTests {
         #expect(api.chamadas == ["registrar \(Tokens.aparelho)", "registrar \(Tokens.aparelho)"])
     }
 
+    @Test("Reinstalação do app: com armazenamento limpo e novo token, o aparelho registra para a conta e atualiza o dono")
+    func reinstalacaoComNovoToken() async throws {
+        let contaID = try await conta()
+        let primeira = aparelho()
+        await primeira.receber(token: Tokens.aparelho)
+        let registroInicial = await primeira.registrar(para: contaID)
+        let vinculoInicial = await vinculo(contaID, desde: relogio.agora)
+        #expect(registroInicial == .registrado(vinculoInicial))
+        #expect(await dono(Tokens.aparelho) == contaID)
+        #expect(api.chamadas == ["registrar \(Tokens.aparelho)"])
+
+        // Simulação de reinstalação: novo AparelhoDePush inicializado com armazenamento em memória limpo.
+        relogio.avancar(86_400)
+        let guardadoAposReinstalacao = ArmazenamentoDoAparelhoEmMemoria()
+        let compartilhadoAposReinstalacao = ArmazenamentoDoVinculoCompartilhadoEmMemoria()
+        let reinstalado = AparelhoDePush(
+            api: api,
+            armazenamento: guardadoAposReinstalacao,
+            vinculoCompartilhado: compartilhadoAposReinstalacao,
+            relogio: relogio
+        )
+
+        // Chegada de novo token do FCM após reinstalação e chamada de registrar.
+        #expect(await reinstalado.receber(token: Tokens.novo) == .semConta)
+        let registro = await reinstalado.registrar(para: contaID)
+
+        let vinculoNovo = await vinculo(contaID, desde: relogio.agora, token: Tokens.novo)
+        #expect(registro == .registrado(vinculoNovo))
+        #expect(await reinstalado.vinculo() == vinculoNovo)
+        #expect(await dono(Tokens.novo) == contaID)
+        #expect(guardadoAposReinstalacao.ler() == AparelhoGuardado(token: Tokens.novo, vinculo: vinculoNovo))
+        #expect(compartilhadoAposReinstalacao.ler() == vinculoNovo.vinculoID)
+        #expect(api.chamadas.contains("registrar \(Tokens.novo)"))
+    }
+
     @Test("Sair da conta manda o token guardado, e não nil: o aparelho sai do servidor antes de a sessão acabar")
     func saida() async throws {
         let aparelho = aparelho()
