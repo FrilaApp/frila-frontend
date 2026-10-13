@@ -468,11 +468,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
         tocar(app.buttons["continuar-cadastro"], em: app)
         guard esperar(app.staticTexts["Publicar vaga"], "Publicar vaga deve abrir") else { return }
-        if ax5 {
-            auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker, estrito: true)
-        } else {
-            auditar(app, tela: "publicar-vaga")
-        }
+        auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker, estrito: true)
 
         tocar(app.buttons["mais-opcoes-botao"], em: app)
         guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
