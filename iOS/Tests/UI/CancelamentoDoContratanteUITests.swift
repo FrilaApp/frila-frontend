@@ -13,7 +13,7 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "painel-contratante", "-FRILA_CACHE_VAZIO_UI_TEST"]
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
-        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: Espera.aparecer))
         return app
     }
 
