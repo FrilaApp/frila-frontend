@@ -174,9 +174,9 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(elemento("tela-meu-turno", em: app).waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
         XCTAssertTrue(elemento("cancelamento-do-turno", em: app).waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["confirmar-checkin"].exists)
+        XCTAssertFalse(app.buttons["fazer-checkin"].exists)
         XCTAssertFalse(elemento("contato-do-turno", em: app).exists)
-        XCTAssertFalse(elemento("secao-de-presenca", em: app).exists)
+        XCTAssertFalse(elemento("presenca-do-turno", em: app).exists)
 
         app.navigationBars.buttons["Candidaturas"].tap()
         XCTAssertTrue(elemento("tela-minhas-candidaturas", em: app).waitForExistence(timeout: 10))

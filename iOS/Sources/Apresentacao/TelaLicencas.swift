@@ -126,6 +126,7 @@ struct TelaDetalheDaLicenca: View {
         .background(FrilaCor.fundo)
         .navigationTitle(licenca.nome)
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("tela-detalhe-da-licenca")
     }
 
     private func campo(_ titulo: String, _ valor: String, cor: Color = FrilaCor.texto) -> some View {
