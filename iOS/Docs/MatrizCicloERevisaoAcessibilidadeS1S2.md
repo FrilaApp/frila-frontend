@@ -46,26 +46,26 @@ Abaixo, a matriz de sincronização do ciclo com nomes de tela e arquivos estrit
 
 | Passo | Aparelho A (Contratante) | Aparelho B (Profissional) | Tela Ativa (`origin/main`) | Comportamento Esperado no App | Correspondência com Teste Automatizado | Check Cauê |
 |---|---|---|---|---|---|:---:|
-| **01** | Digita e-mail, código `123456`, escolhe perfil Contratante, dados do responsável e estabelecimento no DF. | App em repouso. | `TelaEntrada.swift:4`<br>`TelaCodigo.swift:4`<br>`TelaCadastro.swift:4`<br>`TelaCadastroEstabelecimento.swift:147` | Cadastro concluído com sucesso; transição direta para a tela de publicação de vagas (`TelaPublicarVaga`). | `CicloDePontaAPontaUITests:24-74` | `[ ]` |
-| **02** | App em repouso. | Digita e-mail, código `123456`, perfil Profissional, dados pessoais, funções (Garçom) e ponto base no DF. | `TelaEntrada.swift:4`<br>`TelaCodigo.swift:4`<br>`TelaCadastro.swift:4`<br>`TelaPerfilProfissional.swift:8` | Perfil configurado com sucesso; redirecionamento para o feed principal de vagas (`TelaVagas`). | `CicloDePontaAPontaUITests:24-74` | `[ ]` |
-| **03** | Configura vaga de urgência (data de hoje, valor líquido, horário de início), toca em "Publicar vaga". | Permanece no feed de vagas do DF. | `TelaPublicarVaga.swift:426`<br>`TelaMinhasVagas.swift:232` | Vaga gravada no backend; Aparelho A exibe vaga ativa em "Minhas vagas" (0/1 preenchida). | `CicloDePontaAPontaUITests:75-99` | `[ ]` |
-| **04** | Aguarda candidatura na tela Minhas Vagas. | Atualiza o feed, toca no cartão da vaga e confere detalhes (função, valor líquido, horário e local). | `TelaVagas.swift:8`<br>`TelaDetalheVaga.swift:41` | Aparelho B visualiza a vaga no feed e exibe tela de detalhe com botão "Candidatar-me" habilitado. | `CicloDePontaAPontaUITests:107-142` | `[ ]` |
-| **05** | Mantém tela de acompanhamento aberta. | Toca no botão "Candidatar-me" (`candidatar`). | `TelasDaCandidatura.swift:13`<br>`TelasDaCandidatura.swift:93` | Modo Urgência confirma imediatamente sem triagem (RN02/RN21); Aparelho B vai para tela de sucesso com orientações. | `CicloDePontaAPontaUITests:107-142` | `[ ]` |
-| **06** | Atualiza Minhas Vagas: posição ocupada exibe o profissional alocado; toca em "Acompanhar turno". | Acessa aba "Meus turnos", abre o turno confirmado (`TelaMeuTurno`). | `TelaMinhasVagas.swift:232`<br>`TelaTurnoDoContratante.swift:105`<br>`TelaMeusTurnos.swift:46`<br>`TelaMeuTurno.swift:7` | **Liberação bilateral de contatos (RN10):** Aparelho A e Aparelho B visualizam contatos mútuos (nome e telefone/WhatsApp). | `CicloDePontaAPontaUITests:143-165` | `[ ]` |
-| **07** | Em "Acompanhar turno", visualiza status "Aguardando check-in". | No turno, toca em "Fazer check-in" (via GPS ou contingência manual). | `SecaoDePresenca.swift:10`<br>`TelaMeuTurno.swift:7` | Presença registrada. Se via GPS ($\le 250$m), presença é verificada de imediato; se manual, exibe "Aguardando confirmação". | `CicloDePontaAPontaUITests:166-192`, `PresencaUITests:44-59` | `[ ]` |
-| **08** | Na tela do turno, visualiza pendência de check-in manual e toca em "Confirmar presença". *(Pular se GPS)* | Atualiza a tela de Meu Turno. | `TelaTurnoDoContratante.swift:444`<br>`TelaMeuTurno.swift:7` | Presença do turno passa para status "Presença verificada" em ambos os aparelhos. | `TurnoDoContratanteUITests:24-38` | `[ ]` |
-| **09** | Acompanha andamento do turno. | Ao término do horário previsto, toca em "Fazer check-out" (manual ou localização). | `SecaoDePresenca.swift:10`<br>`TelaMeuTurno.swift:7` | Check-out registrado; status do turno passa para "Concluído" aguardando avaliação. | `CicloDePontaAPontaUITests:193-206` | `[ ]` |
-| **10** | Aguarda avaliação do profissional. | Toca em "Avaliar turno", responde "Você trabalharia nesse local de novo?" (Sim), toca em "Enviar avaliação". | `TelaMeuTurno.swift:7`<br>`TelaAvaliacao.swift:4` | Avaliação gravada com sucesso; feedback visual; botão passa para estado inativo "Avaliação enviada". | `CicloDePontaAPontaUITests:214-250`, `AvaliacaoUITests:28-45` | `[ ]` |
-| **11** | Em Minhas Vagas > Detalhe do Turno, toca em "Avaliar profissional", responde "Chamaria este profissional de novo?" (Sim) e envia. | Permanece com histórico atualizado. | `TelaTurnoDoContratante.swift:105`<br>`TelaTurnoDoContratante.swift:512`<br>`TelaAvaliacao.swift:4` | Avaliação gravada; tela do turno passa a exibir "Resposta: Sim" e botão "Ver avaliação". | `CicloDePontaAPontaUITests:258-295` | `[ ]` |
-| **12** | Toca em "Ver avaliação": constata aviso de avaliação já enviada e bloqueio de reenvio. | Consulta histórico em "Meus turnos" e perfil profissional. | `TelaAvaliacao.swift:4`<br>`TelaHistoricoDeTurnos.swift:6`<br>`PerfisDaConta.swift:101` | Turno 100% finalizado; reputação e histórico atualizados bilateralmente, sem permitir duplicidade. | `CicloDePontaAPontaUITests:329-338` | `[ ]` |
+| **01** | Digita e-mail de teste, código OTP, escolhe perfil Contratante, dados do responsável e estabelecimento no DF. | App em repouso. | `TelaEntrada.swift:40,61`<br>`TelaCodigo.swift:95,117`<br>`TelaCadastro.swift:78,89,175`<br>`CadastroEstabelecimento.swift:220` | Cadastro concluído com sucesso; transição direta para a tela de publicação de vagas (`TelaPublicarVaga`). | `CicloDePontaAPontaUITests:24-74` | `[ ]` |
+| **02** | App em repouso. | Digita e-mail de teste, código OTP, perfil Profissional, dados pessoais, funções (Garçom) e ponto base no DF. | `TelaEntrada.swift:40,61`<br>`TelaCodigo.swift:95,117`<br>`TelaCadastro.swift:78,89,175`<br>`TelaPerfilProfissional.swift:69,112,127` | Perfil configurado com sucesso; redirecionamento para o feed principal de vagas (`TelaVagas`). | `CicloDePontaAPontaUITests:24-74` | `[ ]` |
+| **03** | Configura vaga de urgência (data de hoje, valor líquido, horário de início), toca em "Publicar vaga". | Permanece no feed de vagas do DF. | `PublicarVaga.swift:671`<br>`MinhasVagas.swift:367` | Vaga gravada no backend; Aparelho A exibe vaga ativa em "Minhas vagas" (0/1 preenchida). | `CicloDePontaAPontaUITests:75-99` | `[ ]` |
+| **04** | Aguarda candidatura na tela Minhas Vagas. | Atualiza o feed, toca no cartão da vaga e confere detalhes (função, valor líquido, horário e local). | `TelaVagas.swift:31,119`<br>`TelaDetalheVaga.swift:94` | Aparelho B visualiza a vaga no feed e exibe tela de detalhe com botão "Candidatar-me" habilitado. | `CicloDePontaAPontaUITests:107-142` | `[ ]` |
+| **05** | Mantém tela de acompanhamento aberta. | Toca no botão "Candidatar-me" (`candidatar`). | `TelasDaCandidatura.swift:51`<br>`TelasDaCandidatura.swift:260` | Modo Urgência confirma imediatamente sem triagem (RN02/RN21); Aparelho B vai para tela de sucesso com orientações. | `CicloDePontaAPontaUITests:107-142` | `[ ]` |
+| **06** | Atualiza Minhas Vagas: posição ocupada exibe o profissional alocado; toca em "Acompanhar turno". | Acessa aba "Meus turnos", abre o turno confirmado (`TelaMeuTurno`). | `MinhasVagas.swift:659`<br>`TelaTurnoDoContratante.swift:155`<br>`TelaMeusTurnos.swift:71,92`<br>`TelaMeuTurno.swift:71,223,235` | **Liberação bilateral de contatos (RN10):** Aparelho A e Aparelho B visualizam contatos mútuos (nome e telefone/WhatsApp). | `CicloDePontaAPontaUITests:143-165` | `[ ]` |
+| **07** | Em "Acompanhar turno", visualiza status "Aguardando check-in". | No turno, toca em "Fazer check-in" (via GPS ou contingência manual). | `SecaoDePresenca.swift:42,63,87`<br>`TelaMeuTurno.swift:71,133` | Presença registrada. Se via GPS ($\le 250$m), presença é verificada de imediato; se manual, exibe "Aguardando confirmação". | `CicloDePontaAPontaUITests:166-192`, `PresencaUITests:44-59` | `[ ]` |
+| **08** | Na tela do turno, visualiza pendência de check-in manual e toca em "Confirmar presença". *(Pular se GPS)* | Atualiza a tela de Meu Turno. | `TelaTurnoDoContratante.swift:457`<br>`TelaMeuTurno.swift:133` | Presença do turno passa para status "Presença verificada" em ambos os aparelhos. | `TurnoDoContratanteUITests:24-38` | `[ ]` |
+| **09** | Acompanha andamento do turno. | Ao término do horário previsto, toca em "Fazer check-out" (manual ou localização). | `SecaoDePresenca.swift:32,66`<br>`TelaMeuTurno.swift:133` | Check-out registrado; status do turno passa para "Concluído" aguardando avaliação. | `CicloDePontaAPontaUITests:193-206` | `[ ]` |
+| **10** | Aguarda avaliação do profissional. | Toca em "Avaliar turno", responde "Você trabalharia nesse local de novo?" (Sim), toca em "Enviar avaliação". | `TelaMeuTurno.swift:303`<br>`TelaAvaliacao.swift:60,127` | Avaliação gravada com sucesso; feedback visual; botão passa para estado inativo "Avaliação enviada". | `CicloDePontaAPontaUITests:214-250`, `AvaliacaoUITests:28-45` | `[ ]` |
+| **11** | Em Minhas Vagas > Detalhe do Turno, toca em "Avaliar profissional", responde "Chamaria este profissional de novo?" (Sim) e envia. | Permanece com histórico atualizado. | `TelaTurnoDoContratante.swift:277,524`<br>`TelaAvaliacao.swift:60,127` | Avaliação gravada; tela do turno passa a exibir "Resposta: Sim" e botão "Ver avaliação". | `CicloDePontaAPontaUITests:258-295` | `[ ]` |
+| **12** | Toca em "Ver avaliação": constata aviso de avaliação já enviada e bloqueio de reenvio. | Consulta histórico em "Meus turnos" e perfil profissional. | `TelaAvaliacao.swift:97`<br>`TelaHistoricoDeTurnos.swift:36`<br>`PerfisDaConta.swift:200,295` | Turno 100% finalizado; reputação e histórico atualizados bilateralmente, sem permitir duplicidade. | `CicloDePontaAPontaUITests:329-338` | `[ ]` |
 
 ---
 
 ## 2. Revisão de Design, Acessibilidade e Textos do Sprint 1 (NoKH0SN8)
 
 ### 2.1. Telas Cobertas no Sprint 1
-1. **Entrada por e-mail e código:** `EntradaEmailView.swift`, `TelaCodigo.swift`
-2. **Cadastro do Usuário:** `SelecaoPerfilView.swift`, `CadastroUsuarioView.swift`
+1. **Entrada por e-mail e código:** `TelaEntrada.swift`, `TelaCodigo.swift`
+2. **Cadastro do Usuário:** `TelaCadastro.swift`
 3. **Cadastro do Estabelecimento:** `CadastroEstabelecimento.swift`
 4. **Publicação de Vaga:** `PublicarVaga.swift`
 5. **Feed de Vagas e Detalhe:** `TelaVagas.swift`, `TelaDetalheVaga.swift`
@@ -109,11 +109,11 @@ Medição das luminâncias relativas e razões de contraste dos pares cromático
 ## 3. Revisão de Design, Acessibilidade e Textos do Sprint 2 (SIPQtYWH)
 
 ### 3.1. Telas Cobertas no Sprint 2
-1. **Check-in Presencial (GPS e Contingência):** `MeuTurnoView.swift`, `PresencaView.swift`
+1. **Check-in Presencial (GPS e Contingência):** `TelaMeuTurno.swift`, `SecaoDePresenca.swift`
 2. **Acompanhamento do Turno (Contratante):** `TelaTurnoDoContratante.swift`
-3. **Check-out Presencial:** `MeuTurnoView.swift`
-4. **Avaliação Mútua do Turno:** `AvaliarTurnoView.swift`
-5. **Denúncia e Suspensão:** `FolhaDeDenuncia.swift`, `FolhaBloqueio.swift`, `TelaContaSuspensa.swift`
+3. **Check-out Presencial:** `TelaMeuTurno.swift`, `SecaoDePresenca.swift`
+4. **Avaliação Mútua do Turno:** `TelaAvaliacao.swift`
+5. **Denúncia e Suspensão:** `AcoesDeSeguranca.swift` (Folha de denúncia e bloqueio), `TelaContaSuspensa.swift`
 6. **Cancelamento do Turno com Motivo:** `FolhaDeCancelamento.swift`
 7. **Suporte no Turno:** `FolhaSuporteTurno.swift`
 
@@ -165,14 +165,14 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
 ## 4. Revisão de Design, Acessibilidade e Textos do Sprint 3 (wiLKWHYl / #71)
 
 ### 4.1. Telas Cobertas no Sprint 3
-1. **Licenças de Código Aberto e Detalhe:** `TelaLicencas.swift`, `TelaDetalheLicenca`
+1. **Licenças de Código Aberto e Detalhe:** `TelaLicencas.swift`
 2. **Histórico de Turnos:** `TelaHistoricoDeTurnos.swift`
 3. **Equipe de Confiança (Contratante):** `TelaEquipeDeConfianca.swift`
-4. **Ajuda e Suporte do Perfil:** `TelaAjudaPerfil.swift`
+4. **Ajuda e Suporte do Perfil:** `PerfisDaConta.swift`
 5. **Critérios de Matching ("Por que recebo vagas"):** `TelaPorQueReceboVagas.swift`
-6. **Painel do Contratante e Vagas Encerradas:** `MinhasVagas.swift`, `TelaRepublicarVaga.swift`
-7. **Candidaturas em Seleção:** `TelaMinhasCandidaturas.swift`
-8. **Destinos de Notificação Push:** `TelaExplicacaoDoPush.swift`, `DestinosDoAviso.swift`
+6. **Painel do Contratante e Vagas Encerradas:** `MinhasVagas.swift`, `RepublicarVaga.swift`
+7. **Candidaturas em Seleção:** `CandidaturaEmSelecao.swift`
+8. **Destinos de Notificação Push:** `TelasDaPermissaoDePush.swift`, `DestinosDoAviso.swift`
 
 ### 4.2. Execução da Auditoria de Acessibilidade no Simulador
 A suíte `AuditoriaDeAcessibilidadeUITests` direcionada para as telas do Sprint 3 foi executada no simulador Loki via fila `xcb.sh`:

@@ -10,6 +10,52 @@ TMPDIR_TESTE="$(mktemp -d "${TMPDIR:-/tmp}/frila-textos.XXXXXX")"
 
 trap 'rm -rf "$TMPDIR_TESTE"' EXIT
 
+CATALOGO_EXEMPLO="$TMPDIR_TESTE/CatalogoExemplo.xcstrings"
+cat <<'JSON' > "$CATALOGO_EXEMPLO"
+{
+  "sourceLanguage": "pt-BR",
+  "strings": {
+    "Título": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Título" } } }
+    },
+    "Constante": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Constante" } } }
+    },
+    "Voltar": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Voltar" } } }
+    },
+    "Abre o detalhe da vaga": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Abre o detalhe da vaga" } } }
+    },
+    "Selecionado": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Selecionado" } } }
+    },
+    "Não selecionado": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Não selecionado" } } }
+    },
+    "Salvar": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Salvar" } } }
+    },
+    "Digite seu nome": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Digite seu nome" } } }
+    },
+    "Nome": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Nome" } } }
+    },
+    "Receber alertas": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Receber alertas" } } }
+    },
+    "Dados Pessoais": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Dados Pessoais" } } }
+    },
+    "Disponível": {
+      "localizations": { "pt-BR": { "stringUnit": { "value": "Disponível" } } }
+    }
+  },
+  "version": "1.0"
+}
+JSON
+
 [[ -x "$SCRIPT" ]] || {
   echo "FALHA: script conferir-textos.sh não encontrado ou não executável: $SCRIPT" >&2
   exit 1
@@ -17,8 +63,9 @@ trap 'rm -rf "$TMPDIR_TESTE"' EXIT
 
 esperar_aprovacao() {
   local alvo="$1"
+  local catalogo="${2:-$CATALOGO_EXEMPLO}"
   local saida
-  if ! saida="$("$SCRIPT" "$alvo" 2>&1)"; then
+  if ! saida="$("$SCRIPT" "$alvo" "$catalogo" 2>&1)"; then
     echo "FALHA: o caso bom foi reprovado: $saida" >&2
     exit 1
   fi
@@ -32,9 +79,10 @@ esperar_reprovacao() {
   local descricao="$1"
   local motivo="$2"
   local alvo="$3"
+  local catalogo="${4:-$CATALOGO_EXEMPLO}"
   local saida
 
-  if saida="$("$SCRIPT" "$alvo" 2>&1)"; then
+  if saida="$("$SCRIPT" "$alvo" "$catalogo" 2>&1)"; then
     echo "FALHA: $descricao deveria reprovar" >&2
     exit 1
   fi
@@ -604,5 +652,23 @@ cat > "$TMPDIR_TESTE/catalogo/Localizable.xcstrings" <<'JSON'
 {"strings":{"Disponível no cartão #50":{}}}
 JSON
 esperar_reprovacao "chave interna" "Texto de app com promessa ou cartão interno" "$TMPDIR_TESTE/catalogo"
+
+# Caso 19: chave usada no código e ausente do catálogo
+DIR_RUIM_CHAVE="$TMPDIR_TESTE/ruim_chave"
+mkdir -p "$DIR_RUIM_CHAVE"
+cat <<'SWIFT' > "$DIR_RUIM_CHAVE/TelaChaveAusente.swift"
+import SwiftUI
+
+private final class Marcador: NSObject {}
+private let bundleLocal = Bundle(for: Marcador.self)
+
+struct TelaChaveAusente: View {
+    let titulo = String(localized: "Chave Ausente do Catálogo", bundle: bundleLocal)
+    var body: some View {
+        Text("Outra Chave Ausente", bundle: bundleLocal)
+    }
+}
+SWIFT
+esperar_reprovacao "chave usada no código e ausente do catálogo" "Chave ausente no catálogo de textos" "$DIR_RUIM_CHAVE"
 
 echo "OK: autoteste de conferir-textos.sh passou"

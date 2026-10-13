@@ -473,4 +473,36 @@ struct CatalogoStringsTests {
         #expect(cartao1.rotuloDeAcessibilidade.contains("1 posição aberta"))
         #expect(cartao2.rotuloDeAcessibilidade.contains("2 posições abertas"))
     }
+
+    @Test("Chaves dos fluxos de v1.1 e suporte estão cadastradas no catálogo pt-BR")
+    func novosFluxosEstaoNoCatalogo() throws {
+        let (chaves, _) = try Self.carregarCatalogo()
+
+        let amostraNovosFluxos = [
+            TextosDoSuporte.titulo,
+            TextosDoSuporte.avisoPrazo,
+            TextosDoSuporte.emailSuporteRotulo,
+            TextosDoSuporte.protocoloRegistrado,
+            TextosPorQueReceboVagas.secaoFuncao,
+            TextosPorQueReceboVagas.secaoHorarios,
+            TextosContaSuspensa.titulo,
+            TextosContaSuspensa.avisoPrincipal,
+            TextosEquipeDeConfianca.titulo,
+            TextosExclusaoDeConta.titulo,
+            TextosExclusaoDeConta.avisoConsequencias,
+            TextosRepublicarVaga.titulo,
+            TextosRepublicarVaga.sucesso,
+            "No máximo uma notificação a cada %lld minutos.",
+            "Até %@ km do seu ponto base.",
+            "%@ deixa de receber as vagas desta casa além de 15 km. Sem penalidade nem aviso.",
+        ]
+
+        var faltantes: [String] = []
+        for texto in amostraNovosFluxos {
+            if !chaves.contains(texto) {
+                faltantes.append(texto)
+            }
+        }
+        #expect(faltantes.isEmpty, "chaves de v1.1 fora do catálogo: \(faltantes)")
+    }
 }

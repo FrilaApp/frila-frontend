@@ -120,7 +120,7 @@ Todos os 19 tipos de aviso suportados pela plataforma estão mapeados e implemen
 
 Esta seção detalha todas as telas acessórias e modais que suportam a experiência de notificações no aplicativo iOS (`frila-frontend`), com seus respectivos textos atuais, limites e destinos.
 
-### 5.1 Telas de Explicação de Permissão (`TelaExplicacaoDoPush.swift` / `TextosDoPush.Explicacao`)
+### 5.1 Telas de Explicação de Permissão (`TelasDaPermissaoDePush.swift` / `TextosDoPush.Explicacao`)
 Exibidas no máximo uma vez por sessão do app, antes de invocar o diálogo nativo do sistema operacional (`UNUserNotificationCenter.requestAuthorization`):
 - **Momento do Profissional:** Imediatamente após salvar funções e janelas de horários (na criação inicial ou na edição do perfil).
 - **Momento do Contratante:** Imediatamente após publicar a primeira vaga da casa.
@@ -146,7 +146,7 @@ Exibidas no máximo uma vez por sessão do app, antes de invocar o diálogo nati
 
 ---
 
-### 5.2 Avisos Fixos de Notificação Desligada (`AvisoDePermissaoDePush.swift` / `TextosDoPush.Aviso`)
+### 5.2 Avisos Fixos de Notificação Desligada (`TelasDaPermissaoDePush.swift` / `TextosDoPush.Aviso`)
 Banners fixos contextuais exibidos no topo da tela de listagem de vagas (`Vagas` no perfil profissional e `Minhas Vagas` no perfil contratante):
 
 | Perfil | Estado da Permissão | Texto do Aviso | Caracteres | Rótulo do Botão | Ação do Botão |
