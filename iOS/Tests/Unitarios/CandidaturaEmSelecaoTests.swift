@@ -689,4 +689,46 @@ struct CandidaturaEmSelecaoTests {
         #expect(textos.count >= 38, "nenhum texto encontrado")
         #expect(textos.filter { catalogo.strings[$0] == nil }.isEmpty)
     }
+
+    // MARK: - turno(de:)
+
+    @Test("Candidatura sem turnoID retorna nil")
+    func turnoDeCandidaturaSemTurnoIDRetornaNil() async throws {
+        let turno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let candidatura = Candidatura(id: Cena.candidaturaID, vaga: turno.vaga, estado: .pendente, criadaEm: .now, turnoID: nil)
+        let vm = MinhasCandidaturasViewModel(
+            buscar: { [candidatura] },
+            buscarTurnos: { [turno] }
+        )
+        await vm.carregar()
+
+        #expect(vm.turno(de: candidatura) == nil)
+    }
+
+    @Test("Candidatura com turnoID não presente em turnosPorID retorna nil")
+    func turnoDeCandidaturaComTurnoIDNaoIndexadoRetornaNil() async throws {
+        let turno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let candidatura = Candidatura(id: Cena.candidaturaID, vaga: turno.vaga, estado: .aceita, criadaEm: .now, turnoID: UUID())
+        let vm = MinhasCandidaturasViewModel(
+            buscar: { [candidatura] },
+            buscarTurnos: { [turno] }
+        )
+        await vm.carregar()
+
+        #expect(vm.turno(de: candidatura) == nil)
+    }
+
+    @Test("Candidatura com turnoID correspondente retorna o Turno mapeado")
+    func turnoDeCandidaturaComTurnoIDCorrespondenteRetornaTurno() async throws {
+        let baseTurno = try #require(try await ApiClienteEmMemoria(cenario: .candidaturaEscolhida).meusTurnos().first)
+        let candidatura = Candidatura(id: Cena.candidaturaID, vaga: baseTurno.vaga, estado: .aceita, criadaEm: .now, turnoID: baseTurno.id)
+        let vm = MinhasCandidaturasViewModel(
+            buscar: { [candidatura] },
+            buscarTurnos: { [baseTurno] }
+        )
+        await vm.carregar()
+
+        #expect(vm.turno(de: candidatura) == baseTurno)
+        #expect(vm.turno(de: candidatura)?.id == baseTurno.id)
+    }
 }
