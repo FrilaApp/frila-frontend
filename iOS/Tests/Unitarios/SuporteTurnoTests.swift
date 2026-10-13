@@ -393,5 +393,31 @@ struct SuporteTurnoTests {
         #expect(prot1.protocoloCurto == prot2.protocoloCurto)
         #expect(api.chamados.count == 1)
     }
+
+    @Test("Cenário 13: Registrar falha ao abrir e-mail ativa a flag correspondente")
+    func registrarFalhaAoAbrirEmailAtivaFlag() {
+        let contexto = criarContextoExemplo()
+        let vm = SuporteTurnoViewModel(dados: contexto)
+        #expect(!vm.falhaAoAbrirEmail)
+
+        vm.registrarFalhaAoAbrirEmail()
+
+        #expect(vm.falhaAoAbrirEmail)
+    }
+
+    @Test("Cenário 14: Nova tentativa de envio limpa a flag de falha ao abrir e-mail")
+    func registrarEEnviarLimpaFlagDeFalhaAoAbrirEmail() async {
+        let contexto = criarContextoExemplo()
+        let vm = SuporteTurnoViewModel(
+            dados: contexto,
+            verificadorPodeEnviarEmail: { false }
+        )
+        vm.registrarFalhaAoAbrirEmail()
+        #expect(vm.falhaAoAbrirEmail)
+
+        await vm.registrarEEnviar(abridorURL: { _ in })
+
+        #expect(!vm.falhaAoAbrirEmail)
+    }
 }
 

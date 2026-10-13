@@ -152,6 +152,32 @@ struct AutenticacaoTests {
         #expect(vm.mensagemInformativa == "Novo código enviado para seu e-mail.")
     }
 
+    @Test("CodigoViewModel: iniciarTemporizador redefine contagem para 60 segundos e bloqueia reenvio")
+    func iniciarTemporizadorRedefineContagemParaSessentaSegundos() {
+        let api = ApiClienteEmMemoria()
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+        vm.segundosRestantes = 0
+        #expect(vm.podeReenviar)
+
+        vm.iniciarTemporizador()
+
+        #expect(vm.segundosRestantes == 60)
+        #expect(!vm.podeReenviar)
+    }
+
+    @Test("CodigoViewModel: invocações consecutivas de iniciarTemporizador cancelam tarefa anterior e mantêm estado consistente")
+    func iniciarTemporizadorChamadasConsecutivas() {
+        let api = ApiClienteEmMemoria()
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+        vm.segundosRestantes = 10
+
+        vm.iniciarTemporizador()
+        vm.iniciarTemporizador()
+
+        #expect(vm.segundosRestantes == 60)
+        #expect(!vm.podeReenviar)
+    }
+
     // MARK: - CadastroViewModel
 
     @Test("CadastroViewModel bloqueia submissão sem aceite dos termos")
