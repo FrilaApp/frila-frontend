@@ -6281,6 +6281,16 @@
         }
       }
     },
+    "Esta vaga acabou de ser preenchida. Escolha outra vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vaga acabou de ser preenchida. Escolha outra vaga."
+          }
+        }
+      }
+    },
     "Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga.": {
       "localizations": {
         "pt-BR": {
@@ -6316,6 +6326,28 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld posições abertas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld vagas abertas": {
+      "localizations": {
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vaga aberta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vagas abertas"
                 }
               }
             }
