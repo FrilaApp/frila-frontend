@@ -275,6 +275,35 @@ struct FeedVagasViewModelTests {
         await vm.carregarMais()
         #expect(vm.estado == .carregada([vaga1, vaga2, vaga3]))
     }
+
+    @Test("Filtro padrão sem restrições reflete valores padrão e paginação inicial")
+    func filtroPadrao() {
+        let vm = viewModel(FonteDeVagas([]))
+        let filtro = vm.filtro(deslocamento: 0)
+        #expect(filtro.data == nil)
+        #expect(filtro.distanciaMaximaKm == nil)
+        #expect(filtro.deslocamento == 0)
+        #expect(filtro.limite == 30)
+    }
+
+    @Test("Filtro de data civil converte hoje e amanhã para o dia de São Paulo")
+    func filtroDataCivil() async {
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let vm = viewModel(FonteDeVagas([]), agora: agora)
+        await vm.selecionar(data: .hoje)
+        #expect(vm.filtro().data == DataCivil.deSaoPaulo(agora))
+        await vm.selecionar(data: .amanha)
+        #expect(vm.filtro().data == DataCivil.deSaoPaulo(agora, somandoDias: 1))
+    }
+
+    @Test("Filtro de distância máxima e deslocamento repassa quilometragem e paginação")
+    func filtroDistanciaEDeslocamento() async {
+        let vm = viewModel(FonteDeVagas([]))
+        await vm.selecionar(distancia: .ate(km: 15))
+        let filtro = vm.filtro(deslocamento: 60)
+        #expect(filtro.distanciaMaximaKm == 15.0)
+        #expect(filtro.deslocamento == 60)
+    }
 }
 
 @MainActor

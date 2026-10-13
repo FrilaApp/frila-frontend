@@ -447,7 +447,9 @@ struct TelaAjudaPerfil: View {
                     } label: {
                         Text(verbatim: TextosPerfilConta.fechar)
                     }
-                    .accessibilityShowsLargeContentViewer()
+                    .accessibilityShowsLargeContentViewer {
+                        Text(verbatim: TextosPerfilConta.fechar)
+                    }
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 }
             }
