@@ -40,7 +40,7 @@ enum TextosDoPush {
 
     /// O aviso fixo em Vagas e em Minhas vagas.
     enum Aviso {
-        static let abrirAjustes = String(localized: "Abrir os Ajustes", bundle: bundleApresentacao)
+        static let abrirAjustes = String(localized: "Abrir Ajustes", bundle: bundleApresentacao)
 
         /// A pessoa recusou o pedido do sistema, ou desligou as notificações nos Ajustes.
         static func negada(_ perfil: PerfilConta) -> String {
