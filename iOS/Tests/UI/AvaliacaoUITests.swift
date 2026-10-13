@@ -22,9 +22,11 @@ final class AvaliacaoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Sem conexão.")).firstMatch.exists)
         XCTAssertFalse(app.buttons["resposta-sim"].exists)
         XCTAssertFalse(app.buttons["botao-enviar-avaliacao"].exists)
-        app.buttons["Tentar novamente"].tap()
+        let tentarNovamente = app.buttons["Tentar novamente"]
+        tocar(tentarNovamente)
         XCTAssertTrue(estado.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(app.buttons["Tentar novamente"].isEnabled)
+        esperarHabilitado(tentarNovamente, true)
+        XCTAssertTrue(tentarNovamente.isEnabled)
     }
 
     private func conferirAberturaSemIdentidade(cache: String) {

@@ -27,6 +27,7 @@ final class NotificacaoDePushUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
         permitirNotificacoes(app)
+        XCTAssertTrue(app.descendants(matching: .any)["push-simulado-agendado"].waitForExistence(timeout: 10), "a notificação deve ser agendada no sistema")
         return app
     }
 
@@ -36,12 +37,12 @@ final class NotificacaoDePushUITests: XCTestCase {
         let explicar = app.buttons["explicar-notificacoes"]
         guard explicar.waitForExistence(timeout: 1) else { return }
         explicar.tap()
-        XCTAssertTrue(app.buttons["ativar-notificacoes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["ativar-notificacoes"].waitForExistence(timeout: 5), "o botão ativar notificações deve aparecer")
         app.buttons["ativar-notificacoes"].tap()
         let permitir = sistema.buttons.matching(NSPredicate(format: "label IN %@", ["Permitir", "Allow"])).firstMatch
         XCTAssertTrue(permitir.waitForExistence(timeout: 10), "o pedido do sistema vem depois da explicação")
         permitir.tap()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10), "a barra de navegação deve reaparecer após a permissão")
     }
 
     private func tocarNaNotificacao(tipo: String = "vaga") {
@@ -61,8 +62,8 @@ final class NotificacaoDePushUITests: XCTestCase {
     }
 
     private func conferirDetalheDaVaga(_ app: XCUIApplication) {
-        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.buttons["candidatar"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 20), "o detalhe da vaga deve abrir após o toque na notificação")
+        XCTAssertTrue(app.buttons["candidatar"].waitForExistence(timeout: 10), "o botão candidatar deve estar presente")
         XCTAssertFalse(app.descendants(matching: .any)["resultado-confirmada"].exists, "o toque abre o detalhe, nunca aceita sozinho")
     }
 
@@ -78,6 +79,10 @@ final class NotificacaoDePushUITests: XCTestCase {
 
         tocarNaNotificacao(tipo: "confirmacao")
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 20), "o toque na notificação de turno abre Meu turno")
+        let estadoTurno = app.descendants(matching: .any)["estado-do-turno"]
+        XCTAssertTrue(estadoTurno.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Você está confirmado"].exists)
+        XCTAssertTrue(app.buttons["botao-ajuda-turno"].waitForExistence(timeout: 5))
     }
 
     func testToqueComOAppEmSegundoPlanoAbreODestino() {

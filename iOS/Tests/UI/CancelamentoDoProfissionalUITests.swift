@@ -46,10 +46,12 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         // Critério 3: sem motivo, o botão não habilita.
         let confirmar = app.buttons["confirmar-cancelamento"]
         XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
+        esperarHabilitado(confirmar, false)
         XCTAssertFalse(confirmar.isEnabled)
         XCTAssertTrue(app.staticTexts["motivo-obrigatorio"].exists)
 
         tocar(app.buttons["motivo-saude"])
+        esperarHabilitado(confirmar, true)
         XCTAssertTrue(confirmar.isEnabled)
         tocar(confirmar)
 
@@ -90,6 +92,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         // "Outro motivo" exige o campo livre.
         let confirmar = app.buttons["confirmar-cancelamento"]
         tocar(app.buttons["motivo-outro"])
+        esperarHabilitado(confirmar, false)
         XCTAssertFalse(confirmar.isEnabled)
         let detalhes = app.descendants(matching: .any)["detalhes-do-cancelamento"].firstMatch
         XCTAssertTrue(detalhes.waitForExistence(timeout: Espera.aparecer))
@@ -97,6 +100,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         folha.swipeUp()
         tocar(detalhes)
         detalhes.typeText("Viagem marcada de última hora")
+        esperarHabilitado(confirmar, true)
         XCTAssertTrue(confirmar.isEnabled)
         // Com botões no safeAreaInset, o botão fica visível e tocável acima do teclado.
         tocar(confirmar)
@@ -149,6 +153,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
 
         let confirmar = app.buttons["confirmar-cancelamento"]
         XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
+        esperarHabilitado(confirmar, true)
         XCTAssertTrue(confirmar.isEnabled)
         XCTAssertTrue(confirmar.isHittable, "Confirmar cancelamento deve ser hittable com teclado aberto")
 

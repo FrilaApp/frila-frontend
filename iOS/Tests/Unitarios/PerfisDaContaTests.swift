@@ -57,6 +57,14 @@ struct PerfisDaContaTests {
         #expect(SeloReputacao.descricaoComparecimento(reputacao) == "Compareceu a 1 de 1 turno")
     }
 
+    @Test("Reputação com avaliações mas sem turnos considerados não produz '0 de 0 turnos'")
+    func reputacaoSemTurnosConsiderados() {
+        let reputacao = Reputacao(positivas: 4, total: 5, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+        #expect(!reputacao.semHistorico)
+        #expect(SeloReputacao.descricao(reputacao) == "4 de 5 chamariam de novo")
+        #expect(SeloReputacao.descricaoComparecimento(reputacao) == nil)
+    }
+
     @Test("Constante oficial reúne os endereços de Termos de uso e Política de privacidade (#54)")
     func constanteDeEnderecosOficiais() {
         let padrao = EnderecosOficiais.padrao

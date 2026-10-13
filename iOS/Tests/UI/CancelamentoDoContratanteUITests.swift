@@ -25,8 +25,10 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         XCTAssertFalse(aviso.label.contains("falta na sua taxa"), aviso.label)
         let confirmar = app.buttons["confirmar-cancelamento"]
         XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
+        esperarHabilitado(confirmar, false)
         XCTAssertFalse(confirmar.isEnabled)
         tocar(app.buttons["motivo-\(motivo)"])
+        esperarHabilitado(confirmar, true)
         XCTAssertTrue(confirmar.isEnabled)
         if !confirmar.isHittable { folha.swipeUp() }
         tocar(confirmar)

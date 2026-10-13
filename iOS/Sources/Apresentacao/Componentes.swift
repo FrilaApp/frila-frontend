@@ -165,7 +165,7 @@ public struct SeloReputacao: View {
     }
 
     public static func descricaoComparecimento(_ reputacao: Reputacao) -> String? {
-        guard !reputacao.semHistorico else { return nil }
+        guard !reputacao.semHistorico, reputacao.turnosConsiderados > 0 else { return nil }
         if reputacao.turnosConsiderados == 1 {
             return String(localized: "Compareceu a \(reputacao.turnosRealizados) de \(reputacao.turnosConsiderados) turno", bundle: bundleApresentacao)
         }

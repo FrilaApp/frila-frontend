@@ -15,6 +15,10 @@ final class FrilaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
         XCTAssertTrue(app.navigationBars["Frila UI"].waitForExistence(timeout: Espera.aparecer))
+        let botaoContinuar = app.buttons["Continuar"]
+        XCTAssertTrue(botaoContinuar.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(botaoContinuar.isEnabled)
+        XCTAssertTrue(app.buttons["Perto de mim"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testConflitoTipadoDoClienteChegaATela() {
@@ -383,6 +387,9 @@ final class AutenticacaoUITests: XCTestCase {
         preencherPerfil(app)
         tocar(app.buttons["botao-salvar-perfil"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
+        XCTAssertTrue(primeira.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["tela-perfil-profissional"].exists)
     }
 
     func testErroAoCriarPerfilPermiteRepetirEAbrirVagas() {
