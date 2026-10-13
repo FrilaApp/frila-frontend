@@ -266,13 +266,14 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             let altura = medida.sizeThatFits(CGSize(width: texto.frame.width, height: .greatestFiniteMagnitude)).height
             XCTAssertGreaterThanOrEqual(texto.frame.height, altura - 2, "todo o texto tem espaço para suas linhas")
         }
-        // O título do turno ocupa a primeira dobra no SE em AX5: registra os textos verificados.
+        XCTAssertTrue(endereco.isHittable, "o endereço deve estar acessível na área visível inicial")
+        XCTAssertTrue(mapa.isHittable, "o atalho de mapas deve estar acessível na área visível inicial")
+
+        // O título do turno ocupa a primeira dobra no SE em AX5: traz quem recebe para a área visível.
         for _ in 0..<6 where quemRecebe.frame.maxY > app.tabBars.firstMatch.frame.minY {
             app.swipeUp(velocity: .slow)
         }
-        XCTAssertTrue(endereco.isHittable)
-        XCTAssertTrue(quemRecebe.isHittable)
-        XCTAssertTrue(mapa.isHittable)
+        XCTAssertTrue(quemRecebe.isHittable, "quem recebe deve ficar acessível após a rolagem")
         let captura = XCTAttachment(screenshot: app.screenshot())
         captura.name = "turno-cancelado-AX5"
         captura.lifetime = .keepAlways

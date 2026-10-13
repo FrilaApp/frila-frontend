@@ -102,7 +102,9 @@ private struct FolhaDeDenuncia: View {
                             .focused($focoNoRelato)
                             .accessibilityIdentifier("relato-denuncia")
 
-                        Text(verbatim: TextosDaSeguranca.relatoMinimo).font(.caption)
+                        Text(verbatim: TextosDaSeguranca.relatoMinimo)
+                            .font(.caption)
+                            .foregroundStyle(FrilaCor.textoSecundario)
                     }
                     .disabled(model.enviando)
 
@@ -123,22 +125,11 @@ private struct FolhaDeDenuncia: View {
             .safeAreaInset(edge: .bottom) {
                 if model.protocolo == nil {
                     VStack(spacing: FrilaEspaco.minimo) {
-                        if model.enviando {
-                            ProgressView()
-                                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                        } else {
-                            Button {
-                                Task { await model.denunciar() }
-                            } label: {
-                                Text(verbatim: TextosDaSeguranca.enviar)
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(FrilaCor.primaria)
-                            .disabled(!model.relatoValido || model.enviando)
-                            .accessibilityIdentifier("enviar-denuncia")
+                        BotaoPrimario(verbatim: TextosDaSeguranca.enviar, carregando: model.enviando) {
+                            Task { await model.denunciar() }
                         }
+                        .disabled(!model.relatoValido || model.enviando)
+                        .accessibilityIdentifier("enviar-denuncia")
                     }
                     .padding(FrilaEspaco.medio)
                     .background(FrilaCor.fundo.opacity(0.95))
