@@ -151,5 +151,63 @@ struct PerfisDaContaTests {
         let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
         #expect(TextosPerfilConta.explicacaoVagas == fraseEsperada)
     }
+
+    @Test("MeuPerfilProfissionalViewModel propaga erro e limpa carregando ao falhar em carregar conta")
+    func meuPerfilFalhaAoCarregarConta() async {
+        let vm = MeuPerfilProfissionalViewModel(
+            conta: { throw ErroDaApi(codigo: .semRede) },
+            perfil: { try await ApiClienteEmMemoria().meuPerfilProfissional() },
+            publico: { _ in try await ApiClienteEmMemoria().perfilPublico(id: UUID()) }
+        )
+        await vm.carregar()
+
+        #expect(vm.mensagemErro == TextosPerfilConta.erro)
+        #expect(vm.carregando == false)
+        #expect(vm.conta == nil)
+        #expect(vm.perfil == nil)
+        #expect(vm.perfilPublico == nil)
+    }
+
+    @Test("MeuPerfilProfissionalViewModel propaga erro ao falhar em carregar perfil público")
+    func meuPerfilFalhaAoCarregarPerfilPublico() async {
+        let api = ApiClienteEmMemoria()
+        let vm = MeuPerfilProfissionalViewModel(
+            conta: { try await api.minhaConta() },
+            perfil: { try await api.meuPerfilProfissional() },
+            publico: { _ in throw ErroDaApi(codigo: .naoEncontrado) }
+        )
+        await vm.carregar()
+
+        #expect(vm.mensagemErro == TextosPerfilConta.erro)
+        #expect(vm.carregando == false)
+        #expect(vm.perfilPublico == nil)
+    }
+
+    @Test("MeuPerfilProfissionalViewModel limpa mensagem de erro em carregamento subsequente bem-sucedido")
+    func meuPerfilRecuperacaoDeErro() async {
+        final class Estado: @unchecked Sendable {
+            var deveFalhar = true
+        }
+        let estado = Estado()
+        let api = ApiClienteEmMemoria()
+        let vm = MeuPerfilProfissionalViewModel(
+            conta: {
+                if estado.deveFalhar { throw ErroDaApi(codigo: .semRede) }
+                return try await api.minhaConta()
+            },
+            perfil: { try await api.meuPerfilProfissional() },
+            publico: { try await api.perfilPublico(id: $0) }
+        )
+
+        await vm.carregar()
+        #expect(vm.mensagemErro == TextosPerfilConta.erro)
+        #expect(vm.conta == nil)
+
+        estado.deveFalhar = false
+        await vm.carregar()
+        #expect(vm.mensagemErro == nil)
+        #expect(vm.carregando == false)
+        #expect(vm.conta != nil)
+    }
 }
 
