@@ -26,8 +26,8 @@ Este documento consolida as bases normativas exigidas pela Apple, os rascunhos d
 ## 2. Licenças de Terceiros no Build 1.0 (Concluído)
 
 Conforme critério já auditado e atendido no app (PRs #34 e #178):
-- **Localização no Código:** `iOS/Sources/Apresentacao/TelaLicencas.swift` e `TelaDetalheLicenca.swift`.
-- **Acesso pelo Usuário:** Acessível via Perfil > Ajuda e Suporte (`TelaAjudaPerfil.swift:431-440`) com navegação nativa e acessibilidade completa.
+- **Localização no Código:** `iOS/Sources/Apresentacao/TelaLicencas.swift` (inclui a visualização de detalhe da licença).
+- **Acesso pelo Usuário:** Acessível via Perfil > Ajuda e Suporte (`iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift`) com navegação nativa e acessibilidade completa.
 - **Fonte da Auditoria:** Extraído diretamente dos 20 pacotes resolvidos em `iOS/Package.resolved` e catalogados no recurso de produção `iOS/Resources/Licencas.json` por meio do script de automação `iOS/Scripts/gerar-licencas.py`.
 - **Dependências Catalogadas (20 pacotes em `iOS/Package.resolved` e `iOS/Resources/Licencas.json`):**
   1. `abseil-cpp-binary` (v1.2024072200.0) — Apache-2.0
@@ -99,7 +99,7 @@ No portal **App Store Connect**, sob a seção **Informações do App (*App Info
 
 - **Resposta Recomendada:** **Sim (*Yes*)**.
 - **Fundamentação Técnica e Jurídica:**
-  1. **Conteúdo dos Usuários (UGC):** O Frila possui licença contratual expressa, conferida por meio do aceite obrigatório dos Termos de Uso no momento do primeiro acesso e cadastro no app (`CadastroUsuarioView.swift`, botão `cadastro-termos`), conforme Cláusula de Licença de Conteúdo detalhada na Seção 3 deste documento.
+  1. **Conteúdo dos Usuários (UGC):** O Frila possui licença contratual expressa, conferida por meio do aceite obrigatório dos Termos de Uso no momento do primeiro acesso e cadastro no app (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift`, botão `cadastro-termos`), conforme Cláusula de Licença de Conteúdo detalhada na Seção 3 deste documento.
   2. **Bibliotecas de Terceiros:** Todos os SDKs embutidos são regidos por licenças de código aberto permissivas (Apache-2.0, MIT, BSD-3-Clause, Zlib), cujas exigências de atribuição são plenamente cumpridas na tela nativa `TelaLicencas.swift` com base no catálogo derivado de `iOS/Package.resolved` e consolidado em `iOS/Resources/Licencas.json`.
   3. **Serviços de Mapa (MapKit):** O uso do MapKit decorre da adesão regular ao *Apple Developer Program License Agreement*.
 
