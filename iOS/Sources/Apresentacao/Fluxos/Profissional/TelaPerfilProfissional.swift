@@ -14,6 +14,7 @@ public struct TelaPerfilProfissional: View {
     @State private var inicioNovo: String = "18:00"
     @State private var fimNovo: String = "02:00"
     @State private var erroFormatoJanela: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     public init(viewModel: PerfilProfissionalViewModel, aoSalvar: @escaping () -> Void = {}) {
@@ -206,26 +207,34 @@ public struct TelaPerfilProfissional: View {
                 VStack(spacing: FrilaEspaco.minimo) {
                     ForEach(viewModel.disponibilidades, id: \.self) { janela in
                         let formatado = viewModel.formatarJanela(janela)
-                        HStack {
+                        let linhaLayout = dynamicTypeSize.isAccessibilitySize
+                            ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.minimo))
+                            : AnyLayout(HStackLayout())
+                        linhaLayout {
                             Text(verbatim: formatado.dia)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(FrilaCor.texto)
-                            Spacer()
-                            Text(verbatim: formatado.horario)
-                                .font(.subheadline)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-                            Button {
-                                viewModel.removerJanela(janela)
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundStyle(FrilaCor.perigo)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
+                            if !dynamicTypeSize.isAccessibilitySize {
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
-                            .contentShape(Rectangle())
-                            .accessibilityLabel(String(localized: "Remover horário de \(formatado.dia)", bundle: bundleApresentacao))
-                            .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
+                            HStack {
+                                Text(verbatim: formatado.horario)
+                                    .font(.subheadline)
+                                    .foregroundStyle(FrilaCor.textoSecundario)
+                                Spacer()
+                                Button {
+                                    viewModel.removerJanela(janela)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundStyle(FrilaCor.perigo)
+                                        .frame(width: 44, height: 44)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .contentShape(Rectangle())
+                                .accessibilityLabel(String(localized: "Remover horário de \(formatado.dia)", bundle: bundleApresentacao))
+                                .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
+                            }
                         }
                         .padding(.vertical, 4)
                         Divider()
@@ -255,7 +264,10 @@ public struct TelaPerfilProfissional: View {
                 .contentShape(Rectangle())
                 .accessibilityIdentifier("picker-dia-semana")
 
-                HStack(spacing: FrilaEspaco.pequeno) {
+                let camposHorarioLayout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.pequeno))
+                    : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
+                camposHorarioLayout {
                     CampoFrila(verbatim: TextosDoProfissional.Perfil.inicio, texto: $inicioNovo)
                         .accessibilityIdentifier("campo-hora-inicio")
                     CampoFrila(verbatim: TextosDoProfissional.Perfil.fim, texto: $fimNovo)
@@ -285,7 +297,7 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.adicionar)
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, FrilaEspaco.medio)
-                        .frame(minHeight: 44)
+                        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, minHeight: 44)
                         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
                         .foregroundStyle(FrilaCor.sobrePrimaria)
                         .contentShape(Rectangle())

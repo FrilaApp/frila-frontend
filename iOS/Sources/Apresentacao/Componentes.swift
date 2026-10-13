@@ -165,7 +165,7 @@ public struct SeloReputacao: View {
     }
 
     public static func descricaoComparecimento(_ reputacao: Reputacao) -> String? {
-        guard !reputacao.semHistorico else { return nil }
+        guard !reputacao.semHistorico, reputacao.turnosConsiderados > 0 else { return nil }
         if reputacao.turnosConsiderados == 1 {
             return String(localized: "Compareceu a \(reputacao.turnosRealizados) de \(reputacao.turnosConsiderados) turno", bundle: bundleApresentacao)
         }
@@ -325,6 +325,7 @@ public struct CartaoVaga: View {
 }
 
 public struct RespostaSimNao: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding private var resposta: Bool?
     private let rotuloAcessibilidade: Text
 
@@ -339,7 +340,10 @@ public struct RespostaSimNao: View {
     }
 
     public var body: some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: FrilaEspaco.pequeno))
+            : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
+        layout {
             escolha("Sim", valor: true, icone: "hand.thumbsup.fill")
             escolha("Não", valor: false, icone: "hand.thumbsdown.fill")
         }

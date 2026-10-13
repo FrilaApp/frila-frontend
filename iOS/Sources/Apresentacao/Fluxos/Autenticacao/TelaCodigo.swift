@@ -68,6 +68,7 @@ public struct TelaCodigo: View {
                                 let caractere = caractereNoIndice(indice)
                                 Text(verbatim: caractere)
                                     .font(.title.weight(.semibold).monospacedDigit())
+                                    .minimumScaleFactor(0.5)
                                     .foregroundStyle(FrilaCor.texto)
                                     .frame(maxWidth: .infinity, minHeight: 56)
                                     .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
