@@ -11,7 +11,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"]
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer))
         tocar(app.tabBars.buttons["Meus turnos"])
         let cartao = app.buttons["meu-turno-\(turnoID)"]
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
@@ -181,13 +181,13 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
         ]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer))
         tocar(app.tabBars.buttons["Meus turnos"])
         let cartao = app.buttons["meu-turno-\(turnoID)"]
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))
         tocar(cartao)
 
-        let folha = abrirFolha(app)
+        _ = abrirFolha(app)
 
         let aviso = app.descendants(matching: .any)["aviso-do-cancelamento"].firstMatch
         XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))

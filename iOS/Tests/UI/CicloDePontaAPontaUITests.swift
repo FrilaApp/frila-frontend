@@ -87,7 +87,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         // 5. Termina em Minhas vagas com a vaga publicada visível
         let minhasVagas = app.descendants(matching: .any)["minhas-vagas"]
-        XCTAssertTrue(minhasVagas.waitForExistence(timeout: 15), "Minhas vagas deve abrir após a publicação")
+        XCTAssertTrue(minhasVagas.waitForExistence(timeout: Espera.aparecer), "Minhas vagas deve abrir após a publicação")
         let vagaPublicada = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
         XCTAssertTrue(vagaPublicada.waitForExistence(timeout: 10), "Vaga recém-publicada deve aparecer em Minhas vagas")
 
@@ -258,7 +258,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         // 1. Painel Minhas vagas abre com a vaga encerrada
         let minhasVagas = app.descendants(matching: .any)["minhas-vagas"]
-        XCTAssertTrue(minhasVagas.waitForExistence(timeout: 15), "Painel Minhas vagas deve abrir")
+        XCTAssertTrue(minhasVagas.waitForExistence(timeout: Espera.aparecer), "Painel Minhas vagas deve abrir")
 
         let vaga = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'")).firstMatch
         XCTAssertTrue(vaga.waitForExistence(timeout: 10), "Vaga encerrada deve aparecer em Minhas vagas")

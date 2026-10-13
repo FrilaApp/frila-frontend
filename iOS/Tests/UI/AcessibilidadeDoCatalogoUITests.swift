@@ -68,13 +68,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
             if direcao == .nenhuma { break }
         }
 
-        var anterior = CGRect.null
-        for _ in 0..<3 {
-            let atual = elemento.frame
-            if atual == anterior { break }
-            anterior = atual
-            Thread.sleep(forTimeInterval: 0.05)
-        }
+        esperarEstabilizacaoDeFrame(elemento)
     }
 
     /// Percorre o catálogo inteiro em AX5 e confere cada botão e campo que aparece na tela.
