@@ -99,7 +99,10 @@ final class EquipeDeConfiancaUITests: XCTestCase {
 
     func testEquipeVaziaMostraOrientacao() {
         let app = abrirEquipe(cenario: "contratante")
-        XCTAssertTrue(app.descendants(matching: .any)["equipe-vazia"].waitForExistence(timeout: 5))
+        let estadoVazio = app.descendants(matching: .any)["equipe-vazia"]
+        XCTAssertTrue(estadoVazio.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Ninguém na equipe ainda"].exists)
+        XCTAssertTrue(app.staticTexts["Inclua um profissional a partir de um turno que ele já cumpriu aqui."].exists)
     }
 
     /// Em AX5 nada corta nem some: o membro, o botão Remover tocável com o alvo mínimo e a confirmação.
