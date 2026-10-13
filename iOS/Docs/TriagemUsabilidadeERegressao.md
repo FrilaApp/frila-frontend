@@ -30,17 +30,16 @@ A suíte `CicloDePontaAPontaUITests.swift` valida ponta a ponta o ciclo completo
   - `-FRILA_CADASTRO_UI_TEST`
 - **Passo a Passo e Telas/Componentes Envolvidos:**
   1. **Autenticação:**
-     - Tela: `EntradaEmailView` (`Apresentacao/Autenticacao/`) → Campo `entrada-email`, botão `entrada-receber-codigo`.
-     - Tela: `TelaCodigo` (`Apresentacao/Autenticacao/`) → Campo `Código de acesso`, botão `codigo-entrar`.
+     - Tela: `TelaEntrada` (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaEntrada.swift`) → Campo `entrada-email`, botão `entrada-receber-codigo`.
+     - Tela: `TelaCodigo` (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCodigo.swift`) → Campo `Código de acesso`, botão `codigo-entrar`.
   2. **Cadastro do Usuário:**
-     - Tela: `SelecaoPerfilView` → Botão `cadastro-perfil-contratante`.
-     - Tela: `CadastroUsuarioView` → Campos `cadastro-nome`, `cadastro-telefone`, `cadastro-nascimento`, botões `cadastro-maior-de-idade`, `cadastro-termos` e `cadastro-continuar`.
+     - Tela: `TelaCadastro` (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift`) → Botão `cadastro-perfil-contratante`, campos `cadastro-nome`, `cadastro-telefone`, `cadastro-nascimento`, botões `cadastro-maior-de-idade`, `cadastro-termos` e `cadastro-continuar`.
   3. **Cadastro do Estabelecimento:**
-     - Tela: `CadastroEstabelecimentoView` (`Apresentacao/Contratante/`) → Botão `continuar-cadastro`.
+     - Tela: `CadastroEstabelecimento` (`iOS/Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift`) → Botão `continuar-cadastro`.
   4. **Publicação da Vaga:**
-     - Tela: `PublicarVagaView` (`Apresentacao/Contratante/PublicarVaga.swift`) → Modo urgência pré-selecionado, botão `publicar-vaga-botao`.
+     - Tela: `PublicarVaga` (`iOS/Sources/Apresentacao/Fluxos/Contratante/PublicarVaga.swift`) → Modo urgência pré-selecionado, botão `publicar-vaga-botao`.
   5. **Verificação no Painel:**
-     - Tela: `MinhasVagasView` (`Apresentacao/Contratante/MinhasVagas.swift`) → Identificador `minhas-vagas`, item `vaga-contratante-*`.
+     - Tela: `MinhasVagas` (`iOS/Sources/Apresentacao/Fluxos/Contratante/MinhasVagas.swift`) → Identificador `minhas-vagas`, item `vaga-contratante-*`.
 - **Evidência Automatizada:** Anexo `ciclo-01-vaga-publicada-em-minhas-vagas.png`.
 
 ---
@@ -53,14 +52,14 @@ A suíte `CicloDePontaAPontaUITests.swift` valida ponta a ponta o ciclo completo
   - `-FRILA_LOCALIZACAO negada`
 - **Passo a Passo e Telas/Componentes Envolvidos:**
   1. **Descoberta e Seleção:**
-     - Tela: `AbaVagasView` / `ListaVagasView` (`Apresentacao/Profissional/`) → Barra `Vagas no DF`, cartão `vaga-*`.
+     - Tela: `TelaVagas` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaVagas.swift`) → Barra `Vagas no DF`, cartão `vaga-*`.
   2. **Candidatura Imediata (Urgência):**
-     - Tela: `DetalheVagaView` (`Apresentacao/Profissional/DetalheVaga.swift`) → Container `tela-detalhe-vaga`, botão `candidatar`.
-     - Tela: `ResultadoCandidaturaView` → Indicador `resultado-confirmada`, botão `voltar-para-lista`.
+     - Tela: `TelaDetalheVaga` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaDetalheVaga.swift`) → Container `tela-detalhe-vaga`, botão `candidatar`.
+     - Tela: `TelaResultadoDaCandidatura` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelasDaCandidatura.swift`) → Indicador `resultado-confirmada`, botão `voltar-para-lista`.
   3. **Acesso aos Meus Turnos:**
-     - Tela: `MeusTurnosView` (`Apresentacao/Profissional/MeusTurnos.swift`) → Botão `abrir-meus-turnos`, cartão `meu-turno-*`.
+     - Tela: `TelaMeusTurnos` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeusTurnos.swift`) → Botão `abrir-meus-turnos`, cartão `meu-turno-*`.
   4. **Consulta do Turno e Contato Liberado:**
-     - Tela: `MeuTurnoView` (`Apresentacao/Profissional/MeuTurno.swift`) → Container `tela-meu-turno`, cartão `contato-do-turno`, identificador `contato-telefone` com dados da casa/bistrô.
+     - Tela: `TelaMeuTurno` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeuTurno.swift`) → Container `tela-meu-turno`, cartão `contato-do-turno`, identificador `contato-telefone` com dados da casa/bistrô.
   5. **Check-in Presencial com Contingência:**
      - Ação: Botão `fazer-checkin`.
      - Tela de Permissão: Botão `permitir-localizacao` (contingência acionada).
@@ -80,13 +79,13 @@ A suíte `CicloDePontaAPontaUITests.swift` valida ponta a ponta o ciclo completo
   - `-FRILA_SCENARIO turno-encerrado`
 - **Passo a Passo e Telas/Componentes Envolvidos:**
   1. **Navegação:**
-     - Tela: `MeusTurnosView` (aba `Meus turnos`) → Cartão `meu-turno-*`.
+     - Tela: `TelaMeusTurnos` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeusTurnos.swift`) (aba `Meus turnos`) → Cartão `meu-turno-*`.
   2. **Abertura do Formulário:**
-     - Tela: `MeuTurnoView` → Cartão `cartao-avaliacao-turno`, botão `botao-abrir-avaliacao` (ou `Avaliar turno`).
+     - Tela: `TelaMeuTurno` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeuTurno.swift`) → Cartão `cartao-avaliacao-turno`, botão `botao-abrir-avaliacao` (ou `Avaliar turno`).
   3. **Preenchimento e Envio:**
-     - Tela: `AvaliarTurnoView` (`Apresentacao/Avaliacao/`) → Label `pergunta-avaliacao` (`"Você trabalharia nesse local de novo?"`), botão `resposta-sim`, botão `botao-enviar-avaliacao`.
+     - Tela: `TelaAvaliacao` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift`) → Label `pergunta-avaliacao` (`"Você trabalharia nesse local de novo?"`), botão `resposta-sim`, botão `botao-enviar-avaliacao`.
   4. **Confirmação:**
-     - Tela: `AvaliarTurnoView` → Componente `aviso-sucesso-avaliacao`.
+     - Tela: `TelaAvaliacao` → Componente `aviso-sucesso-avaliacao`.
 - **Evidência Automatizada:** Anexo `ciclo-03-avaliacao-profissional-sucesso.png`.
 
 ---
@@ -153,7 +152,7 @@ Bloqueante ou Grave          Médio ou Baixo
    - Evitar dependência de rede externa para testes reproduzíveis.
 
 2. **Criação do Teste de Regressão:**
-   - **Regras de Negócio e Validações:** Criar teste em `iOS/Tests/Dominio/` ou `iOS/Tests/Apresentacao/` (View Models).
+   - **Regras de Negócio e Validações:** Criar teste em `iOS/Tests/Unitarios/` (Domínio ou View Models).
    - **Fluxos de Navegação ou Interação Crítica:** Criar caso específico em `iOS/Tests/UI/` utilizando identificadores de acessibilidade (`accessibilityIdentifier`), evitando busca por rótulos literais suscetíveis a tradução.
    - O teste deve falhar antes da alteração do código (comprovando que captura o defeito).
 

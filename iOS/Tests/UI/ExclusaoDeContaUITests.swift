@@ -193,13 +193,13 @@ final class ExclusaoDeContaUITests: XCTestCase {
         let interruptor = toggle.switches.firstMatch
         rolarAte(interruptor, em: app)
         anexar(app, "ExclusaoEmAX5Rolada")
-        interruptor.tap()
+        tocar(interruptor)
 
         let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
         let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: botaoExcluir)
         XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: Espera.aparecer), .completed)
         rolarAte(botaoExcluir, em: app)
-        botaoExcluir.tap()
+        tocar(botaoExcluir)
 
         let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
         let confirmar = app.buttons["botao-confirmar-exclusao-dialogo"]
@@ -273,13 +273,13 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertTrue(excluir.exists)
         XCTAssertFalse(excluir.isEnabled, "Listar vínculos não substitui o consentimento explícito")
         anexar(app, "Contratante\(tamanho)SemConsentimento")
-        interruptor.tap()
+        tocar(interruptor)
         let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: excluir)
         XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: Espera.aparecer), .completed)
         rolarAte(excluir, em: app)
         conferirAlvo(excluir, em: app)
         anexar(app, "Contratante\(tamanho)ComConsentimento")
-        excluir.tap()
+        tocar(excluir)
 
         let cancelar = app.buttons["botao-cancelar-exclusao-dialogo"]
         let confirmar = app.buttons["botao-confirmar-exclusao-dialogo"]

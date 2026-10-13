@@ -6584,6 +6584,1396 @@
           }
         }
       }
+    },
+    "%@ deixa de receber as vagas desta casa além de 15 km. Sem penalidade nem aviso.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ deixa de receber as vagas desta casa além de 15 km. Sem penalidade nem aviso."
+          }
+        }
+      }
+    },
+    "A Equipe Frila responde contestações em até 5 dias úteis.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Equipe Frila responde contestações em até 5 dias úteis."
+          }
+        }
+      }
+    },
+    "A Equipe Frila vai responder por e-mail dentro do prazo informado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Equipe Frila vai responder por e-mail dentro do prazo informado."
+          }
+        }
+      }
+    },
+    "A conta não foi excluída por falta de conexão. Verifique sua internet e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A conta não foi excluída por falta de conexão. Verifique sua internet e tente novamente."
+          }
+        }
+      }
+    },
+    "A data e horário de início devem ser no futuro.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A data e horário de início devem ser no futuro."
+          }
+        }
+      }
+    },
+    "A lista de turnos está indisponível ou desatualizada. Você pode continuar com a exclusão.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A lista de turnos está indisponível ou desatualizada. Você pode continuar com a exclusão."
+          }
+        }
+      }
+    },
+    "A lista pode estar incompleta: consultamos os próximos 12 meses dos estabelecimentos. Você pode continuar com a exclusão.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A lista pode estar incompleta: consultamos os próximos 12 meses dos estabelecimentos. Você pode continuar com a exclusão."
+          }
+        }
+      }
+    },
+    "A republicação continua e será concluída quando a conexão voltar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A republicação continua e será concluída quando a conexão voltar."
+          }
+        }
+      }
+    },
+    "A vaga só chega quando o turno inteiro cabe em um destes horários.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga só chega quando o turno inteiro cabe em um destes horários."
+          }
+        }
+      }
+    },
+    "Abre o compositor de e-mail com os dados pré-preenchidos para suporte@frila.app": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o compositor de e-mail com os dados pré-preenchidos para suporte@frila.app"
+          }
+        }
+      }
+    },
+    "Abre o e-mail para enviar mensagem ao suporte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre o e-mail para enviar mensagem ao suporte"
+          }
+        }
+      }
+    },
+    "Abre suporte por e-mail com os dados do turno pré-preenchidos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre suporte por e-mail com os dados do turno pré-preenchidos"
+          }
+        }
+      }
+    },
+    "Abrir e-mail de suporte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir e-mail de suporte"
+          }
+        }
+      }
+    },
+    "Ajuda no turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuda no turno"
+          }
+        }
+      }
+    },
+    "Algo não bate?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algo não bate?"
+          }
+        }
+      }
+    },
+    "Apenas contratantes podem republicar vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apenas contratantes podem republicar vagas."
+          }
+        }
+      }
+    },
+    "Arraste para ajustar o ponto do estabelecimento no mapa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arraste para ajustar o ponto do estabelecimento no mapa"
+          }
+        }
+      }
+    },
+    "As vagas destes estabelecimentos chegam mesmo além da distância máxima, desde que a função e os horários batam.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As vagas destes estabelecimentos chegam mesmo além da distância máxima, desde que a função e os horários batam."
+          }
+        }
+      }
+    },
+    "Atenção: a exclusão da sua conta é permanente e não poderá ser desfeita.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atenção: a exclusão da sua conta é permanente e não poderá ser desfeita."
+          }
+        }
+      }
+    },
+    "Atraso ou imprevisto no comparecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atraso ou imprevisto no comparecimento"
+          }
+        }
+      }
+    },
+    "Até %@ km do seu ponto base.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até %@ km do seu ponto base."
+          }
+        }
+      }
+    },
+    "Cadastre sua função e seus horários em Funções e horários para começar a receber vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cadastre sua função e seus horários em Funções e horários para começar a receber vagas."
+          }
+        }
+      }
+    },
+    "Confirmar republicação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar republicação"
+          }
+        }
+      }
+    },
+    "Conta suspensa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta suspensa"
+          }
+        }
+      }
+    },
+    "Conte o que aconteceu antes de enviar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conte o que aconteceu antes de enviar."
+          }
+        }
+      }
+    },
+    "Conte qual vaga esperava receber e por quê…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conte qual vaga esperava receber e por quê…"
+          }
+        }
+      }
+    },
+    "Contestar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contestar"
+          }
+        }
+      }
+    },
+    "Contestar suspensão": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contestar suspensão"
+          }
+        }
+      }
+    },
+    "Contestação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contestação"
+          }
+        }
+      }
+    },
+    "Contratante": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contratante"
+          }
+        }
+      }
+    },
+    "Copia o assunto e o corpo formatados para colar no seu aplicativo de e-mail": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia o assunto e o corpo formatados para colar no seu aplicativo de e-mail"
+          }
+        }
+      }
+    },
+    "Copiar dados do e-mail": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar dados do e-mail"
+          }
+        }
+      }
+    },
+    "Dados copiados para a área de transferência.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dados copiados para a área de transferência."
+          }
+        }
+      }
+    },
+    "Descreva detalhes do que está acontecendo…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descreva detalhes do que está acontecendo…"
+          }
+        }
+      }
+    },
+    "Descreva seus argumentos para contestar a suspensão…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descreva seus argumentos para contestar a suspensão…"
+          }
+        }
+      }
+    },
+    "Descrição do ocorrido": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descrição do ocorrido"
+          }
+        }
+      }
+    },
+    "Destinatário oficial: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Destinatário oficial: %@"
+          }
+        }
+      }
+    },
+    "Dificuldade com check-in ou confirmação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dificuldade com check-in ou confirmação"
+          }
+        }
+      }
+    },
+    "Distância": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distância"
+          }
+        }
+      }
+    },
+    "Em análise": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em análise"
+          }
+        }
+      }
+    },
+    "Enviado em": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviado em"
+          }
+        }
+      }
+    },
+    "Enviando contestação…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando contestação…"
+          }
+        }
+      }
+    },
+    "Enviar contestação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar contestação"
+          }
+        }
+      }
+    },
+    "Enviar pedido": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar pedido"
+          }
+        }
+      }
+    },
+    "Envio do e-mail": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envio do e-mail"
+          }
+        }
+      }
+    },
+    "Equipe de confiança": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equipe de confiança"
+          }
+        }
+      }
+    },
+    "Equipes de confiança": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equipes de confiança"
+          }
+        }
+      }
+    },
+    "Esta ação é irreversível. Seus dados pessoais serão anonimizados. O cancelamento de turnos segue as condições informadas acima.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta ação é irreversível. Seus dados pessoais serão anonimizados. O cancelamento de turnos segue as condições informadas acima."
+          }
+        }
+      }
+    },
+    "Este perfil não está mais disponível.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este perfil não está mais disponível."
+          }
+        }
+      }
+    },
+    "Estou ciente das consequências e confirmo a exclusão definitiva da minha conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estou ciente das consequências e confirmo a exclusão definitiva da minha conta"
+          }
+        }
+      }
+    },
+    "Excluindo conta…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluindo conta…"
+          }
+        }
+      }
+    },
+    "Excluir conta definitivamente?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir conta definitivamente?"
+          }
+        }
+      }
+    },
+    "Excluir minha conta definitivamente": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir minha conta definitivamente"
+          }
+        }
+      }
+    },
+    "Exporta seus dados pessoais em formato JSON e abre o compartilhamento do sistema.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporta seus dados pessoais em formato JSON e abre o compartilhamento do sistema."
+          }
+        }
+      }
+    },
+    "Frequência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frequência"
+          }
+        }
+      }
+    },
+    "Gera um arquivo JSON com seus dados cadastrais, turnos, avaliações e dispositivos registrados, conforme a LGPD.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gera um arquivo JSON com seus dados cadastrais, turnos, avaliações e dispositivos registrados, conforme a LGPD."
+          }
+        }
+      }
+    },
+    "Horário informado não é válido.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horário informado não é válido."
+          }
+        }
+      }
+    },
+    "ID do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID do turno"
+          }
+        }
+      }
+    },
+    "Identificação do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Identificação do turno"
+          }
+        }
+      }
+    },
+    "Inclua um profissional a partir de um turno que ele já cumpriu aqui.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclua um profissional a partir de um turno que ele já cumpriu aqui."
+          }
+        }
+      }
+    },
+    "Incluir na equipe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir na equipe"
+          }
+        }
+      }
+    },
+    "Informações da suspensão": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informações da suspensão"
+          }
+        }
+      }
+    },
+    "Informe o motivo da contestação antes de enviar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe o motivo da contestação antes de enviar."
+          }
+        }
+      }
+    },
+    "Já existe uma contestação para esta suspensão.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Já existe uma contestação para esta suspensão."
+          }
+        }
+      }
+    },
+    "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suporte@frila.app.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suporte@frila.app."
+          }
+        }
+      }
+    },
+    "Local": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local"
+          }
+        }
+      }
+    },
+    "Modo de preenchimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo de preenchimento"
+          }
+        }
+      }
+    },
+    "Modo urgência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo urgência"
+          }
+        }
+      }
+    },
+    "Motivo do suporte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motivo do suporte"
+          }
+        }
+      }
+    },
+    "Motivo informado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motivo informado"
+          }
+        }
+      }
+    },
+    "Motivos da contestação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motivos da contestação"
+          }
+        }
+      }
+    },
+    "Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente de novo."
+          }
+        }
+      }
+    },
+    "Mínimo de 10 caracteres.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mínimo de 10 caracteres."
+          }
+        }
+      }
+    },
+    "Na equipe de confiança": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na equipe de confiança"
+          }
+        }
+      }
+    },
+    "Nenhum critério cadastrado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum critério cadastrado"
+          }
+        }
+      }
+    },
+    "Nenhum horário cadastrado. Sem horários, nenhuma vaga chega por notificação.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum horário cadastrado. Sem horários, nenhuma vaga chega por notificação."
+          }
+        }
+      }
+    },
+    "Nenhum turno futuro encontrado na consulta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum turno futuro encontrado na consulta."
+          }
+        }
+      }
+    },
+    "Nenhuma função cadastrada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma função cadastrada."
+          }
+        }
+      }
+    },
+    "Ninguém na equipe ainda": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguém na equipe ainda"
+          }
+        }
+      }
+    },
+    "No máximo uma notificação a cada %lld minutos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No máximo uma notificação a cada %lld minutos."
+          }
+        }
+      }
+    },
+    "Novo período": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novo período"
+          }
+        }
+      }
+    },
+    "Não foi possível abrir o aplicativo de e-mail. Você pode copiar os dados abaixo e enviá-los de outro aplicativo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir o aplicativo de e-mail. Você pode copiar os dados abaixo e enviá-los de outro aplicativo."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar a equipe. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar a equipe. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar seus critérios. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar seus critérios. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível concluir a exclusão da conta. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível concluir a exclusão da conta. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar o pedido. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar o pedido. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível registrar o chamado. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível registrar o chamado. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível republicar a vaga. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível republicar a vaga. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível verificar a republicação pendente. Tente novamente antes de confirmar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível verificar a republicação pendente. Tente novamente antes de confirmar."
+          }
+        }
+      }
+    },
+    "O horário de término deve ser após o início.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O horário de término deve ser após o início."
+          }
+        }
+      }
+    },
+    "O prazo para a exclusão completa das cópias de backup é de até 15 dias.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O prazo para a exclusão completa das cópias de backup é de até 15 dias."
+          }
+        }
+      }
+    },
+    "O que acontece ao excluir sua conta:": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que acontece ao excluir sua conta:"
+          }
+        }
+      }
+    },
+    "O que aconteceu": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que aconteceu"
+          }
+        }
+      }
+    },
+    "O turno deve ter pelo menos 2 horas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O turno deve ter pelo menos 2 horas."
+          }
+        }
+      }
+    },
+    "O turno não pode ultrapassar 16 horas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O turno não pode ultrapassar 16 horas."
+          }
+        }
+      }
+    },
+    "Opcional. Os dados de identificação do turno acima serão incluídos no e-mail automaticamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opcional. Os dados de identificação do turno acima serão incluídos no e-mail automaticamente."
+          }
+        }
+      }
+    },
+    "Os dados da vaga anterior foram copiados. Escolha a nova data e horário.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os dados da vaga anterior foram copiados. Escolha a nova data e horário."
+          }
+        }
+      }
+    },
+    "Os turnos futuros do profissional são cancelados sem falta. Para contratantes, o cancelamento ocorre quando a conta é o único membro do estabelecimento. Turnos em andamento seguem até o fim.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os turnos futuros do profissional são cancelados sem falta. Para contratantes, o cancelamento ocorre quando a conta é o único membro do estabelecimento. Turnos em andamento seguem até o fim."
+          }
+        }
+      }
+    },
+    "Outras ações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outras ações"
+          }
+        }
+      }
+    },
+    "Outro imprevisto ou dúvida": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro imprevisto ou dúvida"
+          }
+        }
+      }
+    },
+    "Pedido de revisão enviado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pedido de revisão enviado"
+          }
+        }
+      }
+    },
+    "Pesquisa o endereço digitado e atualiza o mapa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesquisa o endereço digitado e atualiza o mapa"
+          }
+        }
+      }
+    },
+    "Prazo de resposta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prazo de resposta"
+          }
+        }
+      }
+    },
+    "Previsão de resposta até": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previsão de resposta até"
+          }
+        }
+      }
+    },
+    "Problema no local ou atividade": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problema no local ou atividade"
+          }
+        }
+      }
+    },
+    "Profissional": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profissional"
+          }
+        }
+      }
+    },
+    "Protocolo #%@ gerado. Prazo de resposta até %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protocolo #%@ gerado. Prazo de resposta até %@."
+          }
+        }
+      }
+    },
+    "Protocolo de contestação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protocolo de contestação"
+          }
+        }
+      }
+    },
+    "Publicar de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar de novo"
+          }
+        }
+      }
+    },
+    "Quem está na equipe recebe as vagas desta casa mesmo além de 15 km, desde que tenha a função e esteja disponível. Não há exclusividade nem ordem de preferência.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem está na equipe recebe as vagas desta casa mesmo além de 15 km, desde que tenha a função e esteja disponível. Não há exclusividade nem ordem de preferência."
+          }
+        }
+      }
+    },
+    "Remover da equipe?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover da equipe?"
+          }
+        }
+      }
+    },
+    "Removido da equipe.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removido da equipe."
+          }
+        }
+      }
+    },
+    "Republicar vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Republicar vaga"
+          }
+        }
+      }
+    },
+    "Respondemos em até 5 dias úteis. Não há atendimento ao vivo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respondemos em até 5 dias úteis. Não há atendimento ao vivo."
+          }
+        }
+      }
+    },
+    "Risco imediato": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risco imediato"
+          }
+        }
+      }
+    },
+    "Risco à segurança ou emergência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risco à segurança ou emergência"
+          }
+        }
+      }
+    },
+    "Sair da conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair da conta"
+          }
+        }
+      }
+    },
+    "Se você acha que deveria ter recebido uma vaga, peça a revisão. A Equipe Frila responde por e-mail em até 5 dias úteis.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se você acha que deveria ter recebido uma vaga, peça a revisão. A Equipe Frila responde por e-mail em até 5 dias úteis."
+          }
+        }
+      }
+    },
+    "Seleciona este endereço e ajusta o marcador no mapa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleciona este endereço e ajusta o marcador no mapa"
+          }
+        }
+      }
+    },
+    "Sem conexão com a internet. A solicitação foi guardada para envio.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão com a internet. A solicitação foi guardada para envio."
+          }
+        }
+      }
+    },
+    "Seus dados pessoais cadastrados serão anonimizados definitivamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seus dados pessoais cadastrados serão anonimizados definitivamente."
+          }
+        }
+      }
+    },
+    "Seus horários": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seus horários"
+          }
+        }
+      }
+    },
+    "Sim, excluir minha conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sim, excluir minha conta"
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suporte@frila.app.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suporte@frila.app."
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa. Enquanto a suspensão durar, a equipe não muda.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa. Enquanto a suspensão durar, a equipe não muda."
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa. Enquanto a suspensão durar, não é possível pedir a revisão.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa. Enquanto a suspensão durar, não é possível pedir a revisão."
+          }
+        }
+      }
+    },
+    "Sua conta está temporariamente suspensa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está temporariamente suspensa."
+          }
+        }
+      }
+    },
+    "Sua conta foi reativada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta foi reativada."
+          }
+        }
+      }
+    },
+    "Sua contestação foi enviada e está em análise pela Equipe Frila. Você receberá uma notificação e resposta por e-mail dentro do prazo informado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua contestação foi enviada e está em análise pela Equipe Frila. Você receberá uma notificação e resposta por e-mail dentro do prazo informado."
+          }
+        }
+      }
+    },
+    "Sua função": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua função"
+          }
+        }
+      }
+    },
+    "Suspensa desde": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suspensa desde"
+          }
+        }
+      }
+    },
+    "Só dá para incluir quem já cumpriu um turno com presença verificada nesta casa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só dá para incluir quem já cumpriu um turno com presença verificada nesta casa."
+          }
+        }
+      }
+    },
+    "Só o administrador do estabelecimento altera a equipe.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só o administrador do estabelecimento altera a equipe."
+          }
+        }
+      }
+    },
+    "Turnos futuros vinculados à conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turnos futuros vinculados à conta"
+          }
+        }
+      }
+    },
+    "Término": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Término"
+          }
+        }
+      }
+    },
+    "Vaga republicada com sucesso!": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga republicada com sucesso!"
+          }
+        }
+      }
+    },
+    "Verificando turnos futuros…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificando turnos futuros…"
+          }
+        }
+      }
+    },
+    "Você ainda não faz parte da equipe de confiança de nenhum estabelecimento.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você ainda não faz parte da equipe de confiança de nenhum estabelecimento."
+          }
+        }
+      }
+    },
+    "Você é o único administrador deste estabelecimento. Não é possível excluir a conta enquanto houver outros membros.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você é o único administrador deste estabelecimento. Não é possível excluir a conta enquanto houver outros membros."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

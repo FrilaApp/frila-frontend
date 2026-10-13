@@ -68,9 +68,10 @@ final class SegurancaUITests: XCTestCase {
     func testDenunciaNoDetalheMostraEmergenciaProtocoloEPrazo() {
         let app = abrirVaga()
         conferirAcoes(app)
-        app.buttons["denunciar"].tap()
+        tocar(app.buttons["denunciar"])
         let enviar = app.buttons["enviar-denuncia"]
         trazerParaATela(enviar, em: app)
+        esperarHabilitado(enviar, false)
         XCTAssertFalse(enviar.isEnabled)
         let motivo = app.buttons["motivo-denuncia"]
         trazerParaATela(motivo, em: app)
@@ -197,18 +198,20 @@ final class SegurancaUITests: XCTestCase {
         enviar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
-        app.buttons["Fechar"].tap()
+        tocar(app.buttons["Fechar"])
 
         let bloquear = app.buttons["bloquear"]
         trazerParaATela(bloquear, em: app)
-        bloquear.tap()
+        tocar(bloquear)
         XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Vocês não voltam a se cruzar'")).firstMatch.exists)
-        app.alerts.buttons["Cancelar"].tap()
+        tocar(app.alerts.buttons["Cancelar"])
+        esperarHabilitado(bloquear, true)
         XCTAssertTrue(bloquear.isEnabled)
 
-        bloquear.tap()
-        app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
+        tocar(bloquear)
+        tocar(app.alerts.buttons["confirmar-bloqueio"].firstMatch)
         trazerParaATela(bloquear, em: app)
+        esperarHabilitado(bloquear, false)
         XCTAssertFalse(bloquear.isEnabled)
         XCTAssertTrue(app.staticTexts["etiqueta-bloqueio-turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].exists)
@@ -262,18 +265,20 @@ final class SegurancaUITests: XCTestCase {
         enviar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
-        app.buttons["Fechar"].tap()
+        tocar(app.buttons["Fechar"])
 
         let bloquear = app.buttons[idBloquear]
         trazerParaATela(bloquear, em: app)
-        bloquear.tap()
+        tocar(bloquear)
         XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Vocês não voltam a se cruzar'")).firstMatch.exists)
-        app.alerts.buttons["Cancelar"].tap()
+        tocar(app.alerts.buttons["Cancelar"])
+        esperarHabilitado(bloquear, true)
         XCTAssertTrue(bloquear.isEnabled)
 
-        bloquear.tap()
-        app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
+        tocar(bloquear)
+        tocar(app.alerts.buttons["confirmar-bloqueio"].firstMatch)
         trazerParaATela(bloquear, em: app)
+        esperarHabilitado(bloquear, false)
         XCTAssertFalse(bloquear.isEnabled)
         XCTAssertTrue(app.staticTexts["etiqueta-bloqueio-\(posicaoID)"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].exists)

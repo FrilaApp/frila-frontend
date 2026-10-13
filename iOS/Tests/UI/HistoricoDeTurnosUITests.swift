@@ -21,12 +21,14 @@ final class HistoricoDeTurnosUITests: XCTestCase {
 
     func testContratanteExportaPDFDoMesPassadoEAbreCompartilhamento() {
         let app = abrir(cenario: "contratante", perfil: "abrir-perfil-estabelecimento", item: "estabelecimento-historico-turnos")
-        app.buttons["historico-mes-passado"].tap()
-        app.segmentedControls["historico-formato"].buttons["PDF"].tap()
-        XCTAssertTrue(app.buttons["historico-mes-passado"].isSelected)
+        let mesPassado = app.buttons["historico-mes-passado"]
+        tocar(mesPassado)
+        tocar(app.segmentedControls["historico-formato"].buttons["PDF"])
+        esperarSelecionado(mesPassado, true)
+        XCTAssertTrue(mesPassado.isSelected)
         anexar(app, "historico-contratante")
 
-        app.buttons["historico-exportar"].tap()
+        tocar(app.buttons["historico-exportar"])
 
         XCTAssertTrue(folhaDeCompartilharApareceu(app), "O PDF do estabelecimento vai para a folha de compartilhar")
         anexar(app, "historico-contratante-compartilhar")
@@ -111,8 +113,10 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         XCTAssertTrue(csv.isSelected, "CSV é o formato inicial")
         for _ in 0..<6 where !pdf.isHittable { app.swipeUp() }
 
-        pdf.tap()
+        tocar(pdf)
 
+        esperarSelecionado(pdf, true)
+        esperarSelecionado(csv, false)
         XCTAssertTrue(pdf.isSelected)
         XCTAssertFalse(csv.isSelected)
         XCTAssertGreaterThan(pdf.frame.height, 44 + 8, "Em AX5 a pílula cresce além do mínimo de 44 pt")
