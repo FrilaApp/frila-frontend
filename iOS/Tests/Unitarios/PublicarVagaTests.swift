@@ -14,6 +14,24 @@ private final class ApiPublicacaoRecusada: ApiClienteEncaminhador, @unchecked Se
     }
 }
 
+private final class ApiFuncoesEspia: ApiClienteEncaminhador, @unchecked Sendable {
+    private let trava = NSLock()
+    private var chamadasFuncoes = 0
+    let listaFuncoes: [Funcao]
+
+    init(funcoes: [Funcao]) {
+        self.listaFuncoes = funcoes
+        super.init()
+    }
+
+    var totalChamadas: Int { trava.withLock { chamadasFuncoes } }
+
+    override func funcoes() async throws -> [Funcao] {
+        trava.withLock { chamadasFuncoes += 1 }
+        return listaFuncoes
+    }
+}
+
 private actor FilaPublicacaoTeste: FilaDeAcoes {
     private var avisos: [AcaoRecusada] = []
     func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {
@@ -394,5 +412,40 @@ struct PublicarVagaTests {
         #expect(vm.publicacaoPendente != nil)
         #expect(vm.mostraAvisoPublicacaoContinua)
         #expect(vm.mensagemErro == nil)
+    }
+
+    @Test("carregarFuncoes popula a lista de funcoes a partir da API quando vazia")
+    func carregarFuncoesPopulaListaVazia() async throws {
+        let funcoesEsperadas = [
+            Funcao(id: UUID(), nome: "Cozinheiro", categoria: "Cozinha"),
+            Funcao(id: UUID(), nome: "Garçom", categoria: "Salão")
+        ]
+        let api = ApiFuncoesEspia(funcoes: funcoesEsperadas)
+        let fila = FilaPublicacaoTeste()
+        let vm = PublicarVagaViewModel(api: api, fila: fila, estabelecimento: try estabelecimento(), agora: { self.agora })
+
+        #expect(vm.funcoes.isEmpty)
+        #expect(!vm.carregandoFuncoes)
+        await vm.carregarFuncoes()
+
+        #expect(vm.funcoes == funcoesEsperadas)
+        #expect(!vm.carregandoFuncoes)
+        #expect(api.totalChamadas == 1)
+    }
+
+    @Test("carregarFuncoes nao refaz chamada a API quando a lista ja possui elementos")
+    func carregarFuncoesRespeitaGuardaQuandoNaoVazia() async throws {
+        let funcoesIniciais = [
+            Funcao(id: UUID(), nome: "Bartender", categoria: "Bar")
+        ]
+        let api = ApiFuncoesEspia(funcoes: [Funcao(id: UUID(), nome: "Outra", categoria: "Outra")])
+        let fila = FilaPublicacaoTeste()
+        let vm = PublicarVagaViewModel(api: api, fila: fila, estabelecimento: try estabelecimento(), agora: { self.agora })
+        vm.funcoes = funcoesIniciais
+
+        await vm.carregarFuncoes()
+
+        #expect(vm.funcoes == funcoesIniciais)
+        #expect(api.totalChamadas == 0)
     }
 }
