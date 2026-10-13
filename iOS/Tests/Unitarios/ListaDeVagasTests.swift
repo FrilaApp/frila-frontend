@@ -377,4 +377,46 @@ struct DetalheVagaViewModelTests {
         let cartao = CartaoVaga(vaga)
         #expect(cartao.rotuloDeAcessibilidade.contains("1 posição aberta"))
     }
+
+    @Test("DetalheVagaViewModel repassa vagaID e popula estado com sucesso via closure injetada")
+    func carregarComClosureSucesso() async throws {
+        let api = ApiClienteEmMemoria()
+        let vagaExemplo = try await api.detalheDaVaga(id: try #require(try await api.vagasAbertas(.todas).first).id)
+        let esperadoID = vagaExemplo.id
+
+        final class Captura: @unchecked Sendable {
+            var idRecebido: UUID?
+        }
+        let captura = Captura()
+
+        let vm = DetalheVagaViewModel(vagaID: esperadoID) { id in
+            captura.idRecebido = id
+            return vagaExemplo
+        }
+        await vm.carregar()
+
+        #expect(captura.idRecebido == esperadoID)
+        #expect(vm.estado == .carregado(vagaExemplo))
+    }
+
+    @Test("DetalheVagaViewModel converte erro genérico lançado pela closure em FalhaDaLista")
+    func carregarComClosureErroGenerico() async {
+        struct FalhaGenerica: Error {}
+        let vm = DetalheVagaViewModel(vagaID: UUID()) { _ in
+            throw FalhaGenerica()
+        }
+        await vm.carregar()
+
+        #expect(vm.estado == .falha(FalhaDaLista(FalhaGenerica())))
+    }
+
+    @Test("DetalheVagaViewModel mapeia erro 404 isolado via closure para naoEncontrada")
+    func carregarComClosureNaoEncontrada() async {
+        let vm = DetalheVagaViewModel(vagaID: UUID()) { _ in
+            throw ErroDaApi(codigo: .naoEncontrado)
+        }
+        await vm.carregar()
+
+        #expect(vm.estado == .naoEncontrada)
+    }
 }
