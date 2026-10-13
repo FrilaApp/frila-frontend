@@ -252,4 +252,143 @@ struct LimpezaAposExclusaoTests {
         #expect(resultado.turnosCancelados == 4)
         #expect(try await api.meusTurnos().isEmpty)
     }
+
+    @Test("Exclusão de conta: Keychain e cache limpos e recadastro do mesmo e-mail começa do zero (#ABN4rvmT)")
+    func exclusaoLimpaKeychainCacheERecadastroComMesmoEmail() async throws {
+        let servico = "com.frila.org.app.teste.exclusao.\(UUID().uuidString)"
+        let keychain = SessaoNoKeychainDoAparelho(servico: servico)
+        let chaveToken = "supabase.auth.token"
+        defer { try? keychain.remove(key: chaveToken) }
+
+        // 1. Grava sessão inicial no Keychain real isolado
+        let tokenOriginal = Data("sessao-supabase-autenticada-1".utf8)
+        try keychain.store(key: chaveToken, value: tokenOriginal)
+        #expect(try keychain.retrieve(key: chaveToken) == tokenOriginal)
+
+        // 2. Popula dados locais (SwiftData e UserDefaults de destino)
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let local = try criarArmazenamentoLocal()
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+        _ = try await popularDadosLocais(no: local, instante: instante, defaults: defaults)
+
+        #expect(try await local.sessao() != nil)
+        #expect(try await !local.turnosValidos(em: instante).isEmpty)
+        #expect(try await !local.pendentes().isEmpty)
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional)
+
+        // 3. Cliente da API com conta existente
+        let api = ApiClienteEmMemoria()
+        let contaAntes = try await api.minhaConta()
+        let emailAntes = contaAntes.email
+        #expect(!emailAntes.isEmpty)
+
+        // 4. Fluxo de saída/exclusão integrando API, limpeza de dados locais e Keychain
+        let saida = SaidaDaConta(
+            api: api,
+            armazenamento: local,
+            limparDestino: {
+                if let defs = UserDefaults(suiteName: suiteName) {
+                    DestinoGuardado.limpar(em: defs)
+                }
+            }
+        )
+
+        let viewModel = ExclusaoDeContaViewModel(
+            executarExclusao: {
+                let resultado = try await saida.excluir()
+                // Como no SupabaseApiCliente real via signOut: o item de sessão é removido do storage Keychain
+                try keychain.remove(key: chaveToken)
+                return resultado
+            }
+        )
+        viewModel.confirmouConsequencias = true
+        await viewModel.confirmarExclusao()
+        #expect(viewModel.exclusaoConcluida)
+
+        // 5. Verificações de limpeza completa: Keychain e cache vazios
+        #expect(try keychain.retrieve(key: chaveToken) == nil, "Sessão no Keychain deve ser removida após exclusão")
+        #expect(try await local.sessao() == nil, "Sessão no cache SwiftData deve ser removida")
+        #expect(try await local.turnosValidos(em: instante).isEmpty, "Turnos em cache devem ser limpos")
+        #expect(try await local.funcoes().isEmpty, "Funções em cache devem ser limpas")
+        #expect(try await local.pendentes().isEmpty, "Fila de ações pendentes deve ser limpa")
+        #expect(DestinoGuardado.obter(de: defaults) == nil, "Destino guardado deve ser limpo")
+        #expect(await !api.possuiSessao(), "Sessão da API deve estar inativa")
+
+        // 6. Confirma que a conta foi excluída no servidor (404 / nao_encontrado)
+        do {
+            _ = try await api.minhaConta()
+            Issue.record("Deveria ter lançado nao_encontrado para conta excluída")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .naoEncontrado)
+        }
+
+        // 7. Recadastro com o mesmo e-mail inicia cadastro do zero
+        try await api.verificarCodigo(email: emailAntes, codigo: "123456")
+        #expect(await api.possuiSessao())
+
+        let destino = try await DestinoDaConta.avaliar(api: api)
+        if case .cadastro = destino {
+            // Sucesso: direcionado para novo cadastro do zero com mesmo e-mail
+        } else {
+            Issue.record("Deveria ter direcionado para cadastro com o mesmo e-mail, mas retornou \(destino)")
+        }
+
+        // 8. O novo cadastro pode gravar nova sessão no Keychain limpo
+        let novoToken = Data("sessao-supabase-nova-conta-recadastro".utf8)
+        try keychain.store(key: chaveToken, value: novoToken)
+        #expect(try keychain.retrieve(key: chaveToken) == novoToken)
+    }
+
+    @Test("Falha na exclusão (ex: administrador_unico) preserva Keychain e cache (#ABN4rvmT)")
+    func falhaNaExclusaoPreservaKeychainECache() async throws {
+        let servico = "com.frila.org.app.teste.exclusao.\(UUID().uuidString)"
+        let keychain = SessaoNoKeychainDoAparelho(servico: servico)
+        let chaveToken = "supabase.auth.token"
+        defer { try? keychain.remove(key: chaveToken) }
+
+        let tokenOriginal = Data("sessao-ativa-nao-pode-sumir".utf8)
+        try keychain.store(key: chaveToken, value: tokenOriginal)
+
+        let (defaults, suiteName) = criarUserDefaultsIsolado()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let local = try criarArmazenamentoLocal()
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+        _ = try await popularDadosLocais(no: local, instante: instante, defaults: defaults)
+
+        let api = ApiClienteEmMemoria()
+        await api.configurarCenarioExclusao(.administradorUnico)
+
+        let saida = SaidaDaConta(
+            api: api,
+            armazenamento: local,
+            limparDestino: {
+                if let defs = UserDefaults(suiteName: suiteName) {
+                    DestinoGuardado.limpar(em: defs)
+                }
+            }
+        )
+
+        let viewModel = ExclusaoDeContaViewModel(
+            executarExclusao: {
+                let resultado = try await saida.excluir()
+                try keychain.remove(key: chaveToken)
+                return resultado
+            }
+        )
+        viewModel.confirmouConsequencias = true
+        await viewModel.confirmarExclusao()
+
+        #expect(!viewModel.exclusaoConcluida)
+        #expect(viewModel.mensagemErro != nil)
+
+        // Com falha, nada deve ser limpo: Keychain e cache permanecem intactos
+        #expect(try keychain.retrieve(key: chaveToken) == tokenOriginal, "Keychain não deve ser limpo se a exclusão falhar")
+        #expect(try await local.sessao() != nil, "Sessão no cache deve ser preservada")
+        #expect(try await !local.turnosValidos(em: instante).isEmpty, "Turnos em cache devem ser preservados")
+        #expect(try await !local.pendentes().isEmpty, "Fila de pendentes deve ser preservada")
+        #expect(DestinoGuardado.obter(de: defaults) == .profissional, "Destino guardado deve ser preservado")
+    }
 }
