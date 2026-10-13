@@ -139,7 +139,10 @@ private struct FolhaDeDenuncia: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(TextosDaSeguranca.fechar) { dismiss() }
-                        .accessibilityShowsLargeContentViewer()
+                        .accessibilityShowsLargeContentViewer {
+                            Text(verbatim: TextosDaSeguranca.fechar)
+                        }
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .disabled(model.enviando)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
