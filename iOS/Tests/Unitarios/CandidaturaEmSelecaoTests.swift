@@ -578,6 +578,44 @@ struct CandidaturaEmSelecaoTests {
         #expect(roteador.aba == .candidaturas && roteador.caminho.isEmpty)
     }
 
+    @Test("Abertura de avaliação a partir de outra aba com pilha vazia define aba vagas e empilha rota")
+    func abrirAvaliacaoComPilhaVazia() {
+        let roteador = RoteadorDoProfissional()
+        roteador.aba = .turnos
+        roteador.caminho = []
+        let turnoID = UUID()
+
+        roteador.abrirAvaliacao(turnoID: turnoID)
+
+        #expect(roteador.aba == .vagas)
+        #expect(roteador.caminho == [.avaliacao(turnoID: turnoID)])
+    }
+
+    @Test("Empilhamento sucessivo de rota de avaliação preserva itens prévios do caminho")
+    func abrirAvaliacaoPreservaCaminhoPrevio() {
+        let roteador = RoteadorDoProfissional()
+        let vagaID = UUID()
+        let turnoID = UUID()
+        roteador.caminho = [.detalhe(vagaID: vagaID)]
+
+        roteador.abrirAvaliacao(turnoID: turnoID)
+
+        #expect(roteador.caminho.count == 2)
+        #expect(roteador.caminho.last == .avaliacao(turnoID: turnoID))
+    }
+
+    @Test("Alternância entre Meus Turnos e Avaliação atualiza aba ativa")
+    func alternanciaEntreMeusTurnosEAvaliacao() {
+        let roteador = RoteadorDoProfissional()
+        let turnoID = UUID()
+
+        roteador.abrirMeusTurnos()
+        #expect(roteador.aba == .turnos)
+
+        roteador.abrirAvaliacao(turnoID: turnoID)
+        #expect(roteador.aba == .vagas)
+    }
+
     // MARK: Cruzamento da candidatura com o turno (0.2.32)
 
     @Test("Candidatura aceita com turno confirmado: diz confirmada e tocar nela abre o turno")
