@@ -50,7 +50,7 @@ public struct TelaEntrada: View {
                 }
 
                 VStack(spacing: FrilaEspaco.medio) {
-                    BotaoPrimario("Receber código", carregando: viewModel.carregando) {
+                    BotaoPrimario("Enviar código", carregando: viewModel.carregando) {
                         Task {
                             if await viewModel.solicitarCodigo() {
                                 aoAvancarParaCodigo(viewModel.email)

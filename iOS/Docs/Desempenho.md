@@ -204,6 +204,10 @@ Na mesma validação, passaram os 18 testes unitários das suítes `MedicaoDeDes
 reabrir o app com o dublê sem rede, os dados e o contato permanecem legíveis e o check-in vai
 para a fila local. São 19 testes aprovados, sem falhas nem pulos. A prova e o comando ficam em
 [`evidencias/desempenho-rede-local`](../../evidencias/desempenho-rede-local).
+Em 12/10/2026 (cartão 57hJ7FV0), a suíte `ModoAviaoUITests` foi re-executada e aprovada no
+simulador Thor (42,3 s, 0 falhas, log `thor-20261012-201959-35668.log`), confirmando a
+persistência offline do turno e enfileiramento do check-in local, e a medição de rede HTTP
+(7.960 B total em 5 requisições) foi revalidada em `MedicaoDeDesempenhoTests`.
 
 **Bytes, contra o frila-dev** (simulador, Debug-Dev com `-FRILA_MEDICAO`, abertura do app sem
 sessão, até a tela de entrada). O frila-dev ainda não tem todas as migrações (a

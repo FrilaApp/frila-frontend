@@ -31,7 +31,7 @@ public struct CatalogoDesignSystem: View {
                     }
                     secao("Mensagens") { AvisoFrila("Sua ação será enviada quando a conexão voltar."); EstadoOffline(); EstadoPendente("Check-in aguardando envio") }
                     secao("Avaliação") { RespostaSimNao(resposta: $resposta) }
-                    secao("Estados") { EstadoVazio("Nenhuma vaga", mensagem: "Novas oportunidades aparecerão aqui."); EstadoErro("Verifique sua conexão.") {} }
+                    secao("Estados") { EstadoVazio("Nenhuma vaga", mensagem: "Novas vagas aparecerão aqui."); EstadoErro("Verifique sua conexão.") {} }
                     secao("Diagnóstico") {
                         Button { fatalError("Falha de teste do Crashlytics") } label: {
                             Text(verbatim: textoForcarFalha)

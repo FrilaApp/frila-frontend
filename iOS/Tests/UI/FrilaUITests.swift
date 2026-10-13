@@ -24,7 +24,7 @@ final class FrilaUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Validação do cliente"].waitForExistence(timeout: Espera.aparecer))
         app.buttons["Simular vaga preenchida"].tap()
-        XCTAssertTrue(app.staticTexts["Esta vaga acabou de ser preenchida. Escolha outra oportunidade."].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.staticTexts["Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga."].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testSolicitacaoDeAcessoChegaAoClienteSemExporOEmailNaTelaDeResultado() {
@@ -218,7 +218,7 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].exists)
         app.buttons["voltar-para-lista"].tap()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["1 vaga aberta"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
+        XCTAssertTrue(app.staticTexts["1 posição aberta"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
     }
 
     func testVagaPreenchidaTemTelaPropriaEVoltaParaALista() {
@@ -331,7 +331,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         app.buttons["cadastro-perfil-profissional"].tap()
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
@@ -491,7 +491,9 @@ final class AutenticacaoUITests: XCTestCase {
         app.buttons["codigo-entrar"].tap()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        app.buttons["abrir-meu-perfil"].tap()
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "o botão para abrir o perfil deve aparecer na barra")
+        botaoPerfil.tap()
         XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 10))
         app.buttons["Sair"].tap()
 
@@ -538,7 +540,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
         nome.typeText("Menor de Idade")
@@ -590,7 +592,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
         nome.typeText("Menor Pelo Sistema")
@@ -640,7 +642,7 @@ final class AutenticacaoUITests: XCTestCase {
         tfCodigo.typeText("123456")
         app.buttons["codigo-entrar"].tap()
 
-        XCTAssertTrue(app.staticTexts["Como você vai usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
         nome.typeText("Novo Usuário")

@@ -287,7 +287,7 @@ struct CatalogoStringsTests {
             "Carregando…",
             "Código de acesso",
             "Digite os seis números enviados para seu e-mail",
-            "%lld vagas abertas",
+            "%lld posições abertas",
             "Vaga de %@",
             "Refeição",
             "Transporte",
@@ -311,21 +311,22 @@ struct CatalogoStringsTests {
             "E-mail",
             "voce@exemplo.com",
             "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.",
-            "Receber código",
+            "Enviar código",
             "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.",
             "Entrar",
+            "Confirmar código",
             "Voltar",
             "Digite o código",
-            "Enviamos um código de 6 dígitos para %@. Ele vale por pouco tempo.",
+            "Digite o código de 6 dígitos enviado para %@.",
             "Reenviar código",
             "Não foi possível reenviar o código. Tente novamente.",
             "Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta.",
             "Cadastro",
-            "Como você vai usar o Frila?",
+            "Como você quer usar o Frila?",
             "Quero trabalhar em turnos",
             "Perfil de profissional: receba vagas perto de você e candidate-se sem formulário.",
-            "Quero contratar para o meu negócio",
-            "Perfil de contratante: publique turnos e acompanhe quem vai trabalhar.",
+            "Quero publicar vagas",
+            "Perfil de contratante: publique vagas e acompanhe quem vai trabalhar.",
             "Nome",
             "Como você quer ser chamado",
             "Telefone com WhatsApp",
@@ -396,13 +397,13 @@ struct CatalogoStringsTests {
         #expect(faltantes.isEmpty, "literais de interface fora do catálogo: \(faltantes)")
     }
 
-    @Test("Variação de plural para '%lld vagas abertas' está definida no catálogo pt-BR com one e other")
-    func pluralVagasAbertas() throws {
+    @Test("Variação de plural para '%lld posições abertas' está definida no catálogo pt-BR com one e other")
+    func pluralPosicoesAbertas() throws {
         let url = Self.raiz.appending(path: "Resources/Localizable.xcstrings")
         let dados = try Data(contentsOf: url)
         let json = try JSONSerialization.jsonObject(with: dados) as? [String: Any]
         let strings = json?["strings"] as? [String: Any]
-        let entrada = strings?["%lld vagas abertas"] as? [String: Any]
+        let entrada = strings?["%lld posições abertas"] as? [String: Any]
         let localizations = entrada?["localizations"] as? [String: Any]
         let ptBR = localizations?["pt-BR"] as? [String: Any]
         let variations = ptBR?["variations"] as? [String: Any]
@@ -416,17 +417,17 @@ struct CatalogoStringsTests {
         let otherUnit = other?["stringUnit"] as? [String: Any]
         let otherValue = otherUnit?["value"] as? String
 
-        #expect(oneValue == "%lld vaga aberta")
-        #expect(otherValue == "%lld vagas abertas")
+        #expect(oneValue == "%lld posição aberta")
+        #expect(otherValue == "%lld posições abertas")
     }
 
     @Test("Chave com variação de plural resolve singular e plural corretamente no bundle da Apresentação")
     func pluralNoBundleApresentacao() {
-        let singular = String(localized: "\(1) vagas abertas", bundle: bundleApresentacao)
-        let plural = String(localized: "\(2) vagas abertas", bundle: bundleApresentacao)
+        let singular = String(localized: "\(1) posições abertas", bundle: bundleApresentacao)
+        let plural = String(localized: "\(2) posições abertas", bundle: bundleApresentacao)
 
-        #expect(singular == "1 vaga aberta")
-        #expect(plural == "2 vagas abertas")
+        #expect(singular == "1 posição aberta")
+        #expect(plural == "2 posições abertas")
     }
 
     @Test("Cartão de vaga formata variação de plural corretamente no singular e no plural")
@@ -469,7 +470,7 @@ struct CatalogoStringsTests {
         let cartao1 = CartaoVaga(vagaUmaPosicao)
         let cartao2 = CartaoVaga(vagaDuasPosicoes)
 
-        #expect(cartao1.rotuloDeAcessibilidade.contains("1 vaga aberta"))
-        #expect(cartao2.rotuloDeAcessibilidade.contains("2 vagas abertas"))
+        #expect(cartao1.rotuloDeAcessibilidade.contains("1 posição aberta"))
+        #expect(cartao2.rotuloDeAcessibilidade.contains("2 posições abertas"))
     }
 }

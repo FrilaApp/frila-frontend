@@ -282,7 +282,7 @@ public struct CartaoVaga: View {
             Label { Text(verbatim: "\(distancia) · \(vaga.local)") } icon: { Image(systemName: "mappin.and.ellipse") }
             if !inclusos.isEmpty { Label(inclusos, systemImage: "checkmark.circle") }
             SeloReputacao(vaga.estabelecimento.reputacao)
-            Text("\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao).font(.caption)
+            Text("\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao).font(.caption)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
@@ -308,7 +308,7 @@ public struct CartaoVaga: View {
         }
         partes.append(SeloReputacao.descricao(vaga.estabelecimento.reputacao))
         if let comparecimento = SeloReputacao.descricaoComparecimento(vaga.estabelecimento.reputacao) { partes.append(comparecimento) }
-        partes.append(String(localized: "\(vaga.posicoesAbertas) vagas abertas", bundle: bundleApresentacao))
+        partes.append(String(localized: "\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao))
         return partes.joined(separator: ", ")
     }
 
@@ -325,6 +325,7 @@ public struct CartaoVaga: View {
 }
 
 public struct RespostaSimNao: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding private var resposta: Bool?
     private let rotuloAcessibilidade: Text
 
@@ -339,7 +340,10 @@ public struct RespostaSimNao: View {
     }
 
     public var body: some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: FrilaEspaco.pequeno))
+            : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
+        layout {
             escolha("Sim", valor: true, icone: "hand.thumbsup.fill")
             escolha("Não", valor: false, icone: "hand.thumbsdown.fill")
         }
