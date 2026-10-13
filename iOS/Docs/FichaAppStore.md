@@ -56,7 +56,7 @@ Todos os campos foram redigidos segundo as diretrizes de UX Writing do Frila (`G
   > Conecte estabelecimentos a profissionais para turnos extras em bares, restaurantes e eventos no Distrito Federal. Vagas claras e pagamento direto no local.
 - **Contagem de caracteres:** **155 caracteres**
 - **Limite oficial da Apple:** **170 caracteres**
-- **Checagem de regras:** Visível no topo da página do produto antes da descrição; pode ser alterado a qualquer momento sem necessidade de submissão de nova versão binária. Editável sem nova versão do app e não indexado para busca (Fonte: [App Store Connect Help](https://developer.apple.com/help/app-store-connect/reference/app-information)). Sem promessas de tempo.
+- **Checagem de regras:** Visível no topo da página do produto antes da descrição; pode ser alterado a qualquer momento sem necessidade de submissão de nova versão binária. Sem promessas de tempo. Não indexado para busca (Fonte: [App Store Connect Help](https://developer.apple.com/help/app-store-connect/reference/app-information)). Sem promessas de tempo.
 
 ### 2.5 Descrição Completa (*Description*)
 - **Limite oficial da Apple:** **4.000 caracteres**
@@ -122,7 +122,7 @@ Todas as URLs apontam para domínios institucionais sob protocolo seguro HTTPS e
 
 > **Conferência com o código-fonte:** [`EnderecosOficiais.swift`](../Sources/Apresentacao/EnderecosOficiais.swift), linhas 19–23 (`termosDeUso`, `politicaDePrivacidade`, `emailSuporte` e propriedade computada `urlSuporte`).
 >
-> **Nota sobre a URL de Suporte:** O App Store Connect aceita URLs `mailto:` no campo de suporte (gerada pela propriedade computada `urlSuporte` em `EnderecosOficiais.swift:10`). No Frila, a página web pública de suporte em `https://frila.app/suporte` (mesclada no PR 215) é a URL oficial preferencial, com atendimento direto complementar via `suportefrila@gmail.com`.
+> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. Na loja, a página web pública de suporte em `https://frila.app/suporte` (mesclada no PR 215) é a URL oficial preferencial, com atendimento direto complementar via `suportefrila@gmail.com`.
 
 ---
 
@@ -200,7 +200,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
 | **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Conforme | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Moderação de denúncias: triagem em até 24 h; resposta formal em até 5 dias úteis (decisão do Cauê em 12/10/2026). Canal de atendimento geral informa prazo do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`). |
 | **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme | URLs públicas seguras em HTTPS, sem rastreadores de terceiros e com canal oficial do titular. |
-| **Sem plataformas concorrentes** | Diretriz 2.3.1 da Apple | Conforme | Ausência de menção a plataformas concorrentes (Android, Google Play). |
+| **Sem plataformas concorrentes** | Diretriz 2.3.10 da Apple | Conforme | Ausência de menção a plataformas concorrentes (Android, Google Play). |
 | **Sem preços na descrição** | Diretriz 2.3 da Apple | Conforme | Ausência de preços ou valores monetários na descrição geral. |
 | **Sem afirmações inverificáveis** | Diretriz 2.3 da Apple | Conforme | Ausência de afirmações superlativas ou inverificáveis ("o melhor", "número 1"). |
 
