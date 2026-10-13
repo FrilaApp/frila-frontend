@@ -457,6 +457,9 @@ public struct TelaPublicarVaga: View {
                                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                                     .contentShape(Rectangle())
                             }
+                            .accessibilityShowsLargeContentViewer {
+                                Text(verbatim: model.textoAoFechar)
+                            }
                             .disabled(model.enviando || model.restaurandoPublicacao)
                             .accessibilityIdentifier("cancelar-publicacao")
                         }
