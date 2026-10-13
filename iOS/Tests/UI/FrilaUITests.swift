@@ -323,13 +323,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("novo@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocar(app.buttons["entrada-receber-codigo"])
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        app.buttons["codigo-entrar"].tap()
+        tocar(app.buttons["codigo-entrar"])
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         app.buttons["cadastro-perfil-profissional"].tap()
@@ -360,7 +360,7 @@ final class AutenticacaoUITests: XCTestCase {
         continuar.tap()
 
         preencherPerfil(app)
-        app.buttons["botao-salvar-perfil"].tap()
+        tocar(app.buttons["botao-salvar-perfil"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch.waitForExistence(timeout: 10))
     }
@@ -381,29 +381,29 @@ final class AutenticacaoUITests: XCTestCase {
     func testProfissionalSemPerfilCriaPerfilEAbreVagas() {
         let app = abrirCriacaoPerfil("sem-perfil-profissional")
         preencherPerfil(app)
-        app.buttons["botao-salvar-perfil"].tap()
+        tocar(app.buttons["botao-salvar-perfil"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
     func testErroAoCriarPerfilPermiteRepetirEAbrirVagas() {
         let app = abrirCriacaoPerfil("erro-criacao-perfil-profissional")
         preencherPerfil(app)
-        app.buttons["botao-salvar-perfil"].tap()
+        tocar(app.buttons["botao-salvar-perfil"])
         XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
         let botaoSalvar = app.buttons["botao-salvar-perfil"]
         rolarAte(botaoSalvar, app: app)
         XCTAssertTrue(botaoSalvar.isEnabled)
-        botaoSalvar.tap()
+        tocar(botaoSalvar)
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
     func testErroAoCriarPerfilPermiteSair() {
         let app = abrirCriacaoPerfil("erro-criacao-perfil-profissional")
         preencherPerfil(app)
-        app.buttons["botao-salvar-perfil"].tap()
+        tocar(app.buttons["botao-salvar-perfil"])
         XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
-        app.buttons["criacao-perfil-sair"].tap()
+        tocar(app.buttons["criacao-perfil-sair"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
     }
 
@@ -463,13 +463,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("existente@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocar(app.buttons["entrada-receber-codigo"])
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        app.buttons["codigo-entrar"].tap()
+        tocar(app.buttons["codigo-entrar"])
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
@@ -483,12 +483,12 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("existente@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocar(app.buttons["entrada-receber-codigo"])
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
         codigo.typeText("123456")
-        app.buttons["codigo-entrar"].tap()
+        tocar(app.buttons["codigo-entrar"])
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
         let botaoPerfil = app.buttons["abrir-meu-perfil"]
@@ -510,13 +510,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("teste@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocar(app.buttons["entrada-receber-codigo"])
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("000000")
-        app.buttons["codigo-entrar"].tap()
+        tocar(app.buttons["codigo-entrar"])
 
         let aviso = app.descendants(matching: .any)["codigo-erro"]
         XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
@@ -532,13 +532,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("jovem@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocar(app.buttons["entrada-receber-codigo"])
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        app.buttons["codigo-entrar"].tap()
+        tocar(app.buttons["codigo-entrar"])
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -584,13 +584,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("menor.declarado@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocar(app.buttons["entrada-receber-codigo"])
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        app.buttons["codigo-entrar"].tap()
+        tocar(app.buttons["codigo-entrar"])
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -634,13 +634,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("novo@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocar(app.buttons["entrada-receber-codigo"])
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        app.buttons["codigo-entrar"].tap()
+        tocar(app.buttons["codigo-entrar"])
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -659,12 +659,14 @@ final class AutenticacaoUITests: XCTestCase {
 
         let btnContinuar = app.buttons["cadastro-continuar"]
         rolarAte(btnContinuar, app: app)
+        esperarHabilitado(btnContinuar, false)
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve estar desabilitado sem maioridade e sem termos")
 
         // Marca apenas maioridade
         let maiorIdade = app.buttons["cadastro-maior-de-idade"]
         rolarAte(maiorIdade, app: app)
         maiorIdade.tap()
+        esperarHabilitado(btnContinuar, false)
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem aceite dos termos")
 
         // Desmarca maioridade e marca apenas termos
@@ -673,11 +675,13 @@ final class AutenticacaoUITests: XCTestCase {
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
         termos.tap()
+        esperarHabilitado(btnContinuar, false)
         XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem confirmação de maioridade")
 
         // Marca ambos
         rolarAte(maiorIdade, app: app)
         maiorIdade.tap()
+        esperarHabilitado(btnContinuar, true)
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve habilitar com formulário completo, maioridade e termos")
     }
 }
