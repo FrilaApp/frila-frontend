@@ -209,14 +209,4 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         let caminho = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/thor/capturas/\(nome)"
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: caminho))
     }
-
-    private func tocar(_ elemento: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertTrue(elemento.waitForExistence(timeout: 10), file: file, line: line)
-        if !elemento.isHittable || !elemento.isEnabled {
-            let habilitado = NSPredicate(format: "hittable == true AND enabled == true")
-            let espera = XCTNSPredicateExpectation(predicate: habilitado, object: elemento)
-            XCTAssertEqual(XCTWaiter.wait(for: [espera], timeout: 5), .completed, file: file, line: line)
-        }
-        elemento.tap()
-    }
 }

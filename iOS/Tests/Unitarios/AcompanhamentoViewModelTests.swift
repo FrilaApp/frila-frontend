@@ -647,6 +647,126 @@ struct AcompanhamentoViewModelTests {
         #expect(!viewModel.falhouAoCarregar)
         #expect(viewModel.painel == painel)
     }
+
+    @Test("carregarRecusasDaFila atualiza estado com todas as recusas ou filtrado por turno")
+    func carregarRecusasDaFilaComFiltro() async throws {
+        let fila = FilaDeTesteAcompanhamento()
+        let turno1ID = UUID()
+        let turno2ID = UUID()
+        let agora = agoraDoTeste
+
+        let acao1 = AcaoPendente(id: UUID(), tipo: .cancelamentoPosicao, turnoID: turno1ID, instanteDoToque: agora, chave: UUID())
+        let acao2 = AcaoPendente(id: UUID(), tipo: .avaliacao, turnoID: turno2ID, instanteDoToque: agora, chave: UUID())
+        try await fila.recusar(acao1, codigo: .horarioInvalido)
+        try await fila.recusar(acao2, codigo: .campoInvalido)
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { try PainelDeTeste.painel() },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            fila: fila
+        )
+
+        #expect(vm.recusasDaFila.isEmpty)
+
+        // 1. Carrega todas as recusas da fila
+        await vm.carregarRecusasDaFila()
+        #expect(vm.recusasDaFila.count == 2)
+
+        // 2. Carrega recusas filtrando pelo turno1ID
+        await vm.carregarRecusasDaFila(para: turno1ID)
+        #expect(vm.recusasDaFila.count == 1)
+        #expect(vm.recusasDaFila.first?.turnoID == turno1ID)
+
+        // 3. Carrega recusas para um turno sem recusas
+        await vm.carregarRecusasDaFila(para: UUID())
+        #expect(vm.recusasDaFila.isEmpty)
+    }
+
+    @Test("aplicar desfecho do cancelamento atualiza resultado e estado local de posicao, vaga e na fila")
+    func aplicarDesfechoDoCancelamento() async throws {
+        let fila = FilaDeTesteAcompanhamento()
+        let agora = agoraDoTeste
+        let painel = try PainelDeTeste.painel()
+        let vaga = try #require(painel.vagas.first)
+        let turno = try #require(painel.vagas.first?.posicoes.first.map { TurnoAcompanhado(vaga: vaga.vaga, posicao: $0) })
+        let posicaoID = turno.posicao.id
+        let vagaID = vaga.vaga.id
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { painel },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            fila: fila
+        )
+        await vm.carregar()
+
+        // 1. Desfecho .naFila: registra cancelamento em cancelamentosNaFila e atualiza resultado
+        #expect(vm.podeCancelar(turno))
+        vm.aplicar(.naFila, alvoID: posicaoID, vagaID: vagaID)
+        #expect(vm.resultado == .cancelamentoNaFila)
+        #expect(!vm.podeCancelar(turno), "após cancelamento na fila, podeCancelar deve ser falso")
+
+        // 2. Desfecho .posicao(cancelamento): atualiza resultado para posicaoCancelada
+        let cancelamentoPosicao = ResultadoCancelamento(posicaoID: posicaoID, falta: false, reaberta: true, novaPosicaoID: UUID())
+        vm.aplicar(.posicao(cancelamentoPosicao), alvoID: posicaoID, vagaID: vagaID)
+        #expect(vm.resultado == .posicaoCancelada(reaberta: true))
+        await vm.releituraAposCancelamento?.value
+
+        // 3. Desfecho .vaga: atualiza resultado para vagaCancelada
+        let vagaCancelada = VagaCancelada(vagaID: vagaID, estado: .cancelada, posicoesCanceladas: 1)
+        vm.aplicar(.vaga(vagaCancelada), alvoID: vagaID, vagaID: vagaID)
+        #expect(vm.resultado == .vagaCancelada)
+        await vm.releituraAposCancelamento?.value
+    }
+
+    @Test("lerCancelamentosNaFila le acoes pendentes de cancelamento e bloqueia cancelamento duplicado")
+    func lerCancelamentosNaFilaBloqueiaCancelamentoDuplicado() async throws {
+        let fila = FilaDeTesteAcompanhamento()
+        let agora = agoraDoTeste
+        let painel = try PainelDeTeste.painel()
+        let vaga = try #require(painel.vagas.first)
+        let turno = try #require(painel.vagas.first?.posicoes.first.map { TurnoAcompanhado(vaga: vaga.vaga, posicao: $0) })
+        let posicaoID = turno.posicao.id
+        let vagaID = vaga.vaga.id
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { painel },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agora },
+            fila: fila
+        )
+        await vm.carregar()
+
+        #expect(vm.podeCancelar(turno))
+        #expect(vm.podeCancelarVaga(vaga))
+
+        // Simula pendências na fila para a posição e a vaga
+        let acaoPosicao = AcaoPendente(
+            id: UUID(), tipo: .cancelamentoPosicao, turnoID: turno.posicao.turnoID,
+            instanteDoToque: agora, chave: UUID(), alvoID: posicaoID
+        )
+        let acaoVaga = AcaoPendente(
+            id: UUID(), tipo: .cancelamentoVaga, turnoID: nil,
+            instanteDoToque: agora, chave: UUID(), alvoID: vagaID
+        )
+        try await fila.enfileirar(acaoPosicao)
+        try await fila.enfileirar(acaoVaga)
+
+        // Antes de ler a fila no VM, ainda permitia
+        #expect(vm.podeCancelar(turno))
+        #expect(vm.podeCancelarVaga(vaga))
+
+        // Lê os cancelamentos da fila
+        await vm.lerCancelamentosNaFila()
+
+        // Após ler a fila, tanto a posição quanto a vaga são bloqueadas contra cancelamento duplicado
+        #expect(!vm.podeCancelar(turno))
+        #expect(!vm.podeCancelarVaga(vaga))
+    }
 }
 
 @MainActor
