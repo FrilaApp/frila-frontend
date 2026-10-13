@@ -261,4 +261,51 @@ struct CandidaturaViewModelTests {
         #expect(!ResultadoDaCandidatura.outraEmAndamento.abreTelaPropria)
         #expect(AreaDeCandidatura.mensagemNoDetalhe(.outraEmAndamento) == TextosDoProfissional.Candidatura.outraEmAndamento)
     }
+
+    @Test("indicarOutroEnvioEmAndamento transita estado ocioso para concluida com outraEmAndamento")
+    func indicarOutroEnvioEmAndamentoTransitaEstadoOcioso() async throws {
+        let api = ApiClienteEmMemoria()
+        let vaga = try await vagaDoDuble(api)
+        let vm = CandidaturaViewModel(vaga: vaga, api: api)
+
+        #expect(vm.estado == .ocioso)
+        #expect(!vm.enviando)
+
+        vm.indicarOutroEnvioEmAndamento()
+
+        #expect(vm.estado == .concluida(.outraEmAndamento))
+        #expect(!vm.enviando)
+    }
+
+    @Test("indicarOutroEnvioEmAndamento respeita guarda quando enviando e nao sobrescreve estado")
+    func indicarOutroEnvioEmAndamentoRespeitaGuardaQuandoEnviando() async throws {
+        let api = ApiClienteEmMemoria()
+        let vaga = try await vagaDoDuble(api)
+
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+
+        let vm = CandidaturaViewModel(vaga: vaga, candidatar: { id in
+            avisarChegada.yield()
+            for await _ in liberar { break }
+            return try await api.candidatar(vagaID: id)
+        })
+
+        let tarefa = Task { await vm.candidatar() }
+        for await _ in chegou { break }
+
+        #expect(vm.enviando)
+        #expect(vm.estado == .enviando)
+
+        // Invocação com enviando == true é ignorada pela guarda
+        vm.indicarOutroEnvioEmAndamento()
+
+        #expect(vm.enviando)
+        #expect(vm.estado == .enviando)
+
+        sinal.yield()
+        await tarefa.value
+
+        #expect(vm.estado != .concluida(.outraEmAndamento))
+    }
 }
