@@ -150,7 +150,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     }
 
     private static let cartaoDaVagaLimitadoAAX1 = "o cartão da vaga não acompanha o Dynamic Type além de AX1 por decisão de layout do design (#139): sem o limite a altura passa da tela em AX5 (957 pt de 874); as pílulas de filtro já acompanham até AX5"
-    private static let publicarVagaComDatePicker = "o UIDatePicker do sistema não acompanha o Dynamic Type em AX5 (no cadastro) e no tamanho padrão e AX5 (em Minhas vagas) por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
+    private static let publicarVagaComDatePicker = "o UIDatePicker do sistema não acompanha o Dynamic Type no tamanho padrão e AX5 (no cadastro e em Minhas vagas) por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
     private static let porQueReceboVagasBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
     private static let ajudaDoPerfilAchados = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
 
