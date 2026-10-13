@@ -32,7 +32,7 @@ final class LicencasUITests: XCTestCase {
         anexar(app, "licencas-lista")
         pacote.tap()
 
-        XCTAssertTrue(app.navigationBars["abseil-cpp-binary"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-da-licenca"].waitForExistence(timeout: Espera.aparecer))
         let texto = app.staticTexts["texto-da-licenca"]
         XCTAssertTrue(texto.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(texto.label.contains("Apache License"), "o detalhe não mostra o texto da licença")
