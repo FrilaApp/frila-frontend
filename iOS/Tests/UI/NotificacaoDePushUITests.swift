@@ -78,6 +78,10 @@ final class NotificacaoDePushUITests: XCTestCase {
 
         tocarNaNotificacao(tipo: "confirmacao")
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 20), "o toque na notificação de turno abre Meu turno")
+        let estadoTurno = app.descendants(matching: .any)["estado-do-turno"]
+        XCTAssertTrue(estadoTurno.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Você está confirmado"].exists)
+        XCTAssertTrue(app.buttons["botao-ajuda-turno"].waitForExistence(timeout: 5))
     }
 
     func testToqueComOAppEmSegundoPlanoAbreODestino() {
