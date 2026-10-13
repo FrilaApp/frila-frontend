@@ -444,6 +444,24 @@ struct PerfilProfissionalViewModelTests {
         #expect(vm.sugestoes.isEmpty)
         #expect(vm.carregandoBusca == false)
     }
+
+    @Test("Mapeamento de todos os dias da semana em PerfilProfissionalViewModel.nomeDoDia")
+    func mapeamentoDeDiasDaSemanaEmNomeDoDia() {
+        #expect(PerfilProfissionalViewModel.nomeDoDia(0) == TextosDoProfissional.Perfil.domingo)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(1) == TextosDoProfissional.Perfil.segunda)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(2) == TextosDoProfissional.Perfil.terca)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(3) == TextosDoProfissional.Perfil.quarta)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(4) == TextosDoProfissional.Perfil.quinta)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(5) == TextosDoProfissional.Perfil.sexta)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(6) == TextosDoProfissional.Perfil.sabado)
+    }
+
+    @Test("Índices inválidos retornam string vazia em PerfilProfissionalViewModel.nomeDoDia")
+    func indicesInvalidosRetornamVazioEmNomeDoDia() {
+        #expect(PerfilProfissionalViewModel.nomeDoDia(-1).isEmpty)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(7).isEmpty)
+        #expect(PerfilProfissionalViewModel.nomeDoDia(100).isEmpty)
+    }
 }
 
 // MARK: - Dublê de testes
