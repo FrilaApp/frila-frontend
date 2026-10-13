@@ -276,13 +276,35 @@ public struct CartaoVaga: View {
                     VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
                 }
             }
-            Text(verbatim: vaga.estabelecimento.nome).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
-            Label(formatador.intervalo(vaga.periodo), systemImage: "calendar")
+            Text(verbatim: vaga.estabelecimento.nome)
+                .font(.subheadline)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+            Label {
+                Text(verbatim: formatador.intervalo(vaga.periodo))
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "calendar")
+            }
             // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
-            Label { Text(verbatim: "\(distancia) · \(vaga.local)") } icon: { Image(systemName: "mappin.and.ellipse") }
-            if !inclusos.isEmpty { Label(inclusos, systemImage: "checkmark.circle") }
+            Label {
+                Text(verbatim: "\(distancia) · \(vaga.local)")
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "mappin.and.ellipse")
+            }
+            if !inclusos.isEmpty {
+                Label {
+                    Text(verbatim: inclusos)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "checkmark.circle")
+                }
+            }
             SeloReputacao(vaga.estabelecimento.reputacao)
-            Text("\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao).font(.caption)
+            Text("\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao)
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .font(.subheadline)
         .foregroundStyle(FrilaCor.texto)
