@@ -1,13 +1,14 @@
 # Integração contínua
 
-O workflow `.github/workflows/ios.yml` roda em pull requests que mexem em `iOS/**` (ignorando alterações restritas a Markdown `!iOS/**/*.md` e `!iOS/Docs/**`) ou no próprio workflow, em dois jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limite de 90 minutos por job. A suíte completa do `main` roda diariamente às 06h UTC e por `workflow_dispatch`. Um push novo cancela a execução anterior do mesmo PR; execuções agendadas e manuais têm grupos de concurrency próprios. PRs que tocam apenas documentação não disparam a suíte, liberando a fila e economizando minutos de macOS.
+O workflow `.github/workflows/ios.yml` roda em pull requests que mexem em `iOS/**` (ignorando alterações restritas a Markdown `!iOS/**/*.md` e `!iOS/Docs/**`) ou no próprio workflow, em três jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limites dimensionados por job (90 min para testes, 40 min para release). A suíte completa do `main` roda diariamente às 06h UTC e por `workflow_dispatch`. Um push novo cancela a execução anterior do mesmo PR; execuções agendadas e manuais têm grupos de concurrency próprios. PRs que tocam apenas documentação não disparam a suíte, liberando a fila e economizando minutos de macOS.
 
-## Duas partes
+## Três jobs paralelos
 
-Desde 06/10/2026 (PR #147), a suíte do `Frila-Local` é dividida por uma lista só, `Tests/parte-1-da-ci.txt`:
+Desde a otimização de paralelismo do PR #216 (proposta 1 do mapa temporal de CI), a suíte e os builds de release correm em paralelo:
 
-- **Parte 1** (`parte-1`): os portões que não compilam (etapas 3 a 5 abaixo e a conferência das partes), depois os testes unitários (`FrilaTests` inteiro) e as classes de interface da lista, com `-only-testing`.
-- **Parte 2** (`parte-2`): todo o resto da suíte, com `-skip-testing` da mesma lista, e os builds de Release (etapas 11 a 13), que continuam pulados em PR que só mexe em testes ou documentação. Os builds de Release vêm antes dos testes de interface: um Release quebrado reprova em minutos.
+- **Parte 1** (`parte-1`): os portões que não compilam (etapas 3 a 5 abaixo e a conferência das partes), depois os testes unitários (`FrilaTests` inteiro, sem repetição) e as classes de interface da lista (`Tests/parte-1-da-ci.txt`), com `-only-testing` e tolerância a instabilidade (`-retry-tests-on-failure -test-iterations 2`).
+- **Parte 2** (`parte-2`): todo o resto da suíte de interface, com `-skip-testing` da mesma lista e tolerância a instabilidade (`-retry-tests-on-failure -test-iterations 2`). Com a saída dos builds de Release do caminho crítico, a Parte 2 poupa ~12 minutos.
+- **Release** (`release`): builds Dev, Beta e Prod e suas respectivas conferências de bundle, correndo em paralelo com a suíte de testes. Permanece condicional: pulado em PR que só mexe em testes ou documentação.
 
 Classe ou alvo de teste novo fica fora da lista e cai sozinho na parte 2. Antes de compilar, a parte 1 roda `Scripts/partes-dos-testes.sh conferir`, com o autoteste `Scripts/teste-partes-dos-testes.sh`. A conferência reprova item da lista que não existe no código ou que aparece repetido, e imprime as classes de cada parte.
 
