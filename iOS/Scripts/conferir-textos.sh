@@ -15,10 +15,7 @@ ALVO="${1:-$PADRAO_DIR}"
   exit 1
 }
 
-CATALOGO=""
-if [[ $# -eq 0 ]]; then
-  CATALOGO="$SCRIPT_DIR/../Resources/Localizable.xcstrings"
-fi
+CATALOGO="${2:-$SCRIPT_DIR/../Resources/Localizable.xcstrings}"
 python3 - "$ALVO" "$CATALOGO" <<'PYVERIF'
 import os
 import json
@@ -157,6 +154,52 @@ def primeiro_argumento(args):
         i += 1
     return args.strip()
 
+catalogos = []
+if len(sys.argv) > 2 and sys.argv[2] and os.path.exists(sys.argv[2]):
+    catalogos.append(sys.argv[2])
+if os.path.isdir(alvo):
+    for root, dirs, files in os.walk(alvo):
+        catalogos.extend(os.path.join(root, f) for f in files if f.endswith(".xcstrings"))
+
+def conferir_catalogo(valor, caminho):
+    if isinstance(valor, dict):
+        for chave, item in valor.items():
+            if chave == "value" or isinstance(item, (dict, list)):
+                conferir_catalogo(item, caminho)
+    elif isinstance(valor, list):
+        for item in valor:
+            conferir_catalogo(item, caminho)
+    elif isinstance(valor, str) and re.search(r'cartão\s*#|em breve|próxima versão|em desenvolvimento', valor, re.IGNORECASE):
+        problemas.append((caminho, 1, "Texto de app com promessa ou cartão interno"))
+
+chaves_catalogo = set()
+for caminho in sorted(set(catalogos)):
+    with open(caminho, encoding="utf-8") as arquivo:
+        for chave, entrada in json.load(arquivo).get("strings", {}).items():
+            chaves_catalogo.add(chave)
+            conferir_catalogo(chave, caminho)
+            conferir_catalogo(entrada, caminho)
+
+def substituir_interpolacoes(s):
+    res = []
+    i = 0
+    n = len(s)
+    while i < n:
+        if s[i:i+2] == r'\(':
+            i += 2
+            parens = 1
+            while i < n and parens > 0:
+                if s[i] == '(':
+                    parens += 1
+                elif s[i] == ')':
+                    parens -= 1
+                i += 1
+            res.append(r'(?:%@|%lld|%d|%ld|%02d)')
+        else:
+            res.append(re.escape(s[i]))
+            i += 1
+    return "^" + "".join(res) + "$"
+
 for caminho in arquivos:
     with open(caminho, "r", encoding="utf-8") as arq:
         conteudo = arq.read()
@@ -270,29 +313,31 @@ for caminho in arquivos:
             linha = linhas[num_linha - 1].strip()
             problemas.append((caminho, num_linha, f"Cor ou fonte fora dos tokens: '{linha}'"))
 
-catalogos = []
-if len(sys.argv) > 2 and sys.argv[2]:
-    catalogos.append(sys.argv[2])
-if os.path.isdir(alvo):
-    for root, dirs, files in os.walk(alvo):
-        catalogos.extend(os.path.join(root, f) for f in files if f.endswith(".xcstrings"))
+    # 9. String literal ou interpolação com bundle sem chave no catálogo de textos
+    if chaves_catalogo:
+        def verificar_chave_no_catalogo(args, m_start):
+            if "bundleApresentacao" not in args and "bundle:" not in args:
+                return
+            arg1 = primeiro_argumento(args).strip()
+            if arg1.startswith('"') and arg1.endswith('"'):
+                conteudo_str = arg1[1:-1].replace(r'\"', '"')
+                num_linha = conteudo[:m_start].count('\n') + 1
+                if r'\(' in conteudo_str:
+                    pat = substituir_interpolacoes(conteudo_str)
+                    rx = re.compile(pat)
+                    if not any(rx.match(k) for k in chaves_catalogo):
+                        problemas.append((caminho, num_linha, f"Chave com interpolação ausente no catálogo de textos: '{conteudo_str}'"))
+                else:
+                    if conteudo_str not in chaves_catalogo:
+                        problemas.append((caminho, num_linha, f"Chave ausente no catálogo de textos: '{conteudo_str}'"))
 
-def conferir_catalogo(valor, caminho):
-    if isinstance(valor, dict):
-        for chave, item in valor.items():
-            if chave == "value" or isinstance(item, (dict, list)):
-                conferir_catalogo(item, caminho)
-    elif isinstance(valor, list):
-        for item in valor:
-            conferir_catalogo(item, caminho)
-    elif isinstance(valor, str) and re.search(r'cartão\s*#|em breve|próxima versão|em desenvolvimento', valor, re.IGNORECASE):
-        problemas.append((caminho, 1, "Texto de app com promessa ou cartão interno"))
+        for m in re.finditer(r'String\s*\(\s*localized\s*:', limpo):
+            args, _ = extrair_chamada_balanceada(limpo, m.end())
+            verificar_chave_no_catalogo(args, m.start())
 
-for caminho in sorted(set(catalogos)):
-    with open(caminho, encoding="utf-8") as arquivo:
-        for chave, entrada in json.load(arquivo).get("strings", {}).items():
-            conferir_catalogo(chave, caminho)
-            conferir_catalogo(entrada, caminho)
+        for m in re.finditer(r'\bText\s*\(', limpo):
+            args, _ = extrair_chamada_balanceada(limpo, m.end())
+            verificar_chave_no_catalogo(args, m.start())
 
 if problemas:
     for arq, linha, desc in problemas:
