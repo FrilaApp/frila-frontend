@@ -1,6 +1,6 @@
 # Ficha da App Store — Metadados e Rascunho Oficial (T-0019)
 
-Documento normativo e rascunho completo dos metadados do Frila para publicação na App Store da Apple. Atende ao cartão Trello [PFWvegZa](https://trello.com/c/PFWvegZa) (T-0019), em conformidade estrita com as diretrizes do *App Store Review Guidelines* (especialmente Diretriz 2.3 — *Accurate Metadata*, Diretriz 2.3.7 — *Keywords & Naming*, Diretriz 1.2 — *User-Generated Content* e Diretriz 5.1 — *Privacy*), com o Guia de Voz (`iOS/Docs/GuiaDeVoz.md`) e com o contrato da API (`iOS/Contrato/openapi.yaml: 0.2.41`).
+Documento normativo e rascunho completo dos metadados do Frila para publicação na App Store da Apple. Atende ao cartão Trello [PFWvegZa](https://trello.com/c/PFWvegZa) (T-0019; critérios originais de metadados do cartão #78: nenhuma promessa de tempo de fechamento, nenhuma menção a comissão e todas as URLs sob HTTPS), em conformidade estrita com as diretrizes do *App Store Review Guidelines* (especialmente Diretriz 2.3 — *Accurate Metadata*, Diretriz 2.3.7 — *Keywords & Naming*, Diretriz 1.2 — *User-Generated Content* e Diretriz 5.1 — *Privacy*), com o Guia de Voz (`iOS/Docs/GuiaDeVoz.md`) e com o contrato da API (`iOS/Contrato/openapi.yaml: 0.2.41`).
 
 ---
 
@@ -17,6 +17,10 @@ Documento normativo e rascunho completo dos metadados do Frila para publicação
 | **Compras no App (IAP)** | Nenhuma | — | Sem compras internas ou assinaturas no app. |
 | **Territórios / Disponibilidade** | Apenas Brasil | — | Distribuição restrita à loja brasileira da App Store. |
 | **Copyright** | `© 2026 Frila Tecnologia Ltda.` | Até 4.000 caracteres | Razão social a confirmar formalmente pelos sócios (`[A DEFINIR]`). |
+
+> **Fonte dos limites de identificação:** Apple App Store Review Guidelines, Diretriz 2.3.7 — "App names must be limited to 30 characters"; subtítulo segue o mesmo limite de 30 caracteres ([App Store Connect Help — App information](https://developer.apple.com/help/app-store-connect/reference/app-information)).
+>
+> **Fonte das categorias:** Diretriz 2.3.5 e [App Store Category Definitions](https://developer.apple.com/app-store/categories/).
 
 ---
 
@@ -41,8 +45,9 @@ Todos os campos foram redigidos segundo as diretrizes de UX Writing do Frila (`G
 - **Contagem de caracteres / bytes:** **97 caracteres** (97 bytes em codificação UTF-8)
 - **Limite oficial da Apple:** **100 caracteres / 100 bytes**
 - **Checagem de regras:**
-  - Separadas estritamente por vírgulas sem espaços para otimizar espaço.
-  - Não inclui o nome do próprio aplicativo ("Frila"), já indexado automaticamente pelo título.
+  - Separadas estritamente por vírgulas sem espaços para otimizar espaço, conforme recomendação da Apple.
+  - O campo de palavras-chave do App Store Connect é limitado a **100 bytes** (não caracteres), o que é relevante quando há acentos (cada acento em UTF-8 ocupa 2 bytes). Fonte: [Apple App Store Connect Help](https://developer.apple.com/help/app-store-connect/reference/app-information); confirmação empírica em diversas referências de ASO.
+  - Não inclui o nome do próprio aplicativo ("Frila"), já indexado automaticamente pelo título, pois a Apple combina automaticamente os três campos na indexação (Fonte: [Apple — Choosing keywords](https://developer.apple.com/app-store/search/)).
   - Não inclui nomes de aplicativos concorrentes ou marcas comerciais de terceiros (Diretriz 2.3.7).
   - Termos de busca orgânica específicos do ecossistema de food service do DF.
 
@@ -51,7 +56,7 @@ Todos os campos foram redigidos segundo as diretrizes de UX Writing do Frila (`G
   > Conecte estabelecimentos a profissionais para turnos extras em bares, restaurantes e eventos no Distrito Federal. Vagas claras e pagamento direto no local.
 - **Contagem de caracteres:** **155 caracteres**
 - **Limite oficial da Apple:** **170 caracteres**
-- **Checagem de regras:** Visível no topo da página do produto antes da descrição; pode ser alterado a qualquer momento sem necessidade de submissão de nova versão binária. Sem promessas de tempo.
+- **Checagem de regras:** Visível no topo da página do produto antes da descrição; pode ser alterado a qualquer momento sem necessidade de submissão de nova versão binária. Sem promessas de tempo. Não indexado para busca (Fonte: [App Store Connect Help](https://developer.apple.com/help/app-store-connect/reference/app-information)). Sem promessas de tempo.
 
 ### 2.5 Descrição Completa (*Description*)
 - **Limite oficial da Apple:** **4.000 caracteres**
@@ -115,6 +120,10 @@ Todas as URLs apontam para domínios institucionais sob protocolo seguro HTTPS e
 | **URL de Privacidade (*Privacy Policy URL*)** | `https://frila.app/privacidade` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
 | **Termos de Uso (*Terms of Use / EULA*)** | `https://frila.app/termos` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
 
+> **Conferência com o código-fonte:** [`EnderecosOficiais.swift`](../Sources/Apresentacao/EnderecosOficiais.swift), linhas 19–23 (`termosDeUso`, `politicaDePrivacidade`, `emailSuporte` e propriedade computada `urlSuporte`).
+>
+> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. Na loja, a página web pública de suporte em `https://frila.app/suporte` (mesclada no PR 215) é a URL oficial preferencial, com atendimento direto complementar via `suportefrila@gmail.com`.
+
 ---
 
 ## 4. Classificação Etária e Conformidade Regulatória
@@ -136,6 +145,9 @@ Todas as URLs apontam para domínios institucionais sob protocolo seguro HTTPS e
 ### 4.2 Classificação Etária Resultante
 - **Idade na App Store:** **17+** (classificação máxima atribuível devido a UGC e restrição legal de trabalho).
 - **Declaração de Faixa Etária (ECA Digital / Brasil):** **Restrito a maiores de 18 anos** (`Classificacao18ECA.md`, `termos.md:37-43`, RN20). Menores de idade são bloqueados pelo backend com erro `422 menor_de_idade`.
+
+> **Fonte da obrigação:** Diretriz 2.3.6 — "Answer the age rating questions in App Store Connect honestly so that your app aligns properly with parental controls."
+> A classificação 18+ reflete o fato de o app mediar contratação de trabalho por turno com troca de dados pessoais (telefone, endereço, presença) e relação financeira, o que não é adequado para menores.
 
 ---
 
@@ -188,6 +200,9 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
 | **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Conforme | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Moderação de denúncias: triagem em até 24 h; resposta formal em até 5 dias úteis (decisão do Cauê em 12/10/2026). Canal de atendimento geral informa prazo do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`). |
 | **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme | URLs públicas seguras em HTTPS, sem rastreadores de terceiros e com canal oficial do titular. |
+| **Sem plataformas concorrentes** | Diretriz 2.3.10 da Apple | Conforme | Ausência de menção a plataformas concorrentes (Android, Google Play). |
+| **Sem preços na descrição** | Diretriz 2.3 da Apple | Conforme | Ausência de preços ou valores monetários na descrição geral. |
+| **Sem afirmações inverificáveis** | Diretriz 2.3 da Apple | Conforme | Ausência de afirmações superlativas ou inverificáveis ("o melhor", "número 1"). |
 
 ---
 
@@ -204,6 +219,17 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 
 ---
 
+## 8. Fontes Normativas e Documentação de Referência
+
+1. [Apple App Store Review Guidelines — 2.3 Accurate Metadata](https://developer.apple.com/app-store/review/guidelines/#accurate-metadata)
+2. [Apple App Store Connect Help — App information](https://developer.apple.com/help/app-store-connect/reference/app-information)
+3. [Apple — Choosing keywords](https://developer.apple.com/app-store/search/)
+4. [App Store Category Definitions](https://developer.apple.com/app-store/categories/)
+5. [`EnderecosOficiais.swift`](../Sources/Apresentacao/EnderecosOficiais.swift) — URLs oficiais do app
+6. [`SegurancaEPrivacidade.md`](SegurancaEPrivacidade.md) — auditoria de segurança e privacidade do app
+
+---
+
 ## Histórico de Alterações
 
 | Data | Autor | Alteração |
@@ -211,3 +237,4 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 | 2026-10-12 | Doutor Estranho | Elaboração da ficha completa da App Store: nome, subtítulo, palavras-chave com contagem exata, descrição auditada, What's New, URLs públicas, classificação 17+/18+, dados para revisão e checklist contra Diretrizes 2.3 e Guia de Voz (cartão PFWvegZa, T-0019). |
 | 2026-10-12 | Doutor Estranho | Ajustes de devolução (PR 223): e-mail oficial atualizado para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`), remoção do prazo de 24h na descrição em favor do prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`) e confirmação da página pública de suporte mesclada no PR 215. |
 | 2026-10-12 | Steve Rogers | Aplicação da decisão do Cauê (12/10/2026) sobre SLA da Diretriz 1.2: triagem de denúncias em até 24 h; resposta formal em até 5 dias úteis. |
+| 2026-10-13 | Thor | Unificação da ficha da loja (T23): consolidação de fontes oficiais, notas técnicas e auditoria da Diretriz 2.3 migradas do documento preliminar de metadados (apagado) para `FichaAppStore.md`, conforme decisão do Cauê. |
