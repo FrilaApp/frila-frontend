@@ -6,7 +6,7 @@ import XCTest
 final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
     private func abrir(_ outros: [String] = [], cenario: String = "contratante") -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", cenario] + outros
+        app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"] + outros
         app.launch()
         return app
     }
@@ -20,7 +20,8 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         // O endereço da casa vem preenchido: é o que a leitura do cadastro traz.
         XCTAssertEqual(app.textFields["Endereço do turno"].value as? String, "CLS 405, Asa Sul, Brasília - DF")
 
-        app.buttons["Função, Selecione uma função"].tap()
+        let funcao = app.buttons["Função, Selecione uma função"]
+        tocar(funcao)
         app.buttons["Garçom"].firstMatch.tap()
         // O responsável vai primeiro: o teclado numérico do valor não tem como ser fechado, e
         // cobriria o campo de baixo.
@@ -203,8 +204,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
         let entrada = app.buttons["publicar-vaga-entrada"]
-        XCTAssertTrue(entrada.isHittable)
-        entrada.tap()
+        tocar(entrada)
 
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
