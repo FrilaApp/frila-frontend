@@ -202,4 +202,65 @@ struct PermissaoDePushDoSistemaTests {
         let fora = literais.filter { chaves[$0] == nil }
         #expect(fora.isEmpty, "textos fora do catálogo: \(fora)")
     }
+
+    @Test("Nenhum texto de TextosDoPush ou modelo traz telefone, e-mail, motivo de suspensão nem relato de denúncia (VyY2SGsX)")
+    func semDadosPessoaisEmTextosEModelosDoPush() throws {
+        let fonte = try String(contentsOf: Self.raiz.appending(path: "Sources/Apresentacao/Fluxos/Push/TextosDoPush.swift"), encoding: .utf8)
+        let literais = fonte.matches(of: /String\(localized: "([^"]+)", bundle: bundleApresentacao\)/).map { String($0.output.1) }
+        #expect(literais.count >= 19, "os textos do push não foram encontrados na fonte")
+
+        var todosOsTextos: [String] = literais
+        todosOsTextos.append(TextosDoPush.Explicacao.titulo)
+        todosOsTextos.append(TextosDoPush.Explicacao.ativar)
+        todosOsTextos.append(TextosDoPush.Explicacao.agoraNao)
+        todosOsTextos.append(TextosDoPush.Explicacao.rodape)
+        for perfil in [PerfilConta.profissional, PerfilConta.contratante] {
+            todosOsTextos.append(TextosDoPush.Explicacao.mensagem(perfil))
+            todosOsTextos.append(contentsOf: TextosDoPush.Explicacao.itens(perfil))
+            todosOsTextos.append(TextosDoPush.Aviso.negada(perfil))
+            todosOsTextos.append(TextosDoPush.Aviso.naoPedida(perfil))
+        }
+        todosOsTextos.append(TextosDoPush.Aviso.abrirAjustes)
+        todosOsTextos.append(TextosDoPush.Turno.naoEncontradoTitulo)
+        todosOsTextos.append(TextosDoPush.Turno.naoEncontradoMensagem)
+        todosOsTextos.append(TextosDoPush.Turno.verMeusTurnos)
+        todosOsTextos.append(TextosDoPush.Turno.falha)
+        todosOsTextos.append(FiltroDoPushPorVinculo.tituloNeutro)
+        todosOsTextos.append(FiltroDoPushPorVinculo.corpoNeutro)
+
+        let padraoEmail = try Regex(#"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#)
+        let padraoTelefone = try Regex(#"(?:\+?55\s*)?(?:\(?\d{2}\)?\s*)?(?:9\s*)?\d{4,5}[-\s]?\d{4}"#)
+        let padraoMotivoSuspensao = try Regex(#"(?:motivo|justificativa|razão|razao)\s*(?:d[aeo]\s*)?suspens[ãa]o|suspenso\s*por"#).ignoresCase()
+        let padraoRelatoDenuncia = try Regex(#"(?:relato|motivo|justificativa|razão|razao)\s*(?:d[aeo]\s*)?denúncia|denuncia|denunciad[oa]\s*por"#).ignoresCase()
+
+        for texto in todosOsTextos {
+            #expect(!texto.contains(padraoEmail), "texto contém e-mail pessoal: '\(texto)'")
+            #expect(!texto.contains(padraoTelefone), "texto contém número de telefone: '\(texto)'")
+            #expect(!texto.contains(padraoMotivoSuspensao), "texto contém motivo de suspensão: '\(texto)'")
+            #expect(!texto.contains(padraoRelatoDenuncia), "texto contém relato de denúncia: '\(texto)'")
+        }
+
+        // Validação dos modelos: nenhum modelo interpola campo desses tipos
+        let aviso = AvisoDePush(tipo: .vaga, vagaID: UUID(), turnoID: UUID(), posicaoID: UUID())
+        let chavesPermitidas: Set<String> = ["tipo", "vaga_id", "turno_id", "posicao_id"]
+        let chavesDoPayload = Set(aviso.payload.keys)
+        #expect(chavesDoPayload.isSubset(of: chavesPermitidas), "payload traz campos além dos identificadores permitidos: \(chavesDoPayload)")
+
+        let termosProibidos = ["telefone", "email", "motivo", "suspensao", "denuncia"]
+        let espelho = Mirror(reflecting: aviso)
+        let nomesPropriedades = espelho.children.compactMap(\.label)
+        for nome in nomesPropriedades {
+            for termo in termosProibidos {
+                #expect(!nome.localizedCaseInsensitiveContains(termo), "propriedade '\(nome)' de AvisoDePush faz referência ao termo sensível proibido '\(termo)'")
+            }
+        }
+
+        let fonteModelos = try String(contentsOf: Self.raiz.appending(path: "Sources/Dominio/AvisoDePush.swift"), encoding: .utf8)
+        let declaracoesDePropriedade = fonteModelos.matches(of: /(?:public\s+)?(?:let|var)\s+(\w+)/).map { String($0.output.1) }
+        for prop in declaracoesDePropriedade {
+            for termo in termosProibidos {
+                #expect(!prop.localizedCaseInsensitiveContains(termo), "declaração '\(prop)' em AvisoDePush.swift faz referência ao termo sensível proibido '\(termo)'")
+            }
+        }
+    }
 }
