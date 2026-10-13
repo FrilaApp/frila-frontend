@@ -151,5 +151,51 @@ struct PerfisDaContaTests {
         let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
         #expect(TextosPerfilConta.explicacaoVagas == fraseEsperada)
     }
+
+    @Test("PerfilEstabelecimentoViewModel trata conta sem estabelecimentos com encerramento precoce")
+    func perfilEstabelecimentoListaVazia() async {
+        let vm = PerfilEstabelecimentoViewModel(
+            estabelecimentos: { [] },
+            publico: { _ in
+                Issue.record("não devia buscar perfil público se não há estabelecimento")
+                throw ErroDaApi(codigo: .desconhecido)
+            }
+        )
+        await vm.carregar()
+
+        #expect(vm.estabelecimento == nil)
+        #expect(vm.perfilPublico == nil)
+        #expect(vm.mensagemErro == nil)
+        #expect(vm.carregando == false)
+    }
+
+    @Test("PerfilEstabelecimentoViewModel propaga erro ao falhar na consulta de estabelecimentos")
+    func perfilEstabelecimentoFalhaEstabelecimentos() async {
+        let vm = PerfilEstabelecimentoViewModel(
+            estabelecimentos: { throw ErroDaApi(codigo: .semRede) },
+            publico: { _ in throw ErroDaApi(codigo: .desconhecido) }
+        )
+        await vm.carregar()
+
+        #expect(vm.mensagemErro == TextosPerfilConta.erro)
+        #expect(vm.carregando == false)
+        #expect(vm.estabelecimento == nil)
+    }
+
+    @Test("PerfilEstabelecimentoViewModel propaga erro ao falhar na consulta de perfil público após estabelecimento")
+    func perfilEstabelecimentoFalhaPerfilPublico() async throws {
+        let api = ApiClienteEmMemoria()
+        let estabelecimentos = try await api.meusEstabelecimentos()
+        let vm = PerfilEstabelecimentoViewModel(
+            estabelecimentos: { estabelecimentos },
+            publico: { _ in throw ErroDaApi(codigo: .naoEncontrado) }
+        )
+        await vm.carregar()
+
+        #expect(vm.mensagemErro == TextosPerfilConta.erro)
+        #expect(vm.carregando == false)
+        #expect(vm.estabelecimento == nil)
+        #expect(vm.perfilPublico == nil)
+    }
 }
 
