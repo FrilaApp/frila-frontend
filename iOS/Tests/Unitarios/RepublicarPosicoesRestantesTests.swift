@@ -566,4 +566,43 @@ struct RepublicarPosicoesRestantesTests {
         #expect(vm.carregando == false)
         #expect(vm.vagaPublicada == nil)
     }
+
+    @Test("atualizarPosicoesRestantes com valor positivo atualiza a contagem de posições restantes")
+    func atualizarPosicoesRestantesValorPositivo() async {
+        let vm = RepublicarPosicoesRestantesViewModel(
+            vagaID: UUID(),
+            posicoesRestantes: 2,
+            republicarRPC: { _, _ in throw ErroDaApi(codigo: .semRede) }
+        )
+
+        #expect(vm.posicoesRestantes == 2)
+
+        vm.atualizarPosicoesRestantes(4)
+        #expect(vm.posicoesRestantes == 4)
+
+        vm.atualizarPosicoesRestantes(1)
+        #expect(vm.posicoesRestantes == 1)
+    }
+
+    @Test("atualizarPosicoesRestantes com valores menores ou iguais a zero preserva o valor atual")
+    func atualizarPosicoesRestantesValoresInvalidos() async {
+        let vm = RepublicarPosicoesRestantesViewModel(
+            vagaID: UUID(),
+            posicoesRestantes: 3,
+            republicarRPC: { _, _ in throw ErroDaApi(codigo: .semRede) }
+        )
+
+        #expect(vm.posicoesRestantes == 3)
+
+        // Valor zero é ignorado pela guarda
+        vm.atualizarPosicoesRestantes(0)
+        #expect(vm.posicoesRestantes == 3)
+
+        // Valores negativos são ignorados pela guarda
+        vm.atualizarPosicoesRestantes(-1)
+        #expect(vm.posicoesRestantes == 3)
+
+        vm.atualizarPosicoesRestantes(-5)
+        #expect(vm.posicoesRestantes == 3)
+    }
 }
