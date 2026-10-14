@@ -267,6 +267,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// O `vinculo_id` de cada token (contrato 0.2.30): novo quando o token entra ou troca de dono,
     /// o mesmo no registro repetido pela mesma conta, e fora quando `remover_dispositivo` o tira.
     private var vinculos: [String: UUID] = [:]
+    /// Eventos de telemetria recebidos pelo servidor simulado (contrato 0.2.41, RN15).
+    public private(set) var eventosRegistrados: [RegistroDeEvento] = []
 
     public init(
         cenario: Cenario = .sucesso,
@@ -1932,6 +1934,30 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if let tokenFCM { try? await removerDispositivo(tokenFCM: tokenFCM) }
         sessaoAtiva = false
         DestinoGuardado.limpar()
+    }
+
+    // MARK: Telemetria (RN15, RNF08, contrato 0.2.41)
+
+    /// Registra um evento de telemetria do dicionário fechado (RPC registrar_evento, contrato 0.2.41).
+    /// Sem texto livre nem dado pessoal (RN15).
+    public func registrarEvento(_ registro: RegistroDeEvento) async throws -> Bool {
+        try verificarRede()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        if let ocorridoEm = registro.ocorridoEm, ocorridoEm > relogio.agora {
+            throw erro("registro_no_futuro")
+        }
+        if let vagaID = registro.vagaID {
+            guard vagas.contains(where: { $0.id == vagaID }) else {
+                throw erro("campo_invalido", detalhes: "vaga_id")
+            }
+        }
+        if let turnoID = registro.turnoID {
+            guard turnos.contains(where: { $0.id == turnoID }) else {
+                throw erro("campo_invalido", detalhes: "turno_id")
+            }
+        }
+        eventosRegistrados.append(registro)
+        return true
     }
 
     // MARK: Moderação

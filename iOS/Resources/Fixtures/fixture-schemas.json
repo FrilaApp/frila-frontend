@@ -80,6 +80,9 @@
   "protocolo.json": {
     "schema": "#/components/schemas/Protocolo"
   },
+  "registrar-evento.json": {
+    "schema": "#/paths/~1rpc~1registrar_evento/post/responses/200/content/application~1json/schema"
+  },
   "requisicao-atualizar-perfil-profissional.json": {
     "schema": "#/components/schemas/AlteracaoDoPerfilProfissional"
   },
@@ -133,6 +136,9 @@
   },
   "requisicao-registrar-dispositivo.json": {
     "schema": "#/paths/~1rpc~1registrar_dispositivo/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-registrar-evento.json": {
+    "schema": "#/paths/~1rpc~1registrar_evento/post/requestBody/content/application~1json/schema"
   },
   "requisicao-registro-de-presenca.json": {
     "schema": "#/components/schemas/RegistroDePresenca"

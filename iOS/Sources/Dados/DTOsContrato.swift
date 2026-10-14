@@ -1380,6 +1380,33 @@ enum ContratoAPI {
     struct RemocaoDTO: Decodable {
         let removido: Bool
     }
+
+    // MARK: Telemetria (RN15, RNF08, contrato 0.2.41)
+
+    struct RegistrarEvento: Encodable {
+        let evento: String
+        let vagaID: UUID?
+        let turnoID: UUID?
+        let ocorridoEm: String?
+
+        init(_ registro: RegistroDeEvento) {
+            self.evento = registro.evento.rawValue
+            self.vagaID = registro.vagaID
+            self.turnoID = registro.turnoID
+            self.ocorridoEm = registro.ocorridoEm.map { ContratoAPI.texto($0) }
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case evento
+            case vagaID = "vaga_id"
+            case turnoID = "turno_id"
+            case ocorridoEm = "ocorrido_em"
+        }
+    }
+
+    struct RegistrarEventoRespostaDTO: Decodable {
+        let registrado: Bool
+    }
 }
 
 private enum FormatosDeInstante {

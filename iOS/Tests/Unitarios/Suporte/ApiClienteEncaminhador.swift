@@ -98,6 +98,7 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
     func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo { try await base.registrarDispositivo(tokenFCM: tokenFCM) }
     func removerDispositivo(tokenFCM: String) async throws { try await base.removerDispositivo(tokenFCM: tokenFCM) }
+    func registrarEvento(_ registro: RegistroDeEvento) async throws -> Bool { try await base.registrarEvento(registro) }
     func sair(tokenFCM: String?) async { await base.sair(tokenFCM: tokenFCM) }
 }
 

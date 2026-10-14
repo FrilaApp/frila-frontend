@@ -298,6 +298,30 @@ struct ContratoDoClienteSupabaseTests {
         #expect(configuracao.urlDaLoja.absoluteString == "https://apps.apple.com/app/id6815311991")
     }
 
+    // MARK: Telemetria (RN15, RNF08, contrato 0.2.41)
+
+    @Test("registrar_evento manda evento, identificadores opcionais e ocorrido_em, e lê registrado: true")
+    func registrarEvento() async throws {
+        try rpc("registrar_evento", "registrar-evento")
+        let vagaID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let turnoID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let ocorridoEm = ContratoAPI.instante("2026-10-14T14:30:00Z")!
+        let registro = RegistroDeEvento(
+            evento: .appAberto,
+            vagaID: vagaID,
+            turnoID: turnoID,
+            ocorridoEm: ocorridoEm
+        )
+        let registrado = try await cliente().registrarEvento(registro)
+        let corpo = try corpoEnviado(para: "/rest/v1/rpc/registrar_evento")
+
+        #expect(corpo["evento"] as? String == "app_aberto")
+        #expect((corpo["vaga_id"] as? String)?.lowercased() == vagaID.uuidString.lowercased())
+        #expect((corpo["turno_id"] as? String)?.lowercased() == turnoID.uuidString.lowercased())
+        #expect(corpo["ocorrido_em"] as? String == "2026-10-14T14:30:00Z")
+        #expect(registrado == true)
+    }
+
     // MARK: Edge Functions: exclusão e exportação (S2, #219)
 
     @Test("excluir-conta manda confirmar=true e lê perfil_removido_em, dados_apagados_ate e turnos_cancelados")

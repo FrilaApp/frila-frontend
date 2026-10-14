@@ -432,6 +432,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         let _: ContratoAPI.RemocaoDTO = try await rpc("remover_dispositivo", params: ContratoAPI.RemoverDispositivo(tokenFCM: tokenFCM))
     }
 
+    // MARK: Telemetria (RN15, RNF08, contrato 0.2.41)
+
+    public func registrarEvento(_ registro: RegistroDeEvento) async throws -> Bool {
+        let resposta: ContratoAPI.RegistrarEventoRespostaDTO = try await rpc(
+            "registrar_evento",
+            params: ContratoAPI.RegistrarEvento(registro)
+        )
+        return resposta.registrado
+    }
+
     public func sair(tokenFCM: String?) async {
         if let tokenFCM { try? await removerDispositivo(tokenFCM: tokenFCM) }
         try? await filaDeSessao.executar { [cliente] in
