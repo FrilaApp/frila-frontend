@@ -1,5 +1,5 @@
-// VISUAL PROVISÓRIO: o design de alta fidelidade do modo seleção ainda não chegou (#10). As telas
-// usam os componentes que já existem, e os textos são provisórios.
+// Telas do modo seleção (#10), nos quadros "Vaga" e "MeuTurno" do MidFi do Fabrício. Os textos
+// continuam provisórios até o Fabrício entregar os do modo seleção.
 
 import Foundation
 import FrilaDominio
@@ -263,9 +263,12 @@ struct CandidaturaEnviada: View {
 
     private func situacao(_ titulo: String, _ paragrafos: [String], id: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo).font(compacta ? .headline : .title2.bold()).accessibilityAddTraits(.isHeader)
+            Text(verbatim: titulo)
+                .font(compacta ? FrilaTipo.rotuloDoCampo : FrilaTipo.tituloGrande)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
             ForEach(paragrafos, id: \.self) { paragrafo in
-                Text(verbatim: paragrafo).font(compacta ? .subheadline : .body).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: paragrafo).font(compacta ? FrilaTipo.meta : FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -435,7 +438,7 @@ public final class MinhasCandidaturasViewModel {
     }
 }
 
-/// A aba Candidaturas. O toque numa candidatura leva à vaga dela, ou a Meus turnos se foi confirmada.
+/// A aba Candidaturas, com cartões do quadro "MeuTurno" do MidFi. O toque numa candidatura leva à vaga dela, ou a Meus turnos se foi confirmada.
 public struct TelaMinhasCandidaturas: View {
     @Bindable private var viewModel: MinhasCandidaturasViewModel
     private let abrir: (Candidatura) -> Void
@@ -489,13 +492,17 @@ public struct TelaMinhasCandidaturas: View {
     @ViewBuilder
     private func secao(_ titulo: String, _ candidaturas: [Candidatura]) -> some View {
         if !candidaturas.isEmpty {
-            Text(verbatim: titulo).font(.headline).accessibilityAddTraits(.isHeader)
+            Text(verbatim: titulo)
+                .font(FrilaTipo.tituloDoCartao)
+                .foregroundStyle(FrilaCor.texto)
+                .padding(.horizontal, FrilaEspaco.minimo)
+                .accessibilityAddTraits(.isHeader)
             ForEach(candidaturas) { candidatura in
                 Button { abrir(candidatura) } label: {
                     CartaoDaCandidatura(candidatura: candidatura, turno: viewModel.turno(de: candidatura))
                 }
                 .buttonStyle(.plain)
-                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
                 .accessibilityIdentifier("candidatura-\(candidatura.id.uuidString)")
                 .accessibilityHint(dicaDeAcessibilidade(para: candidatura))
             }
@@ -529,7 +536,7 @@ struct CartaoDaCandidatura: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.faixa) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     funcao
@@ -548,16 +555,11 @@ struct CartaoDaCandidatura: View {
                     }
                 }
             }
-            Label {
-                Text(verbatim: formatador.intervalo(candidatura.vaga.periodo))
-            } icon: {
-                Image(systemName: "calendar")
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                LinhaDoTurnoComIcone(icone: "clock", texto: formatador.intervalo(candidatura.vaga.periodo))
+                LinhaDoTurnoComIcone(icone: "mappin.and.ellipse", texto: candidatura.vaga.local)
             }
-            Label {
-                Text(verbatim: candidatura.vaga.local)
-            } icon: {
-                Image(systemName: "mappin.and.ellipse")
-            }
+            Divider().overlay(FrilaCor.divisoria)
             Label {
                 Text(verbatim: textoDoEstado).fontWeight(.semibold)
             } icon: {
@@ -565,17 +567,22 @@ struct CartaoDaCandidatura: View {
             }
             .foregroundStyle(candidatura.estado == .pendente || (candidatura.estado == .aceita && !turnoCancelado) ? FrilaCor.texto : FrilaCor.textoSecundario)
         }
-        .font(.subheadline)
+        .font(FrilaTipo.meta)
         .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
     }
 
-    private var funcao: some View { Text(verbatim: candidatura.vaga.funcao).font(.headline) }
+    private var funcao: some View {
+        Text(verbatim: candidatura.vaga.funcao).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
+    }
 
     private var valor: some View {
-        Text(verbatim: formatador.dinheiro(candidatura.vaga.valor)).font(.headline).foregroundStyle(FrilaCor.primaria)
+        Text(verbatim: formatador.dinheiro(candidatura.vaga.valor))
+            .font(FrilaTipo.preco)
+            .monospacedDigit()
+            .foregroundStyle(FrilaCor.texto)
     }
 
     private var icone: String {

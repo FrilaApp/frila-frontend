@@ -39,6 +39,8 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         XCTAssertTrue(termos.waitForExistence(timeout: 10))
+        // Com os campos de 52 pt do MidFi, os termos ficam abaixo da dobra em telas menores.
+        if !termos.isHittable { app.scrollViews.firstMatch.swipeUp() }
         XCTAssertAlvoMinimo(termos.frame.width)
         XCTAssertAlvoMinimo(termos.frame.height)
         XCTAssertTrue(termos.isHittable)

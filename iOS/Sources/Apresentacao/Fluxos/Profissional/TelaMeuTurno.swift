@@ -4,6 +4,8 @@ import SwiftUI
 import Observation
 #endif
 
+/// Tela do turno, nos quadros "TurnoHoje", "TurnoProximo" e "MeuTurno" do MidFi do Fabrício: cartão
+/// de dados do turno, seção de chegada, contato e avaliação em cartões brancos sobre o fundo cinza.
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
     @State private var cancelamento: CancelamentoViewModel?
@@ -106,7 +108,7 @@ public struct TelaMeuTurno: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             if bloqueios.contem(viewModel.turno.contraparte) {
                 Text(verbatim: TextosDaSeguranca.voceBloqueouEstabelecimento)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("etiqueta-bloqueio-turno")
             }
@@ -129,7 +131,9 @@ public struct TelaMeuTurno: View {
 
     private var cabecalho: some View {
         Text(verbatim: viewModel.cancelado ? TextosDoProfissional.Turnos.canceladoTitulo : TextosDoProfissional.Turnos.confirmadoTitulo)
-            .font(.title2.bold())
+            .font(FrilaTipo.tituloGrande)
+            .foregroundStyle(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.minimo)
             .accessibilityIdentifier("estado-do-turno")
             .accessibilityAddTraits(.isHeader)
     }
@@ -137,9 +141,12 @@ public struct TelaMeuTurno: View {
     private var cartaoTurno: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: "\(viewModel.turno.vaga.funcao) · \(viewModel.turno.contraparte.nome)")
-                .font(.headline)
+                .font(FrilaTipo.rotuloDoCampo)
+                .foregroundStyle(FrilaCor.texto)
             Text(verbatim: "\(formatador.intervalo(viewModel.turno.vaga.periodo)) · \(formatador.dinheiro(viewModel.turno.valorAcordado))")
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
+                .monospacedDigit()
+                .foregroundStyle(FrilaCor.texto)
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: FrilaEspaco.minimo) {
@@ -152,7 +159,7 @@ public struct TelaMeuTurno: View {
                     quemRecebe
                 }
             }
-            .font(.subheadline)
+            .font(FrilaTipo.meta)
             .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -168,7 +175,7 @@ public struct TelaMeuTurno: View {
             if let urlMapas = viewModel.urlMapas {
                 Link(destination: urlMapas) {
                     Image(systemName: "map")
-                        .foregroundStyle(FrilaCor.primaria)
+                        .foregroundStyle(FrilaCor.texto)
                         .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                 }
@@ -188,15 +195,16 @@ public struct TelaMeuTurno: View {
     private var cartaoCancelamento: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoProfissional.Turnos.cancelamentoTitulo)
-                .font(.headline)
+                .font(FrilaTipo.rotuloDoCampo)
                 .accessibilityAddTraits(.isHeader)
             if let causa = viewModel.causaDoCancelamento {
                 Text(verbatim: causa)
-                    .font(.body)
+                    .font(FrilaTipo.corpo)
             }
             if let falta = viewModel.faltaNoCancelamento {
                 Text(verbatim: falta)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -208,18 +216,19 @@ public struct TelaMeuTurno: View {
     private var cartaoContato: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoProfissional.Candidatura.contato.uppercased())
-                .font(.caption.weight(.bold))
+                .font(FrilaTipo.microRotulo)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
             if viewModel.contatoExpirado {
                 Text(verbatim: TextosDoProfissional.Turnos.contatoEncerrado)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("contato-expirado-aviso")
             } else if let contato = viewModel.contato {
                 Text(verbatim: "\(contato.nome) · \(contato.telefone)")
-                    .font(.body.weight(.semibold))
+                    .font(FrilaTipo.chip)
                     .accessibilityIdentifier("contato-telefone")
 
                 if let urlWhatsApp = viewModel.urlWhatsApp {
@@ -229,6 +238,8 @@ public struct TelaMeuTurno: View {
                             Image(systemName: "message.fill")
                             Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
                         }
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .foregroundStyle(FrilaCor.texto)
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                     }
@@ -240,7 +251,7 @@ public struct TelaMeuTurno: View {
                 }
 
                 Text(verbatim: TextosDoProfissional.Turnos.lembretesEVisibilidade)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } else if viewModel.carregandoContato {
                 ProgressView()
@@ -255,18 +266,19 @@ public struct TelaMeuTurno: View {
     private var cartaoAvaliacao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
-                .font(.caption.weight(.bold))
+                .font(FrilaTipo.microRotulo)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
             if viewModel.jaAvaliado {
                 if let resposta = viewModel.respostaAvaliacao {
                     Text(verbatim: TextosDoProfissional.Avaliacao.statusResposta(resposta))
-                        .font(.body.weight(.semibold))
+                        .font(FrilaTipo.chip)
                         .accessibilityIdentifier("texto-status-avaliacao")
                 } else {
                     Text(verbatim: TextosDoProfissional.Avaliacao.statusAvaliado)
-                        .font(.body.weight(.semibold))
+                        .font(FrilaTipo.chip)
                         .accessibilityIdentifier("texto-status-avaliacao")
                 }
 
@@ -279,13 +291,15 @@ public struct TelaMeuTurno: View {
                         Image(systemName: "star.fill")
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                     }
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("botao-ver-avaliacao")
             } else {
                 Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
 
                 NavigationLink {
@@ -297,6 +311,8 @@ public struct TelaMeuTurno: View {
                         Image(systemName: "star.fill")
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                     }
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
                 }

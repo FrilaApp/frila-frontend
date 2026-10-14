@@ -50,7 +50,8 @@ public final class FluxoDoContratanteViewModel {
     }
 }
 
-/// Entrada do contratante: primeiro estabelecimento da API ou cadastro com o responsável da conta.
+/// Entrada do contratante: primeiro estabelecimento da API ou cadastro com o responsável da conta. A barra de cima
+/// e o fundo agrupado seguem o quadro "Main" do MidFi do Fabrício.
 public struct FluxoDoContratante: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
@@ -81,6 +82,7 @@ public struct FluxoDoContratante: View {
                         Image(systemName: "person.crop.circle")
                             .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     }
+                    .foregroundStyle(FrilaCor.texto)
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
                     .accessibilityIdentifier("abrir-perfil-estabelecimento")
@@ -90,18 +92,21 @@ public struct FluxoDoContratante: View {
                         mostrandoExclusaoDeConta = true
                     } label: {
                         Text("Excluir conta", bundle: bundleApresentacao)
+                            .font(FrilaTipo.meta)
                             .foregroundStyle(FrilaCor.perigo)
                     }
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("contratante-sem-estabelecimento-excluir-conta")
                 }
-                Button(action: sair) { Text("Sair", bundle: bundleApresentacao) }
+                Button(action: sair) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
+                    .foregroundStyle(FrilaCor.texto)
                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("sair-fluxo-contratante")
             }
             .padding(.horizontal, FrilaEspaco.medio)
             conteudo.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .background(FrilaCor.fundo.ignoresSafeArea())
         .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
             NavigationStack {
                 TelaPerfilEstabelecimento(

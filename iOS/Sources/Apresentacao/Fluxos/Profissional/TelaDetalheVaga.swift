@@ -1,6 +1,3 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. Segue o protótipo low-fi "Detalhe da vaga" e
-// substitui por ora a alta fidelidade do profissional (#15).
-
 import FrilaDominio
 import Observation
 import SwiftUI
@@ -36,7 +33,7 @@ final class AvisosDoDetalhe {
     }
 }
 
-/// Detalhe da vaga (#104). Nunca mostra telefone nem documento: o contrato não os devolve aqui, e o
+/// Detalhe da vaga (#104), no quadro "Vaga" do MidFi do Fabrício. Nunca mostra telefone nem documento: o contrato não os devolve aqui, e o
 /// contato só aparece depois da confirmação (RN10). O aviso da RN10 vem antes de Candidatar-me.
 public struct TelaDetalheVaga<Acao: View>: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
@@ -116,18 +113,23 @@ public struct TelaDetalheVaga<Acao: View>: View {
     private func conteudo(_ vaga: Vaga) -> some View {
         let formatador = FormatadorFrila()
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: vaga.funcao.nome).font(.title.bold()).accessibilityAddTraits(.isHeader)
-            Text(verbatim: cabecalho(vaga)).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: vaga.funcao.nome)
+                .font(FrilaTipo.tituloGrande)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+            Text(verbatim: cabecalho(vaga)).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, FrilaEspaco.minimo)
 
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             if dynamicTypeSize.isAccessibilitySize {
                 // Na meia coluna do Grid o valor quebrava no meio do número ("R$ 120,0" / "0") em AX5.
                 campo(TextosDoProfissional.Detalhe.quando, formatador.intervalo(vaga.periodo))
                 campo(TextosDoProfissional.Detalhe.valor, formatador.dinheiro(vaga.valor))
                 campo(TextosDoProfissional.Detalhe.posicoes, String(localized: "\(vaga.posicoesAbertas) aberta(s) de \(vaga.posicoes)", bundle: bundleApresentacao))
             } else {
-                Grid(alignment: .leading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.pequeno) {
+                Grid(alignment: .leading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.medio) {
                     GridRow {
                         campo(TextosDoProfissional.Detalhe.quando, formatador.intervalo(vaga.periodo))
                         campo(TextosDoProfissional.Detalhe.valor, formatador.dinheiro(vaga.valor))
@@ -142,13 +144,18 @@ public struct TelaDetalheVaga<Acao: View>: View {
             // A vaga de seleção com posição aberta a 24 h ou menos do início está em reposição por
             // urgência (0.2.38, D4 e D5): o primeiro que aceitar é confirmado na hora.
             campo(modoTitulo(vaga.modoEfetivo(em: .now)), modoDetalhe(vaga.modoEfetivo(em: .now)))
-            Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
+            Divider().overlay(FrilaCor.divisoria)
+            Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
 
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: TextosDoProfissional.Detalhe.incluso).font(.footnote.weight(.semibold)).foregroundStyle(FrilaCor.textoSecundario)
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosDoProfissional.Detalhe.incluso)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
             Text("Refeição: \(TextosDoProfissional.simNao(vaga.inclusos.refeicao))", bundle: bundleApresentacao)
             Text("Transporte: \(TextosDoProfissional.simNao(vaga.inclusos.transporte))", bundle: bundleApresentacao)
@@ -156,6 +163,8 @@ public struct TelaDetalheVaga<Acao: View>: View {
             if let traje = vaga.traje, !traje.isEmpty { Text(verbatim: "\(TextosDoProfissional.Detalhe.traje): \(traje)") }
             Text(verbatim: "\(TextosDoProfissional.Detalhe.quemRecebe): \(vaga.responsavelLocal)")
         }
+        .font(FrilaTipo.corpo)
+        .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
 
@@ -163,8 +172,14 @@ public struct TelaDetalheVaga<Acao: View>: View {
             NavigationLink {
                 TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
             } label: {
-                Text(verbatim: TextosDaSeguranca.verPerfil).frame(minHeight: FrilaMetrica.alvoMinimo)
+                Text(verbatim: TextosDaSeguranca.verPerfil)
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    .padding(.horizontal, FrilaEspaco.minimo)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .accessibilityIdentifier("abrir-perfil-estabelecimento")
         }
 
@@ -196,9 +211,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
     }
 
     private func campo(_ titulo: String, _ valor: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(verbatim: titulo).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: valor).font(.body.weight(.semibold))
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+            Text(verbatim: titulo).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: valor).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
         }
         .accessibilityElement(children: .combine)
     }

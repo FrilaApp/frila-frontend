@@ -1,10 +1,9 @@
-// VISUAL PROVISÓRIO: o design de alta fidelidade do cancelamento ainda não chegou (#20).
-
 import FrilaDominio
 import SwiftUI
 
 /// A folha que pede o motivo e avisa o efeito antes de cancelar, igual para os dois lados (#20).
 /// Sem motivo, o botão não habilita. Depois da resposta, mostra o desfecho e só deixa fechar.
+/// Segue o quadro "CancelarTurno" do MidFi do Fabrício: motivos num cartão agrupado, com divisórias e visto.
 public struct FolhaDeCancelamento: View {
     @Bindable private var viewModel: CancelamentoViewModel
     private let fechar: () -> Void
@@ -54,13 +53,22 @@ public struct FolhaDeCancelamento: View {
             .accessibilityIdentifier("aviso-do-cancelamento")
 
         Text(verbatim: TextosDoCancelamento.motivoTitulo)
-            .font(.headline)
+            .font(FrilaTipo.rotuloDoCampo)
             .accessibilityAddTraits(.isHeader)
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            ForEach(viewModel.motivos) { motivo in
+        VStack(spacing: 0) {
+            ForEach(Array(viewModel.motivos.enumerated()), id: \.element.id) { indice, motivo in
+                if indice > 0 {
+                    Rectangle()
+                        .fill(FrilaCor.divisoria)
+                        .frame(height: 1)
+                        .padding(.leading, FrilaEspaco.medio)
+                        .accessibilityHidden(true)
+                }
                 opcao(motivo)
             }
         }
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("motivos-do-cancelamento")
 
@@ -68,7 +76,7 @@ public struct FolhaDeCancelamento: View {
             // O rótulo do campo é o mesmo do título: obrigatório em "Outro motivo", opcional nos demais.
             let rotulo = motivo.exigeDetalhes ? TextosDoCancelamento.detalhesObrigatorios : TextosDoCancelamento.detalhesTitulo
             Text(verbatim: rotulo)
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
             TextField(text: $viewModel.detalhes, prompt: nil, axis: .vertical) {
                 Text(verbatim: rotulo)
@@ -78,12 +86,12 @@ public struct FolhaDeCancelamento: View {
             .textFieldStyle(.plain)
             .padding(FrilaEspaco.medio)
             .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityIdentifier("detalhes-do-cancelamento")
         } else {
             Text(verbatim: TextosDoCancelamento.motivoObrigatorio)
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("motivo-obrigatorio")
         }
@@ -125,18 +133,23 @@ public struct FolhaDeCancelamento: View {
         return Button {
             viewModel.motivo = motivo
         } label: {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                // Decorativo: o estado vai pelo traço `.isSelected` do botão.
-                Image(systemName: escolhido ? "largecircle.fill.circle" : "circle")
-                    .foregroundStyle(escolhido ? FrilaCor.primaria : FrilaCor.textoSecundario)
-                    .accessibilityHidden(true)
+            HStack(spacing: FrilaEspaco.compacto) {
                 Text(verbatim: TextosDoCancelamento.motivo(motivo))
+                    .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
+                // Decorativo: o estado vai pelo traço `.isSelected` do botão.
+                Image(systemName: "checkmark")
+                    .font(FrilaTipo.rotuloDoCampo)
+                    .foregroundStyle(FrilaCor.primaria)
+                    .opacity(escolhido ? 1 : 0)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, FrilaEspaco.medio)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(escolhido ? [.isSelected] : [])
@@ -148,14 +161,14 @@ public struct FolhaDeCancelamento: View {
             .accessibilityIdentifier("desfecho-do-cancelamento")
         if case let .posicao(resultado) = desfecho, viewModel.lado == .profissional {
             Text(verbatim: resultado.falta ? TextosDoProfissional.Turnos.cancelamentoComFalta : TextosDoProfissional.Turnos.cancelamentoSemFalta)
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("falta-do-cancelamento")
         }
     }
 }
 
-/// Botão de contorno vermelho que abre a folha de cancelamento, nos dois lados.
+/// Botão de contorno vermelho (cápsula, como o botão de cancelar do quadro "CancelarTurno") que abre a folha de cancelamento, nos dois lados.
 public struct BotaoDeCancelamento: View {
     private let titulo: String
     private let acao: () -> Void
@@ -167,13 +180,8 @@ public struct BotaoDeCancelamento: View {
 
     public var body: some View {
         Button(role: .destructive, action: acao) {
-            Text(verbatim: titulo)
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+            Text(verbatim: titulo).capsulaDestrutiva()
         }
         .buttonStyle(.plain)
-        .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
-        .foregroundStyle(FrilaCor.perigo)
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.perigo, lineWidth: 1.5))
     }
 }

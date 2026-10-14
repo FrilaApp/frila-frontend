@@ -1,6 +1,8 @@
 import FrilaDominio
 import SwiftUI
 
+/// Avaliação do turno pelo profissional, no quadro "AvaliarLocal" do MidFi do Fabrício: pergunta em
+/// título grande, resposta Sim/Não, nota de apoio em cartão e botão escuro de envio.
 public struct TelaAvaliacao: View {
     @Bindable private var viewModel: AvaliacaoTurnoViewModel
 
@@ -55,7 +57,9 @@ public struct TelaAvaliacao: View {
 
     private var cabecalho: some View {
         Text(verbatim: viewModel.pergunta)
-            .font(.title2.bold())
+            .font(FrilaTipo.tituloGrande)
+            .foregroundStyle(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.minimo)
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("pergunta-avaliacao")
     }
@@ -64,11 +68,11 @@ public struct TelaAvaliacao: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Label {
                 Text(verbatim: viewModel.explicacao)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } icon: {
                 Image(systemName: "hand.thumbsup.fill")
-                    .foregroundStyle(FrilaCor.primaria)
+                    .foregroundStyle(FrilaCor.textoSecundario)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

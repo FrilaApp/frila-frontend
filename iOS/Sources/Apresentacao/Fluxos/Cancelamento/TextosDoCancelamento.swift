@@ -1,5 +1,3 @@
-// VISUAL PROVISÓRIO: o design de alta fidelidade do cancelamento ainda não chegou (#20).
-
 import FrilaDominio
 import Foundation
 

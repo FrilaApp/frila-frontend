@@ -291,6 +291,8 @@ public final class RepublicarVagaViewModel {
     }
 }
 
+/// Republicação de uma vaga com os dados da anterior, nos quadros "RepetirVaga" e "PublicarCopia" do MidFi do
+/// Fabrício: cartão com o que foi copiado, o novo período e a confirmação.
 public struct TelaRepublicarVaga: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel: RepublicarVagaViewModel
@@ -359,11 +361,11 @@ public struct TelaRepublicarVaga: View {
     private var cabecalho: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: TextosRepublicarVaga.titulo)
-                .font(.largeTitle.bold())
+                .font(FrilaTipo.tituloGrande)
                 .minimumScaleFactor(0.75)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: TextosRepublicarVaga.subtitulo)
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -374,40 +376,42 @@ public struct TelaRepublicarVaga: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: viewModel.vagaOriginal.vaga.funcao)
-                        .font(.headline)
+                        .font(FrilaTipo.resumo)
                     Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor))
-                        .font(.headline)
+                        .font(FrilaTipo.preco.monospacedDigit())
                 }
             } else {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
+                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(FrilaTipo.resumo)
                         Spacer(minLength: FrilaEspaco.pequeno)
-                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(FrilaTipo.preco.monospacedDigit())
                     }
                     VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(.headline)
-                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(.headline)
+                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(FrilaTipo.resumo)
+                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(FrilaTipo.preco.monospacedDigit())
                     }
                 }
             }
 
             Text(verbatim: viewModel.vagaOriginal.vaga.local)
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
             if !viewModel.vagaOriginal.vaga.regiaoAdministrativa.isEmpty {
                 Text(verbatim: viewModel.vagaOriginal.vaga.regiaoAdministrativa)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
 
             Text(verbatim: viewModel.vagaOriginal.modo == .selecao ? TextosRepublicarVaga.modoSelecao : TextosRepublicarVaga.modoUrgencia)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(FrilaCor.primaria)
+                .font(FrilaTipo.nota.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+                .padding(.horizontal, FrilaEspaco.compacto)
+                .padding(.vertical, FrilaEspaco.minimo)
+                .background(FrilaCor.controle, in: Capsule())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FrilaEspaco.medio)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("cartao-dados-copiados-republicacao")
@@ -416,7 +420,7 @@ public struct TelaRepublicarVaga: View {
     private var secaoPeriodo: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             Text(verbatim: TextosRepublicarVaga.novoPeriodo)
-                .font(.title3.bold())
+                .font(FrilaTipo.tituloDoCartao)
                 .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
@@ -429,7 +433,7 @@ public struct TelaRepublicarVaga: View {
 
                 if let erroInicio = viewModel.erros[.inicio] {
                     Text(verbatim: erroInicio)
-                        .font(.caption)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.perigo)
                         .accessibilityIdentifier("erro-inicio-republicacao")
                 }
@@ -445,14 +449,13 @@ public struct TelaRepublicarVaga: View {
 
                 if let erroFim = viewModel.erros[.fim] {
                     Text(verbatim: erroFim)
-                        .font(.caption)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.perigo)
                         .accessibilityIdentifier("erro-fim-republicacao")
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FrilaEspaco.medio)
         .cartaoFrila()
     }
 
@@ -461,7 +464,7 @@ public struct TelaRepublicarVaga: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: titulo)
-                    .font(.headline)
+                    .font(FrilaTipo.rotuloDoCampo)
                 DatePicker(
                     titulo,
                     selection: data,

@@ -22,16 +22,19 @@ public struct BotaoPrimario: View {
         Button(action: acao) {
             Group {
                 if carregando { ProgressView().tint(FrilaCor.sobrePrimaria) }
-                else { titulo.font(.headline).multilineTextAlignment(.center) }
+                else { titulo.font(FrilaTipo.botao).multilineTextAlignment(.center) }
             }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-            // Sem isto o estilo `.plain` só recebe toque perto do texto: o frame de 44 pt é
+            .padding(.horizontal, FrilaEspaco.grande)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            // Sem isto o estilo `.plain` só recebe toque perto do texto: o frame é
             // transparente e a borda do botão não responde (medido no catálogo, #139).
-            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .foregroundStyle(FrilaCor.sobrePrimaria)
-        .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+        // Pílula escura do MidFi (`selectionFill`), 52 pt.
+        .background(FrilaCor.primaria, in: Capsule())
         .disabled(carregando)
         // Enquanto carrega, o conteúdo é só o indicador: sem isto o botão perde o nome no VoiceOver.
         .accessibilityLabel(titulo)
@@ -55,13 +58,33 @@ public struct BotaoSecundario: View {
 
     public var body: some View {
         Button(action: acao) {
-            titulo.font(.headline).multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            titulo.font(FrilaTipo.botao).multilineTextAlignment(.center)
+                .padding(.horizontal, FrilaEspaco.grande)
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                .contentShape(Capsule())
         }
             .buttonStyle(.plain)
-            .foregroundStyle(FrilaCor.primaria)
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.primaria, lineWidth: 1.5))
+            .foregroundStyle(FrilaCor.texto)
+            // Botão de contorno do MidFi: superfície clara com fio de controle.
+            .background(FrilaCor.superficie, in: Capsule())
+            .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+    }
+}
+
+public extension View {
+    /// Rótulo de ação destrutiva do MidFi (cancelar turno, ligar para a emergência, excluir conta):
+    /// cápsula de contorno vermelho sobre a superfície, com a altura dos botões grandes.
+    func capsulaDestrutiva() -> some View {
+        font(FrilaTipo.botao)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(FrilaCor.perigo)
+            .padding(.horizontal, FrilaEspaco.grande)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .background(FrilaCor.superficie, in: Capsule())
+            .overlay(Capsule().strokeBorder(FrilaCor.perigo, lineWidth: 1.5))
+            .contentShape(Capsule())
     }
 }
 
@@ -83,10 +106,12 @@ public struct CampoFrila: View {
     public var body: some View {
         TextField(text: $texto, prompt: titulo) { titulo }
             .textFieldStyle(.plain)
+            .font(FrilaTipo.valorDoCampo)
             .padding(.horizontal, FrilaEspaco.medio)
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(minHeight: FrilaMetrica.alturaDoCampo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityLabel(titulo)
             .accessibilityHint(Text(verbatim: erroDeCampo ?? ""))
     }
@@ -108,7 +133,8 @@ public struct CampoCodigo: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: 56)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityHint(erroDeCampo.map { Text(verbatim: $0) } ?? Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
     }
 }
@@ -141,15 +167,18 @@ public struct FiltroPill: View {
                     Image(systemName: "checkmark")
                         .accessibilityHidden(true)
                 }
-                titulo.font(.subheadline.weight(.semibold))
+                titulo.font(selecionado ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, FrilaEspaco.faixa)
+            .frame(minHeight: FrilaMetrica.alturaDoChip)
+            .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+            .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+            .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+            // Chip de 32 pt visíveis dentro de um alvo de 44 pt.
             .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .contentShape(Capsule())
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-        .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
         .accessibilityAddTraits(selecionado ? .isSelected : [])
         .accessibilityValue(Self.valorAcessibilidade(selecionado: selecionado))
     }
@@ -174,18 +203,23 @@ public struct SeloReputacao: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Label(Self.descricao(reputacao), systemImage: reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "hand.thumbsup.fill")
-                .font(.subheadline.weight(.semibold))
+            Label {
+                Text(verbatim: Self.descricao(reputacao)).font(FrilaTipo.nota.weight(.semibold)).foregroundStyle(FrilaCor.texto)
+            } icon: {
+                Image(systemName: reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "person.badge.shield.checkmark")
+                    .foregroundStyle(FrilaCor.textoSecundario)
+            }
             if reputacao.semHistorico {
                 Text(String(localized: "Ainda não há turnos considerados.", bundle: bundleApresentacao))
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
             } else {
                 if let comparecimento = Self.descricaoComparecimento(reputacao) {
-                    Text(verbatim: comparecimento).font(.caption)
+                    Text(verbatim: comparecimento).font(FrilaTipo.nota)
                 }
             }
         }
-        .foregroundStyle(reputacao.semHistorico ? FrilaCor.textoSecundario : FrilaCor.sucesso)
+        // Reputação do MidFi: neutra, sem verde; o número em semibold carrega o destaque.
+        .foregroundStyle(FrilaCor.textoSecundario)
         .accessibilityElement(children: .combine)
     }
 }
@@ -214,12 +248,14 @@ public struct AvisoFrila: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Image(systemName: icone)
+                        .foregroundStyle(cor)
                         .accessibilityHidden(true)
                     textoView
                 }
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
                     Image(systemName: icone)
+                        .foregroundStyle(cor)
                         .accessibilityHidden(true)
                     textoView
                 }
@@ -229,10 +265,11 @@ public struct AvisoFrila: View {
         .accessibilityLabel(Text(verbatim: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom)))
         .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(textoResolvido.characters), tom: tom)))
         .font(.callout)
-        .foregroundStyle(cor)
+        .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
-        .background(cor.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+        // Bloco de aviso do MidFi: raio 16; o neutro usa o preenchimento de controle, os outros o tom da cor.
+        .background(fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
     }
 
     public static func prefixo(tom: Tom) -> String {
@@ -253,68 +290,78 @@ public struct AvisoFrila: View {
     private var textoResolvido: AttributedString { conteudo.resolver(locale: locale) }
     private var textoView: Text { conteudo.texto(locale: locale) }
 
-    private var cor: Color { switch tom { case .informativo: FrilaCor.primaria; case .alerta: FrilaCor.alerta; case .erro: FrilaCor.perigo } }
+    private var cor: Color { switch tom { case .informativo: FrilaCor.texto; case .alerta: FrilaCor.alerta; case .erro: FrilaCor.perigo } }
+    private var fundo: Color { tom == .informativo ? FrilaCor.controle : cor.opacity(0.12) }
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }
 }
 
 
 public struct CartaoVaga: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var larguraDoIcone: CGFloat = 24
     private let vaga: VagaNaLista
     private let formatador = FormatadorFrila()
     public init(_ vaga: VagaNaLista) { self.vaga = vaga }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        // Cartão de turno do MidFi (`FrilaShiftCard`): cabeçalho, linhas com ícone, fio e reputação.
+        VStack(alignment: .leading, spacing: FrilaEspaco.faixa) {
             if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { cabecalho; valor }
             } else {
                 // Lado a lado quando cabem numa linha; empilhados nos tamanhos grandes, em que o HStack
                 // quebrava a função no meio da palavra ("Gar-çom") para caber ao lado do valor.
                 ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
+                    HStack(alignment: .top, spacing: FrilaEspaco.compacto) { cabecalho; Spacer(minLength: 0); valor }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { cabecalho; valor }
                 }
             }
-            Text(verbatim: vaga.estabelecimento.nome)
-                .font(.subheadline)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .fixedSize(horizontal: false, vertical: true)
-            Label {
-                Text(verbatim: formatador.intervalo(vaga.periodo))
-                    .fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: "calendar")
-            }
-            // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
-            Label {
-                Text(verbatim: "\(distancia) · \(vaga.local)")
-                    .fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: "mappin.and.ellipse")
-            }
-            if !inclusos.isEmpty {
-                Label {
-                    Text(verbatim: inclusos)
-                        .fixedSize(horizontal: false, vertical: true)
-                } icon: {
-                    Image(systemName: "checkmark.circle")
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                linha("clock") { Text(verbatim: formatador.intervalo(vaga.periodo)) }
+                // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
+                linha("mappin.and.ellipse") { Text(verbatim: "\(distancia), \(vaga.local)") }
+                if !inclusos.isEmpty {
+                    linha("checkmark.circle") { Text(verbatim: inclusos) }
                 }
+                linha("person.2") { Text("\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao) }
             }
+            Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
             SeloReputacao(vaga.estabelecimento.reputacao)
-            Text("\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao)
-                .font(.caption)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .font(.subheadline)
+        .font(FrilaTipo.meta)
         .foregroundStyle(FrilaCor.texto)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rotuloDeAcessibilidade)
     }
 
-    private var funcao: some View { Text(verbatim: vaga.funcao.nome).font(.headline) }
-    private var valor: some View { Text(verbatim: formatador.dinheiro(vaga.valor)).font(.headline).foregroundStyle(FrilaCor.primaria) }
+    private var cabecalho: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+            Text(verbatim: vaga.funcao.nome).font(FrilaTipo.resumo)
+            Text(verbatim: vaga.estabelecimento.nome)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var valor: some View {
+        VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: FrilaEspaco.fio) {
+            Text(verbatim: formatador.dinheiro(vaga.valor)).font(FrilaTipo.preco).monospacedDigit()
+            Text("por turno", bundle: bundleApresentacao).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
+        }
+    }
+
+    private func linha(_ icone: String, @ViewBuilder texto: () -> Text) -> some View {
+        Label {
+            texto().fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            // Coluna de largura fixa: o texto das linhas começa no mesmo ponto, qualquer que seja o ícone.
+            Image(systemName: icone).foregroundStyle(FrilaCor.textoSecundario)
+                .frame(width: larguraDoIcone)
+        }
+    }
 
     public var rotuloDeAcessibilidade: String {
         var partes = [
@@ -390,12 +437,14 @@ public struct RespostaSimNao: View {
                     Image(systemName: icone)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            .font(FrilaTipo.botao)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-        .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+        .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+        .overlay(Capsule().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
         .accessibilityLabel(Text(titulo, bundle: bundleApresentacao))
         .accessibilityValue(Text(resposta == valor ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
         .accessibilityAddTraits(resposta == valor ? .isSelected : [])
@@ -411,11 +460,11 @@ public struct FolhaFrila<Conteudo: View>: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            Capsule().fill(FrilaCor.textoSecundario.opacity(0.4)).frame(width: 40, height: 5).frame(maxWidth: .infinity)
-            titulo.font(.title2.bold())
+            Capsule().fill(FrilaCor.puxador).frame(width: 36, height: 5).frame(maxWidth: .infinity).accessibilityHidden(true)
+            titulo.font(FrilaTipo.tituloDaFolha).accessibilityAddTraits(.isHeader)
             conteudo()
         }
         .padding(FrilaEspaco.grande)
-        .background(FrilaCor.fundo)
+        .background(FrilaCor.superficie)
     }
 }

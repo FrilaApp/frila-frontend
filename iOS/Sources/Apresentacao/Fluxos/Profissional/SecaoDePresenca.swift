@@ -1,12 +1,11 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. Substitui por ora a alta fidelidade da chegada ao
-// turno (check-in, check-out e manual).
-
 import FrilaDominio
 import SwiftUI
 import UIKit
 
 /// Check-in e check-out dentro de Meu turno (#17): o que já foi registrado, o botão do próximo
 /// registro, a explicação antes do pedido de permissão e a saída manual quando o GPS não serve.
+/// É a seção "Chegada" do quadro "TurnoHoje" do MidFi (e o aviso de falha do "AlertaAtraso"):
+/// cartão com rótulo em caixa alta, linhas de estado, botão escuro e ações de apoio.
 struct SecaoDePresenca: View {
     private typealias Textos = TextosDoProfissional.Presenca
 
@@ -19,9 +18,10 @@ struct SecaoDePresenca: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             Text(verbatim: Textos.titulo.uppercased())
-                .font(.caption.weight(.bold))
+                .font(FrilaTipo.microRotulo)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
@@ -91,6 +91,8 @@ struct SecaoDePresenca: View {
                let ajustes = URL(string: UIApplication.openSettingsURLString) {
                 Link(destination: ajustes) {
                     Text(verbatim: Textos.abrirAjustes)
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .foregroundStyle(FrilaCor.texto)
                 }
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("abrir-ajustes")
@@ -103,11 +105,11 @@ struct SecaoDePresenca: View {
     private func aviso(titulo: String, textos: [String], identificador: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: titulo)
-                .font(.headline)
+                .font(FrilaTipo.rotuloDoCampo)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityFocused($focoNoAviso)
                 .accessibilityIdentifier(identificador)
-            ForEach(textos, id: \.self) { Text(verbatim: $0).font(.subheadline) }
+            ForEach(textos, id: \.self) { Text(verbatim: $0).font(FrilaTipo.meta) }
         }
         .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -116,7 +118,7 @@ struct SecaoDePresenca: View {
     private func progresso(_ texto: String) -> some View {
         HStack(spacing: FrilaEspaco.pequeno) {
             ProgressView()
-            Text(verbatim: texto).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: texto).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -138,7 +140,7 @@ struct SecaoDePresenca: View {
         } icon: {
             Image(systemName: situacao.icone)
         }
-        .font(.subheadline)
+        .font(FrilaTipo.meta.weight(.semibold))
         .foregroundStyle(situacao.cor)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)

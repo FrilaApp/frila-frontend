@@ -1,6 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
+/// Cadastro (#12), nos quadros "Perfil" (escolha do perfil) e "Main" (campos) do MidFi do Fabrício: voltar circular, cartões de perfil e botão escuro de continuar.
 public struct TelaCadastro: View {
     @Environment(\.openURL) private var openURL
     @Bindable var viewModel: CadastroViewModel
@@ -24,22 +25,25 @@ public struct TelaCadastro: View {
                 HStack {
                     Button(action: aoVoltar) {
                         Image(systemName: "chevron.left")
-                            .font(.body.weight(.semibold))
+                            .font(FrilaTipo.corpo.weight(.semibold))
                             .foregroundStyle(FrilaCor.texto)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+                            .background(FrilaCor.superficie, in: Circle())
+                            .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
                     }
                     .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                     .accessibilityIdentifier("cadastro-voltar")
 
                     Text("Cadastro", bundle: bundleApresentacao)
-                        .font(.headline)
+                        .font(FrilaTipo.resumo)
                         .foregroundStyle(FrilaCor.texto)
+                        .padding(.leading, FrilaEspaco.pequeno)
 
                     Spacer()
                 }
 
                 Text("Como você quer usar o Frila?", bundle: bundleApresentacao)
-                    .font(.title2.bold())
+                    .font(Font.title.bold())
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityAddTraits(.isHeader)
 
@@ -70,7 +74,7 @@ public struct TelaCadastro: View {
                 // Campos de dados
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text("Nome", bundle: bundleApresentacao)
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
 
                     CampoFrila("Como você quer ser chamado", texto: $viewModel.nome)
@@ -80,7 +84,7 @@ public struct TelaCadastro: View {
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text("Telefone com WhatsApp", bundle: bundleApresentacao)
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
 
                     CampoFrila("(61) 9 0000-0000", texto: $viewModel.telefone)
@@ -89,13 +93,13 @@ public struct TelaCadastro: View {
                         .accessibilityIdentifier("cadastro-telefone")
 
                     Text("A outra parte só vê o seu número depois que o turno é confirmado.", bundle: bundleApresentacao)
-                        .font(.footnote)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text("Data de nascimento", bundle: bundleApresentacao)
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
 
                     CampoFrila("dd/mm/aaaa", texto: $viewModel.nascimentoTexto)
@@ -109,9 +113,9 @@ public struct TelaCadastro: View {
                         viewModel.maiorDeIdade.toggle()
                     } label: {
                         Image(systemName: viewModel.maiorDeIdade ? "checkmark.square.fill" : "square")
-                            .font(.title3)
+                            .font(FrilaTipo.subtituloDaTela)
                             .foregroundStyle(viewModel.maiorDeIdade ? FrilaCor.primaria : FrilaCor.textoSecundario)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -122,7 +126,7 @@ public struct TelaCadastro: View {
                     .accessibilityIdentifier("cadastro-maior-de-idade")
 
                     Text("Tenho 18 anos ou mais", bundle: bundleApresentacao)
-                        .font(.subheadline)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityHidden(true)
                         .onTapGesture { viewModel.maiorDeIdade.toggle() }
@@ -134,9 +138,9 @@ public struct TelaCadastro: View {
                         viewModel.aceitouTermos.toggle()
                     } label: {
                         Image(systemName: viewModel.aceitouTermos ? "checkmark.square.fill" : "square")
-                            .font(.title3)
+                            .font(FrilaTipo.subtituloDaTela)
                             .foregroundStyle(viewModel.aceitouTermos ? FrilaCor.primaria : FrilaCor.textoSecundario)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -153,7 +157,7 @@ public struct TelaCadastro: View {
                     .accessibilityIdentifier("cadastro-termos")
 
                     Text("Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)", bundle: bundleApresentacao)
-                        .font(.subheadline)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.texto)
                         .padding(.top, 10)
                         .accessibilityHidden(true)
@@ -177,6 +181,8 @@ public struct TelaCadastro: View {
                 Spacer(minLength: 40)
             }
             .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+            .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(FrilaCor.fundo.ignoresSafeArea())
@@ -196,27 +202,27 @@ public struct TelaCadastro: View {
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: titulo)
-                        .font(.headline)
+                        .font(FrilaTipo.resumo)
                         .foregroundStyle(FrilaCor.texto)
 
                     Text(verbatim: descricao)
-                        .font(.footnote)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
                 Spacer(minLength: FrilaEspaco.minimo)
                 if selecionado {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.title3)
+                        .font(FrilaTipo.subtituloDaTela)
                         .foregroundStyle(FrilaCor.primaria)
                         .accessibilityHidden(true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(FrilaEspaco.medio)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.medio)
-                    .stroke(selecionado ? FrilaCor.primaria : FrilaCor.borda, lineWidth: selecionado ? 2 : 1)
+                RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+                    .strokeBorder(selecionado ? FrilaCor.primaria : FrilaCor.divisoria, lineWidth: selecionado ? 2 : 1)
             )
         }
         .buttonStyle(.plain)

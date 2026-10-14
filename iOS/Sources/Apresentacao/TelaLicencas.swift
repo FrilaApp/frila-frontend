@@ -27,7 +27,7 @@ public enum Licencas {
     }
 }
 
-/// Textos provisórios, como a interface desta tela (#178).
+/// Textos da tela de licenças (#178).
 enum TextosDeLicencas {
     static let titulo = String(localized: "Licenças de código aberto", bundle: bundleApresentacao)
     static let versao = String(localized: "Versão", bundle: bundleApresentacao)
@@ -38,8 +38,9 @@ enum TextosDeLicencas {
     static let dicaAbrir = String(localized: "Abre o texto da licença", bundle: bundleApresentacao)
 }
 
-/// Lista das dependências do build com a licença de cada uma. Interface provisória: precisa estar
-/// dentro de um `NavigationStack`, que é quem abre o detalhe.
+/// Lista das dependências do build com a licença de cada uma, em linhas sobre cartão branco e fundo
+/// agrupado, como as demais listas do MidFi do Fabrício. Precisa estar dentro de um `NavigationStack`,
+/// que é quem abre o detalhe.
 public struct TelaLicencas: View {
     private enum Estado {
         case carregando
@@ -84,8 +85,8 @@ public struct TelaLicencas: View {
 
     private func linha(_ licenca: LicencaDePacote) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: licenca.nome).font(.headline).foregroundStyle(FrilaCor.texto)
-            Text(verbatim: "\(licenca.versao) · \(licenca.tipo)").font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: licenca.nome).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
+            Text(verbatim: "\(licenca.versao) · \(licenca.tipo)").font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(minHeight: FrilaMetrica.alvoMinimo)
     }
@@ -114,7 +115,7 @@ struct TelaDetalheDaLicenca: View {
                 texto(licenca.texto).accessibilityIdentifier("texto-da-licenca")
 
                 if let aviso = licenca.aviso {
-                    Text(verbatim: TextosDeLicencas.aviso).font(.headline).foregroundStyle(FrilaCor.texto)
+                    Text(verbatim: TextosDeLicencas.aviso).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
                         .accessibilityAddTraits(.isHeader)
                     texto(aviso).accessibilityIdentifier("aviso-da-licenca")
                 }
@@ -130,9 +131,9 @@ struct TelaDetalheDaLicenca: View {
     }
 
     private func campo(_ titulo: String, _ valor: String, cor: Color = FrilaCor.texto) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(verbatim: titulo).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: valor).font(.body).foregroundStyle(cor).multilineTextAlignment(.leading)
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+            Text(verbatim: titulo).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: valor).font(FrilaTipo.corpo).foregroundStyle(cor).multilineTextAlignment(.leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -140,9 +141,10 @@ struct TelaDetalheDaLicenca: View {
 
     // O texto da licença entra como veio do pacote, com as quebras de linha originais.
     private func texto(_ conteudo: String) -> some View {
-        Text(verbatim: conteudo).font(.footnote).foregroundStyle(FrilaCor.texto)
+        Text(verbatim: conteudo).font(FrilaTipo.nota).foregroundStyle(FrilaCor.texto)
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
+            .cartaoFrila()
     }
 }
 
