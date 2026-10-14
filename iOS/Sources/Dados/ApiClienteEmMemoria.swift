@@ -611,7 +611,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         let falhaTransitoria = argumentos.contains("-FRILA_REPUBLICAR_FALHA_TRANSITORIA")
 
+        // `-FRILA_SEM_SESSAO`: começa sem sessão pelo mesmo caminho do app publicado (a avaliação da
+        // sessão leva à entrada), sem o atalho de `-FRILA_ENTRADA`.
         let semSessaoArgumento = argumentos.contains("-FRILA_ABRIR_CATALOGO") || argumentos.contains("-FRILA_ENTRADA")
+            || argumentos.contains("-FRILA_SEM_SESSAO")
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
             return ApiClienteEmMemoria(

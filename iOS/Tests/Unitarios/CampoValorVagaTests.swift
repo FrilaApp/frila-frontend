@@ -40,6 +40,20 @@ final class CampoValorVagaTests: XCTestCase {
             XCTAssertEqual(campo.text, esperado)
             XCTAssertEqual(Int(texto), centavos)
         }
+
+        // Cursor antes do "R$" (toque à esquerda do campo): o dígito entra no fim, não no começo.
+        let delegado = try XCTUnwrap(campo.delegate)
+        campo.text = "R$ 0,00"
+        for tecla in ["1", "8", "0", "0", "0"] {
+            XCTAssertEqual(delegado.textField?(campo, shouldChangeCharactersIn: NSRange(location: 0, length: 0), replacementString: tecla), false)
+        }
+        XCTAssertEqual(campo.text, "R$ 180,00")
+        XCTAssertEqual(Int(texto), 18000)
+
+        // Apagar com o cursor no começo tira o último dígito.
+        _ = delegado.textField?(campo, shouldChangeCharactersIn: NSRange(location: 0, length: 1), replacementString: "")
+        XCTAssertEqual(campo.text, "R$ 18,00")
+        XCTAssertEqual(Int(texto), 1800)
     }
 
     private func campoDeTexto(em view: UIView) -> UITextField? {

@@ -61,6 +61,7 @@ public final class PublicacaoDaCasaViewModel {
 
 /// A publicação de uma vaga a partir de Minhas vagas, para quem já tem estabelecimento. Lê o
 /// cadastro da casa e abre o mesmo formulário do primeiro acesso.
+/// O formulário segue os quadros "Publicar" e "PublicarCopia" do MidFi do Fabrício.
 public struct DestinoDePublicarVaga: View {
     private let api: any ApiCliente
     private let fila: any FilaDeAcoes
@@ -93,6 +94,7 @@ public struct DestinoDePublicarVaga: View {
                     }
                     .padding(FrilaEspaco.medio)
                 }
+                .background(FrilaCor.fundo.ignoresSafeArea())
             case let .pronta(estabelecimento, telefone):
                 TelaPublicarVaga(
                     api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
@@ -108,6 +110,7 @@ public struct DestinoDePublicarVaga: View {
                     }
                     .padding(FrilaEspaco.medio)
                 }
+                .background(FrilaCor.fundo.ignoresSafeArea())
             }
         }
         .task { await modelo.carregar() }

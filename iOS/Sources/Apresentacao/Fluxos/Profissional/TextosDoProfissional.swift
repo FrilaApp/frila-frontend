@@ -1,8 +1,7 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. Substitui por ora a alta fidelidade do
-// profissional (#15) e os padrões de estado (#172).
-//
-// Textos PROVISÓRIOS, tirados do protótipo low-fi dos cartões #104/#105 (telas "Vagas no DF" e
-// "Detalhe da vaga"). O guia de voz (#186) ainda não existe; quando existir, os textos mudam só aqui.
+// Textos das telas do profissional, que seguem os quadros MidFi do Fabrício (Vagas, Vaga, MeuTurno,
+// TurnoHoje, AvaliarLocal, MeuPerfil e Disponibilidade). Os textos continuam PROVISÓRIOS, tirados do
+// protótipo dos cartões #104/#105. O guia de voz (#186) ainda não existe; quando existir, os textos
+// mudam só aqui.
 
 import Foundation
 import FrilaDominio

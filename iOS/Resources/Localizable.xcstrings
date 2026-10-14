@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "por turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "por turno"
+          }
+        }
+      }
+    },
     "Escolha um período de até 30 dias para exportar os turnos.": {
       "localizations": {
         "pt-BR": {

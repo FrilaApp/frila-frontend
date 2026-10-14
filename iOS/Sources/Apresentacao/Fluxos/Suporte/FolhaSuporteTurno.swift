@@ -2,6 +2,8 @@ import FrilaDominio
 import SwiftUI
 
 /// Folha de acionamento do suporte no turno (US22, RF23).
+/// Segue os quadros "AlertaAtraso" e "Denuncia" do MidFi do Fabrício: seções em cartões agrupados,
+/// microrrótulos em caixa alta, motivos em lista com visto, avisos neutros e botões em cápsula.
 public struct FolhaSuporteTurno: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -67,44 +69,57 @@ public struct FolhaSuporteTurno: View {
     private var avisoPrazo: some View {
         HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
             Image(systemName: "clock.badge.exclamationmark")
-                .foregroundStyle(FrilaCor.primaria)
-                .font(.title3)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .font(FrilaTipo.subtituloDaTela)
                 .accessibilityIdentifier(reduzirMovimento ? "icone-prazo-sem-movimento" : "icone-prazo")
                 .accessibilityLabel(Text(verbatim: TextosDoSuporte.rotuloIconePrazo))
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosDoSuporte.avisoPrazo)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.texto)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("aviso-prazo-suporte")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
+        .padding(FrilaEspaco.medio)
+        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
     }
 
     private var seletorMotivo: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoSuporte.secaoMotivo)
-                .font(.footnote.bold())
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: FrilaEspaco.minimo) {
-                ForEach(MotivoSuporteTurno.allCases) { motivo in
+            VStack(spacing: 0) {
+                ForEach(Array(MotivoSuporteTurno.allCases.enumerated()), id: \.element.id) { indice, motivo in
+                    if indice > 0 {
+                        Rectangle()
+                            .fill(FrilaCor.divisoria)
+                            .frame(height: 1)
+                            .accessibilityHidden(true)
+                    }
                     Button {
                         withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento)) {
                             viewModel.motivo = motivo
                         }
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
-                            Image(systemName: viewModel.motivo == motivo ? "largecircle.fill.circle" : "circle")
-                                .foregroundStyle(viewModel.motivo == motivo ? FrilaCor.primaria : FrilaCor.textoSecundario)
-                                .font(.body)
                             Text(verbatim: motivo.rotulo)
-                                .font(.subheadline)
+                                .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.texto)
-                            Spacer()
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                            // Decorativo: o estado vai pelo traço `.isSelected` do botão.
+                            Image(systemName: "checkmark")
+                                .font(FrilaTipo.rotuloDoCampo)
+                                .foregroundStyle(FrilaCor.primaria)
+                                .opacity(viewModel.motivo == motivo ? 1 : 0)
+                                .accessibilityHidden(true)
                         }
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
@@ -125,59 +140,47 @@ public struct FolhaSuporteTurno: View {
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(FrilaCor.perigo)
-                    .font(.title3)
+                    .font(FrilaTipo.subtituloDaTela)
+                    .accessibilityHidden(true)
                 Text(verbatim: TextosDoSuporte.avisoSeguranca)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(FrilaCor.perigo)
+                    .font(FrilaTipo.meta.bold())
+                    .foregroundStyle(FrilaCor.texto)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("aviso-seguranca-suporte")
             }
 
             VStack(spacing: FrilaEspaco.pequeno) {
-                Button {
-                    if let url = URL(string: "tel:190") { openURL(url) }
-                } label: {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        Image(systemName: "phone.fill")
-                        Text(verbatim: TextosDoSuporte.policia)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(FrilaCor.sobrePrimaria)
-                    .background(FrilaCor.perigo, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("botao-ligar-190")
-
-                Button {
-                    if let url = URL(string: "tel:180") { openURL(url) }
-                } label: {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        Image(systemName: "phone.fill")
-                        Text(verbatim: TextosDoSuporte.mulher)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(FrilaCor.sobrePrimaria)
-                    .background(FrilaCor.perigo, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("botao-ligar-180")
+                botaoDeLigacao(texto: TextosDoSuporte.policia, numero: "190")
+                    .accessibilityIdentifier("botao-ligar-190")
+                botaoDeLigacao(texto: TextosDoSuporte.mulher, numero: "180")
+                    .accessibilityIdentifier("botao-ligar-180")
             }
         }
         .padding(FrilaEspaco.medio)
-        .background(FrilaCor.perigo.opacity(0.12), in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-        .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.medio)
-                .stroke(FrilaCor.perigo.opacity(0.35), lineWidth: 1)
-        )
+        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
         .accessibilityElement(children: .contain)
+    }
+
+    /// Cápsula de contorno vermelho, como o botão de ligar de emergência do MidFi.
+    private func botaoDeLigacao(texto: String, numero: String) -> some View {
+        Button {
+            if let url = URL(string: "tel:\(numero)") { openURL(url) }
+        } label: {
+            HStack(spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "phone.fill").accessibilityHidden(true)
+                Text(verbatim: texto)
+            }
+            .capsulaDestrutiva()
+        }
+        .buttonStyle(.plain)
     }
 
     private var blocoRelato: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoSuporte.secaoRelato)
-                .font(.footnote.bold())
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
@@ -187,12 +190,15 @@ public struct FolhaSuporteTurno: View {
                 axis: .vertical
             )
             .lineLimit(3...6)
-            .padding(FrilaEspaco.pequeno)
-            .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+            .font(FrilaTipo.valorDoCampo)
+            .padding(FrilaEspaco.compacto)
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-suporte")
 
             Text(verbatim: TextosDoSuporte.dicaRelato)
-                .font(.caption)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -202,7 +208,9 @@ public struct FolhaSuporteTurno: View {
     private var dadosTurno: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoSuporte.secaoDados)
-                .font(.footnote.bold())
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
@@ -223,17 +231,17 @@ public struct FolhaSuporteTurno: View {
     /// Rótulo e valor em bloco vertical com quebra de linha natural no Dynamic Type e AX5,
     /// para o VoiceOver ler o par combinado e nada ficar espremido nem cortado.
     private func itemDado(rotulo: String, valor: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
             Text(verbatim: "\(rotulo):")
-                .font(.caption.bold())
+                .font(FrilaTipo.nota.bold())
                 .foregroundStyle(FrilaCor.textoSecundario)
             Text(verbatim: valor)
-                .font(.caption)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 2)
+        .padding(.vertical, FrilaEspaco.fio)
         .accessibilityElement(children: .combine)
     }
 
@@ -245,13 +253,17 @@ public struct FolhaSuporteTurno: View {
             }
 
             if let prot = viewModel.protocolo {
-                HStack(spacing: FrilaEspaco.minimo) {
+                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(FrilaCor.sucesso)
+                        .accessibilityHidden(true)
                     Text(verbatim: String(format: TextosDoSuporte.protocoloRegistrado, prot.protocoloCurto, FormatadorFrila().data(prot.prazoRespostaAte)))
-                        .font(.footnote)
-                        .foregroundStyle(FrilaCor.sucesso)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.texto)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("aviso-protocolo-suporte")
             }
 
@@ -282,18 +294,20 @@ public struct FolhaSuporteTurno: View {
             .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaCopiarDados))
 
             if viewModel.copiadoComSucesso {
-                HStack(spacing: FrilaEspaco.minimo) {
+                HStack(spacing: FrilaEspaco.pequeno) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(FrilaCor.sucesso)
+                        .accessibilityHidden(true)
                     Text(verbatim: TextosDoSuporte.dadosCopiados)
-                        .font(.footnote)
-                        .foregroundStyle(FrilaCor.sucesso)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.texto)
                 }
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("aviso-dados-copiados")
             }
 
             Text(verbatim: String(format: TextosDoSuporte.emailSuporteRotulo, viewModel.emailDestino))
-                .font(.caption)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
         .padding(.top, FrilaEspaco.pequeno)

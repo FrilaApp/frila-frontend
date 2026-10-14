@@ -75,6 +75,8 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Licenças das bibliotecas de código aberto usadas pelo app (#178).
 - Relato automático de falhas, sem dados pessoais (#198).
 - Telemetria do piloto: porta, DTOs e cliente para registrar_evento (contrato 0.2.41, RN15, RNF08), com dicionário fechado e sem texto livre nem dados pessoais.
+- Visual novo, do design do Fabrício (FrilaLowPhase e MidFi): tema neutro no claro e no escuro, terracota só
+  como acento, cartões sobre fundo agrupado, campos e botões de 52 pt e a Bricolage Grotesque só no publicar vaga.
 
 ### Privacidade e conformidade
 - A localização é pedida só durante o uso. No check-in e no check-out, a coordenada lida do GPS

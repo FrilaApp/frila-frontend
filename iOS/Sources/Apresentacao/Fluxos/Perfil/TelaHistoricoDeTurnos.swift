@@ -1,8 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Histórico de turnos (#23): período, formato e Exportar. Design provisório, só com os tokens e
-/// componentes do sistema de design, para trocar quando vier a alta fidelidade da v1.1.
+/// Histórico de turnos (#23), no quadro "ExportarDados" do MidFi do Fabrício: período em chips, formato e Exportar.
 public struct TelaHistoricoDeTurnos: View {
     @State private var model: HistoricoDeTurnosViewModel
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
@@ -22,7 +21,7 @@ public struct TelaHistoricoDeTurnos: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                     Text(verbatim: TextosHistoricoDeTurnos.explicacao)
-                        .font(.callout)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
                     secaoPeriodo
@@ -75,7 +74,7 @@ public struct TelaHistoricoDeTurnos: View {
     private var secaoPeriodo: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosHistoricoDeTurnos.periodo)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .accessibilityAddTraits(.isHeader)
             // Os três numa linha; no iPhone SE, dois e um; no maior texto, um por linha.
             ViewThatFits(in: .horizontal) {
@@ -92,7 +91,7 @@ public struct TelaHistoricoDeTurnos: View {
             }
             if let periodo = model.periodo {
                 Text(verbatim: TextosHistoricoDeTurnos.resumo(de: Self.texto(periodo.de), ate: Self.texto(periodo.ate)))
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("historico-resumo-periodo")
             } else {
@@ -127,7 +126,7 @@ public struct TelaHistoricoDeTurnos: View {
         identificador: String
     ) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: titulo).font(.subheadline)
+            Text(verbatim: titulo).font(FrilaTipo.meta)
             DatePicker(titulo, selection: selecao, in: faixa, displayedComponents: .date)
                 .labelsHidden()
                 .datePickerStyle(.compact)
@@ -151,7 +150,7 @@ public struct TelaHistoricoDeTurnos: View {
     private var secaoFormato: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosHistoricoDeTurnos.formato)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .accessibilityAddTraits(.isHeader)
             if dynamicTypeSize.isAccessibilitySize {
                 // O controle segmentado do sistema não acompanha o Dynamic Type: nos tamanhos de

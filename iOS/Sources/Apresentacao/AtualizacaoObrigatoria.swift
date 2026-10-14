@@ -66,6 +66,7 @@ public final class AtualizacaoObrigatoriaViewModel {
     }
 }
 
+/// Tela cheia de atualização obrigatória: segue o padrão de estados do MidFi do Fabrício (círculo de 72 pt, título, apoio e botão escuro).
 public struct PortaoDeAtualizacao<Conteudo: View>: View {
     @State private var viewModel: AtualizacaoObrigatoriaViewModel
     @Environment(\.openURL) private var abrirURL
@@ -85,12 +86,23 @@ public struct PortaoDeAtualizacao<Conteudo: View>: View {
                 conteudo()
             case let .bloqueado(mensagem, url):
                 VStack(spacing: FrilaEspaco.grande) {
-                    Image(systemName: "arrow.down.app.fill").font(.largeTitle).foregroundStyle(FrilaCor.primaria).accessibilityHidden(true)
-                    Text("Atualização necessária", bundle: bundleApresentacao)
-                        .font(.title.bold())
-                        .multilineTextAlignment(.center)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(verbatim: mensagem).multilineTextAlignment(.center).foregroundStyle(FrilaCor.textoSecundario)
+                    Image(systemName: "arrow.down.app.fill")
+                        .font(.title)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                        .background(FrilaCor.controle, in: Circle())
+                        .accessibilityHidden(true)
+                    VStack(spacing: FrilaEspaco.pequeno) {
+                        Text("Atualização necessária", bundle: bundleApresentacao)
+                            .font(FrilaTipo.tituloGrande)
+                            .foregroundStyle(FrilaCor.texto)
+                            .multilineTextAlignment(.center)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(verbatim: mensagem)
+                            .font(FrilaTipo.corpo)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
                     BotaoPrimario("Atualizar agora") { abrirURL(url) }
                 }
                 .padding(FrilaEspaco.grande)

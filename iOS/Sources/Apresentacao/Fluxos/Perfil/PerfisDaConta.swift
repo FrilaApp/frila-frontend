@@ -98,6 +98,69 @@ public final class PerfilEstabelecimentoViewModel {
     }
 }
 
+/// Linha de lista do MidFi: texto 17 à esquerda e chevron em `textoSecundario` à direita, com 52 pt de altura mínima.
+struct RotuloDeLinha: View {
+    private let titulo: String
+
+    init(_ titulo: String) {
+        self.titulo = titulo
+    }
+
+    var body: some View {
+        HStack(spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: FrilaEspaco.pequeno)
+            Image(systemName: "chevron.right")
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityHidden(true)
+        }
+        .padding(.vertical, FrilaEspaco.minimo)
+        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+}
+
+/// Divisória entre as linhas de um grupo.
+struct DivisoriaDeLinha: View {
+    var body: some View {
+        Rectangle()
+            .fill(FrilaCor.divisoria)
+            .frame(height: 1)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Cartão único do MidFi com as linhas da conta: superfície branca, raio 20 contínuo, fio de 1 pt e recuo de 16 pt à esquerda.
+struct GrupoDeLinhas<Conteudo: View>: View {
+    private let conteudo: Conteudo
+
+    init(@ViewBuilder conteudo: () -> Conteudo) {
+        self.conteudo = conteudo()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            conteudo
+        }
+        .padding(.horizontal, FrilaEspaco.medio)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+    }
+}
+
+/// Botão de contorno `perigo` do MidFi para "Excluir conta"; o toque abre a tela de exclusão, que pede a confirmação.
+struct BotaoDeExclusaoDeConta: View {
+    var body: some View {
+        Text(verbatim: TextosPerfilConta.excluir).capsulaDestrutiva()
+    }
+}
+
+/// Perfil do profissional (#18), no quadro "MeuPerfil" do MidFi do Fabrício: dados no cartão, linhas num cartão único com chevron e "Excluir conta" de contorno.
 public struct TelaMeuPerfilProfissional: View {
     @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
@@ -124,56 +187,48 @@ public struct TelaMeuPerfilProfissional: View {
                 else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let conta = model.conta, let perfil = model.perfil {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text(verbatim: conta.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                        Text(verbatim: conta.nome).font(Font.title2.bold()).foregroundStyle(FrilaCor.texto).accessibilityAddTraits(.isHeader)
                         linha(TextosPerfilConta.telefone, conta.telefone)
                         linha(TextosPerfilConta.email, conta.email)
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                         linha(TextosPerfilConta.funcao, perfil.funcoes.map(\.nome).joined(separator: ", "))
                         linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao))
-                    }.cartaoFrila()
-                    NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.funcoesHorarios)
-                        } icon: {
-                            Image(systemName: "calendar.badge.clock")
-                        }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    }.accessibilityIdentifier("perfil-funcoes-horarios")
-                    NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
-                        Label {
-                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
-                        } icon: {
-                            Image(systemName: "clock.arrow.circlepath")
-                        }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    }.accessibilityIdentifier("perfil-historico-turnos")
-                    Button { mostrarExplicacao = true } label: {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.porQueRecebo)
-                        } icon: {
-                            Image(systemName: "questionmark.circle")
-                        }
                     }
-                    .accessibilityIdentifier("perfil-por-que-recebo")
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    Button { mostrarAjuda = true } label: {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.ajuda)
-                        } icon: {
-                            Image(systemName: "lifepreserver")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .cartaoFrila()
+                    GrupoDeLinhas {
+                        NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
+                            RotuloDeLinha(TextosPerfilConta.funcoesHorarios)
                         }
-                    }
-                    .accessibilityIdentifier("perfil-ajuda")
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    placeholders
-                    Button(role: .destructive, action: sair) {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.sair)
-                        } icon: {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("perfil-funcoes-horarios")
+                        DivisoriaDeLinha()
+                        NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
+                            RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("perfil-historico-turnos")
+                        DivisoriaDeLinha()
+                        Button { mostrarExplicacao = true } label: {
+                            RotuloDeLinha(TextosPerfilConta.porQueRecebo)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("perfil-por-que-recebo")
+                        DivisoriaDeLinha()
+                        Button { mostrarAjuda = true } label: {
+                            RotuloDeLinha(TextosPerfilConta.ajuda)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("perfil-ajuda")
+                        DivisoriaDeLinha()
+                        ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
+                        DivisoriaDeLinha()
+                        Button(role: .destructive, action: sair) {
+                            RotuloDeLinha(TextosPerfilConta.sair)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    excluirConta
                 }
             }.padding(FrilaEspaco.medio)
         }
@@ -188,33 +243,30 @@ public struct TelaMeuPerfilProfissional: View {
     private func linha(_ titulo: String, _ valor: String) -> some View {
         LabeledContent {
             Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
         } label: {
             Text(verbatim: titulo)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.texto)
         }
         .accessibilityElement(children: .combine)
     }
 
-    private var placeholders: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
-            NavigationLink {
-                TelaExclusaoDeConta(
-                    viewModel: ExclusaoDeContaViewModel(
-                        api: api,
-                        aoConcluir: sair
-                    )
+    /// "Excluir conta" do MidFi: botão de contorno `perigo` num cartão próprio, longe das linhas comuns.
+    private var excluirConta: some View {
+        NavigationLink {
+            TelaExclusaoDeConta(
+                viewModel: ExclusaoDeContaViewModel(
+                    api: api,
+                    aoConcluir: sair
                 )
-            } label: {
-                Label {
-                    Text(verbatim: TextosPerfilConta.excluir)
-                } icon: {
-                    Image(systemName: "person.crop.circle.badge.xmark")
-                }
-            }
-            .accessibilityIdentifier("perfil-excluir-conta")
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            )
+        } label: {
+            BotaoDeExclusaoDeConta()
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("perfil-excluir-conta")
     }
 
     /// A folha "Por que recebo vagas" (RF27, #18): texto aprovado, critérios reais e "Contestar".
@@ -237,6 +289,7 @@ public struct TelaMeuPerfilProfissional: View {
     }
 }
 
+/// Perfil do estabelecimento (#18), nos quadros "ContaContratante" e "Estabelecimento" do MidFi do Fabrício: mesmas linhas agrupadas do perfil do profissional.
 public struct TelaPerfilEstabelecimento: View {
     @State private var model: PerfilEstabelecimentoViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -258,51 +311,57 @@ public struct TelaPerfilEstabelecimento: View {
                 else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let estabelecimento = model.estabelecimento {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text(verbatim: estabelecimento.nome).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                        Text(verbatim: estabelecimento.nome).font(Font.title2.bold()).foregroundStyle(FrilaCor.texto).accessibilityAddTraits(.isHeader)
                         if let tipo = estabelecimento.tipo {
                             LabeledContent {
                                 Text(verbatim: tipo.descricaoPerfil)
+                                    .font(FrilaTipo.meta)
                                     .foregroundStyle(FrilaCor.textoSecundario)
                             } label: {
                                 Text(verbatim: TextosPerfilConta.tipo)
+                                    .font(FrilaTipo.meta)
+                                    .foregroundStyle(FrilaCor.texto)
                             }
                         }
                         LabeledContent {
                             Text(verbatim: estabelecimento.papel.descricaoPerfil)
+                                .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                         } label: {
                             Text(verbatim: TextosPerfilConta.papel)
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.texto)
                         }
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
-                    }.cartaoFrila()
-                    NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
-                        Label {
-                            Text(verbatim: TextosHistoricoDeTurnos.titulo)
-                        } icon: {
-                            Image(systemName: "clock.arrow.circlepath")
-                        }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     }
-                    .accessibilityIdentifier("estabelecimento-historico-turnos")
-                    NavigationLink { TelaEquipeDeConfianca(api: api, estabelecimentoID: estabelecimento.id) } label: {
-                        Label {
-                            Text(verbatim: TextosEquipeDeConfianca.titulo)
-                        } icon: {
-                            Image(systemName: "person.2")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .cartaoFrila()
+                    GrupoDeLinhas {
+                        NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
+                            RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
                         }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    }
-                    .accessibilityIdentifier("estabelecimento-equipe-de-confianca")
-                    Button { mostrarAjuda = true } label: {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.ajuda)
-                        } icon: {
-                            Image(systemName: "lifepreserver")
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("estabelecimento-historico-turnos")
+                        DivisoriaDeLinha()
+                        NavigationLink { TelaEquipeDeConfianca(api: api, estabelecimentoID: estabelecimento.id) } label: {
+                            RotuloDeLinha(TextosEquipeDeConfianca.titulo)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("estabelecimento-equipe-de-confianca")
+                        DivisoriaDeLinha()
+                        Button { mostrarAjuda = true } label: {
+                            RotuloDeLinha(TextosPerfilConta.ajuda)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("perfil-ajuda")
+                        DivisoriaDeLinha()
+                        ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
+                        DivisoriaDeLinha()
+                        Button(role: .destructive, action: sair) {
+                            RotuloDeLinha(TextosPerfilConta.sair)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .accessibilityIdentifier("perfil-ajuda")
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
                     NavigationLink {
                         TelaExclusaoDeConta(
                             viewModel: ExclusaoDeContaViewModel(
@@ -311,22 +370,10 @@ public struct TelaPerfilEstabelecimento: View {
                             )
                         )
                     } label: {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.excluir)
-                        } icon: {
-                            Image(systemName: "person.crop.circle.badge.xmark")
-                        }
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                        BotaoDeExclusaoDeConta()
                     }
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("estabelecimento-excluir-conta")
-                    Button(role: .destructive, action: sair) {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.sair)
-                        } icon: {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                 } else {
                     ContentUnavailableView {
                         Label {
@@ -365,7 +412,7 @@ struct TelaAjudaPerfil: View {
                                         .foregroundStyle(FrilaCor.texto)
                                     Spacer()
                                     Image(systemName: "envelope")
-                                        .font(.footnote)
+                                        .font(FrilaTipo.nota)
                                         .foregroundStyle(FrilaCor.textoSecundario)
                                 }
                                 .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -382,7 +429,7 @@ struct TelaAjudaPerfil: View {
                         }
 
                         Text(verbatim: enderecos.emailSuporte)
-                            .font(.footnote)
+                            .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                             .contentShape(Rectangle())
@@ -391,7 +438,7 @@ struct TelaAjudaPerfil: View {
                             .accessibilityIdentifier("perfil-suporte-email")
 
                         Text(verbatim: TextosPerfilConta.prazoSuporte)
-                            .font(.footnote)
+                            .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
                 }
@@ -402,7 +449,7 @@ struct TelaAjudaPerfil: View {
                             .foregroundStyle(FrilaCor.texto)
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.footnote)
+                            .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -418,7 +465,7 @@ struct TelaAjudaPerfil: View {
                             .foregroundStyle(FrilaCor.texto)
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.footnote)
+                            .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -432,13 +479,15 @@ struct TelaAjudaPerfil: View {
                     TelaLicencas()
                 } label: {
                     Text(verbatim: TextosPerfilConta.licencas)
-                        .font(.body)
+                        .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.texto)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                         .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("perfil-licencas")
             }
+            .scrollContentBackground(.hidden)
+            .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosPerfilConta.ajuda)).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

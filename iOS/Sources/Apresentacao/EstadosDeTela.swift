@@ -55,14 +55,11 @@ public struct EstadoErro: View {
 
     public var body: some View {
         VStack(spacing: FrilaEspaco.medio) {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                Image(systemName: "exclamationmark.triangle").font(.largeTitle).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
-                Text("Algo deu errado", bundle: bundleApresentacao).font(.headline)
-                mensagem.font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, minHeight: 160)
-            .accessibilityElement(children: .combine)
-            BotaoSecundario("Tentar novamente", acao: tentarNovamente)
+            MensagemDeEstado(icone: "exclamationmark.triangle",
+                             titulo: Text("Algo deu errado", bundle: bundleApresentacao),
+                             mensagem: mensagem)
+            // Ação de recuperação do MidFi: pílula escura.
+            BotaoPrimario("Tentar novamente", acao: tentarNovamente)
         }
         .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(conteudo.resolver(locale: locale).characters), tom: .erro)))
     }
@@ -85,11 +82,21 @@ private struct MensagemDeEstado: View {
     let mensagem: Text
 
     var body: some View {
-        VStack(spacing: FrilaEspaco.pequeno) {
-            Image(systemName: icone).font(.largeTitle).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
-            titulo.font(.headline)
-            mensagem.font(.body).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+        // Estado do MidFi: círculo de 72 pt com o ícone, título e texto de apoio centralizados.
+        VStack(spacing: FrilaEspaco.compacto) {
+            Image(systemName: icone)
+                .font(.title)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                .background(FrilaCor.controle, in: Circle())
+                .accessibilityHidden(true)
+            VStack(spacing: FrilaEspaco.minimo) {
+                titulo.font(FrilaTipo.tituloDeEstado).multilineTextAlignment(.center)
+                mensagem.font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+            }
         }
+        .foregroundStyle(FrilaCor.texto)
+        .padding(.vertical, FrilaEspaco.grande)
         .frame(maxWidth: .infinity, minHeight: 160)
         .accessibilityElement(children: .combine)
     }

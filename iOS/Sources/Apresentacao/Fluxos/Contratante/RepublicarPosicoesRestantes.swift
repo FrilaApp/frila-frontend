@@ -144,6 +144,7 @@ public final class RepublicarPosicoesRestantesViewModel {
     }
 }
 
+/// Atalho "Publicar de novo" das posições restantes, na pílula escura do quadro "RepetirVaga" do MidFi do Fabrício.
 public struct BotaoRepublicarPosicoesRestantes: View {
     @State private var viewModel: RepublicarPosicoesRestantesViewModel
     private let podeRepublicar: Bool
@@ -221,11 +222,17 @@ public struct BotaoRepublicarPosicoesRestantes: View {
                                 Text(verbatim: TextosRepublicarPosicoesRestantes.rotuloBotao(viewModel.posicoesRestantes))
                             }
                         }
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, FrilaEspaco.medio)
+                        .padding(.vertical, FrilaEspaco.pequeno)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Capsule())
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(FrilaCor.primaria)
+                    // Pílula escura do MidFi, como o botão principal.
+                    .buttonStyle(.plain)
+                    .foregroundStyle(FrilaCor.sobrePrimaria)
+                    .background(FrilaCor.primaria, in: Capsule())
                     .disabled(viewModel.carregando)
                     .accessibilityIdentifier(idAcessibilidade)
                 }

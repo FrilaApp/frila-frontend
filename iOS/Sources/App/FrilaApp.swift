@@ -79,6 +79,8 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
+            // Tema neutro do MidFi: seleção (aba ativa, links, controles) no preenchimento escuro, não no azul do sistema.
+            .tint(FrilaCor.primaria)
             // Ao desativar a cena, uma janela opaca acima das folhas e telas modais cobre
             // telefone, endereço e relato antes da foto do seletor de apps (A4).
             .cortinaDePrivacidade()
@@ -377,7 +379,9 @@ private struct EntradaDoApp: View {
         // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
         .onChange(of: fase) { _, nova in
-            if nova == .active, destinoAtual == nil { Task { await avaliarSessao() } }
+            // Sem a tela de carregamento: ela desmontaria a entrada, e quem foi buscar o código no
+            // e-mail voltaria para a tela do e-mail.
+            if nova == .active, destinoAtual == nil { Task { await avaliarSessao(mostrandoCarregamento: false) } }
             // A pessoa pode ter mudado a permissão de notificação nos Ajustes.
             if nova == .active { Task { await permissaoDePush.atualizar() } }
         }
@@ -686,7 +690,7 @@ private struct EntradaDoApp: View {
     }
     #endif
 
-    private func avaliarSessao() async {
+    private func avaliarSessao(mostrandoCarregamento: Bool = true) async {
         #if DEBUG
         if deveAbrirEntrada {
             carregandoDestino = false
@@ -694,9 +698,12 @@ private struct EntradaDoApp: View {
         }
         #endif
 
+        if mostrandoCarregamento { carregandoDestino = true }
+        let possuiSessao = await api.possuiSessao()
+        // Sem sessão e sem erro na tela, a entrada continua onde estava (e-mail, código ou cadastro).
+        if !mostrandoCarregamento, !possuiSessao, erroAoAvaliar == nil { return }
         carregandoDestino = true
         erroAoAvaliar = nil
-        let possuiSessao = await api.possuiSessao()
         guard possuiSessao else {
             roteadorDePush.semSessao()
             contaID = nil

@@ -1,6 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
+/// Confirmação do código de 6 dígitos (#13), no quadro "Codigo" do MidFi do Fabrício: voltar circular, seis caixas e o botão escuro de confirmar.
 public struct TelaCodigo: View {
     @Bindable var viewModel: CodigoViewModel
     var aoVoltar: () -> Void
@@ -24,28 +25,31 @@ public struct TelaCodigo: View {
                 HStack {
                     Button(action: aoVoltar) {
                         Image(systemName: "chevron.left")
-                            .font(.body.weight(.semibold))
+                            .font(FrilaTipo.corpo.weight(.semibold))
                             .foregroundStyle(FrilaCor.texto)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+                            .background(FrilaCor.superficie, in: Circle())
+                            .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
                     }
                     .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                     .accessibilityIdentifier("codigo-voltar")
 
                     Text("Entrar", bundle: bundleApresentacao)
-                        .font(.headline)
+                        .font(FrilaTipo.resumo)
                         .foregroundStyle(FrilaCor.texto)
+                        .padding(.leading, FrilaEspaco.pequeno)
 
                     Spacer()
                 }
 
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text("Digite o código", bundle: bundleApresentacao)
                         .font(.title.bold())
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityAddTraits(.isHeader)
 
                     Text("Digite o código de 6 dígitos enviado para \(viewModel.email).", bundle: bundleApresentacao)
-                        .font(.body)
+                        .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
 
@@ -60,7 +64,7 @@ public struct TelaCodigo: View {
                             .textContentType(.oneTimeCode)
                             .focused($campoFocado)
                             .opacity(0.01)
-                            .frame(maxWidth: .infinity, minHeight: 56)
+                            .frame(maxWidth: .infinity, minHeight: 60)
 
                         // 6 caixas visuais
                         HStack(spacing: FrilaEspaco.pequeno) {
@@ -70,11 +74,11 @@ public struct TelaCodigo: View {
                                     .font(.title.weight(.semibold).monospacedDigit())
                                     .minimumScaleFactor(0.5)
                                     .foregroundStyle(FrilaCor.texto)
-                                    .frame(maxWidth: .infinity, minHeight: 56)
-                                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+                                    .frame(maxWidth: .infinity, minHeight: 60)
+                                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: FrilaRaio.pequeno)
-                                            .stroke(
+                                        RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                                            .strokeBorder(
                                                 indice == viewModel.codigo.count ? FrilaCor.primaria : FrilaCor.borda,
                                                 lineWidth: indice == viewModel.codigo.count ? 2 : 1
                                             )
@@ -118,30 +122,34 @@ public struct TelaCodigo: View {
 
                     if viewModel.segundosRestantes > 0 {
                         Text("Reenviar código em \(viewModel.segundosRestantes)s", bundle: bundleApresentacao)
-                            .font(.subheadline)
+                            .font(FrilaTipo.meta)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
                             .accessibilityIdentifier("codigo-reenviar-aguarde")
                     } else {
                         Button(action: {
                             Task { await viewModel.reenviarCodigo() }
                         }) {
                             Text("Reenviar código", bundle: bundleApresentacao)
-                                .font(.subheadline.weight(.semibold))
+                                .font(FrilaTipo.meta.weight(.semibold))
                                 .foregroundStyle(FrilaCor.texto)
-                                .underline()
+                                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                                .contentShape(Rectangle())
                         }
                         .disabled(viewModel.carregando)
                         .accessibilityIdentifier("codigo-reenviar")
                     }
 
                     Text("Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta.", bundle: bundleApresentacao)
-                        .font(.footnote)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
 
-                Spacer(minLength: 40)
+                Spacer(minLength: FrilaEspaco.enorme)
             }
             .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+            .frame(maxWidth: .infinity)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .onAppear {

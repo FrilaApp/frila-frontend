@@ -463,6 +463,34 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(elemento.isHittable)
     }
 
+    func testSairDoAppParaBuscarOCodigoVoltaNaTelaDoCodigo() {
+        let app = XCUIApplication()
+        // Sem `-FRILA_ENTRADA`: a entrada vem da avaliação da sessão, como no app publicado.
+        app.launchArguments = ["-FRILA_SEM_SESSAO"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.digitarEEsperar("existente@frila.app")
+        tocar(app.buttons["entrada-receber-codigo"])
+        let codigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
+
+        // Vai ao e-mail buscar o código e volta.
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 10))
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+
+        XCTAssertTrue(codigo.waitForExistence(timeout: 10), "a tela do código deve continuar aberta")
+        XCTAssertFalse(app.textFields["entrada-email"].exists)
+        codigo.tap()
+        codigo.typeText("123456")
+        tocar(app.buttons["codigo-entrar"])
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+    }
+
     func testContaExistentePulaCadastroEAbreVagas() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "success"]
