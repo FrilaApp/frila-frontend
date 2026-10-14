@@ -1,6 +1,7 @@
 import Foundation
 import FrilaDominio
 import Testing
+import XCTest
 
 /// A conferência que a extensão de serviço de notificação faz antes de o sistema mostrar o push
 /// (#253). A extensão em si é só a cola com o `UNNotificationServiceExtension`; a regra está em
@@ -103,5 +104,94 @@ struct NotificationServiceTests {
 
         armazenamento.guardar(nil)
         #expect(armazenamento.ler() == nil)
+    }
+}
+
+// MARK: - Suíte XCTest (cartão h6RoObK6 / #253)
+
+final class NotificationServiceXCTestCase: XCTestCase {
+    private let vinculoAtivo = UUID(uuidString: "4d2f6c1a-9b3e-4e7a-8c5d-2f1b0a9e8d7c")!
+    private let outroVinculo = UUID(uuidString: "aaaaaaaa-0000-0000-0000-000000000001")!
+    private let vagaID = "a5a98fd8-fd4e-4c5e-9fbd-37a1a6c0e000"
+
+    private func aviso(vinculo: String?) -> ConteudoDoPush {
+        var payload = ["tipo": "vaga", "vaga_id": vagaID, "gcm.message_id": "123"]
+        payload[FiltroDoPushPorVinculo.chaveDoVinculo] = vinculo
+        return ConteudoDoPush(titulo: "Vaga de garçom", subtitulo: "Bar do Zé", corpo: "Sexta, 19h às 23h, R$ 180", payload: payload)
+    }
+
+    func testMesmoVinculoExibeNormal() {
+        let original = aviso(vinculo: vinculoAtivo.uuidString.lowercased())
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: original.payload, vinculoAtivo: vinculoAtivo), .manter)
+        XCTAssertEqual(FiltroDoPushPorVinculo.filtrar(original, vinculoAtivo: vinculoAtivo), original)
+    }
+
+    func testMesmoVinculoEmMaiusculasExibeNormal() {
+        let original = aviso(vinculo: vinculoAtivo.uuidString.uppercased())
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: original.payload, vinculoAtivo: vinculoAtivo), .manter)
+        XCTAssertEqual(FiltroDoPushPorVinculo.filtrar(original, vinculoAtivo: vinculoAtivo), original)
+    }
+
+    func testOutroVinculoNeutralizaAviso() {
+        let original = aviso(vinculo: outroVinculo.uuidString)
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: original.payload, vinculoAtivo: vinculoAtivo), .neutralizar)
+        let filtrado = FiltroDoPushPorVinculo.filtrar(original, vinculoAtivo: vinculoAtivo)
+        XCTAssertEqual(filtrado, ConteudoDoPush(titulo: FiltroDoPushPorVinculo.tituloNeutro, subtitulo: "", corpo: FiltroDoPushPorVinculo.corpoNeutro, payload: [:]))
+    }
+
+    func testSemSessaoNeutralizaAvisoComVinculo() {
+        let original = aviso(vinculo: vinculoAtivo.uuidString)
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: original.payload, vinculoAtivo: nil), .neutralizar)
+        XCTAssertEqual(FiltroDoPushPorVinculo.filtrar(original, vinculoAtivo: nil).corpo, FiltroDoPushPorVinculo.corpoNeutro)
+    }
+
+    func testVinculoInvalidoNeutralizaAviso() {
+        let avisoInvalido = aviso(vinculo: "nao-e-uuid")
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: avisoInvalido.payload, vinculoAtivo: vinculoAtivo), .neutralizar)
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: avisoInvalido.payload, vinculoAtivo: nil), .neutralizar)
+    }
+
+    func testSemVinculoNoAvisoExibeNormalLegado() {
+        let original = aviso(vinculo: nil)
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: original.payload, vinculoAtivo: vinculoAtivo), .manter)
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: original.payload, vinculoAtivo: nil), .manter)
+        XCTAssertEqual(FiltroDoPushPorVinculo.filtrar(original, vinculoAtivo: nil), original)
+    }
+
+    func testUserInfoDoSistemaMantemOuNeutraliza() {
+        let userInfoOutro: [AnyHashable: Any] = [
+            "aps": ["alert": ["title": "Vaga de garçom"], "mutable-content": 1],
+            "tipo": "vaga",
+            FiltroDoPushPorVinculo.chaveDoVinculo: outroVinculo.uuidString,
+        ]
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: userInfoOutro, vinculoAtivo: vinculoAtivo), .neutralizar)
+        XCTAssertEqual(FiltroDoPushPorVinculo.decidir(payload: userInfoOutro, vinculoAtivo: outroVinculo), .manter)
+    }
+
+    func testTextoNeutroNaoVazaDadosSensiveis() {
+        XCTAssertFalse(FiltroDoPushPorVinculo.tituloNeutro.isEmpty)
+        XCTAssertFalse(FiltroDoPushPorVinculo.corpoNeutro.isEmpty)
+        let neutro = FiltroDoPushPorVinculo.filtrar(aviso(vinculo: outroVinculo.uuidString), vinculoAtivo: nil)
+        for sensivel in ["garçom", "Zé", "R$", vagaID] {
+            XCTAssertFalse(neutro.titulo.contains(sensivel))
+            XCTAssertFalse(neutro.corpo.contains(sensivel))
+        }
+    }
+
+    func testGravacaoELeituraNoAppGroup() {
+        let grupo = "group.com.frila.org.app.teste.\(UUID().uuidString)"
+        let armazenamento = VinculoNoGrupoDoApp(grupo: grupo)
+        defer { UserDefaults(suiteName: grupo)?.removePersistentDomain(forName: grupo) }
+
+        XCTAssertNil(armazenamento.ler())
+        armazenamento.guardar(vinculoAtivo)
+        XCTAssertEqual(armazenamento.ler(), vinculoAtivo)
+        XCTAssertEqual(UserDefaults(suiteName: grupo)?.string(forKey: "vinculo_id"), vinculoAtivo.uuidString.lowercased())
+
+        let outraInstancia = VinculoNoGrupoDoApp(grupo: grupo)
+        XCTAssertEqual(outraInstancia.ler(), vinculoAtivo)
+
+        armazenamento.guardar(nil)
+        XCTAssertNil(armazenamento.ler())
     }
 }
