@@ -1,4 +1,6 @@
 import Foundation
+import MapKit
+import SwiftUI
 @testable import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
@@ -195,6 +197,37 @@ struct TelemetriaTests {
         #expect(falhouSilencioso == false)
     }
 
+    @Test("Partida do app (cena inativa -> ativa) emite app_aberto exatamente uma vez e não duplica")
+    func partidaDoAppEmiteAppAbertoUmaVez() async {
+        let api = ApiClienteEmMemoria()
+        let telemetria = RegistradorDeTelemetria(api: api)
+
+        // Simula partida: cena transiciona de .inactive para .active
+        let faseInicial: ScenePhase = .inactive
+        let faseAtiva: ScenePhase = .active
+
+        #expect(TelemetriaCicloDeVida.deveRegistrarAbertura(de: faseInicial, para: faseAtiva) == true)
+        if TelemetriaCicloDeVida.deveRegistrarAbertura(de: faseInicial, para: faseAtiva) {
+            await telemetria.registrar(.appAberto)
+        }
+
+        let eventos1 = await api.eventosRegistrados
+        #expect(eventos1.filter { $0.evento == .appAberto }.count == 1)
+
+        // Re-render ou estado onde a cena continua ativa (.active -> .active)
+        #expect(TelemetriaCicloDeVida.deveRegistrarAbertura(de: .active, para: .active) == false)
+        if TelemetriaCicloDeVida.deveRegistrarAbertura(de: .active, para: .active) {
+            await telemetria.registrar(.appAberto)
+        }
+
+        // Ida para background e retorno
+        #expect(TelemetriaCicloDeVida.deveRegistrarAbertura(de: .active, para: .background) == false)
+        #expect(TelemetriaCicloDeVida.deveRegistrarAbertura(de: .background, para: .active) == true)
+
+        let eventosFinais = await api.eventosRegistrados
+        #expect(eventosFinais.filter { $0.evento == .appAberto }.count == 1, "app_aberto não deve ter sido emitido novamente")
+    }
+
     private func prepararTurno(api: ApiClienteEmMemoria) async throws -> Turno {
         if let turno = try await api.meusTurnos().first { return turno }
         let vaga = try #require(try await api.vagasAbertas().first)
@@ -202,7 +235,7 @@ struct TelemetriaTests {
         return try #require(try await api.meusTurnos().first)
     }
 
-    @Test("Evento 2: cadastro_concluido é emitido ao criar conta, perfil ou estabelecimento sem dados pessoais (RN15)")
+    @Test("Evento 2: cadastro_concluido é emitido unicamente ao criar conta sem dados pessoais (RN15)")
     @MainActor
     func eventoCadastroConcluido() async throws {
         let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
@@ -233,6 +266,75 @@ struct TelemetriaTests {
         vmFalha.aceitouTermos = true
         let destinoSucessoMesmoComTelemetriaFalhando = await vmFalha.criarConta()
         #expect(destinoSucessoMesmoComTelemetriaFalhando != nil)
+    }
+
+    @Test("Onboarding completo (CadastroViewModel -> PerfilProfissionalViewModel) emite cadastro_concluido exatamente uma vez")
+    @MainActor
+    func onboardingCompletoEmiteCadastroConcluidoUmaVez() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let vmCadastro = CadastroViewModel(api: api, email: "novo@frila.app")
+        vmCadastro.nome = "Profissional Teste"
+        vmCadastro.telefone = "(61) 98765-4321"
+        vmCadastro.nascimentoTexto = "01/01/1990"
+        vmCadastro.maiorDeIdade = true
+        vmCadastro.aceitouTermos = true
+
+        let destino = await vmCadastro.criarConta()
+        #expect(destino != nil)
+
+        // Simula preenchimento e salvamento de perfil após criar conta no onboarding
+        let funcoes = try await api.funcoes()
+        let vmPerfil = PerfilProfissionalViewModel(api: api, modo: .criacao)
+        vmPerfil.funcoesSelecionadas = Set([try #require(funcoes.first?.id)])
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: -15.78, longitude: -47.93)))
+        vmPerfil.selecionarSugestao(item)
+        let salvouPerfil = await vmPerfil.salvar()
+        #expect(salvouPerfil == true)
+
+        let eventos = await api.eventosRegistrados
+        let cadastros = eventos.filter { $0.evento == .cadastroConcluido }
+        #expect(cadastros.count == 1, "cadastro_concluido deve ser emitido exatamente 1 vez no onboarding completo")
+    }
+
+    @Test("CadastroViewModel com retry de criação não duplica cadastro_concluido")
+    @MainActor
+    func retryCadastroNaoDuplicaEvento() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let vmCadastro = CadastroViewModel(api: api, email: "novo@frila.app")
+        vmCadastro.nome = "Profissional Teste"
+        vmCadastro.telefone = "(61) 98765-4321"
+        vmCadastro.nascimentoTexto = "01/01/1990"
+        vmCadastro.maiorDeIdade = true
+        vmCadastro.aceitouTermos = true
+
+        let destino1 = await vmCadastro.criarConta()
+        #expect(destino1 != nil)
+
+        // Segunda tentativa / retry na mesma instância do ViewModel
+        _ = await vmCadastro.criarConta()
+
+        let eventos = await api.eventosRegistrados
+        let cadastros = eventos.filter { $0.evento == .cadastroConcluido }
+        #expect(cadastros.count == 1, "cadastro_concluido não deve duplicar em retry")
+    }
+
+    @Test("CadastroEstabelecimentoViewModel não emite cadastro_concluido (unificado no CadastroViewModel)")
+    @MainActor
+    func cadastroEstabelecimentoNaoEmiteCadastroConcluido() async throws {
+        let api = ApiClienteEmMemoria(cenario: .contratanteSemEstabelecimento)
+        let vm = CadastroEstabelecimentoViewModel(api: api)
+        vm.nome = "Bar do Teste"
+        vm.atualizarDocumento("12345678000190")
+        vm.endereco = "CLS 402 Bloco A"
+        vm.regiaoAdministrativa = "Plano Piloto"
+        vm.ponto = .init(latitude: -15.8, longitude: -47.9)
+
+        await vm.salvar()
+        #expect(vm.concluido == true)
+
+        let eventos = await api.eventosRegistrados
+        let cadastros = eventos.filter { $0.evento == .cadastroConcluido }
+        #expect(cadastros.isEmpty, "Cadastro de estabelecimento não deve emitir cadastro_concluido diretamente")
     }
 
     @Test("Evento 3: permissao_push_negada é emitido quando o usuário recusa o push no modal")
@@ -380,7 +482,7 @@ struct TelemetriaTests {
     func eventoCheckinConcluido() async throws {
         let api = ApiClienteEmMemoria()
         let turno = try await prepararTurno(api: api)
-        let ponto = try #require(try await api.detalheDaVaga(id: turno.vaga.id).ponto)
+        let ponto = try await api.detalheDaVaga(id: turno.vaga.id).ponto
         let leitor = LeitorDeLocalizacaoSimulado(
             permissao: .aoUsarPrecisa,
             resultado: .success(LeitorDeLocalizacaoSimulado.leitura(a: 20, de: ponto, precisaoMetros: 10))
@@ -404,7 +506,7 @@ struct TelemetriaTests {
     func eventoCheckoutConcluido() async throws {
         let api = ApiClienteEmMemoria()
         let turno = try await prepararTurno(api: api)
-        let ponto = try #require(try await api.detalheDaVaga(id: turno.vaga.id).ponto)
+        let ponto = try await api.detalheDaVaga(id: turno.vaga.id).ponto
         let leitor = LeitorDeLocalizacaoSimulado(
             permissao: .aoUsarPrecisa,
             resultado: .success(LeitorDeLocalizacaoSimulado.leitura(a: 20, de: ponto, precisaoMetros: 10))

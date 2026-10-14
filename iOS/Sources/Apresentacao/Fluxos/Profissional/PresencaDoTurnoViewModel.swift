@@ -69,6 +69,9 @@ public final class PresencaDoTurnoViewModel {
     private let aoRegistrar: @MainActor () -> Void
     private var pontoDaVaga: Coordenada?
     private var toque: Date?
+    private var jaEmitiuCheckinConcluido = false
+    private var jaEmitiuCheckoutConcluido = false
+    private var jaEmitiuEnfileiramento = false
 
     public init(
         turno: Turno,
@@ -274,10 +277,16 @@ public final class PresencaDoTurnoViewModel {
             switch registro {
             case .checkin:
                 checkin = .registrado(feito)
-                await telemetria?.registrar(.checkinConcluido, turnoID: turno.id, ocorridoEm: feito.instante)
+                if !jaEmitiuCheckinConcluido {
+                    jaEmitiuCheckinConcluido = true
+                    await telemetria?.registrar(.checkinConcluido, turnoID: turno.id, ocorridoEm: feito.instante)
+                }
             case .checkout:
                 checkout = .registrado(RegistroFeito(instante: feito.instante, distanciaMetros: feito.distanciaMetros, manual: false))
-                await telemetria?.registrar(.checkoutConcluido, turnoID: turno.id, ocorridoEm: feito.instante)
+                if !jaEmitiuCheckoutConcluido {
+                    jaEmitiuCheckoutConcluido = true
+                    await telemetria?.registrar(.checkoutConcluido, turnoID: turno.id, ocorridoEm: feito.instante)
+                }
             }
             verificacao = resultado.verificacao
             try? await fila?.resolverRecusas(AcaoPendente(
@@ -308,7 +317,10 @@ public final class PresencaDoTurnoViewModel {
         )
         do {
             try await fila.enfileirar(acao)
-            await telemetria?.registrar(.acaoEnfileiradaOffline, turnoID: turno.id, ocorridoEm: toque)
+            if !jaEmitiuEnfileiramento {
+                jaEmitiuEnfileiramento = true
+                await telemetria?.registrar(.acaoEnfileiradaOffline, turnoID: turno.id, ocorridoEm: toque)
+            }
         } catch {
             mensagemDeErro = TextosDoProfissional.Presenca.falhaAoGuardar
             return

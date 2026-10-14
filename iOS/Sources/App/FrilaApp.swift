@@ -342,7 +342,6 @@ private struct EntradaDoApp: View {
         }
         .task { await avaliarSessao() }
         .task { await permissaoDePush.atualizar() }
-        .task { await telemetria.registrar(.appAberto) }
         // O token de push passa a ser da conta que está no aparelho, a cada abertura com sessão e a
         // cada entrada (#162). Sem token, ainda não há o que registrar. O roteador do push fica
         // sabendo de quem é o aparelho antes do registro, com o vínculo guardado, para o toque que
@@ -380,10 +379,10 @@ private struct EntradaDoApp: View {
         }
         // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
-        .onChange(of: fase) { _, nova in
+        .onChange(of: fase) { antiga, nova in
             if nova == .active, destinoAtual == nil { Task { await avaliarSessao() } }
             // A pessoa pode ter mudado a permissão de notificação nos Ajustes.
-            if nova == .active {
+            if TelemetriaCicloDeVida.deveRegistrarAbertura(de: antiga, para: nova) {
                 Task { await permissaoDePush.atualizar() }
                 Task { await telemetria.registrar(.appAberto) }
             }

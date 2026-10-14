@@ -77,6 +77,7 @@ public final class CandidaturaViewModel {
     private let enviar: @Sendable (UUID) async throws -> ResultadoCandidatura
     private let minhasPendentes: (@Sendable () async throws -> [Candidatura])?
     private let telemetria: RegistradorDeTelemetria?
+    private var jaEmitiuEnvio = false
 
     public convenience init(vaga: Vaga, api: any ApiCliente, telemetria: RegistradorDeTelemetria? = nil) {
         self.init(
@@ -118,6 +119,7 @@ public final class CandidaturaViewModel {
         guard !enviando else { return }
         candidaturaPendente = nil
         retirouAgora = true
+        jaEmitiuEnvio = false
         estado = .ocioso
     }
 
@@ -132,7 +134,8 @@ public final class CandidaturaViewModel {
         let resultado: ResultadoDaCandidatura
         do {
             let resposta = try await enviar(vaga.id)
-            if resposta.estado == .confirmada || resposta.estado == .pendente {
+            if (resposta.estado == .confirmada || resposta.estado == .pendente), !jaEmitiuEnvio {
+                jaEmitiuEnvio = true
                 await telemetria?.registrar(.candidaturaEnviada, vagaID: vaga.id)
             }
             if resposta.estado == .confirmada, let turnoID = resposta.turnoID, let contato = resposta.contato {

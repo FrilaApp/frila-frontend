@@ -8,6 +8,7 @@ public final class CadastroViewModel {
     private let relogio: any Relogio
     private let verificadorDeIdade: any VerificadorDeIdade
     private let telemetria: RegistradorDeTelemetria?
+    private var jaEmitiuCadastro = false
     public let email: String
 
     public var perfil: PerfilConta = .profissional
@@ -97,7 +98,10 @@ public final class CadastroViewModel {
 
         do {
             let conta = try await api.criarConta(cadastro)
-            await telemetria?.registrar(.cadastroConcluido)
+            if !jaEmitiuCadastro {
+                jaEmitiuCadastro = true
+                await telemetria?.registrar(.cadastroConcluido)
+            }
             switch conta.perfil {
             case .profissional:
                 DestinoGuardado.salvar(.funcoesEHorarios)

@@ -160,6 +160,7 @@ public final class AvaliacaoTurnoViewModel {
     private var acaoOfflineID: UUID?
     public private(set) var recusaDaFila: AcaoRecusada?
     private var recusaExibidaID: UUID?
+    private var jaEmitiuAvaliacao = false
 
     public init(
         turnoID: UUID,
@@ -317,7 +318,10 @@ public final class AvaliacaoTurnoViewModel {
             jaAvaliado = true
             sucesso = true
             mensagemDeSucesso = TextosDoProfissional.Avaliacao.avaliadoSucesso
-            await telemetria?.registrar(.avaliacaoEnviada, turnoID: turnoID)
+            if !jaEmitiuAvaliacao {
+                jaEmitiuAvaliacao = true
+                await telemetria?.registrar(.avaliacaoEnviada, turnoID: turnoID)
+            }
             recusaDaFila = nil
             try? await fila?.resolverRecusas(AcaoPendente(
                 tipo: .avaliacao, turnoID: turnoID, contaID: contaID,

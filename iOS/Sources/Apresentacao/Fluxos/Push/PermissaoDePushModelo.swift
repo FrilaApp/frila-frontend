@@ -26,6 +26,7 @@ public final class PermissaoDePushModelo {
     private let permissao: any PermissaoDePush
     private let telemetria: RegistradorDeTelemetria?
     private let abrirAjustesDoSistema: @MainActor () -> Void
+    private var jaEmitiuNegada = false
 
     public init(
         permissao: any PermissaoDePush,
@@ -73,7 +74,8 @@ public final class PermissaoDePushModelo {
         defer { pedindo = false }
         estado = await permissao.pedir()
         explicacaoVisivel = false
-        if estado == .negada {
+        if estado == .negada, !jaEmitiuNegada {
+            jaEmitiuNegada = true
             await telemetria?.registrar(.permissaoPushNegada)
         }
     }

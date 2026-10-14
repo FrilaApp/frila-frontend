@@ -90,6 +90,7 @@ public final class CancelamentoViewModel: Identifiable {
     private let telemetria: RegistradorDeTelemetria?
     private let executar: @Sendable (String) async throws -> DesfechoDoCancelamento
     private let aoConcluir: @MainActor (DesfechoDoCancelamento) -> Void
+    private var jaEmitiuEnfileiramento = false
 
     /// RN12: cancelamento do profissional a menos de 24 horas do início conta como falta.
     public static let antecedenciaSemFalta: TimeInterval = 24 * 60 * 60
@@ -233,7 +234,10 @@ public final class CancelamentoViewModel: Identifiable {
         )
         do {
             try await fila.enfileirar(acao)
-            await telemetria?.registrar(.acaoEnfileiradaOffline, turnoID: turnoID, ocorridoEm: relogio.agora)
+            if !jaEmitiuEnfileiramento {
+                jaEmitiuEnfileiramento = true
+                await telemetria?.registrar(.acaoEnfileiradaOffline, turnoID: turnoID, ocorridoEm: relogio.agora)
+            }
         } catch {
             estado = .falha(TextosDoCancelamento.falhaAoGuardar)
             return

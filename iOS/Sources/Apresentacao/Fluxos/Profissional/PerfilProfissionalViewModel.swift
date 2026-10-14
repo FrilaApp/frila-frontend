@@ -26,19 +26,16 @@ public final class PerfilProfissionalViewModel {
     public private(set) var sucesso: Bool = false
 
     private let api: any ApiCliente
-    private let telemetria: RegistradorDeTelemetria?
     private let buscarPontoBase: (@MainActor (String) async throws -> [MKMapItem])?
 
     public init(
         api: any ApiCliente,
         modo: Modo = .criacao,
-        buscarPontoBase: (@MainActor (String) async throws -> [MKMapItem])? = nil,
-        telemetria: RegistradorDeTelemetria? = nil
+        buscarPontoBase: (@MainActor (String) async throws -> [MKMapItem])? = nil
     ) {
         self.api = api
         self.modo = modo
         self.buscarPontoBase = buscarPontoBase
-        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
     }
 
     public func carregar() async {
@@ -217,7 +214,6 @@ public final class PerfilProfissionalViewModel {
                 self.perfilSalvo = perfil
                 self.modo = .edicao
                 self.sucesso = true
-                await telemetria?.registrar(.cadastroConcluido)
                 return true
 
             case .edicao:
