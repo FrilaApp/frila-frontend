@@ -1061,3 +1061,45 @@ public struct CriteriosDeNotificacao: Codable, Hashable, Sendable {
     /// vez de mostrar três seções vazias.
     public var semCriterios: Bool { funcoes.isEmpty && disponibilidades.isEmpty && equipesDeConfianca.isEmpty }
 }
+
+// MARK: - Telemetria (RN15, RNF08, contrato 0.2.41)
+
+/// Dicionário estrito e fechado de eventos de telemetria do app (contrato 0.2.41, RN15, RNF08, T-0017).
+/// Não aceita texto livre nem parâmetros arbitrários.
+public enum EventoDeTelemetria: String, Codable, CaseIterable, Sendable {
+    case appAberto = "app_aberto"
+    case cadastroConcluido = "cadastro_concluido"
+    case permissaoPushNegada = "permissao_push_negada"
+    case vagaVista = "vaga_vista"
+    case vagaDetalheAberto = "vaga_detalhe_aberto"
+    case candidaturaEnviada = "candidatura_enviada"
+    case candidaturaRetirada = "candidatura_retirada"
+    case checkinTentado = "checkin_tentado"
+    case checkinConcluido = "checkin_concluido"
+    case checkoutConcluido = "checkout_concluido"
+    case avaliacaoEnviada = "avaliacao_enviada"
+    case contatoAberto = "contato_aberto"
+    case acaoEnfileiradaOffline = "acao_enfileirada_offline"
+    case atualizacaoObrigatoriaExibida = "atualizacao_obrigatoria_exibida"
+}
+
+/// Registro de evento de telemetria com identificadores relacionais opcionais e instante de ocorrência.
+public struct RegistroDeEvento: Equatable, Sendable {
+    public let evento: EventoDeTelemetria
+    public let vagaID: UUID?
+    public let turnoID: UUID?
+    public let ocorridoEm: Date?
+
+    public init(
+        evento: EventoDeTelemetria,
+        vagaID: UUID? = nil,
+        turnoID: UUID? = nil,
+        ocorridoEm: Date? = nil
+    ) {
+        self.evento = evento
+        self.vagaID = vagaID
+        self.turnoID = turnoID
+        self.ocorridoEm = ocorridoEm
+    }
+}
+

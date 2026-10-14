@@ -371,12 +371,32 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// Antes de encerrar a sessão, que é quem autoriza a chamada. Só tira o token da própria conta,
     /// e o token que não estava registrado não é erro.
     func removerDispositivo(tokenFCM: String) async throws
+
+    // Telemetria (RN15, RNF08, contrato 0.2.41)
+    /// Registra um evento de telemetria do dicionário fechado (RPC registrar_evento, contrato 0.2.41).
+    /// Sem texto livre nem dado pessoal (RN15). Devolve true quando registrado pelo servidor.
+    func registrarEvento(_ registro: RegistroDeEvento) async throws -> Bool
     func sair(tokenFCM: String?) async
 }
 
 public extension ApiCliente {
     func vagasAbertas() async throws -> [VagaNaLista] { try await vagasAbertas(.todas) }
     func minhasCandidaturas() async throws -> [Candidatura] { try await minhasCandidaturas(estado: nil) }
+
+    /// Conveniência para registrar evento de telemetria com parâmetros diretos.
+    func registrarEvento(
+        _ evento: EventoDeTelemetria,
+        vagaID: UUID? = nil,
+        turnoID: UUID? = nil,
+        ocorridoEm: Date? = nil
+    ) async throws -> Bool {
+        try await registrarEvento(RegistroDeEvento(
+            evento: evento,
+            vagaID: vagaID,
+            turnoID: turnoID,
+            ocorridoEm: ocorridoEm
+        ))
+    }
 }
 
 public protocol VagaRepositorio: Sendable {
