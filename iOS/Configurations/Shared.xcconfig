@@ -1,6 +1,15 @@
 FRILA_BUNDLE_ID = com.frila.org.app
 FRILA_APP_STORE_URL = https:/$()/apps.apple.com/app/id6815311991
 
+// App Group e Bundle ID da extensão de notificação (#253, h6RoObK6):
+FRILA_APP_GROUP_ID = group.com.frila.org.app
+FRILA_NOTIFICATION_SERVICE_BUNDLE_ID = $(FRILA_BUNDLE_ID).notificationservice
+
+// Perfis de provisionamento opcionais (vazios por padrão para assinatura automática):
+// Quando forem criados no portal Apple pelo João Paulo, podem ser informados aqui ou por esquema.
+FRILA_PROVISIONING_PROFILE_APP =
+FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE =
+
 // Vazios de propósito: sem Secrets.xcconfig, Dev e Prod falham na CI e abrem na tela de
 // configuração incompleta, nunca no dublê em memória. Veja Scripts/generate-supabase-secrets.sh.
 FRILA_SUPABASE_DEV_URL =

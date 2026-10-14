@@ -66,6 +66,9 @@ Primeira versão da App Store. Atende o Distrito Federal.
 ### Em todo o app
 - Notificações de vaga nova, confirmação, lembretes do turno, check-in, atraso e cancelamento. O
   toque abre a tela do aviso, e a permissão só é pedida depois de uma explicação (#8).
+- Extensão de serviço de notificação (FrilaNotificationService): neutralização de avisos push de
+  outra conta na tela bloqueada e na central com texto neutro ("Frila — Nova notificação disponível")
+  e supressão de conteúdo sensível via App Group (group.com.frila.org.app) e contrato 0.2.30 (#253, h6RoObK6).
 - Funciona sem conexão: o que já foi carregado continua visível, e as ações ficam na fila até a
   rede voltar (#111).
 - Acessibilidade: alvos de toque do tamanho mínimo e leitura nos maiores tamanhos de texto (#139).

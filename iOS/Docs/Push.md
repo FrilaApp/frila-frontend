@@ -202,9 +202,60 @@ sai da central de notificações (na abertura, a cada mudança do vínculo e ao 
   Ele também **sai da central** no descarte: quem entra perde os próprios avisos desse primeiro
   minuto, e só os vê pelas telas do app.
 
-Só um identificador opaco do destinatário no payload fecha essa janela, com o app conferindo o
-aviso antes de mostrar e de abrir. Isso é mudança de contrato (frila-docs, frila-backend e este
-app, nessa ordem) e decisão do Cauê.
+### Extensão de serviço de notificação (`FrilaNotificationService`, #253, h6RoObK6)
+
+Para fechar a janela da tela bloqueada e do app fechado, o backend manda `mutable-content: 1` e o
+`vinculo_id` opaco em `data` (backend #178, contrato 0.2.30). Antes de o sistema exibir o aviso na
+tela bloqueada ou na central, a extensão `FrilaNotificationService` (`Sources/NotificationService`)
+intercepta a notificação e consulta o `FiltroDoPushPorVinculo` (`Sources/Dominio/VinculoDoPush.swift`),
+comparando o `vinculo_id` do payload ao vínculo ativo guardado pelo app no App Group
+`group.com.frila.org.app` (`VinculoNoGrupoDoApp`):
+
+- **Mesmo `vinculo_id`:** o aviso é da conta ativa no aparelho e é exibido normalmente, com seu
+  conteúdo original e payload preservado.
+- **`vinculo_id` diferente ou sem sessão no aparelho:** o aviso pertence a outra conta que utilizou
+  o iPhone (ou a ninguém dentro). O título e o corpo são substituídos pelo **texto neutro**, e o
+  payload de dados é esvaziado. O toque no aviso neutro apenas abre o app na raiz, sem navegar para
+  detalhes ou expor dados da outra conta.
+- **Constantes de texto neutro:**
+  - Título: `FiltroDoPushPorVinculo.tituloNeutro` (`"Frila"`)
+  - Corpo: `FiltroDoPushPorVinculo.corpoNeutro` (`"Nova notificação disponível"`)
+  - *Nota:* Texto provisório marcado como **pendente de aprovação final do time de Design**.
+- **Aviso sem `vinculo_id` (servidores anteriores à 0.2.30):** segue como veio, mantendo a
+  compatibilidade com o comportamento legado.
+- **Privacidade e logs:** o `vinculo_id` e os dados do push **nunca são logados**. Apenas o `tipo`
+  do aviso (enum público), presença de vínculo e a decisão (`manter` ou `neutralizar`) vão ao log
+  (`com.frila.org.app.notificationservice`).
+
+### Configuração no portal Apple Developer (passo a passo do João Paulo)
+
+Os identificadores e perfis seguem o padrão dos targets existentes. Na esteira de CI e no
+desenvolvimento local sem assinatura, a compilação ocorre normalmente para simulador sem perfis
+reais. Para a geração de builds assinados para aparelho e TestFlight, o João Paulo precisa criar
+no [Apple Developer Portal](https://developer.apple.com/account/resources):
+
+1. **Identifiers → App Groups:**
+   - Registrar o grupo: `group.com.frila.org.app`
+   - Descrição sugerida: `Frila App Group`
+2. **Identifiers → App IDs:**
+   - App principal (`com.frila.org.app`): editar e habilitar a capability **App Groups**, marcando
+     `group.com.frila.org.app`.
+   - Extensão (`com.frila.org.app.notificationservice`): criar um App ID novo do tipo App (Explicit).
+     - Description: `Frila Notification Service`
+     - Bundle ID: `com.frila.org.app.notificationservice`
+     - Capabilities: habilitar **App Groups** e associar `group.com.frila.org.app`.
+     - *Atenção:* a extensão **não** precisa de *Push Notifications*.
+3. **Profiles (Provisionamento Dev / Beta / Prod):**
+   - **Assinatura automática:** com `CODE_SIGN_STYLE = Automatic`, Team ID `8B7F7G3Y2U` e o parâmetro
+     `-allowProvisioningUpdates` utilizado no `Scripts/enviar-testflight.sh`, o Xcode registra e
+     gera os perfis automaticamente assim que os App IDs e o grupo existirem no portal.
+   - **Perfis manuais (se necessário):** se o provisionamento manual for configurado, os perfis
+     podem ser informados via variáveis nos arquivos `.xcconfig` (em `iOS/Configurations/`):
+     - `FRILA_PROVISIONING_PROFILE_APP`
+     - `FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE`
+     (declaradas em `Shared.xcconfig` e mapeadas no `project.yml`). Regenerar os perfis de
+     Development e Distribution para o App principal e criar os dois perfis correspondentes para a
+     extensão de notificação.
 
 ### Simular no esquema Local
 
@@ -245,9 +296,18 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
 3. **App aberto, em segundo plano e fechado.** O toque abre o mesmo destino nos três.
 4. **Reinstalação.** Apague o app, instale de novo e entre: o token novo aparece no servidor, e o
    antigo deixa de receber.
-5. **Duas contas no mesmo iPhone.** Saia da conta A, entre na B e mande um aviso para a A: ele não
-   chega. Mande para a B: chega e abre. Um aviso para a B nos primeiros 60 s depois da entrada não
-   aparece com o app aberto nem abre no toque (carência da troca de conta); depois disso, sim.
+5. **Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6):**
+   - Instalar o build assinado no iPhone e entrar com a Conta A.
+   - Bloquear a tela ou fechar o app. Enviar push para a Conta A com `mutable-content: 1` e `vinculo_id`
+     da Conta A → o aviso aparece com título e corpo originais.
+   - Sair da Conta A e entrar com a Conta B no mesmo aparelho. Bloquear a tela.
+   - Enviar push para a Conta A (com o `vinculo_id` da A) → a extensão intercepta na tela bloqueada e
+     o aviso aparece com o texto neutro: `"Frila — Nova notificação disponível"`. O toque abre o app
+     sem navegar para dados da Conta A.
+   - Enviar push para a Conta B (com o `vinculo_id` da B) → aviso exibido normalmente com título e
+     corpo originais.
+   - Conferir no Console.app (filtrando pelo subsistema `com.frila.org.app.notificationservice`):
+     `push_recebido tipo=... com_vinculo=true sessao=true decisao=manter|neutralizar`.
 6. **Permissão negada.** Negue nos Ajustes e volte ao app: o aviso fixo aparece, e o dispositivo
    sai do servidor.
 7. **Assinatura.** `Scripts/conferir-release.sh` no `.app` do build exportado passa, e
