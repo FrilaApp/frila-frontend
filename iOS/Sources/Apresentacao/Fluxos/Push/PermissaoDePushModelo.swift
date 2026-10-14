@@ -24,11 +24,17 @@ public final class PermissaoDePushModelo {
     public private(set) var jaMostradaNaSessao = false
 
     private let permissao: any PermissaoDePush
+    private let telemetria: RegistradorDeTelemetria?
     private let abrirAjustesDoSistema: @MainActor () -> Void
 
-    public init(permissao: any PermissaoDePush, abrirAjustes: @escaping @MainActor () -> Void = {}) {
+    public init(
+        permissao: any PermissaoDePush,
+        telemetria: RegistradorDeTelemetria? = nil,
+        abrirAjustes: @escaping @MainActor () -> Void = {}
+    ) {
         self.permissao = permissao
-        abrirAjustesDoSistema = abrirAjustes
+        self.telemetria = telemetria
+        self.abrirAjustesDoSistema = abrirAjustes
     }
 
     /// Na abertura e a cada volta ao primeiro plano: a pessoa pode ter mudado a permissão nos Ajustes.
@@ -67,6 +73,9 @@ public final class PermissaoDePushModelo {
         defer { pedindo = false }
         estado = await permissao.pedir()
         explicacaoVisivel = false
+        if estado == .negada {
+            await telemetria?.registrar(.permissaoPushNegada)
+        }
     }
 
     /// "Agora não": a explicação fecha e o sistema não pergunta nada. O pedido fica guardado para

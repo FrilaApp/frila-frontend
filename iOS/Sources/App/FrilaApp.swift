@@ -228,6 +228,7 @@ private struct EntradaDoApp: View {
     let aparelho: AparelhoDePush
     let canal: any CanalDePush
     let verificadorDeIdade: any VerificadorDeIdade
+    private let telemetria: RegistradorDeTelemetria
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador: RoteadorDoProfissional
@@ -249,11 +250,13 @@ private struct EntradaDoApp: View {
     init(_ dependencias: Dependencias, armazenamento: ArmazenamentoSwiftData?, navegacao: NavegacaoDoApp) {
         let api = dependencias.api
         let localizacao = dependencias.localizacao
+        let telemetria = RegistradorDeTelemetria(api: api)
         self.api = api
+        self.telemetria = telemetria
         aparelho = dependencias.aparelho
         canal = dependencias.canal
         verificadorDeIdade = dependencias.verificadorDeIdade
-        _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: dependencias.permissao, abrirAjustes: {
+        _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: dependencias.permissao, telemetria: telemetria, abrirAjustes: {
             guard let ajustes = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
             UIApplication.shared.open(ajustes)
         }))
@@ -339,6 +342,7 @@ private struct EntradaDoApp: View {
         }
         .task { await avaliarSessao() }
         .task { await permissaoDePush.atualizar() }
+        .task { await telemetria.registrar(.appAberto) }
         // O token de push passa a ser da conta que está no aparelho, a cada abertura com sessão e a
         // cada entrada (#162). Sem token, ainda não há o que registrar. O roteador do push fica
         // sabendo de quem é o aparelho antes do registro, com o vínculo guardado, para o toque que
@@ -379,7 +383,10 @@ private struct EntradaDoApp: View {
         .onChange(of: fase) { _, nova in
             if nova == .active, destinoAtual == nil { Task { await avaliarSessao() } }
             // A pessoa pode ter mudado a permissão de notificação nos Ajustes.
-            if nova == .active { Task { await permissaoDePush.atualizar() } }
+            if nova == .active {
+                Task { await permissaoDePush.atualizar() }
+                Task { await telemetria.registrar(.appAberto) }
+            }
         }
         .task {
             guard let observador = api as? any ObservadorDeSessao else { return }

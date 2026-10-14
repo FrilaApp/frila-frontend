@@ -62,15 +62,22 @@ public final class FeedVagasViewModel {
     private let buscarFuncoes: @Sendable () async throws -> [Funcao]
     private let relogio: any Relogio
     private let tamanhoDaPagina: Int
+    private let telemetria: RegistradorDeTelemetria?
+    private var vagasVistasNaSessao: Set<UUID> = []
     /// Cada carga ganha um número; resposta de uma carga antiga (filtro trocado no meio) é descartada.
     private var geracao = 0
     private var carregandoMais = false
 
-    public convenience init(api: any ApiCliente, relogio: any Relogio = RelogioDoSistema()) {
+    public convenience init(
+        api: any ApiCliente,
+        relogio: any Relogio = RelogioDoSistema(),
+        telemetria: RegistradorDeTelemetria? = nil
+    ) {
         self.init(
             buscarVagas: { try await api.vagasAbertas($0) },
             buscarFuncoes: { try await api.funcoes() },
-            relogio: relogio
+            relogio: relogio,
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
         )
     }
 
@@ -78,12 +85,21 @@ public final class FeedVagasViewModel {
         buscarVagas: @escaping @Sendable (FiltroVagas) async throws -> [VagaNaLista],
         buscarFuncoes: @escaping @Sendable () async throws -> [Funcao],
         relogio: any Relogio = RelogioDoSistema(),
-        tamanhoDaPagina: Int = 30
+        tamanhoDaPagina: Int = 30,
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.buscarVagas = buscarVagas
         self.buscarFuncoes = buscarFuncoes
         self.relogio = relogio
         self.tamanhoDaPagina = tamanhoDaPagina
+        self.telemetria = telemetria
+    }
+
+    /// Registra a visualização de um cartão de vaga no feed (apenas uma vez por sessão por vaga).
+    public func registrarVagaVista(id: UUID) async {
+        guard !vagasVistasNaSessao.contains(id) else { return }
+        vagasVistasNaSessao.insert(id)
+        await telemetria?.registrar(.vagaVista, vagaID: id)
     }
 
     /// O filtro que vai para `vagas_abertas`. Sem referência: o servidor usa o ponto base do perfil.

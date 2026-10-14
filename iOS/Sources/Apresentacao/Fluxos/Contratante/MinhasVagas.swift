@@ -699,6 +699,9 @@ private struct TelaDetalheVagaContratante: View {
                                 Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                Task { _ = await RegistradorDeTelemetria(api: api).registrar(.contatoAberto, turnoID: turnoID) }
+                            })
                         }
                     }.accessibilityIdentifier("contato-liberado-\(turnoID)")
                 } else if contatos[posicao.id] != nil {

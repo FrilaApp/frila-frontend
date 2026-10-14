@@ -122,23 +122,27 @@ public final class RetirarCandidaturaViewModel {
 
     private let enviar: @Sendable (UUID) async throws -> Candidatura
     private let minhasCandidaturas: @Sendable () async throws -> [Candidatura]
+    private let telemetria: RegistradorDeTelemetria?
 
-    public convenience init(candidaturaID: UUID, api: any ApiCliente) {
+    public convenience init(candidaturaID: UUID, api: any ApiCliente, telemetria: RegistradorDeTelemetria? = nil) {
         self.init(
             candidaturaID: candidaturaID,
             retirar: { try await api.retirarCandidatura(id: $0) },
-            minhasCandidaturas: { try await api.minhasCandidaturas() }
+            minhasCandidaturas: { try await api.minhasCandidaturas() },
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
         )
     }
 
     public init(
         candidaturaID: UUID,
         retirar: @escaping @Sendable (UUID) async throws -> Candidatura,
-        minhasCandidaturas: @escaping @Sendable () async throws -> [Candidatura]
+        minhasCandidaturas: @escaping @Sendable () async throws -> [Candidatura],
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.candidaturaID = candidaturaID
         self.enviar = retirar
         self.minhasCandidaturas = minhasCandidaturas
+        self.telemetria = telemetria
     }
 
     public var retirando: Bool { estado == .retirando }
@@ -158,6 +162,7 @@ public final class RetirarCandidaturaViewModel {
             let candidatura = try await enviar(candidaturaID)
             if candidatura.estado == .retirada {
                 estado = .retirada
+                await telemetria?.registrar(.candidaturaRetirada, vagaID: candidatura.vaga.id)
             } else {
                 // O contrato só devolve a retirada; qualquer outro estado é a resposta que a casa já deu.
                 estado = .indisponivel

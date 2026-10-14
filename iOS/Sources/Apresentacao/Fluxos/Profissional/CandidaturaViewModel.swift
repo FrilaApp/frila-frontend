@@ -76,23 +76,27 @@ public final class CandidaturaViewModel {
     public private(set) var conferindo = false
     private let enviar: @Sendable (UUID) async throws -> ResultadoCandidatura
     private let minhasPendentes: (@Sendable () async throws -> [Candidatura])?
+    private let telemetria: RegistradorDeTelemetria?
 
-    public convenience init(vaga: Vaga, api: any ApiCliente) {
+    public convenience init(vaga: Vaga, api: any ApiCliente, telemetria: RegistradorDeTelemetria? = nil) {
         self.init(
             vaga: vaga,
             candidatar: { try await api.candidatar(vagaID: $0) },
-            minhasPendentes: { try await api.minhasCandidaturas(estado: .pendente) }
+            minhasPendentes: { try await api.minhasCandidaturas(estado: .pendente) },
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
         )
     }
 
     public init(
         vaga: Vaga,
         candidatar: @escaping @Sendable (UUID) async throws -> ResultadoCandidatura,
-        minhasPendentes: (@Sendable () async throws -> [Candidatura])? = nil
+        minhasPendentes: (@Sendable () async throws -> [Candidatura])? = nil,
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.vaga = vaga
         self.enviar = candidatar
         self.minhasPendentes = minhasPendentes
+        self.telemetria = telemetria
     }
 
     public var enviando: Bool { estado == .enviando }
@@ -128,6 +132,9 @@ public final class CandidaturaViewModel {
         let resultado: ResultadoDaCandidatura
         do {
             let resposta = try await enviar(vaga.id)
+            if resposta.estado == .confirmada || resposta.estado == .pendente {
+                await telemetria?.registrar(.candidaturaEnviada, vagaID: vaga.id)
+            }
             if resposta.estado == .confirmada, let turnoID = resposta.turnoID, let contato = resposta.contato {
                 try? await cache?.salvar(contato: contato, doTurno: turnoID)
             }

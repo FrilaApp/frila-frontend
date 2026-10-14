@@ -87,6 +87,7 @@ public final class CancelamentoViewModel: Identifiable {
 
     private let relogio: any Relogio
     private let fila: (any FilaDeAcoes)?
+    private let telemetria: RegistradorDeTelemetria?
     private let executar: @Sendable (String) async throws -> DesfechoDoCancelamento
     private let aoConcluir: @MainActor (DesfechoDoCancelamento) -> Void
 
@@ -100,7 +101,8 @@ public final class CancelamentoViewModel: Identifiable {
         relogio: any Relogio = RelogioDoSistema(),
         fila: (any FilaDeAcoes)? = nil,
         executar: @escaping @Sendable (String) async throws -> DesfechoDoCancelamento,
-        aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in }
+        aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in },
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.lado = lado
         self.alvo = alvo
@@ -109,6 +111,7 @@ public final class CancelamentoViewModel: Identifiable {
         self.fila = fila
         self.executar = executar
         self.aoConcluir = aoConcluir
+        self.telemetria = telemetria
     }
 
     /// A folha de uma posição, chamando `cancelar_posicao`.
@@ -120,12 +123,14 @@ public final class CancelamentoViewModel: Identifiable {
         api: any ApiCliente,
         relogio: any Relogio = RelogioDoSistema(),
         fila: (any FilaDeAcoes)? = nil,
-        aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in }
+        aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in },
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.init(
             lado: lado, alvo: .posicao(id: posicaoID, turnoID: turnoID), periodo: periodo, relogio: relogio, fila: fila,
             executar: { .posicao(try await api.cancelarPosicao(id: posicaoID, motivo: $0)) },
-            aoConcluir: aoConcluir
+            aoConcluir: aoConcluir,
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
         )
     }
 
@@ -136,12 +141,14 @@ public final class CancelamentoViewModel: Identifiable {
         api: any ApiCliente,
         relogio: any Relogio = RelogioDoSistema(),
         fila: (any FilaDeAcoes)? = nil,
-        aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in }
+        aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in },
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.init(
             lado: .contratante, alvo: .vaga(id: vagaID), periodo: periodo, relogio: relogio, fila: fila,
             executar: { .vaga(try await api.cancelarVaga(id: vagaID, motivo: $0)) },
-            aoConcluir: aoConcluir
+            aoConcluir: aoConcluir,
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
         )
     }
 
@@ -226,6 +233,7 @@ public final class CancelamentoViewModel: Identifiable {
         )
         do {
             try await fila.enfileirar(acao)
+            await telemetria?.registrar(.acaoEnfileiradaOffline, turnoID: turnoID, ocorridoEm: relogio.agora)
         } catch {
             estado = .falha(TextosDoCancelamento.falhaAoGuardar)
             return

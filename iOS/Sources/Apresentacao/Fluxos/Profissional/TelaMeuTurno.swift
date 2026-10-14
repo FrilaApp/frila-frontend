@@ -232,6 +232,9 @@ public struct TelaMeuTurno: View {
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                     }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        Task { await viewModel.registrarContatoAberto() }
+                    })
                     .accessibilityIdentifier("botao-whatsapp")
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
                     #if DEBUG

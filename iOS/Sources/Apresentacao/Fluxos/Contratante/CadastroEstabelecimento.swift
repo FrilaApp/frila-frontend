@@ -54,13 +54,16 @@ public final class CadastroEstabelecimentoViewModel {
     public private(set) var concluido = false
     public private(set) var estabelecimentoCriado: Estabelecimento?
     private let cadastrar: (CadastroEstabelecimento) async throws -> Estabelecimento
+    private let telemetria: RegistradorDeTelemetria?
 
-    public init(api: any ApiCliente) {
+    public init(api: any ApiCliente, telemetria: RegistradorDeTelemetria? = nil) {
         cadastrar = { try await api.cadastrarEstabelecimento($0) }
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
     }
 
-    public init(cadastrar: @escaping (CadastroEstabelecimento) async throws -> Estabelecimento) {
+    public init(cadastrar: @escaping (CadastroEstabelecimento) async throws -> Estabelecimento, telemetria: RegistradorDeTelemetria? = nil) {
         self.cadastrar = cadastrar
+        self.telemetria = telemetria
     }
 
     public var documentoFormatado: String {
@@ -104,6 +107,7 @@ public final class CadastroEstabelecimentoViewModel {
         do {
             estabelecimentoCriado = try await cadastrar(CadastroEstabelecimento(nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), documento: documento, tipo: tipo, endereco: endereco, regiaoAdministrativa: regiao, ponto: coordenada))
             concluido = true
+            await telemetria?.registrar(.cadastroConcluido)
         } catch let api as ErroDaApi {
             switch api.codigo {
             case .documentoJaCadastrado: erro = .documentoDuplicado

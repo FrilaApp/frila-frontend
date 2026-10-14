@@ -19,11 +19,19 @@ public final class AtualizacaoObrigatoriaViewModel {
     private let api: any ApiCliente
     private let versaoAtual: String
     private let prazo: Duration
+    private let telemetria: RegistradorDeTelemetria?
+    private var jaEmitiuBloqueio = false
 
-    public init(api: any ApiCliente, versaoAtual: String, prazo: Duration = AtualizacaoObrigatoriaViewModel.prazoPadrao) {
+    public init(
+        api: any ApiCliente,
+        versaoAtual: String,
+        prazo: Duration = AtualizacaoObrigatoriaViewModel.prazoPadrao,
+        telemetria: RegistradorDeTelemetria? = nil
+    ) {
         self.api = api
         self.versaoAtual = versaoAtual
         self.prazo = prazo
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
     }
 
     /// Libera o app quando a resposta chega, quando a chamada falha ou quando o prazo vence, o que
@@ -40,6 +48,10 @@ public final class AtualizacaoObrigatoriaViewModel {
             let configuracao = try await api.configuracaoDoApp()
             if Self.comparar(versaoAtual, com: configuracao.versaoMinima) == .orderedAscending {
                 estado = .bloqueado(mensagem: configuracao.mensagem ?? String(localized: "Atualize o Frila para continuar.", bundle: bundleApresentacao), url: configuracao.urlDaLoja)
+                if !jaEmitiuBloqueio {
+                    jaEmitiuBloqueio = true
+                    await telemetria?.registrar(.atualizacaoObrigatoriaExibida)
+                }
             } else {
                 estado = .liberado
             }
