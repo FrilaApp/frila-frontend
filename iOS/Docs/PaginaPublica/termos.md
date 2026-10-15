@@ -1,21 +1,18 @@
 # Termos de Uso — Frila
 
-**Última atualização:** 12 de outubro de 2026.
-
 Bem-vindo aos Termos de Uso do **Frila**. Ao criar uma conta, acessar ou utilizar o aplicativo Frila para iOS e seus serviços associados, você concorda expressamente com as disposições estabelecidas neste documento. Se você não concordar com estes termos, não deverá utilizar a plataforma.
 
-Estes termos regem o relacionamento entre a empresa mantenedora da plataforma e os usuários que utilizam o aplicativo, sejam profissionais independentes ou estabelecimentos contratantes.
+Estes termos regem o relacionamento entre o responsável pelo projeto Frila e os usuários que utilizam o aplicativo, sejam profissionais independentes ou estabelecimentos contratantes.
 
 ---
 
-## 1. Identificação da Empresa
+## 1. Identificação do Responsável
 
 A plataforma Frila é desenvolvida e operada por:
 
-- **Razão Social:** [A DEFINIR: Razão Social da empresa operadora]
-- **CNPJ:** [A DEFINIR: Número de inscrição no CNPJ]
-- **Endereço da Sede:** [A DEFINIR: Endereço completo da sede da empresa]
-- **Canal de Contato Oficial:** `suportefrila@gmail.com`
+- **Responsável:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
+- **Localidade:** Brasília/DF
+- **Canal do titular de dados e do suporte:** `suportefrila@gmail.com`
 
 ---
 
@@ -92,7 +89,7 @@ O Frila preza por um ambiente profissional, seguro e respeitoso para todos. É t
 Em conformidade com a **Diretriz 1.2 das Diretrizes de Revisão da App Store da Apple**:
 - **Canal de Denúncia:** Usuários podem denunciar condutas abusivas, assédio ou descumprimento de regras diretamente na tela do aplicativo, com geração de número de protocolo rastreável.
 - **Bloqueio Mútuo Imediato:** Qualquer usuário pode acionar a ferramenta de bloqueio de outro usuário na tela de detalhes. Uma vez ativado o bloqueio, as partes nunca mais poderão interagir, ver vagas ou enviar mensagens uma à outra.
-- **Moderação em até 24 Horas:** Nossa equipe operacional monitora denúncias com o compromisso de analisar relatos e remover/ocultar conteúdos ofensivos em até 24 (vinte e quatro) horas corridas. Contas infratoras serão advertidas, suspensas ou banidas permanentemente.
+- **Moderação de denúncias:** Nossa equipe operacional atende denúncias o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Conteúdos ofensivos poderão ser removidos ou ocultados. Contas infratoras serão advertidas, suspensas ou banidas permanentemente.
 - **Direito de Contestação:** Usuários que tiverem contas suspensas por moderação têm o direito de enviar justificativa formal e pedido de revisão pelo próprio aplicativo (em tela dedicada de contestação) ou pelo e-mail de suporte.
 
 ---
@@ -138,4 +135,4 @@ Estes Termos de Uso poderão ser revisados periodicamente. Quando houver altera�
 
 Estes Termos de Uso são regidos e interpretados de acordo com a legislação da República Federativa do Brasil.
 
-Para a resolução de quaisquer controvérsias decorrentes destes Termos que não possam ser solucionadas amigavelmente pelo canal de suporte oficial, fica eleito o foro da Comarca de [A DEFINIR: Comarca e Estado do Foro competente], com renúncia a qualquer outro, por mais privilegiado que seja.
+Para a resolução de quaisquer controvérsias decorrentes destes Termos que não possam ser solucionadas amigavelmente pelo canal de suporte oficial, fica eleito o foro da Comarca de Brasília, Distrito Federal, com renúncia a qualquer outro, por mais privilegiado que seja.

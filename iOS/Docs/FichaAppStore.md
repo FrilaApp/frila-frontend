@@ -16,7 +16,7 @@ Documento normativo e rascunho completo dos metadados do Frila para publicação
 | **Preço** | Grátis (*Free*) | — | O download do app e o uso na versão 1.0 são gratuitos. |
 | **Compras no App (IAP)** | Nenhuma | — | Sem compras internas ou assinaturas no app. |
 | **Territórios / Disponibilidade** | Apenas Brasil | — | Distribuição restrita à loja brasileira da App Store. |
-| **Copyright** | `© 2026 Frila Tecnologia Ltda.` | Até 4.000 caracteres | Razão social a confirmar formalmente pelos sócios (`[A DEFINIR]`). |
+| **Copyright** | `© 2026 Cauê Carneiro Kilanovic` | Até 4.000 caracteres | Titular pessoa física e responsável pelo projeto de estudantes, conforme decisão do Cauê em 15/10/2026. |
 
 > **Fonte dos limites de identificação:** Apple App Store Review Guidelines, Diretriz 2.3.7 — "App names must be limited to 30 characters"; subtítulo segue o mesmo limite de 30 caracteres ([App Store Connect Help — App information](https://developer.apple.com/help/app-store-connect/reference/app-information)).
 >
@@ -111,18 +111,18 @@ Versão inicial do Frila no Distrito Federal:
 
 ## 3. URLs Oficiais (Página Pública)
 
-Todas as URLs apontam para domínios institucionais sob protocolo seguro HTTPS e correspondem aos arquivos da página pública documentados no repositório (`iOS/Docs/PaginaPublica/`):
+As URLs públicas em HTTPS dependem de domínio aprovado pelo Cauê antes do preenchimento no App Store Connect. Os textos correspondentes estão em `iOS/Docs/PaginaPublica/`:
 
 | Campo no App Store Connect | URL Oficial | Arquivo Fonte no Repositório | Descrição do Conteúdo |
 |---|---|---|---|
-| **URL de Suporte (*Support URL*)** | `https://frila.app/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suportefrila@gmail.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
-| **URL de Marketing (*Marketing URL*)** | `https://frila.app` | `https://frila.app` | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
-| **URL de Privacidade (*Privacy Policy URL*)** | `https://frila.app/privacidade` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
-| **Termos de Uso (*Terms of Use / EULA*)** | `https://frila.app/termos` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
+| **URL de Suporte (*Support URL*)** | `[A DEFINIR: URL pública de suporte]` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suportefrila@gmail.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
+| **URL de Marketing (*Marketing URL*)** | `[A DEFINIR: URL pública de marketing]` | `[A DEFINIR: URL pública de marketing]` | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
+| **URL de Privacidade (*Privacy Policy URL*)** | `[A DEFINIR: URL pública de privacidade]` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
+| **Termos de Uso (*Terms of Use / EULA*)** | `[A DEFINIR: URL pública dos termos]` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
 
 > **Conferência com o código-fonte:** [`EnderecosOficiais.swift`](../Sources/Apresentacao/EnderecosOficiais.swift), linhas 19–23 (`termosDeUso`, `politicaDePrivacidade`, `emailSuporte` e propriedade computada `urlSuporte`).
 >
-> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. Na loja, a página web pública de suporte em `https://frila.app/suporte` (mesclada no PR 215) é a URL oficial preferencial, com atendimento direto complementar via `suportefrila@gmail.com`.
+> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. A URL web de suporte da loja depende de domínio público aprovado; o canal de atendimento é `suportefrila@gmail.com`. Os endereços do app ainda precisam ser alinhados em missão própria.
 
 ---
 
@@ -156,21 +156,21 @@ Todas as URLs apontam para domínios institucionais sob protocolo seguro HTTPS e
 Dados obrigatórios inseridos no App Store Connect para permitir a validação completa do fluxo pelos revisores da Apple:
 
 ### 5.1 Contato da Equipe de Revisão
-- **Nome:** `[A DEFINIR: Nome do Responsável Técnico]`
-- **Sobrenome:** `[A DEFINIR: Sobrenome do Responsável Técnico]`
+- **Nome:** `Cauê`
+- **Sobrenome:** `Carneiro Kilanovic`
 - **E-mail de contato:** `suportefrila@gmail.com`
-- **Telefone:** `[A DEFINIR: Telefone comercial da empresa]`
+- **Telefone:** `[A DEFINIR]`
 
 ### 5.2 Contas de Demonstração para Testes (*Demo Accounts*)
-Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos via e-mail (OTP), foram preparadas contas de demonstração que utilizam código OTP fixo em ambiente de homologação:
+Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos via e-mail (OTP), as contas de demonstração continuam pendentes: **depende de cartão do backend (OTP fixo)**.
 
 1. **Conta de Demonstração 1 — Perfil Profissional:**
-   - E-mail: `[A DEFINIR: demo-profissional@frila.app]`
-   - Código OTP fixo: `[A DEFINIR: 123456]`
+   - E-mail: `[A DEFINIR: E-mail da conta de demonstração profissional]`
+   - Código OTP fixo: `[A DEFINIR: Código OTP fixo da conta]`
    - Perfil pré-configurado: Garçom / Bartender, Brasília-DF.
 2. **Conta de Demonstração 2 — Perfil Estabelecimento (Contratante):**
-   - E-mail: `[A DEFINIR: demo-contratante@frila.app]`
-   - Código OTP fixo: `[A DEFINIR: 123456]`
+   - E-mail: `[A DEFINIR: E-mail da conta de demonstração contratante]`
+   - Código OTP fixo: `[A DEFINIR: Código OTP fixo da conta]`
    - Perfil pré-configurado: Bar e Restaurante Demo, Asa Sul, Brasília-DF.
 
 ### 5.3 Notas de Revisão (*Review Notes*)
@@ -183,7 +183,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 > 1. Autenticação: O aplicativo utiliza autenticação segura sem senha via código de 6 dígitos (OTP). Para testar, utilize as duas contas de demonstração fornecidas acima com o código de teste informado.
 > 2. Perfis do App: Uma conta atua como Contratante (publica vagas) e a outra como Profissional (candidata-se e registra check-in).
 > 3. Geolocalização: O check-in do profissional requer proximidade física com o endereço do estabelecimento. Para testar o check-in no simulador, configure a localização simulada para as coordenadas do estabelecimento demo (Asa Sul, Brasília: Latitude -15.8080, Longitude -47.8890).
-> 4. Conteúdo Gerado por Usuários (Diretriz 1.2): O aplicativo inclui moderação ativa, botão nativo de denúncia de irregularidades e bloqueio mútuo definitivo de usuários acessível nos detalhes do turno e do perfil. A moderação de denúncias conta com triagem em até 24 h; resposta formal em até 5 dias úteis.
+> 4. Conteúdo Gerado por Usuários (Diretriz 1.2): O aplicativo inclui moderação ativa, botão nativo de denúncia de irregularidades e bloqueio mútuo definitivo de usuários acessível nos detalhes do turno e do perfil. A moderação de denúncias é realizada o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 > 5. Para qualquer dúvida durante a revisão, estamos à disposição pelo e-mail suportefrila@gmail.com.
 
 ---
@@ -198,8 +198,8 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 | **Sem "grátis" no nome/subtítulo** | Diretriz 2.3.7 da Apple | Conforme | O nome e o subtítulo não contêm termos como "grátis", "free", preços ou símbolos de moeda. |
 | **Palavras-chave $\le$ 100 caracteres** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 97 caracteres / 97 bytes, sem concorrentes e sem espaços supérfluos. |
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
-| **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Conforme | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Moderação de denúncias: triagem em até 24 h; resposta formal em até 5 dias úteis (decisão do Cauê em 12/10/2026). Canal de atendimento geral informa prazo do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`). |
-| **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme | URLs públicas seguras em HTTPS, sem rastreadores de terceiros e com canal oficial do titular. |
+| **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Alinhamento operacional pendente | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Moderação de denúncias: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). O app ainda informa "Respondemos em até 5 dias úteis." (`TextosPerfilConta.prazoSuporte`); alinhamento pendente em missão própria. |
+| **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | URLs a confirmar | Textos públicos com canal oficial do titular; domínio e URLs em HTTPS dependem de aprovação. |
 | **Sem plataformas concorrentes** | Diretriz 2.3.10 da Apple | Conforme | Ausência de menção a plataformas concorrentes (Android, Google Play). |
 | **Sem preços na descrição** | Diretriz 2.3 da Apple | Conforme | Ausência de preços ou valores monetários na descrição geral. |
 | **Sem afirmações inverificáveis** | Diretriz 2.3 da Apple | Conforme | Ausência de afirmações superlativas ou inverificáveis ("o melhor", "número 1"). |
@@ -214,7 +214,7 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 |---|---|---|
 | **Aprovação dos Textos da Ficha** | Júlia e Fabrício | Revisão final e aprovação conjunta dos textos de descrição, subtítulo e palavras-chave. |
 | **Definição das Frases das Capturas** | Fabrício e Júlia | Redação das frases informativas sobre as capturas de tela (Screenshots) até 29/10 (Sprint 2/3). |
-| **Configuração das Contas Demo** | Lead Técnico / Cauê | Criação dos usuários de demonstração e código OTP fixo para o App Review no Supabase (`demo-…@frila.app` como pendência). |
+| **Configuração das Contas Demo** | Lead Técnico / Cauê | E-mails e códigos continuam `[A DEFINIR]`; depende de cartão do backend (OTP fixo). |
 | **Inserção no App Store Connect** | Cauê | Preenchimento dos campos cadastrados no painel oficial do App Store Connect quando o binário for submetido. |
 
 ---
@@ -236,5 +236,5 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 |---|---|---|
 | 2026-10-12 | Doutor Estranho | Elaboração da ficha completa da App Store: nome, subtítulo, palavras-chave com contagem exata, descrição auditada, What's New, URLs públicas, classificação 17+/18+, dados para revisão e checklist contra Diretrizes 2.3 e Guia de Voz (cartão PFWvegZa, T-0019). |
 | 2026-10-12 | Doutor Estranho | Ajustes de devolução (PR 223): e-mail oficial atualizado para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`), remoção do prazo de 24h na descrição em favor do prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`) e confirmação da página pública de suporte mesclada no PR 215. |
-| 2026-10-12 | Steve Rogers | Aplicação da decisão do Cauê (12/10/2026) sobre SLA da Diretriz 1.2: triagem de denúncias em até 24 h; resposta formal em até 5 dias úteis. |
 | 2026-10-13 | Thor | Unificação da ficha da loja (T23): consolidação de fontes oficiais, notas técnicas e auditoria da Diretriz 2.3 migradas do documento preliminar de metadados (apagado) para `FichaAppStore.md`, conforme decisão do Cauê. |
+| 2026-10-15 | Homem-Aranha | Atualização da identificação para pessoa física e dos prazos por decisão do Cauê: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Substitui a decisão anterior de 12/10/2026 sobre moderação. Contas demo e URLs públicas seguem pendentes. |

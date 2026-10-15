@@ -73,7 +73,7 @@ Para cumprimento da **Diretriz 1.2 da App Store (User-Generated Content)** e sup
 > - Veiculem publicidade enganosa, dados de contato fraudulentos ou informações em desacordo com as diretrizes do Frila;
 > - Promovam discriminação por gênero, raça, orientação sexual, deficiência, credo ou idade.
 >
-> **4. Tolerância Zero a Abusos (Diretriz 1.2 Apple):** A plataforma Frila adota política de tolerância zero contra condutas e conteúdos abusivos ou ofensivos. Conteúdos denunciados por usuários serão analisados pela moderação e removidos em até 24 (vinte e quatro) horas, sujeitando o infrator ao bloqueio cautelar ou exclusão definitiva da conta.
+> **4. Tolerância Zero a Abusos (Diretriz 1.2 Apple):** A plataforma Frila adota política de tolerância zero contra condutas e conteúdos abusivos ou ofensivos. As denúncias são atendidas o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Conteúdos que violarem as regras poderão ser removidos, sujeitando o infrator ao bloqueio cautelar ou exclusão definitiva da conta.
 >
 > **5. Responsabilidade e Isenção:** O usuário é integral e exclusivamente responsável por todo o conteúdo que inserir na plataforma, assumindo a obrigação de indenizar e manter indene a plataforma Frila, seus desenvolvedores e sócios contra quaisquer reclamações judiciais ou extrajudiciais de terceiros decorrentes da violação de direitos autorais, marcas ou direitos da personalidade.
 
@@ -115,7 +115,7 @@ Versão: 1.0.0
 
 Declaramos à Apple Inc. que todos os conteúdos de terceiros exibidos ou acessados pelo aplicativo Frila são devidamente licenciados e autorizados:
 1. Conteúdo Gerado pelo Usuário (UGC): O aplicativo exibe vagas operacionais e avaliações fornecidas por contratantes e profissionais cadastrados. Todos os usuários aceitam os Termos de Uso da plataforma (https://frila.app/termos), que concedem ao Frila licença expressa, mundial e gratuita para exibição do conteúdo e impõem total responsabilidade autoral ao publicador.
-2. Conformidade com a Diretriz 1.2: O app possui mecanismos nativos de moderação com bloqueio mútuo definitivo e folha de denúncia com SLA de resposta em até 24 horas.
+2. Conformidade com a Diretriz 1.2: O app possui mecanismos nativos de moderação com bloqueio mútuo definitivo e folha de denúncia. O atendimento ocorre o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 3. Bibliotecas de Terceiros: Todos os componentes de código aberto utilizados no binário possuem suas licenças e avisos de direitos autorais integralmente exibidos dentro do aplicativo no caminho: Perfil > Ajuda > Licenças de código aberto.
 4. Mapeamento e Geolocalização: O aplicativo consome os serviços de mapa oficiais da Apple (MapKit) em conformidade com o Apple Developer Program License Agreement.
 ```

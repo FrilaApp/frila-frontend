@@ -1,7 +1,5 @@
 # Política de Privacidade — Frila
 
-**Última atualização:** 12 de outubro de 2026.
-
 A sua privacidade e a proteção dos seus dados pessoais são princípios fundamentais para o **Frila**. Esta Política de Privacidade explica de forma clara, transparente e acessível como coletamos, utilizamos, armazenamos, compartilhamos e protegemos suas informações quando você utiliza nosso aplicativo para iOS e serviços relacionados.
 
 Esta política foi elaborada em estrita conformidade com a **Lei Geral de Proteção de Dados Pessoais do Brasil (LGPD — Lei nº 13.709/2018)**, o **Estatuto da Criança e do Adolescente Digital (Lei nº 15.211/2025)** e as **Diretrizes de Privacidade da App Store da Apple**.
@@ -12,11 +10,9 @@ Esta política foi elaborada em estrita conformidade com a **Lei Geral de Prote�
 
 O controlador responsável pelas decisões sobre o tratamento dos seus dados pessoais no âmbito do aplicativo Frila é:
 
-- **Razão Social:** [A DEFINIR: Razão Social da empresa controladora]
-- **CNPJ:** [A DEFINIR: Número de inscrição no CNPJ]
-- **Endereço da Sede:** [A DEFINIR: Endereço completo da sede da empresa]
-- **Encarregado pelo Tratamento de Dados Pessoais (DPO):** [A DEFINIR: Nome do Encarregado de Proteção de Dados]
-- **Canal de Atendimento e Contato do DPO:** `suportefrila@gmail.com`
+- **Responsável:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
+- **Localidade:** Brasília/DF
+- **Canal do titular de dados e do suporte:** `suportefrila@gmail.com`
 
 ---
 
@@ -34,7 +30,7 @@ Coletamos apenas as informações estritamente necessárias para viabilizar o fu
 | **Ponto Base (Referência)** | Bairro ou endereço de referência fixado pelo profissional no perfil. | Calcular e ordenar vagas próximas no seu feed, sem rastrear seu aparelho em tempo real. | Art. 7º, V (Execução de contrato) |
 | **Localização no Check-in/Check-out** | Leitura pontual de GPS do aparelho, com permissão "Ao Usar o App". | Comprovar que o profissional esteve no local do turno no início e fim do trabalho. **Apenas a distância em metros até o estabelecimento é enviada ao servidor; suas coordenadas exatas de GPS nunca são transmitidas nem armazenadas no banco de dados.** | Art. 7º, V (Execução de contrato) e consentimento específico de permissão do iOS |
 | **Identificadores Técnicos** | ID único da conta e token de notificações (APNs/FCM). | Gerenciar sua sessão e entregar notificações push sobre status de vagas, candidaturas e avisos de turnos. | Art. 7º, V (Execução de contrato) |
-| **Conteúdo do Usuário e Avaliações** | Relatos de suporte, denúncias, contestações e avaliações mútuas de turnos. | Manter a qualidade da comunidade, apurar denúncias de abuso (em até 24 h) e responder a solicitações operacionais. | Art. 7º, V (Execução de contrato) |
+| **Conteúdo do Usuário e Avaliações** | Relatos de suporte, denúncias, contestações e avaliações mútuas de turnos. | Manter a qualidade da comunidade, apurar denúncias de abuso (o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos) e responder a solicitações operacionais. | Art. 7º, V (Execução de contrato) |
 | **Dados Técnicos de Diagnóstico** | Registros de travamento anônimos e códigos de erro de comunicação com o servidor. | Identificar falhas de sistema e aprimorar a estabilidade do app. **Esses dados não contêm seu nome, e-mail, telefone nem qualquer identificador de usuário.** | Art. 7º, IX (Legítimo interesse) |
 
 ---
@@ -111,8 +107,8 @@ Você é o titular soberano dos seus dados pessoais. A qualquer momento, você p
 ### Como solicitar pelo canal de atendimento
 Para exercer qualquer direito que não deseje realizar diretamente pelo aplicativo, basta enviar um e-mail para nosso canal oficial:
 
-- **E-mail do Encarregado (DPO):** `suportefrila@gmail.com`
-- **Prazo de Resposta:** Responderemos e atenderemos a solicitações completas de titulares em até **15 (quinze) dias corridos**, conforme determina o Art. 19, inciso II, da LGPD.
+- **Canal do titular de dados e do suporte:** `suportefrila@gmail.com`
+- **Prazo de atendimento:** As solicitações do titular são atendidas por esse canal, o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. A resposta formal a pedidos de confirmação e acesso observa o Art. 19, inciso II, da LGPD.
 
 ---
 
@@ -144,7 +140,7 @@ Poderemos atualizar esta Política de Privacidade periodicamente para refletir m
 
 ## 12. Dúvidas e Reclamações
 
-Caso você tenha qualquer dúvida sobre esta política, sobre como tratamos seus dados pessoais ou deseje encaminhar uma solicitação ao nosso Encarregado de Proteção de Dados, entre em contato pelo e-mail:
+Caso você tenha qualquer dúvida sobre esta política, sobre como tratamos seus dados pessoais ou deseje encaminhar uma solicitação como titular de dados, entre em contato pelo e-mail:
 
 - **Canal de Privacidade:** `suportefrila@gmail.com`
 - Você também tem o direito de peticionar perante a **Autoridade Nacional de Proteção de Dados (ANPD)** por meio dos canais oficiais em `https://www.gov.br/anpd/`.
