@@ -162,16 +162,16 @@ adesão. Estão redigidos em linguagem clara, conforme exige a LGPD (art. 14, §
 
 ## 5. Checklist de conformidade
 
-| # | Requisito | Estado | Responsável |
+| # | Requisito | Estado | Responsável / Evidência no Código |
 |---|---|---|---|
-| 1 | Classificação 18+ no App Store Connect (questionário de Age Rating) | **Pendente** | Cauê (ao submeter) |
-| 2 | Adoção da API `DeclaredAgeRange` para aferição de idade em iOS | **Pendente** | Equipe iOS |
-| 3 | Mecanismo complementar de autodeclaração registrada (data de nascimento) | **Pendente** | Equipe iOS |
+| 1 | Classificação 18+ no App Store Connect (questionário de Age Rating) | **Pendente** | Cauê (ao submeter na loja) |
+| 2 | Adoção da API `DeclaredAgeRange` para aferição de idade em iOS | **Conforme** | `iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift:31–59` |
+| 3 | Mecanismo complementar de autodeclaração registrada (data de nascimento) | **Conforme** | `iOS/Sources/Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift:72–78` |
 | 4 | Aviso de maioridade nas comunicações de recrutamento do piloto (§4.1) | **Pendente** | Cauê / Marketing |
 | 5 | Cláusula de maioridade nos termos de adesão ao piloto (§4.2) | **Pendente** | Cauê / Jurídico |
-| 6 | Aviso de maioridade na tela de cadastro do app (§4.3) | **Pendente** | Equipe iOS |
-| 7 | Parecer dos mentores da Academy sobre suficiência da autodeclaração registrada | **Pendente** | Cauê |
-| 8 | Log auditável da declaração de idade (timestamp, hash, versão) | **Pendente** | Backend |
+| 6 | Aviso de maioridade na tela de cadastro do app (§4.3) | **Conforme** | `iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift:106–130` |
+| 7 | Parecer dos mentores da Academy sobre suficiência da autodeclaração registrada | **Pendente** | Cauê / João Paulo (registrado em `DECISOES.md`) |
+| 8 | Log auditável da declaração de idade (timestamp, hash, versão) | **Conforme** | `CadastroConta.swift` e RPC de criação no Supabase |
 
 ---
 
