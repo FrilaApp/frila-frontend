@@ -50,11 +50,11 @@ cp -R "$SOURCES_OFICIAL" "$TMPDIR_TESTE/Sources"
 
 # 2. RPC faltando no app
 cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-rpc-faltando.yaml"
-# Injeta nova rota /rpc/operacao_fantasma no openapi
-sed -i '' 's|/rpc/abrir_suporte:|/rpc/operacao_fantasma:\
-    post:\
-      summary: Fantasma\
-  /rpc/abrir_suporte:|g' "$TMPDIR_TESTE/Contrato/openapi-rpc-faltando.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-rpc-faltando.yaml'
+texto = open(caminho).read().replace('/rpc/abrir_suporte:', '/rpc/operacao_fantasma:\n    post:\n      summary: Fantasma\n  /rpc/abrir_suporte:')
+open(caminho, 'w').write(texto)
+"
 
 esperar_reprovacao "RPC faltando no app" \
   "RPCs do contrato faltando no SupabaseApiCliente: ['operacao_fantasma']" \
@@ -63,9 +63,11 @@ esperar_reprovacao "RPC faltando no app" \
 
 # 3. RPC extra no app inexistente no contrato
 cp -R "$TMPDIR_TESTE/Sources" "$TMPDIR_TESTE/Sources-rpc-extra"
-# Injeta chamada rpc("rota_inventada") no SupabaseApiCliente
-sed -i '' 's|rpc("minha_conta")|rpc("minha_conta"); _ = try await rpc("rota_inventada")|g' \
-  "$TMPDIR_TESTE/Sources-rpc-extra/Dados/SupabaseApiCliente.swift"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Sources-rpc-extra/Dados/SupabaseApiCliente.swift'
+texto = open(caminho).read().replace('rpc(\"minha_conta\")', 'rpc(\"minha_conta\"); _ = try await rpc(\"rota_inventada\")')
+open(caminho, 'w').write(texto)
+"
 
 esperar_reprovacao "RPC extra no app" \
   "RPCs extras no SupabaseApiCliente inexistentes no contrato: ['rota_inventada']" \
@@ -117,4 +119,32 @@ esperar_reprovacao "Contrato inexistente" \
   --contrato "$TMPDIR_TESTE/nao-existe.yaml" \
   --sources "$TMPDIR_TESTE/Sources"
 
-echo "OK: autoteste de contrato-ios-confere.sh (7 verificações completas com aprovação e reprovação controlada)."
+# 8. Enum novo no contrato sem mapeamento no app
+cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-enum-novo.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-enum-novo.yaml'
+bloco = '\n    NovoEnumNaoMapeado:\n      type: string\n      enum: [caso_a, caso_b]\n'
+texto = open(caminho).read().replace('  schemas:', '  schemas:' + bloco)
+open(caminho, 'w').write(texto)
+"
+
+esperar_reprovacao "Enum novo não mapeado" \
+  "Enums novos no contrato OpenAPI sem mapeamento no app: ['NovoEnumNaoMapeado']" \
+  --contrato "$TMPDIR_TESTE/Contrato/openapi-enum-novo.yaml" \
+  --sources "$TMPDIR_TESTE/Sources"
+
+# 9. Schema de objeto novo no contrato sem mapeamento para DTO
+cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-schema-novo.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-schema-novo.yaml'
+bloco = '\n    NovoSchemaObjeto:\n      type: object\n      properties:\n        campo: { type: string }\n'
+texto = open(caminho).read().replace('  schemas:', '  schemas:' + bloco)
+open(caminho, 'w').write(texto)
+"
+
+esperar_reprovacao "Schema de objeto novo não mapeado" \
+  "Schemas de objeto novos no contrato OpenAPI sem mapeamento para DTO: ['NovoSchemaObjeto']" \
+  --contrato "$TMPDIR_TESTE/Contrato/openapi-schema-novo.yaml" \
+  --sources "$TMPDIR_TESTE/Sources"
+
+echo "OK: autoteste de contrato-ios-confere.sh (9 verificações completas com aprovação e reprovação controlada)."

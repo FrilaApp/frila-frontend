@@ -194,10 +194,7 @@ def conferir_rpcs(doc: dict, sources_dir: pathlib.Path) -> list[str]:
 
     swift_rpcs = set(re.findall(r'rpc\(\s*"([^"]+)"', texto))
     swift_rpcs.update(re.findall(r'lista\(\s*"([^"]+)"', texto))
-    if "fazer_checkin" in texto:
-        swift_rpcs.add("fazer_checkin")
-    if "fazer_checkout" in texto:
-        swift_rpcs.add("fazer_checkout")
+    swift_rpcs.update(re.findall(r'registrarPresenca\(\s*"([^"]+)"', texto))
 
     faltando = openapi_rpcs - swift_rpcs
     extras = swift_rpcs - openapi_rpcs
@@ -233,6 +230,13 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
         "TipoRegistro": "TipoRegistro",
         "Verificacao": "Verificacao",
     }
+
+    # Verifica se há enums novos declarados no OpenAPI sem mapeamento no app
+    enums_nao_mapeados = set(openapi_enums.keys()) - set(enum_mapping.keys())
+    if enums_nao_mapeados:
+        erros.append(
+            f"Enums novos no contrato OpenAPI sem mapeamento no app: {sorted(enums_nao_mapeados)}"
+        )
 
     for o_name, s_name in sorted(enum_mapping.items()):
         if o_name not in openapi_enums:
@@ -352,6 +356,20 @@ def conferir_dtos(doc: dict, sources_dir: pathlib.Path) -> list[str]:
         "VagaPublicada": "VagaPublicadaDTO",
         "VagaResumo": "VagaResumoDTO",
     }
+
+    PRIMITIVOS_OU_ESPECIAIS = {
+        "Centavos", "ChaveDeIdempotencia", "HoraDoDia", "Instante", "Telefone", "Uuid", "Erro",
+        "ExclusaoDeConta", "MeusDados", "VagaDetalhe"
+    }
+    schemas_de_objeto = {
+        name for name, s in schemas.items()
+        if "enum" not in s and name not in PRIMITIVOS_OU_ESPECIAIS and s.get("type") == "object"
+    }
+    schemas_nao_mapeados = schemas_de_objeto - set(mapping.keys())
+    if schemas_nao_mapeados:
+        erros.append(
+            f"Schemas de objeto novos no contrato OpenAPI sem mapeamento para DTO: {sorted(schemas_nao_mapeados)}"
+        )
 
     for schema_name, dto_name in sorted(mapping.items()):
         if dto_name not in struct_props:
