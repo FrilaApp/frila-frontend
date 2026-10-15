@@ -12,7 +12,7 @@ O Frila iniciou sua operação piloto no Distrito Federal focado na plataforma i
 
 Conforme a diretriz mestra de engenharia do projeto, **não há núcleo compartilhado multiplataforma (KMP/Flutter/React Native)**:
 - O domínio é reescrito nativamente em **Kotlin**, usufruindo da excelência de performance e estabilidade do sistema operacional.
-- Todas as regras críticas de integridade, cálculo e transação permanecem unificadas no backend PostgreSQL/Supabase, expressas pelo contrato normativo **OpenAPI 0.2.41**.
+- Todas as regras críticas de integridade, cálculo e transação permanecem unificadas no backend PostgreSQL/Supabase, expressas pelo contrato normativo **OpenAPI 0.2.42**.
 - O requisito não funcional normativo do projeto é o **RNF04** (*"Android 9 ou superior com 2 GB de memória, iOS 17 ou superior e navegadores modernos"*). Para fins de homologação prática e testes de estresse em hardware real, a equipe de engenharia sugere e adota como perfil de referência de entrada um aparelho com Android 9.0 (API 28), 2 GB de RAM e tela 720p, garantindo que o app não consuma memória excessiva nem apresente perda de quadros na rolagem.
 
 ---
@@ -75,7 +75,7 @@ graph TD
 
 ---
 
-## 4. Geração do Cliente e Integração com OpenAPI 0.2.41
+## 4. Geração do Cliente e Integração com OpenAPI 0.2.42
 
 A conformidade com o contrato deve seguir a mesma severidade do iOS, prevenindo deriva de contrato em tempo de compilação:
 
@@ -159,7 +159,7 @@ O cartão **`XTijdYVk`** tem como objetivo estabelecer os alicerces do projeto A
 | Épico | Escopo / Entregáveis | Esforço | Status |
 |---|---|:---:|:---:|
 | **E1: Base do Projeto e Módulos** | Projeto em subpasta `android/`, estrutura multi-módulo Gradle, CI no GitHub Actions, tokens Material 3 em Compose. | 4 dias | **Escopo do Cartão XTijdYVk** |
-| **E2: Domínio, Contrato e Sessão** | Regras puras no `:core:dominio`, DTOs OpenAPI 0.2.41, cliente PostgREST, gate de contrato, armazenamento seguro no Keystore. | 5 dias | **Escopo do Cartão XTijdYVk** |
+| **E2: Domínio, Contrato e Sessão** | Regras puras no `:core:dominio`, DTOs OpenAPI 0.2.42, cliente PostgREST, gate de contrato, armazenamento seguro no Keystore. | 5 dias | **Escopo do Cartão XTijdYVk** |
 | *Subtotal XTijdYVk* | *Entrega do alicerce técnico e domínio testado na CI* | **9 dias úteis** | *Meta do cartão* |
 | **E3: Entrada e Cadastro** | Telas de entrada OTP (e-mail + 6 dígitos), modo demo Play Store, cadastro do profissional (RN20). | 6 dias | Cartão seguinte v1.1 |
 | **E4: Feed de Vagas e Detalhes** | Listagem de vagas abertas com cálculo de distância (Haversine), filtros, tela de detalhe e candidatura. | 7 dias | Cartão seguinte v1.1 |
