@@ -15,9 +15,10 @@ Cada linha tem o **gatilho**: o sinal de que chegou a hora de voltar ao assunto.
 | 3 | **Prazo de moderação e resposta ao titular** | Texto público: "o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos". Promessa de 24 h retirada. | Equipe de suporte/moderação, ou volume de denúncias que torne 24 h viável. | Voltar a prazo fixo menor; alinhar backend e `ModelosDeEmail.md` (texto em HTML ainda cita 24 h; `prazo_resposta` ainda precisa ser alinhado). |
 | 4 | **Domínio e e-mail de suporte** | Site em `frila.netlify.app`, sem domínio próprio; suporte em `suportefrila@gmail.com`. A URL `frila.app` foi rejeitada. | Lançamento público, ou necessidade de e-mail com a marca. | Registrar domínio, apontar o Netlify, e-mail do domínio; atualizar `EnderecosOficiais` no app, ficha da App Store e páginas. |
 | 5 | **Ambientes do Supabase** | Só o `frila-dev` é servidor de verdade (sem ambiente local, por decisão). `frila-prod` criado, banco ainda vazio. Plano gratuito pausa projeto parado por uma semana. | Primeiro usuário real, ou projeto pausado por inatividade. | Plano pago no `frila-prod`, migrações e Auth de produção (cartões #76 e #207), ambiente de teste separado do `dev`. |
-| 6 | **Segredos** | Senhas e chaves em cofre KeePassXC no Drive e em arquivos locais da máquina de quem opera; senha de app do Gmail em arquivo local. | Mais de uma pessoa operando produção, ou qualquer vazamento. | Gestor de segredos da equipe, rotação periódica, ninguém com cópia em texto puro. |
+| 6 | **Segredos** | Senhas e chaves em cofre KeePassXC no Drive e em arquivos locais da máquina de quem opera; senha de app do Gmail em arquivo local. | Mais de uma pessoa operando produção, qualquer vazamento, ou abertura do `frila-prod`. A senha de app do Gmail não foi rotacionada por decisão de 15/10. | Gestor de segredos da equipe, rotação periódica, ninguém com cópia em texto puro. |
 | 7 | **Firebase de produção** | O projeto `frila-prod` não aparece para a conta `frila.org@gmail.com`; app iOS lá não foi conferido por ferramenta. | Antes do primeiro envio de push em produção. | Conferir app, chave APNs e Crashlytics no `frila-prod`. |
-| 8 | **Contas Google de operação** | `frilaverificacao@gmail.com` envia o código; `frila.org@gmail.com` (Netlify, Firebase) está **sem** verificação em duas etapas. | Antes de abrir para o público. | Ligar a verificação em duas etapas e passar a conta de envio para o provedor da linha 1. |
+| 8 | **Contas Google de operação** | `frilaverificacao@gmail.com` envia o código; `frila.org@gmail.com` (Netlify, Firebase) com verificação em duas etapas em ativação (telefone cadastrado, falta confirmar o botão final). | Antes de abrir para o público. | Confirmar a verificação em duas etapas e passar a conta de envio para o provedor da linha 1. |
+| 9 | **Conta de demonstração da revisão** | Contas `revisao-contratante` e `revisao-profissional` existem no `frila-dev` com dados renovados; o segredo `DEMONSTRACAO_CODIGO` ainda **não** foi criado. | Antes de preencher a conta de demonstração e o contato de revisão na App Store Connect (submissão prevista para 06/11). | Definir o código fixo (nunca em arquivo versionado), criar o segredo no `frila-dev` e no `frila-prod`, e digitar o mesmo código na ficha. |
 
 ## 2. Registro de mudanças
 
@@ -36,7 +37,8 @@ Entrada nova no topo: onde, antes → depois, por quê, prova, atenção.
 - **Estado conferido:** SMTP próprio ativado; remetente `frilaverificacao@gmail.com`; servidor `smtp.gmail.com`, porta 465; validade do código de 900 s (15 minutos); confirmação de e-mail ligada.
 - **Decisão:** a conta de envio continua `frilaverificacao@gmail.com`. A `frila.org@gmail.com` está sem verificação em duas etapas, então não gera senha de app.
 - **Divergência resolvida:** alguns textos diziam "10 minutos"; o valor real é 15.
-- **Pendente:** gerar senha de app nova para `frilaverificacao@gmail.com` e atualizar no Supabase e no arquivo local (a anterior apareceu em log de sessão em 15/10; não saiu da máquina).
+- **Decisão do Cauê (15/10):** a senha de app atual **fica**; não será rotacionada agora. Ela apareceu uma vez em log de sessão local em 15/10 e foi apagada do registro; não saiu da máquina. O gatilho de rotação está na linha 6 da tabela.
+- **Regra:** nenhum agente imprime o conteúdo de `~/.config/frila/*`; para conferir formato, só tamanho e permissão.
 
 ### 2026-10-15 — App Store Connect: ficha do app (liga com as linhas 2 e 4)
 
