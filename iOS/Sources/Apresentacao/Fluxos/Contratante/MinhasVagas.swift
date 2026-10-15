@@ -544,6 +544,7 @@ private struct TelaDetalheVagaContratante: View {
     @State private var vagaParaRepublicar: VagaNoPainel?
     @State private var republicacaoConcluida = false
     @State private var cancelamento: CancelamentoViewModel?
+    @State private var ultimoContatoAberto: [UUID: Date] = [:]
     private let formatador = FormatadorFrila()
 
     var body: some View {
@@ -699,6 +700,14 @@ private struct TelaDetalheVagaContratante: View {
                                 Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                let agora = Date()
+                                if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {
+                                    return
+                                }
+                                ultimoContatoAberto[turnoID] = agora
+                                Task { _ = await RegistradorDeTelemetria(api: api).registrar(.contatoAberto, turnoID: turnoID) }
+                            })
                         }
                     }.accessibilityIdentifier("contato-liberado-\(turnoID)")
                 } else if contatos[posicao.id] != nil {

@@ -18,18 +18,33 @@ public final class DetalheVagaViewModel {
     public private(set) var estado: EstadoDoDetalhe = .carregando
     private(set) var api: (any ApiCliente)?
     private let buscarVaga: @Sendable (UUID) async throws -> Vaga
+    private let telemetria: RegistradorDeTelemetria?
+    private var jaEmitiuAbertura = false
 
-    public convenience init(vagaID: UUID, api: any ApiCliente) {
-        self.init(vagaID: vagaID, buscarVaga: { try await api.detalheDaVaga(id: $0) })
+    public convenience init(vagaID: UUID, api: any ApiCliente, telemetria: RegistradorDeTelemetria? = nil) {
+        self.init(
+            vagaID: vagaID,
+            buscarVaga: { try await api.detalheDaVaga(id: $0) },
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
+        )
         self.api = api
     }
 
-    public init(vagaID: UUID, buscarVaga: @escaping @Sendable (UUID) async throws -> Vaga) {
+    public init(
+        vagaID: UUID,
+        buscarVaga: @escaping @Sendable (UUID) async throws -> Vaga,
+        telemetria: RegistradorDeTelemetria? = nil
+    ) {
         self.vagaID = vagaID
         self.buscarVaga = buscarVaga
+        self.telemetria = telemetria
     }
 
     public func carregar() async {
+        if !jaEmitiuAbertura {
+            jaEmitiuAbertura = true
+            await telemetria?.registrar(.vagaDetalheAberto, vagaID: vagaID)
+        }
         estado = .carregando
         do {
             estado = .carregado(try await buscarVaga(vagaID))

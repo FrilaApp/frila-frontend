@@ -73,8 +73,8 @@ Primeira versão da App Store. Atende o Distrito Federal.
   rede voltar (#111).
 - Acessibilidade: alvos de toque do tamanho mínimo e leitura nos maiores tamanhos de texto (#139).
 - Licenças das bibliotecas de código aberto usadas pelo app (#178).
-- Relato automático de falhas, sem dados pessoais (#198).
 - Telemetria do piloto: porta, DTOs e cliente para registrar_evento (contrato 0.2.41, RN15, RNF08), com dicionário fechado e sem texto livre nem dados pessoais.
+- Telemetria do piloto: fiação dos 14 eventos nas telas e ViewModels (T-0017, contrato 0.2.41, RN15, RNF08), cobrindo ciclo de vida do app, funil de vagas, candidaturas, presença (check-in/checkout), avaliações, contatos, resiliência offline e atualização obrigatória.
 
 ### Privacidade e conformidade
 - A localização é pedida só durante o uso. No check-in e no check-out, a coordenada lida do GPS

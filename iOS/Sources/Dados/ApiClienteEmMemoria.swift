@@ -1960,6 +1960,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return true
     }
 
+    public func limparEventosRegistrados() {
+        eventosRegistrados.removeAll()
+    }
+
     // MARK: Moderação
 
     /// Ocultar e reexibir uma vaga (contrato 0.2.23). Fica fora da porta `ApiCliente` de propósito:

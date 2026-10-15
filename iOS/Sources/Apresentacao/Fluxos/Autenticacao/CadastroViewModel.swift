@@ -7,6 +7,8 @@ public final class CadastroViewModel {
     private let api: any ApiCliente
     private let relogio: any Relogio
     private let verificadorDeIdade: any VerificadorDeIdade
+    private let telemetria: RegistradorDeTelemetria?
+    private var jaEmitiuCadastro = false
     public let email: String
 
     public var perfil: PerfilConta = .profissional
@@ -22,12 +24,14 @@ public final class CadastroViewModel {
         api: any ApiCliente,
         email: String,
         relogio: any Relogio = RelogioDoSistema(),
-        verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel()
+        verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel(),
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.api = api
         self.email = email
         self.relogio = relogio
         self.verificadorDeIdade = verificadorDeIdade
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
     }
 
     public var formularioPreenchido: Bool {
@@ -94,6 +98,10 @@ public final class CadastroViewModel {
 
         do {
             let conta = try await api.criarConta(cadastro)
+            if !jaEmitiuCadastro {
+                jaEmitiuCadastro = true
+                await telemetria?.registrar(.cadastroConcluido)
+            }
             switch conta.perfil {
             case .profissional:
                 DestinoGuardado.salvar(.funcoesEHorarios)

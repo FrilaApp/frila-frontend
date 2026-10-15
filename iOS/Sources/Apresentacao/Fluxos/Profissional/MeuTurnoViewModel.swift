@@ -56,6 +56,8 @@ public final class MeuTurnoViewModel {
     private let filaDeAcoes: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
+    private let telemetria: RegistradorDeTelemetria?
+    private var ultimoRegistroContato: Date?
     private var cacheLocal: (any CacheLocal)? { filaDeAcoes as? any CacheLocal }
 
     public init(
@@ -67,7 +69,8 @@ public final class MeuTurnoViewModel {
         relogio: any Relogio = RelogioDoSistema(),
         presenca: PresencaDoTurnoViewModel? = nil,
         aoAvaliar: (() -> Void)? = nil,
-        aoCancelar: (() -> Void)? = nil
+        aoCancelar: (() -> Void)? = nil,
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.turno = turno
         self.aoAvaliar = aoAvaliar
@@ -78,6 +81,7 @@ public final class MeuTurnoViewModel {
         self.armazenamentoAvaliacoes = armazenamentoAvaliacoes
         self.relogio = relogio
         self.presenca = turno.cancelado ? nil : presenca
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
 
         if turno.cancelado {
             self.contato = nil
@@ -188,6 +192,16 @@ public final class MeuTurnoViewModel {
         var componentes = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)
         componentes?.queryItems = [URLQueryItem(name: "text", value: mensagem)]
         return componentes?.url ?? contato.whatsappURL
+    }
+
+    /// Registra telemetria de abertura do WhatsApp com a contraparte (apenas ID do turno, RN15).
+    public func registrarContatoAberto() async {
+        let agora = relogio.agora
+        if let ultimo = ultimoRegistroContato, agora.timeIntervalSince(ultimo) < 5.0 {
+            return
+        }
+        ultimoRegistroContato = agora
+        await telemetria?.registrar(.contatoAberto, turnoID: turno.id)
     }
 
     public var urlMapas: URL? {
