@@ -133,3 +133,12 @@ Durante a execução da auditoria inicial, foram identificadas e corrigidas pequ
 
 ### CI
 O teste e o validador estão integrados no job `parte-1` do workflow `.github/workflows/ios.yml`, executando logo após a validação de fixtures.
+
+---
+
+## 6. Seguimento Futuro (Tratamento de Extras)
+
+- O verificador reprova de forma estrita em caso de **RPCs extras** no app (`SupabaseApiCliente.swift`) e **casos de enum extras** no Swift inexistentes no OpenAPI.
+- Para **campos de DTOs extras no Swift** ou **campos opcionais do OpenAPI ausentes no DTO**, o script emite avisos informativos explícitos (`INFO`), exibindo as divergências observadas.
+- **Item de Seguimento (#305):** Avaliar com a liderança de engenharia e a Rainha a política para promover os 25 avisos informativos de campos DTO extras/opcionais a erro impeditivo (ou flag de modo estrito `--reprovar-avisos`), garantindo limpeza de campos mortos e alinhamento milimétrico em ambos os lados.
+
