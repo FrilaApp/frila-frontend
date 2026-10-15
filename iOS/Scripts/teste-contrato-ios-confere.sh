@@ -160,5 +160,31 @@ esperar_reprovacao "Enum com caso extra no Swift" \
   --contrato "$CONTRATO_OFICIAL" \
   --sources "$TMPDIR_TESTE/Sources-enum-extra"
 
-echo "OK: autoteste de contrato-ios-confere.sh (10 verificações completas com aprovação e reprovação controlada)."
+# 11. DTO extra no Swift inexistente no contrato OpenAPI (Item 3)
+cp -R "$TMPDIR_TESTE/Sources" "$TMPDIR_TESTE/Sources-dto-extra"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Sources-dto-extra/Dados/DTOsContrato.swift'
+texto = open(caminho).read() + '\nstruct DTOInexistenteExtraDTO: Decodable { let campo: String }\n'
+open(caminho, 'w').write(texto)
+"
+
+esperar_reprovacao "DTO extra no Swift inexistente no contrato" \
+  "DTO DTOInexistenteExtraDTO no código Swift não possui schema ou operação correspondente no contrato OpenAPI" \
+  --contrato "$CONTRATO_OFICIAL" \
+  --sources "$TMPDIR_TESTE/Sources-dto-extra"
+
+# 12. Campo extra em DTO no Swift não mapeado no schema do contrato
+cp -R "$TMPDIR_TESTE/Sources" "$TMPDIR_TESTE/Sources-campo-extra"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Sources-campo-extra/Dados/DTOsContrato.swift'
+texto = open(caminho).read().replace('case turnoID = \"turno_id\"', 'case turnoID = \"turno_id\"; case campoFantasma = \"campo_fantasma\"')
+open(caminho, 'w').write(texto)
+"
+
+esperar_reprovacao "Campo extra em DTO no Swift" \
+  "DTO AvaliacaoDTO (schema Avaliacao): campos extras no Swift não permitidos pelo contrato: ['campo_fantasma']" \
+  --contrato "$CONTRATO_OFICIAL" \
+  --sources "$TMPDIR_TESTE/Sources-campo-extra"
+
+echo "OK: autoteste de contrato-ios-confere.sh (12 verificações completas com aprovação e reprovação controlada)."
 

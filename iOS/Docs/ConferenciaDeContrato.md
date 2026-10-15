@@ -136,9 +136,12 @@ O teste e o validador estão integrados no job `parte-1` do workflow `.github/wo
 
 ---
 
-## 6. Seguimento Futuro (Tratamento de Extras)
+## 6. Saneamento de Avisos e Reprovação Estrita de Extras (#308)
 
-- O verificador reprova de forma estrita em caso de **RPCs extras** no app (`SupabaseApiCliente.swift`) e **casos de enum extras** no Swift inexistentes no OpenAPI.
-- Para **campos de DTOs extras no Swift** ou **campos opcionais do OpenAPI ausentes no DTO**, o script emite avisos informativos explícitos (`INFO`), exibindo as divergências observadas.
-- **Item de Seguimento (#305):** Avaliar com a liderança de engenharia e a Rainha a política para promover os 25 avisos informativos de campos DTO extras/opcionais a erro impeditivo (ou flag de modo estrito `--reprovar-avisos`), garantindo limpeza de campos mortos e alinhamento milimétrico em ambos os lados.
+- **Classificação dos avisos:** A auditoria exaustiva dos 25 avisos originais confirmou **zero divergências reais no Swift**. 24 decorriam de limitações do regex anterior (duplicação snake_case com CodingKeys explícito, variáveis locais em decodificadores e vazamento de structs aninhados). O único aviso aceitável que permanece é `SessaoDTO.user`, campo opcional omitido intencionalmente no cliente.
+- **Isolamento e Autoridade do CodingKeys:** O validador isola structs aninhados por contagem de chaves e confere autoridade estrita ao `enum CodingKeys` quando presente, eliminando falsos positivos.
+- **Reprovação Estrita de Extras:**
+  - Structs `*DTO` no Swift sem respaldo no contrato OpenAPI (em `components.schemas` ou na lista de schemas inline/nested `DTOS_LEGITIMOS_RPC_E_NESTED`: `FiltroVagasDTO`, `VagaCanceladaDTO`, `RemocaoDTO`, `RegistrarEventoRespostaDTO`, `EquipeDTO`, `SuspensaoDTO`) são reprovados com erro e código de saída 1.
+  - Campos extras no Swift em relação às propriedades do contrato foram promovidos a erro impeditivo.
+  - *Nota sobre schemas inline:* Se uma nova RPC do backend devolver ou receber um objeto inline sem schema nomeado em `components.schemas`, seu DTO correspondente no Swift deve ser catalogado em `DTOS_LEGITIMOS_RPC_E_NESTED` no validador.
 
