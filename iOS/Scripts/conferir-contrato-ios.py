@@ -75,40 +75,53 @@ def parse_swift_structs(filepath: pathlib.Path) -> dict[str, str]:
     if not filepath.is_file():
         return {}
     with open(filepath, encoding="utf-8") as f:
-        lines = f.readlines()
+        text = f.read()
+
     structs: dict[str, str] = {}
-    current_struct: str | None = None
-    brace_depth = 0
-    struct_depth = 0
-    body_lines: list[str] = []
-
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("//"):
-            continue
-        if "struct " in stripped and not current_struct:
-            m = re.search(r"struct\s+([A-Za-z0-9_]+)", stripped)
-            if m:
-                current_struct = m.group(1)
-                struct_depth = brace_depth
-                body_lines = [line]
-        elif current_struct:
-            body_lines.append(line)
-
-        brace_depth += line.count("{") - line.count("}")
-        if current_struct and brace_depth <= struct_depth:
-            structs[current_struct] = "".join(body_lines)
-            current_struct = None
+    for m in re.finditer(r"\bstruct\s+([A-Za-z0-9_]+)\b[^{]*\{", text):
+        s_name = m.group(1)
+        start_brace = m.end() - 1
+        depth = 0
+        end_brace = start_brace
+        for i in range(start_brace, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end_brace = i
+                    break
+        structs[s_name] = text[start_brace + 1 : end_brace]
 
     return structs
 
 
 def extrair_propriedades_do_struct(body: str) -> set[str]:
-    props: set[str] = set()
-    coding_keys: dict[str, str] = {}
+    # 1. Remove corpos de structs aninhados para isolar propriedades deste struct
+    cleaned = body
+    while True:
+        m = re.search(r"\bstruct\s+[A-Za-z0-9_]+\b[^{]*\{", cleaned)
+        if not m:
+            break
+        start_brace = m.end() - 1
+        depth = 0
+        end_brace = start_brace
+        for i in range(start_brace, len(cleaned)):
+            if cleaned[i] == "{":
+                depth += 1
+            elif cleaned[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end_brace = i
+                    break
+        cleaned = cleaned[: m.start()] + " " * (end_brace + 1 - m.start()) + cleaned[end_brace + 1 :]
 
-    ck_matches = re.findall(r"enum\s+CodingKeys\s*:[^{]*\{([^}]+)\}", body)
-    for ck_block in ck_matches:
+    # 2. Se o struct possui enum CodingKeys, ele define com autoridade estrita
+    # as chaves de serialização/deserialização Codable do tipo.
+    ck_match = re.search(r"enum\s+CodingKeys\s*:[^{]*\{([^}]+)\}", cleaned)
+    if ck_match:
+        ck_block = ck_match.group(1)
+        coding_keys: set[str] = set()
         for item in re.split(r"[\n;]", ck_block):
             item = item.strip()
             if item.startswith("case "):
@@ -116,20 +129,28 @@ def extrair_propriedades_do_struct(body: str) -> set[str]:
                 for parte in partes:
                     m = re.search(r"([a-zA-Z0-9_]+)(?:\s*=\s*\"([^\"]+)\")?", parte.strip())
                     if m:
-                        s_name = m.group(1)
-                        wire_name = m.group(2) if m.group(2) else s_name
-                        coding_keys[s_name] = wire_name
+                        wire_name = m.group(2) if m.group(2) else m.group(1)
+                        coding_keys.add(wire_name)
+        return coding_keys
 
-    for line in body.split("\n"):
-        line = line.strip()
-        m = re.search(r"\b(?:let|var)\s+([a-zA-Z0-9_]+)", line)
-        if m and not line.endswith("{"):
-            s_name = m.group(1)
-            wire_name = coding_keys.get(s_name, s_name)
-            props.add(wire_name)
-            # Adiciona formato snake_case caso venha sem CodingKeys customizado
-            snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", s_name).lower()
-            props.add(snake_name)
+    # 3. Caso não possua CodingKeys, extrai apenas propriedades armazenadas no nível raiz
+    # do struct (depth == 0), descartando modificadores static, variáveis locais e
+    # propriedades computadas.
+    props: set[str] = set()
+    depth = 0
+    for line in cleaned.split("\n"):
+        stripped = line.strip()
+        brace_delta = stripped.count("{") - stripped.count("}")
+        if depth == 0:
+            if not stripped.startswith("static ") and not stripped.startswith("private static ") and not stripped.startswith("public static "):
+                m = re.match(r"(?:public\s+|private\s+|internal\s+)?(?:let|var)\s+([a-zA-Z0-9_]+)", stripped)
+                if m and not stripped.endswith("{"):
+                    s_name = m.group(1)
+                    props.add(s_name)
+                    snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", s_name).lower()
+                    props.add(snake_name)
+        depth += brace_delta
+
     return props
 
 
@@ -336,6 +357,28 @@ def conferir_dtos(
         and (s.get("type") == "object" or "properties" in s)
     }
 
+    # 5.1 Verificação de DTOs extras no Swift sem respaldo no contrato OpenAPI (Item 3)
+    DTOS_LEGITIMOS_RPC_E_NESTED = {
+        "FiltroVagasDTO",            # Parâmetros de busca em /rpc/vagas_abertas
+        "VagaCanceladaDTO",          # Resposta de /rpc/cancelar_vaga
+        "RemocaoDTO",                # Resposta de /rpc/remover_dispositivo
+        "RegistrarEventoRespostaDTO",# Resposta de /rpc/registrar_evento
+        "EquipeDTO",                 # Struct aninhado em CriteriosDeNotificacaoDTO
+        "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
+    }
+
+    alias_reverso = {v: k for k, v in ALIAS_DTO.items()}
+    for s_name in sorted(all_structs.keys()):
+        if s_name.endswith("DTO") or s_name.startswith("DTO"):
+            if s_name in DTOS_LEGITIMOS_RPC_E_NESTED:
+                continue
+            base = s_name[:-3] if s_name.endswith("DTO") else s_name[3:]
+            candidatos_schema = [s_name, base, alias_reverso.get(s_name, "")]
+            if not any(c in schemas for c in candidatos_schema if c):
+                erros.append(
+                    f"DTO {s_name} no código Swift não possui schema ou operação correspondente no contrato OpenAPI"
+                )
+
     for schema_name, schema in sorted(openapi_objects.items()):
         candidates = [
             ALIAS_DTO.get(schema_name),
@@ -362,8 +405,8 @@ def conferir_dtos(
 
         extras = dto_fields - all_props
         if extras:
-            avisos.append(
-                f"DTO {dto_name} (schema {schema_name}): campos extras no Swift não mapeados no contrato: {sorted(extras)}"
+            erros.append(
+                f"DTO {dto_name} (schema {schema_name}): campos extras no Swift não permitidos pelo contrato: {sorted(extras)}"
             )
 
         opcionais_ausentes = (all_props - required_props) - dto_fields
@@ -441,7 +484,8 @@ def main() -> None:
         print(f"OK: {qtd_dtos}/{qtd_dtos} DTOs do contrato cobrem todos os campos obrigatórios.")
 
     if todos_avisos and not args.silencioso:
-        print(f"INFO: {len(todos_avisos)} avisos de campos opcionais/extras observados no app.")
+        s = "aviso" if len(todos_avisos) == 1 else "avisos"
+        print(f"INFO: {len(todos_avisos)} {s} de campos opcionais do contrato não mapeados no app.")
 
     if todos_erros:
         print("\nFALHA: divergências de contrato encontradas:", file=sys.stderr)
