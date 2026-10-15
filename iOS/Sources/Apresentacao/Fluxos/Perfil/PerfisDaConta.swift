@@ -404,6 +404,7 @@ struct TelaAjudaPerfil: View {
                         Image(systemName: "arrow.up.right")
                             .font(.footnote)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityHidden(true)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
@@ -420,6 +421,7 @@ struct TelaAjudaPerfil: View {
                         Image(systemName: "arrow.up.right")
                             .font(.footnote)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityHidden(true)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())

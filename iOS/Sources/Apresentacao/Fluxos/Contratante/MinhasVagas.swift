@@ -287,17 +287,18 @@ public struct TelaMinhasVagas: View {
                     AvisoDePermissaoDePush(perfil: .contratante)
 
                     if let erro = viewModel.erro {
-                        AvisoFrila(verbatim: erro, tom: .erro)
-                        Button {
-                            Task { await viewModel.carregar() }
-                        } label: {
-                            Text(verbatim: TextosMinhasVagas.tentarNovamente)
-                                .font(.headline)
-                                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        if viewModel.vagas.isEmpty {
+                            EstadoErro(verbatim: erro) {
+                                Task { await viewModel.carregar() }
+                            }
+                        } else {
+                            AvisoFrila(verbatim: erro, tom: .erro)
+                            BotaoSecundario(verbatim: TextosMinhasVagas.tentarNovamente) {
+                                Task { await viewModel.carregar() }
+                            }
                         }
                     } else if viewModel.carregando && viewModel.vagas.isEmpty {
-                        ProgressView()
-                            .accessibilityLabel(Text(verbatim: TextosMinhasVagas.atualizar))
+                        EstadoCarregando()
                     } else if viewModel.vagas.isEmpty {
                         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                             Text(verbatim: TextosMinhasVagas.vaziaTitulo).font(.title3.bold())
