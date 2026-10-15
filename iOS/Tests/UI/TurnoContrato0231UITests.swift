@@ -155,7 +155,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         tocar(codigo)
-        codigo.digitarEEsperar("123456")
+        codigo.digitarEEsperar("123456", esperado: "123456")
         tocar(app.buttons["codigo-entrar"])
         abrirTurno(app)
         conferirAvaliacaoNegativa(app)
