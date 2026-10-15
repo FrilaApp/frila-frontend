@@ -44,8 +44,10 @@ struct AppPrivacyTests {
             "NSPrivacyCollectedDataTypeUserID",
             "NSPrivacyCollectedDataTypeDeviceID",
             "NSPrivacyCollectedDataTypeOtherUserContent",
+            "NSPrivacyCollectedDataTypeOtherDataTypes",
             "NSPrivacyCollectedDataTypeCrashData",
             "NSPrivacyCollectedDataTypeOtherDiagnosticData",
+            "NSPrivacyCollectedDataTypeProductInteraction",
         ]
 
         for esperado in esperados {
@@ -55,6 +57,20 @@ struct AppPrivacyTests {
         for item in tiposColetados {
             let tracking = item["NSPrivacyCollectedDataTypeTracking"] as? Bool
             #expect(tracking == false, "Nenhum tipo de dado coletado pode estar marcado como tracking")
+
+            let tipo = item["NSPrivacyCollectedDataType"] as? String
+            let linked = item["NSPrivacyCollectedDataTypeLinked"] as? Bool
+            let purposes = item["NSPrivacyCollectedDataTypePurposes"] as? [String] ?? []
+
+            if tipo == "NSPrivacyCollectedDataTypeProductInteraction" {
+                #expect(linked == true, "ProductInteraction deve ser vinculado ao usuário (usuario_id)")
+                #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"), "ProductInteraction deve ter finalidade Analytics")
+            } else if tipo == "NSPrivacyCollectedDataTypeCrashData" || tipo == "NSPrivacyCollectedDataTypeOtherDiagnosticData" {
+                #expect(linked == false, "\(tipo ?? "") não deve ser vinculado ao usuário")
+                #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"), "\(tipo ?? "") deve ter finalidade Analytics")
+            } else {
+                #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"), "\(tipo ?? "") deve ter finalidade AppFunctionality")
+            }
         }
     }
 
