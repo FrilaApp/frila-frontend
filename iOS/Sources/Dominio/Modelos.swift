@@ -89,6 +89,9 @@ public enum TipoPerfilPublico: String, Codable, Sendable {
     case estabelecimento
 }
 
+/// Paridade com o schema TipoDeAlvo do contrato OpenAPI.
+public typealias TipoDeAlvo = TipoPerfilPublico
+
 /// O que uma parte vê da outra: nome e reputação, nunca contato (RN10).
 public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
