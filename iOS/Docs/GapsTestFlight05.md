@@ -13,10 +13,10 @@
 ## 1. Resumo Executivo e Estado Geral
 
 O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturidade e conformidade:
-1. **Build 0.4 (Marco de 20/10):** O ciclo principal sem push (entrada OTP, cadastros, publicação de vagas, lista/busca, candidatura, confirmação e contato) está **100% implementado no código**, coberto por testes unitários e de UI, e validado pelos portões de conformidade (`conferir-release.sh`, `conferir-textos.sh`, etc.). O pipeline de envio automatizado (`.github/workflows/testflight.yml` e `Scripts/enviar-testflight.sh`) está pronto.
-2. **Build 0.5 (Marco de 29/10):** As funcionalidades de **Push Remoto (APNs/FCM)**, **Extensão de Serviço de Notificação (NSE)**, **Check-in/Check-out Geolocalizado**, **Check-in Manual com Confirmação do Contratante**, **Avaliação Binária Pós-Turno**, **Cancelamentos com Motivo**, **Fila Offline com SwiftData** e **Telemetria de 14 Eventos (T-0017 / 0.2.41)** estão **100% implementadas no cliente iOS**.
+1. **Build 0.4 (Marco de 20/10):** O ciclo principal sem push (entrada OTP, cadastros, publicação de vagas, lista/busca, candidatura, confirmação e contato) está **100% implementado no código**, coberto por testes unitários e de UI que existem e rodam na CI da `main`, e validado pelos portões de conformidade (`conferir-release.sh`, `conferir-textos.sh`, etc.). O pipeline de envio automatizado (`.github/workflows/testflight.yml` e `Scripts/enviar-testflight.sh`) está pronto.
+2. **Build 0.5 (Marco de 29/10):** As funcionalidades de **Push Remoto (APNs/FCM)**, **Extensão de Serviço de Notificação (NSE)**, **Check-in/Check-out Geolocalizado**, **Check-in Manual com Confirmação do Contratante**, **Avaliação Binária Pós-Turno**, **Cancelamentos com Motivo**, **Fila Offline com SwiftData** e **Telemetria de 14 Eventos (T-0017 / 0.2.41)** estão implementadas no cliente iOS (com ressalva do PR #299 em aberto na fila de merge para retry de leitura e timeouts granulares).
 
-> **Conclusão Principal da Análise:** Não há funcionalidade de produto ou arquitetura de código pendente no aplicativo iOS para os marcos 0.4 e 0.5. O que separa o estado atual da liberação para os testadores externos são **estritamente bloqueios externos e operacionais** (credenciamento Apple/Firebase pelo proprietário, deploy de serviços no backend `frila-dev` e validações em iPhones físicos no DF).
+> **Conclusão Principal da Análise:** Não há funcionalidade de produto ou arquitetura de código pendente no aplicativo iOS para os marcos 0.4 e 0.5. O que separa o estado atual da liberação para os testadores externos são **estritamente bloqueios externos e operacionais** (conferência de papel da chave ASC pelo proprietário João Paulo, deploy de serviços no backend `frila-dev` via PR `frila-backend#184` e validações em iPhones físicos no DF).
 
 ---
 
@@ -30,15 +30,15 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
   - `PermissaoDePushModelo.swift` / `TelasDaPermissaoDePush.swift`: pedido de permissão com modal educativo do design; ativado no momento exato (profissional após salvar funções/horários em `TelaPerfilProfissional.swift`; contratante após publicar vaga em `PublicarVaga.swift`); aviso fixo (`AvisoDePermissaoDePush`) em Vagas e Minhas Vagas com rota para Ajustes (`openNotificationSettingsURLString`); telemetria `permissao_push_negada` integrada.
   - Conformidade B08: apenas alerta e som (`[.alert, .sound]`), sem Time Sensitive, sem alerta crítico, sem autorização provisória e sem modos de segundo plano para push.
   - `RoteadorDePush.swift`: roteador central cobrindo os 19 tipos de notificação do backend; descarte de push de contas anteriores com carência de 60s; direcionamento seguro para vagas, turnos, avaliações ou vagas indisponíveis.
-  - `FrilaNotificationService` (Target NSE, PR #291): extensão no App Group `group.com.frila.org.app` filtrando notificações por `vinculo_id`; neutralização de notificações de contas inativas na tela bloqueada para "Frila / Nova notificação disponível".
+  - `FrilaNotificationService` (Target NSE, PR #291 mergeado): extensão no App Group `group.com.frila.org.app` filtrando notificações por `vinculo_id`; neutralização de notificações de contas inativas na tela bloqueada para "Frila / Nova notificação disponível".
   - Ferramental de teste: catálogo de fixtures `.apns` e script `simular-push.sh`.
 - **O que falta:**
   - Disparo real de push via console do Firebase em `frila-dev` e `frila-prod`.
   - Homologação visual em iPhone físico com tela bloqueada.
 - **Bloqueado por quê:**
   - *Bloqueio Operacional / Apple:* Criação do App Group `group.com.frila.org.app` e perfis de provisionamento associados no Apple Developer Portal pelo titular da conta (João Paulo).
-  - *Bloqueio Backend:* Ativação do envio em `frila-dev`: `enviar-push` ainda não tem entrada em `config.toml`, portanto o gateway recusa o agendador com 401 até que o `frila-backend#184` seja mergeado e implantado no ambiente.
-  - *Bloqueio Físico:* Teste manual em aparelho de desenvolvimento com chip/APNs.
+  - *Bloqueio Backend:* Ativação do envio em `frila-dev`: a Edge Function `enviar-push` ainda não tem entrada em `config.toml`, portanto o gateway do Supabase recusa o agendador com 401 até que o `frila-backend#184` (`verify_jwt = false` + validação por segredo compartilhado) seja mergeado e implantado no ambiente. Além disso, é necessária a injeção de `FCM_SERVICE_ACCOUNT` e `AGENDADOR_SECRET` no `frila-dev`.
+  - *Bloqueio Físico:* Teste manual em aparelho de desenvolvimento com chip/APNs no DF.
 
 ---
 
@@ -79,7 +79,7 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
 - **Contrato / Requisitos:** US09, RF11, RN12, RN13; RPCs `/rpc/retirar_candidatura`, `/rpc/cancelar_posicao`, `/rpc/cancelar_vaga`, `/rpc/reabrir_por_atraso`.
 - **Implementado no App (Feito):**
   - `FolhaDeCancelamento.swift` & `CancelamentoViewModel.swift`: interface com advertências de impacto na reputação e campo de motivo obrigatório (`>= 3` caracteres).
-  - Profissional: cancelamento de candidatura pendente (`retirar_candidatura`) e cancelamento de turno confirmado (`cancelar_posicao`).
+  - Profissional: retirada de candidatura pendente (`retirar_candidatura`) e cancelamento de turno confirmado (`cancelar_posicao`).
   - Contratante: cancelamento de posição confirmada, cancelamento de vaga inteira (`cancelar_vaga`) e reabertura de vaga por atraso/falta após 15 minutos do início (`reabrir_por_atraso`).
   - Suporte offline e tratamento de idempotência (0.2.35): reenvio devolve o resultado original sem duplicação de penalidades.
   - Telemetria: `candidatura_retirada` instrumentado.
@@ -93,9 +93,10 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
 ### 2.5. Estados Offline e Resiliência de Rede
 - **Contrato / Requisitos:** RNF02, RNF03, RNF04; PR #299 (`57hJ7FV0`).
 - **Implementado no App (Feito):**
-  - Configuração de timeouts (`SupabaseApiCliente.sessaoComPrazo` na main; PR #299 estende para suporte unificado a retry em leituras idempotentes com backoff de 150ms).
+  - Na `main`: timeouts configurados em `SupabaseApiCliente.sessaoComPrazo` (15s timeout de requisição, 60s timeout de recurso, `waitsForConnectivity = false` para falha imediata e ativação de caches offline).
+  - No PR #299 (aberto, aguardando merge): retry idempotente com backoff de 150ms restrito a RPCs de leitura (`rpcsDeLeitura`). Nenhuma mutação (`candidatar`, `publicar_vaga`, `fazer_checkin`) é retentada automaticamente.
   - Fila de ações offline persistida via SwiftData (`ArmazenamentoSwiftData`), sincronizada pelo `SincronizadorAcoes` na recuperação de rede.
-  - Estados visuais de indisponibilidade e feedback de desconexão testados nas suítes de UI e fluxos (`EstadoDoFluxoContratante`, banners de aviso e sincronização pendente).
+  - Padrões visuais de feedback de desconexão e sincronização pendente (`EstadoDoFluxoContratante`, banners de offline e avisos de fila; estados exercitados nos testes de UI em `FrilaUITests`).
   - Telemetria: `acao_enfileirada_offline` instrumentada.
 - **O que falta:**
   - Conclusão da esteira e merge do PR #299 pela Marika.
@@ -110,7 +111,7 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
   - Dicionário fechado de 14 eventos (`EventoDeTelemetria`): `app_aberto`, `cadastro_concluido`, `permissao_push_negada`, `vaga_vista`, `vaga_detalhe_aberto`, `candidatura_enviada`, `candidatura_retirada`, `checkin_tentado`, `checkin_concluido`, `checkout_concluido`, `avaliacao_enviada`, `contato_aberto`, `acao_enfileirada_offline`, `atualizacao_obrigatoria_exibida`.
   - Privacidade rigorosa (RN15): apenas identificadores relacionais (`vagaID`, `turnoID`, `ocorridoEm`). Zero PII, nomes, e-mails, telefones ou coordenadas GPS.
   - Resiliência (RNF08): falhas na camada de telemetria operam de forma totalmente silenciosa sem expor erros ao usuário nem interromper navegação.
-  - Suíte de testes unitários `TelemetriaTests.swift` com 29 testes aprovados na `main`.
+  - Suíte de testes unitários `TelemetriaTests.swift` com todos os 29 testes verdes na CI do PR #292 na `main`.
 - **O que falta:**
   - Nada no app.
 - **Bloqueado por quê:**
@@ -137,10 +138,24 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
   4. Extração e upload de dSYMs do app e frameworks para o Firebase Crashlytics via `upload-symbols`;
   5. Envio do artefato ao App Store Connect API via `xcodebuild -exportArchive -exportOptionsPlist ... upload`.
 
-### 3.3. Inventário de Segredos no GitHub
-Os segredos da App Store Connect API e Firebase já estão devidamente cadastrados no repositório GitHub Actions (`APP_STORE_CONNECT_API_KEY_P8`, `APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_API_ISSUER_ID`, `APPLE_DISTRIBUTION_CERT_P12_*`, `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_*`).
+### 3.3. Inventário de Segredos no GitHub Actions
+Conforme verificado via `gh secret list`, todos os segredos necessários para a esteira já se encontram cadastrados no repositório:
 
-O que cabe ao proprietário (João Paulo) é exclusivamente a verificação administrativa de que o usuário da chave de API possui o papel adequado no App Store Connect (Admin ou App Manager) para geração automática de provisionamento e upload de builds.
+| Segredo | Finalidade | Data de Cadastro / Atualização | Status |
+|---|---|:---:|:---:|
+| `APP_STORE_CONNECT_API_KEY_P8` | Chave privada da App Store Connect API | 07/10/2026 | Cadastrado no repositório |
+| `APP_STORE_CONNECT_API_KEY_ID` | Identificador da Chave (Key ID) | 07/10/2026 | Cadastrado no repositório |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID da conta Apple Developer | 07/10/2026 | Cadastrado no repositório |
+| `APPLE_DISTRIBUTION_CERT_P12_BASE64` | Certificado Apple Distribution em base64 | 14/10/2026 | Cadastrado no repositório |
+| `APPLE_DISTRIBUTION_CERT_P12_PASSWORD` | Senha do certificado P12 | 14/10/2026 | Cadastrado no repositório |
+| `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64` | Plist do Firebase Dev codificado em base64 | 23/09/2026 | Cadastrado no repositório |
+| `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64` | Plist do Firebase Prod codificado em base64 | 23/09/2026 | Cadastrado no repositório |
+| `FRILA_SUPABASE_DEV_URL` | Endpoint da API Supabase Dev | 24/09/2026 | Cadastrado no repositório |
+| `FRILA_SUPABASE_DEV_PUBLISHABLE_KEY` | Chave pública do Supabase Dev | 24/09/2026 | Cadastrado no repositório |
+| `FRILA_SUPABASE_PROD_URL` | Endpoint da API Supabase Prod | 25/09/2026 | Cadastrado no repositório |
+| `FRILA_SUPABASE_PROD_PUBLISHABLE_KEY` | Chave pública do Supabase Prod | 25/09/2026 | Cadastrado no repositório |
+
+O que cabe ao proprietário (João Paulo) é unicamente a conferência administrativa de que a chave de API possui a função de **Admin** ou **App Manager** no portal App Store Connect para permitir a geração de perfis de provisionamento e upload de novos builds.
 
 ---
 
@@ -149,8 +164,8 @@ O que cabe ao proprietário (João Paulo) é exclusivamente a verificação admi
 ### 4.1. Cartão `0jEemYAM` (Mandar build 0.4 para o TestFlight - 20/10)
 | Critério do Cartão | Status no App | O que falta / Onde parou | Bloqueado por quê |
 |---|---|---|---|
-| **Build 0.4 processado no ASC em 20/10** | **Pronto no código** | Disparar o workflow `testflight.yml` com tag `v0.4.0` ou manualmente. | Criação da tag `v0.4.0` pelo proprietário (João Paulo). Segredos já presentes no GitHub Actions. |
-| **Os cinco instalam pelo TestFlight e fazem publicar, candidatar, confirmado e contato** | **Pronto no código** | Suíte de testes unitários e testes de interface cobrindo todos os fluxos. | Processamento do build na Apple e distribuição ao grupo interno. |
+| **Build 0.4 processado no ASC em 20/10** | **Pronto no código** | Disparar o workflow `testflight.yml` com tag `v0.4.0` ou manualmente. | Criação da tag `v0.4.0` por João Paulo e conferência do papel da chave ASC. Segredos já presentes no GitHub Actions. |
+| **Os cinco instalam pelo TestFlight e fazem publicar, candidatar, confirmado e contato** | **Pronto no código** | Fluxo coberto por testes unitários e testes de UI (`CicloDePontaAPontaUITests`, `AutenticacaoTests`), que existem e rodam na suíte de CI da `main`. | Processamento do build na Apple e distribuição ao grupo interno. |
 | **Upload feito pela CI a partir de uma tag, reproduzível** | **Pronto no código** | `testflight.yml` e `enviar-testflight.sh` testados e parametrizados. | Criação da tag `v0.4.0`. |
 | **O build não pede resposta manual sobre criptografia** | **100% Conforme** | `ITSAppUsesNonExemptEncryption = false` validado por portão no `conferir-release.sh`. | Nenhum bloqueio. |
 | **Alguém de fora entra nos 2 perfis num iPhone limpo e vê ciclo; vídeo anexado** | **Pronto no código** | Telas e fluxos prontos. | Ação física humana (gravação do vídeo com o build instalado). |
