@@ -165,7 +165,7 @@ public struct TelaPerfilProfissional: View {
                                         .foregroundStyle(FrilaCor.textoSecundario)
                                 }
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, FrilaEspaco.minimo)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.plain)
@@ -227,7 +227,7 @@ public struct TelaPerfilProfissional: View {
                                 } label: {
                                     Image(systemName: "trash")
                                         .foregroundStyle(FrilaCor.perigo)
-                                        .frame(width: 44, height: 44)
+                                        .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
@@ -236,7 +236,7 @@ public struct TelaPerfilProfissional: View {
                                 .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, FrilaEspaco.minimo)
                         Divider()
                     }
                 }
@@ -260,7 +260,7 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
                 }
                 .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                 .contentShape(Rectangle())
                 .accessibilityIdentifier("picker-dia-semana")
 
@@ -297,7 +297,7 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.adicionar)
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, FrilaEspaco.medio)
-                        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, minHeight: 44)
+                        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, minHeight: FrilaMetrica.alvoMinimo)
                         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
                         .foregroundStyle(FrilaCor.sobrePrimaria)
                         .contentShape(Rectangle())

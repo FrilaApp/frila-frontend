@@ -26,7 +26,7 @@ public struct TelaCodigo: View {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
                             .foregroundStyle(FrilaCor.texto)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                     }
                     .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                     .accessibilityIdentifier("codigo-voltar")

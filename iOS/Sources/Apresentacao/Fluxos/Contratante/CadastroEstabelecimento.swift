@@ -188,7 +188,7 @@ public struct TelaCadastroEstabelecimento: View {
 
     private var formulario: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 Text(verbatim: TextosCadastro.titulo).font(.largeTitle.bold())
                 campo(TextosCadastro.nome, campo: .nome) { CampoFrila(verbatim: TextosCadastro.nomeCampo, texto: $model.nome) }
                 campo(TextosCadastro.documento, campo: .documento) {
@@ -311,7 +311,7 @@ public struct TelaCadastroEstabelecimento: View {
         Image(systemName: "mappin.and.ellipse")
             .font(.title)
             .foregroundStyle(FrilaCor.perigo)
-            .frame(width: 44, height: 44)
+            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
             .contentShape(Rectangle())
             .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
             .accessibilityIdentifier("marcador-mapa")
@@ -338,7 +338,7 @@ public struct TelaCadastroEstabelecimento: View {
     }
 
     @ViewBuilder private func campo<Conteudo: View>(_ titulo: String, campo: CampoCadastro, @ViewBuilder conteudo: () -> Conteudo) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: titulo).font(.headline)
             conteudo().erroDeCampoFrila(mensagemDoCampo(campo))
             if case let .campo(campoErro, regra)? = model.erro, campoErro == campo { Text(verbatim: erroCampo(regra)).font(.caption).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-campo-\(titulo.lowercased())") }

@@ -143,7 +143,9 @@ targets:
     platform: iOS
     sources:
       - path: Sources/NotificationService
-      - path: Resources/Frameworks/PrivacyInfo.xcprivacy
+      # Manifesto próprio da extensão (só UserDefaults do App Group, motivo 1C8F.1): a Apple pede o
+      # manifesto dentro de cada bundle, e o da extensão não declara o que só o app usa.
+      - path: Resources/NotificationService/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:
       - target: FrilaDominio

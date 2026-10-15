@@ -26,7 +26,7 @@ public struct TelaCadastro: View {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
                             .foregroundStyle(FrilaCor.texto)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                     }
                     .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                     .accessibilityIdentifier("cadastro-voltar")
@@ -111,7 +111,7 @@ public struct TelaCadastro: View {
                         Image(systemName: viewModel.maiorDeIdade ? "checkmark.square.fill" : "square")
                             .font(.title3)
                             .foregroundStyle(viewModel.maiorDeIdade ? FrilaCor.primaria : FrilaCor.textoSecundario)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -136,7 +136,7 @@ public struct TelaCadastro: View {
                         Image(systemName: viewModel.aceitouTermos ? "checkmark.square.fill" : "square")
                             .font(.title3)
                             .foregroundStyle(viewModel.aceitouTermos ? FrilaCor.primaria : FrilaCor.textoSecundario)
-                            .frame(width: 44, height: 44)
+                            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)

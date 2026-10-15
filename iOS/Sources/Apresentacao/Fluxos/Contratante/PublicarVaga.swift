@@ -632,7 +632,7 @@ public struct TelaPublicarVaga: View {
                 .accessibilityIdentifier("mais-opcoes-botao")
                 if model.mostrandoMaisOpcoes {
                     campoOpcional(.traje, titulo: TextosPublicarVaga.traje) { CampoFrila(verbatim: TextosPublicarVaga.traje, texto: $model.traje) }
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                         seletorSimNao(TextosPublicarVaga.rateio, valor: Binding(get: { model.participaRateio ?? false }, set: { model.participaRateio = $0 })).erroDeCampoFrila(model.erros[.rateio])
                         if let erro = model.erros[.rateio] { Text(verbatim: erro).font(.caption).foregroundStyle(FrilaCor.perigo) }
                     }.disabled(model.camposBloqueados)
