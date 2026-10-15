@@ -114,10 +114,22 @@ A conformidade com o contrato deve seguir a mesma severidade do iOS, prevenindo 
    - Em aparelhos compartilhados (ex.: dois profissionais usando o mesmo smartphone), o payload de notificação transporta a chave `vinculo_id` (contrato 0.2.30).
    - O serviço `FrilaFirebaseMessagingService` deve validar se o `vinculo_id` recebido coincide com o ID de vínculo da sessão ativa gravado no Keystore.
    - Caso a notificação pertença a uma conta deslogada ou anterior, o conteúdo sensível da notificação é imediatamente neutralizado (exibindo apenas mensagem genérica *"Frila: Nova notificação disponível"*), impedindo vazamento de dados de terceiros.
-3. **Alinhamento com o Backend e Canais de Notificação:**
-   - Atualmente, o backend monta o payload primariamente com o bloco `aps` para iOS. Para o Android, o app construirá localmente a `NotificationCompat` utilizando os dados brutos de `RemoteMessage.data`.
-   - Para suporte a prioridade máxima e bypass de Doze mode em vagas urgentes, a Edge Function `enviar-push` do backend precisará ser estendida para injetar o bloco `android: { priority: "high", notification: { channel_id: "canal_urgencia" } }`.
-   - Canais locais configurados no `Application.onCreate()`:
+3. **Lacuna no Backend (Dependência a Implementar):**
+   > [!IMPORTANT]
+   > **Lacuna no Backend (`enviar-push` / `frila-backend#184`):**
+   > O backend atualmente monta o payload FCM com foco exclusivo no bloco `apns` para iOS. Não há configuração do bloco `android` (sem definição de canal ou prioridade de entrega no servidor). Para que o Android receba notificações com prioridade máxima e bypass de Doze mode em vagas urgentes, a Edge Function `enviar-push` precisa ser estendida para suportar o bloco:
+   > ```json
+   > "android": {
+   >   "priority": "high",
+   >   "notification": {
+   >     "channel_id": "canal_urgencia"
+   >   }
+   > }
+   > ```
+   > Enquanto essa implementação não for mergeada no backend, o app Android fará o tratamento recebendo dados brutos em `RemoteMessage.data` e exibindo via `NotificationCompat` local.
+
+4. **Canais de Notificação Locais (Android 8.0+ / API 26+):**
+   - Canais configurados no `Application.onCreate()`:
      - `canal_urgencia`: Prioridade máxima (`IMPORTANCE_HIGH`), som e vibração para novas vagas e convites.
      - `canal_turnos`: Lembretes de turno, avisos de check-in/check-out e atrasos.
      - `canal_geral`: Informações administrativas e suporte.
