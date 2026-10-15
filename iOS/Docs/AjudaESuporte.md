@@ -54,7 +54,7 @@ A auditoria identificou uma bifurcação entre dois canais de suporte no reposit
 
 A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuários ou interação direta incluam:
 1. Mecanismo para denúncia de conteúdo ofensivo/abusivo.
-2. Moderação tempestiva; compromisso operacional do Frila, definido pelo Cauê em 15/10/2026: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos.
+2. Moderação tempestiva; compromisso operacional do Frila, definido pelo Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 3. Mecanismo para bloqueio mútuo de usuários abusivos.
 4. Informações de contato publicadas e acessíveis na interface.
 
@@ -65,7 +65,7 @@ A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuá
 - **Prazo de Atendimento / SLA de Moderação (Alinhamento do app e backend pendente):**
   - O texto informativo geral de perfil indica `"Respondemos em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 393; Fonte: Visão 7.2 e RF23).
   - O protocolo de denúncia (`AcoesDeSeguranca.swift:83-89`) calcula a data limite a partir de `protocolo.prazoRespostaAte`, que no backend (`privado.prazo_de_resposta`) projeta o quinto dia útil.
-  - Compromisso de moderação e denúncia de conteúdo definido pelo Cauê em 15/10/2026: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. O texto do app e a data calculada pelo backend acima ainda precisam ser alinhados em missão própria.
+  - Compromisso de moderação e denúncia de conteúdo definido pelo Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. O texto do app e a data calculada pelo backend acima ainda precisam ser alinhados em missão própria.
 
 ---
 
@@ -118,7 +118,7 @@ Redação proposta em conformidade estrita com o `iOS/Docs/GuiaDeVoz.md` (tom di
    - Alternativa citada em `ingestao-email-suporte-v1.1.md:13`: `suporte@frila.app` (decisão pendente).
 2. **Prazo de resposta institucional e SLA de moderação:**
    - Suporte geral no aplicativo: `"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."` (Fonte: Visão 7.2 e RF23 / `TextosDoSuporte.swift:7`).
-   - Moderação, denúncias e atendimento: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). A citação do app acima descreve o estado atual, ainda pendente de alinhamento.
+   - Moderação, denúncias e atendimento: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). A citação do app acima descreve o estado atual, ainda pendente de alinhamento.
 3. **Ausência de comissão:** Uso da expressão aprovada `"O Frila não desconta do valor pago pelo turno"`.
 4. **Sem jargões promocionais:** Banidos termos como "grátis", "100% gratuito", "em poucos toques" e "em instantes".
 
@@ -141,7 +141,7 @@ Ação: Abre o aplicativo de e-mail com destinatário suportefrila@gmail.com
 Dica de acessibilidade: Abre seu aplicativo de e-mail para falar com a Equipe Frila
 Texto do endereço: suportefrila@gmail.com (copiável com seleção de texto habilitada)
 Aviso informativo de prazo:
-"Triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
+"O mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
 (Fonte: Documento de Visão 7.2 e Requisito RF23)
 
 Aviso de segurança:
@@ -187,7 +187,7 @@ Ação: Abre o aplicativo de e-mail com destinatário suportefrila@gmail.com
 Dica de acessibilidade: Abre seu aplicativo de e-mail para falar com a Equipe Frila
 Texto do endereço: suportefrila@gmail.com (copiável com seleção de texto habilitada)
 Aviso informativo de prazo:
-"Triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
+"O mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
 (Fonte: Documento de Visão 7.2 e Requisito RF23)
 
 [Seção: Dúvidas sobre publicação e equipe]
@@ -271,7 +271,7 @@ A Visão 7.2 cita as perguntas frequentes como parte do "conjunto mínimo de aju
 ### 5.3 Parecer Técnico e Recomendação do Loki
 **Recomendação Técnica: Adotar a Opção 1 para o MVP v1.0.**
 1. Manter a `TelaAjudaPerfil` na v1.0 com a sua estrutura atual:
-   - Canal direto para a Equipe Frila (`suportefrila@gmail.com`); novo compromisso documental: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. O texto do app ainda precisa ser alinhado.
+   - Canal direto para a Equipe Frila (`suportefrila@gmail.com`); novo compromisso documental: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. O texto do app ainda precisa ser alinhado.
    - Links oficiais para Termos de Uso e Política de Privacidade.
    - Atalho contextual para a tela `Por que recebo vagas` (para dúvidas sobre despacho e filtros).
    - Licenças de código aberto.

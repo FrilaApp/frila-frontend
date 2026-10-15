@@ -27,8 +27,8 @@ O canal de suporte e as referências técnicas estão abaixo. As URLs públicas 
 | `{{url_privacidade}}` | `[A DEFINIR: URL pública de privacidade]` | Decisão do Cauê de 15/10/2026 | Confirmar domínio aprovado antes do envio. |
 | `{{url_site}}` | `[A DEFINIR: URL pública do site]` | Decisão do Cauê de 15/10/2026 | Configurar a variável no backend somente após a aprovação do domínio. |
 | Validade do código de entrada | *"Ele vale por pouco tempo e para uma única entrada."* | Sem prazo no contrato público (`iOS/Contrato/openapi.yaml:1109-1180`) | O arquivo `frila-backend/supabase/config.toml:219` define `otp_expiry = 600` (10 min local). Porém, como a validade em minutos não está contratualizada na especificação da API nem nos Requisitos (RF01), o texto segue a regra de **sem promessa de tempo**, omitindo números não contratados. Definição formal pendente para Cauê/João Paulo. |
-| Prazo de moderação, denúncias e atendimento | *triagem em até 5 dias úteis; resposta formal em até 15 dias corridos* | Decisão do Cauê (15/10/2026)<br>`iOS/Docs/AjudaESuporte.md` | Compromisso documental atualizado; textos do app, modelos do backend e cálculo de prazo ainda dependem de missão própria/cartão no Trello. |
-| Prazo de resposta a contestações | *triagem em até 5 dias úteis; resposta formal em até 15 dias corridos* | Decisão do Cauê (15/10/2026) | O backend (`frila-backend/supabase/functions/enviar-email/modelos.ts`) ainda informa 5 dias úteis; alinhar pelo cartão do backend. |
+| Prazo de moderação, denúncias e atendimento | *o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos* | Decisão do Cauê (15/10/2026)<br>`iOS/Docs/AjudaESuporte.md` | Compromisso documental atualizado; textos do app, modelos do backend e cálculo de prazo ainda dependem de missão própria/cartão no Trello. |
+| Prazo de resposta a contestações | *o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos* | Decisão do Cauê (15/10/2026) | O backend (`frila-backend/supabase/functions/enviar-email/modelos.ts`) ainda informa 5 dias úteis; alinhar pelo cartão do backend. |
 | Telefones de emergência | 190 e 180 | Requisitos v1.5.0 (RF23, UC14)<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift` | Canais públicos de atendimento policial (190) e violência contra a mulher (180). |
 
 ### 1.2 Princípios de Construção Visual
@@ -162,7 +162,7 @@ Referência curta: {{protocolo_curto}}
 Categoria: {{categoria}}
 Data de registro: {{data_abertura}}
 
-As denúncias passam por triagem em até 5 dias úteis; resposta formal em até 15 dias corridos.
+As denúncias são atendidas o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 
 Guarde este número de protocolo: é por meio dele que nossa equipe acompanha o caso.
 
@@ -230,7 +230,7 @@ Equipe Frila · Moderação e Segurança
             <div class="protocol-line"><strong>Categoria:</strong> {{categoria}}</div>
             <div class="protocol-line"><strong>Data de registro:</strong> {{data_abertura}}</div>
           </div>
-          <p class="text-body">As denúncias passam por triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. Guarde este número de protocolo para acompanhar o caso.</p>
+          <p class="text-body">As denúncias são atendidas o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Guarde este número de protocolo para acompanhar o caso.</p>
           <div class="emergency-box">
             <div class="emergency-title">Orientação de segurança</div>
             <p class="emergency-text">Em caso de risco imediato, procure a autoridade policial pelos números 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher). O Frila não substitui o atendimento de emergência.</p>
@@ -280,7 +280,7 @@ Tipo: {{tipo_contestacao}}
 Data de registro: {{data_abertura}}
 Previsão de resposta: até {{prazo_resposta}}
 
-A Equipe Frila analisa cada pedido com base nos termos de uso e nas regras do produto. O pedido passa por triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. A resposta será enviada para este mesmo endereço de e-mail.
+A Equipe Frila analisa cada pedido com base nos termos de uso e nas regras do produto. O pedido é atendido o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. A resposta será enviada para este mesmo endereço de e-mail.
 
 Guarde o número do seu protocolo para referência.
 
@@ -341,7 +341,7 @@ Equipe Frila · Atendimento e Conformidade
             <div class="protocol-line"><strong>Data de registro:</strong> {{data_abertura}}</div>
             <div class="protocol-line"><strong>Previsão de resposta:</strong> até {{prazo_resposta}}</div>
           </div>
-          <p class="text-body">A Equipe Frila analisa cada pedido com base nos termos de uso e nas regras do produto. O pedido passa por triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. A resposta será enviada para este endereço de e-mail.</p>
+          <p class="text-body">A Equipe Frila analisa cada pedido com base nos termos de uso e nas regras do produto. O pedido é atendido o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. A resposta será enviada para este endereço de e-mail.</p>
           <p class="text-body">Guarde o número do seu protocolo para acompanhar o caso.</p>
         </div>
         <div class="footer">
@@ -471,20 +471,20 @@ Monitoramento Frila · Infraestrutura e Confiabilidade
 | **Versões completas em HTML e texto simples** | Concluído | Todos os 4 modelos contam com código HTML independente e bloco de texto simples. |
 | **HTML sem recursos externos e legível em modo escuro** | Concluído | Zero imagens remotas, CSS inline, paleta sem dependências e estilos dark mode testados. |
 | **Código no assunto e legível na notificação sem abrir o e-mail** | Concluído | Assunto: `{{codigo}} é seu código de entrada no Frila`; pré-cabeçalho iniciado pelo código. |
-| **Prazos documentais atualizados** | Backend pendente | Seções 3 (denúncia) e 4 (contestação): triagem em até 5 dias úteis; resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). Textos e cálculo do prazo no backend dependem de cartão no Trello. |
+| **Prazos documentais atualizados** | Backend pendente | Seções 3 (denúncia) e 4 (contestação): o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). Textos e cálculo do prazo no backend dependem de cartão no Trello. |
 | **Telefones de emergência 190 e 180 no modelo de denúncia** | Concluído | Seção 3 (texto simples e HTML) com destaque para atendimento policial e mulher. |
 | **Alerta do time sem dados pessoais e com destinatário/link a definir** | Concluído | Seção 5 restrita a métricas operacionais, instante, `{{destinatario_time}} [A DEFINIR]` e `{{link_painel}} [A DEFINIR]`. |
 | **Canal oficial e URLs pendentes** | Parcial | Variável `{{email_suporte}}` definida como `suportefrila@gmail.com`. URLs públicas em variáveis, pendentes de domínio aprovado pelo Cauê. |
 | **Sem promessa de tempo na validade do código** | Concluído | Validade descrita como *"Ele vale por pouco tempo e para uma única entrada"*, sem número de minutos inventado. |
 | **Terminologia do Guia de Voz e ausência da palavra "comissão"** | Concluído | Vocabulário auditado contra `GuiaDeVoz.md`, sem "comissão". |
 | **Conferência de scripts (`conferir-textos.sh`)** | Concluído | `iOS/Scripts/conferir-textos.sh` aprovado sem erros. |
-| **Definição de prazos de moderação e atendimento** | Concluído nos textos | Decisão do Cauê em 15/10/2026: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos (incorporado aos modelos em texto simples e HTML). |
+| **Definição de prazos de moderação e atendimento** | Concluído nos textos | Decisão do Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (incorporado aos modelos em texto simples e HTML). |
 | **Validação da entrega na caixa de entrada (Gmail e iCloud) com captura no Trello** | Em falta | Depende da infraestrutura de SMTP próprio no Supabase Auth e testes externos de envio. |
 | **Aprovação dos textos pela Júlia** | Em falta | Depende de validação e aprovação formal pela Júlia no cartão Trello. |
 | **Homologação formal do prazo de validade do código OTP** | Em falta | Definição formal do prazo de expiração (se 10 min de `config.toml` deve ir para o texto) para Cauê/João Paulo. |
 
 ### 6.1 Decisões Pendentes (Cauê e João Paulo)
 
-1. **Prazos de moderação e atendimento (Definidos pelo Cauê em 15/10/2026):** triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. Aplicados aos Modelos 2 (Protocolo de Denúncia) e 3 (Protocolo de Contestação) em texto simples e HTML. Alinhar implementação e cálculo de prazo do backend por cartão no Trello.
+1. **Prazos de moderação e atendimento (Definidos pelo Cauê em 15/10/2026):** o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Aplicados aos Modelos 2 (Protocolo de Denúncia) e 3 (Protocolo de Contestação) em texto simples e HTML. Alinhar implementação e cálculo de prazo do backend por cartão no Trello.
 2. **Prazo numérico de validade do código OTP:** Definir se a validade técnica de 10 minutos (`frila-backend/supabase/config.toml:219`) deve ser anunciada textualmente no e-mail aos usuários ou mantida no formato neutro atual (*"Ele vale por pouco tempo e para uma única entrada"*).
 3. **Destinatário e infraestrutura do alerta do time:** Definir o e-mail real de monitoramento (`{{destinatario_time}}`) e a URL do painel (`{{link_painel}}`).
