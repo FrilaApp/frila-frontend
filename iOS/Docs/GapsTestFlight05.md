@@ -14,7 +14,7 @@
 
 O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturidade e conformidade:
 1. **Build 0.4 (Marco de 20/10):** O ciclo principal sem push (entrada OTP, cadastros, publicação de vagas, lista/busca, candidatura, confirmação e contato) está **100% implementado no código**, coberto por testes unitários e de UI que existem e rodam na CI da `main`, e validado pelos portões de conformidade (`conferir-release.sh`, `conferir-textos.sh`, etc.). O pipeline de envio automatizado (`.github/workflows/testflight.yml` e `Scripts/enviar-testflight.sh`) está pronto.
-2. **Build 0.5 (Marco de 29/10):** As funcionalidades de **Push Remoto (APNs/FCM)**, **Extensão de Serviço de Notificação (NSE)**, **Check-in/Check-out Geolocalizado**, **Check-in Manual com Confirmação do Contratante**, **Avaliação Binária Pós-Turno**, **Cancelamentos com Motivo**, **Fila Offline com SwiftData** e **Telemetria de 14 Eventos (T-0017 / 0.2.41)** estão implementadas no cliente iOS (com ressalva do PR #299 em aberto na fila de merge para retry de leitura e timeouts granulares).
+2. **Build 0.5 (Marco de 29/10):** As funcionalidades de **Push Remoto (APNs/FCM)**, **Extensão de Serviço de Notificação (NSE - PR #291)**, **Check-in/Check-out Geolocalizado**, **Check-in Manual com Confirmação do Contratante**, **Avaliação Binária Pós-Turno**, **Cancelamentos com Motivo**, **Fila Offline com SwiftData**, **Telemetria de 14 Eventos (PR #292)** e **Resiliência de Rede com Retries de Leitura e Timeouts (PR #299 mergeado)** estão 100% implementadas no cliente iOS na branch `main`.
 
 > **Conclusão Principal da Análise:** Não há funcionalidade de produto ou arquitetura de código pendente no aplicativo iOS para os marcos 0.4 e 0.5. O que separa o estado atual da liberação para os testadores externos são **estritamente bloqueios externos e operacionais** (conferência de papel da chave ASC pelo proprietário João Paulo, deploy de serviços no backend `frila-dev` via PR `frila-backend#184` e validações em iPhones físicos no DF).
 
@@ -91,17 +91,17 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
 ---
 
 ### 2.5. Estados Offline e Resiliência de Rede
-- **Contrato / Requisitos:** RNF02, RNF03, RNF04; PR #299 (`57hJ7FV0`).
+- **Contrato / Requisitos:** RNF02, RNF03, RNF04; PR #299 (`57hJ7FV0`, **mergeado na `main`**).
 - **Implementado no App (Feito):**
-  - Na `main`: timeouts configurados em `SupabaseApiCliente.sessaoComPrazo` (15s timeout de requisição, 60s timeout de recurso, `waitsForConnectivity = false` para falha imediata e ativação de caches offline).
-  - No PR #299 (aberto, aguardando merge): retry idempotente com backoff de 150ms restrito a RPCs de leitura (`rpcsDeLeitura`). Nenhuma mutação (`candidatar`, `publicar_vaga`, `fazer_checkin`) é retentada automaticamente.
+  - Timeouts configurados em `SupabaseApiCliente.sessaoComPrazo` (15s timeout de requisição, 60s timeout de recurso, `waitsForConnectivity = false` para falha imediata e ativação de caches offline).
+  - Retry idempotente com uma única retentativa com espera fixa de 150ms restrito a RPCs de leitura (`rpcsDeLeitura` via `executarComRetentativaSeTransiente`), incorporado pelo PR #299. Nenhuma mutação (`candidatar`, `publicar_vaga`, `fazer_checkin`) é retentada automaticamente.
   - Fila de ações offline persistida via SwiftData (`ArmazenamentoSwiftData`), sincronizada pelo `SincronizadorAcoes` na recuperação de rede.
   - Padrões visuais de feedback de desconexão e sincronização pendente (`EstadoDoFluxoContratante`, banners de offline e avisos de fila; estados exercitados nos testes de UI em `FrilaUITests`).
   - Telemetria: `acao_enfileirada_offline` instrumentada.
 - **O que falta:**
-  - Conclusão da esteira e merge do PR #299 pela Marika.
+  - Nada no código do cliente. O PR #299 já foi aprovado e integrado à branch `main`.
 - **Bloqueado por quê:**
-  - Ciclo normal de aprovação e CI do PR #299.
+  - Nenhum bloqueio. Código 100% integrado.
 
 ---
 
@@ -181,11 +181,29 @@ O que cabe ao proprietário (João Paulo) é unicamente a conferência administr
 
 ---
 
-## 5. Próximos Passos Recomendados para o Time
+## 5. Estado Atual dos Pull Requests Relacionados (S2 / TestFlight 0.5)
+
+| PR | Título / Escopo | Status Atual | Observações |
+|:---:|---|:---:|---|
+| **#291** | `feat(ios): extensão de serviço de notificações (NSE)` | **Mergeado na `main`** | App Group `group.com.frila.org.app` e isolamento `vinculo_id`. |
+| **#292** | `feat(telemetria): fiação completa dos 14 eventos` | **Mergeado na `main`** | 29 testes unitários verdes em `TelemetriaTests.swift`. |
+| **#299** | `perf(ios): timeouts sensíveis e retry idempotente` | **Mergeado na `main`** | Timeouts sensíveis e retentativa única com espera fixa de 150ms para leituras. |
+| **#304** | `docs(ios): gap analysis e prontidão TestFlight 0.5` | **Mergeado na `main`** | Diagnóstico técnico e alinhamento dos 7 apontamentos. |
+| **#306** | `docs(android): proposta arquitetural e técnica v1.1` | **Mergeado na `main`** | Cartão `XTijdYVk` delimitado aos Épicos E1 e E2. |
+| **#305** | `feat(ios): gate de conferência estrita de contrato` | Aberto, aprovado no head `95c40de` (CI em andamento) | Validador dinâmico OpenAPI 0.2.41 e autoteste de 10 passos. |
+| **#298** | `fix(ios): acessibilidade, rótulos e Dynamic Type` | Aberto na fila de merge | Auditoria completa de acessibilidade VoiceOver. |
+| **#300** | `fix(ios): unificação de padrões de estado e banners` | Aberto na fila de merge | Padronização de componentes de feedback offline e carregamento. |
+| **#301** | `docs(ios): laudo de conformidade App Privacy Details` | Aberto na fila de merge | Mapeamento de dados LGPD e privacidade para a App Store. |
+| **#302** | `feat(ios): consolidação de maioridade e perfil` | Aberto na fila de merge | Validação da regra RN20 (maioridade) no cadastro e perfil. |
+| **#303** | `docs(ios): checklist oficial de submissão App Store` | Aberto na fila de merge | Documentação e roteiro oficial para o processo de revisão Apple. |
+
+---
+
+## 6. Próximos Passos Recomendados para o Time
 
 1. **Ações Técnicas Imediatas (Trabalho Autônomo):**
-   - Acompanhar a conclusão da CI do PR #299 (Desempenho e Rede) e seu merge automático pela Marika.
-   - Puxar a próxima tarefa técnica do escopo.
+   - Acompanhar a conclusão da CI do PR #305 (Gate de Contrato) e seu merge pela Rainha Marika.
+   - Puxar as tarefas subsequentes de saneamento dos avisos informativos de DTOs e reprovação estrita.
 2. **Ações para o Proprietário (João Paulo):**
    - Conferir permissão da chave App Store Connect API no portal Apple (Admin ou App Manager).
    - Criar o App Group `group.com.frila.org.app` no portal Apple Developer e associá-lo aos App IDs do app e da extensão de push.
