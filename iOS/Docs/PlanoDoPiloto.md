@@ -20,7 +20,7 @@ Documento operacional do piloto do Frila no Distrito Federal, cobrindo o períod
 1. **Gratuidade total:** Durante o piloto, o aplicativo é 100% gratuito. Não há cobrança de taxa de adesão, comissão ou intermediação para estabelecimentos nem para profissionais.
 2. **Pagamento direto fora do app:** O pagamento do cachê/diária é acordado entre as partes e efetuado diretamente pelo contratante ao profissional no encerramento do expediente. O Frila não processa valores financeiros (`AjudaESuporte.md:72`).
 3. **Maioridade estrita (18+):** Elegibilidade restrita a maiores de 18 anos (`Classificacao18ECA.md`, Art. 7º, II da LGPD). Menores não são admitidos no piloto.
-4. **Sem plantão ao vivo:** O Frila não disponibiliza suporte em tempo real ou chat ao vivo (`Visão 1.2`). O canal de atendimento é assíncrono via e-mail oficial (`suporte@frila.app`).
+4. **Sem plantão ao vivo:** O Frila não disponibiliza suporte em tempo real ou chat ao vivo (`Visão 1.2`). O canal de atendimento é assíncrono via e-mail oficial (`suportefrila@gmail.com`).
 5. **Comunicação sem grupos expostos:** Para preservar a privacidade e não expor telefones e dados pessoais entre participantes (Art. 37 da LGPD, `LGPD.md:35`), toda comunicação institucional ocorre por e-mail ou lista individual de transmissão, vedada a criação de grupos coletivos de WhatsApp.
 
 ---
@@ -70,7 +70,7 @@ Para manter a operação estável, garantir conformidade e acompanhar os indicad
 
 | Periodicidade | Horário / Momento | Atividade Operacional | Ferramenta / Fonte | Indicador Acompanhado |
 |---|---|---|---|---|
-| **Diária** | Manhã (até 10h) | Triagem da caixa de suporte e denúncias. | `suporte@frila.app` e RPC `situacao_da_conta`. | SLA de moderação em até 24h (Diretriz 1.2 da App Store, `AjudaESuporte.md:59`). |
+| **Diária** | Manhã (até 10h) | Triagem da caixa de suporte e denúncias. | `suportefrila@gmail.com` e RPC `situacao_da_conta`. | Compromisso operacional: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos (decisão do Cauê de 15/10/2026). |
 | **Diária** | Fim de tarde (16h) | Verificação de vagas publicadas e integridade do despacho. | Painel Supabase e view `metrica.funil_por_dia`. | RNF03 ($\le 30$ s) e taxa de preenchimento (`PlanoDeMetricas.md:3`). |
 | **Sex / Sáb / Dom** | Noite (19h às 23h) | Acompanhamento de turnos ativos e check-ins no local. | View `metrica.funil_por_vaga` (`checkins` vs `confirmacoes`). | Comparecimento (`PlanoDeMetricas.md:3`), ausência de falhas GPS e fila offline. |
 | **Segunda-feira** | Manhã (10h) | Reunião semanal de métricas e alinhamento do piloto. | Views `metrica.funil_geral` e `metrica.funil_por_estabelecimento`. | North Star semanal (`PlanoDeMetricas.md:2`), retenção D7 e tempo mediano. |
@@ -111,9 +111,9 @@ O piloto será interrompido ou pausado preventivamente caso ocorra:
 
 ## 7. Escala Operacional da Equipe Frila (13/11 a 04/12)
 
-Escala de responsabilidade para triagem da caixa de suporte (`suporte@frila.app`), moderação de denúncias (SLA 24h da Diretriz 1.2 da App Store) e monitoramento de infraestrutura. Cobre todos os 22 dias, incluindo fins de semana e os feriados de 20/11 (Consciência Negra) e 30/11 (Dia do Evangélico / DF):
+Escala de responsabilidade para triagem da caixa de suporte (`suportefrila@gmail.com`), moderação de denúncias (triagem em até 5 dias úteis; resposta formal em até 15 dias corridos) e monitoramento de infraestrutura. Cobre todos os 22 dias, incluindo fins de semana e os feriados de 20/11 (Consciência Negra) e 30/11 (Dia do Evangélico / DF):
 
-| Data | Dia / Evento | Triagem de Suporte e Denúncias (SLA 24h) | Monitoramento Técnico e Métricas |
+| Data | Dia / Evento | Suporte e Denúncias (triagem em até 5 dias úteis; resposta formal em até 15 dias corridos) | Monitoramento Técnico e Métricas |
 |---|---|---|---|
 | 13/11/2026 | Sex (Início do Piloto) | `[A DEFINIR]` | `[A DEFINIR]` |
 | 14/11/2026 | Sáb | `[A DEFINIR]` | `[A DEFINIR]` |

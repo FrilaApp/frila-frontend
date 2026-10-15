@@ -54,7 +54,7 @@ A auditoria identificou uma bifurcação entre dois canais de suporte no reposit
 
 A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuários ou interação direta incluam:
 1. Mecanismo para denúncia de conteúdo ofensivo/abusivo.
-2. Compromisso de moderação tempestiva com triagem em até 24 horas.
+2. Moderação tempestiva; compromisso operacional do Frila, definido pelo Cauê em 15/10/2026: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos.
 3. Mecanismo para bloqueio mútuo de usuários abusivos.
 4. Informações de contato publicadas e acessíveis na interface.
 
@@ -62,10 +62,10 @@ A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuá
 - **Mecanismo de Denúncia (Conforme):** `FolhaDeDenuncia` (`iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:62-150`), integrada à RPC `denunciar` (valida alvo, motivo, relato de no mínimo 10 caracteres e gera protocolo de acompanhamento).
 - **Mecanismo de Bloqueio (Conforme):** `BotaoBloquear` (`iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:20-60`), executando bloqueio definitivo entre profissional e estabelecimento para impedir visualizações mútuas, candidaturas e notificações.
 - **Informações de Contato (Conforme):** Disponibilizadas em `TelaAjudaPerfil` (`PerfisDaConta.swift:348-450`) com e-mail clicável e copiável.
-- **Prazo de Atendimento / SLA de Moderação (Conforme):**
+- **Prazo de Atendimento / SLA de Moderação (Alinhamento do app e backend pendente):**
   - O texto informativo geral de perfil indica `"Respondemos em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 393; Fonte: Visão 7.2 e RF23).
   - O protocolo de denúncia (`AcoesDeSeguranca.swift:83-89`) calcula a data limite a partir de `protocolo.prazoRespostaAte`, que no backend (`privado.prazo_de_resposta`) projeta o quinto dia útil.
-  - Para cumprir formalmente a Diretriz 1.2 da App Store, a moderação e denúncia de conteúdo conta com triagem em até 24 h; resposta formal em até 5 dias úteis (decisão do Cauê em 12/10/2026 acatando a recomendação).
+  - Compromisso de moderação e denúncia de conteúdo definido pelo Cauê em 15/10/2026: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. O texto do app e a data calculada pelo backend acima ainda precisam ser alinhados em missão própria.
 
 ---
 
@@ -118,7 +118,7 @@ Redação proposta em conformidade estrita com o `iOS/Docs/GuiaDeVoz.md` (tom di
    - Alternativa citada em `ingestao-email-suporte-v1.1.md:13`: `suporte@frila.app` (decisão pendente).
 2. **Prazo de resposta institucional e SLA de moderação:**
    - Suporte geral no aplicativo: `"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."` (Fonte: Visão 7.2 e RF23 / `TextosDoSuporte.swift:7`).
-   - Moderação e denúncia de conteúdo: triagem em até 24 h; resposta formal em até 5 dias úteis (Diretriz 1.2 da App Store; decisão do Cauê em 12/10/2026).
+   - Moderação, denúncias e atendimento: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). A citação do app acima descreve o estado atual, ainda pendente de alinhamento.
 3. **Ausência de comissão:** Uso da expressão aprovada `"O Frila não desconta do valor pago pelo turno"`.
 4. **Sem jargões promocionais:** Banidos termos como "grátis", "100% gratuito", "em poucos toques" e "em instantes".
 
@@ -141,7 +141,7 @@ Ação: Abre o aplicativo de e-mail com destinatário suportefrila@gmail.com
 Dica de acessibilidade: Abre seu aplicativo de e-mail para falar com a Equipe Frila
 Texto do endereço: suportefrila@gmail.com (copiável com seleção de texto habilitada)
 Aviso informativo de prazo:
-"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."
+"Triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
 (Fonte: Documento de Visão 7.2 e Requisito RF23)
 
 Aviso de segurança:
@@ -160,8 +160,8 @@ Dica de acessibilidade: Mostra os critérios de compatibilidade das vagas com o 
 
 [Seção: Termos legais]
 Título do grupo: DOCUMENTOS LEGAIS
-Link externo: Termos de uso (abre https://frila.app/termos no navegador)
-Link externo: Política de privacidade (abre https://frila.app/privacidade no navegador)
+Link externo: Termos de uso (abre [A DEFINIR: URL pública dos termos] no navegador)
+Link externo: Política de privacidade (abre [A DEFINIR: URL pública de privacidade] no navegador)
 Link interno: Licenças de terceiros (navega para TelaLicencas)
 
 [Rodapé]
@@ -187,7 +187,7 @@ Ação: Abre o aplicativo de e-mail com destinatário suportefrila@gmail.com
 Dica de acessibilidade: Abre seu aplicativo de e-mail para falar com a Equipe Frila
 Texto do endereço: suportefrila@gmail.com (copiável com seleção de texto habilitada)
 Aviso informativo de prazo:
-"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."
+"Triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
 (Fonte: Documento de Visão 7.2 e Requisito RF23)
 
 [Seção: Dúvidas sobre publicação e equipe]
@@ -206,8 +206,8 @@ Texto: "O valor informado na publicação é o valor integral a ser pago diretam
 
 [Seção: Termos legais]
 Título do grupo: DOCUMENTOS LEGAIS
-Link externo: Termos de uso (abre https://frila.app/termos no navegador)
-Link externo: Política de privacidade (abre https://frila.app/privacidade no navegador)
+Link externo: Termos de uso (abre [A DEFINIR: URL pública dos termos] no navegador)
+Link externo: Política de privacidade (abre [A DEFINIR: URL pública de privacidade] no navegador)
 Link interno: Licenças de terceiros (navega para TelaLicencas)
 
 [Rodapé]
@@ -271,11 +271,11 @@ A Visão 7.2 cita as perguntas frequentes como parte do "conjunto mínimo de aju
 ### 5.3 Parecer Técnico e Recomendação do Loki
 **Recomendação Técnica: Adotar a Opção 1 para o MVP v1.0.**
 1. Manter a `TelaAjudaPerfil` na v1.0 com a sua estrutura atual:
-   - Canal direto para a Equipe Frila (`suportefrila@gmail.com`) com prazo de 5 dias úteis declarado.
+   - Canal direto para a Equipe Frila (`suportefrila@gmail.com`); novo compromisso documental: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos. O texto do app ainda precisa ser alinhado.
    - Links oficiais para Termos de Uso e Política de Privacidade.
    - Atalho contextual para a tela `Por que recebo vagas` (para dúvidas sobre despacho e filtros).
    - Licenças de código aberto.
-2. Manter os 5 textos de FAQ rascunhados e aprovados neste documento técnico (`iOS/Docs/AjudaESuporte.md`), disponibilizando-os para consulta institucional em `https://frila.app/ajuda` ou integrando-os como módulo de ajuda expandido na v1.1 do app iOS (dezembro/2026).
+2. Manter os 5 textos de FAQ rascunhados e aprovados neste documento técnico (`iOS/Docs/AjudaESuporte.md`), disponibilizando-os para consulta institucional em `[A DEFINIR: URL pública de ajuda]` ou integrando-os como módulo de ajuda expandido na v1.1 do app iOS (dezembro/2026).
 
 > [!IMPORTANT]
 > **Decisões a registrar pela PO Júlia no Cartão Trello MNm4dGWq:**

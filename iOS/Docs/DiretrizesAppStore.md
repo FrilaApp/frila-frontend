@@ -10,7 +10,7 @@ Este documento mapeia o estado de conformidade do app iOS às **Diretrizes de Re
 
 | Diretriz | Tema | Requisito Apple | Onde no Código (`iOS/Sources/`) | Onde nos Testes (`iOS/Tests/`) | Estado |
 |---|---|---|---|---|---|
-| **1.2** | Segurança / UGC | Mecanismos de denúncia e bloqueio, canal de suporte publicado e moderação em até 24 h | `iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift`, `iOS/Sources/Apresentacao/EnderecosOficiais.swift` | `iOS/Tests/UI/SegurancaUITests.swift`, `iOS/Tests/Unitarios/SegurancaViewModelTests.swift` | **Pendente** |
+| **1.2** | Segurança / UGC | Mecanismos de denúncia e bloqueio, canal de suporte publicado e moderação com triagem em até 5 dias úteis; resposta formal em até 15 dias corridos | `iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift`, `iOS/Sources/Apresentacao/EnderecosOficiais.swift` | `iOS/Tests/UI/SegurancaUITests.swift`, `iOS/Tests/Unitarios/SegurancaViewModelTests.swift` | **Pendente** |
 | **2.1** | Completude do App | Credenciais de revisão da Apple funcionais e ausência de telas em desenvolvimento/placeholders | `iOS/Sources/Apresentacao/Fluxos/Autenticacao/DestinoAposEntrada.swift`, `iOS/Sources/Apresentacao/Fluxos/Autenticacao/EntradaViewModel.swift` | `iOS/Tests/Unitarios/AutenticacaoTests.swift`, `iOS/Tests/Unitarios/SegurancaDoCodigoTests.swift` | **Pendente** |
 | **2.3** | Metadados Precisos | Coerência entre telas, textos e descrições de permissão declaradas | `iOS/Resources/Localizable.xcstrings`, `iOS/Project.yml` | `iOS/Tests/Unitarios/CatalogoStringsTests.swift`, `iOS/Scripts/conferir-textos.sh` | **Pendente** |
 | **4.2** | Funcionalidade Mínima | Interface nativa rica em SwiftUI, persistência local, operação offline e sem dependência estrita do DF | `iOS/Sources/App/FrilaApp.swift`, `iOS/Sources/Dados/CacheSwiftData.swift`, `iOS/Sources/Apresentacao/Fluxos/Profissional/PresencaDoTurnoViewModel.swift` | `iOS/Tests/Unitarios/OfflineTests.swift`, `iOS/Tests/Unitarios/PresencaDoTurnoViewModelTests.swift` | **Pendente** |
@@ -22,7 +22,7 @@ Este documento mapeia o estado de conformidade do app iOS às **Diretrizes de Re
 ## 2. Detalhamento por Diretriz
 
 ### Diretriz 1.2 — Segurança e Conteúdo Gerado pelo Usuário (User Generated Content)
-- **Status:** **Pendente** (aguarda homologação do procedimento operacional de triagem em até 24 horas pela equipe e integração completa de moderação no backend).
+- **Status:** **Pendente** (aguarda homologação do procedimento operacional pela equipe e integração completa de moderação no backend). Compromisso definido pelo Cauê em 15/10/2026: triagem em até 5 dias úteis; resposta formal em até 15 dias corridos.
 - **Mapeamento de Código:**
   - `iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift`: folha nativa de denúncia com seleção de motivos, atalhos de emergência (`tel:190`, `tel:180`) e confirmação de bloqueio;
   - `iOS/Sources/Apresentacao/Fluxos/Confianca/SegurancaViewModel.swift`: regras de validação do relato e gerenciamento dos bloqueios da sessão;
