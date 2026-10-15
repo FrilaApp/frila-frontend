@@ -167,9 +167,10 @@ mediria um app mais lento do que o de verdade.
 
 ## Números do simulador
 
-São números **de simulador**, de 10 e 11/10/2026, num Mac compartilhado com outros builds. Nenhum
-deles vale para os critérios, que pedem um iPhone antigo em 4G. Os de 4G e 3G no simulador
-(Network Link Conditioner) ficam para quando a ferramenta estiver instalada no Mac.
+São números **de simulador**, de 10, 11 e 15/10/2026, num Mac compartilhado com outros builds.
+Nenhum deles vale para os critérios, que pedem um iPhone antigo em 4G. Os de LTE e 3G no
+simulador (Network Link Conditioner) estão em "Aberturas contra o frila-dev, com LTE e 3G", no fim
+desta seção.
 
 **Aberturas, com o dublê e sem rede** (simulador iPhone 17, iOS 26.5, Debug-Local; coleta pelo
 teste `testColetaVinteAberturasDeCadaTela`). Mostram o custo do app e do instrumento, sem espera
@@ -228,3 +229,49 @@ Na 2ª abertura, o `nettop` do macOS mediu as conexões do processo do app:
 
 Inferência: para três respostas pequenas, a conexão com o frila-dev levou 5,4 vezes o que o
 contador do app somou (17.559 / 3.268); a diferença, 14.291 B, é transporte.
+
+**Aberturas contra o frila-dev, com LTE e 3G** (simulador, 15/10/2026, Debug-Dev sem otimização,
+`api=supabase`, conta de demonstração do profissional, `-FRILA_MEDICAO`). Em cada perfil do Network
+Link Conditioner, Medições → Zerar e 20 aberturas por tela. O p95 é a 19ª menor medição, como
+descrito acima; o máximo é a pior das 20 aberturas (na Lista em LTE, foi a primeira depois do
+Zerar). O perfil LTE foi 50 Mbps de descida e 10 Mbps de
+subida, com 50 ms e 65 ms de atraso e 0% de perda. O aplicativo não lê o perfil: ele foi conferido
+pelo aviso de quem o ligou, e o que o sustenta é a diferença entre as duas colunas.
+
+| Perfil | Tela | Vagas na lista | n | p50 | p95 | máx |
+|---|---|---|---|---|---|---|
+| LTE | Lista de vagas | 0 (vazia) | 20 | 218 ms | 311 ms | 807 ms |
+| LTE | Detalhe da vaga | 1 | 3 | 275 ms | 615 ms | 615 ms |
+| LTE | Meu turno | 2 turnos confirmados | 20 | 244 ms | 392 ms | 819 ms |
+| 3G | Lista de vagas | 0 (vazia) | 20 | 389 ms | 780 ms | 1028 ms |
+| 3G | Detalhe da vaga | sem vaga aberta | 0 | n/a | n/a | n/a |
+| 3G | Meu turno | 2 turnos confirmados | 20 | 434 ms | 700 ms | 942 ms |
+
+Nenhum p95 chegou perto de 2000 ms. O p50 usa a medição do meio (a 10ª menor de 20). A linha do
+Detalhe em LTE tem três medições e não é um p95 de 20.
+
+| Sessão | Requisições | Enviados | Recebidos | Total (contador do app) |
+|---|---|---|---|---|
+| LTE: sessão de consulta | 16 | 14.203 B | 15.928 B | 30.131 B |
+| 3G: uma Lista e um Meu turno | 4 | 3.554 B | 4.099 B | 7.653 B |
+| LTE: folha ao fim das 40 aberturas | 45 | n/d | n/d | 76.776 B |
+| 3G: folha ao fim das 40 aberturas | 42 | n/d | n/d | 71.260 B |
+
+As duas primeiras linhas não se comparam entre si: a sessão de LTE foi mais longa. Todas ficam
+abaixo de 1.000.000 B (a maior é cerca de 7,7% do limite), pelo contador do app, que não vê TLS,
+DNS, Firebase nem tráfego celular.
+
+Limites desta coleta:
+
+- **Lista vazia:** a conta de demonstração do contratante não consegue publicar vaga no frila-dev
+  (cartão 266 do backend), então a lista foi medida sem vagas. Isso subestima a lista cheia, e o
+  Detalhe em 20 aberturas e a candidatura ficaram sem medir. Repetir depois que o backend semear
+  vagas futuras para o estabelecimento de demonstração.
+- **Simulador num Mac, Debug sem otimização:** não vale para o critério do iPhone antigo em 4G
+  real com o build de medição.
+- **Inferência:** de LTE para 3G, o p95 da lista foi de 311 para 780 ms e o de Meu turno de 392
+  para 700 ms. O aumento é coerente com o atraso maior do perfil, porque cada tela faz uma a três
+  requisições pequenas e o atraso pesa mais que o conteúdo.
+- **Assinatura:** compile sem `CODE_SIGNING_ALLOWED=NO`. Sem os direitos embutidos, o Keychain do
+  simulador recusa gravar a sessão (erro -34018) e o supabase-swift só registra o erro em log. O
+  app segue como anônimo e as respostas vêm vazias, como na CI, que usa a assinatura padrão.
