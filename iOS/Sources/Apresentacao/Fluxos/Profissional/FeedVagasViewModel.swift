@@ -67,6 +67,7 @@ public final class FeedVagasViewModel {
     /// Cada carga ganha um número; resposta de uma carga antiga (filtro trocado no meio) é descartada.
     private var geracao = 0
     private var carregandoMais = false
+    private var aguardandoPrimeiraPagina = false
     /// Última primeira página por filtro: aparece na hora e é trocada quando a rede responde.
     private let cache: CacheDeLeituras?
 
@@ -146,7 +147,8 @@ public final class FeedVagasViewModel {
 
     /// Próxima página, pedida quando o último cartão aparece.
     public func carregarMais() async {
-        guard haMaisPaginas, !carregandoMais, case let .carregada(atuais) = estadoRecebido else { return }
+        guard haMaisPaginas, !carregandoMais, !aguardandoPrimeiraPagina,
+              case let .carregada(atuais) = estadoRecebido else { return }
         carregandoMais = true
         defer { carregandoMais = false }
         let minha = geracao
@@ -187,16 +189,20 @@ public final class FeedVagasViewModel {
     }
 
     private func buscar(geracao minha: Int, mantendoGuardada: Bool = false) async {
+        aguardandoPrimeiraPagina = true
+        let epoca = cache?.epoca
         do {
             let chave = chaveDoFiltro()
             let vagas = try await buscarVagas(filtro())
             guard minha == geracao else { return }
+            aguardandoPrimeiraPagina = false
             estado = .carregada(vagas)
             haMaisPaginas = vagas.count == tamanhoDaPagina
-            cache?.guardar(lista: vagas, chave: chave)
+            if let epoca { cache?.guardar(lista: vagas, chave: chave, epoca: epoca) }
         } catch {
             guard minha == geracao else { return }
             // Sem rede, a lista guardada continua na tela em vez de virar erro.
+            // A paginação segue bloqueada até uma primeira página atualizada chegar.
             if mantendoGuardada, case .semRede = (error as? ErroDaApi)?.codigo { return }
             estado = .falha(FalhaDaLista(error))
             haMaisPaginas = false

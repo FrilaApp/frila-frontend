@@ -16,7 +16,11 @@ public final class CacheDeLeituras: @unchecked Sendable {
     private var detalhes: [UUID: Detalhe] = [:]
     private var listas: [String: [VagaNaLista]] = [:]
     private var detalhesEmVoo: [UUID: Task<Vaga, Error>] = [:]
+    private var epocaAtual: UInt64 = 0
     private let agora: @Sendable () -> Date
+
+    /// Identifica a sessão do cache; respostas iniciadas antes de limpar não podem repovoá-lo.
+    public var epoca: UInt64 { trava.withLock { epocaAtual } }
 
     public init(agora: @escaping @Sendable () -> Date = { Date() }) {
         self.agora = agora
@@ -44,7 +48,7 @@ public final class CacheDeLeituras: @unchecked Sendable {
         aceitandoGuardado: Bool,
         buscar: @escaping @Sendable () async throws -> Vaga
     ) async throws -> Vaga {
-        enum Caminho { case guardado(Vaga), emVoo(Task<Vaga, Error>), novo(Task<Vaga, Error>) }
+        enum Caminho { case guardado(Vaga), emVoo(Task<Vaga, Error>), novo(Task<Vaga, Error>, UInt64) }
         let caminho = trava.withLock { () -> Caminho in
             if aceitandoGuardado, let d = detalhes[id], agora().timeIntervalSince(d.salvoEm) < Self.validade {
                 return .guardado(d.vaga)
@@ -52,21 +56,25 @@ public final class CacheDeLeituras: @unchecked Sendable {
             if let voo = detalhesEmVoo[id] { return .emVoo(voo) }
             let tarefa = Task { try await buscar() }
             detalhesEmVoo[id] = tarefa
-            return .novo(tarefa)
+            return .novo(tarefa, epocaAtual)
         }
         switch caminho {
         case let .guardado(vaga): return vaga
         case let .emVoo(tarefa): return try await tarefa.value
-        case let .novo(tarefa):
+        case let .novo(tarefa, epoca):
             do {
                 let vaga = try await tarefa.value
                 trava.withLock {
-                    detalhes[id] = Detalhe(vaga: vaga, salvoEm: agora())
-                    detalhesEmVoo[id] = nil
+                    if epoca == epocaAtual {
+                        detalhes[id] = Detalhe(vaga: vaga, salvoEm: agora())
+                    }
+                    if detalhesEmVoo[id] == tarefa { detalhesEmVoo[id] = nil }
                 }
                 return vaga
             } catch {
-                trava.withLock { detalhesEmVoo[id] = nil }
+                trava.withLock {
+                    if detalhesEmVoo[id] == tarefa { detalhesEmVoo[id] = nil }
+                }
                 throw error
             }
         }
@@ -78,14 +86,18 @@ public final class CacheDeLeituras: @unchecked Sendable {
         trava.withLock { listas[chave] }
     }
 
-    public func guardar(lista: [VagaNaLista], chave: String) {
-        trava.withLock { listas[chave] = lista }
+    public func guardar(lista: [VagaNaLista], chave: String, epoca: UInt64) {
+        trava.withLock {
+            guard epoca == epocaAtual else { return }
+            listas[chave] = lista
+        }
     }
 
     // MARK: Limpeza
 
     public func limpar() {
         trava.withLock {
+            epocaAtual &+= 1
             detalhes = [:]
             listas = [:]
             detalhesEmVoo.values.forEach { $0.cancel() }
