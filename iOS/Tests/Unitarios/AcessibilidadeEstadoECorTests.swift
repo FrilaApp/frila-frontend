@@ -70,4 +70,10 @@ struct AcessibilidadeEstadoECorTests {
         #expect(FrilaMovimento.animacao(reduzir: false) != nil)
         #expect(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: false) != nil)
     }
+
+    @Test("FrilaAcessibilidade expõe valor de seleção para VoiceOver")
+    func selecaoValorAcessibilidade() {
+        #expect(FrilaAcessibilidade.valorSelecao(selecionado: true) == "Selecionado")
+        #expect(FrilaAcessibilidade.valorSelecao(selecionado: false) == "Não selecionado")
+    }
 }

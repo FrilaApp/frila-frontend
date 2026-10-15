@@ -2,6 +2,7 @@ import FrilaDominio
 import SwiftUI
 
 public struct CartaoMeuTurno: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let turno: Turno
     private let formatador = FormatadorFrila()
 
@@ -11,12 +12,13 @@ public struct CartaoMeuTurno: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: turno.vaga.funcao).font(.headline)
-                Spacer()
-                Text(verbatim: formatador.dinheiro(turno.valorAcordado))
-                    .font(.headline)
-                    .foregroundStyle(FrilaCor.primaria)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) { funcao; Spacer(); valor }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { funcao; valor }
+                }
             }
             if turno.cancelado {
                 Label(TextosDoProfissional.Turnos.canceladoTitulo, systemImage: "xmark.circle")
@@ -40,6 +42,16 @@ public struct CartaoMeuTurno: View {
         .foregroundStyle(FrilaCor.texto)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
+    }
+
+    private var funcao: some View {
+        Text(verbatim: turno.vaga.funcao).font(.headline)
+    }
+
+    private var valor: some View {
+        Text(verbatim: formatador.dinheiro(turno.valorAcordado))
+            .font(.headline)
+            .foregroundStyle(FrilaCor.primaria)
     }
 }
 

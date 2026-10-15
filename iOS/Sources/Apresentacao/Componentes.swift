@@ -419,9 +419,21 @@ public struct RespostaSimNao: View {
         .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
         .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
         .accessibilityLabel(Text(titulo, bundle: bundleApresentacao))
-        .accessibilityValue(Text(resposta == valor ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
+        .accessibilityValue(FrilaAcessibilidade.textoSelecao(selecionado: resposta == valor))
         .accessibilityAddTraits(resposta == valor ? .isSelected : [])
         .accessibilityIdentifier(valor ? "resposta-sim" : "resposta-nao")
+    }
+}
+
+public enum FrilaAcessibilidade {
+    public static func valorSelecao(selecionado: Bool) -> String {
+        selecionado
+            ? String(localized: "Selecionado", bundle: bundleApresentacao)
+            : String(localized: "Não selecionado", bundle: bundleApresentacao)
+    }
+
+    public static func textoSelecao(selecionado: Bool) -> Text {
+        Text(selecionado ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao)
     }
 }
 
@@ -433,8 +445,14 @@ public struct FolhaFrila<Conteudo: View>: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            Capsule().fill(FrilaCor.textoSecundario.opacity(0.4)).frame(width: 40, height: 5).frame(maxWidth: .infinity)
-            titulo.font(.title2.bold())
+            Capsule()
+                .fill(FrilaCor.textoSecundario.opacity(0.4))
+                .frame(width: 40, height: 5)
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
+            titulo
+                .font(.title2.bold())
+                .accessibilityAddTraits(.isHeader)
             conteudo()
         }
         .padding(FrilaEspaco.grande)

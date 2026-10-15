@@ -474,6 +474,7 @@ public struct TelaPublicarVaga: View {
                                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                             }
                             .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                            .accessibilityShowsLargeContentViewer()
                         }
                     }
                 }
@@ -489,6 +490,7 @@ public struct TelaPublicarVaga: View {
                                 Text("Fechar", bundle: bundleApresentacao)
                                     .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .accessibilityShowsLargeContentViewer()
                         }
                     }
             }
