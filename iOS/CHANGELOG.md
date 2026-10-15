@@ -75,6 +75,8 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Licenças das bibliotecas de código aberto usadas pelo app (#178).
 - Telemetria do piloto: porta, DTOs e cliente para registrar_evento (contrato 0.2.41, RN15, RNF08), com dicionário fechado e sem texto livre nem dados pessoais.
 - Telemetria do piloto: fiação dos 14 eventos nas telas e ViewModels (T-0017, contrato 0.2.41, RN15, RNF08), cobrindo ciclo de vida do app, funil de vagas, candidaturas, presença (check-in/checkout), avaliações, contatos, resiliência offline e atualização obrigatória.
+- Telas de cadastro, código, estabelecimento, publicação e perfil usam os tokens de espaçamento e de
+  área de toque do design em vez de valores soltos, sem mudar a aparência.
 
 ### Privacidade e conformidade
 - A localização é pedida só durante o uso. No check-in e no check-out, a coordenada lida do GPS
@@ -83,4 +85,6 @@ Primeira versão da App Store. Atende o Distrito Federal.
   enviados ao servidor.
 - O app não rastreia e não pede permissão de rastreamento.
 - O manifesto de privacidade declara os dados da conta e o uso de `UserDefaults` (#96).
+- A extensão de notificação tem manifesto de privacidade próprio: não coleta dados, não rastreia e
+  declara só a leitura do `UserDefaults` do grupo do app (motivo `1C8F.1`).
 - O build de Release não leva catálogo de componentes nem atalhos de desenvolvimento (#96).
