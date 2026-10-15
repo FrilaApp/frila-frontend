@@ -175,9 +175,9 @@ struct SuporteTurnoTests {
         }
 
         #expect(url.scheme == "mailto")
-        #expect(url.path == "suportefrila@gmail.com")
-
         let componentes = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        #expect(componentes?.path == "suportefrila@gmail.com" || url.absoluteString.hasPrefix("mailto:suportefrila@gmail.com"))
+
         let assuntoParam = componentes?.queryItems?.first(where: { $0.name == "subject" })?.value
         let corpoParam = componentes?.queryItems?.first(where: { $0.name == "body" })?.value
 

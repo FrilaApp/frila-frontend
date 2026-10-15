@@ -195,6 +195,103 @@ struct MedicaoDeDesempenhoTests {
         #expect(tela.naTela)
     }
 
+    @Test("Configuração de rede e medição compartilham prazos sensatos (15 s requisição, 60 s recurso)")
+    func configuracaoDePrazosSensatos() {
+        let config = SupabaseApiCliente.configuracaoComPrazo()
+        #expect(config.timeoutIntervalForRequest == 15)
+        #expect(config.timeoutIntervalForResource == 60)
+        #expect(config.waitsForConnectivity == false)
+
+        let sessaoMedida = MedidorDeRede.sessao()
+        #expect(sessaoMedida.configuration.timeoutIntervalForRequest == 15)
+        #expect(sessaoMedida.configuration.timeoutIntervalForResource == 60)
+        #expect(sessaoMedida.configuration.waitsForConnectivity == false)
+    }
+
+    @Test("Classificação de falhas transitórias de rede versus falhas persistentes offline")
+    func classificacaoDeFalhasTransientes() {
+        #expect(SupabaseApiCliente.ehErroTransienteDeRede(URLError(.networkConnectionLost)))
+        #expect(SupabaseApiCliente.ehErroTransienteDeRede(URLError(.timedOut)))
+        #expect(SupabaseApiCliente.ehErroTransienteDeRede(URLError(.cannotConnectToHost)))
+        #expect(SupabaseApiCliente.ehErroTransienteDeRede(URLError(.dnsLookupFailed)))
+
+        // Persistentes não podem ser retentadas para permitir que o cache local e tela offline abram rápido
+        #expect(!SupabaseApiCliente.ehErroTransienteDeRede(URLError(.notConnectedToInternet)))
+        #expect(!SupabaseApiCliente.ehErroTransienteDeRede(URLError(.dataNotAllowed)))
+        #expect(!SupabaseApiCliente.ehErroTransienteDeRede(URLError(.internationalRoamingOff)))
+    }
+
+    @Test("RPCs de leitura contêm apenas consultas idempotentes e nenhuma mutação")
+    func rpcsDeLeituraSemMutacao() {
+        let leituras = SupabaseApiCliente.rpcsDeLeitura
+        #expect(leituras.contains("vagas_abertas"))
+        #expect(leituras.contains("detalhe_vaga"))
+        #expect(leituras.contains("meus_turnos"))
+        #expect(leituras.contains("contato_do_turno"))
+        #expect(leituras.contains("minha_conta"))
+        #expect(leituras.contains("configuracao_do_app"))
+
+        let mutacoes = [
+            "candidatar", "publicar_vaga", "republicar_vaga", "fazer_checkin",
+            "fazer_checkout", "avaliar", "confirmar_posicao", "cancelar_posicao",
+            "cancelar_vaga", "criar_conta", "bloquear", "denunciar"
+        ]
+        for mutacao in mutacoes {
+            #expect(!leituras.contains(mutacao), "Mutação \(mutacao) não pode ser classificada como leitura")
+        }
+    }
+
+    @Test("Retentativa automática em leitura idempotente após queda transitória de conexão", .timeLimit(.minutes(1)))
+    func retentativaEmLeituraIdempotente() async throws {
+        let detalhe = try FixturesDoContrato.dados("vaga")
+        let servidor = try ServidorHTTPDeMedicao(
+            respostas: ["/rest/v1/rpc/detalhe_vaga": detalhe],
+            falhasIniciais: ["/rest/v1/rpc/detalhe_vaga": 1]
+        )
+        defer { servidor.parar() }
+        let url = try await servidor.iniciar()
+
+        let cliente = SupabaseApiCliente(
+            url: url,
+            chavePublicavel: "sb_publishable_teste",
+            telemetria: TelemetryNula(),
+            sessaoHTTP: URLSession(configuration: .ephemeral),
+            armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria()
+        )
+
+        let vagaID = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
+        let vaga = try await cliente.detalheDaVaga(id: vagaID)
+        #expect(vaga.id == vagaID)
+        #expect(servidor.rotasRecebidas.filter { $0 == "/rest/v1/rpc/detalhe_vaga" }.count == 2)
+    }
+
+    @Test("Mutação não retenta automaticamente após queda de conexão", .timeLimit(.minutes(1)))
+    func mutacaoNaoRetentaAposQueda() async throws {
+        let candidatura = try FixturesDoContrato.dados("candidatura-urgencia")
+        let servidor = try ServidorHTTPDeMedicao(
+            respostas: ["/rest/v1/rpc/candidatar": candidatura],
+            falhasIniciais: ["/rest/v1/rpc/candidatar": 1]
+        )
+        defer { servidor.parar() }
+        let url = try await servidor.iniciar()
+
+        let cliente = SupabaseApiCliente(
+            url: url,
+            chavePublicavel: "sb_publishable_teste",
+            telemetria: TelemetryNula(),
+            sessaoHTTP: URLSession(configuration: .ephemeral),
+            armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria()
+        )
+
+        do {
+            _ = try await cliente.candidatar(vagaID: UUID(uuidString: "6ba7b810-9dad-11d1-80b4-00c04fd430c8")!)
+            Issue.record("A mutação não deveria retentar e sim lançar erro de rede")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .semRede)
+        }
+        #expect(servidor.rotasRecebidas.filter { $0 == "/rest/v1/rpc/candidatar" }.count == 1)
+    }
+
     private func milissegundos(_ duracao: Duration) -> Double {
         Double(duracao.components.seconds) * 1000 + Double(duracao.components.attoseconds) / 1e15
     }
@@ -208,10 +305,12 @@ private final class ServidorHTTPDeMedicao: @unchecked Sendable {
     private let respostas: [String: Data]
     private let trava = NSLock()
     private var rotas: [String] = []
+    private var falhasRestantes: [String: Int]
     var rotasRecebidas: [String] { trava.withLock { rotas } }
 
-    init(respostas: [String: Data]) throws {
+    init(respostas: [String: Data], falhasIniciais: [String: Int] = [:]) throws {
         self.respostas = respostas
+        self.falhasRestantes = falhasIniciais
         let parametros = NWParameters.tcp
         parametros.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
         listener = try NWListener(using: parametros)
@@ -257,7 +356,18 @@ private final class ServidorHTTPDeMedicao: @unchecked Sendable {
                     .flatMap { Int($0.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespaces) ?? "") } ?? 0
                 if completo.count >= separador.upperBound + tamanho {
                     let rota = linhas.first?.split(separator: " ").dropFirst().first.map(String.init) ?? ""
-                    trava.withLock { rotas.append(rota) }
+                    let deveFalhar = trava.withLock { () -> Bool in
+                        rotas.append(rota)
+                        if let f = falhasRestantes[rota], f > 0 {
+                            falhasRestantes[rota] = f - 1
+                            return true
+                        }
+                        return false
+                    }
+                    if deveFalhar {
+                        conexao.cancel()
+                        return
+                    }
                     let corpo = respostas[rota] ?? Data("{}".utf8)
                     let status = respostas[rota] == nil ? "404 Not Found" : "200 OK"
                     let resposta = Data("HTTP/1.1 \(status)\r\nContent-Type: application/json\r\nContent-Length: \(corpo.count)\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n".utf8) + corpo
