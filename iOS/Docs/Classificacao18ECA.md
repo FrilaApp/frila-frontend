@@ -97,21 +97,16 @@ granular de 2025).
 
 ### 3.2. Declared Age Range API
 
-Desde iOS 18 / iPadOS 18 / macOS Sequoia, a Apple oferece a API `DeclaredAgeRange` que fornece
-ao app uma faixa etária declarada pelo sistema (controlada por Family Sharing / Screen Time) sem
-expor a data de nascimento do usuário.
+Disponível a partir do iOS 26.2 no app (`iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift`), a Apple oferece a API `DeclaredAgeRange` que fornece ao app uma faixa etária declarada pelo sistema (controlada por Family Sharing / Screen Time) sem expor a data de nascimento do usuário.
 
-**Recomendação para o Frila:**
+**Arquitetura e Fluxo de Fallback:**
 
-1. Adotar `DeclaredAgeRange` como sinal primário de aferição de idade em dispositivos Apple.
-   Se a faixa retornada indicar menor de 18 anos, impedir o cadastro.
-2. Para usuários sem faixa declarada (dispositivos sem Family Sharing), manter um mecanismo
-   complementar de autodeclaração **registrada** (data de nascimento informada e persistida,
-   não uma caixa de seleção descartável), conforme exige a Lei 15.211/2025.
-3. Registrar a autodeclaração em log auditável (timestamp, hash do dado, versão do app),
-   sem armazenar a data de nascimento em texto aberto fora do perfil do usuário.
+1. **Sinal Primário (`DeclaredAgeRange`):** Adotado como verificação primária em dispositivos elegíveis com iOS 26.2+. Se a faixa retornada indicar categoricamente menor de 18 anos (`.abaixoDe18`), o cadastro é preventivamente bloqueado no cliente.
+2. **Fallback Seguro (`.indisponivel`, `.recusou` ou faixa inconclusiva):** Quando a API da Apple não estiver disponível (iOS < 26.2, aparelho sem Family Sharing ou falha do sistema), quando o usuário recusar o prompt ou quando a faixa cruzar o corte (ex.: 16–20 anos), o fluxo não trava o usuário adulto. Ele recorre com segurança ao mecanismo complementar de autodeclaração registrada (data de nascimento informada e persistida).
+3. **Dupla Validação com o Servidor:** Além da validação matemática imediata no cliente (`CadastroViewModel.swift`), o backend do Frila valida rigorosamente a maioridade no RPC `criar_conta` (`nascimento > hoje - 18 anos` retorna erro 422 `menor_de_idade`) e na constraint de banco `maior_de_idade` na tabela `usuario`.
+4. **Registro e Risco Residual:** A data de nascimento declarada e o instante exato do aceite dos termos são persistidos. O risco residual da autodeclaração registrada quando a API Apple não responde está formalmente anotado para deliberação no parecer dos mentores (item 7 do checklist).
 
-> **Pendência — parecer do Cauê:** confirmar com os mentores da Academy se a autodeclaração
+> **Pendência — parecer dos mentores:** confirmar com os mentores da Academy se a autodeclaração
 > registrada (item 2) é suficiente enquanto a ANPD não regulamenta os mecanismos confiáveis
 > de verificação, ou se será necessário integrar um provedor de verificação de identidade
 > (ex.: documento com selfie, crédito bancário) antes do lançamento público.
@@ -171,7 +166,7 @@ adesão. Estão redigidos em linguagem clara, conforme exige a LGPD (art. 14, §
 | 5 | Cláusula de maioridade nos termos de adesão ao piloto (§4.2) | **Pendente** | Cauê / Jurídico |
 | 6 | Aviso de maioridade na tela de cadastro do app (§4.3) | **Conforme** | `iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift:106–130` |
 | 7 | Parecer dos mentores da Academy sobre suficiência da autodeclaração registrada | **Pendente** | Cauê / João Paulo (registrado em `DECISOES.md`) |
-| 8 | Log auditável da declaração de idade (timestamp, hash, versão) | **Conforme** | `CadastroConta.swift` e RPC de criação no Supabase |
+| 8 | Log auditável da declaração de idade (timestamp, hash, versão) | **Pendente / Parcial (Backend)** | O cliente envia nascimento, perfil e versão dos termos (`CadastroConta` em `iOS/Sources/Dominio/Portas.swift`). O backend grava `nascimento`, `termos_versao` e `termos_aceite_em` (timestamp). Hash criptográfico e log do resultado do `DeclaredAgeRange` dependem de evolução futura no backend. |
 
 ---
 

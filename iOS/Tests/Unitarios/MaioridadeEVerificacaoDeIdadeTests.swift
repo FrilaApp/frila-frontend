@@ -91,4 +91,109 @@ struct MaioridadeEVerificacaoDeIdadeTests {
         #expect(vm.erro == nil)
         #expect(verificador.chamadasAVerificar == 1)
     }
+
+    @Test("Fallback: adulto com Declared Age Range indisponível ou recusado prossegue normalmente pela data de nascimento")
+    func fallbackAdultoProssegueComVerificadorIndisponivelOuRecusado() async {
+        let resultadosFallback: [ResultadoVerificacaoIdade] = [.indisponivel, .recusou]
+
+        for resultado in resultadosFallback {
+            let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+            let agora = Date(timeIntervalSince1970: 1_792_065_600)
+            let relogioFixo = RelogioFixo(agora: agora)
+            let verificador = VerificadorDeIdadeSimulado(resultado: resultado)
+            let vm = CadastroViewModel(api: api, email: "adulto-\(resultado)@frila.app", relogio: relogioFixo, verificadorDeIdade: verificador)
+
+            vm.nome = "Adulto Fallback"
+            vm.telefone = "61999994444"
+            vm.nascimentoTexto = "10/05/1995"
+            vm.maiorDeIdade = true
+            vm.aceitouTermos = true
+
+            let destino = await vm.criarConta()
+            #expect(destino == .funcoesEHorarios, "Adulto com status \(resultado) não deve ficar sem saída")
+            #expect(vm.erro == nil)
+            #expect(verificador.chamadasAVerificar == 1)
+        }
+    }
+
+    @Test("Fallback: menor de idade com Declared Age Range indisponível é bloqueado preventivamente pela data declarada")
+    func fallbackMenorBloqueadoComVerificadorIndisponivel() async {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let agora = Date(timeIntervalSince1970: 1_792_065_600) // Outubro/2026
+        let relogioFixo = RelogioFixo(agora: agora)
+        let verificador = VerificadorDeIdadeSimulado(resultado: .indisponivel)
+        let vm = CadastroViewModel(api: api, email: "menor-indisp@frila.app", relogio: relogioFixo, verificadorDeIdade: verificador)
+
+        vm.nome = "Menor Fallback"
+        vm.telefone = "61999995555"
+        vm.nascimentoTexto = "15/10/2010" // 16 anos
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+    }
+
+    @Test("Borda de aniversário de 18 anos: aniversariante de hoje passa e de amanhã é bloqueado")
+    func bordaDoDiaDoAniversarioDe18Anos() async {
+        // Fixa a data atual em 15/10/2026 às 12:00 UTC (horário em Brasília é 09:00 de 15/10/2026)
+        let calendar = Calendar(identifier: .gregorian)
+        var componentesHoje = DateComponents()
+        componentesHoje.year = 2026
+        componentesHoje.month = 10
+        componentesHoje.day = 15
+        componentesHoje.hour = 12
+        componentesHoje.timeZone = TimeZone(identifier: "America/Sao_Paulo")
+        let hoje = calendar.date(from: componentesHoje)!
+        let relogioHoje = RelogioFixo(agora: hoje)
+
+        // 1. Quem nasceu em 15/10/2008 completa 18 anos hoje -> PASSOU
+        do {
+            let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+            let verificador = VerificadorDeIdadeSimulado(resultado: .dezoitoOuMais)
+            let vm = CadastroViewModel(api: api, email: "niver-hoje@frila.app", relogio: relogioHoje, verificadorDeIdade: verificador)
+            vm.nome = "Aniversariante Hoje"
+            vm.telefone = "61999996666"
+            vm.nascimentoTexto = "15/10/2008"
+            vm.maiorDeIdade = true
+            vm.aceitouTermos = true
+
+            let destino = await vm.criarConta()
+            #expect(destino == .funcoesEHorarios, "Aniversariante do dia deve passar")
+            #expect(vm.erro == nil)
+        }
+
+        // 2. Quem nasceu em 16/10/2008 completa 18 anos amanhã -> BLOQUEIA
+        do {
+            let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+            let verificador = VerificadorDeIdadeSimulado(resultado: .dezoitoOuMais)
+            let vm = CadastroViewModel(api: api, email: "niver-amanha@frila.app", relogio: relogioHoje, verificadorDeIdade: verificador)
+            vm.nome = "Aniversariante Amanhã"
+            vm.telefone = "61999997777"
+            vm.nascimentoTexto = "16/10/2008"
+            vm.maiorDeIdade = true
+            vm.aceitouTermos = true
+
+            let destino = await vm.criarConta()
+            #expect(destino == nil, "Aniversariante de amanhã deve ser bloqueado")
+            #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        }
+    }
+
+    @Test("Cadastro trata erro 422 menorDeIdade da API e exibe mensagem de maioridade")
+    func erroMenorDeIdadeDaApiExibeMensagemMaioridade() async {
+        let api = ApiClienteEmMemoria(cenario: .menorDeIdade)
+        let vm = CadastroViewModel(api: api, email: "api-menor@frila.app")
+
+        vm.nome = "Menor Servidor"
+        vm.telefone = "61999998888"
+        vm.nascimentoTexto = "01/01/1990"
+        vm.maiorDeIdade = true
+        vm.aceitouTermos = true
+
+        let destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
+    }
 }
