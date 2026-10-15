@@ -107,14 +107,14 @@ def extrair_propriedades_do_struct(body: str) -> set[str]:
     props: set[str] = set()
     coding_keys: dict[str, str] = {}
 
-    ck_match = re.search(r"enum\s+CodingKeys\s*:[^{]*\{([^}]+)\}", body)
-    if ck_match:
-        for line in ck_match.group(1).split("\n"):
-            line = line.strip()
-            if line.startswith("case "):
-                partes = line[5:].split("//")[0].split(",")
+    ck_matches = re.findall(r"enum\s+CodingKeys\s*:[^{]*\{([^}]+)\}", body)
+    for ck_block in ck_matches:
+        for item in re.split(r"[\n;]", ck_block):
+            item = item.strip()
+            if item.startswith("case "):
+                partes = item[5:].split("//")[0].split(",")
                 for parte in partes:
-                    m = re.search(r"([a-zA-Z0-9_]+)(?:\s*=\s*\"([^\"]+)\")?", parte)
+                    m = re.search(r"([a-zA-Z0-9_]+)(?:\s*=\s*\"([^\"]+)\")?", parte.strip())
                     if m:
                         s_name = m.group(1)
                         wire_name = m.group(2) if m.group(2) else s_name
@@ -122,15 +122,14 @@ def extrair_propriedades_do_struct(body: str) -> set[str]:
 
     for line in body.split("\n"):
         line = line.strip()
-        if line.startswith("let ") or line.startswith("var "):
-            m = re.search(r"(?:let|var)\s+([a-zA-Z0-9_]+)", line)
-            if m:
-                s_name = m.group(1)
-                wire_name = coding_keys.get(s_name, s_name)
-                props.add(wire_name)
-                # Adiciona formato snake_case caso venha sem CodingKeys customizado
-                snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", s_name).lower()
-                props.add(snake_name)
+        m = re.search(r"\b(?:let|var)\s+([a-zA-Z0-9_]+)", line)
+        if m and not line.endswith("{"):
+            s_name = m.group(1)
+            wire_name = coding_keys.get(s_name, s_name)
+            props.add(wire_name)
+            # Adiciona formato snake_case caso venha sem CodingKeys customizado
+            snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", s_name).lower()
+            props.add(snake_name)
     return props
 
 
@@ -209,45 +208,33 @@ def conferir_rpcs(doc: dict, sources_dir: pathlib.Path) -> list[str]:
 def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
     erros: list[str] = []
     schemas = doc.get("components", {}).get("schemas", {})
+    # Derivado diretamente do OpenAPI: todo schema que define enum
     openapi_enums = {name: s["enum"] for name, s in schemas.items() if "enum" in s}
 
-    enum_mapping = {
-        "CategoriaSuporte": "CategoriaSuporte",
-        "CausaDoCancelamento": "CausaDoCancelamento",
-        "EstadoCandidatura": "EstadoCandidatura",
-        "EstadoConta": "EstadoConta",
-        "EstadoPosicao": "EstadoPosicao",
-        "EstadoVaga": "EstadoVaga",
-        "EventoDeTelemetria": "EventoDeTelemetria",
-        "ModoPreenchimento": "ModoPreenchimento",
-        "MotivoDenuncia": "MotivoDenuncia",
-        "PapelMembro": "PapelMembro",
-        "PerfilConta": "PerfilConta",
-        "Plataforma": "Plataforma",
-        "TipoDeAlvo": "TipoDeAlvo",
-        "TipoEstabelecimento": "TipoEstabelecimento",
-        "TipoNotificacao": "TipoDeAviso",
-        "TipoRegistro": "TipoRegistro",
-        "Verificacao": "Verificacao",
-    }
+    for o_name, o_cases_list in sorted(openapi_enums.items()):
+        s_name = o_name
+        if s_name not in swift_enums:
+            if o_name == "TipoNotificacao" and "TipoDeAviso" in swift_enums:
+                s_name = "TipoDeAviso"
+            elif o_name == "TipoDeAlvo" and "TipoPerfilPublico" in swift_enums:
+                s_name = "TipoPerfilPublico"
+            else:
+                erros.append(
+                    f"Enum {o_name} do contrato OpenAPI não encontrado em nenhum arquivo Swift"
+                )
+                continue
 
-    # Verifica se há enums novos declarados no OpenAPI sem mapeamento no app
-    enums_nao_mapeados = set(openapi_enums.keys()) - set(enum_mapping.keys())
-    if enums_nao_mapeados:
-        erros.append(
-            f"Enums novos no contrato OpenAPI sem mapeamento no app: {sorted(enums_nao_mapeados)}"
-        )
-
-    for o_name, s_name in sorted(enum_mapping.items()):
-        if o_name not in openapi_enums:
-            erros.append(f"Enum {o_name} não encontrado nos schemas do contrato OpenAPI")
-            continue
-        o_cases = set(openapi_enums[o_name])
-        s_cases = swift_enums.get(s_name, set())
+        o_cases = set(o_cases_list)
+        s_cases = swift_enums[s_name]
         faltando = o_cases - s_cases
+        extras = s_cases - o_cases
         if faltando:
             erros.append(
                 f"Enum {o_name} ({s_name}): casos do contrato faltando no Swift: {sorted(faltando)}"
+            )
+        if extras:
+            erros.append(
+                f"Enum {o_name} ({s_name}): casos extras no Swift inexistentes no contrato: {sorted(extras)}"
             )
 
     return erros
@@ -300,83 +287,71 @@ def conferir_erros(doc: dict, sources_dir: pathlib.Path) -> list[str]:
     return erros
 
 
-def conferir_dtos(doc: dict, sources_dir: pathlib.Path) -> list[str]:
+def conferir_dtos(
+    doc: dict, sources_dir: pathlib.Path
+) -> tuple[list[str], list[str], int]:
     erros: list[str] = []
+    avisos: list[str] = []
     schemas = doc.get("components", {}).get("schemas", {})
 
-    dtos_path = sources_dir / "Dados" / "DTOsContrato.swift"
-    if not dtos_path.is_file():
-        return [f"Arquivo {dtos_path} não encontrado"]
+    all_structs: dict[str, str] = {}
+    for p in sources_dir.rglob("*.swift"):
+        all_structs.update(parse_swift_structs(p))
 
-    structs = parse_swift_structs(dtos_path)
-    struct_props = {name: extrair_propriedades_do_struct(corpo) for name, corpo in structs.items()}
+    struct_props = {
+        name: extrair_propriedades_do_struct(corpo)
+        for name, corpo in all_structs.items()
+    }
 
-    mapping = {
+    # Schemas de tipo escalar/primitivo e payloads de exportação bruta
+    PRIMITIVOS_ESPECIAIS = {
+        "Centavos",
+        "ChaveDeIdempotencia",
+        "HoraDoDia",
+        "Instante",
+        "Telefone",
+        "Uuid",
+    }
+    RAW_PAYLOADS = {"MeusDados"}
+
+    # Mapeamento de apelidos para schemas cujos nomes em Swift diferem por convenção
+    ALIAS_DTO = {
         "AlteracaoDoPerfilProfissional": "AlteracaoPerfilProfissionalDTO",
-        "Avaliacao": "AvaliacaoDTO",
-        "Bloqueio": "BloqueioDTO",
-        "CancelamentoDaPosicao": "CancelamentoDaPosicaoDTO",
-        "CancelamentoDoTurno": "CancelamentoDoTurnoDTO",
-        "Candidato": "CandidatoDTO",
         "Candidatura": "MinhaCandidaturaDTO",
-        "ConfiguracaoDoApp": "ConfiguracaoDoAppDTO",
-        "Contato": "ContatoDTO",
-        "Coordenada": "CoordenadaDTO",
-        "CriteriosDeNotificacao": "CriteriosDeNotificacaoDTO",
-        "DadosDoPerfilProfissional": "DadosPerfilProfissionalDTO",
-        "Dispositivo": "DispositivoDTO",
-        "Estabelecimento": "EstabelecimentoDTO",
-        "EstabelecimentoDaConta": "EstabelecimentoDaContaDTO",
-        "Funcao": "FuncaoDTO",
-        "Inclusos": "InclusosDTO",
-        "JanelaDeDisponibilidade": "JanelaDTO",
-        "MembroDaEquipe": "MembroDaEquipeDTO",
-        "MeuEstabelecimento": "MeuEstabelecimentoDTO",
-        "NovaVaga": "NovaVaga",
         "NovoEstabelecimento": "CadastroEstabelecimentoDTO",
-        "Painel": "PainelDTO",
-        "PerfilProfissional": "PerfilProfissionalDTO",
-        "PerfilPublico": "PerfilPublicoDTO",
-        "PosicaoNoPainel": "PosicaoNoPainelDTO",
-        "Protocolo": "ProtocoloDTO",
-        "RegistroDePresenca": "RegistroDePresenca",
-        "Reputacao": "ReputacaoDTO",
-        "ResultadoACaminho": "ResultadoACaminhoDTO",
-        "ResultadoCancelamento": "ResultadoCancelamentoDTO",
+        "JanelaDeDisponibilidade": "JanelaDTO",
         "ResultadoCandidatura": "CandidaturaDTO",
-        "ResultadoConfirmacao": "ResultadoConfirmacaoDTO",
-        "ResultadoRegistro": "ResultadoRegistroDTO",
-        "Sessao": "SessaoDTO",
-        "SituacaoDaConta": "SituacaoDaContaDTO",
-        "Turno": "TurnoDTO",
-        "Usuario": "UsuarioDTO",
-        "Vaga": "VagaDTO",
-        "VagaNaLista": "VagaNaListaDTO",
-        "VagaNoPainel": "VagaNoPainelDTO",
-        "VagaPublicada": "VagaPublicadaDTO",
-        "VagaResumo": "VagaResumoDTO",
+        "DadosDoPerfilProfissional": "DadosPerfilProfissionalDTO",
+        "ExclusaoDeConta": "DTOExclusaoDeConta",
+        "Erro": "EnvelopeErroAPI",
     }
 
-    PRIMITIVOS_OU_ESPECIAIS = {
-        "Centavos", "ChaveDeIdempotencia", "HoraDoDia", "Instante", "Telefone", "Uuid", "Erro",
-        "ExclusaoDeConta", "MeusDados", "VagaDetalhe"
+    # Derivado diretamente do OpenAPI: todo schema de objeto com propriedades
+    openapi_objects = {
+        name: s
+        for name, s in schemas.items()
+        if "enum" not in s
+        and name not in PRIMITIVOS_ESPECIAIS
+        and name not in RAW_PAYLOADS
+        and (s.get("type") == "object" or "properties" in s)
     }
-    schemas_de_objeto = {
-        name for name, s in schemas.items()
-        if "enum" not in s and name not in PRIMITIVOS_OU_ESPECIAIS and s.get("type") == "object"
-    }
-    schemas_nao_mapeados = schemas_de_objeto - set(mapping.keys())
-    if schemas_nao_mapeados:
-        erros.append(
-            f"Schemas de objeto novos no contrato OpenAPI sem mapeamento para DTO: {sorted(schemas_nao_mapeados)}"
-        )
 
-    for schema_name, dto_name in sorted(mapping.items()):
-        if dto_name not in struct_props:
-            erros.append(f"Struct {dto_name} (para schema {schema_name}) não declarada em DTOsContrato.swift")
+    for schema_name, schema in sorted(openapi_objects.items()):
+        candidates = [
+            ALIAS_DTO.get(schema_name),
+            schema_name + "DTO",
+            schema_name,
+            "DTO" + schema_name,
+        ]
+        dto_name = next((c for c in candidates if c and c in struct_props), None)
+        if not dto_name:
+            erros.append(
+                f"Schema de objeto {schema_name} do contrato OpenAPI não possui struct/DTO correspondente no app Swift"
+            )
             continue
-        schema = schemas.get(schema_name, {})
+
         required_props = set(schema.get("required", []))
+        all_props = set(schema.get("properties", {}).keys())
         dto_fields = struct_props[dto_name]
 
         faltando = required_props - dto_fields
@@ -385,7 +360,19 @@ def conferir_dtos(doc: dict, sources_dir: pathlib.Path) -> list[str]:
                 f"DTO {dto_name} (schema {schema_name}) tem campos obrigatórios faltando: {sorted(faltando)}"
             )
 
-    return erros
+        extras = dto_fields - all_props
+        if extras:
+            avisos.append(
+                f"DTO {dto_name} (schema {schema_name}): campos extras no Swift não mapeados no contrato: {sorted(extras)}"
+            )
+
+        opcionais_ausentes = (all_props - required_props) - dto_fields
+        if opcionais_ausentes:
+            avisos.append(
+                f"DTO {dto_name} (schema {schema_name}): campos opcionais do contrato não mapeados no DTO: {sorted(opcionais_ausentes)}"
+            )
+
+    return erros, avisos, len(openapi_objects)
 
 
 def main() -> None:
@@ -413,6 +400,7 @@ def main() -> None:
         print(f"    Versão do OpenAPI: {versao}")
 
     todos_erros: list[str] = []
+    todos_avisos: list[str] = []
 
     # 1. Backend Mirror Check
     if backend_contrato and backend_contrato.is_file():
@@ -446,10 +434,14 @@ def main() -> None:
         print("OK: códigos estáveis de recusa de regra tratados em CodigoErroAPI.")
 
     # 5. DTOs
-    erros_dtos = conferir_dtos(doc, sources_dir)
+    erros_dtos, avisos_dtos, qtd_dtos = conferir_dtos(doc, sources_dir)
     todos_erros.extend(erros_dtos)
+    todos_avisos.extend(avisos_dtos)
     if not erros_dtos and not args.silencioso:
-        print("OK: 43/43 DTOs do contrato cobrem todos os campos obrigatórios.")
+        print(f"OK: {qtd_dtos}/{qtd_dtos} DTOs do contrato cobrem todos os campos obrigatórios.")
+
+    if todos_avisos and not args.silencioso:
+        print(f"INFO: {len(todos_avisos)} avisos de campos opcionais/extras observados no app.")
 
     if todos_erros:
         print("\nFALHA: divergências de contrato encontradas:", file=sys.stderr)

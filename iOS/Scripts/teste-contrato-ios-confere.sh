@@ -129,7 +129,7 @@ open(caminho, 'w').write(texto)
 "
 
 esperar_reprovacao "Enum novo não mapeado" \
-  "Enums novos no contrato OpenAPI sem mapeamento no app: ['NovoEnumNaoMapeado']" \
+  "Enum NovoEnumNaoMapeado do contrato OpenAPI não encontrado em nenhum arquivo Swift" \
   --contrato "$TMPDIR_TESTE/Contrato/openapi-enum-novo.yaml" \
   --sources "$TMPDIR_TESTE/Sources"
 
@@ -143,8 +143,22 @@ open(caminho, 'w').write(texto)
 "
 
 esperar_reprovacao "Schema de objeto novo não mapeado" \
-  "Schemas de objeto novos no contrato OpenAPI sem mapeamento para DTO: ['NovoSchemaObjeto']" \
+  "Schema de objeto NovoSchemaObjeto do contrato OpenAPI não possui struct/DTO correspondente no app Swift" \
   --contrato "$TMPDIR_TESTE/Contrato/openapi-schema-novo.yaml" \
   --sources "$TMPDIR_TESTE/Sources"
 
-echo "OK: autoteste de contrato-ios-confere.sh (9 verificações completas com aprovação e reprovação controlada)."
+# 10. Enum com caso extra no Swift inexistente no contrato OpenAPI
+cp -R "$TMPDIR_TESTE/Sources" "$TMPDIR_TESTE/Sources-enum-extra"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Sources-enum-extra/Dominio/Modelos.swift'
+texto = open(caminho).read().replace('case cancelada', 'case cancelada\n    case casoInexistenteNoContrato = \"caso_inexistente\"')
+open(caminho, 'w').write(texto)
+"
+
+esperar_reprovacao "Enum com caso extra no Swift" \
+  "casos extras no Swift inexistentes no contrato: ['caso_inexistente']" \
+  --contrato "$CONTRATO_OFICIAL" \
+  --sources "$TMPDIR_TESTE/Sources-enum-extra"
+
+echo "OK: autoteste de contrato-ios-confere.sh (10 verificações completas com aprovação e reprovação controlada)."
+
