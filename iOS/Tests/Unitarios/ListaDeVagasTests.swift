@@ -23,13 +23,34 @@ private actor FonteDeVagas {
 }
 
 private actor Contador {
-    private var valor = 0
+    private(set) var valor = 0
     func somar() -> Int { valor += 1; return valor }
 }
 
 private actor Registro {
     private(set) var vezes = 0
     func marcar() { vezes += 1 }
+}
+
+/// Retém uma resposta mesmo após cancelamento, para controlar a ordem de conclusão das cargas.
+private actor ListaRetida {
+    let chegada: AsyncStream<Void>
+    private let avisar: AsyncStream<Void>.Continuation
+    private var resposta: CheckedContinuation<[VagaNaLista], Never>?
+
+    init() { (chegada, avisar) = AsyncStream<Void>.makeStream() }
+
+    func buscar() async -> [VagaNaLista] {
+        await withCheckedContinuation { resposta in
+            self.resposta = resposta
+            avisar.yield()
+        }
+    }
+
+    func responder(_ vagas: [VagaNaLista]) {
+        resposta?.resume(returning: vagas)
+        resposta = nil
+    }
 }
 
 private func vagasDoDuble() async throws -> [VagaNaLista] {
@@ -313,6 +334,97 @@ struct FeedVagasViewModelTests {
         #expect(vm.estado == .ociosa, "a tela tenta de novo quando voltar")
     }
 
+    @Test("Cancelar carga com lista visível libera a paginação", arguments: [false, true])
+    func cargaCanceladaLiberaPaginacao(atualizar: Bool) async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let seguinte = clonarComOutroID(vaga)
+        let cache = CacheDeLeituras()
+        cache.guardar(lista: [vaga], chave: "-|-|-", epoca: cache.epoca)
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { filtro in
+                let numero = await chamadas.somar()
+                if (filtro.deslocamento ?? 0) > 0 { return [seguinte] }
+                if atualizar, numero == 1 { return [vaga] }
+                avisarChegada.yield()
+                while !Task.isCancelled { try? await Task.sleep(for: .milliseconds(5)) }
+                throw CancellationError()
+            },
+            buscarFuncoes: { [] },
+            tamanhoDaPagina: 1,
+            cache: cache
+        )
+        if atualizar { await vm.carregar() }
+        let carga = Task {
+            if atualizar { await vm.atualizar() } else { await vm.carregar() }
+        }
+        for await _ in chegou { break }
+        await vm.carregarMais()
+        #expect(await chamadas.valor == (atualizar ? 2 : 1))
+        carga.cancel()
+        await carga.value
+        #expect(vm.estado == .carregada([vaga]))
+        await vm.carregarMais()
+        #expect(vm.estado == .carregada([vaga, seguinte]))
+    }
+
+    @Test("CancellationError da fonte libera a paginação da lista guardada")
+    func cargaInterrompidaLiberaPaginacao() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let seguinte = clonarComOutroID(vaga)
+        let cache = CacheDeLeituras()
+        cache.guardar(lista: [vaga], chave: "-|-|-", epoca: cache.epoca)
+        let vm = FeedVagasViewModel(
+            buscarVagas: { filtro in
+                if (filtro.deslocamento ?? 0) > 0 { return [seguinte] }
+                throw CancellationError()
+            },
+            buscarFuncoes: { [] },
+            tamanhoDaPagina: 1,
+            cache: cache
+        )
+        await vm.carregar()
+        #expect(vm.estado == .carregada([vaga]))
+        await vm.carregarMais()
+        #expect(vm.estado == .carregada([vaga, seguinte]))
+    }
+
+    @Test("Conclusão cancelada da carga antiga não libera a paginação da carga nova")
+    func cargaAntigaNaoLiberaPaginacao() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let atual = clonarComOutroID(vaga)
+        let seguinte = clonarComOutroID(vaga)
+        let cache = CacheDeLeituras()
+        cache.guardar(lista: [vaga], chave: "-|-|-", epoca: cache.epoca)
+        let antiga = ListaRetida()
+        let nova = ListaRetida()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { filtro in
+                let numero = await chamadas.somar()
+                if (filtro.deslocamento ?? 0) > 0 { return [seguinte] }
+                return await (numero == 1 ? antiga : nova).buscar()
+            },
+            buscarFuncoes: { [] },
+            tamanhoDaPagina: 1,
+            cache: cache
+        )
+        let primeira = Task { await vm.carregar() }
+        for await _ in antiga.chegada { break }
+        let segunda = Task { await vm.carregar() }
+        for await _ in nova.chegada { break }
+        await antiga.responder([vaga])
+        await primeira.value
+        await vm.carregarMais()
+        #expect(await chamadas.valor == 2)
+        #expect(vm.estado == .carregada([vaga]))
+        await nova.responder([atual])
+        await segunda.value
+        await vm.carregarMais()
+        #expect(vm.estado == .carregada([atual, seguinte]))
+    }
+
     @Test("Puxar para atualizar mantém a lista na tela enquanto busca")
     func atualizarMantemALista() async throws {
         let vaga = try #require(try await vagasDoDuble().first)
@@ -347,6 +459,89 @@ struct FeedVagasViewModelTests {
         await vm.carregar()
         await vm.carregarMais()
         #expect(vm.estado == .carregada([vaga, vaga2]))
+    }
+
+    @Test("Carga anterior à saída não substitui o cache da nova conta", arguments: [false, true])
+    func cargaDeOutraEpoca(atualizar: Bool) async throws {
+        let vagaAntiga = try #require(try await vagasDoDuble().first)
+        let vagaNova = clonarComOutroID(vagaAntiga)
+        let cache = CacheDeLeituras()
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { _ in
+                if await chamadas.somar() == 2 {
+                    avisarChegada.yield()
+                    for await _ in liberar { break }
+                }
+                return [vagaAntiga]
+            },
+            buscarFuncoes: { [] },
+            cache: cache
+        )
+        await vm.carregar()
+        let carga = Task {
+            if atualizar { await vm.atualizar() } else { await vm.carregar() }
+        }
+        for await _ in chegou { break }
+        cache.limpar()
+        cache.guardar(lista: [vagaNova], chave: "-|-|-", epoca: cache.epoca)
+        sinal.yield()
+        await carga.value
+        #expect(cache.lista(chave: "-|-|-") == [vagaNova])
+
+        let outraConta = FeedVagasViewModel(
+            buscarVagas: { _ in throw ErroDaApi(codigo: .semRede) },
+            buscarFuncoes: { [] },
+            cache: cache
+        )
+        await outraConta.carregar()
+        #expect(outraConta.estado == .carregada([vagaNova]))
+    }
+
+    @Test("Paginação aguarda a primeira página atualizada, inclusive após falha de rede", arguments: [false, true])
+    func paginacaoAguardaAtualizacao(falhar: Bool) async throws {
+        let vagaAntiga = try #require(try await vagasDoDuble().first)
+        let vagaAtual = clonarComOutroID(vagaAntiga)
+        let vagaSeguinte = clonarComOutroID(vagaAntiga)
+        let cache = CacheDeLeituras()
+        cache.guardar(lista: [vagaAntiga], chave: "-|-|-", epoca: cache.epoca)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { filtro in
+                let numero = await chamadas.somar()
+                if (filtro.deslocamento ?? 0) > 0 { return [vagaSeguinte] }
+                if numero == 1 {
+                    avisarChegada.yield()
+                    for await _ in liberar { break }
+                    if falhar { throw ErroDaApi(codigo: .semRede) }
+                }
+                return [vagaAtual]
+            },
+            buscarFuncoes: { [] },
+            tamanhoDaPagina: 1,
+            cache: cache
+        )
+        let carga = Task { await vm.carregar() }
+        for await _ in chegou { break }
+        #expect(vm.estado == .carregada([vagaAntiga]))
+        await vm.carregarMais()
+        #expect(await chamadas.valor == 1, "somente a primeira página foi pedida")
+        sinal.yield()
+        await carga.value
+        if falhar {
+            #expect(vm.estado == .carregada([vagaAntiga]))
+            await vm.carregarMais()
+            #expect(vm.estado == .carregada([vagaAntiga]))
+            #expect(await chamadas.valor == 1)
+            await vm.carregar()
+        }
+        #expect(vm.estado == .carregada([vagaAtual]))
+        await vm.carregarMais()
+        #expect(vm.estado == .carregada([vagaAtual, vagaSeguinte]))
     }
 
     @Test("Paginação: a próxima página pede o deslocamento certo e soma à lista")

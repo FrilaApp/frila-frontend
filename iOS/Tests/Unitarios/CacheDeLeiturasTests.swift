@@ -16,6 +16,30 @@ private actor Pedidos {
     func contar() { total += 1 }
 }
 
+/// A resposta continua retida mesmo se a tarefa for cancelada, como uma resposta já recebida.
+private actor DetalheRetido {
+    let chegada: AsyncStream<Void>
+    private let avisar: AsyncStream<Void>.Continuation
+    private var resposta: CheckedContinuation<Vaga, any Error>?
+    private(set) var cancelado = false
+
+    init() { (chegada, avisar) = AsyncStream<Void>.makeStream() }
+
+    func buscar() async throws -> Vaga {
+        let vaga: Vaga = try await withCheckedThrowingContinuation { resposta in
+            self.resposta = resposta
+            avisar.yield()
+        }
+        cancelado = Task.isCancelled
+        return vaga
+    }
+
+    func responder(_ resultado: Result<Vaga, any Error>) {
+        resposta?.resume(with: resultado)
+        resposta = nil
+    }
+}
+
 private func umaVaga() async throws -> Vaga {
     let api = ApiClienteEmMemoria()
     let primeira = try #require(try await api.vagasAbertas(.todas).first)
@@ -75,10 +99,47 @@ struct CacheDeLeiturasTests {
         let vaga = try await umaVaga()
         let lista = try await ApiClienteEmMemoria().vagasAbertas(.todas)
         _ = try await cache.detalhe(id: vaga.id) { vaga }
-        cache.guardar(lista: lista, chave: "x")
+        cache.guardar(lista: lista, chave: "x", epoca: cache.epoca)
         cache.limpar()
         #expect(cache.detalheGuardado(id: vaga.id) == nil)
         #expect(cache.lista(chave: "x") == nil)
+    }
+
+    @Test("Resposta antiga após limpar não grava nem remove a tarefa da nova época", arguments: [false, true])
+    func respostaDeOutraEpoca(falhaAntiga: Bool) async throws {
+        let cache = CacheDeLeituras()
+        let vaga = try await umaVaga()
+        let antiga = DetalheRetido()
+        let nova = DetalheRetido()
+        let epoca = cache.epoca
+        let pedidoAntigo = Task { try await cache.detalhe(id: vaga.id) { try await antiga.buscar() } }
+        for await _ in antiga.chegada { break }
+
+        cache.limpar()
+        #expect(cache.epoca == epoca + 1)
+        let pedidoNovo = Task { try await cache.detalhe(id: vaga.id) { try await nova.buscar() } }
+        for await _ in nova.chegada { break }
+        await antiga.responder(falhaAntiga ? .failure(ErroDaApi(codigo: .semRede)) : .success(vaga))
+        _ = try? await pedidoAntigo.value
+        #expect(cache.detalheGuardado(id: vaga.id) == nil)
+
+        // Se a conclusão antiga apagou o pedido novo, esta limpeza não conseguirá cancelá-lo.
+        cache.limpar()
+        await nova.responder(.success(vaga))
+        _ = try await pedidoNovo.value
+        #expect(await nova.cancelado)
+        #expect(cache.detalheGuardado(id: vaga.id) == nil)
+    }
+
+    @Test("Uma lista da época anterior não substitui a lista da conta atual")
+    func listaDeOutraEpoca() async throws {
+        let cache = CacheDeLeituras()
+        let lista = try await ApiClienteEmMemoria().vagasAbertas(.todas)
+        let epocaAntiga = cache.epoca
+        cache.limpar()
+        cache.guardar(lista: [], chave: "x", epoca: cache.epoca)
+        cache.guardar(lista: lista, chave: "x", epoca: epocaAntiga)
+        #expect(cache.lista(chave: "x") == [])
     }
 
     @Test("A sessão de rede do app tem prazo próprio: 15 s por pedido, 60 s no total")
