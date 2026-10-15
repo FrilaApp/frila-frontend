@@ -66,6 +66,7 @@ public final class PresencaDoTurnoViewModel {
     private let fila: (any FilaDeAcoes)?
     private let relogio: any Relogio
     private let telemetria: RegistradorDeTelemetria?
+    private let cache: CacheDeLeituras?
     private let aoRegistrar: @MainActor () -> Void
     private var pontoDaVaga: Coordenada?
     private var toque: Date?
@@ -81,8 +82,10 @@ public final class PresencaDoTurnoViewModel {
         relogio: any Relogio = RelogioDoSistema(),
         pontoDaVaga: Coordenada? = nil,
         aoRegistrar: @escaping @MainActor () -> Void = {},
-        telemetria: RegistradorDeTelemetria? = nil
+        telemetria: RegistradorDeTelemetria? = nil,
+        cache: CacheDeLeituras? = nil
     ) {
+        self.cache = cache
         self.turno = turno
         self.api = api
         self.localizacao = localizacao
@@ -260,7 +263,11 @@ public final class PresencaDoTurnoViewModel {
 
     private func pontoDaVagaOuBuscar() async -> Coordenada? {
         if let pontoDaVaga { return pontoDaVaga }
-        pontoDaVaga = try? await api.detalheDaVaga(id: turno.vaga.id).ponto
+        let api = self.api
+        let vagaID = turno.vaga.id
+        let buscar: @Sendable () async throws -> Vaga = { try await api.detalheDaVaga(id: vagaID) }
+        let vaga = if let cache { try? await cache.detalhe(id: vagaID, buscar: buscar) } else { try? await buscar() }
+        pontoDaVaga = vaga?.ponto
         return pontoDaVaga
     }
 

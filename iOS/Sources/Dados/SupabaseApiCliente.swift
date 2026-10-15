@@ -13,7 +13,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     private let filaDeSessao = FilaDeSessao()
 
     public convenience init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
-        self.init(url: url, chavePublicavel: chavePublicavel, telemetria: telemetria, sessaoHTTP: .shared)
+        self.init(url: url, chavePublicavel: chavePublicavel, telemetria: telemetria, sessaoHTTP: Self.sessaoComPrazo())
     }
 
     /// A sessão HTTP e o armazenamento da sessão só mudam nos testes, que respondem às chamadas
@@ -39,6 +39,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         )
         cliente = SupabaseClient(supabaseURL: url, supabaseKey: chavePublicavel, options: options)
         self.telemetria = telemetria
+    }
+
+    /// A sessão compartilhada espera 60 s por resposta; com 4G ruim a tela ficava esse tempo girando.
+    /// Aqui cada pedido tem 15 s e o conjunto 60 s. Sem rede, a falha vem na hora (não espera conectar).
+    static func sessaoComPrazo() -> URLSession {
+        let configuracao = URLSessionConfiguration.default
+        configuracao.timeoutIntervalForRequest = 15
+        configuracao.timeoutIntervalForResource = 60
+        configuracao.waitsForConnectivity = false
+        return URLSession(configuration: configuracao)
     }
 
     // MARK: Entrada

@@ -67,6 +67,8 @@ public final class FeedVagasViewModel {
     /// Cada carga ganha um número; resposta de uma carga antiga (filtro trocado no meio) é descartada.
     private var geracao = 0
     private var carregandoMais = false
+    /// Última primeira página por filtro: aparece na hora e é trocada quando a rede responde.
+    private let cache: CacheDeLeituras?
 
     public convenience init(
         api: any ApiCliente,
@@ -77,7 +79,8 @@ public final class FeedVagasViewModel {
             buscarVagas: { try await api.vagasAbertas($0) },
             buscarFuncoes: { try await api.funcoes() },
             relogio: relogio,
-            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api),
+            cache: .compartilhado
         )
     }
 
@@ -86,8 +89,10 @@ public final class FeedVagasViewModel {
         buscarFuncoes: @escaping @Sendable () async throws -> [Funcao],
         relogio: any Relogio = RelogioDoSistema(),
         tamanhoDaPagina: Int = 30,
-        telemetria: RegistradorDeTelemetria? = nil
+        telemetria: RegistradorDeTelemetria? = nil,
+        cache: CacheDeLeituras? = nil
     ) {
+        self.cache = cache
         self.buscarVagas = buscarVagas
         self.buscarFuncoes = buscarFuncoes
         self.relogio = relogio
@@ -120,8 +125,14 @@ public final class FeedVagasViewModel {
     public func carregar() async {
         geracao += 1
         let minha = geracao
-        estado = .carregando
-        await buscar(geracao: minha)
+        let guardada = cache?.lista(chave: chaveDoFiltro())
+        if let guardada {
+            estado = .carregada(guardada)
+            haMaisPaginas = guardada.count == tamanhoDaPagina
+        } else {
+            estado = .carregando
+        }
+        await buscar(geracao: minha, mantendoGuardada: guardada != nil)
         if funcoes.isEmpty, let lista = try? await buscarFuncoes() { funcoes = lista }
     }
 
@@ -169,14 +180,24 @@ public final class FeedVagasViewModel {
         await carregar()
     }
 
-    private func buscar(geracao minha: Int) async {
+    private func chaveDoFiltro() -> String {
+        let f = filtro()
+        let dia = f.data.map { "\($0.ano)-\($0.mes)-\($0.dia)" } ?? "-"
+        return "\(f.funcaoID?.uuidString ?? "-")|\(dia)|\(f.distanciaMaximaKm.map { String($0) } ?? "-")"
+    }
+
+    private func buscar(geracao minha: Int, mantendoGuardada: Bool = false) async {
         do {
+            let chave = chaveDoFiltro()
             let vagas = try await buscarVagas(filtro())
             guard minha == geracao else { return }
             estado = .carregada(vagas)
             haMaisPaginas = vagas.count == tamanhoDaPagina
+            cache?.guardar(lista: vagas, chave: chave)
         } catch {
             guard minha == geracao else { return }
+            // Sem rede, a lista guardada continua na tela em vez de virar erro.
+            if mantendoGuardada, case .semRede = (error as? ErroDaApi)?.codigo { return }
             estado = .falha(FalhaDaLista(error))
             haMaisPaginas = false
         }

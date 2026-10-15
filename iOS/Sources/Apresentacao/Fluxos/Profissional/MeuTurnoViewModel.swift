@@ -60,6 +60,8 @@ public final class MeuTurnoViewModel {
     private var ultimoRegistroContato: Date?
     private var cacheLocal: (any CacheLocal)? { filaDeAcoes as? any CacheLocal }
 
+    private let cache: CacheDeLeituras?
+
     public init(
         turno: Turno,
         api: any ApiCliente,
@@ -70,8 +72,10 @@ public final class MeuTurnoViewModel {
         presenca: PresencaDoTurnoViewModel? = nil,
         aoAvaliar: (() -> Void)? = nil,
         aoCancelar: (() -> Void)? = nil,
-        telemetria: RegistradorDeTelemetria? = nil
+        telemetria: RegistradorDeTelemetria? = nil,
+        cache: CacheDeLeituras? = nil
     ) {
+        self.cache = cache
         self.turno = turno
         self.aoAvaliar = aoAvaliar
         self.aoCancelar = aoCancelar
@@ -249,6 +253,17 @@ public final class MeuTurnoViewModel {
         carregandoContato = true
         defer { carregandoContato = false }
 
+        // O detalhe da vaga não depende do contato: os dois pedidos saem juntos.
+        let api = self.api
+        let cache = self.cache
+        let vagaID = turno.vaga.id
+        let buscarDetalhe: Task<Vaga?, Never>? = responsavelLocal == nil
+            ? Task {
+                let buscar: @Sendable () async throws -> Vaga = { try await api.detalheDaVaga(id: vagaID) }
+                return if let cache { try? await cache.detalhe(id: vagaID, buscar: buscar) } else { try? await buscar() }
+            }
+            : nil
+
         do {
             let novoContato = try await api.contatoDoTurno(id: turno.id)
             if novoContato.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora) {
@@ -283,7 +298,7 @@ public final class MeuTurnoViewModel {
 
         // Tenta obter o responsável local detalhado da vaga
         if responsavelLocal == nil {
-            if let vagaDetalhe = try? await api.detalheDaVaga(id: turno.vaga.id) {
+            if let vagaDetalhe = await buscarDetalhe?.value {
                 self.responsavelLocal = vagaDetalhe.responsavelLocal
                 presenca?.definir(pontoDaVaga: vagaDetalhe.ponto)
             }
