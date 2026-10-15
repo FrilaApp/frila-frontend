@@ -377,7 +377,7 @@ struct CatalogoStringsTests {
             "Ainda não há turnos considerados.",
             "Meu perfil",
             "Perfil do estabelecimento",
-            "Respondemos em até 5 dias úteis.",
+            "Respondemos o mais breve possível, com triagem em até 5 dias úteis.",
             "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.",
             "Compareceu a %lld de %lld turno",
             "Compareceu a %lld de %lld turnos",

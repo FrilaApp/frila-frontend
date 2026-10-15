@@ -139,7 +139,7 @@ public final class SuporteTurnoViewModel: Identifiable {
     public init(
         dados: ContextoSuporteTurno,
         api: (any ApiCliente)? = nil,
-        emailDestino: String = "suporte@frila.app",
+        emailDestino: String = EnderecosOficiais.padrao.emailSuporte,
         motivoInicial: MotivoSuporteTurno = .atrasoOuImprevisto,
         relatoInicial: String = "",
         chaveIdempotente: UUID = UUID(),
