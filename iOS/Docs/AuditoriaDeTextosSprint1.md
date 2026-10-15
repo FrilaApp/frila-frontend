@@ -7,7 +7,7 @@ Documento oficial de auditoria estática de interface (UX Writing), consistênci
 - **Documentos de Referência:**
   - `iOS/Docs/GuiaDeVoz.md` (Referência normativa oficial de UX Writing e Catálogo de Erros da API)
   - `iOS/Docs/PadroesDeEstado.md` (Padrões de estado de tela: carregando, vazio, erro, sem rede, sem permissão, sucesso)
-  - `Frila API 0.2.41` (`iOS/Contrato/openapi.yaml`)
+  - `Frila API 0.2.42` (`iOS/Contrato/openapi.yaml`)
 - **Data da Auditoria:** 12/10/2026
 - **Auditor:** Thor (Implementação iOS / Antigravity)
 - **Status do Código:** Estático — **nenhuma string ou código foi alterado nesta missão** (remediações catalogadas para missão posterior).
