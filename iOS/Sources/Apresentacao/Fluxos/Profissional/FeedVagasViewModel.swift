@@ -67,6 +67,8 @@ public final class FeedVagasViewModel {
     /// Cada carga ganha um número; resposta de uma carga antiga (filtro trocado no meio) é descartada.
     private var geracao = 0
     private var carregandoMais = false
+    private var tarefaDaCarga: Task<Void, Never>?
+    private var tarefaDaPagina: Task<[VagaNaLista], Error>?
     private var aguardandoPrimeiraPagina = false
     /// Última primeira página por filtro: aparece na hora e é trocada quando a rede responde.
     private let cache: CacheDeLeituras?
@@ -122,10 +124,10 @@ public final class FeedVagasViewModel {
         return FiltroVagas(funcaoID: funcaoID, data: dia, distanciaMaximaKm: km, limite: tamanhoDaPagina, deslocamento: deslocamento)
     }
 
-    /// Primeira carga ou recarga depois de trocar filtro.
+    /// Primeira carga ou recarga depois de trocar filtro. Um pedido novo cancela o que estava em voo
+    /// (a resposta velha nunca sobrescreve a nova) e a busca de funções corre junto com a de vagas.
     public func carregar() async {
-        geracao += 1
-        let minha = geracao
+        let minha = iniciarCarga()
         let guardada = cache?.lista(chave: chaveDoFiltro())
         if let guardada {
             estado = .carregada(guardada)
@@ -133,16 +135,21 @@ public final class FeedVagasViewModel {
         } else {
             estado = .carregando
         }
-        await buscar(geracao: minha, mantendoGuardada: guardada != nil)
-        if funcoes.isEmpty, let lista = try? await buscarFuncoes() { funcoes = lista }
+        await executar { [self] in
+            let precisaDeFuncoes = funcoes.isEmpty
+            async let lista = buscarFuncoesSeFaltam(precisaDeFuncoes)
+            await buscar(geracao: minha, mantendoGuardada: guardada != nil)
+            if let lista = await lista, !Task.isCancelled { funcoes = lista }
+        }
+        soltarSeInterrompida(geracao: minha)
     }
 
     /// Puxar para atualizar: mantém a lista na tela enquanto busca.
     public func atualizar() async {
-        geracao += 1
-        let minha = geracao
+        let minha = iniciarCarga()
         if case .carregada = estado {} else { estado = .carregando }
-        await buscar(geracao: minha)
+        await executar { [self] in await buscar(geracao: minha) }
+        soltarSeInterrompida(geracao: minha)
     }
 
     /// Próxima página, pedida quando o último cartão aparece.
@@ -150,17 +157,52 @@ public final class FeedVagasViewModel {
         guard haMaisPaginas, !carregandoMais, !aguardandoPrimeiraPagina,
               case let .carregada(atuais) = estadoRecebido else { return }
         carregandoMais = true
-        defer { carregandoMais = false }
         let minha = geracao
+        defer { if minha == geracao { carregandoMais = false } }
+        let tarefa = Task { [buscarVagas, filtro = filtro(deslocamento: atuais.count)] in try await buscarVagas(filtro) }
+        tarefaDaPagina = tarefa
         do {
-            let pagina = try await buscarVagas(filtro(deslocamento: atuais.count))
-            guard minha == geracao else { return }
+            let pagina = try await withTaskCancellationHandler { try await tarefa.value } onCancel: { tarefa.cancel() }
+            guard minha == geracao, !Task.isCancelled else { return }
             var vistos = Set<UUID>()
             let unicas = (atuais + pagina).filter { vistos.insert($0.id).inserted }
             estado = .carregada(unicas)
             haMaisPaginas = pagina.count == tamanhoDaPagina
         } catch {
             // A falha da página seguinte não apaga o que já está na tela; a próxima rolagem tenta de novo.
+        }
+    }
+
+    private func buscarFuncoesSeFaltam(_ faltam: Bool) async -> [Funcao]? {
+        guard faltam else { return nil }
+        return try? await buscarFuncoes()
+    }
+
+    /// Cancela o que estiver em voo e abre uma nova geração.
+    private func iniciarCarga() -> Int {
+        tarefaDaCarga?.cancel()
+        tarefaDaPagina?.cancel()
+        carregandoMais = false
+        geracao += 1
+        aguardandoPrimeiraPagina = true
+        return geracao
+    }
+
+    /// Roda o trabalho numa tarefa guardada, para o próximo pedido poder cancelá-la; se quem chamou
+    /// for cancelado (tela saiu), a tarefa também é.
+    private func executar(_ trabalho: @escaping @MainActor () async -> Void) async {
+        let tarefa = Task { @MainActor in await trabalho() }
+        tarefaDaCarga = tarefa
+        await withTaskCancellationHandler { await tarefa.value } onCancel: { tarefa.cancel() }
+    }
+
+    /// Carga cancelada sem que outra tenha assumido: libera a paginação e a tela em "carregando".
+    private func soltarSeInterrompida(geracao minha: Int) {
+        guard minha == geracao else { return }
+        if Task.isCancelled || tarefaDaCarga?.isCancelled == true { aguardandoPrimeiraPagina = false }
+        if estadoRecebido == .carregando {
+            aguardandoPrimeiraPagina = false
+            estadoRecebido = .ociosa
         }
     }
 
@@ -189,21 +231,30 @@ public final class FeedVagasViewModel {
     }
 
     private func buscar(geracao minha: Int, mantendoGuardada: Bool = false) async {
-        aguardandoPrimeiraPagina = true
+        guard minha == geracao, !Task.isCancelled else { return }
+        defer {
+            // A conclusão de uma tarefa antiga não pode liberar a paginação da carga nova.
+            if minha == geracao, Task.isCancelled { aguardandoPrimeiraPagina = false }
+        }
         let epoca = cache?.epoca
         do {
             let chave = chaveDoFiltro()
             let vagas = try await buscarVagas(filtro())
-            guard minha == geracao else { return }
+            guard minha == geracao, !Task.isCancelled else { return }
             aguardandoPrimeiraPagina = false
             estado = .carregada(vagas)
             haMaisPaginas = vagas.count == tamanhoDaPagina
             if let epoca { cache?.guardar(lista: vagas, chave: chave, epoca: epoca) }
         } catch {
-            guard minha == geracao else { return }
+            guard minha == geracao, !Task.isCancelled else { return }
+            if error is CancellationError {
+                aguardandoPrimeiraPagina = false
+                return
+            }
             // Sem rede, a lista guardada continua na tela em vez de virar erro.
             // A paginação segue bloqueada até uma primeira página atualizada chegar.
             if mantendoGuardada, case .semRede = (error as? ErroDaApi)?.codigo { return }
+            aguardandoPrimeiraPagina = false
             estado = .falha(FalhaDaLista(error))
             haMaisPaginas = false
         }
