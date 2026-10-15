@@ -47,4 +47,7 @@ Entrada nova no topo: onde, antes → depois, por quê, prova, atenção.
 ### 2026-10-15 — Netlify: páginas públicas (liga com a linha 4)
 
 - **Onde:** time Frila, site `frila` (`frila.netlify.app`), sem domínio próprio.
-- **Pendente:** republicar depois da mescla do PR #309 (em andamento).
+- **Antes → depois:** páginas `/privacidade`, `/termos` e `/suporte` republicadas a partir de `iOS/Docs/PaginaPublica/*.md` da `main` (após o PR #309): responsável pessoa física (Cauê Carneiro Kilanovic), Brasília/DF, prazo "o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos".
+- **Como:** `netlify deploy --prod` de uma pasta gerada dos três `.md` (o site não tem repositório ligado; é publicação manual pela CLI). Deploy `6ad12d5bce108cd346eb80e1`, 15/10.
+- **Prova:** conferido no ar com `curl`: nome do responsável e Brasília/DF presentes; sem "a confirmar". O único "24 horas" que sobra é o prazo de expiração dos contatos de turno (outro assunto).
+- **Atenção:** toda mudança nos `.md` exige novo deploy manual. Quando houver domínio próprio (linha 4), ligar o site ao repositório.
