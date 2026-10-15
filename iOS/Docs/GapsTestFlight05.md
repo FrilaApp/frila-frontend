@@ -5,7 +5,7 @@
 **Cartões de Referência no Trello:**
 - `0jEemYAM` — *S1 · Infra + iOS · Mandar o build 0.4 para o TestFlight (20/10)*
 - `Kd0RVh9q` — *S2 · Infra + iOS · TestFlight 0.5 com push, check-in e avaliação (29/10)*  
-**Contrato Base:** `0.2.41` (`iOS/Contrato/openapi.yaml`)  
+**Contrato Base:** `0.2.42` (`iOS/Contrato/openapi.yaml`)  
 **Base do Código:** `frila-frontend` (`main`)
 
 ---

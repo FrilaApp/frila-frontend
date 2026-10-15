@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate de paridade de contrato entre iOS e backend (OpenAPI 0.2.41).
+"""Gate de paridade de contrato entre iOS e backend (OpenAPI 0.2.42).
 
 Compara os DTOs, RPCs, Enums e códigos de recusa tratados no app iOS
 (DTOsContrato.swift, Portas.swift, SupabaseApiCliente.swift, Modelos.swift, ErrosDaAPI.swift)
