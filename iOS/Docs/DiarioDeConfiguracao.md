@@ -19,10 +19,19 @@ Cada linha tem o **gatilho**: o sinal de que chegou a hora de voltar ao assunto.
 | 7 | **Firebase de produção** | Conferido em 15/10 (capturas do Thor): o projeto `frila-prod` existe; app iOS `com.frila.org.app` registrado; chaves de APNs de desenvolvimento e de produção cadastradas. Crashlytics do `frila-prod` ainda sem SDK (tela de introdução). | Antes do primeiro build de produção ou do primeiro push em produção. | Ativar o Crashlytics no `frila-prod` com o primeiro build, e testar um push real de ponta a ponta. |
 | 8 | **Contas Google de operação** | `frilaverificacao@gmail.com` envia o código; `frila.org@gmail.com` (Netlify, Firebase) com verificação em duas etapas **ativada** em 15/10. | Antes de abrir para o público. | Passar a conta de envio para o provedor da linha 1 e revisar quem tem acesso às duas contas. |
 | 9 | **Conta de demonstração da revisão** | Contas `revisao-contratante` e `revisao-profissional` no `frila-dev` com dados renovados; segredos `DEMONSTRACAO_CODIGO` e `DEMONSTRACAO_EMAILS` criados no `frila-dev` em 15/10 e a função `entrar-demonstracao` validada (código certo entra, errado é recusado). | Antes da submissão (prevista para 06/11) e antes de abrir o `frila-prod`. | Trocar o código se ele tiver passado por chat; repetir os segredos no `frila-prod`; digitar o código só na ficha da App Store Connect. |
+| 10 | **Verificação de idade (ECA Digital)** | App só para maiores de 18: data de nascimento no cadastro (menor é bloqueado) somada à classificação 18+ da App Store. Sem verificação própria (documento, biometria). A leitura jurídica é interna; não é parecer de advogado inscrito na OAB. | **01/12/2026**: reler a página da ANPD, o guia de aferição de idade e os regulamentos de novembro. Decidir **antes de 01/01/2027**, quando a fiscalização se intensifica. Também: antes de lançar Android ou web (v1.2), e a qualquer denúncia, notificação da ANPD ou mudança na regra da Apple. | Decidir se o sinal da loja basta; se não, adotar aferição própria (a opção pública do gov.br, art. 28 do Decreto, é a mais barata). Web exige aferição própria. Reduzir o risco com uma hora de consulta a advogado de proteção de dados. Só então registrar em RN20, T-0019 e cartão #78. |
 
 ## 2. Registro de mudanças
 
 Entrada nova no topo: onde, antes → depois, por quê, prova, atenção.
+
+### 2026-10-15 — Verificação de idade: leitura do ECA Digital (liga com as linhas 2 e 10)
+
+- **Estado conferido:** o Frila provavelmente está fora do alcance de acesso da lei, mas o tratamento seguro é 18+ obrigatório. Data de nascimento sozinha não basta (é autodeclaração); a combinação data de nascimento, sinal de idade da Apple (Declared Age Range) e bloqueio 18+ da loja é o desenho mais defensável para um app só de iOS, e não é porto seguro.
+- **Decisão:** para 06/11 não exigir documento nem biometria; sinal ausente segue, com registro interno de que a loja já bloqueia 18+ não confirmado. Menor bloqueado tem caminho para contestar pelo e-mail de suporte.
+- **Pendente (baixa prioridade):** backend corrigir o fuso do `current_date` em `criar_conta` (servidor conta em UTC, 3 h à frente de Brasília; cartão #265, Sprint 2); uma frase na política de privacidade e no LGPD.md sobre finalidade e retenção do e-mail de menor bloqueado.
+- **Prova:** comentário no cartão #215 do Trello com o resumo e as fontes (lei, Decreto, página da ANPD).
+- **Atenção:** a lei tem 13 meses e o Decreto é de 2026; não há jurisprudência. O ponto que um advogado conservador criticaria primeiro é "sinal ausente, seguir".
 
 ### 2026-10-15 — Supabase `frila-dev`: limite de e-mails de Auth (liga com a linha 1)
 
