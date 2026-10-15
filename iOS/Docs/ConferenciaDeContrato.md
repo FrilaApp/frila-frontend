@@ -1,6 +1,6 @@
-# Conferência e Gate de Deriva de Contrato (iOS x OpenAPI 0.2.42)
+# Conferência e Gate de Deriva de Contrato (iOS x OpenAPI 0.2.43)
 
-Este documento descreve a ferramenta de gate automatizado contra deriva de contrato entre o aplicativo iOS (`frila-frontend`) e o backend Supabase (`frila-backend`), baseada na especificação OpenAPI 0.2.42.
+Este documento descreve a ferramenta de gate automatizado contra deriva de contrato entre o aplicativo iOS (`frila-frontend`) e o backend Supabase (`frila-backend`), baseada na especificação OpenAPI 0.2.43.
 
 ---
 
@@ -32,7 +32,7 @@ O novo gate `contrato-ios-confere.sh` e seu validador `conferir-contrato-ios.py`
 Quando executado em ambiente com o repositório `frila-backend` adjacente (ex.: monorepo de trabalho local), compara se o espelho local do iOS está na mesma versão e íntegro com o backend.
 
 ### Pilar 2: Paridade de RPCs (44 de 44)
-O contrato 0.2.42 define exatamente 44 rotas sob `/rpc/...`. O script verifica se cada uma delas é referenciada em `SupabaseApiCliente.swift` e se nenhuma rota desconhecida foi inventada no cliente:
+O contrato 0.2.43 define exatamente 44 rotas sob `/rpc/...`. O script verifica se cada uma delas é referenciada em `SupabaseApiCliente.swift` e se nenhuma rota desconhecida foi inventada no cliente:
 - `abrir_suporte`
 - `atualizar_perfil_profissional`
 - `avaliar`

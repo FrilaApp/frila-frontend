@@ -5,7 +5,7 @@ Documento oficial de referência para redação de interface (UX Writing), gloss
 - **Sprint:** S0 · Fundação
 - **Cartão Trello:** [gNlXnAYP](https://trello.com/c/gNlXnAYP)
 - **Histórias e Requisitos:** RNF09 (Usabilidade para público não habituado a apps profissionais), RNF15 (Localização pt-BR, moeda em reais, fuso America/Sao_Paulo), RN01 (Valor integral sem descontos), RN10 (Liberação de contato pós-confirmação), RN13 (Suspensão e reputação), RN20 (Maioridade 18 anos), RN24 (Modo seleção e antecedência), RN25 (Perfis fixos), RF27 / C05 ("Por que recebo vagas"), US13 (Mensagem pronta de WhatsApp).
-- **Referência do Contrato:** `Frila API 0.2.42` (`iOS/Contrato/openapi.yaml`).
+- **Referência do Contrato:** `Frila API 0.2.43` (`iOS/Contrato/openapi.yaml`).
 - **Repositório:** `frila-frontend` (`iOS/Docs/GuiaDeVoz.md`).
 
 ---
