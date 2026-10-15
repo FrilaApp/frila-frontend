@@ -118,8 +118,7 @@ A conformidade com o contrato deve seguir a mesma severidade do iOS, prevenindo 
    - Caso a notificação pertença a uma conta deslogada ou anterior, o conteúdo sensível da notificação é imediatamente neutralizado (exibindo apenas mensagem genérica *"Frila: Nova notificação disponível"*), impedindo vazamento de dados de terceiros.
 3. **Lacuna no Backend (Extensão da Edge Function `enviar-push`):**
    > [!IMPORTANT]
-   > **Lacuna no Backend (Edge Function `enviar-push`):**
-   > O backend atualmente monta o payload FCM com foco exclusivo no bloco `apns` para iOS. Não há configuração do bloco `android` (sem definição de canal ou prioridade de entrega no servidor), e essa extensão de payload Android ainda não possui cartão nem PR aberto no backend (recomenda-se abrir um cartão técnico no repositório `frila-backend`). Para que o Android receba notificações com prioridade máxima e bypass de Doze mode em vagas urgentes, a Edge Function precisará ser estendida para suportar o bloco:
+   > O backend atualmente monta o payload FCM com foco exclusivo no bloco `apns` para iOS. Não há configuração do bloco `android` (sem definição de canal ou prioridade de entrega no servidor). Essa extensão está mapeada no cartão do backend (v1.1, *"Payload Android do enviar-push"*). Para que o Android receba notificações com prioridade máxima e bypass de Doze mode em vagas urgentes, a Edge Function precisará ser estendida para suportar o bloco:
    > ```json
    > "android": {
    >   "priority": "high",
