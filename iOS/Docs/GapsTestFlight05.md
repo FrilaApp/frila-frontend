@@ -94,7 +94,7 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
 - **Contrato / Requisitos:** RNF02, RNF03, RNF04; PR #299 (`57hJ7FV0`, **mergeado na `main`**).
 - **Implementado no App (Feito):**
   - Timeouts configurados em `SupabaseApiCliente.sessaoComPrazo` (15s timeout de requisição, 60s timeout de recurso, `waitsForConnectivity = false` para falha imediata e ativação de caches offline).
-  - Retry idempotente com backoff exponencial/jitter de 150ms restrito a RPCs de leitura (`rpcsDeLeitura`), incorporado pelo PR #299. Nenhuma mutação (`candidatar`, `publicar_vaga`, `fazer_checkin`) é retentada automaticamente.
+  - Retry idempotente com uma única retentativa com espera fixa de 150ms restrito a RPCs de leitura (`rpcsDeLeitura` via `executarComRetentativaSeTransiente`), incorporado pelo PR #299. Nenhuma mutação (`candidatar`, `publicar_vaga`, `fazer_checkin`) é retentada automaticamente.
   - Fila de ações offline persistida via SwiftData (`ArmazenamentoSwiftData`), sincronizada pelo `SincronizadorAcoes` na recuperação de rede.
   - Padrões visuais de feedback de desconexão e sincronização pendente (`EstadoDoFluxoContratante`, banners de offline e avisos de fila; estados exercitados nos testes de UI em `FrilaUITests`).
   - Telemetria: `acao_enfileirada_offline` instrumentada.
@@ -187,10 +187,10 @@ O que cabe ao proprietário (João Paulo) é unicamente a conferência administr
 |:---:|---|:---:|---|
 | **#291** | `feat(ios): extensão de serviço de notificações (NSE)` | **Mergeado na `main`** | App Group `group.com.frila.org.app` e isolamento `vinculo_id`. |
 | **#292** | `feat(telemetria): fiação completa dos 14 eventos` | **Mergeado na `main`** | 29 testes unitários verdes em `TelemetriaTests.swift`. |
-| **#299** | `perf(ios): timeouts sensíveis e retry idempotente` | **Mergeado na `main`** | Timeouts e retry exponencial com jitter para leituras. |
+| **#299** | `perf(ios): timeouts sensíveis e retry idempotente` | **Mergeado na `main`** | Timeouts sensíveis e retentativa única com espera fixa de 150ms para leituras. |
 | **#304** | `docs(ios): gap analysis e prontidão TestFlight 0.5` | **Mergeado na `main`** | Diagnóstico técnico e alinhamento dos 7 apontamentos. |
 | **#306** | `docs(android): proposta arquitetural e técnica v1.1` | **Mergeado na `main`** | Cartão `XTijdYVk` delimitado aos Épicos E1 e E2. |
-| **#305** | `feat(ios): gate de conferência estrita de contrato` | **Aprovado pelo Oráculo** | Validador dinâmico OpenAPI 0.2.41 e autoteste de 10 passos. |
+| **#305** | `feat(ios): gate de conferência estrita de contrato` | Aberto, aprovado no head `95c40de` (CI em andamento) | Validador dinâmico OpenAPI 0.2.41 e autoteste de 10 passos. |
 | **#298** | `fix(ios): acessibilidade, rótulos e Dynamic Type` | Aberto na fila de merge | Auditoria completa de acessibilidade VoiceOver. |
 | **#300** | `fix(ios): unificação de padrões de estado e banners` | Aberto na fila de merge | Padronização de componentes de feedback offline e carregamento. |
 | **#301** | `docs(ios): laudo de conformidade App Privacy Details` | Aberto na fila de merge | Mapeamento de dados LGPD e privacidade para a App Store. |
