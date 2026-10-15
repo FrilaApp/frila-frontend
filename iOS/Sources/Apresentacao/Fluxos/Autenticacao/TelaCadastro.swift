@@ -145,14 +145,14 @@ public struct TelaCadastro: View {
                     .accessibilityValue(Text(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                     .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected] : [])
                     .accessibilityAction(named: Text("Termos de uso", bundle: bundleApresentacao)) {
-                        if let url = URL(string: "https://frila.app/termos") { openURL(url) }
+                        openURL(EnderecosOficiais.padrao.termosDeUso)
                     }
                     .accessibilityAction(named: Text("Política de privacidade", bundle: bundleApresentacao)) {
-                        if let url = URL(string: "https://frila.app/privacidade") { openURL(url) }
+                        openURL(EnderecosOficiais.padrao.politicaDePrivacidade)
                     }
                     .accessibilityIdentifier("cadastro-termos")
 
-                    Text("Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)", bundle: bundleApresentacao)
+                    Text("Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)", bundle: bundleApresentacao)
                         .font(.subheadline)
                         .foregroundStyle(FrilaCor.texto)
                         .padding(.top, 10)

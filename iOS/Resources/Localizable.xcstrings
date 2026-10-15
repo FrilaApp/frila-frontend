@@ -2061,12 +2061,12 @@
         }
       }
     },
-    "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)": {
+    "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)"
+            "value": "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)"
           }
         }
       }
@@ -4421,12 +4421,12 @@
         }
       }
     },
-    "Respondemos em até 5 dias úteis.": {
+    "Respondemos o mais breve possível, com triagem em até 5 dias úteis.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Respondemos em até 5 dias úteis."
+            "value": "Respondemos o mais breve possível, com triagem em até 5 dias úteis."
           }
         }
       }
