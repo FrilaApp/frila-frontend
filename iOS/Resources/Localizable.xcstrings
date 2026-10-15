@@ -6675,12 +6675,12 @@
         }
       }
     },
-    "Abre o compositor de e-mail com os dados pré-preenchidos para suporte@frila.app": {
+    "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abre o compositor de e-mail com os dados pré-preenchidos para suporte@frila.app"
+            "value": "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com"
           }
         }
       }
@@ -7225,12 +7225,12 @@
         }
       }
     },
-    "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suporte@frila.app.": {
+    "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suportefrila@gmail.com.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suporte@frila.app."
+            "value": "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suportefrila@gmail.com."
           }
         }
       }
@@ -7715,16 +7715,6 @@
         }
       }
     },
-    "Respondemos em até 5 dias úteis. Não há atendimento ao vivo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Respondemos em até 5 dias úteis. Não há atendimento ao vivo."
-          }
-        }
-      }
-    },
     "Risco imediato": {
       "localizations": {
         "pt-BR": {
@@ -7815,12 +7805,12 @@
         }
       }
     },
-    "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suporte@frila.app.": {
+    "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suportefrila@gmail.com.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suporte@frila.app."
+            "value": "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suportefrila@gmail.com."
           }
         }
       }

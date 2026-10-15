@@ -199,7 +199,7 @@ struct SuporteTurnoTests {
 
         #expect(vm.copiadoComSucesso)
         #expect(caixa.texto.contains("Assunto: [Turno 11111111-2222-3333-4444-555555555555] Garçom"))
-        #expect(caixa.texto.contains("Para: suporte@frila.app"))
+        #expect(caixa.texto.contains("Para: \(EnderecosOficiais.padrao.emailSuporte)"))
         #expect(caixa.texto.contains(contexto.endereco))
     }
 
