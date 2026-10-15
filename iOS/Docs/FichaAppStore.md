@@ -8,7 +8,7 @@ Documento normativo e rascunho completo dos metadados do Frila para publicação
 
 | Campo do App Store Connect | Valor Configurado | Limite / Regra da Apple | Observações e Conformidade |
 |---|---|---|---|
-| **Nome do App (App Name)** | `Frila: Vagas e Turnos Extras` | Até 30 caracteres | 28 caracteres. Sem preço, sem "grátis" (Diretriz 2.3.7). |
+| **Nome do App (App Name)** | `Frila: Turnos e Vagas` | Até 30 caracteres | 21 caracteres. Sem preço, sem "grátis" (Diretriz 2.3.7). Nome já cadastrado no App Store Connect. |
 | **Subtítulo (Subtitle)** | `Turnos em bares e eventos` | Até 30 caracteres | 25 caracteres. Sem superlativos ou promessa de tempo. |
 | **Idioma Principal** | Português (Brasil) — `pt-BR` | — | Alinhado a RNF15 e fuso `America/Sao_Paulo`. |
 | **Categoria Primária** | Negócios (*Business*) | Obrigatório escolher | Classificação comercial para gestão de turnos e contratação. |
@@ -111,18 +111,18 @@ Versão inicial do Frila no Distrito Federal:
 
 ## 3. URLs Oficiais (Página Pública)
 
-As URLs públicas em HTTPS dependem de domínio aprovado pelo Cauê antes do preenchimento no App Store Connect. Os textos correspondentes estão em `iOS/Docs/PaginaPublica/`:
+Enquanto não houver domínio próprio (ver `DiarioDeConfiguracao.md`, linha 4), as URLs públicas em HTTPS ficam em `frila.netlify.app`. Os textos correspondentes estão em `iOS/Docs/PaginaPublica/`:
 
 | Campo no App Store Connect | URL Oficial | Arquivo Fonte no Repositório | Descrição do Conteúdo |
 |---|---|---|---|
-| **URL de Suporte (*Support URL*)** | `[A DEFINIR: URL pública de suporte]` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suportefrila@gmail.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
-| **URL de Marketing (*Marketing URL*)** | `[A DEFINIR: URL pública de marketing]` | `[A DEFINIR: URL pública de marketing]` | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
-| **URL de Privacidade (*Privacy Policy URL*)** | `[A DEFINIR: URL pública de privacidade]` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
-| **Termos de Uso (*Terms of Use / EULA*)** | `[A DEFINIR: URL pública dos termos]` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
+| **URL de Suporte (*Support URL*)** | `https://frila.netlify.app/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suportefrila@gmail.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
+| **URL de Marketing (*Marketing URL*)** | `https://frila.netlify.app` | Página inicial do site (sem arquivo próprio no repositório) | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
+| **URL de Privacidade (*Privacy Policy URL*)** | `https://frila.netlify.app/privacidade` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
+| **Termos de Uso (*Terms of Use / EULA*)** | `https://frila.netlify.app/termos` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
 
 > **Conferência com o código-fonte:** [`EnderecosOficiais.swift`](../Sources/Apresentacao/EnderecosOficiais.swift), linhas 19–23 (`termosDeUso`, `politicaDePrivacidade`, `emailSuporte` e propriedade computada `urlSuporte`).
 >
-> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. A URL web de suporte da loja depende de domínio público aprovado; o canal de atendimento é `suportefrila@gmail.com`. Os endereços do app ainda precisam ser alinhados em missão própria.
+> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. A URL web de suporte da loja é a página do Netlify; o canal de atendimento é `suportefrila@gmail.com`. Os endereços do app ainda precisam ser alinhados em missão própria.
 
 ---
 
@@ -199,7 +199,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 | **Palavras-chave $\le$ 100 caracteres** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 97 caracteres / 97 bytes, sem concorrentes e sem espaços supérfluos. |
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
 | **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Alinhamento operacional pendente | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-150`). Moderação de denúncias: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). O app ainda informa "Respondemos em até 5 dias úteis." (`TextosPerfilConta.prazoSuporte`); alinhamento pendente em missão própria. |
-| **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | URLs a confirmar | Textos públicos com canal oficial do titular; domínio e URLs em HTTPS dependem de aprovação. |
+| **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme (piloto) | Textos públicos com canal oficial do titular; URLs em HTTPS no Netlify (`frila.netlify.app`), domínio próprio fica para quando o produto crescer. |
 | **Sem plataformas concorrentes** | Diretriz 2.3.10 da Apple | Conforme | Ausência de menção a plataformas concorrentes (Android, Google Play). |
 | **Sem preços na descrição** | Diretriz 2.3 da Apple | Conforme | Ausência de preços ou valores monetários na descrição geral. |
 | **Sem afirmações inverificáveis** | Diretriz 2.3 da Apple | Conforme | Ausência de afirmações superlativas ou inverificáveis ("o melhor", "número 1"). |
