@@ -8,12 +8,7 @@
 
 ## 1. Visão Geral e Contexto de Negócio
 
-O Frila iniciou sua operação piloto no Distrito Federal focado na plataforma iOS. Contudo, no segmento de hospitalidade, alimentação e eventos, a ampla maioria dos profissionais diaristas e trabalhadores operacionais no Brasil utiliza aparelhos Android de entrada e intermediários (conforme premissa do requisito **RNF04**). O lançamento da versão Android (v1.1) é o passo decisivo para atingir liquidez no marketplace e garantir alcance popular.
-
-Conforme a diretriz mestra do projeto, **não há núcleo compartilhado multiplataforma (KMP/Flutter/React Native)**:
-- O domínio é reescrito nativamente em **Kotlin**, usufruindo da excelência de performance e estabilidade do sistema operacional.
-- Todas as regras críticas de integridade, cálculo e transação permanecem unificadas no backend PostgreSQL/Supabase, expressas pelo contrato normativo **OpenAPI 0.2.41**.
-- O aparelho de referência mínimo obrigatório é **Android 9.0 (API 28) com 2 GB de memória RAM** (requisito **RNF04**). O app não pode consumir memória desnecessária nem engasgar na rolagem.
+O Frila iniciou sua operação piloto no Distrito Federal focado na plataforma iOS. Contudo, no segmento de hospitalidade, alimentação e eventos no Brasil, o ecossistema Android é amplamente predominante entre trabalhadores operacionais e diaristas. Para garantir que o aplicativo funcione com fluidez e estabilidade nesse cenário, o projeto estabeleceu o requisito não funcional **RNF04**, que define como aparelho de referência para desenvolvimento e homologação de desempenho um smartphone de entrada: **Android 9.0 (API 28), 2 GB de memória RAM, 32 GB de armazenamento e tela de 720p**. O app não pode consumir memória desnecessária nem apresentar perda de quadros na rolagem.
 
 ---
 
@@ -94,9 +89,11 @@ A conformidade com o contrato deve seguir a mesma severidade do iOS, prevenindo 
    - Solicitação: `POST /auth/v1/otp` com e-mail institucional/pessoal (código de 6 dígitos sem link mágico).
    - Verificação: `POST /auth/v1/verify` (type: `email`).
    - Retorno: `Sessao` com `access_token`, `refresh_token`, `token_type: bearer` e `expires_in`.
-2. **Segurança de Armazenamento:**
+2. **Segurança de Armazenamento e Regras de Extração (Privacidade):**
    - O token de autenticação é gravado em `EncryptedSharedPreferences` cifrado com chave mestre em hardware seguro (`MasterKey.Builder` com Keystore nativo).
-   - O app declara `android:allowBackup="false"` e desabilita `fullBackupContent` no `AndroidManifest.xml` para evitar clonagem de sessão entre aparelhos físicos.
+   - **Regras de Backup e Extração (Android 12+ / API 31+):**
+     - O app declara `android:dataExtractionRules="@xml/data_extraction_rules"` para Android 12+ (API 31+) e `android:fullBackupContent="@xml/backup_rules"` para versões legadas, com `android:allowBackup="false"`.
+     - As regras bloqueiam explicitamente a transferência de credenciais (`sharedpref`, `keystore`, tokens de sessão e identificadores de aparelho), impedindo a exportação de dados de sessão via backup em nuvem (Google Drive) ou migração física cabo/aparelho (device-to-device transfer), em total conformidade com a LGPD e RN15.
 3. **Modo Demonstração da Google Play:**
    - Suporte ao endpoint `/functions/v1/entrar-demonstracao` permitindo que os revisores da Google Play testem o aplicativo sem acesso a caixas de e-mail de usuários reais.
 
@@ -114,10 +111,10 @@ A conformidade com o contrato deve seguir a mesma severidade do iOS, prevenindo 
    - Em aparelhos compartilhados (ex.: dois profissionais usando o mesmo smartphone), o payload de notificação transporta a chave `vinculo_id` (contrato 0.2.30).
    - O serviço `FrilaFirebaseMessagingService` deve validar se o `vinculo_id` recebido coincide com o ID de vínculo da sessão ativa gravado no Keystore.
    - Caso a notificação pertença a uma conta deslogada ou anterior, o conteúdo sensível da notificação é imediatamente neutralizado (exibindo apenas mensagem genérica *"Frila: Nova notificação disponível"*), impedindo vazamento de dados de terceiros.
-3. **Lacuna no Backend (Dependência a Implementar):**
+3. **Lacuna no Backend (Extensão da Edge Function `enviar-push`):**
    > [!IMPORTANT]
-   > **Lacuna no Backend (`enviar-push` / `frila-backend#184`):**
-   > O backend atualmente monta o payload FCM com foco exclusivo no bloco `apns` para iOS. Não há configuração do bloco `android` (sem definição de canal ou prioridade de entrega no servidor). Para que o Android receba notificações com prioridade máxima e bypass de Doze mode em vagas urgentes, a Edge Function `enviar-push` precisa ser estendida para suportar o bloco:
+   > **Lacuna no Backend (Edge Function `enviar-push`):**
+   > O backend atualmente monta o payload FCM com foco exclusivo no bloco `apns` para iOS. Não há configuração do bloco `android` (sem definição de canal ou prioridade de entrega no servidor), e essa extensão de payload Android ainda não possui cartão nem PR aberto no backend (recomenda-se abrir um cartão técnico no repositório `frila-backend`). Para que o Android receba notificações com prioridade máxima e bypass de Doze mode em vagas urgentes, a Edge Function precisará ser estendida para suportar o bloco:
    > ```json
    > "android": {
    >   "priority": "high",
@@ -126,7 +123,7 @@ A conformidade com o contrato deve seguir a mesma severidade do iOS, prevenindo 
    >   }
    > }
    > ```
-   > Enquanto essa implementação não for mergeada no backend, o app Android fará o tratamento recebendo dados brutos em `RemoteMessage.data` e exibindo via `NotificationCompat` local.
+   > Enquanto essa alteração não for implementada no backend, o app Android fará o tratamento recebendo dados brutos em `RemoteMessage.data` e exibindo as notificações através de `NotificationCompat` local.
 
 4. **Canais de Notificação Locais (Android 8.0+ / API 26+):**
    - Canais configurados no `Application.onCreate()`:
@@ -166,7 +163,7 @@ O cartão **`XTijdYVk`** tem como objetivo estabelecer os alicerces do projeto A
 
 ---
 
-## 9. Decisões em Aberto para o Dono (Registradas em DECISOES.md)
+## 9. Decisões em Aberto para o Dono
 
 1. **Injeção de Dependência:** Hilt (recomendado pela integração nativa com AndroidX) vs Koin (leveza e simplicidade).
 2. **Cliente HTTP / Supabase:** Ktor Client (moderno e multi-módulo) vs Retrofit + OkHttp (maduro e consagrado).
