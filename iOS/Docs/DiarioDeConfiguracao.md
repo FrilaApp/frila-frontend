@@ -29,7 +29,7 @@ Entrada nova no topo: onde, antes → depois, por quê, prova, atenção.
 
 - **Estado conferido:** o Frila provavelmente está fora do alcance de acesso da lei, mas o tratamento seguro é 18+ obrigatório. Data de nascimento sozinha não basta (é autodeclaração); a combinação data de nascimento, sinal de idade da Apple (Declared Age Range) e bloqueio 18+ da loja é o desenho mais defensável para um app só de iOS, e não é porto seguro.
 - **Decisão:** para 06/11 não exigir documento nem biometria; sinal ausente segue, com registro interno de que a loja já bloqueia 18+ não confirmado. Menor bloqueado tem caminho para contestar pelo e-mail de suporte.
-- **Pendente (baixa prioridade):** backend corrigir o fuso do `current_date` em `criar_conta` (servidor conta em UTC, 3 h à frente de Brasília); uma frase na política de privacidade e no LGPD.md sobre finalidade e retenção do e-mail de menor bloqueado.
+- **Pendente (baixa prioridade):** backend corrigir o fuso do `current_date` em `criar_conta` (servidor conta em UTC, 3 h à frente de Brasília; cartão #265, Sprint 2); uma frase na política de privacidade e no LGPD.md sobre finalidade e retenção do e-mail de menor bloqueado.
 - **Prova:** comentário no cartão #215 do Trello com o resumo e as fontes (lei, Decreto, página da ANPD).
 - **Atenção:** a lei tem 13 meses e o Decreto é de 2026; não há jurisprudência. O ponto que um advogado conservador criticaria primeiro é "sinal ausente, seguir".
 
