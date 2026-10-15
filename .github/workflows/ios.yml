@@ -75,6 +75,11 @@ jobs:
       - name: Validar as fixtures contra o contrato
         run: python3 Scripts/validate-fixtures.py
 
+      - name: Conferir conformidade de contrato do app iOS contra o OpenAPI
+        run: |
+          Scripts/teste-contrato-ios-confere.sh
+          Scripts/contrato-ios-confere.sh
+
       - name: Conferir que só a camada Dados importa o Supabase
         run: |
           fora=$(grep -rlE '^(@testable )?import (Supabase|PostgREST|Auth|Functions|Realtime|Storage)$' Sources Tests | grep -v '^Sources/Dados/' || true)

@@ -109,10 +109,14 @@ enum ContratoAPI {
     struct SessaoDTO: Decodable {
         let accessToken: String
         let refreshToken: String
+        let tokenType: String?
+        let expiresIn: Int?
 
         enum CodingKeys: String, CodingKey {
             case accessToken = "access_token"
             case refreshToken = "refresh_token"
+            case tokenType = "token_type"
+            case expiresIn = "expires_in"
         }
     }
 
@@ -1326,12 +1330,14 @@ enum ContratoAPI {
     // MARK: Aplicativo
 
     struct ConfiguracaoDoAppDTO: Decodable {
+        let plataforma: Plataforma?
         let versaoMinima: String
         let versaoRecomendada: String
         let urlDaLoja: URL
         let mensagem: String?
 
         enum CodingKeys: String, CodingKey {
+            case plataforma
             case mensagem
             case versaoMinima = "versao_minima"
             case versaoRecomendada = "versao_recomendada"
