@@ -49,19 +49,13 @@ final class AvaliacaoUITests: XCTestCase {
     func testEnvioDeAvaliacaoPelaRotaDiretaMostraConfirmacao() {
         let app = abrir()
         let sim = app.buttons["resposta-sim"]
-        XCTAssertTrue(sim.waitForExistence(timeout: Espera.aparecer))
-        sim.tap()
+        tocar(sim)
 
         XCTAssertTrue(app.images["icone-checkmark-sim"].exists)
         XCTAssertFalse(app.images["icone-checkmark-nao"].exists)
 
         let enviar = app.buttons["botao-enviar-avaliacao"]
-        XCTAssertTrue(enviar.waitForExistence(timeout: Espera.aparecer))
-        let habilitado = NSPredicate(format: "isEnabled == true")
-        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: enviar)
-        _ = XCTWaiter.wait(for: [espera], timeout: Espera.aparecer)
-        XCTAssertTrue(enviar.isEnabled)
-        enviar.tap()
+        tocar(enviar)
 
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
         XCTAssertTrue(confirmacao.waitForExistence(timeout: Espera.aparecer))

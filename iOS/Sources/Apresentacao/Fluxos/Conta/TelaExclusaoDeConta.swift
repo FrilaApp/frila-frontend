@@ -180,7 +180,6 @@ public struct TelaExclusaoDeConta: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(FrilaEspaco.pequeno)
                         .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
-                        .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("item-turno-futuro-\(turno.id)")
                     }
                 }

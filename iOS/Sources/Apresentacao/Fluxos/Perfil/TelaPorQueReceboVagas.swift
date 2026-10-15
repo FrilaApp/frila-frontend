@@ -173,7 +173,6 @@ public struct TelaPorQueReceboVagas: View {
                 if viewModel.relatoValido {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(FrilaCor.sucesso)
-                        .accessibilityHidden(true)
                         .accessibilityIdentifier("icone-relato-valido-despacho")
                 }
                 Text(verbatim: TextosPorQueReceboVagas.dicaRelato)
@@ -229,7 +228,6 @@ public struct TelaPorQueReceboVagas: View {
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("protocolo-revisao-despacho")
             }
-            .accessibilityElement(children: .combine)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosPorQueReceboVagas.protocoloData)
@@ -239,7 +237,6 @@ public struct TelaPorQueReceboVagas: View {
                     .font(.subheadline)
                     .foregroundStyle(FrilaCor.texto)
             }
-            .accessibilityElement(children: .combine)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosPorQueReceboVagas.prazoRespostaTitulo)
@@ -250,7 +247,6 @@ public struct TelaPorQueReceboVagas: View {
                     .foregroundStyle(FrilaCor.primaria)
                     .accessibilityIdentifier("prazo-resposta-revisao")
             }
-            .accessibilityElement(children: .combine)
 
             nota(TextosPorQueReceboVagas.mensagemEnviado)
         }
