@@ -88,7 +88,28 @@ public struct CampoFrila: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
             .accessibilityLabel(titulo)
-            .accessibilityHint(Text(verbatim: erroDeCampo ?? ""))
+            .modifier(ErroLidoComoValor(texto: texto, erro: erroDeCampo))
+    }
+}
+
+/// Faz o erro do campo ser lido como parte do valor ("texto, Erro: mensagem") e não como dica,
+/// que o VoiceOver pode omitir. Sem erro, o campo mantém o valor padrão do sistema.
+struct ErroLidoComoValor: ViewModifier {
+    let texto: String
+    let erro: String?
+
+    static func valor(texto: String, erro: String?) -> String? {
+        guard let erro, !erro.isEmpty else { return nil }
+        let prefixo = String(localized: "Erro: ", bundle: bundleApresentacao)
+        return texto.isEmpty ? prefixo + erro : "\(texto), \(prefixo)\(erro)"
+    }
+
+    func body(content: Content) -> some View {
+        if let valor = Self.valor(texto: texto, erro: erro) {
+            content.accessibilityValue(Text(verbatim: valor))
+        } else {
+            content
+        }
     }
 }
 
@@ -109,7 +130,8 @@ public struct CampoCodigo: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: 56)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .accessibilityHint(erroDeCampo.map { Text(verbatim: $0) } ?? Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
+            .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
+            .modifier(ErroLidoComoValor(texto: codigo, erro: erroDeCampo))
     }
 }
 

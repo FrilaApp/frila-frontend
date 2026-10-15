@@ -737,6 +737,8 @@ public struct TelaPublicarVaga: View {
 
     private func datePicker(_ titulo: String, date: Binding<Date>, field: CampoPublicacaoVaga) -> some View {
         campo(field, titulo: titulo) {
+            // Do AX1 em diante o seletor vira roda, que acompanha a fonte sem limite;
+            // abaixo disso o compacto já escala sozinho, sem teto nem encolhimento do texto.
             if dynamicTypeSize.isAccessibilitySize {
                 DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
@@ -746,8 +748,6 @@ public struct TelaPublicarVaga: View {
                 DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
                     .datePickerStyle(.compact)
-                    .minimumScaleFactor(0.7)
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .accessibilityIdentifier("datepicker-\(field.rawValue)")
             }
         }
