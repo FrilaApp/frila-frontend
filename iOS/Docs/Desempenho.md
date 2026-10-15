@@ -234,9 +234,9 @@ contador do app somou (17.559 / 3.268); a diferença, 14.291 B, é transporte.
 `api=supabase`, conta de demonstração do profissional, `-FRILA_MEDICAO`). Em cada perfil do Network
 Link Conditioner, Medições → Zerar e 20 aberturas por tela. O p95 é a 19ª menor medição, como
 descrito acima; o máximo é a pior das 20 aberturas (na Lista em LTE, foi a primeira depois do
-Zerar). O perfil LTE foi 50 Mbps de descida e 10 Mbps de
-subida, com 50 ms e 65 ms de atraso e 0% de perda. O aplicativo não lê o perfil: ele foi conferido
-pelo aviso de quem o ligou, e o que o sustenta é a diferença entre as duas colunas.
+Zerar). O perfil LTE foi 50 Mbps de descida e 10 Mbps de subida, com 50 ms e 65 ms de atraso e 0%
+de perda. O aplicativo não lê o perfil: ele vale pelo aviso de quem o ligou, e o que o sustenta é
+a diferença entre as linhas de LTE e de 3G.
 
 | Perfil | Tela | Vagas na lista | n | p50 | p95 | máx |
 |---|---|---|---|---|---|---|
