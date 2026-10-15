@@ -8,7 +8,12 @@
 
 ## 1. Visão Geral e Contexto de Negócio
 
-O Frila iniciou sua operação piloto no Distrito Federal focado na plataforma iOS. Contudo, no segmento de hospitalidade, alimentação e eventos no Brasil, o ecossistema Android é amplamente predominante entre trabalhadores operacionais e diaristas. Para garantir que o aplicativo funcione com fluidez e estabilidade nesse cenário, o projeto estabeleceu o requisito não funcional **RNF04**, que define como aparelho de referência para desenvolvimento e homologação de desempenho um smartphone de entrada: **Android 9.0 (API 28), 2 GB de memória RAM, 32 GB de armazenamento e tela de 720p**. O app não pode consumir memória desnecessária nem apresentar perda de quadros na rolagem.
+O Frila iniciou sua operação piloto no Distrito Federal focado na plataforma iOS. Contudo, no segmento de hospitalidade, alimentação e eventos no Brasil, o ecossistema Android é amplamente predominante entre trabalhadores operacionais e diaristas. O lançamento da versão Android (v1.1) é o passo decisivo para atingir liquidez no marketplace e garantir alcance popular.
+
+Conforme a diretriz mestra de engenharia do projeto, **não há núcleo compartilhado multiplataforma (KMP/Flutter/React Native)**:
+- O domínio é reescrito nativamente em **Kotlin**, usufruindo da excelência de performance e estabilidade do sistema operacional.
+- Todas as regras críticas de integridade, cálculo e transação permanecem unificadas no backend PostgreSQL/Supabase, expressas pelo contrato normativo **OpenAPI 0.2.41**.
+- O requisito não funcional normativo do projeto é o **RNF04** (*"Android 9 ou superior com 2 GB de memória, iOS 17 ou superior e navegadores modernos"*). Para fins de homologação prática e testes de estresse em hardware real, a equipe de engenharia sugere e adota como perfil de referência de entrada um aparelho com Android 9.0 (API 28), 2 GB de RAM e tela 720p, garantindo que o app não consuma memória excessiva nem apresente perda de quadros na rolagem.
 
 ---
 
