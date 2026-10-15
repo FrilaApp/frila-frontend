@@ -37,7 +37,7 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
   - Homologação visual em iPhone físico com tela bloqueada.
 - **Bloqueado por quê:**
   - *Bloqueio Operacional / Apple:* Criação do App Group `group.com.frila.org.app` e perfis de provisionamento associados no Apple Developer Portal pelo titular da conta (João Paulo).
-  - *Bloqueio Backend:* Ativação do despacho e envio remoto FCM no backend `frila-dev`.
+  - *Bloqueio Backend:* Ativação do envio em `frila-dev`: `enviar-push` ainda não tem entrada em `config.toml`, portanto o gateway recusa o agendador com 401 até que o `frila-backend#184` seja mergeado e implantado no ambiente.
   - *Bloqueio Físico:* Teste manual em aparelho de desenvolvimento com chip/APNs.
 
 ---
@@ -76,7 +76,7 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
 ---
 
 ### 2.4. Cancelamento
-- **Contrato / Requisitos:** US09, RF11, RN12, RN13; RPCs `/rpc/cancelar_candidatura`, `/rpc/cancelar_posicao`, `/rpc/cancelar_vaga`, `/rpc/reabrir_por_atraso`.
+- **Contrato / Requisitos:** US09, RF11, RN12, RN13; RPCs `/rpc/retirar_candidatura`, `/rpc/cancelar_posicao`, `/rpc/cancelar_vaga`, `/rpc/reabrir_por_atraso`.
 - **Implementado no App (Feito):**
   - `FolhaDeCancelamento.swift` & `CancelamentoViewModel.swift`: interface com advertências de impacto na reputação e campo de motivo obrigatório (`>= 3` caracteres).
   - Profissional: cancelamento de candidatura pendente (`retirar_candidatura`) e cancelamento de turno confirmado (`cancelar_posicao`).
@@ -93,15 +93,14 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
 ### 2.5. Estados Offline e Resiliência de Rede
 - **Contrato / Requisitos:** RNF02, RNF03, RNF04; PR #299 (`57hJ7FV0`).
 - **Implementado no App (Feito):**
-  - Configuração de timeouts (`SupabaseApiCliente.configuracaoComPrazo`): 15s timeout de requisição, 60s timeout de recurso, `waitsForConnectivity = false` para falha imediata e ativação rápida de caches offline.
-  - Retry idempotente em leituras: mecanismo seguro de retentativa única com backoff de 150ms restrito a RPCs de leitura (GET) em erros transitórios de rede (`timedOut`, `networkConnectionLost`). Nenhuma mutação (`candidatar`, `publicar_vaga`, `fazer_checkin`) é retentada automaticamente.
+  - Configuração de timeouts (`SupabaseApiCliente.sessaoComPrazo` na main; PR #299 estende para suporte unificado a retry em leituras idempotentes com backoff de 150ms).
   - Fila de ações offline persistida via SwiftData (`ArmazenamentoSwiftData`), sincronizada pelo `SincronizadorAcoes` na recuperação de rede.
-  - Banners e padrões de estado: `EstadoSemConexao`, `AvisoOffline` e `AvisoDeAcaoPendente`.
+  - Estados visuais de indisponibilidade e feedback de desconexão testados nas suítes de UI e fluxos (`EstadoDoFluxoContratante`, banners de aviso e sincronização pendente).
   - Telemetria: `acao_enfileirada_offline` instrumentada.
 - **O que falta:**
-  - Merge do PR #299 pela Marika (CI em conclusão).
+  - Conclusão da esteira e merge do PR #299 pela Marika.
 - **Bloqueado por quê:**
-  - Conclusão da esteira do GitHub Actions.
+  - Ciclo normal de aprovação e CI do PR #299.
 
 ---
 
@@ -111,7 +110,7 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
   - Dicionário fechado de 14 eventos (`EventoDeTelemetria`): `app_aberto`, `cadastro_concluido`, `permissao_push_negada`, `vaga_vista`, `vaga_detalhe_aberto`, `candidatura_enviada`, `candidatura_retirada`, `checkin_tentado`, `checkin_concluido`, `checkout_concluido`, `avaliacao_enviada`, `contato_aberto`, `acao_enfileirada_offline`, `atualizacao_obrigatoria_exibida`.
   - Privacidade rigorosa (RN15): apenas identificadores relacionais (`vagaID`, `turnoID`, `ocorridoEm`). Zero PII, nomes, e-mails, telefones ou coordenadas GPS.
   - Resiliência (RNF08): falhas na camada de telemetria operam de forma totalmente silenciosa sem expor erros ao usuário nem interromper navegação.
-  - Suíte de testes unitários `TelemetriaTests.swift` com 25 testes aprovados.
+  - Suíte de testes unitários `TelemetriaTests.swift` com 29 testes aprovados na `main`.
 - **O que falta:**
   - Nada no app.
 - **Bloqueado por quê:**
@@ -138,18 +137,10 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
   4. Extração e upload de dSYMs do app e frameworks para o Firebase Crashlytics via `upload-symbols`;
   5. Envio do artefato ao App Store Connect API via `xcodebuild -exportArchive -exportOptionsPlist ... upload`.
 
-### 3.3. Inventário de Segredos Necessários no GitHub
-Para que o job de upload na CI funcione sem intervenção manual na máquina de desenvolvimento:
+### 3.3. Inventário de Segredos no GitHub
+Os segredos da App Store Connect API e Firebase já estão devidamente cadastrados no repositório GitHub Actions (`APP_STORE_CONNECT_API_KEY_P8`, `APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_API_ISSUER_ID`, `APPLE_DISTRIBUTION_CERT_P12_*`, `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_*`).
 
-| Segredo | Finalidade | Status de Configuração |
-|---|---|---|
-| `APP_STORE_CONNECT_API_KEY_P8` | Chave privada da App Store Connect API | Requer cadastro pelo proprietário |
-| `APP_STORE_CONNECT_API_KEY_ID` | Identificador da Chave (Key ID) | Requer cadastro pelo proprietário |
-| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID da conta Apple Developer | Requer cadastro pelo proprietário |
-| `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64` | Plist do Firebase Dev codificado em base64 | Requer conferência no GitHub Secrets |
-| `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64` | Plist do Firebase Prod codificado em base64 | Requer conferência no GitHub Secrets |
-| `FRILA_SUPABASE_DEV_URL` | Endpoint da API Supabase Dev | Configurado nos segredos da CI |
-| `FRILA_SUPABASE_DEV_PUBLISHABLE_KEY` | Chave pública do Supabase Dev | Configurado nos segredos da CI |
+O que cabe ao proprietário (João Paulo) é exclusivamente a verificação administrativa de que o usuário da chave de API possui o papel adequado no App Store Connect (Admin ou App Manager) para geração automática de provisionamento e upload de builds.
 
 ---
 
@@ -158,9 +149,9 @@ Para que o job de upload na CI funcione sem intervenção manual na máquina de 
 ### 4.1. Cartão `0jEemYAM` (Mandar build 0.4 para o TestFlight - 20/10)
 | Critério do Cartão | Status no App | O que falta / Onde parou | Bloqueado por quê |
 |---|---|---|---|
-| **Build 0.4 processado no ASC em 20/10** | **Pronto no código** | Disparar o workflow `testflight.yml` com tag `v0.4.0` ou manualmente. | Aguarda cadastro dos segredos da API do ASC no repositório pelo proprietário. |
-| **Os cinco instalam pelo TestFlight e fazem publicar, candidatar, confirmado e contato** | **Pronto no código** | Fluxo testado e verde nos testes unitários e de UI (`CicloDePontaAPontaUITests`). | Processamento do build na Apple e distribuição ao grupo interno. |
-| **Upload feito pela CI a partir de uma tag, reproduzível** | **Pronto no código** | `testflight.yml` e `enviar-testflight.sh` testados e parametrizados. | Criação da tag `v0.4.0` e segredos na CI. |
+| **Build 0.4 processado no ASC em 20/10** | **Pronto no código** | Disparar o workflow `testflight.yml` com tag `v0.4.0` ou manualmente. | Criação da tag `v0.4.0` pelo proprietário (João Paulo). Segredos já presentes no GitHub Actions. |
+| **Os cinco instalam pelo TestFlight e fazem publicar, candidatar, confirmado e contato** | **Pronto no código** | Suíte de testes unitários e testes de interface cobrindo todos os fluxos. | Processamento do build na Apple e distribuição ao grupo interno. |
+| **Upload feito pela CI a partir de uma tag, reproduzível** | **Pronto no código** | `testflight.yml` e `enviar-testflight.sh` testados e parametrizados. | Criação da tag `v0.4.0`. |
 | **O build não pede resposta manual sobre criptografia** | **100% Conforme** | `ITSAppUsesNonExemptEncryption = false` validado por portão no `conferir-release.sh`. | Nenhum bloqueio. |
 | **Alguém de fora entra nos 2 perfis num iPhone limpo e vê ciclo; vídeo anexado** | **Pronto no código** | Telas e fluxos prontos. | Ação física humana (gravação do vídeo com o build instalado). |
 | **Falha forçada no build de ensaio aparece simbolizada no Crashlytics** | **Pronto no código** | Flag `FRILA_ENSAIO_FALHA=1` e botão "Forçar falha (ensaio)" implementados; upload de dSYMs automático no script. | Disparo de build de ensaio (`ensaio_falha: true`) na CI. |
@@ -169,7 +160,7 @@ Para que o job de upload na CI funcione sem intervenção manual na máquina de 
 | Critério do Cartão | Status no App | O que falta / Onde parou | Bloqueado por quê |
 |---|---|---|---|
 | **Build 0.5 disponível para os testadores externos em 29/10** | **Pronto no código** | Disparo do workflow com tag `v0.5.0` ou `workflow_dispatch`. | Submissão e aprovação do Beta App Review no App Store Connect. |
-| **Push de vaga chega a um testador de fora do time** | **Pronto no código** | Recepção, token FCM, NSE e rotas de toque 100% integrados. | Habilitação do App Group no portal Apple e despacho FCM ativo no backend `frila-dev`. |
+| **Push de vaga chega a um testador de fora do time** | **Pronto no código** | Recepção, token FCM, NSE e rotas de toque 100% integrados. | Habilitação do App Group no portal Apple e deploy do backend `frila-backend#184` em `frila-dev`. |
 | **Notas de versão publicadas no TestFlight** | **Pronto na documentação** | Texto completo e revisado estruturado em `iOS/Docs/NotasTestFlight05.md`. | Colagem do texto no campo "O que testar" do App Store Connect. |
 | **No build 0.5, check-in por localização e avaliação funcionam contra frila-dev** | **Pronto no código** | ViewModels, geolocalização in-app, manual e avaliação implementados e testados. | Homologação em campo por testador externo com turno real no DF. |
 
@@ -179,9 +170,9 @@ Para que o job de upload na CI funcione sem intervenção manual na máquina de 
 
 1. **Ações Técnicas Imediatas (Trabalho Autônomo):**
    - Acompanhar a conclusão da CI do PR #299 (Desempenho e Rede) e seu merge automático pela Marika.
-   - Puxar a próxima tarefa técnica do escopo (ex.: melhorias em testes ou refinamentos pontuais de release).
-2. **Ações para o Proprietário / Cauê:**
-   - Cadastrar no GitHub Secrets as credenciais da App Store Connect API (`APP_STORE_CONNECT_API_KEY_P8`, `KEY_ID`, `ISSUER_ID`).
+   - Puxar a próxima tarefa técnica do escopo.
+2. **Ações para o Proprietário (João Paulo):**
+   - Conferir permissão da chave App Store Connect API no portal Apple (Admin ou App Manager).
    - Criar o App Group `group.com.frila.org.app` no portal Apple Developer e associá-lo aos App IDs do app e da extensão de push.
    - Gerar a tag `v0.4.0` na branch `main` para acionar o primeiro upload automático ao TestFlight para o grupo interno.
-   - Testar o push manual via console Firebase num iPhone físico de teste.
+   - Testar o push manual via console Firebase num iPhone físico de teste assim que o `frila-backend#184` for implantado no `frila-dev`.
