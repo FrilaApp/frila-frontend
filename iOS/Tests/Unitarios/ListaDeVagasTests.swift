@@ -27,6 +27,11 @@ private actor Contador {
     func somar() -> Int { valor += 1; return valor }
 }
 
+private actor Registro {
+    private(set) var vezes = 0
+    func marcar() { vezes += 1 }
+}
+
 private func vagasDoDuble() async throws -> [VagaNaLista] {
     try await ApiClienteEmMemoria().vagasAbertas(.todas)
 }
@@ -209,6 +214,103 @@ struct FeedVagasViewModelTests {
         sinal.yield()
         await primeira.value
         #expect(vm.estado == .carregada([]), "a resposta antiga foi descartada")
+    }
+
+    @Test("Trocar o filtro cancela o pedido que estava em voo")
+    func trocarFiltroCancelaPedidoEmVoo() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let canceladas = Registro()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { _ in
+                if await chamadas.somar() == 1 {
+                    avisarChegada.yield()
+                    // Fica retida até ser cancelada; sem cancelamento, o teste travaria aqui.
+                    while !Task.isCancelled { try? await Task.sleep(for: .milliseconds(5)) }
+                    await canceladas.marcar()
+                    throw CancellationError()
+                }
+                return [vaga]
+            },
+            buscarFuncoes: { [] }
+        )
+        let primeira = Task { await vm.carregar() }
+        for await _ in chegou { break }
+        await vm.selecionar(distancia: .ate(km: 5))
+        await primeira.value
+        #expect(await canceladas.vezes == 1, "o pedido antigo foi cancelado, não só ignorado")
+        #expect(vm.estado == .carregada([vaga]))
+    }
+
+    @Test("Três trocas seguidas, respostas fora de ordem: só a última vale")
+    func respostasForaDeOrdem() async throws {
+        let base = try #require(try await vagasDoDuble().first)
+        let (a, b, c) = (clonarComOutroID(base), clonarComOutroID(base), clonarComOutroID(base))
+        let porKm = Contador()
+        // Cada filtro responde uma vaga diferente, e a mais antiga é a última a chegar.
+        let vm = FeedVagasViewModel(
+            buscarVagas: { filtro in
+                switch filtro.distanciaMaximaKm {
+                case 5: try? await Task.sleep(for: .milliseconds(150)); _ = await porKm.somar(); return [a]
+                case 10: try? await Task.sleep(for: .milliseconds(80)); _ = await porKm.somar(); return [b]
+                default: _ = await porKm.somar(); return [c]
+                }
+            },
+            buscarFuncoes: { [] }
+        )
+        async let t1: Void = vm.selecionar(distancia: .ate(km: 5))
+        try await Task.sleep(for: .milliseconds(10))
+        async let t2: Void = vm.selecionar(distancia: .ate(km: 10))
+        try await Task.sleep(for: .milliseconds(10))
+        async let t3: Void = vm.selecionar(distancia: .ate(km: 15))
+        _ = await (t1, t2, t3)
+        #expect(vm.estado == .carregada([c]))
+        #expect(vm.distancia == .ate(km: 15))
+    }
+
+    @Test("Funções e vagas são pedidas ao mesmo tempo, e o resultado das vagas não muda")
+    func funcoesEmParalelo() async throws {
+        let vaga = try #require(try await vagasDoDuble().first)
+        let funcao = try #require(try await ApiClienteEmMemoria().funcoes().first)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (funcoesPedidas, avisarFuncoes) = AsyncStream<Void>.makeStream()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { _ in
+                for await _ in liberar { break }
+                return [vaga]
+            },
+            buscarFuncoes: {
+                avisarFuncoes.yield()
+                return [funcao]
+            }
+        )
+        let carga = Task { await vm.carregar() }
+        // As funções chegam enquanto as vagas ainda estão retidas: antes, só depois delas.
+        for await _ in funcoesPedidas { break }
+        #expect(vm.estado == .carregando)
+        sinal.yield()
+        await carga.value
+        #expect(vm.estado == .carregada([vaga]))
+        #expect(vm.funcoes == [funcao])
+    }
+
+    @Test("Carga cancelada pela saída da tela não deixa o estado preso em carregando")
+    func cargaCanceladaVoltaAOciosa() async throws {
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { _ in
+                avisarChegada.yield()
+                while !Task.isCancelled { try? await Task.sleep(for: .milliseconds(5)) }
+                throw CancellationError()
+            },
+            buscarFuncoes: { [] }
+        )
+        let carga = Task { await vm.carregar() }
+        for await _ in chegou { break }
+        carga.cancel()
+        await carga.value
+        #expect(vm.estado == .ociosa, "a tela tenta de novo quando voltar")
     }
 
     @Test("Puxar para atualizar mantém a lista na tela enquanto busca")
