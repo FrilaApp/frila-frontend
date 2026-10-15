@@ -23,7 +23,7 @@ private actor FonteDeVagas {
 }
 
 private actor Contador {
-    private var valor = 0
+    private(set) var valor = 0
     func somar() -> Int { valor += 1; return valor }
 }
 
@@ -245,6 +245,89 @@ struct FeedVagasViewModelTests {
         await vm.carregar()
         await vm.carregarMais()
         #expect(vm.estado == .carregada([vaga, vaga2]))
+    }
+
+    @Test("Carga anterior à saída não substitui o cache da nova conta", arguments: [false, true])
+    func cargaDeOutraEpoca(atualizar: Bool) async throws {
+        let vagaAntiga = try #require(try await vagasDoDuble().first)
+        let vagaNova = clonarComOutroID(vagaAntiga)
+        let cache = CacheDeLeituras()
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { _ in
+                if await chamadas.somar() == 2 {
+                    avisarChegada.yield()
+                    for await _ in liberar { break }
+                }
+                return [vagaAntiga]
+            },
+            buscarFuncoes: { [] },
+            cache: cache
+        )
+        await vm.carregar()
+        let carga = Task {
+            if atualizar { await vm.atualizar() } else { await vm.carregar() }
+        }
+        for await _ in chegou { break }
+        cache.limpar()
+        cache.guardar(lista: [vagaNova], chave: "-|-|-", epoca: cache.epoca)
+        sinal.yield()
+        await carga.value
+        #expect(cache.lista(chave: "-|-|-") == [vagaNova])
+
+        let outraConta = FeedVagasViewModel(
+            buscarVagas: { _ in throw ErroDaApi(codigo: .semRede) },
+            buscarFuncoes: { [] },
+            cache: cache
+        )
+        await outraConta.carregar()
+        #expect(outraConta.estado == .carregada([vagaNova]))
+    }
+
+    @Test("Paginação aguarda a primeira página atualizada, inclusive após falha de rede", arguments: [false, true])
+    func paginacaoAguardaAtualizacao(falhar: Bool) async throws {
+        let vagaAntiga = try #require(try await vagasDoDuble().first)
+        let vagaAtual = clonarComOutroID(vagaAntiga)
+        let vagaSeguinte = clonarComOutroID(vagaAntiga)
+        let cache = CacheDeLeituras()
+        cache.guardar(lista: [vagaAntiga], chave: "-|-|-", epoca: cache.epoca)
+        let (liberar, sinal) = AsyncStream<Void>.makeStream()
+        let (chegou, avisarChegada) = AsyncStream<Void>.makeStream()
+        let chamadas = Contador()
+        let vm = FeedVagasViewModel(
+            buscarVagas: { filtro in
+                let numero = await chamadas.somar()
+                if (filtro.deslocamento ?? 0) > 0 { return [vagaSeguinte] }
+                if numero == 1 {
+                    avisarChegada.yield()
+                    for await _ in liberar { break }
+                    if falhar { throw ErroDaApi(codigo: .semRede) }
+                }
+                return [vagaAtual]
+            },
+            buscarFuncoes: { [] },
+            tamanhoDaPagina: 1,
+            cache: cache
+        )
+        let carga = Task { await vm.carregar() }
+        for await _ in chegou { break }
+        #expect(vm.estado == .carregada([vagaAntiga]))
+        await vm.carregarMais()
+        #expect(await chamadas.valor == 1, "somente a primeira página foi pedida")
+        sinal.yield()
+        await carga.value
+        if falhar {
+            #expect(vm.estado == .carregada([vagaAntiga]))
+            await vm.carregarMais()
+            #expect(vm.estado == .carregada([vagaAntiga]))
+            #expect(await chamadas.valor == 1)
+            await vm.carregar()
+        }
+        #expect(vm.estado == .carregada([vagaAtual]))
+        await vm.carregarMais()
+        #expect(vm.estado == .carregada([vagaAtual, vagaSeguinte]))
     }
 
     @Test("Paginação: a próxima página pede o deslocamento certo e soma à lista")

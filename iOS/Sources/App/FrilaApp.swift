@@ -47,6 +47,7 @@ struct FrilaApp: App {
             if api is ApiClienteEmMemoria {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
                 CacheEquipeDeConfianca.compartilhado.limpar()
+                CacheDeLeituras.compartilhado.limpar()
             }
             if Self.desativarAnimacoes {
                 MainActor.assumeIsolated {
@@ -392,6 +393,7 @@ private struct EntradaDoApp: View {
             for await _ in observador.encerramentos() {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
                 CacheEquipeDeConfianca.compartilhado.limpar()
+                CacheDeLeituras.compartilhado.limpar()
                 await aparelho.desvincular()
                 await canal.suspenderEntrega()
                 await canal.limparEntregues()
@@ -434,6 +436,7 @@ private struct EntradaDoApp: View {
                                 limparAvaliacoes: {
                                     UserDefaultsArmazenamentoAvaliacoes().limpar()
                                     CacheEquipeDeConfianca.compartilhado.limpar()
+                                    CacheDeLeituras.compartilhado.limpar()
                                 })
         let observador = api as? any ObservadorDeSessao
         await withTaskGroup(of: Void.self) { grupo in
@@ -749,6 +752,7 @@ private struct EntradaDoApp: View {
                                 limparAvaliacoes: {
                                     UserDefaultsArmazenamentoAvaliacoes().limpar()
                                     CacheEquipeDeConfianca.compartilhado.limpar()
+                                    CacheDeLeituras.compartilhado.limpar()
                                 }).sair()
         roteador.voltarParaLista()
         destinoAtual = nil
