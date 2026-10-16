@@ -59,7 +59,7 @@ Consequentemente, qualquer `precondition(...)`, `assert(...)` ou `guard ... else
 
 2. **`Coordenada`:** O `init` nominal em `iOS/Sources/Dominio/ObjetosDeValor.swift:46-51` valida intervalos geodésicos (`-90...90` e `-180...180`), além de rejeitar `NaN` e `isInfinite`. A decodificação defensiva foi implementada em `iOS/Sources/Dominio/ObjetosDeValor.swift:53-70`, testada em `iOS/Tests/Unitarios/DecodificacaoValoresDeDominioTests.swift:66-77`.
 
-3. **Lacuna Conhecida (`Periodo`):** O tipo `Periodo` em `iOS/Sources/Dominio/ObjetosDeValor.swift:105-111` valida `guard fim > inicio else { throw .fimNaoPosteriorAoInicio }` no inicializador comum, mas conforma a `Codable` de forma sintetizada (sem `init(from: Decoder)` defensivo). Hoje, dados decodificados diretamente ignoram a restrição de término posterior ao início — vulnerabilidade apontada na revisão do PR #338 com correção preparada para follow-up.
+3. **Lacuna Conhecida (`Periodo`):** O tipo `Periodo` em `iOS/Sources/Dominio/ObjetosDeValor.swift:105-111` valida `guard fim > inicio else { throw .fimNaoPosteriorAoInicio }` no inicializador comum, mas conforma a `Codable` de forma sintetizada (sem `init(from: Decoder)` defensivo). Hoje, dados decodificados diretamente ignoram a restrição de término posterior ao início — vulnerabilidade apontada na revisão do PR #338, a corrigir em follow-up (não há PR ainda).
 
 ---
 
@@ -187,21 +187,23 @@ Um teste automatizado só tem valor se for comprovado que ele **reprova quando a
 
 ### Exemplos no Repositório
 1. **Comparação Estrita de Valores (`Dinheiro`):**  
-   Em `iOS/Tests/Unitarios/DinheiroTests.swift:69-72`:
+   Em `iOS/Tests/Unitarios/DinheiroTests.swift:33-38`:
    ```swift
-   #expect(d10 < d20)
-   #expect(!(d20 < d10))
-   #expect(!(d20 < d20Outro))
-   #expect(d20 == d20Outro)
+   #expect(d1 < d99)
+   #expect(d99 < d1000)
+   #expect(d1000 < d2000)
+   #expect(!(d2000 < d1000))
+   #expect(!(d2000 < d2000Outro))
+   #expect(d2000 == d2000Outro)
    ```
-   Se a implementação de `<` em `iOS/Sources/Dominio/ObjetosDeValor.swift:34` for mutada para `<=`, as asserções `!(d20 < d20Outro)` e `!(d20 < d10)` reprovariam imediatamente.
+   Se a implementação de `<` em `iOS/Sources/Dominio/ObjetosDeValor.swift:34` (`lhs.centavos < rhs.centavos`) for mutada para `<=`, as asserções `!(d2000 < d2000Outro)` e `!(d2000 < d1000)` reprovariam imediatamente.
 2. **Exaustividade de Catálogo (`ErrosDaAPI`):**  
    Em `iOS/Tests/Unitarios/ErrosAPITests.swift:30-31`:
    ```swift
    let semCaso = codigos.filter { CodigoErroAPI(rawValue: $0) == nil }.sorted()
    #expect(semCaso.isEmpty, "códigos do contrato sem caso em CodigoErroAPI: \(semCaso)")
    ```
-   Se qualquer código presente no OpenAPI espelhado for omitido do enum de domínio, a lista não vazia reprovaria o teste. O mesmo raciocínio foi aplicado no PR #340 para as propriedades `recusaDefinitivaDePublicacao` e `recusaDefinitivaDeCancelamento` (`iOS/Sources/Dominio/ErrosDaAPI.swift:57-66`), onde percorrer `allCases` garante que inclusões, exclusões ou inversões de fallback reprovariam a suíte.
+   Se qualquer código presente no OpenAPI espelhado for omitido do enum de domínio, a lista não vazia reprovaria o teste. O mesmo raciocínio foi aplicado no PR #340 para as propriedades `recusaDefinitivaDePublicacao` e `recusaDefinitivaDeCancelamento` (`iOS/Sources/Dominio/ErrosDaAPI.swift:57-66`), onde percorrer `allCases` faria com que inclusões, exclusões ou inversões de fallback reprovassem a suíte.
 
 ---
 
