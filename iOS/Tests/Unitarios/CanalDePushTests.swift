@@ -110,6 +110,20 @@ struct ConfiguracaoDoPushTests {
         #expect(deviceID["NSPrivacyCollectedDataTypePurposes"] as? [String] == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])
     }
 
+    /// A telemetria do piloto (`registrar_evento`) grava o evento com o `usuario_id` da conta:
+    /// é interação com o produto vinculada à pessoa, usada para análise do funil.
+    @Test("O manifesto de privacidade declara a interação com o produto vinculada à pessoa, só para análise e sem rastreamento")
+    func interacaoComOProdutoVinculada() throws {
+        let dados = try Data(contentsOf: Self.raiz.appending(path: "Resources/PrivacyInfo.xcprivacy"))
+        let manifesto = try #require(PropertyListSerialization.propertyList(from: dados, format: nil) as? [String: Any])
+        let coletados = try #require(manifesto["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
+        let interacao = try #require(coletados.first { $0["NSPrivacyCollectedDataType"] as? String == "NSPrivacyCollectedDataTypeProductInteraction" })
+
+        #expect(interacao["NSPrivacyCollectedDataTypeLinked"] as? Bool == true)
+        #expect(interacao["NSPrivacyCollectedDataTypeTracking"] as? Bool == false)
+        #expect(interacao["NSPrivacyCollectedDataTypePurposes"] as? [String] == ["NSPrivacyCollectedDataTypePurposeAnalytics"])
+    }
+
     @Test("O proxy do Firebase fica desligado: o token e o toque passam pelo AppDelegate, à vista")
     func proxyDesligado() throws {
         let dados = try Data(contentsOf: Self.raiz.appending(path: "Sources/App/Info.plist"))
