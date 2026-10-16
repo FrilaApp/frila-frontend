@@ -87,4 +87,38 @@ struct PeriodoTests {
         #expect(decodificado.inicio == original.inicio)
         #expect(decodificado.fim == original.fim)
     }
+
+    @Test("Decodificação JSON com fim anterior ao início lança DecodingError")
+    func decodificacaoFimAnteriorRecusada() {
+        let json = """
+        {
+            "inicio": 1700003600,
+            "fim": 1700000000
+        }
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(Periodo.self, from: json)
+        }
+    }
+
+    @Test("Decodificação JSON com fim igual ao início lança DecodingError")
+    func decodificacaoFimIgualRecusada() {
+        let json = """
+        {
+            "inicio": 1700000000,
+            "fim": 1700000000
+        }
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(Periodo.self, from: json)
+        }
+    }
 }
