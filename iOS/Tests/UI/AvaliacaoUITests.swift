@@ -16,7 +16,8 @@ final class AvaliacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "sem-rede", "-FRILA_CACHE_VAZIO_UI_TEST",
                                "-FRILA_AVALIACAO_TURNO_ID", "22000000-0000-0000-0000-000000000001"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: 10))
+        _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
+        XCTAssertTrue(app.navigationBars["Avaliar turno"].waitForExistence(timeout: Espera.aparecer))
         let estado = app.descendants(matching: .any)["avaliacao-sem-conexao"]
         XCTAssertTrue(estado.exists)
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Sem conexão.")).firstMatch.exists)
@@ -33,7 +34,8 @@ final class AvaliacaoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "sem-rede", cache]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["vagas-sem-conexao"].exists)
         XCTAssertTrue(app.tabBars.buttons["Meus turnos"].exists)
     }
@@ -42,7 +44,8 @@ final class AvaliacaoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ABRIR_AVALIACAO_UI_TEST", "-FRILA_SCENARIO", "turno-encerrado", "-FRILA_CACHE_VAZIO_UI_TEST"] + argumentos
         app.launch()
-        XCTAssertTrue(app.staticTexts["pergunta-avaliacao"].waitForExistence(timeout: 10))
+        _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
+        XCTAssertTrue(app.staticTexts["pergunta-avaliacao"].waitForExistence(timeout: Espera.aparecer))
         return app
     }
 
@@ -69,39 +72,36 @@ final class AvaliacaoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado", "-FRILA_CACHE_VAZIO_UI_TEST"]
         app.launch()
+        _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
 
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer))
 
         let abaMeusTurnos = app.tabBars.buttons["Meus turnos"]
-        XCTAssertTrue(abaMeusTurnos.waitForExistence(timeout: Espera.aparecer))
-        abaMeusTurnos.tap()
+        tocar(abaMeusTurnos)
 
         XCTAssertTrue(app.navigationBars["Meus turnos"].waitForExistence(timeout: Espera.aparecer))
 
         let cartaoTurno = app.buttons["meu-turno-22000000-0000-0000-0000-000000000001"]
-        XCTAssertTrue(cartaoTurno.waitForExistence(timeout: Espera.aparecer), "o turno encerrado e verificado deve aparecer em Meus turnos")
-        cartaoTurno.tap()
+        tocar(cartaoTurno)
 
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
 
         let cartaoAvaliacao = app.descendants(matching: .any)["cartao-avaliacao-turno"]
-        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: 10), "o cartão de avaliação deve aparecer no turno encerrado e verificado")
+        XCTAssertTrue(cartaoAvaliacao.waitForExistence(timeout: Espera.aparecer), "o cartão de avaliação deve aparecer no turno encerrado e verificado")
         for _ in 0..<5 where !cartaoAvaliacao.isHittable {
             app.swipeUp()
         }
 
         let botaoAvaliar = app.buttons["Avaliar turno"]
-        XCTAssertTrue(botaoAvaliar.waitForExistence(timeout: Espera.aparecer))
         for _ in 0..<5 where !botaoAvaliar.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(botaoAvaliar.isHittable)
-        botaoAvaliar.tap()
+        tocar(botaoAvaliar)
 
         let navBar = app.navigationBars["Avaliar turno"]
-        XCTAssertTrue(navBar.waitForExistence(timeout: 10))
+        XCTAssertTrue(navBar.waitForExistence(timeout: Espera.aparecer))
         let botaoVoltar = navBar.buttons.firstMatch
-        XCTAssertTrue(botaoVoltar.waitForExistence(timeout: 10))
+        XCTAssertTrue(botaoVoltar.waitForExistence(timeout: Espera.aparecer))
         if !botaoVoltar.isHittable {
             let pronto = NSPredicate(format: "hittable == true")
             let espera = XCTNSPredicateExpectation(predicate: pronto, object: botaoVoltar)
@@ -109,24 +109,16 @@ final class AvaliacaoUITests: XCTestCase {
         }
 
         let sim = app.buttons["resposta-sim"]
-        XCTAssertTrue(sim.waitForExistence(timeout: 10))
-        if !sim.isHittable {
-            let pronto = NSPredicate(format: "hittable == true")
-            let espera = XCTNSPredicateExpectation(predicate: pronto, object: sim)
-            _ = XCTWaiter.wait(for: [espera], timeout: 5)
-        }
-        sim.tap()
+        tocar(sim)
 
         let botaoEnviar = app.buttons["botao-enviar-avaliacao"]
-        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: 10))
-        let habilitado = NSPredicate(format: "enabled == true")
-        let espera = XCTNSPredicateExpectation(predicate: habilitado, object: botaoEnviar)
-        _ = XCTWaiter.wait(for: [espera], timeout: Espera.aparecer)
+        XCTAssertTrue(botaoEnviar.waitForExistence(timeout: Espera.aparecer))
+        esperarHabilitado(botaoEnviar, true)
         XCTAssertTrue(botaoEnviar.isEnabled)
-        botaoEnviar.tap()
+        tocar(botaoEnviar)
 
         let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
-        XCTAssertTrue(confirmacao.waitForExistence(timeout: 10), "a tela deve exibir a confirmação após enviar a avaliação")
+        XCTAssertTrue(confirmacao.waitForExistence(timeout: Espera.aparecer), "a tela deve exibir a confirmação após enviar a avaliação")
     }
 
     func testPerguntaSimNaoEmOrdemComRotuloValorESelecao() {
@@ -151,10 +143,10 @@ final class AvaliacaoUITests: XCTestCase {
         conferir(sim, selecionado: false)
         conferir(nao, selecionado: false)
 
-        sim.tap()
+        tocar(sim)
         conferir(sim, selecionado: true)
         conferir(nao, selecionado: false)
-        nao.tap()
+        tocar(nao)
         conferir(sim, selecionado: false)
         conferir(nao, selecionado: true)
 

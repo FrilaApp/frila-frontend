@@ -179,6 +179,7 @@ jobs:
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
+            -retry-tests-on-failure -test-iterations 3 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
@@ -424,6 +425,7 @@ jobs:
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
+            -retry-tests-on-failure -test-iterations 3 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \

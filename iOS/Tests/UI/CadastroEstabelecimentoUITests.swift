@@ -7,6 +7,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         app.launchArguments += argumentos
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
+        _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
         return app
     }
 
@@ -110,6 +111,11 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
         XCTAssertTrue(mapa.waitForExistence(timeout: 10))
 
+        // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
+        let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
+        let expectativaCamera = XCTNSPredicateExpectation(predicate: cameraPronta, object: mapa)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer), .completed, "A câmera deve assentar antes do arrasto.")
+
         guard let valorInicial = marcador.value as? String,
               let (latInicial, lonInicial) = extrairCoordenadas(valorInicial) else {
             XCTFail("Não foi possível ler as coordenadas iniciais do marcador: \(String(describing: marcador.value))")
@@ -151,8 +157,14 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
+        let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
+        XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+        let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
+        let expectativaCamera = XCTNSPredicateExpectation(predicate: cameraPronta, object: mapa)
+        _ = XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer)
+
         let pontoInicial = try XCTUnwrap(marcador.value as? String)
-        marcador.tap()
+        tocar(marcador)
         XCTAssertEqual(marcador.value as? String, pontoInicial, "Tocar sem arrastar deve preservar o ponto do check-in.")
     }
 
@@ -163,6 +175,13 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
         let pontoInicial = try XCTUnwrap(marcador.value as? String)
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
+        XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+
+        // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
+        let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
+        let expectativaCamera = XCTNSPredicateExpectation(predicate: cameraPronta, object: mapa)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer), .completed, "A câmera deve assentar antes do arrasto.")
+
         let cameraInicial = try XCTUnwrap(mapa.value as? String)
         let inicio = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.8))
         let fim = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.15))

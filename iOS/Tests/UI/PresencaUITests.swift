@@ -8,39 +8,28 @@ final class PresencaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_LOCALIZACAO", localizacao] + argumentos
         app.launch()
+        _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
-        XCTAssertTrue(primeira.waitForExistence(timeout: 10))
-        if !primeira.isHittable {
-            let tocavel = XCTNSPredicateExpectation(
-                predicate: NSPredicate(format: "isHittable == true"),
-                object: primeira
-            )
-            _ = XCTWaiter.wait(for: [tocavel], timeout: 5)
-        }
-        primeira.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
+        tocar(primeira)
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: Espera.aparecer))
         let candidatar = app.buttons["candidatar"]
-        XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
-        candidatar.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
-        app.buttons["voltar-para-lista"].tap()
+        tocar(candidatar)
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: Espera.aparecer))
+        tocar(app.buttons["voltar-para-lista"])
         let meusTurnos = app.buttons["abrir-meus-turnos"]
-        XCTAssertTrue(meusTurnos.waitForExistence(timeout: 10))
-        meusTurnos.tap()
+        tocar(meusTurnos)
         let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
-        XCTAssertTrue(turno.waitForExistence(timeout: 10))
-        turno.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
+        tocar(turno)
+        XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: Espera.aparecer))
         return app
     }
 
     /// Toca em "Fazer check-in" e passa pela explicação que antecede o pedido de permissão.
     private func fazerCheckinComPermissao(_ app: XCUIApplication) {
         let fazerCheckin = app.buttons["fazer-checkin"]
-        XCTAssertTrue(fazerCheckin.waitForExistence(timeout: 10))
-        fazerCheckin.tap()
+        tocar(fazerCheckin)
         XCTAssertTrue(app.descendants(matching: .any)["explicacao-localizacao"].waitForExistence(timeout: Espera.aparecer), "a explicação vem antes do pedido de permissão")
-        app.buttons["permitir-localizacao"].tap()
+        tocar(app.buttons["permitir-localizacao"])
     }
 
     func testCheckinA150MetrosFicaVerificadoEOCheckoutRegistraASaida() {
@@ -48,16 +37,15 @@ final class PresencaUITests: XCTestCase {
         fazerCheckinComPermissao(app)
 
         let checkin = app.descendants(matching: .any)["checkin-situacao"]
-        XCTAssertTrue(checkin.waitForExistence(timeout: 10))
+        XCTAssertTrue(checkin.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(checkin.label.contains("Check-in verificado"), checkin.label)
         XCTAssertTrue(checkin.label.contains("150 m"), checkin.label)
         XCTAssertFalse(app.buttons["fazer-checkin"].exists)
 
         let fazerCheckout = app.buttons["fazer-checkout"]
-        XCTAssertTrue(fazerCheckout.waitForExistence(timeout: Espera.aparecer))
-        fazerCheckout.tap()
+        tocar(fazerCheckout)
         let checkout = app.descendants(matching: .any)["checkout-situacao"]
-        XCTAssertTrue(checkout.waitForExistence(timeout: 10))
+        XCTAssertTrue(checkout.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(checkout.label.contains("Check-out registrado"), checkout.label)
         XCTAssertTrue(checkout.label.contains("150 m"), checkout.label)
         XCTAssertFalse(app.buttons["fazer-checkout"].exists)
@@ -68,11 +56,10 @@ final class PresencaUITests: XCTestCase {
         fazerCheckinComPermissao(app)
 
         let fazerCheckout = app.buttons["fazer-checkout"]
-        XCTAssertTrue(fazerCheckout.waitForExistence(timeout: Espera.aparecer))
-        fazerCheckout.tap()
+        tocar(fazerCheckout)
 
         let checkout = app.descendants(matching: .any)["checkout-situacao"]
-        XCTAssertTrue(checkout.waitForExistence(timeout: 10))
+        XCTAssertTrue(checkout.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(checkout.label.contains("Check-out registrado"), checkout.label)
         XCTAssertTrue(checkout.label.contains("150 m"), checkout.label)
         XCTAssertFalse(app.buttons["fazer-checkout"].exists)
@@ -82,15 +69,13 @@ final class PresencaUITests: XCTestCase {
         let app = abrirMeuTurno(localizacao: "longe", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         fazerCheckinComPermissao(app)
 
-        XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.descendants(matching: .any)["checkin-situacao"].exists, "a 350 m nada é registrado sem a pessoa pedir")
         let manual = app.buttons["registro-manual"]
-        XCTAssertTrue(manual.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(app.buttons["tentar-gps"].exists)
-        manual.tap()
+        tocar(manual)
 
         let checkin = app.descendants(matching: .any)["checkin-situacao"]
-        XCTAssertTrue(checkin.waitForExistence(timeout: 10))
+        XCTAssertTrue(checkin.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(checkin.label.contains("Aguardando confirmação do contratante"), checkin.label)
     }
 
@@ -98,10 +83,10 @@ final class PresencaUITests: XCTestCase {
         let app = abrirMeuTurno(localizacao: "negada")
         fazerCheckinComPermissao(app)
 
-        XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["abrir-ajustes"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.buttons["registro-manual"].exists)
-        app.buttons["cancelar-presenca"].tap()
+        tocar(app.buttons["cancelar-presenca"])
         XCTAssertTrue(app.buttons["fazer-checkin"].waitForExistence(timeout: Espera.aparecer), "desistir devolve o botão de check-in")
     }
 }
