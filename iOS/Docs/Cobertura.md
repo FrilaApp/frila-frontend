@@ -15,7 +15,7 @@ são linhas executáveis cobertas, por arquivo, em `Sources/Dominio`, `Sources/D
 | Dados | 1 520 | 84,8 % | **96,2 %** |
 | ViewModels | 2 536 | 90,3 % | **96,5 %** |
 
-`FrilaTests`: histórico de 808 testes em 81 suítes → **884 testes em 92 suítes** (medição de 04/10/2026, 8 s de execução nos dois casos). Para a contagem atualizada em tempo real (>1.300 testes somando Parte 1 e Parte 2 em 98 suítes), consulte a execução mais recente da CI no GitHub Actions (`.github/workflows/ios.yml`).
+`FrilaTests`: histórico de 808 testes em 81 suítes → **884 testes em 92 suítes** (medição de 04/10/2026, 8 s de execução nos dois casos). Para a contagem atualizada em tempo real, consulte o log da execução mais recente da CI ou execute `iOS/Scripts/partes-dos-testes.sh` (em 16/10/2026, a suíte conta com 1.322 testes `@Test` mapeados em 95 arquivos sob `iOS/Tests/Unitarios` e 42 classes `XCTestCase` sob `iOS/Tests/UI`).
 Nenhum arquivo de `Sources/` foi alterado: tudo é teste em `iOS/Tests/Unitarios`.
 
 ### Dominio
