@@ -1131,6 +1131,16 @@
         }
       }
     },
+    "Classificação indicativa: 18 anos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Classificação indicativa: 18 anos"
+          }
+        }
+      }
+    },
     "Check-in feito às %@, sem verificação.": {
       "localizations": {
         "pt-BR": {
