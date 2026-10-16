@@ -114,6 +114,14 @@ Após cada turno concluído, profissional e contratante podem avaliar a experiê
 - O usuário recebe uma licença pessoal, revogável, não exclusiva e intransferível para utilizar o aplicativo em seu dispositivo iOS, estritamente de acordo com estes termos.
 - O catálogo de bibliotecas de código aberto utilizadas no aplicativo é público e acessível na tela de licenças do app (**Perfil** → **Ajuda** → **Licenças de terceiros**).
 
+### Conteúdo publicado por você
+
+- **Titularidade:** vagas, descrições, nomes de estabelecimentos, avaliações, relatos e qualquer outro conteúdo que você publicar no Frila continuam sendo seus. Ao publicar, você declara ter o direito de fazê-lo e que o conteúdo não viola direitos autorais, marcas, a imagem ou a privacidade de outras pessoas.
+- **Licença para o Frila funcionar:** você concede ao Frila uma licença gratuita, não exclusiva e mundial, limitada ao necessário para operar o aplicativo: armazenar, exibir aos usuários que podem ver o conteúdo (por exemplo, a vaga aos profissionais) e fazer adaptações técnicas, como redimensionar ou formatar o texto. O Frila não vende nem cede o seu conteúdo a terceiros para outros fins.
+- **Duração:** a licença vale enquanto o conteúdo estiver no Frila. Ao excluir o conteúdo ou a conta, o conteúdo deixa de ser exibido, respeitados os prazos legais de guarda descritos na Política de Privacidade.
+- **O que não pode ser publicado:** conteúdo ilícito, ofensivo, discriminatório, enganoso ou que viole direito de terceiros, conforme a seção 8. Conteúdo denunciado pode ser ocultado ou removido pela moderação, nos prazos da seção 8.
+- **Responsabilidade:** você é responsável pelo conteúdo que publica. Se alguém reclamar de um conteúdo seu, o Frila poderá ocultá-lo enquanto o caso é analisado.
+
 ---
 
 ## 11. Limitação de Responsabilidade
