@@ -57,7 +57,7 @@ Todas as dependências possuem textos de licença integrais e avisos de direitos
 
 ## 3. Cláusula de Conteúdo Gerado pelo Usuário (UGC) para os Termos de Uso
 
-Para cumprimento da **Diretriz 1.2 da App Store (User-Generated Content)** e suporte à declaração de direitos de conteúdo, os Termos de Uso oficiais da plataforma (publicados na página de termos e referenciados em `EnderecosOficiais.swift`) devem conter a seguinte cláusula formal:
+Para cumprimento da **Diretriz 1.2 da App Store (User-Generated Content)** e suporte à declaração de direitos de conteúdo, os Termos de Uso oficiais da plataforma (publicados na página de termos e referenciados em `EnderecosOficiais.swift`) passaram a conter, na seção 10 ("Conteúdo publicado por você"), a cláusula resumida em `iOS/Docs/PaginaPublica/termos.md`. O texto abaixo é o rascunho original; **vale o texto publicado**, que é mais curto, sem indenização nem prazo de 24 horas, de acordo com a decisão do Cauê de 15/10/2026 e o regime de pessoa física.
 
 ### 3.1 Rascunho da Cláusula Contratual (Termos de Uso do Frila)
 
@@ -110,11 +110,11 @@ Caso a equipe de App Review solicite esclarecimentos ou comprovação de direito
 ```
 [Declaração de Direitos de Conteúdo / Content Rights Declaration]
 
-App: Frila (Bundle ID: br.com.frila.app)
+App: Frila (Bundle ID: com.frila.org.app)
 Versão: 1.0.0
 
 Declaramos à Apple Inc. que todos os conteúdos de terceiros exibidos ou acessados pelo aplicativo Frila são devidamente licenciados e autorizados:
-1. Conteúdo Gerado pelo Usuário (UGC): O aplicativo exibe vagas operacionais e avaliações fornecidas por contratantes e profissionais cadastrados. Todos os usuários aceitam os Termos de Uso da plataforma (https://frila.app/termos), que concedem ao Frila licença expressa, mundial e gratuita para exibição do conteúdo e impõem total responsabilidade autoral ao publicador.
+1. Conteúdo Gerado pelo Usuário (UGC): O aplicativo exibe vagas operacionais e avaliações fornecidas por contratantes e profissionais cadastrados. Todos os usuários aceitam os Termos de Uso da plataforma (https://frila.netlify.app/termos), que concedem ao Frila licença expressa, mundial e gratuita para exibição do conteúdo e impõem total responsabilidade autoral ao publicador.
 2. Conformidade com a Diretriz 1.2: O app possui mecanismos nativos de moderação com bloqueio mútuo definitivo e folha de denúncia. O atendimento ocorre o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 3. Bibliotecas de Terceiros: Todos os componentes de código aberto utilizados no binário possuem suas licenças e avisos de direitos autorais integralmente exibidos dentro do aplicativo no caminho: Perfil > Ajuda > Licenças de código aberto.
 4. Mapeamento e Geolocalização: O aplicativo consome os serviços de mapa oficiais da Apple (MapKit) em conformidade com o Apple Developer Program License Agreement.
@@ -185,7 +185,7 @@ Conforme delimitação da missão, as atividades estritamente documentais e de e
    - `[ ]` Responder **"Sim"** à pergunta sobre exibição de conteúdo de terceiros e **"Sim"** à pergunta de posse/licenciamento legal dos direitos, salvando a configuração.
    - `[ ]` Incluir, se solicitado no formulário de submissão, a declaração de notas da Seção 4.2.
 2. **Nos Termos de Uso Oficiais do Frila:**
-   - `[ ]` Publicar a versão atualizada dos Termos de Uso em `https://frila.app/termos` incorporando a Cláusula de Licença de UGC e Indenidade da Seção 3.
+   - `[ ]` Publicar a versão atualizada dos Termos de Uso em `https://frila.netlify.app/termos` incorporando a Cláusula de Licença de UGC e Indenidade da Seção 3.
    - `[ ]` Colher o aceite formal da PO (Júlia) no texto normativo final.
 3. **Nas Peças de Marketing e Lançamento:**
    - `[ ]` Conferir que os arquivos vetoriais utilizados pela equipe de Design no cartão `zN1hjaz4` seguem o selo oficial e incluem a nota de rodapé de marcas registradas da Apple.
