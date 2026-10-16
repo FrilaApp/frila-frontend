@@ -31,7 +31,7 @@ Entrada nova no topo: onde, antes → depois, por quê, prova, atenção.
 - **Resultado:** Gmail e iCloud na caixa de entrada, em cerca de 1 s; **Outlook caiu no spam**. No cabeçalho do Gmail, SPF, DKIM e DMARC deram PASS. O remetente aparece como "Frila".
 - **Leitura:** o limite é esperado de remetente Gmail pessoal sem domínio próprio: o Outlook desconfia, e não há como corrigir sem domínio com SPF/DKIM próprios. Não bloqueia o piloto.
 - **Decisão do Cauê (16/10):** aceitar assim até ter domínio próprio. A correção definitiva é a da linha 1 (provedor transacional com domínio próprio) e fica para quando a empresa crescer. Enquanto isso, quem usar Outlook deve olhar o spam.
-- **Pendente (pequeno):** o rodapé do e-mail do código diz "Dúvidas" com o e-mail da conta de operação; deve apontar para o suporte oficial, `suportefrila@gmail.com` (linha 4). O modelo mora em Authentication, Email Templates, no `frila-dev`.
+- **Feito (16/10):** o rodapé "Dúvidas" dos modelos "Magic link or OTP" e "Confirm sign up" (Authentication, Email Templates, `frila-dev`) agora aponta para o suporte oficial, `suportefrila@gmail.com` (linha 4). Nenhum outro modelo tinha o rodapé. Repetir no `frila-prod` quando ele for aberto.
 - **Atenção:** nenhum endereço de pessoa nem código entra neste registro.
 
 ### 2026-10-15 — Verificação de idade: leitura do ECA Digital (liga com as linhas 2 e 10)
