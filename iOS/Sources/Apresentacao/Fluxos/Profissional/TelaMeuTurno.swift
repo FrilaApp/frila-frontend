@@ -227,6 +227,7 @@ public struct TelaMeuTurno: View {
                     Link(destination: urlWhatsApp) {
                         HStack {
                             Image(systemName: "message.fill")
+                                .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
                         }
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -280,6 +281,7 @@ public struct TelaMeuTurno: View {
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")
+                            .accessibilityHidden(true)
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -298,6 +300,7 @@ public struct TelaMeuTurno: View {
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")
+                            .accessibilityHidden(true)
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)

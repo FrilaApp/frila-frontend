@@ -253,6 +253,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack {
                             Image(systemName: "star.fill")
+                                .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                         }
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -269,6 +270,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack {
                             Image(systemName: "star.fill")
+                                .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                         }
                         .frame(minHeight: FrilaMetrica.alvoMinimo)

@@ -150,7 +150,10 @@ public struct FluxoDoProfissional<Barra: View>: View {
                                 roteador.aba = .turnos
                             } label: {
                                 Label(TextosDoProfissional.Turnos.tituloMeusTurnos, systemImage: "calendar")
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                                    .contentShape(Rectangle())
                             }
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                             .accessibilityShowsLargeContentViewer()
                             .accessibilityIdentifier("abrir-meus-turnos")
                         }

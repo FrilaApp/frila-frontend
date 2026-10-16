@@ -101,6 +101,7 @@ public struct FolhaSuporteTurno: View {
                             Image(systemName: viewModel.motivo == motivo ? "largecircle.fill.circle" : "circle")
                                 .foregroundStyle(viewModel.motivo == motivo ? FrilaCor.primaria : FrilaCor.textoSecundario)
                                 .font(.body)
+                                .accessibilityHidden(true)
                             Text(verbatim: motivo.rotulo)
                                 .font(.subheadline)
                                 .foregroundStyle(FrilaCor.texto)
@@ -111,6 +112,7 @@ public struct FolhaSuporteTurno: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(verbatim: motivo.rotulo))
+                    .accessibilityValue(FrilaAcessibilidade.textoSelecao(selecionado: viewModel.motivo == motivo))
                     .accessibilityIdentifier("opcao-motivo-\(motivo.rawValue)")
                     .accessibilityAddTraits(viewModel.motivo == motivo ? .isSelected : [])
                 }
@@ -126,6 +128,7 @@ public struct FolhaSuporteTurno: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(FrilaCor.perigo)
                     .font(.title3)
+                    .accessibilityHidden(true)
                 Text(verbatim: TextosDoSuporte.avisoSeguranca)
                     .font(.subheadline.bold())
                     .foregroundStyle(FrilaCor.perigo)
@@ -139,6 +142,7 @@ public struct FolhaSuporteTurno: View {
                 } label: {
                     HStack(spacing: FrilaEspaco.pequeno) {
                         Image(systemName: "phone.fill")
+                            .accessibilityHidden(true)
                         Text(verbatim: TextosDoSuporte.policia)
                     }
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
@@ -154,6 +158,7 @@ public struct FolhaSuporteTurno: View {
                 } label: {
                     HStack(spacing: FrilaEspaco.pequeno) {
                         Image(systemName: "phone.fill")
+                            .accessibilityHidden(true)
                         Text(verbatim: TextosDoSuporte.mulher)
                     }
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
@@ -248,10 +253,12 @@ public struct FolhaSuporteTurno: View {
                 HStack(spacing: FrilaEspaco.minimo) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(FrilaCor.sucesso)
+                        .accessibilityHidden(true)
                     Text(verbatim: String(format: TextosDoSuporte.protocoloRegistrado, prot.protocoloCurto, FormatadorFrila().data(prot.prazoRespostaAte)))
                         .font(.footnote)
                         .foregroundStyle(FrilaCor.sucesso)
                 }
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("aviso-protocolo-suporte")
             }
 
@@ -285,10 +292,12 @@ public struct FolhaSuporteTurno: View {
                 HStack(spacing: FrilaEspaco.minimo) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(FrilaCor.sucesso)
+                        .accessibilityHidden(true)
                     Text(verbatim: TextosDoSuporte.dadosCopiados)
                         .font(.footnote)
                         .foregroundStyle(FrilaCor.sucesso)
                 }
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("aviso-dados-copiados")
             }
 

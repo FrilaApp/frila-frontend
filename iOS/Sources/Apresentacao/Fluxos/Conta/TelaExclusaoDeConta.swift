@@ -102,6 +102,7 @@ public struct TelaExclusaoDeConta: View {
             Text(verbatim: TextosExclusaoDeConta.secaoOQueAcontece)
                 .font(.headline)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 itemConsequencia(
@@ -144,6 +145,7 @@ public struct TelaExclusaoDeConta: View {
             Text(verbatim: TextosExclusaoDeConta.tituloTurnosFuturos)
                 .font(.headline)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             if viewModel.carregandoTurnos {
                 HStack(spacing: FrilaEspaco.pequeno) {

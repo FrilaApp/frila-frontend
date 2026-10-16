@@ -189,7 +189,9 @@ public struct TelaCadastroEstabelecimento: View {
     private var formulario: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(verbatim: TextosCadastro.titulo).font(.largeTitle.bold())
+                Text(verbatim: TextosCadastro.titulo)
+                    .font(.largeTitle.bold())
+                    .accessibilityAddTraits(.isHeader)
                 campo(TextosCadastro.nome, campo: .nome) { CampoFrila(verbatim: TextosCadastro.nomeCampo, texto: $model.nome) }
                 campo(TextosCadastro.documento, campo: .documento) {
                     TextField(text: Binding(get: { model.documentoFormatado }, set: { valor in model.atualizarDocumento(valor) }), prompt: Text(verbatim: TextosCadastro.documentoCampo)) { Text(verbatim: TextosCadastro.documentoCampo) }
@@ -212,7 +214,9 @@ public struct TelaCadastroEstabelecimento: View {
                     Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
                 }
                 VStack(alignment: .leading) {
-                    Text(verbatim: TextosCadastro.responsavel).font(.headline)
+                    Text(verbatim: TextosCadastro.responsavel)
+                        .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
                     Text(verbatim: responsavelNome); Text(verbatim: responsavelTelefone).foregroundStyle(FrilaCor.textoSecundario)
                 }.accessibilityIdentifier("responsavel-conta")
                 if let erro = model.erro { AvisoFrila(verbatim: mensagem(erro), tom: .erro).accessibilityIdentifier("erro-cadastro") }
@@ -232,6 +236,7 @@ public struct TelaCadastroEstabelecimento: View {
                     Task { await model.buscarEndereco() }
                 } label: {
                     Image(systemName: "magnifyingglass")
+                        .accessibilityHidden(true)
                         .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                 }
