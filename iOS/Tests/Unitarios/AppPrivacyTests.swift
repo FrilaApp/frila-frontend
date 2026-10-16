@@ -69,9 +69,28 @@ struct AppPrivacyTests {
                 #expect(linked == false, "\(tipo ?? "") não deve ser vinculado ao usuário")
                 #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"), "\(tipo ?? "") deve ter finalidade Analytics")
             } else {
+                #expect(linked == true, "\(tipo ?? "") deve ser vinculado ao usuário (finalidade funcional)")
                 #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"), "\(tipo ?? "") deve ter finalidade AppFunctionality")
             }
         }
+    }
+
+    @Test("Manifesto de privacidade declara uso de APIs de motivos permitidos (UserDefaults)")
+    func apisDeMotivosPermitidos() throws {
+        let caminhoManifesto = Self.raiz.appending(path: "Resources/PrivacyInfo.xcprivacy")
+        let dados = try Data(contentsOf: caminhoManifesto)
+        let plist = try #require(try PropertyListSerialization.propertyList(from: dados, format: nil) as? [String: Any])
+
+        let apis = try #require(plist["NSPrivacyAccessedAPITypes"] as? [[String: Any]])
+        #expect(!apis.isEmpty, "NSPrivacyAccessedAPITypes não pode ser vazio")
+
+        let userDefaultsApi = try #require(apis.first(where: {
+            ($0["NSPrivacyAccessedAPIType"] as? String) == "NSPrivacyAccessedAPICategoryUserDefaults"
+        }))
+
+        let reasons = try #require(userDefaultsApi["NSPrivacyAccessedAPITypeReasons"] as? [String])
+        #expect(reasons.contains("CA92.1"), "Deve declarar a razão CA92.1 para UserDefaults")
+        #expect(reasons.contains("1C8F.1"), "Deve declarar a razão 1C8F.1 para UserDefaults")
     }
 
     @Test("Endereços oficiais utilizam protocolo HTTPS e e-mail institucional válido")
@@ -86,8 +105,8 @@ struct AppPrivacyTests {
         #expect(enderecos.politicaDePrivacidade.host == "frila.app")
         #expect(enderecos.politicaDePrivacidade.path == "/privacidade")
 
-        #expect(enderecos.emailSuporte.contains("@"))
-        #expect(enderecos.emailSuporte.contains("."))
+        #expect(enderecos.emailSuporte == "suportefrila@gmail.com")
+        #expect(enderecos.urlSuporte?.absoluteString == "mailto:suportefrila@gmail.com")
         #expect(enderecos.urlSuporte?.scheme == "mailto")
     }
 }

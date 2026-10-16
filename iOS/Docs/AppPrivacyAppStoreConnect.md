@@ -24,28 +24,28 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Identificação do profissional e do contratante nos turnos, candidaturas e avaliações.
-   - **Origem / Código:** `iOS/Sources/Apresentacao/CadastroViewModel.swift`, `iOS/Sources/Dominio/Entidades.swift` (`PerfilProfissional`, `Contratante`).
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift`, `iOS/Sources/Dominio/Modelos.swift` (`PerfilProfissional`, `Estabelecimento`).
 
 2. **Endereço de E-mail (*Email Address*):**
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Autenticação sem senha via OTP (código de 6 dígitos) e canal formal para comunicações da conta.
-   - **Origem / Código:** `iOS/Sources/Apresentacao/EntradaViewModel.swift`, `iOS/Sources/Apresentacao/CodigoViewModel.swift`.
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Autenticacao/EntradaViewModel.swift`, `iOS/Sources/Apresentacao/Fluxos/Autenticacao/CodigoViewModel.swift`.
 
 3. **Número de Telefone (*Phone Number*):**
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Liberação do contato direto via WhatsApp entre as partes exclusivamente após confirmação do turno.
-   - **Origem / Código:** `iOS/Sources/Dominio/Portas.swift` (`ContatoDoTurnoDTO`), `iOS/Sources/Apresentacao/TelaMeusTurnos.swift`.
+   - **Origem / Código:** `iOS/Sources/Dominio/Portas.swift` (`ContatoDoTurnoDTO`), `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeusTurnos.swift`.
 
 4. **Endereço Físico (*Physical Address*):**
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Endereço do estabelecimento para execução do turno e definição do ponto base de referência do profissional para cálculo de distância das vagas (raio de 15 km no DF).
-   - **Origem / Código:** `iOS/Sources/Apresentacao/CadastroEstabelecimento.swift`, `iOS/Sources/Dominio/Entidades.swift` (`PontoBase`), `iOS/Sources/Infraestrutura/Localizacao.swift`.
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift`, `iOS/Sources/Dominio/Modelos.swift` (`Coordenada`), `iOS/Sources/Dominio/Localizacao.swift`.
 
 ---
 
@@ -56,7 +56,7 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Validação presencial do check-in no local do turno por aproximação geográfica e cálculo da distância do profissional até o ponto da vaga. Não há coleta em segundo plano (*background location*).
-   - **Origem / Código:** `iOS/Sources/Apresentacao/SecaoDePresenca.swift`, `iOS/Sources/Apresentacao/PresencaDoTurnoViewModel.swift`, `iOS/Sources/App/Info.plist` (`NSLocationWhenInUseUsageDescription`).
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift`, `iOS/Sources/Apresentacao/Fluxos/Profissional/PresencaDoTurnoViewModel.swift`, `iOS/Sources/App/Info.plist` (`NSLocationWhenInUseUsageDescription`).
 
 ---
 
@@ -67,14 +67,14 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — UUID da conta gerado pelo backend para manutenção de sessão e integridade relacional.
-   - **Origem / Código:** `iOS/Sources/Infraestrutura/SessaoNoKeychainDoAparelho.swift`, `iOS/Sources/Dominio/Portas.swift` (`SupabaseSessaoPorta`).
+   - **Origem / Código:** `iOS/Sources/Dados/SessaoNoKeychainDoAparelho.swift`, `iOS/Sources/Dominio/Portas.swift` (`ObservadorDeSessao`).
 
 2. **ID do Dispositivo (*Device ID*):**
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Token do Firebase Cloud Messaging (FCM) para envio de notificações transacionais de turnos e vagas.
-   - **Origem / Código:** `iOS/Sources/Infraestrutura/AparelhoDePush.swift`, `iOS/Sources/Infraestrutura/CanalDePushDoAparelho.swift`.
+   - **Origem / Código:** `iOS/Sources/Dados/AparelhoDePush.swift`, `iOS/Sources/Infraestrutura/CanalDePushDoAparelho.swift`.
 
 ---
 
@@ -85,21 +85,21 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Relatos enviados pelo canal nativo de denúncia e contestações de suspensão.
-   - **Origem / Código:** `iOS/Sources/Apresentacao/AcoesDeSeguranca.swift`, `iOS/Sources/Apresentacao/SegurancaViewModel.swift`, `iOS/Sources/Apresentacao/TelaContaSuspensa.swift`.
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift`, `iOS/Sources/Apresentacao/Fluxos/Confianca/SegurancaViewModel.swift`, `iOS/Sources/Apresentacao/Fluxos/Conta/TelaContaSuspensa.swift`.
 
 2. **Outro Conteúdo do Usuário (*Other User Content*):**
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Detalhes das vagas publicadas, avaliações mútuas com notas e critérios objetivos, e histórico de turnos.
-   - **Origem / Código:** `iOS/Sources/Apresentacao/PublicarVaga.swift`, `iOS/Sources/Apresentacao/TelaAvaliacao.swift`.
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Contratante/PublicarVaga.swift`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift`.
 
 3. **Outros Tipos de Dados (*Other Data Types* — Data de Nascimento):**
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Verificação de maioridade 18+ (ECA Digital / regra de proteção de menores) e cálculo civil de corte no cadastro.
-   - **Origem / Código:** `iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `iOS/Sources/Apresentacao/CadastroViewModel.swift`, `iOS/Sources/Dominio/Portas.swift` (`CadastroConta`). Declarado como `NSPrivacyCollectedDataTypeOtherDataTypes`.
+   - **Origem / Código:** `iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `iOS/Sources/Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift`, `iOS/Sources/Dominio/Portas.swift` (`CadastroConta`). Declarado como `NSPrivacyCollectedDataTypeOtherDataTypes`.
 
 ---
 
@@ -109,7 +109,7 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** **Não**
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Análise Interna (*Analytics*) — Relatórios anônimos de incidentes coletados pelo Firebase Crashlytics para garantia de estabilidade, sem associação de `setUserID`.
+   - **Finalidade:** Análise Interna (*Analytics*) — Relatórios anônimos de incidentes coletados pelo Firebase Crashlytics para garantia de estabilidade, sem associação de `setUserID`. Conforme a documentação oficial da Google/Firebase (*Firebase Crashlytics Data Collection*), o SDK não vincula relatórios a identidades de usuário sem que `setUserID` seja invocado explicitamente; o identificador de instalação do Firebase (FID) opera exclusivamente para deduplicação técnica agregada.
    - **Origem / Código:** `iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift`, `iOS/Resources/PrivacyInfo.xcprivacy`.
 
 2. **Outros Dados de Diagnóstico (*Other Diagnostic Data*):**
@@ -128,7 +128,7 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Vinculado ao Usuário (*Linked to User*):** **Sim**
    - **Usado para Rastreamento (*Tracking*):** Não
    - **Finalidade:** Análise Interna (*Analytics*) — Registro de telemetria operacional com 14 eventos fechados de jornada (`app_aberto`, `vaga_vista`, `candidatura_enviada`, `checkin_concluido`, etc.). O evento é autenticado e persistido no backend com `evento_app.usuario_id`. Não há texto livre ou cruzamento de dados com terceiros.
-   - **Origem / Código:** `iOS/Sources/Infraestrutura/Telemetria.swift`, RPC `registrar_evento` (migração `20260930180000_telemetria_evento_app.sql`), `iOS/Resources/PrivacyInfo.xcprivacy` (`NSPrivacyCollectedDataTypeProductInteraction`).
+   - **Origem / Código:** `iOS/Sources/Dominio/Telemetria.swift`, RPC `registrar_evento` (migração `20260930180000_telemetria_evento_app.sql`), `iOS/Resources/PrivacyInfo.xcprivacy` (`NSPrivacyCollectedDataTypeProductInteraction`).
 
 ---
 
@@ -137,17 +137,18 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
 A Apple exige que aplicativos que permitam a criação de contas ofereçam também a exclusão direta de dentro do aplicativo.
 
 1. **Acesso Direto nos Dois Perfis (Sem Submenus Ocultos):**
-   - No perfil profissional: `PerfisDaConta.swift:201–217` (`accessibilityIdentifier: "perfil-excluir-conta"`).
-   - No perfil contratante: `PerfisDaConta.swift:306–321` (`accessibilityIdentifier: "estabelecimento-excluir-conta"`).
-   - No painel do contratante sem estabelecimento: `iOS/Sources/Apresentacao/FluxoDoContratante.swift:89–97` (`accessibilityIdentifier: "contratante-sem-estabelecimento-excluir-conta"`).
+   - No perfil profissional: `iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:215` (`accessibilityIdentifier: "perfil-excluir-conta"`).
+   - No perfil contratante: `iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:321` (`accessibilityIdentifier: "estabelecimento-excluir-conta"`).
+   - No painel do contratante sem estabelecimento: `iOS/Sources/Apresentacao/Fluxos/Contratante/FluxoDoContratante.swift:96` (`accessibilityIdentifier: "contratante-sem-estabelecimento-excluir-conta"`).
 
 2. **Fluxo em Duas Etapas:**
    - Explicação clara das consequências (anonimização do perfil, cancelamento de turnos futuros e irrevogabilidade da ação).
    - Toggle explícito de consentimento (`toggle-confirmar-consequencias`).
    - Diálogo modal destrutivo final (`botao-confirmar-exclusao-dialogo`).
+   - Telas e ViewModels dedicados: `iOS/Sources/Apresentacao/Fluxos/Conta/TelaExclusaoDeConta.swift` e `iOS/Sources/Apresentacao/Fluxos/Conta/ExclusaoDeContaViewModel.swift`.
 
 3. **Limpeza Local Completa:**
-   - Execução de `SaidaDaConta.swift`: expurgo de tokens de autenticação no Keychain, encerramento do canal de push e limpeza da base local SwiftData.
+   - Execução de `iOS/Sources/Dados/SaidaDaConta.swift`: expurgo de tokens de autenticação no Keychain, encerramento do canal de push e limpeza da base local SwiftData.
    - Redirecionamento imediato para a tela de entrada.
 
 4. **Evidência de Testes Automatizados:**
@@ -160,12 +161,14 @@ A Apple exige que aplicativos que permitam a criação de contas ofereçam tamb�
 
 Todas as URLs oficiais foram confirmadas em produção sob protocolo seguro HTTPS e com resposta HTTP 200:
 
-| Finalidade | URL Oficial | Consta no App (`EnderecosOficiais.swift`) | Consta na Ficha (`FichaAppStore.md`) |
+| Finalidade | URL Oficial | Consta no App (`iOS/Sources/Apresentacao/EnderecosOficiais.swift`) | Consta na Ficha (`FichaAppStore.md`) |
 |---|---|:---:|:---:|
 | **Termos de Uso** | `https://frila.app/termos` | Sim (`enderecos.termosDeUso`) | Sim |
 | **Política de Privacidade** | `https://frila.app/privacidade` | Sim (`enderecos.politicaDePrivacidade`) | Sim |
-| **Página de Suporte** | `https://frila.app/suporte` | Sim (`enderecos.urlSuporte`) | Sim |
+| **Página de Suporte Web** | `https://frila.app/suporte` | Não (app usa `mailto:`, via `enderecos.urlSuporte`) | Sim (`URL de Suporte`) |
 | **E-mail de Suporte / DPO** | `suportefrila@gmail.com` | Sim (`enderecos.emailSuporte`) | Sim |
+
+> **Nota sobre URL e canal de suporte:** A página pública web em `https://frila.app/suporte` é a URL oficial registrada na ficha da App Store (`FichaAppStore.md` e `iOS/Docs/PaginaPublica/suporte.md`). No código do aplicativo, o suporte é acionado nativamente por e-mail via `enderecos.emailSuporte` (`"suportefrila@gmail.com"`) e pela propriedade computada `enderecos.urlSuporte` (`"mailto:suportefrila@gmail.com"`), sem dependência de requisições HTTP para a rota `/suporte`.
 
 ---
 
@@ -173,15 +176,15 @@ Todas as URLs oficiais foram confirmadas em produção sob protocolo seguro HTTP
 
 | Dado / Recurso | App Privacy (Loja) | Manifesto (`PrivacyInfo.xcprivacy`) | Política de Privacidade (`/privacidade`) | Código-Fonte (`iOS/Sources`) |
 |---|:---:|:---:|:---:|:---:|
-| Nome e E-mail | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeName`, `EmailAddress`) | Sim (Seção 2.1) | `CadastroViewModel.swift`, `EntradaViewModel.swift` |
-| Telefone | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePhoneNumber`) | Sim (Seção 2.1) | `Dominio/Portas.swift`, `TelaMeusTurnos.swift` |
-| Endereço Físico | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePhysicalAddress`) | Sim (Seção 2.2) | `CadastroEstabelecimento.swift`, `Localizacao.swift` |
-| Localização Precisa | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePreciseLocation`) | Sim (Seção 2.3) | `SecaoDePresenca.swift`, `PresencaDoTurnoViewModel.swift` |
-| Identificadores (UUID, FCM) | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeUserID`, `DeviceID`) | Sim (Seção 2.4) | `SessaoNoKeychainDoAparelho.swift`, `AparelhoDePush.swift` |
-| Conteúdo do Usuário | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherUserContent`) | Sim (Seção 2.5) | `PublicarVaga.swift`, `TelaAvaliacao.swift` |
-| Data de Nascimento | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDataTypes`) | Sim (Seção 2.1 / Maioridade 18+) | `VerificadorDeIdadeDoSistema.swift`, `CadastroViewModel.swift` |
-| Relatórios de Falha | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeCrashData`, Analytics) | Sim (Seção 2.6) | Firebase Crashlytics (`TelemetriaCrashlytics.swift`) |
-| Diagnósticos de Rede | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDiagnosticData`, Analytics) | Sim (Seção 2.6) | Firebase Crashlytics (`TelemetriaCrashlytics.swift`) |
-| Interação com o Produto | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeProductInteraction`, Analytics) | Sim (Seção 2.6) | `Telemetria.swift`, RPC `registrar_evento` |
+| Nome e E-mail | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeName`, `EmailAddress`) | Sim (Seção 2.1) | `Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift`, `Apresentacao/Fluxos/Autenticacao/EntradaViewModel.swift` |
+| Telefone | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePhoneNumber`) | Sim (Seção 2.1) | `Dominio/Portas.swift`, `Apresentacao/Fluxos/Profissional/TelaMeusTurnos.swift` |
+| Endereço Físico | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePhysicalAddress`) | Sim (Seção 2.2) | `Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift`, `Dominio/Localizacao.swift` |
+| Localização Precisa | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePreciseLocation`) | Sim (Seção 2.3) | `Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift`, `Apresentacao/Fluxos/Profissional/PresencaDoTurnoViewModel.swift` |
+| Identificadores (UUID, FCM) | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeUserID`, `DeviceID`) | Sim (Seção 2.4) | `Dados/SessaoNoKeychainDoAparelho.swift`, `Dados/AparelhoDePush.swift` |
+| Conteúdo do Usuário | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherUserContent`) | Sim (Seção 2.5) | `Apresentacao/Fluxos/Contratante/PublicarVaga.swift`, `Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift` |
+| Data de Nascimento | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDataTypes`) | Sim (Seção 2.1 / Maioridade 18+) | `Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift` |
+| Relatórios de Falha | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeCrashData`, Analytics) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
+| Diagnósticos de Rede | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDiagnosticData`, Analytics) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
+| Interação com o Produto | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeProductInteraction`, Analytics) | Sim (Seção 2.6) | `Dominio/Telemetria.swift`, RPC `registrar_evento` |
 | Rastreamento de Terceiros | **Não** | **Não (`NSPrivacyTracking = false`)** | **Não** (Sem rastreadores) | Nenhum SDK de ads |
-| Exclusão In-App de Conta | Declarado | Conformidade com Diretriz 5.1.1 | Seção 5 (Direitos do Titular) | `PerfisDaConta.swift`, `TelaExclusaoDeConta.swift` |
+| Exclusão In-App de Conta | Declarado | Conformidade com Diretriz 5.1.1 | Seção 5 (Direitos do Titular) | `Apresentacao/Fluxos/Perfil/PerfisDaConta.swift`, `Apresentacao/Fluxos/Conta/TelaExclusaoDeConta.swift` |
