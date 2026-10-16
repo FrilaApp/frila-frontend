@@ -61,13 +61,24 @@ public struct AparelhoGuardado: Codable, Equatable, Sendable {
     }
 }
 
-extension AparelhoGuardado: CustomStringConvertible, CustomDebugStringConvertible {
+extension AparelhoGuardado: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     public var description: String {
         "AparelhoGuardado(token: [REDACTED], vinculo: \(String(describing: vinculo)), contaAnterior: \(String(describing: contaAnterior)))"
     }
 
     public var debugDescription: String {
         description
+    }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                ("token", "[REDACTED]"),
+                ("vinculo", vinculo as Any),
+                ("contaAnterior", contaAnterior as Any)
+            ]
+        )
     }
 }
 

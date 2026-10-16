@@ -98,6 +98,33 @@ struct DispositivoPushTests {
         #expect(descricao.contains(contaID.uuidString))
     }
 
+    @Test("dump() e Mirror de AparelhoGuardado mascaram o token do FCM contra vazamento em logs (RN15)")
+    func espelhamentoOcultaToken() {
+        let tokenSecreto = "fcm-secret-token-xyz-123456789"
+        let contaID = UUID()
+        let vinculo = VinculoDoAparelho(contaID: contaID, desde: Self.dataFixa, vinculoID: UUID())
+        let aparelho = AparelhoGuardado(token: tokenSecreto, vinculo: vinculo, contaAnterior: nil)
+
+        // 1. Mirror(reflecting:)
+        let mirror = Mirror(reflecting: aparelho)
+        let tokenFilho = mirror.children.first { $0.label == "token" }
+        #expect(tokenFilho != nil)
+        #expect(tokenFilho?.value as? String == "[REDACTED]")
+
+        for child in mirror.children {
+            if let stringValue = child.value as? String {
+                #expect(!stringValue.contains(tokenSecreto), "Nenhum filho do Mirror pode conter o token do FCM")
+            }
+        }
+
+        // 2. dump()
+        var dumpOutput = ""
+        dump(aparelho, to: &dumpOutput)
+        #expect(!dumpOutput.contains(tokenSecreto), "dump(aparelho) não pode conter o token do FCM em claro")
+        #expect(dumpOutput.contains("[REDACTED]"))
+        #expect(dumpOutput.contains(contaID.uuidString))
+    }
+
     @Test("Enum Plataforma codifica valores de contrato corretos")
     func plataformaValores() throws {
         #expect(Plataforma.ios.rawValue == "ios")
