@@ -8,6 +8,28 @@ public struct Dinheiro: Codable, Hashable, Comparable, Sendable {
         self.centavos = centavos
     }
 
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let valor = try container.decode(Int.self, forKey: .centavos)
+        guard valor >= 0 else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .centavos,
+                in: container,
+                debugDescription: "Dinheiro não pode ter centavos negativos: \(valor)"
+            )
+        }
+        self.centavos = valor
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(centavos, forKey: .centavos)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case centavos
+    }
+
     public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.centavos < rhs.centavos
     }
@@ -22,10 +44,43 @@ public struct Coordenada: Codable, Hashable, Sendable {
     public let longitude: Double
 
     public init(latitude: Double, longitude: Double) throws(ErroCoordenada) {
-        guard (-90...90).contains(latitude) else { throw .latitudeInvalida }
-        guard (-180...180).contains(longitude) else { throw .longitudeInvalida }
+        guard !latitude.isNaN, !latitude.isInfinite, (-90...90).contains(latitude) else { throw .latitudeInvalida }
+        guard !longitude.isNaN, !longitude.isInfinite, (-180...180).contains(longitude) else { throw .longitudeInvalida }
         self.latitude = latitude
         self.longitude = longitude
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let lat = try container.decode(Double.self, forKey: .latitude)
+        let lon = try container.decode(Double.self, forKey: .longitude)
+        guard !lat.isNaN, !lat.isInfinite, (-90...90).contains(lat) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .latitude,
+                in: container,
+                debugDescription: "Latitude fora do intervalo [-90, 90] ou não numérica: \(lat)"
+            )
+        }
+        guard !lon.isNaN, !lon.isInfinite, (-180...180).contains(lon) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .longitude,
+                in: container,
+                debugDescription: "Longitude fora do intervalo [-180, 180] ou não numérica: \(lon)"
+            )
+        }
+        self.latitude = lat
+        self.longitude = lon
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(latitude, forKey: .latitude)
+        try container.encode(longitude, forKey: .longitude)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case latitude
+        case longitude
     }
 
     public func distancia(emMetrosDe outra: Coordenada) -> Double {
