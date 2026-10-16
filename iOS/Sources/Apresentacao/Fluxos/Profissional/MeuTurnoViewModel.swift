@@ -36,7 +36,10 @@ public final class MeuTurnoViewModel {
     public var cancelamento: CancelamentoDoTurno? { cancelamentoLocal ?? (cancelado ? turno.cancelamento : nil) }
 
     public var temCheckin: Bool {
-        (presenca?.checkin.map { $0 != .naoFeito } ?? false) || turno.checkin != nil
+        if let presenca {
+            return presenca.checkin != .naoFeito || turno.checkin != nil
+        }
+        return turno.checkin != nil
     }
 
     /// Só a posição confirmada e antes do fim previsto pode ser cancelada (RN12). Depois do

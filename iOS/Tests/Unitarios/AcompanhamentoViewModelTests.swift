@@ -725,9 +725,9 @@ struct AcompanhamentoViewModelTests {
     @Test("lerCancelamentosNaFila le acoes pendentes de cancelamento e bloqueia cancelamento duplicado")
     func lerCancelamentosNaFilaBloqueiaCancelamentoDuplicado() async throws {
         let fila = FilaDeTesteAcompanhamento()
-        let agora = agoraDoTeste
         let painel = try PainelDeTeste.painel()
         let vaga = try #require(painel.vagas.first)
+        let agora = vaga.vaga.periodo.inicio.addingTimeInterval(-3600)
         let turno = try #require(painel.vagas.first?.posicoes.first.map { TurnoAcompanhado(vaga: vaga.vaga, posicao: $0) })
         let posicaoID = turno.posicao.id
         let vagaID = vaga.vaga.id
