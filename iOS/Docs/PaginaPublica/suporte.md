@@ -17,7 +17,7 @@ O **Frila** é um aplicativo que conecta estabelecimentos do setor de alimentaç
 
 ### Para o Profissional
 1. **Crie sua conta e defina seu ponto de referência:** cadastre seu nome, e-mail e telefone, informe sua data de nascimento (o Frila é exclusivo para maiores de 18 anos) e escolha a região onde deseja receber oportunidades.
-2. **Candidate-se às vagas:** visualize detalhes completos do turno — horário, função, localização e o valor a ser pago — e candidate-se com apenas um toque.
+2. **Candidate-se às vagas:** visualize detalhes completos do turno — horário, função, localização e o valor a ser pago — e candidate-se pelo app.
 3. **Realize o turno e receba o valor integral:** compareça ao local combinado, confirme sua presença pelo aplicativo na chegada e na saída, e receba o pagamento acertado diretamente do estabelecimento contratante, sem desconto de taxas pelo aplicativo.
 
 ### Para o Estabelecimento (Contratante)
