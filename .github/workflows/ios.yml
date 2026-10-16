@@ -186,6 +186,11 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
 
+      - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Parte 1" >> "$GITHUB_STEP_SUMMARY" || true
+
       - name: Publicar xcresult em caso de falha nos testes
         if: failure() && steps.testes.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -431,6 +436,11 @@ jobs:
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
+
+      - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Parte 2" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Publicar xcresult em caso de falha nos testes
         if: failure() && steps.testes.outcome == 'failure'

@@ -93,6 +93,7 @@ final class AvaliacaoUITests: XCTestCase {
         }
 
         let botaoAvaliar = app.buttons["Avaliar turno"]
+        XCTAssertTrue(botaoAvaliar.waitForExistence(timeout: Espera.aparecer))
         for _ in 0..<5 where !botaoAvaliar.isHittable {
             app.swipeUp()
         }

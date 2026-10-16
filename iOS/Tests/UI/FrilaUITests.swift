@@ -256,6 +256,8 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("inelegivel")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 15))
         let voltar = app.buttons["voltar-para-lista"]
+        XCTAssertTrue(voltar.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["ajustar-minhas-funcoes"].exists)
         tocar(voltar)
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }

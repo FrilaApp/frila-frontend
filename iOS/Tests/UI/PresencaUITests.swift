@@ -72,6 +72,7 @@ final class PresencaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.descendants(matching: .any)["checkin-situacao"].exists, "a 350 m nada é registrado sem a pessoa pedir")
         let manual = app.buttons["registro-manual"]
+        XCTAssertTrue(app.buttons["tentar-gps"].exists)
         tocar(manual)
 
         let checkin = app.descendants(matching: .any)["checkin-situacao"]

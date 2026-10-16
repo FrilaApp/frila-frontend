@@ -161,7 +161,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertTrue(mapa.waitForExistence(timeout: 10))
         let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
         let expectativaCamera = XCTNSPredicateExpectation(predicate: cameraPronta, object: mapa)
-        _ = XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer), .completed, "A região da câmera deve estar carregada antes do toque.")
 
         let pontoInicial = try XCTUnwrap(marcador.value as? String)
         tocar(marcador)
