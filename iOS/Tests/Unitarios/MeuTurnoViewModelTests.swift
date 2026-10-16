@@ -462,6 +462,7 @@ struct MeuTurnoViewModelTests {
 
         #expect(vm.mensagemErroACaminho == TextosDoProfissional.Turnos.erroACaminhoSemRede)
         #expect(vm.podeTentarAvisarDeNovo)
+        #expect(!vm.podeExibirBotaoACaminho, "Após falha de rede, o botão Estou a caminho deve ser ocultado para manter apenas Tentar de novo")
 
         // Sucesso na segunda tentativa
         let gravadoEm = agora.addingTimeInterval(10)
@@ -471,5 +472,46 @@ struct MeuTurnoViewModelTests {
         #expect(vm.aCaminhoEm == gravadoEm)
         #expect(vm.mensagemErroACaminho == nil)
         #expect(!vm.podeAvisarACaminho)
+        #expect(!vm.podeExibirBotaoACaminho)
+    }
+
+    @Test("Toque duplo em avisarACaminho dispara apenas uma chamada à API")
+    func toqueDuploAvisaApenasUmaVez() async throws {
+        final class Contador: @unchecked Sendable {
+            private let lock = NSLock()
+            private var contagem = 0
+            func incrementar() {
+                lock.lock()
+                contagem += 1
+                lock.unlock()
+            }
+            var valor: Int {
+                lock.lock()
+                defer { lock.unlock() }
+                return contagem
+            }
+        }
+
+        let agora = dataReferencia()
+        let relogio = RelogioSimulado(agora)
+        let inicio = agora.addingTimeInterval(1 * 3600)
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let turno = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: fim)
+        let api = ApiClienteDuble()
+        let gravadoEm = agora.addingTimeInterval(5)
+        let contador = Contador()
+        api.onAvisarACaminho = { id in
+            contador.incrementar()
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            return ResultadoACaminho(turnoID: id, aCaminhoEm: gravadoEm)
+        }
+
+        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: relogio)
+        async let t1: Void = vm.avisarACaminho()
+        async let t2: Void = vm.avisarACaminho()
+        _ = await (t1, t2)
+
+        #expect(contador.valor == 1)
+        #expect(vm.aCaminhoEm == gravadoEm)
     }
 }

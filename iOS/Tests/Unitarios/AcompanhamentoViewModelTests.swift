@@ -794,6 +794,26 @@ struct AcompanhamentoViewModelTests {
         // Vaga inteira não pode mais ser cancelada após o início (API responderia 409 vaga_encerrada)
         #expect(!vm.podeCancelarVaga(vaga))
     }
+
+    @Test("podeCancelarVaga no instante exato do início da vaga retorna falso")
+    func podeCancelarVagaNoInstanteExatoDoInicioRetornaFalso() async throws {
+        let painel = try PainelDeTeste.painel()
+        let vaga = try #require(painel.vagas.first)
+        let turno = try #require(painel.vagas.first?.posicoes.first.map { TurnoAcompanhado(vaga: vaga.vaga, posicao: $0) })
+        let inicio = vaga.vaga.periodo.inicio
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { painel },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { inicio },
+            fila: nil
+        )
+        await vm.carregar()
+
+        #expect(vm.podeCancelar(turno))
+        #expect(!vm.podeCancelarVaga(vaga))
+    }
 }
 
 @MainActor

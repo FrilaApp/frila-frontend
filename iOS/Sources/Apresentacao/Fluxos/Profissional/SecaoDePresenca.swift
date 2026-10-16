@@ -73,13 +73,11 @@ struct SecaoDePresenca: View {
     private var acoes: some View {
         switch viewModel.etapa {
         case .parada:
-            if turno?.podeAvisarACaminho == true {
-                BotaoPrimario(
-                    verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho,
-                    carregando: turno?.avisandoACaminho == true
-                ) {
+            if turno?.podeExibirBotaoACaminho == true {
+                BotaoSecundario(verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho) {
                     Task { await turno?.avisarACaminho() }
                 }
+                .disabled(turno?.avisandoACaminho == true)
                 .accessibilityIdentifier("botao-a-caminho")
             }
             if viewModel.podeFazerCheckin {

@@ -235,13 +235,11 @@ public struct TelaMeuTurno: View {
                     .accessibilityIdentifier("tentar-a-caminho-de-novo")
                 }
             }
-            if viewModel.podeAvisarACaminho {
-                BotaoPrimario(
-                    verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho,
-                    carregando: viewModel.avisandoACaminho
-                ) {
+            if viewModel.podeExibirBotaoACaminho {
+                BotaoSecundario(verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho) {
                     Task { await viewModel.avisarACaminho() }
                 }
+                .disabled(viewModel.avisandoACaminho)
                 .accessibilityIdentifier("botao-a-caminho")
             }
         }

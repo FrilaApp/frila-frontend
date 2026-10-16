@@ -77,8 +77,12 @@ public final class MeuTurnoViewModel {
         return agora >= limiteInferior && agora <= limiteSuperior
     }
 
+    public var podeExibirBotaoACaminho: Bool {
+        podeAvisarACaminho && !podeTentarAvisarDeNovo
+    }
+
     public func avisarACaminho() async {
-        guard podeAvisarACaminho || podeTentarAvisarDeNovo else { return }
+        guard !avisandoACaminho, podeAvisarACaminho || podeTentarAvisarDeNovo else { return }
         avisandoACaminho = true
         mensagemErroACaminho = nil
         podeTentarAvisarDeNovo = false
