@@ -277,13 +277,13 @@ acesso do banco deixa qualquer conta autenticada ler o telefone e o documento de
 | Até o dia útil 10 | Teste de regressão da regra, revisão das demais regras e lições aprendidas | 4 |
 
 **Tempo até a contenção (estimado):** 1 h 30 min, da ciência (09h00) até a correção em produção (10h30), em horário
-comercial e com a equipe técnica disponível. Fora do horário, o tempo depende de haver alguém de sobreaviso com
+comercial e com a equipe técnica disponível. Fora do horário, o tempo depende de haver alguém da equipe técnica com
 acesso de administrador à produção.
 
 **Lacunas achadas e o que mudou:**
 
-1. A equipe técnica não tinha nome nem contato (3.2). Proposta: usar quem estiver de sobreaviso na escala do
-   piloto, depois que os sócios aprovarem a grade. Até lá, o Responsável aciona o time do backend diretamente.
+1. A equipe técnica não tinha nome nem contato (3.2). A equipe técnica será definida quando o piloto estiver
+   pronto. Até lá, o Responsável aciona o time do backend diretamente.
 2. A Fase 1 só falava de chaves do banco; credenciais de fora do banco ficaram de fora. Incluídas na Fase 1.
 3. Não havia registro de incidentes. Incluído (3.6), com guarda de cinco anos.
 4. A Fase 3 não dizia se o Frila usa o prazo em dobro de pequeno porte. Anotado: não usa.
