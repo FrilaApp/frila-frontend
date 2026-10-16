@@ -26,7 +26,7 @@ O canal de suporte e as referências técnicas estão abaixo. As URLs públicas 
 | `{{url_termos}}` | `[A DEFINIR: URL pública dos termos]` | Decisão do Cauê de 15/10/2026 | Confirmar domínio aprovado antes do envio; não usar os endereços atuais do app sem revisão. |
 | `{{url_privacidade}}` | `[A DEFINIR: URL pública de privacidade]` | Decisão do Cauê de 15/10/2026 | Confirmar domínio aprovado antes do envio. |
 | `{{url_site}}` | `[A DEFINIR: URL pública do site]` | Decisão do Cauê de 15/10/2026 | Configurar a variável no backend somente após a aprovação do domínio. |
-| Validade do código de entrada | *"Ele vale por pouco tempo e para uma única entrada."* | Sem prazo no contrato público (`iOS/Contrato/openapi.yaml:1109-1180`) | O arquivo `frila-backend/supabase/config.toml:219` define `otp_expiry = 600` (10 min local). Porém, como a validade em minutos não está contratualizada na especificação da API nem nos Requisitos (RF01), o texto segue a regra de **sem promessa de tempo**, omitindo números não contratados. Definição formal pendente para Cauê/João Paulo. |
+| Validade do código de entrada | *"O código vale por 15 minutos e só pode ser usado uma vez."* | Configuração do Auth do `frila-dev` (900 s), conferida em 15/10; e-mail real com o mesmo texto (capturas do Steve Rogers, 16/10); `iOS/Docs/DiarioDeConfiguracao.md` | O valor de 10 min do `config.toml` local (`otp_expiry = 600`) não vale para o servidor `frila-dev`. Decisão de 16/10 (Nick Fury, por delegação do Cauê): o e-mail informa o número real, 15 minutos, porque o cartão pede a validade e o texto já estava assim no ar. Se o tempo mudar no Auth, mudar aqui e no modelo do Supabase no mesmo dia. |
 | Prazo de moderação, denúncias e atendimento | *o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos* | Decisão do Cauê (15/10/2026)<br>`iOS/Docs/AjudaESuporte.md` | Compromisso documental atualizado; textos do app, modelos do backend e cálculo de prazo ainda dependem de missão própria/cartão no Trello. |
 | Prazo de resposta a contestações | *o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos* | Decisão do Cauê (15/10/2026) | O backend (`frila-backend/supabase/functions/enviar-email/modelos.ts`) ainda informa 5 dias úteis; alinhar pelo cartão do backend. |
 | Telefones de emergência | 190 e 180 | Requisitos v1.5.0 (RF23, UC14)<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift` | Canais públicos de atendimento policial (190) e violência contra a mulher (180). |
@@ -53,7 +53,7 @@ E-mail disparado durante o fluxo de entrada e cadastro (RF01, UC09, UC10). A pes
 
 ### 2.1 Metadados do E-mail
 - **Assunto:** `{{codigo}} é seu código de entrada no Frila`
-- **Pré-cabeçalho:** `Use este código de 6 dígitos para entrar na sua conta. Ele vale por pouco tempo e para uma única entrada.`
+- **Pré-cabeçalho:** `{{codigo}} é o código para entrar na sua conta. Ele vale por 15 minutos e só pode ser usado uma vez.`
 
 ### 2.2 Versão Texto Simples
 
@@ -62,7 +62,7 @@ Frila
 
 Seu código de entrada: {{codigo}}
 
-Digite este código no aplicativo para entrar na sua conta. Ele vale por pouco tempo e para uma única entrada.
+Digite este código no aplicativo para entrar na sua conta. Ele vale por 15 minutos e só pode ser usado uma vez.
 
 Se você não solicitou este código, ignore esta mensagem. Ninguém consegue entrar na sua conta sem o código de acesso.
 
@@ -107,7 +107,7 @@ Frila · Turnos avulsos e trabalho pontual
   </style>
 </head>
 <body>
-  <div class="preview-text">Use este código de 6 dígitos para entrar na sua conta. Ele vale por pouco tempo e para uma única entrada.</div>
+  <div class="preview-text">{{codigo}} é o código para entrar na sua conta. Ele vale por 15 minutos e só pode ser usado uma vez.</div>
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: transparent;">
     <tr>
       <td align="center">
@@ -117,7 +117,7 @@ Frila · Turnos avulsos e trabalho pontual
           <div class="code-box">
             <span class="code-value">{{codigo}}</span>
           </div>
-          <p class="info">Digite este código no aplicativo para continuar. Ele vale por pouco tempo e para uma única entrada.</p>
+          <p class="info">Digite este código no aplicativo para continuar. Ele vale por 15 minutos e só pode ser usado uma vez.</p>
           <p class="security-note">Se você não solicitou este código, ignore esta mensagem. Ninguém consegue entrar na sua conta sem o código de acesso.</p>
         </div>
         <div class="footer">
@@ -470,21 +470,21 @@ Monitoramento Frila · Infraestrutura e Confiabilidade
 | **Quatro modelos especificados (código, denúncia, contestação e alerta)** | Concluído | Seções 2, 3, 4 e 5 completas com assunto, pré-cabeçalho, corpo e rodapé. |
 | **Versões completas em HTML e texto simples** | Concluído | Todos os 4 modelos contam com código HTML independente e bloco de texto simples. |
 | **HTML sem recursos externos e legível em modo escuro** | Concluído | Zero imagens remotas, CSS inline, paleta sem dependências e estilos dark mode testados. |
-| **Código no assunto e legível na notificação sem abrir o e-mail** | Concluído | Assunto: `{{codigo}} é seu código de entrada no Frila`; pré-cabeçalho iniciado pelo código. |
+| **Código no assunto e legível na notificação sem abrir o e-mail** | Concluído | Assunto e pré-cabeçalho começam pelo código: `{{codigo}} é seu código de entrada no Frila` e `{{codigo}} é o código para entrar na sua conta…` (corrigido em 16/10: o texto anterior dizia que o pré-cabeçalho começava pelo código, mas não começava). |
 | **Prazos documentais atualizados** | Backend pendente | Seções 3 (denúncia) e 4 (contestação): o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). Textos e cálculo do prazo no backend dependem de cartão no Trello. |
 | **Telefones de emergência 190 e 180 no modelo de denúncia** | Concluído | Seção 3 (texto simples e HTML) com destaque para atendimento policial e mulher. |
 | **Alerta do time sem dados pessoais e com destinatário/link a definir** | Concluído | Seção 5 restrita a métricas operacionais, instante, `{{destinatario_time}} [A DEFINIR]` e `{{link_painel}} [A DEFINIR]`. |
 | **Canal oficial e URLs pendentes** | Parcial | Variável `{{email_suporte}}` definida como `suportefrila@gmail.com`. URLs públicas em variáveis, pendentes de domínio aprovado pelo Cauê. |
-| **Sem promessa de tempo na validade do código** | Concluído | Validade descrita como *"Ele vale por pouco tempo e para uma única entrada"*, sem número de minutos inventado. |
+| **Validade do código informada** | Concluído | O modelo diz *"Ele vale por 15 minutos e só pode ser usado uma vez"*, o mesmo valor do Auth do `frila-dev` (900 s) e do e-mail que já está no ar. |
 | **Terminologia do Guia de Voz e ausência da palavra "comissão"** | Concluído | Vocabulário auditado contra `GuiaDeVoz.md`, sem "comissão". |
 | **Conferência de scripts (`conferir-textos.sh`)** | Concluído | `iOS/Scripts/conferir-textos.sh` aprovado sem erros. |
 | **Definição de prazos de moderação e atendimento** | Concluído nos textos | Decisão do Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (incorporado aos modelos em texto simples e HTML). |
-| **Validação da entrega na caixa de entrada (Gmail e iCloud) com captura no Trello** | Em falta | Depende da infraestrutura de SMTP próprio no Supabase Auth e testes externos de envio. |
-| **Aprovação dos textos pela Júlia** | Em falta | Depende de validação e aprovação formal pela Júlia no cartão Trello. |
-| **Homologação formal do prazo de validade do código OTP** | Em falta | Definição formal do prazo de expiração (se 10 min de `config.toml` deve ir para o texto) para Cauê/João Paulo. |
+| **Validação da entrega na caixa de entrada (Gmail e iCloud) com captura no Trello** | Concluído na prova; captura no cartão pendente | Prova de 16/10 registrada em `DiarioDeConfiguracao.md`: Gmail e iCloud na caixa de entrada em cerca de 1 s, SPF, DKIM e DMARC PASS; Outlook no spam (aceito pelo Cauê até haver domínio próprio). Não há captura da caixa de entrada anexada. |
+| **Aprovação dos textos pela Júlia** | Concluído por delegação | Revisão profunda de 16/10 feita por Nick Fury, **por delegação do Cauê** (a Júlia não precisa mais aprovar): quatro modelos conferidos contra o `GuiaDeVoz.md` (sem "comissão", sem promessa de rapidez, sem estrangeirismo, sem exclamação, "Vaga"/"Equipe Frila" nos termos do glossário), prazos 5 dias úteis e 15 dias corridos, suportefrila@gmail.com, 190 e 180 no modelo de denúncia, sem dado pessoal no alerta. Não é parecer jurídico. |
+| **Homologação formal do prazo de validade do código OTP** | Concluído | Decisão de 16/10 (Nick Fury, por delegação do Cauê): informar 15 minutos, o valor real do Auth do `frila-dev`. |
 
 ### 6.1 Decisões Pendentes (Cauê e João Paulo)
 
 1. **Prazos de moderação e atendimento (Definidos pelo Cauê em 15/10/2026):** o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Aplicados aos Modelos 2 (Protocolo de Denúncia) e 3 (Protocolo de Contestação) em texto simples e HTML. Alinhar implementação e cálculo de prazo do backend por cartão no Trello.
-2. **Prazo numérico de validade do código OTP:** Definir se a validade técnica de 10 minutos (`frila-backend/supabase/config.toml:219`) deve ser anunciada textualmente no e-mail aos usuários ou mantida no formato neutro atual (*"Ele vale por pouco tempo e para uma única entrada"*).
+2. **Prazo numérico de validade do código OTP (decidido em 16/10):** o e-mail informa 15 minutos, o valor real do Auth do `frila-dev` (900 s). O `otp_expiry = 600` do `config.toml` local não vale para o servidor. Se o tempo mudar, mudar o modelo do Supabase e este documento no mesmo dia.
 3. **Destinatário e infraestrutura do alerta do time:** Definir o e-mail real de monitoramento (`{{destinatario_time}}`) e a URL do painel (`{{link_painel}}`).
