@@ -700,6 +700,37 @@ struct AparelhoDePushTests {
         #expect(api.chamadas == ["canal: descartar", "esperar \(carencia)", "canal: descartar"])
     }
 
+    @Test("O descarte de avisos anteriores ao vínculo passa a data limite exata (desde) ao canal")
+    func descartePassaDataLimiteExata() async throws {
+        guardado.guardar(AparelhoGuardado(token: Tokens.aparelho, vinculo: nil, contaAnterior: outraConta))
+        let aparelho = aparelho()
+        let contaID = try await conta()
+        let registro = await aparelho.registrar(para: contaID)
+        guard case let .registrado(vinculo) = registro else {
+            Issue.record("Deveria registrar vínculo")
+            return
+        }
+
+        final class CanalEspiaoData: CanalDePush, @unchecked Sendable {
+            private let trava = NSLock()
+            private var datas: [Date] = []
+            func ativar() async {}
+            func limparEntregues() async {}
+            func suspenderEntrega() async {}
+            func descartarEntregues(antesDe instante: Date) async {
+                trava.withLock { datas.append(instante) }
+            }
+            var descartes: [Date] { trava.withLock { datas } }
+        }
+
+        let canal = CanalEspiaoData()
+        await aparelho.descartarAvisosDeAntesDoVinculo(canal: canal) { _ in true }
+
+        #expect(canal.descartes.count == 2)
+        #expect(canal.descartes.first == vinculo.desde)
+        #expect(canal.descartes.last == vinculo.desde)
+    }
+
     @Test("Quem saiu durante a carência, ou a espera cancelada, não descarta de novo; sem carência não há espera")
     func descarteSemSegundaVez() async throws {
         let contaID = try await conta()

@@ -378,6 +378,51 @@ struct RoteadorDePushTests {
         // Depois da carência, o aviso é de quem está no aparelho.
         #expect(roteador.apresenta(payload: avisoDeA, entregueEm: vinculoDeB.desde))
     }
+
+    @Test("Borda estrita de 1 segundo na carência da troca de conta (169s ignora, 170s e 171s abre)")
+    func bordaEstritaDaCarenciaNaTroca() {
+        let confirmacaoDoServidor = desde.addingTimeInterval(110)
+        let vinculoDeB = VinculoDoAparelho(contaID: IDs.conta, desde: confirmacaoDoServidor.addingTimeInterval(VinculoDoAparelho.carenciaNaTrocaDeConta))
+        let aviso = payload("vagas_agrupadas")
+
+        roteador.contaAtiva(conta(.profissional, vinculo: vinculoDeB))
+
+        // 1. Um segundo antes do fim da carência (t = 169s): push é ignorado e não abre nada
+        let umSegundoAntes = vinculoDeB.desde.addingTimeInterval(-1)
+        #expect(!roteador.apresenta(payload: aviso, entregueEm: umSegundoAntes))
+        #expect(roteador.tocar(payload: aviso, entregueEm: umSegundoAntes) == .ignorar(.deOutraConta))
+        #expect(nadaAbriu)
+
+        // 2. Exato instante do fim da carência (t = 170s): apresenta e abre
+        #expect(roteador.apresenta(payload: aviso, entregueEm: vinculoDeB.desde))
+        #expect(roteador.tocar(payload: aviso, entregueEm: vinculoDeB.desde) == .abrir(.profissional(.vagas)))
+        #expect(roteador.ultimaDecisao == .abrir(.profissional(.vagas)))
+
+        // 3. Um segundo depois do fim da carência (t = 171s): apresenta e abre
+        let umSegundoDepois = vinculoDeB.desde.addingTimeInterval(1)
+        #expect(roteador.apresenta(payload: aviso, entregueEm: umSegundoDepois))
+        #expect(roteador.tocar(payload: aviso, entregueEm: umSegundoDepois) == .abrir(.profissional(.vagas)))
+    }
+
+    @Test("Caracterização: RoteadorDePush em primeiro plano não confere vinculo_id do payload (valida apenas o relógio)")
+    func payloadComOutroVinculoIDEmPrimeiroPlano() {
+        let outroVinculoID = UUID()
+        let meuVinculoID = UUID()
+        let vinculoDeB = VinculoDoAparelho(contaID: IDs.conta, desde: desde, vinculoID: meuVinculoID)
+        roteador.contaAtiva(conta(.profissional, vinculo: vinculoDeB))
+
+        // Payload trazendo explicitamente vinculo_id de outro vínculo/conta
+        var payloadDeOutro = payload("vagas_agrupadas")
+        payloadDeOutro["vinculo_id"] = outroVinculoID.uuidString
+
+        let instanteAposCarencia = desde.addingTimeInterval(10)
+
+        // Caracterização do comportamento atual: como vinculoVale() só confere contaID e entregueEm >= desde,
+        // o RoteadorDePush aceita o push e abre a tela mesmo com vinculo_id divergente no payload.
+        // Diferente do NotificationServiceExtension (FiltroDoPushPorVinculo), que neutralizaria o push com app fechado.
+        let decisao = roteador.tocar(payload: payloadDeOutro, entregueEm: instanteAposCarencia)
+        #expect(decisao == .abrir(.profissional(.vagas)))
+    }
 }
 
 // MARK: - Telas de destino
