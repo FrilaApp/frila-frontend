@@ -767,6 +767,33 @@ struct AcompanhamentoViewModelTests {
         #expect(!vm.podeCancelar(turno))
         #expect(!vm.podeCancelarVaga(vaga))
     }
+
+    @Test("podeCancelarVaga é falso entre o início e o fim da vaga, enquanto podeCancelar a posição continua verdadeiro")
+    func podeCancelarVagaEntreInicioEFimRetornaFalso() async throws {
+        let painel = try PainelDeTeste.painel()
+        let vaga = try #require(painel.vagas.first)
+        let turno = try #require(painel.vagas.first?.posicoes.first.map { TurnoAcompanhado(vaga: vaga.vaga, posicao: $0) })
+        let inicio = vaga.vaga.periodo.inicio
+        let fim = vaga.vaga.periodo.fim
+
+        // Instante entre o início e o fim (ex.: 30 minutos após o início)
+        let duranteTurno = inicio.addingTimeInterval(30 * 60)
+        #expect(duranteTurno > inicio && duranteTurno < fim)
+
+        let vm = AcompanhamentoViewModel(
+            buscarPainel: { painel },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { duranteTurno },
+            fila: nil
+        )
+        await vm.carregar()
+
+        // Posição confirmada ainda pode ser cancelada (o aviso da folha diz que o turno fica descoberto)
+        #expect(vm.podeCancelar(turno))
+        // Vaga inteira não pode mais ser cancelada após o início (API responderia 409 vaga_encerrada)
+        #expect(!vm.podeCancelarVaga(vaga))
+    }
 }
 
 @MainActor

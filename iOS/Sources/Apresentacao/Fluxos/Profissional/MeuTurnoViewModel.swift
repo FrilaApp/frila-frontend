@@ -35,12 +35,65 @@ public final class MeuTurnoViewModel {
     public var permiteAcoesDoTurno: Bool { !cancelado }
     public var cancelamento: CancelamentoDoTurno? { cancelamentoLocal ?? (cancelado ? turno.cancelamento : nil) }
 
+    public var temCheckin: Bool {
+        (presenca?.checkin.map { $0 != .naoFeito } ?? false) || turno.checkin != nil
+    }
+
     /// Só a posição confirmada e antes do fim previsto pode ser cancelada (RN12). Depois do
-    /// início ainda pode: o aviso da folha diz que o turno fica descoberto.
+    /// início ainda pode: o aviso da folha diz que o turno fica descoberto. Com check-in, a API
+    /// recusa o cancelamento (409 posicao_nao_cancelavel).
     public var podeCancelar: Bool {
         guard permiteAcoesDoTurno, !cancelamentoNaFila else { return false }
         guard turno.estado == nil || turno.estado == .confirmada else { return false }
+        guard !temCheckin else { return false }
         return turno.vaga.periodo.fim > relogio.agora
+    }
+
+    // MARK: - Estou a caminho (US14)
+
+    public private(set) var avisoACaminhoLocal: Date?
+    public private(set) var avisandoACaminho: Bool = false
+    public private(set) var mensagemErroACaminho: String?
+    public private(set) var podeTentarAvisarDeNovo: Bool = false
+
+    public var aCaminhoEm: Date? {
+        turno.aCaminhoEm ?? avisoACaminhoLocal
+    }
+
+    /// No turno confirmado, dentro da janela (de 3 h antes até 15 min depois do início),
+    /// sem check-in e ainda sem aviso (US14, RF12).
+    public var podeAvisarACaminho: Bool {
+        guard permiteAcoesDoTurno else { return false }
+        guard turno.estado == nil || turno.estado == .confirmada else { return false }
+        guard aCaminhoEm == nil else { return false }
+        guard !temCheckin else { return false }
+        let agora = relogio.agora
+        let inicio = turno.vaga.periodo.inicio
+        let limiteInferior = inicio.addingTimeInterval(-3 * 60 * 60)
+        let limiteSuperior = inicio.addingTimeInterval(15 * 60)
+        return agora >= limiteInferior && agora <= limiteSuperior
+    }
+
+    public func avisarACaminho() async {
+        guard podeAvisarACaminho || podeTentarAvisarDeNovo else { return }
+        avisandoACaminho = true
+        mensagemErroACaminho = nil
+        podeTentarAvisarDeNovo = false
+        defer { avisandoACaminho = false }
+
+        do {
+            let resultado = try await api.avisarACaminho(turnoID: turno.id)
+            avisoACaminhoLocal = resultado.aCaminhoEm
+        } catch let erro as ErroDaApi where erro.codigo == .aCaminhoForaDaJanela {
+            mensagemErroACaminho = TextosDoProfissional.Turnos.erroACaminhoForaDaJanela
+            podeTentarAvisarDeNovo = false
+        } catch let erro as ErroDaApi where erro.codigo == .semRede {
+            mensagemErroACaminho = TextosDoProfissional.Turnos.erroACaminhoSemRede
+            podeTentarAvisarDeNovo = true
+        } catch {
+            mensagemErroACaminho = TextosDoProfissional.Turnos.erroACaminhoGenerico
+            podeTentarAvisarDeNovo = true
+        }
     }
     public var causaDoCancelamento: String? {
         cancelamento.map { TextosDoProfissional.Turnos.causaDoCancelamento($0.causa) }

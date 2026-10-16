@@ -4,9 +4,9 @@ import XCTest
 /// (`-FRILA_LOCALIZACAO`): lista -> candidatura -> Meus turnos -> Meu turno -> presença.
 @MainActor
 final class PresencaUITests: XCTestCase {
-    private func abrirMeuTurno(localizacao: String, argumentos: [String] = []) -> XCUIApplication {
+    private func abrirMeuTurno(localizacao: String = "perto", cenario: String = "success", argumentos: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_LOCALIZACAO", localizacao] + argumentos
+        app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_LOCALIZACAO", localizacao] + argumentos
         app.launch()
         _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
         let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
@@ -89,5 +89,17 @@ final class PresencaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["registro-manual"].exists)
         tocar(app.buttons["cancelar-presenca"])
         XCTAssertTrue(app.buttons["fazer-checkin"].waitForExistence(timeout: Espera.aparecer), "desistir devolve o botão de check-in")
+    }
+
+    func testBotaoEstouACaminhoApareceTocaEMostraAviso() {
+        let app = abrirMeuTurno(cenario: "a-caminho")
+        let botaoACaminho = app.buttons["botao-a-caminho"]
+        XCTAssertTrue(botaoACaminho.waitForExistence(timeout: Espera.aparecer), "o botão Estou a caminho deve aparecer na janela permitida")
+        tocar(botaoACaminho)
+
+        let situacaoACaminho = app.descendants(matching: .any)["a-caminho-situacao"]
+        XCTAssertTrue(situacaoACaminho.waitForExistence(timeout: Espera.aparecer), "o estado do aviso a caminho deve ser exibido após o toque")
+        XCTAssertTrue(situacaoACaminho.label.contains("Você avisou que está a caminho"), situacaoACaminho.label)
+        XCTAssertFalse(app.buttons["botao-a-caminho"].exists, "o botão Estou a caminho deve sumir após o envio")
     }
 }

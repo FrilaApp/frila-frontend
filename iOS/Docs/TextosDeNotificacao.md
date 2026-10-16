@@ -36,8 +36,8 @@ O cartão `VyY2SGsX` registra três conflitos identificados nas auditorias de pr
 
 ### Conflito 3: Funcionalidade e notificação "Estou a caminho" (US14)
 - **Conflito:** A história US14 previa aviso ativo emitido pelo profissional informando ao contratante que estava a caminho do estabelecimento.
-- **Resolução aprovada:** Funcionalidade postergada para a versão v1.1. Na v1.0, o fluxo de pontualidade opera com os lembretes automáticos do sistema (24h e 3h, RF12) e os gatilhos objetivos de presença (`inicio_sem_checkin` aos 0 min e `atraso_15min` aos 15 min do turno).
-- **Fontes:** Cartão de Produto `8zLfn0mt` (Decisão de 28/09/2026, item 7); Backlog v1.2.1; Escopo v1.0 do Frila.
+- **Resolução aprovada:** Entra na v1.0 por decisão de 13/10 (escopo). O botão "Estou a caminho" fica disponível na tela Meu turno durante a janela de 3 h antes até 15 min após o início do turno, sem check-in realizado.
+- **Fontes:** Escopo v1.0 do Frila (`frila-docs/produto/05-ESCOPO-DO-MVP.md`, linhas 68 e 93, decisão de 13/10/2026); Contrato da API OpenAPI 0.2.25/0.2.38 (`/rpc/avisar_a_caminho`, US14, RF12).
 
 ---
 

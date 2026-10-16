@@ -1,6 +1,56 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "Estou a caminho": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estou a caminho"
+          }
+        }
+      }
+    },
+    "Você avisou que está a caminho às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você avisou que está a caminho às %@."
+          }
+        }
+      }
+    },
+    "O aviso a caminho só pode ser enviado de 3 horas antes até 15 minutos após o início do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O aviso a caminho só pode ser enviado de 3 horas antes até 15 minutos após o início do turno."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar o aviso. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar o aviso. Tente novamente."
+          }
+        }
+      }
+    },
+    "Tentar de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar de novo"
+          }
+        }
+      }
+    },
     "Escolha um período de até 30 dias para exportar os turnos.": {
       "localizations": {
         "pt-BR": {

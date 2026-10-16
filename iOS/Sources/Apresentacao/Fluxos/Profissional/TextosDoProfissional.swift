@@ -115,6 +115,14 @@ enum TextosDoProfissional {
         static let lembretesEVisibilidade = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.", bundle: bundleApresentacao)
         static let verNoMapas = String(localized: "Ver no Mapas", bundle: bundleApresentacao)
         static let quemRecebe = String(localized: "quem recebe", bundle: bundleApresentacao)
+        static let botaoEstouACaminho = String(localized: "Estou a caminho", bundle: bundleApresentacao)
+        static func avisouACaminho(_ hora: String) -> String {
+            String(localized: "Você avisou que está a caminho às \(hora).", bundle: bundleApresentacao)
+        }
+        static let erroACaminhoForaDaJanela = String(localized: "O aviso a caminho só pode ser enviado de 3 horas antes até 15 minutos após o início do turno.", bundle: bundleApresentacao)
+        static let erroACaminhoSemRede = String(localized: "Sem conexão. Tente de novo quando a internet voltar.", bundle: bundleApresentacao)
+        static let erroACaminhoGenerico = String(localized: "Não foi possível enviar o aviso. Tente novamente.", bundle: bundleApresentacao)
+        static let tentarDeNovo = String(localized: "Tentar de novo", bundle: bundleApresentacao)
     }
 
     static func simNao(_ valor: Bool) -> String { valor ? String(localized: "sim", bundle: bundleApresentacao) : String(localized: "não", bundle: bundleApresentacao) }

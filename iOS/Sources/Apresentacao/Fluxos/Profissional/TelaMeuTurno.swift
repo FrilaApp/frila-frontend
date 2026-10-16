@@ -41,7 +41,9 @@ public struct TelaMeuTurno: View {
                 }
                 if viewModel.permiteAcoesDoTurno {
                     if let presenca = viewModel.presenca {
-                        SecaoDePresenca(viewModel: presenca)
+                        SecaoDePresenca(viewModel: presenca, turno: viewModel)
+                    } else if viewModel.podeAvisarACaminho || viewModel.aCaminhoEm != nil {
+                        cartaoACaminhoSemPresenca
                     }
                     cartaoContato
                 }
@@ -203,6 +205,50 @@ public struct TelaMeuTurno: View {
         .cartaoFrila()
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("cancelamento-do-turno")
+    }
+
+    private var cartaoACaminhoSemPresenca: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosDoProfissional.Presenca.titulo.uppercased())
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+
+            if let data = viewModel.aCaminhoEm {
+                Label {
+                    Text(verbatim: TextosDoProfissional.Turnos.avisouACaminho(formatador.hora(data)))
+                } icon: {
+                    Image(systemName: "figure.walk")
+                }
+                .font(.subheadline)
+                .foregroundStyle(FrilaCor.texto)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("a-caminho-situacao")
+            }
+            if let erro = viewModel.mensagemErroACaminho {
+                AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("a-caminho-erro")
+                if viewModel.podeTentarAvisarDeNovo {
+                    BotaoSecundario(verbatim: TextosDoProfissional.Turnos.tentarDeNovo) {
+                        Task { await viewModel.avisarACaminho() }
+                    }
+                    .accessibilityIdentifier("tentar-a-caminho-de-novo")
+                }
+            }
+            if viewModel.podeAvisarACaminho {
+                BotaoPrimario(
+                    verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho,
+                    carregando: viewModel.avisandoACaminho
+                ) {
+                    Task { await viewModel.avisarACaminho() }
+                }
+                .accessibilityIdentifier("botao-a-caminho")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("presenca-do-turno")
     }
 
     private var cartaoContato: some View {
