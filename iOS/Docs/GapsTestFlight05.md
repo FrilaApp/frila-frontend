@@ -91,16 +91,18 @@ O aplicativo Frila para iOS encontra-se em estágio técnico avançado de maturi
 ---
 
 ### 2.5. Estados Offline e Resiliência de Rede
-- **Contrato / Requisitos:** RNF02, RNF03, RNF04; PR #299 (`57hJ7FV0`, **mergeado na `main`**).
+- **Contrato / Requisitos:** RNF02, RNF03, RNF04 (cartões #73 e #171); PR #299 (`57hJ7FV0`, **mergeado na `main`**).
 - **Implementado no App (Feito):**
   - Timeouts configurados em `SupabaseApiCliente.sessaoComPrazo` (15s timeout de requisição, 60s timeout de recurso, `waitsForConnectivity = false` para falha imediata e ativação de caches offline).
   - Retry idempotente com uma única retentativa com espera fixa de 150ms restrito a RPCs de leitura (`rpcsDeLeitura` via `executarComRetentativaSeTransiente`), incorporado pelo PR #299. Nenhuma mutação (`candidatar`, `publicar_vaga`, `fazer_checkin`) é retentada automaticamente.
   - Fila de ações offline persistida via SwiftData (`ArmazenamentoSwiftData`), sincronizada pelo `SincronizadorAcoes` na recuperação de rede.
   - Padrões visuais de feedback de desconexão e sincronização pendente (`EstadoDoFluxoContratante`, banners de offline e avisos de fila; estados exercitados nos testes de UI em `FrilaUITests`).
+  - Telemetria: `acao_enfileirada_offline` instrumentada.
+  - Medições preliminares em simulador registradas em `iOS/Docs/Desempenho.md`: no teste com dublê sem espera por servidor (`testColetaVinteAberturasDeCadaTela`, coleta de 15/10/2026), o custo local do app e do instrumento apresentou p95 $\le 28$ ms e máx $43$ ms; sob perfis de rede simulada contra o `frila-dev` via Network Link Conditioner (coleta de 15/10/2026), as aberturas ficaram em p95 $\le 392$ ms em LTE e p95 $\le 780$ ms em 3G (máx até 1.028 ms), ambos bem abaixo do teto de 2.000 ms.
 - **O que falta (Lacuna Técnica e Validação de Campo):**
-  - **Medição do cartão 57hJ7FV0 em hardware real e 4G:** Embora a instrumentação de medição de aberturas (`MedicaoUITests.testColetaVinteAberturasDeCadaTela`), os timeouts sensatos e os retries idempotentes do PR #299 estejam 100% integrados na `main` e validados no simulador com ampla margem (p95 $\le 29$ ms, máx $66$ ms), **o teste em simulador não comprova o orçamento de abertura abaixo de 2 s (RNF01, RNF04) em aparelho real de entrada com iOS 17 (ex.: iPhone XR ou SE 2ª geração) nem sob oscilação e latência reais de rede 4G**.
+  - **Medição do cartão 57hJ7FV0 em hardware real e 4G:** Embora a instrumentação de medição de aberturas (`MedicaoUITests.testColetaVinteAberturasDeCadaTela`), os timeouts sensatos e os retries idempotentes do PR #299 estejam 100% integrados na `main` e validados no simulador, **o teste em simulador (mesmo com Network Link Conditioner) não comprova o orçamento de abertura abaixo de 2 s (RNF04, cartões #73/#171) em aparelho real de entrada com iOS 17 (ex.: iPhone XR ou SE 2ª geração) sob oscilação, latência e condições reais de rede celular móvel**.
 - **Bloqueado por quê:**
-  - Depende da instalação física do build de medição (`FRILA_MEDICAO=1`) via TestFlight interno num iPhone antigo de homologação com chip de dados 4G no DF (roteiro operacional detalhado em `iOS/Docs/Desempenho.md`).
+  - Depende da instalação física do build de medição (`FRILA_MEDICAO=1`) via TestFlight interno num iPhone antigo de homologação com iOS 17 (ex.: iPhone XR ou SE 2ª geração) com chip de dados celular 4G real (roteiro operacional detalhado em `iOS/Docs/Desempenho.md`).
 
 ---
 
@@ -191,12 +193,13 @@ O que cabe ao proprietário (João Paulo) é unicamente a conferência administr
 | **#306** | `docs(android): proposta arquitetural e técnica v1.1` | **Mergeado na `main`** | Cartão `XTijdYVk` delimitado aos Épicos E1 e E2. |
 | **#305** | `feat(ios): gate de conferência estrita de contrato` | **Mergeado na `main`** | Validador dinâmico OpenAPI e autoteste de 10 passos. |
 | **#308** | `feat(ios): saneamento de avisos de DTO do gate e reprovação estrita` | **Mergeado na `main`** | Eliminação de 24 falsos positivos de regex e reprovação estrita de extras. |
-| **#310** | `contrato(ios): espelho do contrato 0.2.42` | Aberto, aprovado pelo Oráculo | Espelho normativo 0.2.42 sincronizado com frila-docs (commit 592a5ab). |
-| **#298** | `fix(ios): acessibilidade, rótulos e Dynamic Type` | Aberto na fila de merge | Auditoria completa de acessibilidade VoiceOver. |
+| **#310** | `contrato(ios): espelho do contrato 0.2.42` | **Mergeado na `main`** | Espelho normativo 0.2.42 sincronizado com frila-docs (commit 592a5ab). |
+| **#319** | `contrato(ios): espelho do contrato 0.2.43` | **Mergeado na `main`** | Espelho normativo 0.2.43 sincronizado com frila-docs (commit 5ebaf66). |
+| **#298** | `fix(ios): acessibilidade, rótulos e Dynamic Type` | **Mergeado na `main`** | Auditoria completa de acessibilidade VoiceOver e Dynamic Type. |
 | **#300** | `fix(ios): unificação de padrões de estado e banners` | **Mergeado na `main`** | Padronização de componentes de feedback offline e carregamento. |
 | **#301** | `docs(ios): laudo de conformidade App Privacy Details` | Aberto na fila de merge | Mapeamento de dados LGPD e privacidade para a App Store. |
-| **#302** | `feat(ios): consolidação de maioridade e perfil` | Aberto na fila de merge | Validação da regra RN20 (maioridade) no cadastro e perfil. |
-| **#303** | `docs(ios): checklist oficial de submissão App Store` | Aberto na fila de merge | Documentação e roteiro oficial para o processo de revisão Apple. |
+| **#302** | `feat(ios): consolidação de maioridade e perfil` | **Mergeado na `main`** | Validação da regra RN20 (maioridade) no cadastro e perfil. |
+| **#303** | `docs(ios): checklist oficial de submissão App Store` | **Mergeado na `main`** | Documentação e checklist oficial de conformidade App Store. |
 
 ---
 
@@ -204,7 +207,6 @@ O que cabe ao proprietário (João Paulo) é unicamente a conferência administr
 
 1. **Ações Técnicas Imediatas (Trabalho Autônomo):**
    - Concluir auditoria de crash/robustez no app iOS (`iOS/Docs/RobustezContraCrash.md`), garantindo resiliência a enums novos e campos ausentes.
-   - Acompanhar a conclusão da CI do PR #310 (Espelho 0.2.42).
 2. **Ações para o Proprietário (João Paulo) / QA:**
    - Conduzir a medição física do cartão **57hJ7FV0** num iPhone antigo de homologação com chip 4G real no DF usando o build de medição (`FRILA_MEDICAO=1`), colando o relatório no cartão.
    - Conferir permissão da chave App Store Connect API no portal Apple (Admin ou App Manager).
