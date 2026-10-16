@@ -29,10 +29,10 @@ Documento normativo e rascunho completo dos metadados do Frila para publicação
 Todos os campos foram redigidos segundo as diretrizes de UX Writing do Frila (`GuiaDeVoz.md:13-37`): frases na ordem direta, termos consolidados no glossário, ausência de termos promocionais vulgares, sem promessas de tempo, sem promessas de toques e sem uso do termo "comissão".
 
 ### 2.1 Nome do Aplicativo
-- **Texto:** `Frila: Vagas e Turnos Extras`
-- **Contagem de caracteres:** **28 caracteres**
+- **Texto:** `Frila: Turnos e Vagas`
+- **Contagem de caracteres:** **21 caracteres**
 - **Limite oficial da Apple:** **30 caracteres**
-- **Checagem de regras:** Sem termos de preço ou "grátis" (Diretriz 2.3.7). Contém a marca registrada ("Frila") e os dois conceitos centrais do produto ("Vagas" e "Turnos").
+- **Checagem de regras:** Sem termos de preço ou "grátis" (Diretriz 2.3.7). Alinhado ao nome cadastrado no App Store Connect (`DiarioDeConfiguracao.md:63`) e à Tabela 1. Contém a marca registrada ("Frila") e os dois conceitos centrais do produto ("Turnos" e "Vagas").
 
 ### 2.2 Subtítulo
 - **Texto:** `Turnos em bares e eventos`
@@ -212,11 +212,16 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 
 | Item Verificado | Regra / Diretriz | Status | Evidência e Fundamentação |
 |---|---|:---:|---|
+| **Nome do App $\le$ 30 caracteres** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 21 caracteres (`Frila: Turnos e Vagas`), sem termos de preço ou "grátis", alinhado à Tabela 1 e ao App Store Connect. |
+| **Subtítulo $\le$ 30 caracteres** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 25 caracteres (`Turnos em bares e eventos`), sem superlativos ou promessa de tempo. |
+| **Palavras-chave $\le$ 100 caracteres/bytes** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 97 caracteres / 97 bytes UTF-8, separadas por vírgula sem espaço, sem nome do app e sem concorrentes. |
+| **Texto Promocional $\le$ 170 caracteres** | App Store Connect Help | Conforme | Contagem rigorosa de 155 caracteres, sem promessas de tempo, destacando atuação no Distrito Federal. |
+| **Descrição Completa $\le$ 4.000 caracteres** | Diretriz 2.3 da Apple | Conforme | Contagem rigorosa de 1.866 caracteres, destacando atuação no Brasil (DF), regras de valor integral sem desconto e exclusividade para maiores de 18 anos. |
+| **Novidades da Versão $\le$ 4.000 caracteres** | Diretriz 2.3 da Apple | Conforme | Contagem rigorosa de 415 caracteres para a versão 1.0.0 inicial. |
 | **Sem promessas de tempo** | `GuiaDeVoz.md:25` | Conforme | Ausência de termos como "em minutos", "rápido", "em instantes" ou "logo logo". |
 | **Sem contagem de toques** | `GuiaDeVoz.md:26` | Conforme | Ausência de termos como "em 2 cliques", "com apenas um toque" ou "a um toque de distância". |
 | **Sem a palavra "comissão"** | `GuiaDeVoz.md:27` e RN01 | Conforme | A palavra "comissão" foi terminantemente excluída. Substituída por "valor integral sem desconto". |
 | **Sem "grátis" no nome/subtítulo** | Diretriz 2.3.7 da Apple | Conforme | O nome e o subtítulo não contêm termos como "grátis", "free", preços ou símbolos de moeda. |
-| **Palavras-chave $\le$ 100 caracteres** | Diretriz 2.3.7 da Apple | Conforme | Contagem rigorosa de 97 caracteres / 97 bytes, sem concorrentes e sem espaços supérfluos. |
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
 | **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Alinhamento operacional pendente | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-164`). Moderação de denúncias: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). O perfil e o suporte de turno já utilizam a redação da triagem (`PerfisDaConta.swift:16` e `TextosDoSuporte.swift:7`); os fluxos de contestação de despacho (`TextosPorQueReceboVagas.swift:29`) e suspensão (`TextosContaSuspensa.swift:10`) ainda informam "em até 5 dias úteis" (alinhamento pendente em missão própria). |
 | **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme (piloto) | Textos públicos com canal oficial do titular; URLs em HTTPS no Netlify (`frila.netlify.app`), domínio próprio fica para quando o produto crescer. |
@@ -232,8 +237,8 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 
 | Pendência | Responsável | Ação Necessária |
 |---|---|---|
-| **Aprovação dos Textos da Ficha** | Júlia e Fabrício | Revisão final e aprovação conjunta dos textos de descrição, subtítulo e palavras-chave. |
-| **Definição das Frases das Capturas** | Fabrício e Júlia | Redação das frases informativas sobre as capturas de tela (Screenshots) até 29/10 (Sprint 2/3). |
+| **Aprovação dos Textos da Ficha** | Nick Fury e Fabrício | Revisão final e aprovação dos textos de descrição, subtítulo e palavras-chave conduzida por Nick Fury, por delegação do Cauê em 16/10/2026 (substitui a aprovação da Júlia); alinhamento visual de design com o Fabrício. |
+| **Definição das Frases das Capturas** | Fabrício e Nick Fury | Redação das frases informativas sobre as capturas de tela (Screenshots) até 29/10 (Sprint 2/3). |
 | **Configuração das Contas Demo** | Lead Técnico / Cauê | E-mails e códigos continuam `[A DEFINIR]`; depende de cartão do backend (OTP fixo). |
 | **Inserção no App Store Connect** | Cauê | Preenchimento dos campos cadastrados no painel oficial do App Store Connect quando o binário for submetido. |
 
@@ -259,3 +264,4 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 | 2026-10-13 | Thor | Unificação da ficha da loja (T23): consolidação de fontes oficiais, notas técnicas e auditoria da Diretriz 2.3 migradas do documento preliminar de metadados (apagado) para `FichaAppStore.md`, conforme decisão do Cauê. |
 | 2026-10-15 | Homem-Aranha | Atualização da identificação para pessoa física e dos prazos por decisão do Cauê: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Substitui a decisão anterior de 12/10/2026 sobre moderação. Contas demo e URLs públicas seguem pendentes. |
 | 2026-10-15 | Nick Fury | Seção 4 refeita pelo parecer de maioridade: respostas do Age Rating atual (Age Assurance Sim; linguagem e álcool Nenhum), faixa 18+ por override (17+ não existe mais), A18 esperado no Brasil, aviso na tela de entrada e texto curto para a ficha. |
+| 2026-10-16 | Thor | Revisão profunda de textos e metadados: alinhamento do Nome do App na Seção 2.1 para "Frila: Turnos e Vagas" (21 caracteres), auditoria de contagem de todos os campos contra limites da Apple e atualização de responsabilidade de aprovação delegada a Nick Fury. |
