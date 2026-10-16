@@ -40,7 +40,7 @@ done
 Scripts/partes-dos-testes.sh conferir-enumeracoes /tmp/partes-suite.json /tmp/partes-1.json /tmp/partes-2.json
 ```
 
-Em 06/10 essa conferência deu 1.101 testes na parte 1 e 155 na parte 2, que somam os 1.256 da suíte. Cada enumeração levou de 37 a 64 s localmente, por isso ela não roda em toda execução da CI.
+Em 06/10 essa conferência deu 1.101 testes na parte 1 e 155 na parte 2, que somavam os 1.256 da suíte (para a contagem vigente atualizada, consulte o log da execução da CI ou `iOS/Scripts/partes-dos-testes.sh`; em 16/10/2026, a suíte soma >1.300 testes com 1.322 `@Test` unitários). Cada enumeração levou de 37 a 64 s localmente, por isso ela não roda em toda execução da CI.
 
 ## Etapas
 
