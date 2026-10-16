@@ -70,13 +70,8 @@ public actor SincronizadorAcoes {
                     guard let vagaID = acao.alvoID, let motivo = acao.motivo else { continue }
                     _ = try await api.cancelarVaga(id: vagaID, motivo: motivo)
                 }
-                if acao.tipo == .checkin || acao.tipo == .checkout || acao.tipo == .cancelamentoPosicao {
-                    _ = await RegistradorDeTelemetria(api: api).registrar(
-                        .acaoEnfileiradaOffline,
-                        turnoID: acao.turnoID,
-                        ocorridoEm: acao.instanteDoToque
-                    )
-                }
+                // `acao_enfileirada_offline` sai da tela, na hora de enfileirar, e a fila da
+                // telemetria guarda o evento até a rede voltar: emitir aqui contaria a ação duas vezes.
                 try await fila.resolverRecusas(acao)
                 try await fila.remover(id: acao.id)
                 NotificationCenter.default.post(name: .filaDeAcoesAtualizada, object: nil)

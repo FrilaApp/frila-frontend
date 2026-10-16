@@ -1087,7 +1087,7 @@ public enum EventoDeTelemetria: String, Codable, CaseIterable, Sendable {
 }
 
 /// Registro de evento de telemetria com identificadores relacionais opcionais e instante de ocorrência.
-public struct RegistroDeEvento: Equatable, Sendable {
+public struct RegistroDeEvento: Codable, Equatable, Sendable {
     public let evento: EventoDeTelemetria
     public let vagaID: UUID?
     public let turnoID: UUID?

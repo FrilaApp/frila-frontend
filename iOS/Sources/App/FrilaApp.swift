@@ -38,6 +38,11 @@ struct FrilaApp: App {
             armazenamento = nil
         }
         self.armazenamento = armazenamento
+        // Os registradores de telemetria das telas guardam o evento sem rede neste banco. Fora dos
+        // testes: o app hospeda a suíte unitária e o banco real não deve ver os eventos dela.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            FilaDeTelemetriaDoApp.ligar(armazenamento)
+        }
 
         do throws(ErroDeConfiguracao) {
             let ambiente = try ConfiguracaoAmbiente()
@@ -422,16 +427,19 @@ private struct EntradaDoApp: View {
             ))
         }
         #endif
-        let reenvio = ReenvioAoReconectar(
-            monitor: MonitorDeConexaoDoSistema(),
-            sincronizador: SincronizadorAcoes(fila: armazenamento, api: api, avaliacaoJaRegistrada: { acao in
-                guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
-                UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
-            }, avaliacaoRecusada: { acao in
-                guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
-                UserDefaultsArmazenamentoAvaliacoes().remover(para: turnoID, contaID: contaID)
-            })
-        )
+        let sincronizador = SincronizadorAcoes(fila: armazenamento, api: api, avaliacaoJaRegistrada: { acao in
+            guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
+            UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
+        }, avaliacaoRecusada: { acao in
+            guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
+            UserDefaultsArmazenamentoAvaliacoes().remover(para: turnoID, contaID: contaID)
+        })
+        let telemetria = telemetria
+        // Ao reconectar e na abertura com rede: primeiro as ações (que podem gerar eventos), depois a telemetria.
+        let reenvio = ReenvioAoReconectar(monitor: MonitorDeConexaoDoSistema()) {
+            await sincronizador.sincronizar()
+            await telemetria.reenviar()
+        }
         let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho, canal: canal,
                                 limparAvaliacoes: {
                                     UserDefaultsArmazenamentoAvaliacoes().limpar()
