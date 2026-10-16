@@ -17,6 +17,13 @@ fi
 app="$1"
 [[ -d "$app" ]] || falhar "bundle .app não encontrado: $app"
 
+# Testes empacotados não podem chegar ao TestFlight, mesmo vazios ou aninhados.
+if [[ -d "$app/PlugIns" ]]; then
+  while IFS= read -r -d '' teste; do
+    falhar "bundle contém teste XCTest em $teste"
+  done < <(find "$app/PlugIns" -name '*.xctest' -print0)
+fi
+
 info_plist="$app/Info.plist"
 [[ -f "$info_plist" ]] || falhar "Info.plist não encontrado no bundle: $info_plist"
 
@@ -162,6 +169,20 @@ if [[ "${FRILA_MEDICAO:-}" != "1" ]]; then
 fi
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
+  # O prefixo seco sb_secret_ existe na guarda do app; só uma chave completa reprova.
+  for tipo in JWT sb_secret; do
+    case "$tipo" in
+      JWT) padrao='eyJ[A-Za-z0-9_-]{20,}\.' ;;
+      sb_secret) padrao='sb_secret_[A-Za-z0-9_-]{20,}' ;;
+    esac
+    if LC_ALL=C grep -aEq -- "$padrao" "$arquivo"; then
+      falhar "binário de Release contém segredo $tipo em $arquivo"
+    else
+      status_grep=$?
+      [[ $status_grep -eq 1 ]] || falhar "não foi possível examinar o binário: $arquivo"
+    fi
+  done
+
   for gancho in "${ganchos_de_desenvolvimento[@]}"; do
     if LC_ALL=C grep -aFq -- "$gancho" "$arquivo"; then
       falhar "binário de Release contém gancho de desenvolvimento '$gancho' em $arquivo"
