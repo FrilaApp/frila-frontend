@@ -680,6 +680,40 @@ struct TelemetriaTests {
         #expect(await api.eventosRegistrados.isEmpty)
     }
 
+    @Test("Ação feita sem rede conta uma vez só: o evento guardado na hora, e nada a mais ao sincronizar")
+    @MainActor
+    func acaoOfflineContaUmaVez() async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoLonge, relogio: RelogioFixo(agora: Self.instante))
+        let turno = try #require(try await api.meusTurnos().first)
+        let filaDeTelemetria = FilaDeTelemetriaEmMemoria(contaAtual: try await api.minhaConta().id)
+        let registrador = RegistradorDeTelemetria(api: api, fila: filaDeTelemetria, relogio: RelogioFixo(agora: Self.instante))
+        let filaDeAcoes = FilaDeAcoesMemoria()
+        await api.definirRedeCaida(true)
+        let vm = CancelamentoViewModel(
+            lado: .profissional,
+            alvo: .posicao(id: turno.posicaoID, turnoID: turno.id),
+            periodo: turno.vaga.periodo,
+            relogio: RelogioFixo(agora: Self.instante),
+            fila: filaDeAcoes,
+            executar: { _ in throw ErroDaApi(codigo: .semRede) },
+            telemetria: registrador
+        )
+        vm.motivo = MotivoDeCancelamento.saude
+        await vm.confirmar()
+        #expect(vm.estado == EstadoDoCancelamento.concluido(.naFila))
+
+        await api.definirRedeCaida(false)
+        // O dublê tira da lista o turno cancelado e recusaria o `turno_id` depois: o evento guardado sai antes.
+        await registrador.reenviar()
+        await SincronizadorAcoes(fila: filaDeAcoes, api: api).sincronizar()
+        await registrador.reenviar()
+
+        #expect(try await filaDeAcoes.pendentes().isEmpty)
+        let enfileiradas = await api.eventosRegistrados.filter { $0.evento == .acaoEnfileiradaOffline }
+        #expect(enfileiradas.count == 1)
+        #expect(enfileiradas.first?.turnoID == turno.id)
+    }
+
     @Test("Evento sem hora própria é guardado com a hora de agora, não a da volta da rede")
     func eventoSemHoraRecebeAgora() async throws {
         let (api, fila, registrador) = try await cenarioOffline()
