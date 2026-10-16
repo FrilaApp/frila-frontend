@@ -10,7 +10,7 @@ Cada linha tem o **gatilho**: o sinal de que chegou a hora de voltar ao assunto.
 
 | # | Assunto | Hoje (piloto) | Gatilho para voltar | O que fazer |
 |---|---|---|---|---|
-| 1 | **E-mail de entrada (código)** | Auth do Supabase `frila-dev` envia por SMTP do Gmail (`frilaverificacao@gmail.com`), limite do Supabase em 30/h (era 2/h). Gmail pessoal tem teto próprio por dia (na casa de 500; conferir). | Mais de algumas dezenas de cadastros por dia, qualquer reclamação de "código não chegou", ou abertura do `frila-prod`. | Trocar para provedor de e-mail transacional, com domínio próprio e SPF/DKIM; repetir o ajuste de limite no `frila-prod`; medir entrega. |
+| 1 | **E-mail de entrada (código)** | Auth do Supabase `frila-dev` envia por SMTP do Gmail (`frilaverificacao@gmail.com`), limite do Supabase em 30/h (era 2/h). Gmail pessoal tem teto próprio por dia (na casa de 500; conferir). Prova de 16/10: cai no spam do Outlook (sem domínio próprio); aceito pelo Cauê. | Mais de algumas dezenas de cadastros por dia, qualquer reclamação de "código não chegou", ou abertura do `frila-prod`. | Trocar para provedor de e-mail transacional, com domínio próprio e SPF/DKIM; repetir o ajuste de limite no `frila-prod`; medir entrega. |
 | 2 | **Responsável e conta Apple** | Pessoa física (Cauê Carneiro Kilanovic); a conta de desenvolvedor é pessoal e o nome aparece na App Store. Sem razão social, CNPJ, sede nem encarregado (DPO). | Primeira receita, investidor, mais de uma pessoa assinando pelo produto, ou exigência jurídica/ANPD. | Abrir CNPJ, transferir o app para conta de organização, nomear encarregado, trocar nome do vendedor, copyright, política de privacidade e termos. |
 | 3 | **Prazo de moderação e resposta ao titular** | Texto público: "o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos". Promessa de 24 h retirada. | Equipe de suporte/moderação, ou volume de denúncias que torne 24 h viável. | Voltar a prazo fixo menor; alinhar backend e `ModelosDeEmail.md` (texto em HTML ainda cita 24 h; `prazo_resposta` ainda precisa ser alinhado). |
 | 4 | **Domínio e e-mail de suporte** | Site em `frila.netlify.app`, sem domínio próprio; suporte em `suportefrila@gmail.com`. A URL `frila.app` foi rejeitada. | Lançamento público, ou necessidade de e-mail com a marca. | Registrar domínio, apontar o Netlify, e-mail do domínio; atualizar `EnderecosOficiais` no app, ficha da App Store e páginas. |
@@ -24,6 +24,15 @@ Cada linha tem o **gatilho**: o sinal de que chegou a hora de voltar ao assunto.
 ## 2. Registro de mudanças
 
 Entrada nova no topo: onde, antes → depois, por quê, prova, atenção.
+
+### 2026-10-16 — Supabase `frila-dev`: prova de entrega do código de entrada (liga com as linhas 1 e 8)
+
+- **Prova:** código disparado no `frila-dev` para três provedores de e-mail de teste (Gmail, iCloud e Outlook); o servidor respondeu 200 nos três.
+- **Resultado:** Gmail e iCloud na caixa de entrada, em cerca de 1 s; **Outlook caiu no spam**. No cabeçalho do Gmail, SPF, DKIM e DMARC deram PASS. O remetente aparece como "Frila".
+- **Leitura:** o limite é esperado de remetente Gmail pessoal sem domínio próprio: o Outlook desconfia, e não há como corrigir sem domínio com SPF/DKIM próprios. Não bloqueia o piloto.
+- **Decisão do Cauê (16/10):** aceitar assim até ter domínio próprio. A correção definitiva é a da linha 1 (provedor transacional com domínio próprio) e fica para quando a empresa crescer. Enquanto isso, quem usar Outlook deve olhar o spam.
+- **Pendente (pequeno):** o rodapé do e-mail do código diz "Dúvidas" com o e-mail da conta de operação; deve apontar para o suporte oficial, `suportefrila@gmail.com` (linha 4). O modelo mora em Authentication, Email Templates, no `frila-dev`.
+- **Atenção:** nenhum endereço de pessoa nem código entra neste registro.
 
 ### 2026-10-15 — Verificação de idade: leitura do ECA Digital (liga com as linhas 2 e 10)
 
