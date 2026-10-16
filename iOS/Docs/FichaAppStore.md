@@ -1,6 +1,6 @@
 # Ficha da App Store — Metadados e Rascunho Oficial (T-0019)
 
-Documento normativo e rascunho completo dos metadados do Frila para publicação na App Store da Apple. Atende ao cartão Trello [PFWvegZa](https://trello.com/c/PFWvegZa) (T-0019; critérios originais de metadados do cartão #78: nenhuma promessa de tempo de fechamento, nenhuma menção a comissão e todas as URLs sob HTTPS), em conformidade estrita com as diretrizes do *App Store Review Guidelines* (especialmente Diretriz 2.3 — *Accurate Metadata*, Diretriz 2.3.7 — *Keywords & Naming*, Diretriz 1.2 — *User-Generated Content* e Diretriz 5.1 — *Privacy*), com o Guia de Voz (`iOS/Docs/GuiaDeVoz.md`) e com o contrato da API (`iOS/Contrato/openapi.yaml: 0.2.42`).
+Documento normativo e rascunho completo dos metadados do Frila para publicação na App Store da Apple. Atende ao cartão Trello [PFWvegZa](https://trello.com/c/PFWvegZa) (T-0019; critérios originais de metadados do cartão #78: nenhuma promessa de tempo de fechamento, nenhuma menção a comissão e todas as URLs sob HTTPS), em conformidade estrita com as diretrizes do *App Store Review Guidelines* (especialmente Diretriz 2.3 — *Accurate Metadata*, Diretriz 2.3.7 — *Keywords & Naming*, Diretriz 1.2 — *User-Generated Content* e Diretriz 5.1 — *Privacy*), com o Guia de Voz (`iOS/Docs/GuiaDeVoz.md`) e com o contrato da API (`iOS/Contrato/openapi.yaml: 0.2.43`).
 
 ---
 
