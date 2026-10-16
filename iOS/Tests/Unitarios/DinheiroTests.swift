@@ -88,16 +88,15 @@ struct DinheiroTests {
         #expect(valor == Dinheiro(centavos: 8_900))
     }
 
-    @Test("Decodificação de centavos negativos por JSON burla a precondition do init")
-    func decodificacaoNegativaBurlaPrecondition() throws {
+    @Test("Decodificação de centavos negativos por JSON é recusada com DecodingError")
+    func decodificacaoNegativaRecusada() {
         let json = """
         { "centavos": -1 }
         """.data(using: .utf8)!
 
-        // O compilador sintetiza init(from: Decoder) que atribui a propriedade diretamente,
-        // sem invocar o init(centavos: Int) que contém precondition(centavos >= 0).
-        let valor = try JSONDecoder().decode(Dinheiro.self, from: json)
-        #expect(valor.centavos == -1)
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(Dinheiro.self, from: json)
+        }
     }
 
     @Test("Formatação em moeda brasileira pt-BR com FormatadorFrila")
