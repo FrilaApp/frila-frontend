@@ -96,18 +96,21 @@ public struct PortaoDeAtualizacao<Conteudo: View>: View {
             case .liberado:
                 conteudo()
             case let .bloqueado(mensagem, url):
-                VStack(spacing: FrilaEspaco.grande) {
-                    Image(systemName: "arrow.down.app.fill").font(.largeTitle).foregroundStyle(FrilaCor.primaria).accessibilityHidden(true)
-                    Text("Atualização necessária", bundle: bundleApresentacao)
-                        .font(.title.bold())
-                        .multilineTextAlignment(.center)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(verbatim: mensagem).multilineTextAlignment(.center).foregroundStyle(FrilaCor.textoSecundario)
-                    BotaoPrimario("Atualizar agora") { abrirURL(url) }
+                ScrollView {
+                    VStack(spacing: FrilaEspaco.grande) {
+                        Image(systemName: "arrow.down.app.fill").font(.largeTitle).foregroundStyle(FrilaCor.primaria).accessibilityHidden(true)
+                        Text("Atualização necessária", bundle: bundleApresentacao)
+                            .font(.title.bold())
+                            .multilineTextAlignment(.center)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(verbatim: mensagem).multilineTextAlignment(.center).foregroundStyle(FrilaCor.textoSecundario)
+                        BotaoPrimario("Atualizar agora") { abrirURL(url) }
+                    }
+                    .padding(FrilaEspaco.grande)
+                    .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .contain)
                 }
-                .padding(FrilaEspaco.grande)
-                .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
-                .accessibilityElement(children: .contain)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
