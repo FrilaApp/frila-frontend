@@ -4,6 +4,8 @@ import Testing
 
 @Suite("Domínio - Aparelho, Push e Isolamento de Sessão (RN15)")
 struct DispositivoPushTests {
+    private static let dataFixa = Date(timeIntervalSince1970: 1_700_000_000)
+
     @Test("Carência padrão na troca de conta é de 60 segundos")
     func carenciaTrocaDeConta() {
         #expect(VinculoDoAparelho.carenciaNaTrocaDeConta == 60)
@@ -12,15 +14,15 @@ struct DispositivoPushTests {
     @Test("Instanciação de VinculoDoAparelho com e sem vinculo_id (contrato 0.2.30)")
     func vinculoDoAparelhoCompatibilidade() {
         let contaID = UUID()
-        let agora = Date()
+        let data = Self.dataFixa
         let vinculoID = UUID()
 
-        let comVinculo = VinculoDoAparelho(contaID: contaID, desde: agora, vinculoID: vinculoID)
+        let comVinculo = VinculoDoAparelho(contaID: contaID, desde: data, vinculoID: vinculoID)
         #expect(comVinculo.contaID == contaID)
-        #expect(comVinculo.desde == agora)
+        #expect(comVinculo.desde == data)
         #expect(comVinculo.vinculoID == vinculoID)
 
-        let semVinculo = VinculoDoAparelho(contaID: contaID, desde: agora)
+        let semVinculo = VinculoDoAparelho(contaID: contaID, desde: data)
         #expect(semVinculo.contaID == contaID)
         #expect(semVinculo.vinculoID == nil)
     }
@@ -28,15 +30,15 @@ struct DispositivoPushTests {
     @Test("Serialização e desserialização JSON de VinculoDoAparelho mantendo campos")
     func serializacaoVinculo() throws {
         let contaID = UUID()
-        let agora = Date(timeIntervalSince1970: 1_700_000_000)
-        let vinculo = VinculoDoAparelho(contaID: contaID, desde: agora, vinculoID: UUID())
+        let data = Self.dataFixa
+        let vinculo = VinculoDoAparelho(contaID: contaID, desde: data, vinculoID: UUID())
 
-        let data = try JSONEncoder().encode(vinculo)
-        let decodificado = try JSONDecoder().decode(VinculoDoAparelho.self, from: data)
+        let bytes = try JSONEncoder().encode(vinculo)
+        let decodificado = try JSONDecoder().decode(VinculoDoAparelho.self, from: bytes)
 
         #expect(decodificado == vinculo)
         #expect(decodificado.contaID == contaID)
-        #expect(decodificado.desde == agora)
+        #expect(decodificado.desde == data)
         #expect(decodificado.vinculoID == vinculo.vinculoID)
     }
 
@@ -55,28 +57,45 @@ struct DispositivoPushTests {
         #expect(decodificado.vinculoID == nil)
     }
 
-    @Test("AparelhoGuardado registra transição de saída e preserva contaAnterior")
-    func transicaoDeContaNoAparelho() {
+    @Test("AparelhoGuardado aceita vincular e desvincular campo a campo")
+    func aparelhoGuardadoAceitaVincularEDesvincular() {
         let conta1 = UUID()
         let vinculo1 = UUID()
-        let agora = Date()
+        let data = Self.dataFixa
 
         var aparelho = AparelhoGuardado(
             token: "fcm-token-123",
-            vinculo: VinculoDoAparelho(contaID: conta1, desde: agora, vinculoID: vinculo1),
+            vinculo: VinculoDoAparelho(contaID: conta1, desde: data, vinculoID: vinculo1),
             contaAnterior: nil
         )
 
         #expect(aparelho.vinculo?.contaID == conta1)
         #expect(aparelho.contaAnterior == nil)
 
-        // Simulação de logout/desvinculação no aparelho
+        // Simulação de desvinculação campo a campo no aparelho
         aparelho.contaAnterior = aparelho.vinculo?.contaID
         aparelho.vinculo = nil
 
         #expect(aparelho.vinculo == nil)
         #expect(aparelho.contaAnterior == conta1)
         #expect(aparelho.token == "fcm-token-123")
+    }
+
+    @Test("Descrição de AparelhoGuardado mascara o token do FCM contra vazamento em logs (RN15)")
+    func descricaoOcultaToken() {
+        let tokenSecreto = "fcm-secret-token-xyz-123456789"
+        let contaID = UUID()
+        let vinculo = VinculoDoAparelho(contaID: contaID, desde: Self.dataFixa, vinculoID: UUID())
+        let aparelho = AparelhoGuardado(token: tokenSecreto, vinculo: vinculo, contaAnterior: nil)
+
+        let descricao = String(describing: aparelho)
+        let debugDescricao = String(reflecting: aparelho)
+
+        #expect(!descricao.contains(tokenSecreto), "description não pode conter o token do FCM em claro")
+        #expect(!debugDescricao.contains(tokenSecreto), "debugDescription não pode conter o token do FCM em claro")
+        #expect(descricao.contains("[REDACTED]"))
+        #expect(debugDescricao.contains("[REDACTED]"))
+        #expect(descricao.contains(contaID.uuidString))
     }
 
     @Test("Enum Plataforma codifica valores de contrato corretos")
@@ -87,17 +106,17 @@ struct DispositivoPushTests {
 
         let encoded = try JSONEncoder().encode(Plataforma.ios)
         let string = String(decoding: encoded, as: UTF8.self)
-        #expect(string.contains("ios"))
+        #expect(string == "\"ios\"")
     }
 
     @Test("Dispositivo mapeia campos de registro com sucesso")
     func dispositivoModel() {
-        let agora = Date()
+        let data = Self.dataFixa
         let vinculo = UUID()
-        let disp = Dispositivo(plataforma: .ios, atualizadoEm: agora, vinculoID: vinculo)
+        let disp = Dispositivo(plataforma: .ios, atualizadoEm: data, vinculoID: vinculo)
 
         #expect(disp.plataforma == .ios)
-        #expect(disp.atualizadoEm == agora)
+        #expect(disp.atualizadoEm == data)
         #expect(disp.vinculoID == vinculo)
     }
 }
