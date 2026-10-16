@@ -110,6 +110,32 @@ public struct Periodo: Codable, Hashable, Sendable {
         self.fim = fim
     }
 
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let inicio = try container.decode(Date.self, forKey: .inicio)
+        let fim = try container.decode(Date.self, forKey: .fim)
+        guard fim > inicio else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .fim,
+                in: container,
+                debugDescription: "Fim do período (\(fim)) deve ser estritamente posterior ao início (\(inicio))"
+            )
+        }
+        self.inicio = inicio
+        self.fim = fim
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(inicio, forKey: .inicio)
+        try container.encode(fim, forKey: .fim)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case inicio
+        case fim
+    }
+
     /// Intervalos são semiabertos: um turno que termina quando outro começa não sobrepõe.
     public func sobrepoe(_ outro: Periodo) -> Bool {
         inicio < outro.fim && outro.inicio < fim
