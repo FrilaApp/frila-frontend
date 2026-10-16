@@ -185,7 +185,7 @@ Os dados do turno devem obedecer ao contrato de API e às regras de integridade 
      - Insere na tabela `public.avaliacao` com garantia de voto único por lado via chave natural `unique (turno_id, alvo_tipo)` (`:301`).
      - Gatilho `avaliacao_soma_na_reputacao` (`:143`) executa `privado.somar_avaliacao()` (`:119`), incrementando de forma atômica `aval_total` e `aval_positivas` na contraparte (`RN08`, `:126-136`).
 4. **Resultado Esperado na Tela**:
-   - Exibição do aviso de sucesso: "Avaliação registrada com sucesso!" (`TextosDoProfissional.Avaliacao.avaliadoSucesso`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:180`, identificador `aviso-sucesso-avaliacao`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift:102`).
+   - Exibição do aviso de sucesso: "Avaliação registrada." (`TextosDoProfissional.Avaliacao.avaliadoSucesso`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:180`, identificador `aviso-sucesso-avaliacao`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift:102`).
    - A seleção é desabilitada para novas alterações (`disabled`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift:86`).
    - O botão de envio desaparece (`TelaAvaliacao.swift:117`).
 

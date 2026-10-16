@@ -27,7 +27,7 @@ public enum TextosRepublicarVaga {
     public static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
     public static let tentativaContinua = String(localized: "A republicação continua e será concluída quando a conexão voltar.", bundle: bundleApresentacao)
     public static let erroAoLerFila = String(localized: "Não foi possível verificar a republicação pendente. Tente novamente antes de confirmar.", bundle: bundleApresentacao)
-    public static let sucesso = String(localized: "Vaga republicada com sucesso!", bundle: bundleApresentacao)
+    public static let sucesso = String(localized: "Vaga republicada.", bundle: bundleApresentacao)
 
     // Mensagens de validação e regras (RN02, RN03, RN18, RN24)
     public static let inicioNoPassado = String(localized: "A data e horário de início devem ser no futuro.", bundle: bundleApresentacao)
