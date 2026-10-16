@@ -1,5 +1,5 @@
 #!/bin/bash
-# Gate de deriva de contrato iOS x backend (contrato 0.2.42).
+# Gate de deriva de contrato iOS x backend (contrato 0.2.43).
 # Compara DTOs, RPCs, Enums e códigos de recusa tratados no app
 # com a especificação OpenAPI espelhada em Contrato/openapi.yaml.
 #
