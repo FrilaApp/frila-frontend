@@ -128,26 +128,46 @@ Enquanto não houver domínio próprio (ver `DiarioDeConfiguracao.md`, linha 4),
 
 ## 4. Classificação Etária e Conformidade Regulatória
 
-### 4.1 Respostas ao Questionário de Conteúdo da Apple (Diretriz 2.3.6)
+Fonte das respostas: parecer de maioridade de 15/10/2026 (Nick Fury), com base na Portaria MJSP nº 1.048/2025, na Lei nº 15.211/2025 (ECA Digital), no Decreto nº 12.880/2026 e nas páginas da Apple sobre Age Rating. Detalhes e gatilhos de revisão em [`Classificacao18ECA.md`](Classificacao18ECA.md).
 
-| Pergunta de Classificação (Apple Content Rating) | Resposta Oficial | Justificativa Técnica no Produto |
-|---|---|---|
-| **Violência (realística, desenho ou fantasia)** | Nenhuma (*None*) | Aplicativo de produtividade e trabalho; não contém jogos ou violência. |
-| **Conteúdo sexual e nudez** | Nenhuma (*None*) | Conteúdo estritamente profissional. |
-| **Linguagem obscena ou humor vulgar** | Raro / Leve (*Infrequent/Mild*) | Devido a conteúdo gerado por usuários (avaliações e relatos de denúncia, Diretriz 1.2). |
-| **Álcool, tabaco ou drogas** | Raro / Leve (*Infrequent/Mild*) | Vagas operacionais em bares, cervejarias e restaurantes que manipulam e servem bebidas alcoólicas. |
-| **Apostas e jogos de azar simulados** | Nenhuma (*None*) | Não aplicável. |
-| **Acesso a navegador web aberto** | Não (*No*) | Todos os links abrem páginas oficiais específicas em Safari externo; sem navegador interno irrestrito. |
-| **Concurso ou sorteio integrado** | Não (*No*) | Não há premiações financeiras ou sorteios. |
-| **Conteúdo Gerado por Usuários (UGC)** | **Sim (*Yes*)** | Profissionais e estabelecimentos registram relatos e avaliações mútuas após turnos. |
-| **Chat integrado ou mensagens abertas** | **Não (*No*)** | O app **não possui chat em tempo real**. A comunicação ocorre via link externo para WhatsApp do contato do turno confirmado (`ContatoDTO.dominio()`). |
+### 4.1 Respostas ao Questionário de Age Rating (Diretriz 2.3.6)
+
+A ordem segue a documentação da Apple. Conferir na tela real da App Store Connect; se a redação mudar, o conteúdo das respostas continua valendo.
+
+| Grupo | Pergunta (Apple) | Resposta | Justificativa no produto |
+|---|---|---|---|
+| In-App Controls | Parental Controls | Não | Não há ferramentas para pais; o público é só adulto. |
+| In-App Controls | Age Assurance | **Sim** | O cadastro confere a data de nascimento (app e servidor) e consulta a faixa etária da Apple (Declared Age Range, iOS 26.2+). |
+| Capabilities | Unrestricted Web Access | Não | Sem navegador embutido; termos e privacidade abrem no Safari. |
+| Capabilities | User-Generated Content | **Sim** | Vagas, avaliações e relatos são vistos por outros usuários; há filtro de texto ofensivo, denúncia e bloqueio (Diretriz 1.2). |
+| Capabilities | Social Media | Não | Não há feed. |
+| Capabilities | Social media disabled for users under 13 ("Redes sociais desativadas para usuários menores de 13 anos") | Não | Pergunta extra que a tela mostrou em 15/10/2026. Não se aplica: não há rede social e não há usuário abaixo de 18 anos. |
+| Capabilities | Messaging and Chat | Não | Não há chat; o contato do turno confirmado abre o WhatsApp, externo (`ContatoDTO.dominio()`). |
+| Capabilities | Advertising | Não | Sem anúncios. |
+| Mature Themes | Profanity or Crude Humor | Nenhum | O texto de usuários passa pelo filtro de texto ofensivo do servidor. |
+| Mature Themes | Horror/Fear Themes | Nenhum | — |
+| Mature Themes | Alcohol, Tobacco, or Drug Use or References | Nenhum | Vagas de bar e evento citam o local de trabalho, não o consumo. Se a revisão da Apple discordar, mudar para *Infrequent/Mild* não altera a faixa final (o override é 18+). |
+| Medical or Wellness | Medical / Health or Wellness | Nenhum | — |
+| Sexuality or Nudity | Todas | Nenhum | Conteúdo estritamente profissional. |
+| Violence | Todas (inclusive armas) | Nenhum | — |
+| Chance-Based Activities | Gambling / Loot Boxes | Não | — |
+| Chance-Based Activities | Simulated Gambling / Contests | Nenhum | Não há sorteio nem competição entre usuários. |
+| Additional Information | Age Categories and Override | **Override to Higher Age Rating: 18+** | Não marcar *Made for Kids*. Os termos exigem 18 anos; a Apple pede override quando o contrato tem idade mínima acima da calculada. |
+| Additional Information | Age Suitability URL | Em branco por ora | Opcional. Preencher com `https://frila.netlify.app/termos` quando a página dos termos com a classificação estiver no ar. |
 
 ### 4.2 Classificação Etária Resultante
-- **Idade na App Store:** **17+** (classificação máxima atribuível devido a UGC e restrição legal de trabalho).
-- **Declaração de Faixa Etária (ECA Digital / Brasil):** **Restrito a maiores de 18 anos** (`Classificacao18ECA.md`, `termos.md:37-43`, RN20). Menores de idade são bloqueados pelo backend com erro `422 menor_de_idade`.
+- **Calculada pelas respostas:** 4+ (nenhum tema sensível).
+- **Na App Store, com o override:** **18+**. As faixas atuais da Apple são 4+, 9+, 13+, 16+ e 18+; a antiga 17+ não existe mais.
+- **No Brasil:** **A18** ("Maiores de 18 anos"), conferido na App Store Connect em 15/10/2026.
+- **Salvo na App Store Connect em 15/10/2026, como rascunho e sem envio:** **18+** em 173 países ou regiões, **A18** no Brasil e **19+** na Coreia do Sul (a faixa adulta de lá é 19 anos). A reabertura do questionário confirmou as respostas acima.
+- **No app:** a tela de entrada mostra "Classificação indicativa: 18 anos" (Portaria MJSP 1.048/2025, art. 50), e os termos trazem a classificação na seção 3 (art. 55).
+- **Bloqueio de menores:** o app recusa data de nascimento abaixo de 18 anos e faixa etária `.abaixoDe18` vinda do aparelho; o servidor recusa com `422 menor_de_idade` (RN20).
+
+### 4.3 Texto para a ficha
+> O Frila é exclusivo para maiores de 18 anos. Ele conecta estabelecimentos a profissionais autônomos para turnos pagos, inclusive à noite e em locais com venda de bebida alcoólica. Menores de 18 anos não podem criar conta. Classificação indicativa: 18 anos.
 
 > **Fonte da obrigação:** Diretriz 2.3.6 — "Answer the age rating questions in App Store Connect honestly so that your app aligns properly with parental controls."
-> A classificação 18+ reflete o fato de o app mediar contratação de trabalho por turno com troca de dados pessoais (telefone, endereço, presença) e relação financeira, o que não é adequado para menores.
+> A classificação 18+ vem da vedação legal ao trabalho noturno e em local com bebida para menores (CLT arts. 404 e 405; ECA art. 67), não de conteúdo do app.
 
 ---
 
@@ -238,3 +258,4 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 | 2026-10-12 | Doutor Estranho | Ajustes de devolução (PR 223): e-mail oficial atualizado para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`), remoção do prazo de 24h na descrição em favor do prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`) e confirmação da página pública de suporte mesclada no PR 215. |
 | 2026-10-13 | Thor | Unificação da ficha da loja (T23): consolidação de fontes oficiais, notas técnicas e auditoria da Diretriz 2.3 migradas do documento preliminar de metadados (apagado) para `FichaAppStore.md`, conforme decisão do Cauê. |
 | 2026-10-15 | Homem-Aranha | Atualização da identificação para pessoa física e dos prazos por decisão do Cauê: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Substitui a decisão anterior de 12/10/2026 sobre moderação. Contas demo e URLs públicas seguem pendentes. |
+| 2026-10-15 | Nick Fury | Seção 4 refeita pelo parecer de maioridade: respostas do Age Rating atual (Age Assurance Sim; linguagem e álcool Nenhum), faixa 18+ por override (17+ não existe mais), A18 esperado no Brasil, aviso na tela de entrada e texto curto para a ficha. |

@@ -39,6 +39,8 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Entrada por código de seis dígitos enviado ao e-mail, e escolha do perfil no primeiro acesso (#97).
 - Perfis de conta e reputação: quantas pessoas chamariam de novo e a taxa de comparecimento (#54).
 - A sessão é encerrada no aparelho quando o servidor recusa a autenticação.
+- A tela de entrada mostra "Classificação indicativa: 18 anos", e os termos (versão 2026-10-15)
+  explicam como a idade é verificada e como contestar.
 
 ### Para quem trabalha
 - Lista de vagas do DF com filtros por função, data e distância, e o detalhe de cada vaga (#104).

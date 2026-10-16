@@ -93,7 +93,8 @@ public final class CadastroViewModel {
             telefone: telefoneE164,
             nascimento: nascimento,
             perfil: perfil,
-            versaoTermos: "2026-09-22"
+            // Termos com a classificação indicativa de 18 anos e a contestação da idade.
+            versaoTermos: "2026-10-15"
         )
 
         do {

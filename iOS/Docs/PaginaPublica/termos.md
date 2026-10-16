@@ -31,10 +31,18 @@ O **Frila** é uma plataforma de tecnologia voltada exclusivamente para a **apro
 
 ## 3. Requisito Obrigatório de Maioridade (Classificação 18+)
 
+**Classificação indicativa: 18 anos.** O Frila é permitido apenas para maiores de 18 anos, porque envolve trabalho avulso que pode ocorrer à noite ou em locais com bebida alcoólica.
+
 ### Cláusula de Declaração de Maioridade
 **O uso do Frila é estritamente proibido para pessoas com menos de 18 (dezoito) anos de idade.**
 
 Ao se cadastrar no aplicativo, você declara sob as penas da lei que possui **18 (dezoito) anos completos ou mais** na data do cadastro.
+
+### Como a idade é verificada
+- Para criar a conta, você confirma ter 18 anos ou mais e informa sua data de nascimento. O app e o servidor conferem essa data.
+- O app também pode consultar o sistema do seu aparelho (recurso de faixa etária da Apple) para confirmar a faixa de idade. O Frila recebe só a faixa, não a sua data de nascimento pelo aparelho.
+- Se o sistema indicar menos de 18 anos, a conta não é criada. Se o sistema não responder ou você não autorizar a consulta, valem a sua data de nascimento e a sua declaração.
+- Se você acha que sua idade foi aferida de forma errada, escreva para `suportefrila@gmail.com`.
 
 - A vedação ao acesso de menores fundamenta-se nas normas de proteção trabalhista e da juventude da Constituição Federal (art. 7º, XXXIII), da Consolidação das Leis do Trabalho (arts. 402 a 441), do Estatuto da Criança e do Adolescente (Lei nº 8.069/1990, arts. 60 a 69), do Decreto nº 6.481/2008 (Piores Formas de Trabalho Infantil) e da **Lei nº 15.211/2025 (ECA Digital)**.
 - O Frila reserva-se o direito de exigir comprovação de idade a qualquer momento. Contas vinculadas a menores de 18 anos ou que contenham declarações falsas serão imediatamente suspensas e seus dados serão descartados.

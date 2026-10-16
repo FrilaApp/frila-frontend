@@ -31,6 +31,17 @@ final class FrilaUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Esta vaga acabou de ser preenchida. Volte para a lista e escolha outra vaga."].waitForExistence(timeout: Espera.aparecer))
     }
 
+    func testEntradaMostraAClassificacaoIndicativaDe18Anos() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launch()
+
+        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+        let classificacao = app.staticTexts["entrada-classificacao-indicativa"]
+        XCTAssertTrue(classificacao.exists)
+        XCTAssertEqual(classificacao.label, "Classificação indicativa: 18 anos")
+    }
+
     func testSolicitacaoDeAcessoChegaAoClienteSemExporOEmailNaTelaDeResultado() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ABRIR_CATALOGO", "-FRILA_SCENARIO", "success"]
