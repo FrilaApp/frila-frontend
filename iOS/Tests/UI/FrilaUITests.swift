@@ -223,7 +223,7 @@ final class CandidaturaUITests: XCTestCase {
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
         XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")
-        candidatar.tap()
+        tocar(candidatar)
         return app
     }
 
@@ -231,7 +231,7 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("success")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].exists)
-        app.buttons["voltar-para-lista"].tap()
+        tocar(app.buttons["voltar-para-lista"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["1 posição aberta"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
     }
@@ -240,7 +240,7 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("vaga-preenchida")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-preenchida"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["resultado-vaga-encerrada"].exists)
-        app.buttons["voltar-para-lista-navegacao"].tap()
+        tocar(app.buttons["voltar-para-lista-navegacao"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
@@ -248,7 +248,7 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("vaga-encerrada")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-encerrada"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["resultado-vaga-preenchida"].exists)
-        app.buttons["voltar-para-lista"].tap()
+        tocar(app.buttons["voltar-para-lista"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
@@ -257,9 +257,8 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["resultado-turno-sobreposto"].waitForExistence(timeout: 15))
         let voltar = app.buttons["voltar-para-lista"]
         XCTAssertTrue(voltar.waitForExistence(timeout: 15))
-        XCTAssertTrue(voltar.isHittable)
         XCTAssertFalse(app.buttons["ajustar-minhas-funcoes"].exists)
-        voltar.tap()
+        tocar(voltar)
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
     }
 
@@ -270,22 +269,21 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(ajustar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(ajustar.label, "Ajustar minhas funções")
         XCTAssertTrue(app.buttons["voltar-para-lista"].exists)
-        ajustar.tap()
+        tocar(ajustar)
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
-        XCTAssertTrue(funcao.waitForExistence(timeout: 10))
-        funcao.tap()
+        tocar(funcao)
         let salvar = app.buttons["botao-salvar-perfil"]
         for _ in 0..<5 where !salvar.isHittable { app.swipeUp() }
         XCTAssertTrue(salvar.isHittable)
-        salvar.tap()
+        tocar(salvar)
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
         let candidatar = app.buttons["candidatar"]
         if !candidatar.isHittable { app.swipeUp() }
         XCTAssertTrue(candidatar.isEnabled)
         XCTAssertFalse(app.descendants(matching: .any)["resultado-confirmada"].exists)
-        candidatar.tap()
+        tocar(candidatar)
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
     }
 
@@ -295,14 +293,14 @@ final class CandidaturaUITests: XCTestCase {
         let contestar = app.buttons["contestar"]
         XCTAssertTrue(contestar.exists)
         XCTAssertTrue(contestar.isEnabled)
-        contestar.tap()
+        tocar(contestar)
         XCTAssertTrue(app.descendants(matching: .any)["tela-conta-suspensa"].waitForExistence(timeout: Espera.aparecer))
-        app.buttons["botao-contestar-suspensao"].tap()
+        tocar(app.buttons["botao-contestar-suspensao"])
         let relato = app.descendants(matching: .any)["campo-relato-contestacao"].firstMatch
         XCTAssertTrue(relato.waitForExistence(timeout: Espera.aparecer))
         relato.tap()
         relato.typeText("Solicito a revisão da suspensão da minha conta")
-        app.buttons["botao-enviar-contestacao"].tap()
+        tocar(app.buttons["botao-enviar-contestacao"])
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-contestacao"].waitForExistence(timeout: Espera.aparecer))
     }
 
@@ -310,8 +308,7 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("vaga-preenchida", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         XCTAssertTrue(app.descendants(matching: .any)["resultado-vaga-preenchida"].waitForExistence(timeout: 10))
         let voltar = app.buttons["voltar-para-lista"]
-        XCTAssertTrue(voltar.waitForExistence(timeout: Espera.aparecer))
-        voltar.tap()
+        tocar(voltar)
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
@@ -323,7 +320,7 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["candidatar"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["resultado-confirmada"].exists, "a rota abre o detalhe, nunca aceita sozinha")
-        app.buttons["candidatar"].tap()
+        tocar(app.buttons["candidatar"])
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
     }
 }
