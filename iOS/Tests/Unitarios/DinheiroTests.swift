@@ -76,6 +76,18 @@ struct DinheiroTests {
         #expect(valor == Dinheiro(centavos: 8_900))
     }
 
+    @Test("Decodificação de centavos negativos por JSON burla a precondition do init")
+    func decodificacaoNegativaBurlaPrecondition() throws {
+        let json = """
+        { "centavos": -1 }
+        """.data(using: .utf8)!
+
+        // O compilador sintetiza init(from: Decoder) sem invocar o init(centavos: Int).
+        // Isso permite que centavos negativos sejam decodificados a partir de payload JSON externo.
+        let valor = try JSONDecoder().decode(Dinheiro.self, from: json)
+        #expect(valor.centavos == -1)
+    }
+
     @Test("Formatação em moeda brasileira com FormatadorFrila")
     func formatacaoComFormatadorFrila() {
         let formatador = FormatadorFrila()
@@ -88,8 +100,8 @@ struct DinheiroTests {
             s.replacingOccurrences(of: "\u{00A0}", with: " ")
         }
 
-        #expect(normalizar(formatador.moeda(zero)) == "R$ 0,00")
-        #expect(normalizar(formatador.moeda(cemReais)) == "R$ 100,00")
-        #expect(normalizar(formatador.moeda(quebrado)) == "R$ 123,45")
+        #expect(normalizar(formatador.dinheiro(zero)) == "R$ 0,00")
+        #expect(normalizar(formatador.dinheiro(cemReais)) == "R$ 100,00")
+        #expect(normalizar(formatador.dinheiro(quebrado)) == "R$ 123,45")
     }
 }
