@@ -69,6 +69,19 @@ public final class ContatoDoTurnoPersistido {
     public init(turnoID: UUID, conteudo: Data) { self.turnoID = turnoID; self.conteudo = conteudo }
 }
 
+@Model
+public final class EventoDeTelemetriaPersistido {
+    @Attribute(.unique) public var id: UUID
+    public var conteudo: Data
+    public var guardadoEm: Date
+
+    public init(id: UUID, conteudo: Data, guardadoEm: Date) {
+        self.id = id
+        self.conteudo = conteudo
+        self.guardadoEm = guardadoEm
+    }
+}
+
 /// Os modelos que guardam um valor do domínio como JSON em `conteudo`.
 protocol RegistroComConteudo: PersistentModel {
     var conteudo: Data { get }
@@ -80,6 +93,7 @@ extension SessaoPersistida: RegistroComConteudo {}
 extension AcaoPendentePersistida: RegistroComConteudo {}
 extension AcaoRecusadaPersistida: RegistroComConteudo {}
 extension ContatoDoTurnoPersistido: RegistroComConteudo {}
+extension EventoDeTelemetriaPersistido: RegistroComConteudo {}
 
 public enum EsquemaFrilaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
@@ -96,10 +110,11 @@ public enum EsquemaFrilaV2: VersionedSchema {
 }
 
 public enum MigracaoFrila: SchemaMigrationPlan {
-    public static var schemas: [any VersionedSchema.Type] { [EsquemaFrilaV1.self, EsquemaFrilaV2.self, EsquemaFrilaV3.self] }
+    public static var schemas: [any VersionedSchema.Type] { [EsquemaFrilaV1.self, EsquemaFrilaV2.self, EsquemaFrilaV3.self, EsquemaFrilaV4.self] }
     public static var stages: [MigrationStage] {
         [.lightweight(fromVersion: EsquemaFrilaV1.self, toVersion: EsquemaFrilaV2.self),
-         .lightweight(fromVersion: EsquemaFrilaV2.self, toVersion: EsquemaFrilaV3.self)]
+         .lightweight(fromVersion: EsquemaFrilaV2.self, toVersion: EsquemaFrilaV3.self),
+         .lightweight(fromVersion: EsquemaFrilaV3.self, toVersion: EsquemaFrilaV4.self)]
     }
 }
 
@@ -110,9 +125,16 @@ public enum EsquemaFrilaV3: VersionedSchema {
     }
 }
 
+public enum EsquemaFrilaV4: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(4, 0, 0) }
+    public static var models: [any PersistentModel.Type] {
+        EsquemaFrilaV3.models + [EventoDeTelemetriaPersistido.self]
+    }
+}
+
 public enum PersistenciaFrila {
     public static func criarContainer(emMemoria: Bool = false) throws -> ModelContainer {
-        let esquema = Schema(versionedSchema: EsquemaFrilaV3.self)
+        let esquema = Schema(versionedSchema: EsquemaFrilaV4.self)
         let configuracao: ModelConfiguration
         if emMemoria {
             configuracao = ModelConfiguration(schema: esquema, isStoredInMemoryOnly: true)
@@ -136,7 +158,9 @@ public enum PersistenciaFrila {
 }
 
 @ModelActor
-public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
+public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
+    private var reenviandoTelemetria = false
+
     public func salvar(sessao: SessaoUsuario) throws {
         let dados = try JSONEncoder().encode(sessao)
         let chave = "sessao-atual"
@@ -350,6 +374,37 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         try modelContext.save()
     }
 
+    public func guardar(_ registro: RegistroDeEvento, em instante: Date, limite: Int) throws {
+        // O dono é a conta da sessão local; sem ela o evento não é guardado (não há a quem atribuir).
+        guard let contaID = try sessao()?.usuarioID else { return }
+        let pendente = EventoDeTelemetriaPendente(contaID: contaID, registro: registro, guardadoEm: instante)
+        modelContext.insert(EventoDeTelemetriaPersistido(
+            id: pendente.id, conteudo: try JSONEncoder().encode(pendente), guardadoEm: instante
+        ))
+        let todos = try modelContext.fetch(FetchDescriptor<EventoDeTelemetriaPersistido>(sortBy: [SortDescriptor(\.guardadoEm)]))
+        // Acima do limite sai o mais antigo: o dado recente vale mais que o de dias atrás.
+        todos.prefix(max(todos.count - max(limite, 0), 0)).forEach(modelContext.delete)
+        try modelContext.save()
+    }
+
+    public func eventosPendentes() throws -> [EventoDeTelemetriaPendente] {
+        let descritor = FetchDescriptor<EventoDeTelemetriaPersistido>(sortBy: [SortDescriptor(\.guardadoEm)])
+        return try legiveis(try modelContext.fetch(descritor), JSONDecoder(), origem: "telemetria")
+    }
+
+    public func remover(ids: [UUID]) throws {
+        try modelContext.delete(model: EventoDeTelemetriaPersistido.self, where: #Predicate { ids.contains($0.id) })
+        try modelContext.save()
+    }
+
+    public func reservarReenvio() -> Bool {
+        if reenviandoTelemetria { return false }
+        reenviandoTelemetria = true
+        return true
+    }
+
+    public func liberarReenvio() { reenviandoTelemetria = false }
+
     /// Decodifica registro a registro. O que não decodifica foi gravado por um build com outro modelo
     /// (ou ficou corrompido): sai do banco e da lista, em vez de uma única linha ilegível inutilizar
     /// o cache ou a fila inteira até a saída da conta. Só a origem e a quantidade vão ao log.
@@ -381,6 +436,8 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes {
         try modelContext.delete(model: AcaoPendentePersistida.self)
         try modelContext.delete(model: AcaoRecusadaPersistida.self)
         try modelContext.delete(model: ContatoDoTurnoPersistido.self)
+        // Os eventos pendentes são da conta que saiu: não podem sair pelo login da próxima.
+        try modelContext.delete(model: EventoDeTelemetriaPersistido.self)
         try modelContext.save()
     }
 }

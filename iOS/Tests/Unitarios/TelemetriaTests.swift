@@ -3,7 +3,7 @@ import MapKit
 import SwiftUI
 @testable import FrilaApresentacao
 @testable import FrilaDados
-import FrilaDominio
+@testable import FrilaDominio
 import Testing
 
 private struct RelogioFixo: Relogio {
@@ -642,6 +642,350 @@ struct TelemetriaTests {
             Issue.record("Bloqueio deveria permanecer ativo")
         }
     }
+
+    // MARK: - Fila offline de eventos (RNF08): guardar e reenviar
+
+    private static let instante = Date(timeIntervalSince1970: 1_800_000_000)
+
+    /// API com sessão, relógio fixo e registrador ligados à mesma fila em memória, dona = a conta da API.
+    private func cenarioOffline(
+        agora: Date = instante
+    ) async throws -> (api: ApiClienteEmMemoria, fila: FilaDeTelemetriaEmMemoria, registrador: RegistradorDeTelemetria) {
+        let api = ApiClienteEmMemoria(relogio: RelogioFixo(agora: agora))
+        let fila = FilaDeTelemetriaEmMemoria(contaAtual: try await api.minhaConta().id)
+        let registrador = RegistradorDeTelemetria(api: api, fila: fila, relogio: RelogioFixo(agora: agora))
+        return (api, fila, registrador)
+    }
+
+    private func esperar(até condicao: @Sendable () async -> Bool) async {
+        for _ in 0..<100 {
+            if await condicao() { return }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+    }
+
+    @Test("Falha de rede guarda o evento com a hora em que aconteceu")
+    func redeCaidaGuardaEvento() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await api.definirRedeCaida(true)
+        let aconteceu = Self.instante.addingTimeInterval(-600)
+
+        let ok = await registrador.registrar(.checkinConcluido, ocorridoEm: aconteceu)
+
+        #expect(ok == false)
+        let pendentes = try await fila.eventosPendentes()
+        #expect(pendentes.count == 1)
+        #expect(pendentes.first?.registro.evento == .checkinConcluido)
+        #expect(pendentes.first?.registro.ocorridoEm == aconteceu)
+        #expect(await api.eventosRegistrados.isEmpty)
+    }
+
+    @Test("Evento sem hora própria é guardado com a hora de agora, não a da volta da rede")
+    func eventoSemHoraRecebeAgora() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await api.definirRedeCaida(true)
+
+        await registrador.registrar(.acaoEnfileiradaOffline)
+
+        let pendentes = try await fila.eventosPendentes()
+        #expect(pendentes.first?.registro.ocorridoEm == Self.instante)
+    }
+
+    @Test("O reenvio preserva o ocorrido_em original e esvazia a fila")
+    func reenvioPreservaOcorridoEm() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await api.definirRedeCaida(true)
+        let primeiro = Self.instante.addingTimeInterval(-7200)
+        let segundo = Self.instante.addingTimeInterval(-3600)
+        await registrador.registrar(.checkinConcluido, ocorridoEm: primeiro)
+        await registrador.registrar(.checkoutConcluido, ocorridoEm: segundo)
+        #expect(try await fila.eventosPendentes().count == 2)
+
+        await api.definirRedeCaida(false)
+        await registrador.reenviar()
+
+        let enviados = await api.eventosRegistrados
+        #expect(enviados.map(\.evento) == [.checkinConcluido, .checkoutConcluido])
+        #expect(enviados.map(\.ocorridoEm) == [primeiro, segundo])
+        #expect(try await fila.eventosPendentes().isEmpty)
+    }
+
+    @Test("Com a rede ainda caída o reenvio mantém tudo, na ordem")
+    func reenvioSemRedeMantemFila() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await api.definirRedeCaida(true)
+        await registrador.registrar(.checkinConcluido)
+        await registrador.registrar(.checkoutConcluido)
+
+        await registrador.reenviar()
+
+        #expect(try await fila.eventosPendentes().map(\.registro.evento) == [.checkinConcluido, .checkoutConcluido])
+    }
+
+    @Test("Um envio que dá certo esvazia o que ficou guardado")
+    func envioBemSucedidoEsvaziaFila() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await api.definirRedeCaida(true)
+        await registrador.registrar(.checkinConcluido, ocorridoEm: Self.instante.addingTimeInterval(-60))
+        await api.definirRedeCaida(false)
+
+        let ok = await registrador.registrar(.appAberto)
+        #expect(ok == true)
+
+        await esperar { ((try? await fila.eventosPendentes().isEmpty) ?? false) }
+        #expect(try await fila.eventosPendentes().isEmpty)
+        #expect(await api.eventosRegistrados.map(\.evento).contains(.checkinConcluido))
+    }
+
+    @Test("Recusa 422 do servidor descarta o evento e não o guarda")
+    func recusa422Descarta() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+
+        // vaga_id que não existe no servidor: 422 campo_invalido, definitivo.
+        let ok = await registrador.registrar(.vagaVista, vagaID: UUID())
+
+        #expect(ok == false)
+        #expect(try await fila.eventosPendentes().isEmpty)
+        #expect(await api.eventosRegistrados.isEmpty)
+    }
+
+    @Test("No reenvio, o evento que o servidor recusa sai da fila sem travar os seguintes")
+    func reenvioDescartaRecusadoEContinua() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        let conta = try await api.minhaConta().id
+        await fila.inserir(EventoDeTelemetriaPendente(
+            contaID: conta, registro: RegistroDeEvento(evento: .vagaVista, vagaID: UUID(), ocorridoEm: Self.instante),
+            guardadoEm: Self.instante
+        ))
+        await fila.inserir(EventoDeTelemetriaPendente(
+            contaID: conta, registro: RegistroDeEvento(evento: .appAberto, ocorridoEm: Self.instante),
+            guardadoEm: Self.instante
+        ))
+
+        await registrador.reenviar()
+
+        #expect(await api.eventosRegistrados.map(\.evento) == [.appAberto])
+        #expect(try await fila.eventosPendentes().isEmpty)
+    }
+
+    @Test("Evento de outra conta não sai pelo login de quem entrou depois")
+    func trocaDeContaNaoVaza() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await fila.inserir(EventoDeTelemetriaPendente(
+            contaID: UUID(), registro: RegistroDeEvento(evento: .checkinConcluido, ocorridoEm: Self.instante),
+            guardadoEm: Self.instante
+        ))
+
+        await registrador.reenviar()
+
+        #expect(await api.eventosRegistrados.isEmpty)
+        #expect(try await fila.eventosPendentes().isEmpty)
+    }
+
+    @Test("Sem saber quem está logado nada é enviado e nada é perdido")
+    func semContaConhecidaMantemFila() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await fila.inserir(EventoDeTelemetriaPendente(
+            contaID: try await api.minhaConta().id,
+            registro: RegistroDeEvento(evento: .checkinConcluido, ocorridoEm: Self.instante), guardadoEm: Self.instante
+        ))
+        await api.definirRedeCaida(true)
+
+        await registrador.reenviar()
+
+        #expect(try await fila.eventosPendentes().count == 1)
+        #expect(await api.eventosRegistrados.isEmpty)
+    }
+
+    @Test("Sem sessão local, o evento que falha não é guardado")
+    func semDonoNaoGuarda() async throws {
+        let api = ApiClienteEmMemoria(relogio: RelogioFixo(agora: Self.instante))
+        let fila = FilaDeTelemetriaEmMemoria(contaAtual: nil)
+        let registrador = RegistradorDeTelemetria(api: api, fila: fila, relogio: RelogioFixo(agora: Self.instante))
+        await api.definirRedeCaida(true)
+
+        await registrador.registrar(.checkinConcluido)
+
+        #expect(try await fila.eventosPendentes().isEmpty)
+    }
+
+    @Test("A fila respeita o limite e descarta o evento mais antigo")
+    func limiteDescartaOMaisAntigo() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        await api.definirRedeCaida(true)
+        let total = RegistradorDeTelemetria.limiteDePendentes + 5
+
+        for indice in 0..<total {
+            await registrador.registrar(.appAberto, ocorridoEm: Self.instante.addingTimeInterval(Double(indice - total)))
+        }
+
+        let pendentes = try await fila.eventosPendentes()
+        #expect(pendentes.count == RegistradorDeTelemetria.limiteDePendentes)
+        // Sobraram os mais novos: os 5 primeiros saíram.
+        #expect(pendentes.first?.registro.ocorridoEm == Self.instante.addingTimeInterval(Double(5 - total)))
+        #expect(pendentes.last?.registro.ocorridoEm == Self.instante.addingTimeInterval(-1))
+    }
+
+    @Test("Evento mais velho que a idade máxima é descartado no reenvio")
+    func idadeMaximaDescarta() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        let conta = try await api.minhaConta().id
+        let velho = Self.instante.addingTimeInterval(-RegistradorDeTelemetria.idadeMaxima - 60)
+        let recente = Self.instante.addingTimeInterval(-RegistradorDeTelemetria.idadeMaxima + 3600)
+        await fila.inserir(EventoDeTelemetriaPendente(
+            contaID: conta, registro: RegistroDeEvento(evento: .checkinConcluido, ocorridoEm: velho), guardadoEm: velho
+        ))
+        await fila.inserir(EventoDeTelemetriaPendente(
+            contaID: conta, registro: RegistroDeEvento(evento: .checkoutConcluido, ocorridoEm: recente), guardadoEm: recente
+        ))
+
+        await registrador.reenviar()
+
+        let enviados = await api.eventosRegistrados
+        #expect(enviados.map(\.evento) == [.checkoutConcluido])
+        #expect(enviados.first?.ocorridoEm == recente)
+        #expect(try await fila.eventosPendentes().isEmpty)
+    }
+
+    @Test("Relógio adiantado: a data no futuro é limitada a agora, no envio direto e no guardado")
+    func dataFuturaLimitadaAAgora() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        let futuro = Self.instante.addingTimeInterval(3600)
+
+        // Direto: o servidor aceita porque a data foi limitada.
+        let ok = await registrador.registrar(.checkinConcluido, ocorridoEm: futuro)
+        #expect(ok == true)
+        #expect(await api.eventosRegistrados.first?.ocorridoEm == Self.instante)
+
+        // Guardado sem rede: sai com agora, não com o futuro.
+        await api.definirRedeCaida(true)
+        await registrador.registrar(.checkoutConcluido, ocorridoEm: futuro)
+        #expect(try await fila.eventosPendentes().first?.registro.ocorridoEm == Self.instante)
+    }
+
+    @Test("Item guardado com data no futuro (relógio que voltou) sai limitado a agora")
+    func reenvioLimitaDataFutura() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        let futuro = Self.instante.addingTimeInterval(7200)
+        await fila.inserir(EventoDeTelemetriaPendente(
+            contaID: try await api.minhaConta().id,
+            registro: RegistroDeEvento(evento: .checkinConcluido, ocorridoEm: futuro), guardadoEm: Self.instante
+        ))
+
+        await registrador.reenviar()
+
+        #expect(await api.eventosRegistrados.first?.ocorridoEm == Self.instante)
+        #expect(try await fila.eventosPendentes().isEmpty)
+    }
+
+    @Test("Só guarda o que passa com o tempo: rede, servidor e sessão sim; recusa 4xx não")
+    func quaisErrosSaoGuardados() {
+        let guarda: [CodigoErroAPI] = [.semRede, .desconhecido, .respostaInvalida, .limiteExcedido, .naoAutenticado]
+        for codigo in guarda {
+            #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: codigo)))
+        }
+        let descarta: [CodigoErroAPI] = [.campoObrigatorio, .campoInvalido, .registroNoFuturo]
+        for codigo in descarta {
+            #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: codigo)))
+        }
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: URLError(.notConnectedToInternet)))
+    }
+
+    @Test("O registrador sem fila mantém o comportamento antigo: falha de rede só devolve false")
+    func semFilaNaoGuardaNada() async {
+        let api = ApiClienteEmMemoria(cenario: .semRede)
+        let registrador = RegistradorDeTelemetria(api: api, fila: nil)
+
+        let ok = await registrador.registrar(.checkinConcluido)
+        await registrador.reenviar()
+
+        #expect(ok == false)
+    }
+
+    // MARK: - Fila persistida (SwiftData)
+
+    @Test("A fila do SwiftData guarda para a conta da sessão e preserva a data")
+    func swiftDataGuardaEPreserva() async throws {
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let conta = UUID()
+        try await armazenamento.salvar(sessao: SessaoUsuario(usuarioID: conta, perfil: .profissional))
+        let registro = RegistroDeEvento(evento: .checkinConcluido, vagaID: UUID(), ocorridoEm: Self.instante.addingTimeInterval(-30))
+
+        try await armazenamento.guardar(registro, em: Self.instante, limite: 10)
+
+        let pendentes = try await armazenamento.eventosPendentes()
+        #expect(pendentes.count == 1)
+        #expect(pendentes.first?.contaID == conta)
+        #expect(pendentes.first?.registro == registro)
+        #expect(pendentes.first?.guardadoEm == Self.instante)
+    }
+
+    @Test("A fila do SwiftData não guarda sem sessão local")
+    func swiftDataSemSessaoNaoGuarda() async throws {
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+
+        try await armazenamento.guardar(RegistroDeEvento(evento: .appAberto), em: Self.instante, limite: 10)
+
+        #expect(try await armazenamento.eventosPendentes().isEmpty)
+    }
+
+    @Test("A fila do SwiftData respeita o limite, remove por id e é apagada em limpar()")
+    func swiftDataLimiteRemoverELimpar() async throws {
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        try await armazenamento.salvar(sessao: SessaoUsuario(usuarioID: UUID(), perfil: .contratante))
+        for indice in 0..<5 {
+            let guardadoEm = Self.instante.addingTimeInterval(Double(indice))
+            try await armazenamento.guardar(RegistroDeEvento(evento: .appAberto, ocorridoEm: guardadoEm), em: guardadoEm, limite: 3)
+        }
+
+        let pendentes = try await armazenamento.eventosPendentes()
+        #expect(pendentes.count == 3)
+        #expect(pendentes.first?.guardadoEm == Self.instante.addingTimeInterval(2))
+
+        try await armazenamento.remover(ids: [pendentes[0].id])
+        #expect(try await armazenamento.eventosPendentes().count == 2)
+
+        try await armazenamento.limpar()
+        #expect(try await armazenamento.eventosPendentes().isEmpty)
+    }
+
+    @Test("A reserva do reenvio é exclusiva até ser liberada")
+    func swiftDataReservaExclusiva() async throws {
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+
+        #expect(await armazenamento.reservarReenvio() == true)
+        #expect(await armazenamento.reservarReenvio() == false)
+        await armazenamento.liberarReenvio()
+        #expect(await armazenamento.reservarReenvio() == true)
+    }
+}
+
+/// Fila em memória com as mesmas regras da persistida: dono = conta atual, limite e reserva do reenvio.
+private actor FilaDeTelemetriaEmMemoria: FilaDeTelemetria {
+    private let contaAtual: UUID?
+    private var itens: [EventoDeTelemetriaPendente] = []
+    private var reservada = false
+
+    init(contaAtual: UUID?) { self.contaAtual = contaAtual }
+
+    /// Põe direto um item, como se tivesse sido guardado antes (de outra conta, velho, no futuro).
+    func inserir(_ item: EventoDeTelemetriaPendente) { itens.append(item) }
+
+    func guardar(_ registro: RegistroDeEvento, em instante: Date, limite: Int) throws {
+        guard let contaAtual else { return }
+        itens.append(EventoDeTelemetriaPendente(contaID: contaAtual, registro: registro, guardadoEm: instante))
+        if itens.count > limite { itens.removeFirst(itens.count - limite) }
+    }
+
+    func eventosPendentes() throws -> [EventoDeTelemetriaPendente] { itens }
+    func remover(ids: [UUID]) throws { itens.removeAll { ids.contains($0.id) } }
+    func reservarReenvio() -> Bool {
+        if reservada { return false }
+        reservada = true
+        return true
+    }
+    func liberarReenvio() { reservada = false }
+    func limpar() throws { itens.removeAll() }
 }
 
 private actor FilaDeAcoesMemoria: FilaDeAcoes {

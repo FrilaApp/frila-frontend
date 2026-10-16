@@ -173,6 +173,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var avaliacoes: [UUID: Avaliacao] = [:]
 
     private let cenario: Cenario
+    private var redeCaida = false
     private let relogio: any Relogio
     private let envelopes: [String: EnvelopeErroAPI]
     private let catalogo: [Funcao]
@@ -2275,8 +2276,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     private func verificarRede() throws {
-        if cenario == .semRede { throw ErroDaApi(codigo: .semRede) }
+        if cenario == .semRede || redeCaida { throw ErroDaApi(codigo: .semRede) }
     }
+
+    /// Derruba e devolve a rede no meio de um teste (o cenário `.semRede` é fixo desde a criação).
+    public func definirRedeCaida(_ caida: Bool) { redeCaida = caida }
 
     private func verificarFalhaGeral() throws {
         try verificarRede()
