@@ -861,12 +861,12 @@
         }
       }
     },
-    "Avaliação registrada com sucesso!": {
+    "Avaliação registrada.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaliação registrada com sucesso!"
+            "value": "Avaliação registrada."
           }
         }
       }
@@ -2721,12 +2721,12 @@
         }
       }
     },
-    "Perfil salvo com sucesso!": {
+    "Perfil salvo.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Perfil salvo com sucesso!"
+            "value": "Perfil salvo."
           }
         }
       }
@@ -7935,12 +7935,12 @@
         }
       }
     },
-    "Vaga republicada com sucesso!": {
+    "Vaga republicada.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vaga republicada com sucesso!"
+            "value": "Vaga republicada."
           }
         }
       }

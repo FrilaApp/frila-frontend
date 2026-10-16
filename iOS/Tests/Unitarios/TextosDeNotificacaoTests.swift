@@ -189,7 +189,7 @@ struct TextosDeNotificacaoTests {
 
         #expect(linha29.tipo == "candidatura_recusada")
         #expect(linha29.limiteCorpo.contains("128 (TRUNCA)"))
-        #expect(linha29.limiteCorpo.contains("86 (OK)") || linha29.limiteCorpo.contains("Proposta"))
+        #expect(linha29.limiteCorpo.contains("79 (OK)") || linha29.limiteCorpo.contains("Proposta"))
 
         let variantes = linha29.variantesDeCorpo
         let contrato = try #require(variantes.first(where: { $0.rotulo == "contrato" }))
@@ -197,6 +197,7 @@ struct TextosDeNotificacaoTests {
 
         #expect(contrato.texto.count == 128, "Texto do contrato de candidatura_recusada deve ter exatamente 128 car.")
         #expect(contrato.texto.count > 110, "Texto do contrato ultrapassa o limite de 110 car. do iPhone SE")
+        #expect(proposta.texto.count == 79)
         #expect(proposta.texto.count <= 110, "Proposta ajustada deve cumprir o limite de 110 car.")
     }
 

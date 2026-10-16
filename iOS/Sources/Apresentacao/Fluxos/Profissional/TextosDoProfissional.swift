@@ -160,7 +160,7 @@ enum TextosDoProfissional {
         public static let erroCoordenadasInvalidas = String(localized: "Coordenadas inválidas.", bundle: bundleApresentacao)
         public static let erroCarregar = String(localized: "Não foi possível carregar as informações.", bundle: bundleApresentacao)
         public static let erroSalvar = String(localized: "Não foi possível salvar o perfil.", bundle: bundleApresentacao)
-        public static let perfilSalvoComSucesso = String(localized: "Perfil salvo com sucesso!", bundle: bundleApresentacao)
+        public static let perfilSalvoComSucesso = String(localized: "Perfil salvo.", bundle: bundleApresentacao)
         public static let buscar = String(localized: "Buscar", bundle: bundleApresentacao)
     }
 
@@ -177,7 +177,7 @@ enum TextosDoProfissional {
             bundle: bundleApresentacao
         )
         public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)
-        public static let avaliadoSucesso = String(localized: "Avaliação registrada com sucesso!", bundle: bundleApresentacao)
+        public static let avaliadoSucesso = String(localized: "Avaliação registrada.", bundle: bundleApresentacao)
         public static let avaliadoOffline = String(localized: "Avaliação salva. Será enviada quando a internet voltar.", bundle: bundleApresentacao)
         public static let suaResposta = String(localized: "Sua resposta", bundle: bundleApresentacao)
         public static let erroIndisponivel = String(localized: "A avaliação só fica disponível após o término do turno e com presença confirmada.", bundle: bundleApresentacao)

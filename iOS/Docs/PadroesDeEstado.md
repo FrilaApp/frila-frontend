@@ -177,9 +177,9 @@ Confirma a conclusão de uma ação iniciada pelo usuário (salvar perfil, regis
   - *Marcadores de Confirmação:* Ícones SF Symbol `"checkmark.circle.fill"` com a cor verde de sucesso (`FrilaCor.sucesso` / `Color("Success")`) em listas e itens concluídos.
   - *Navegação de Avanço:* Conclusão com transição direta para a tela de destino (ex.: detalhe do turno após confirmação) ou fechamento da modal.
 - **Texto-base:**
-  - Perfil salvo: `"Perfil salvo com sucesso!"` (`TextosDoProfissional.swift:163`).
-  - Avaliação enviada: `"Avaliação registrada com sucesso!"` (`TextosDoProfissional.swift:180`).
-  - Vaga republicada: `"Vaga republicada com sucesso!"` (`RepublicarVaga.swift:30`).
+  - Perfil salvo: `"Perfil salvo."` (`TextosDoProfissional.swift:163`).
+  - Avaliação enviada: `"Avaliação registrada."` (`TextosDoProfissional.swift:180`).
+  - Vaga republicada: `"Vaga republicada."` (`RepublicarVaga.swift:30`).
   - Presença confirmada: `"Presença confirmada."` (`TelaTurnoDoContratante.swift:22`).
   - Check-in verificado: `"Check-in verificado às {HH:MM}, a {N} m do endereço."` (`TextosDaPresenca.swift:44`).
 - **Ação:**
@@ -209,7 +209,7 @@ Mapeamento de discrepâncias entre o padrão ideal de design system e as impleme
 | 07 | **Sem Rede** | `EstadoOffline` específico | `case let .falha(mensagem)` | `TelaMeusTurnos.swift:97–103` | Falha de rede em Meus Turnos cai na mesma cláusula de erro geral de servidor, sem feedback explícito de modo offline. |
 | 08 | **Sem Permissão**| Botão padronizado | `BotaoSecundario` vs. `Link` | `TelasDaPermissaoDePush.swift:75` vs. `SecaoDePresenca.swift:92` | Push usa `BotaoSecundario` para ir aos Ajustes; GPS usa um `Link` textual simples sem borda. |
 | 09 | **Sucesso** | `AvisoFrila(tom: .sucesso)` | `AvisoFrila(tom: .informativo)` | `TelaPerfilProfissional.swift:54`, `MinhasVagas.swift:277` | `AvisoFrila` não possui a variante `.sucesso`. Mensagens de sucesso são exibidas na cor primária (azul) em vez do verde de sucesso. |
-| 10 | **Sucesso** | Pontuação sóbria consistente | Ponto de exclamação vs. ponto final | `TextosDoProfissional.swift:163` vs. `TelaTurnoDoContratante.swift:22` | Textos alternam entre exclamação (*"Perfil salvo com sucesso!"*) e ponto final (*"Presença confirmada."*). |
+| 10 | **Sucesso** | Pontuação sóbria consistente | Ponto final nas mensagens de sucesso | `TextosDoProfissional.swift:163` vs. `TelaTurnoDoContratante.swift:22` | Corrigido em 16/10/2026: textos usam ponto final (*"Perfil salvo."*, *"Avaliação registrada."*, *"Vaga republicada."* e *"Presença confirmada."*). |
 
 ---
 
