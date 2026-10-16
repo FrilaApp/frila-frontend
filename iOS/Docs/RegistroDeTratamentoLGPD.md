@@ -56,10 +56,12 @@ Documento técnico elaborado em conformidade com o Artigo 37 da Lei Geral de Pro
 4. **Omissão das Funções Cadastradas e Grade de Disponibilidade Semanal na Tabela de Coleta:**
    - **No Backend e Contrato (`20260922150300_catalogo_e_disponibilidade.sql:15-37`, `openapi.yaml:3900-3930`):** Funções de trabalho e janelas horárias de disponibilidade semanal são dados pessoais operacionais coletados do profissional para elegibilidade.
    - **Na Política (`privacidade.md:27-39`):** Não figuram como itens autônomos na tabela de dados da Seção 2.
+   - **Status:** Resolvida em 15/10/2026. A Seção 2 da Política ganhou a linha "Funções e Disponibilidade Semanal" (Art. 7º, V).
 
 5. **Omissão das Coleções de Equipe de Confiança e Bloqueios Mútuos:**
    - **No Backend e Contrato (`20260922150200_estabelecimento.sql:52-57`, `20260922150500_despacho_turno_ocorrencia.sql:114-121`, `openapi.yaml:5023-5033, 5086-5105`):** Registros relacionais entre titulares de dados para gestão de alcance de vagas e proteção contra assédio.
    - **Na Política (`privacidade.md:27-39`):** Não figuram na tabela da Seção 2 de dados coletados e tratados.
+   - **Status:** Resolvida em 15/10/2026. A Seção 2 da Política ganhou a linha "Equipe de Confiança e Bloqueios" (Art. 7º, V).
 
 6. **Prazos de Atendimento: decisão documental e alinhamento técnico pendente:**
    - **Decisão do Cauê de 15/10/2026:** o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos, para moderação, denúncias e atendimento.
@@ -67,10 +69,10 @@ Documento técnico elaborado em conformidade com o Artigo 37 da Lei Geral de Pro
    - **No app e no backend:** O perfil ainda informa `"Respondemos em até 5 dias úteis."`; `privado.prazo_de_resposta` ainda calcula o quinto dia útil. Os modelos transacionais também exigem alinhamento pelo backend, via cartão no Trello.
    - **Impacto:** A divergência documental de 24 horas foi removida. O alinhamento dos textos e do cálculo técnico de prazo permanece pendente; nenhum código do app ou backend foi alterado nesta missão.
 
-7. **Bifurcação do E-mail de Contato Oficial (Canal do Titular e Suporte):**
-   - **Em `privacidade.md:19, 114, 149` e `EnderecosOficiais.swift:22`:** Utiliza `suportefrila@gmail.com`.
-   - **Em `AjudaESuporte.md:41`, `SuporteTurnoViewModel.swift:142` e documentação de requisitos:** Utiliza `suporte@frila.app`.
-   - **Impacto:** Canal do titular precisa ser unificado formalmente antes do lançamento (conforme recomendado em `AjudaESuporte.md:43`).
+7. **E-mail de contato: resta `suporte@frila.app` em três lugares:**
+   - **Unificado:** o app e a Política usam `suportefrila@gmail.com` (`privacidade.md`, `EnderecosOficiais.swift:22`).
+   - **Ainda com `suporte@frila.app`:** `openapi.yaml:2954` (espelho do contrato, do backend), `AjudaESuporte.md:49` e `PlanoDoPiloto.md`.
+   - **Impacto:** o canal do titular está unificado no app; falta atualizar esses documentos e o contrato, via cartão no backend.
 
 ---
 
