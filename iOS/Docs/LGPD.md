@@ -4,10 +4,11 @@ Documento formal de conformidade com a Lei Geral de Proteção de Dados Pessoais
 elaborado a partir do dossiê técnico de privacidade aprovado no PR #192 (`iOS/Docs/SegurancaEPrivacidade.md`)
 e do código-fonte em `iOS/Sources/`.
 
-> **Pendências do Cauê / sócios:**
-> - Simulação de incidente ao vivo e aprovação formal dos cinco sócios.
-> - Nomeação do Encarregado (DPO) junto à ANPD, se aplicável.
-> - Publicação do canal do titular na página pública `https://frila.app/privacidade`.
+> **Pendências:**
+> - Simulação de incidente ao vivo (exercício da Seção 3 com a equipe).
+> - Avaliação jurídica sobre a indicação de encarregado (Art. 41 e Resolução CD/ANPD nº 2/2022, que trata de
+>   agentes de pequeno porte). Até ela sair, o responsável atende o canal do titular; este documento não
+>   afirma dispensa.
 
 ---
 
@@ -17,9 +18,8 @@ e do código-fonte em `iOS/Sources/`.
 
 | Campo | Valor |
 |---|---|
-| **Razão Social** | Frila Tecnologia Ltda. (a ser confirmado pelos sócios) |
-| **CNPJ** | (a ser confirmado pelos sócios) |
-| **Encarregado (DPO)** | (a ser nomeado pelos sócios) |
+| **Responsável (controlador)** | Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes), Brasília/DF |
+| **CNPJ, sede e encarregado** | Não há. O projeto não tem empresa constituída; a indicação de encarregado depende da avaliação jurídica listada nas pendências |
 | **Canal do Titular** | `suportefrila@gmail.com` — referência: `EnderecosOficiais.swift:22` |
 | **Política de Privacidade** | `https://frila.app/privacidade` — referência: `EnderecosOficiais.swift:21` |
 
@@ -32,24 +32,27 @@ contra o código-fonte.
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | **Nome completo** | Dado pessoal | Profissional / Contratante | Identificação na plataforma; exibição nas candidaturas e turnos | Art. 7º, V — execução de contrato | `Dominio/Portas.swift:3`, RPC `criar_conta` em `SupabaseApiCliente.swift:102` | Supabase Postgres (banco), SwiftData local (cache) | Outra parte do turno confirmado | Exclusão pela RPC de exclusão de conta; cache local apagado em `SaidaDaConta.swift:74-91` |
 | 2 | **Endereço de e-mail** | Dado pessoal | Profissional / Contratante | Autenticação via OTP (sem senha) | Art. 7º, V — execução de contrato | `SupabaseApiCliente.swift:49` (Supabase Auth) | Supabase Auth | Não compartilhado com terceiros | Exclusão pela RPC de exclusão de conta |
-| 3 | **Número de telefone** | Dado pessoal | Profissional / Contratante | Contato entre as partes após confirmação do turno (WhatsApp) | Art. 7º, V — execução de contrato | `ContatoDTO.dominio()` em `DTOsContrato.swift:588` | Supabase Postgres; SwiftData (cache, com expiração) | Outra parte do turno confirmado, via `whatsapp_url` saneado (A5) | Cache expirado em `CacheSwiftData.swift:133`; turno apagado 24 h após fim (`:123-127`) |
+| 3 | **Número de telefone** | Dado pessoal | Profissional / Contratante | Contato entre as partes após confirmação do turno (WhatsApp) | Art. 7º, V — execução de contrato | `ContatoDTO.dominio()` em `DTOsContrato.swift:588` | Supabase Postgres; SwiftData (cache, com expiração) | Outra parte do turno confirmado, via `whatsapp_url` saneado (A5) | Disponível à outra parte por até 7 dias após o fim do turno (RN10), no app e no servidor; offline, o cache local descarta o turno 24 h após o fim (`CacheSwiftData.swift:123-133`) |
 | 4 | **Endereço físico do estabelecimento** | Dado pessoal | Contratante | Localização do turno; cálculo de distância para o profissional | Art. 7º, V — execução de contrato | `CadastroEstabelecimento.swift:105`, RPC `cadastrar_estabelecimento` em `SupabaseApiCliente.swift:144` | Supabase Postgres | Profissionais que visualizam a vaga | Exclusão pela RPC de exclusão de conta |
 | 5 | **Localização precisa (GPS)** | Dado pessoal sensível (Art. 11) | Profissional | Comprovação de presença no check-in/check-out | Art. 7º, V — execução de contrato; consentimento via permissão "Ao Usar o App" | `LeitorDeLocalizacaoDoSistema.swift:45` (leitura pontual) | **Não armazenada no servidor.** Apenas `distanciaMetros` é enviado (`SupabaseApiCliente.swift:521-524`). Localmente: transitória | Não compartilhada | Não retida: só a distância (não pessoal) é persistida |
-| 6 | **Ponto base (coordenada de referência)** | Dado pessoal | Profissional | Calcular proximidade com vagas no feed | Art. 7º, V — execução de contrato | `PerfilProfissionalViewModel.swift:108-112` | Supabase Postgres | Não compartilhado (usado apenas em consulta interna) | Exclusão pela RPC de exclusão de conta |
+| 6 | **Ponto base (coordenada de referência)** | Dado pessoal | Profissional | Calcular proximidade com vagas no feed. Um único ponto, sem histórico de lugares | Art. 7º, V — execução de contrato | `PerfilProfissionalViewModel.swift:108-112` | Supabase Postgres | Não compartilhado (usado apenas em consulta interna) | Exclusão pela RPC de exclusão de conta |
 | 7 | **ID do usuário (conta_id)** | Dado pessoal | Profissional / Contratante | Identificação única da conta | Art. 7º, V — execução de contrato | Supabase Auth (`usuarioID`) | Supabase Auth; SwiftData local (`Modelos.swift:13-21`) | Internamente entre módulos | Exclusão pela RPC de exclusão de conta; localmente em `SaidaDaConta.swift` |
 | 8 | **Token de push (APNs/FCM)** | Dado pessoal (identificador de dispositivo) | Profissional / Contratante | Notificações push de turnos, candidaturas e avisos | Art. 7º, V — execução de contrato | `AparelhoDePush.swift:208`, RPC `registrar_dispositivo` | Supabase Postgres; Keychain local (`AfterFirstUnlockThisDeviceOnly`) | Firebase Cloud Messaging (operador) | Apagado na saída da conta (`SaidaDaConta.swift`); no App Group: apagado com o vínculo |
-| 9 | **Data de nascimento** | Dado pessoal | Profissional / Contratante | Validação de maioridade legal (requisito de elegibilidade) | Art. 7º, II — cumprimento de obrigação legal (CLT/trabalho) | Cadastro da conta | Supabase Postgres | Não compartilhada | Exclusão pela RPC de exclusão de conta |
+| 9 | **Data de nascimento** | Dado pessoal | Profissional / Contratante | Validação de maioridade legal (o app é exclusivo para maiores de 18 anos) | Art. 7º, II — cumprimento de obrigação legal (intermediação de trabalho avulso; ECA Digital, Lei nº 15.211/2025) | Cadastro da conta; no iOS 26.2 ou mais novo, também a faixa de idade do aparelho (*Declared Age Range*), sem a data de nascimento do aparelho | Supabase Postgres | Não compartilhada | Exclusão pela RPC de exclusão de conta |
+| 9a | **Documento do Estabelecimento (CNPJ ou CPF)** | Dado pessoal (quando CPF) | Contratante | Identificar quem contrata e evitar cadastro repetido do mesmo estabelecimento | Art. 7º, V — execução de contrato | RPC `cadastrar_estabelecimento` (`estabelecimento.documento`) | Supabase Postgres | Não compartilhado; nunca aparece em leitura pública | Exclusão pela RPC de exclusão de conta (anonimização, RF25) |
 | 10 | **Relatos de suporte, contestação e avaliações** | Dado pessoal (conteúdo do usuário) | Profissional / Contratante | Suporte ao usuário; moderação (Diretriz 1.2 Apple); avaliação de turnos | Art. 7º, V — execução de contrato | `FolhaSuporteTurno.swift`, `ContaSuspensaViewModel.swift`, `AvaliacaoTurnoViewModel.swift` | Supabase Postgres | Equipe operacional interna (o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos) | Exclusão pela RPC de exclusão de conta |
 | 11 | **Dados de falhas (crash)** | Dado diagnóstico (não pessoal) | — | Estabilidade do app | Art. 7º, IX — legítimo interesse | `TelemetriaCrashlytics.swift` | Firebase Crashlytics | Firebase/Google (operador) | Retenção padrão do Crashlytics (90 dias) |
 | 12 | **Telemetria de erros da API** | Dado diagnóstico (não pessoal) | — | Monitoramento de erros | Art. 7º, IX — legítimo interesse | `TelemetriaCrashlytics.swift:44-47` (`codigo`, `rpc`, `duracao_ns`) | Firebase Crashlytics | Firebase/Google (operador) | Retenção padrão do Crashlytics |
+| 13 | **Eventos de uso do app** (telemetria `evento_app`) | Dado pessoal (vinculado à conta) | Profissional / Contratante | Medir se o ciclo de vagas e turnos funciona e onde as pessoas desistem; contas de demonstração e da equipe ficam fora das contas | Art. 7º, IX — legítimo interesse | `usuario_id`, `evento` (lista fechada de 14), `vaga_id`, `turno_id`, `ocorrido_em`; sem texto livre, telefone, e-mail ou coordenadas | Supabase Postgres (RLS: só `service_role` e a view de métricas); sem rede, fila local de até 200 eventos por até 30 dias | Não compartilhado | Apagados em 90 dias por `privado.limpar_eventos_app`; a fila local é apagada ao sair da conta |
 
 ### 1.3 Operadores (Subprocessadores)
 
 | Operador | Dado Acessado | Finalidade | Salvaguarda |
 |---|---|---|---|
-| **Supabase Inc.** (infraestrutura de banco, autenticação e Edge Functions) | Todos os dados pessoais do banco e da autenticação (itens 1-10) | Hospedagem e processamento dos dados | Contrato de processamento de dados do Supabase (DPA); dados em trânsito sobre TLS; banco cifrado em repouso |
+| **Supabase Inc.** (infraestrutura de banco, autenticação e Edge Functions) | Todos os dados pessoais do banco e da autenticação (itens 1-10 e 13) | Hospedagem e processamento dos dados | Contrato de processamento de dados do Supabase (DPA); dados em trânsito sobre TLS; banco cifrado em repouso |
 | **Google / Firebase** (Crashlytics e FCM) | Token de push (item 8), dados de crash e telemetria (itens 11-12) | Entrega de notificações push e relatórios de falhas | DPA do Firebase; sem `setUserID`, sem dados pessoais nos eventos; dados desvinculados da identidade |
 | **Apple Inc.** (APNs) | Token de push (item 8) | Entrega de notificações push no iOS | Termos do Apple Push Notification service |
+| **Google (Gmail)** | Endereço de e-mail (item 2) | Envio do código temporário de entrada | Termos do Google Workspace/Gmail; o e-mail leva só o código, sem outros dados da conta |
 
 ### 1.4 Transferência Internacional
 
@@ -119,8 +122,7 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 
 | Papel | Responsável | Contato |
 |---|---|---|
-| **Coordenador de Incidentes** | (a ser nomeado pelos sócios) | — |
-| **Encarregado (DPO)** | (a ser nomeado pelos sócios) | — |
+| **Responsável (coordena o incidente)** | Cauê Carneiro Kilanovic | `suportefrila@gmail.com` |
 | **Equipe Técnica** | Responsável pela infraestrutura (Supabase, Firebase, CI/CD) | — |
 | **Comunicação** | Responsável por notificar titulares e ANPD | — |
 
@@ -131,9 +133,9 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 1. Identificar o vetor de incidente (acesso indevido ao banco, vazamento de credencial, vulnerabilidade, etc.).
 2. Isolar o componente afetado (revogar chaves, bloquear acesso, desativar Edge Function).
 3. Preservar evidências (logs do Supabase, logs do Firebase Crashlytics, registros de acesso).
-4. Comunicar internamente ao Coordenador de Incidentes e ao Encarregado.
+4. Comunicar internamente ao responsável.
 
-#### Fase 2 — Avaliação (4-24 h)
+#### Fase 2 — Avaliação (meta interna: até 1 dia útil)
 
 1. Determinar os dados pessoais afetados (cruzar com a tabela do ROPA, Seção 1.2).
 2. Estimar o número de titulares afetados.
@@ -141,7 +143,7 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 4. Classificar a gravidade: **baixa** (sem dado pessoal exposto), **média** (dados pessoais não sensíveis),
    **alta** (dados sensíveis, financeiros ou de menores, ou volume acima de 1.000 titulares).
 
-#### Fase 3 — Comunicação (até 2 dias úteis após confirmação — Art. 48)
+#### Fase 3 — Comunicação (até 3 dias úteis do conhecimento do incidente — Art. 48 e Resolução CD/ANPD nº 15/2024)
 
 1. Notificar a ANPD pelo formulário oficial, se o incidente puder acarretar risco ou dano relevante.
 2. Notificar os titulares afetados por e-mail individual.
@@ -163,10 +165,9 @@ Data da comunicação: ____/____/________
 Data da ciência do incidente: ____/____/________
 
 1. IDENTIFICAÇÃO DO CONTROLADOR
-   Razão Social: Frila Tecnologia Ltda.
-   CNPJ: ________________
-   Encarregado (DPO): ________________
-   E-mail do Encarregado: ________________
+   Responsável (pessoa física): Cauê Carneiro Kilanovic
+   CPF: ________________
+   E-mail: suportefrila@gmail.com
    Telefone: ________________
 
 2. DESCRIÇÃO DO INCIDENTE
@@ -203,7 +204,7 @@ Data da ciência do incidente: ____/____/________
 7. INFORMAÇÕES ADICIONAIS
    ________________________________________________________________________
 
-Assinatura do Encarregado: ________________
+Assinatura do responsável: ________________
 ```
 
 ### 3.5 Modelo de Comunicação aos Titulares
@@ -234,8 +235,7 @@ Estamos à disposição pelo e-mail suportefrila@gmail.com para esclarecer
 quaisquer dúvidas.
 
 Atenciosamente,
-[Nome do Encarregado / DPO]
-Frila Tecnologia Ltda.
+Equipe Frila
 ```
 
 ---
@@ -246,10 +246,10 @@ Checklist de coerência entre este registro e a política publicada em `https://
 
 | Item | ROPA (este documento) | Política de Privacidade |
 |---|---|---|
-| Dados coletados | Itens 1-12 da Seção 1.2 | **Verificar:** deve listar os mesmos tipos |
+| Dados coletados | Itens 1-13 da Seção 1.2 | **Verificar:** deve listar os mesmos tipos |
 | Finalidades | Coluna "Finalidade" da Seção 1.2 | **Verificar:** deve corresponder |
 | Base legal | Coluna "Base Legal" da Seção 1.2 | **Verificar:** deve ser mencionada |
-| Compartilhamento | Seção 1.3 (Supabase, Firebase, Apple) | **Verificar:** deve listar os mesmos operadores |
+| Compartilhamento | Seção 1.3 (Supabase, Firebase, Apple, Gmail) | **Verificar:** deve listar os mesmos operadores |
 | Transferência internacional | Seção 1.4 | **Verificar:** deve mencionar transferência para EUA |
 | Direitos do titular | Seção 2.2 | **Verificar:** deve listar todos os direitos dos Arts. 17-22 |
 | Canal do titular | `suportefrila@gmail.com` | **Verificar:** deve constar na página pública |
@@ -265,3 +265,4 @@ Checklist de coerência entre este registro e a política publicada em `https://
 | Data | Autor | Alteração |
 |---|---|---|
 | 2026-10-12 | Bucky (ajudante) | Versão inicial: ROPA, canal do titular e plano de incidentes |
+| 2026-10-15 | Nick Fury | Responsável pessoa física (sem CNPJ nem DPO); telefone em 7 dias (RN10); documento do estabelecimento; telemetria `evento_app`; Gmail como operador; incidente em 3 dias úteis (Res. CD/ANPD 15/2024) |

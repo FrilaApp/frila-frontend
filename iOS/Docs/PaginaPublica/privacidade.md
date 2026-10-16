@@ -1,5 +1,7 @@
 # Política de Privacidade — Frila
 
+**Última atualização:** 15 de outubro de 2026
+
 A sua privacidade e a proteção dos seus dados pessoais são princípios fundamentais para o **Frila**. Esta Política de Privacidade explica de forma clara, transparente e acessível como coletamos, utilizamos, armazenamos, compartilhamos e protegemos suas informações quando você utiliza nosso aplicativo para iOS e serviços relacionados.
 
 Esta política foi elaborada em estrita conformidade com a **Lei Geral de Proteção de Dados Pessoais do Brasil (LGPD — Lei nº 13.709/2018)**, o **Estatuto da Criança e do Adolescente Digital (Lei nº 15.211/2025)** e as **Diretrizes de Privacidade da App Store da Apple**.
@@ -25,13 +27,15 @@ Coletamos apenas as informações estritamente necessárias para viabilizar o fu
 | **Nome Completo** | Informado por você ao criar sua conta. | Identificar você perante a plataforma e exibir seu nome nas candidaturas e turnos confirmados. | Art. 7º, V (Execução de contrato) |
 | **Endereço de E-mail** | Informado por você no primeiro acesso. | Autenticar seu login de forma segura por meio de código temporário de uso único (sem uso de senhas). | Art. 7º, V (Execução de contrato) |
 | **Número de Telefone** | Informado por você no cadastro. | Permitir o contato direto e operacional entre profissional e contratante (via WhatsApp) exclusivamente após a confirmação de um turno. | Art. 7º, V (Execução de contrato) |
-| **Data de Nascimento** | Informada no cadastro da conta. | Validar a maioridade legal (o aplicativo é exclusivo para maiores de 18 anos, exigência legal para intermediação de trabalho avulso). | Art. 7º, II (Cumprimento de obrigação legal) |
-| **Endereço do Estabelecimento** | Informado pelo contratante ao cadastrar o local. | Informar aos profissionais onde o turno será presencialmente realizado. | Art. 7º, V (Execução de contrato) |
-| **Ponto Base (Referência)** | Bairro ou endereço de referência fixado pelo profissional no perfil. | Calcular e ordenar vagas próximas no seu feed, sem rastrear seu aparelho em tempo real. | Art. 7º, V (Execução de contrato) |
-| **Localização no Check-in/Check-out** | Leitura pontual de GPS do aparelho, com permissão "Ao Usar o App". | Comprovar que o profissional esteve no local do turno no início e fim do trabalho. **Apenas a distância em metros até o estabelecimento é enviada ao servidor; suas coordenadas exatas de GPS nunca são transmitidas nem armazenadas no banco de dados.** | Art. 7º, V (Execução de contrato) e consentimento específico de permissão do iOS |
+| **Data de Nascimento** | Informada no cadastro da conta. Em iPhones com iOS 26.2 ou mais novo, o app também consulta a faixa de idade que o próprio aparelho informa (*Declared Age Range*, da Apple), sem receber a data de nascimento cadastrada no aparelho. | Validar a maioridade legal (o aplicativo é exclusivo para maiores de 18 anos, exigência legal para intermediação de trabalho avulso). | Art. 7º, II (Cumprimento de obrigação legal) |
+| **Documento do Estabelecimento (CNPJ ou CPF)** | Informado pelo contratante ao cadastrar o local. | Identificar quem contrata e evitar o cadastro repetido do mesmo estabelecimento. O documento nunca aparece para outras pessoas no app. | Art. 7º, V (Execução de contrato) |
+| **Endereço e Ponto do Estabelecimento** | Informados pelo contratante ao cadastrar o local; o endereço é convertido em um ponto no mapa (latitude e longitude). | Informar aos profissionais onde o turno será presencialmente realizado e calcular a distância no check-in e no check-out. | Art. 7º, V (Execução de contrato) |
+| **Ponto Base (Referência)** | Bairro ou endereço de referência fixado pelo profissional no perfil e guardado como um único ponto no mapa. | Calcular a distância e ordenar vagas próximas no seu feed. Não guardamos histórico de lugares, não rastreamos o aparelho em tempo real e o ponto nunca é mostrado a outra pessoa. | Art. 7º, V (Execução de contrato) |
+| **Localização no Check-in e no Check-out** | Leitura pontual de GPS do aparelho, com permissão "Ao Usar o App", só no toque de check-in e no de check-out. | Comprovar que o profissional esteve no local do turno no início e no fim do trabalho. **Apenas a distância em metros até o estabelecimento é enviada ao servidor; suas coordenadas exatas de GPS nunca são transmitidas nem armazenadas no banco de dados.** | Art. 7º, V (Execução de contrato) e consentimento específico de permissão do iOS |
 | **Identificadores Técnicos** | ID único da conta e token de notificações (APNs/FCM). | Gerenciar sua sessão e entregar notificações push sobre status de vagas, candidaturas e avisos de turnos. | Art. 7º, V (Execução de contrato) |
 | **Conteúdo do Usuário e Avaliações** | Relatos de suporte, denúncias, contestações e avaliações mútuas de turnos. | Manter a qualidade da comunidade, apurar denúncias de abuso (o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos) e responder a solicitações operacionais. | Art. 7º, V (Execução de contrato) |
-| **Dados Técnicos de Diagnóstico** | Registros de travamento anônimos e códigos de erro de comunicação com o servidor. | Identificar falhas de sistema e aprimorar a estabilidade do app. **Esses dados não contêm seu nome, e-mail, telefone nem qualquer identificador de usuário.** | Art. 7º, IX (Legítimo interesse) |
+| **Eventos de Uso do App** | Registros automáticos de passos do uso, de uma lista fechada de 14 eventos (por exemplo: app aberto, vaga vista, candidatura enviada, check-in concluído), com a sua conta, a vaga ou o turno envolvido e a hora. Sem texto livre, telefone, e-mail ou coordenadas. Sem rede, o app guarda até 200 eventos por até 30 dias e os envia quando a conexão volta; ao sair da conta, apaga os que não foram enviados. | Medir se o ciclo de vagas e turnos funciona e onde as pessoas desistem, para melhorar o app. Contas de demonstração e da equipe ficam fora das contas. Ninguém de fora da equipe acessa esses registros. | Art. 7º, IX (Legítimo interesse) |
+| **Dados Técnicos de Diagnóstico** | Registros de travamento e códigos de erro de comunicação com o servidor. | Identificar falhas de sistema e aprimorar a estabilidade do app. **Esses dados não contêm seu nome, e-mail, telefone nem qualquer identificador de usuário.** | Art. 7º, IX (Legítimo interesse) |
 
 ---
 
@@ -56,6 +60,7 @@ Seus dados pessoais só são compartilhados nas seguintes situações objetivas:
 2. **Com provedores de infraestrutura e tecnologia essenciais (Operadores):**
    - **Supabase Inc.:** Hospedagem segura de banco de dados, autenticação de usuários e processamento de regras em servidores protegidos.
    - **Google Firebase (FCM e Crashlytics):** Entrega de notificações push no aparelho e coleta técnica de relatórios de travamento desvinculados de identidade pessoal.
+   - **Google (Gmail):** Envio, para o seu e-mail, do código temporário de entrada.
    - **Apple Inc. (APNs):** Entrega das notificações push pelo sistema operacional iOS.
 3. **Por obrigação legal ou ordem de autoridade competente:**
    - Em caso de determinação judicial, requisição formal de autoridade policial competente ou obrigação regulatória expressa, estritamente nos limites exigidos por lei.
@@ -75,10 +80,11 @@ Toda transferência internacional de dados é realizada sob salvaguardas contrat
 Adotamos a regra da minimização do tempo de guarda:
 
 - **Dados de conta ativa:** Mantidos enquanto você mantiver seu cadastro no Frila para possibilitar o uso contínuo da plataforma.
-- **Contatos de turnos finalizados:** Os dados de contato da outra parte (telefone/WhatsApp) expiram da memória e do aplicativo local em até 24 horas após o encerramento do turno.
+- **Contatos de turnos finalizados:** Os dados de contato da outra parte (telefone/WhatsApp) ficam disponíveis para consulta pelo titular por até 7 dias após o término do turno (regra RN10), no aplicativo e no servidor; em modo offline, o cache local descarta o turno 24 horas após o fim.
+- **Eventos de uso do app:** Apagados automaticamente 90 dias depois de registrados.
 - **Relatórios técnicos de erros:** Armazenados de forma anônima pelo provedor de diagnóstico por até 90 dias, sendo descartados automaticamente.
 - **Ao sair da conta (*Log out*):** O aplicativo remove imediatamente do aparelho os dados de cache local, histórico recente, vínculo de notificações e sessões ativas.
-- **Ao excluir a conta:** Seus dados cadastrais pessoais são eliminados dos bancos de dados ativos de forma permanente, ressalvadas eventuais obrigações de guarda documental exigidas expressamente por lei ou ordem judicial.
+- **Ao excluir a conta:** O seu acesso é apagado e os seus dados cadastrais pessoais (nome, e-mail, telefone e data de nascimento) são eliminados de forma permanente. Turnos e avaliações também pertencem à outra parte, por isso ficam guardados sem identificar você: no app, a conta aparece como "Conta encerrada". Ficam ressalvadas eventuais obrigações de guarda documental exigidas expressamente por lei ou ordem judicial.
 
 ---
 
@@ -127,8 +133,8 @@ O Frila é um serviço de intermediação de turnos de trabalho voltado **exclus
 Mantemos um Plano de Resposta a Incidentes documentado. Na remota hipótese de ocorrer qualquer incidente de segurança que possa acarretar risco ou dano relevante aos seus direitos e liberdades individuais:
 
 1. Adotaremos imediatamente medidas técnicas de contenção e isolamento do componente afetado.
-2. Notificaremos a **Autoridade Nacional de Proteção de Dados (ANPD)** em prazo tempestivo, prestando todas as informações técnicas cabíveis.
-3. Comunicaremos individualmente os titulares afetados por meio do e-mail cadastrado, informando a natureza do evento, os dados potencialmente envolvidos e as medidas de proteção recomendadas, em conformidade com o **Art. 48 da LGPD**.
+2. Notificaremos a **Autoridade Nacional de Proteção de Dados (ANPD)** em até 3 dias úteis do conhecimento do incidente, como pede a Resolução CD/ANPD nº 15/2024, prestando todas as informações técnicas cabíveis.
+3. No mesmo prazo, comunicaremos individualmente os titulares afetados por meio do e-mail cadastrado, informando a natureza do evento, os dados potencialmente envolvidos e as medidas de proteção recomendadas, em conformidade com o **Art. 48 da LGPD**.
 
 ---
 
