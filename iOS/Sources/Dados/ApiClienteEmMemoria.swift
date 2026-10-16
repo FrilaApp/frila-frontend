@@ -65,6 +65,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case turnoCanceladoSemDetalhes = "turno-cancelado-sem-detalhes"
         case turnoCanceladoOutro = "turno-cancelado-outro"
         case turnoAvaliado = "turno-avaliado"
+        /// Turno dentro da janela de Estou a caminho (1 h para o início) (US14).
+        case aCaminho = "a-caminho"
         /// Conta de contratante com uma vaga de seleção de uma posição e quatro candidatos pendentes (#10).
         case selecaoComCandidatos = "selecao-com-candidatos"
         /// Como `selecaoComCandidatos`, mas outro membro da casa ocupa a última posição antes: a
@@ -366,6 +368,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
                 case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
                 case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60 + 30 * 60
+                case .aCaminho: 1 * 60 * 60
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,

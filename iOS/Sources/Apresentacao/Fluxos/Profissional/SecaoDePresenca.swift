@@ -11,11 +11,13 @@ struct SecaoDePresenca: View {
     private typealias Textos = TextosDoProfissional.Presenca
 
     @Bindable private var viewModel: PresencaDoTurnoViewModel
+    private var turno: MeuTurnoViewModel?
     @AccessibilityFocusState private var focoNoAviso: Bool
     private let formatador = FormatadorFrila()
 
-    init(viewModel: PresencaDoTurnoViewModel) {
+    init(viewModel: PresencaDoTurnoViewModel, turno: MeuTurnoViewModel? = nil) {
         self.viewModel = viewModel
+        self.turno = turno
     }
 
     var body: some View {
@@ -25,6 +27,9 @@ struct SecaoDePresenca: View {
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
+            if let aCaminho = situacaoACaminho {
+                linha(aCaminho).accessibilityIdentifier("a-caminho-situacao")
+            }
             if let situacao = situacaoDoCheckin {
                 linha(situacao).accessibilityIdentifier("checkin-situacao")
             }
@@ -33,6 +38,15 @@ struct SecaoDePresenca: View {
             }
             if let erro = viewModel.mensagemDeErro {
                 AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("presenca-erro")
+            }
+            if let erro = turno?.mensagemErroACaminho {
+                AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("a-caminho-erro")
+                if turno?.podeTentarAvisarDeNovo == true {
+                    BotaoSecundario(verbatim: TextosDoProfissional.Turnos.tentarDeNovo) {
+                        Task { await turno?.avisarACaminho() }
+                    }
+                    .accessibilityIdentifier("tentar-a-caminho-de-novo")
+                }
             }
             acoes
         }
@@ -48,6 +62,7 @@ struct SecaoDePresenca: View {
             case .parada, .lendo, .enviando: break
             }
         }
+        .onChange(of: turno?.aCaminhoEm) { _, _ in anunciar(situacaoACaminho?.texto) }
         .onChange(of: viewModel.checkin) { _, _ in anunciar(situacaoDoCheckin?.texto) }
         .onChange(of: viewModel.checkout) { _, _ in anunciar(situacaoDoCheckout?.texto) }
     }
@@ -58,6 +73,13 @@ struct SecaoDePresenca: View {
     private var acoes: some View {
         switch viewModel.etapa {
         case .parada:
+            if turno?.podeExibirBotaoACaminho == true {
+                BotaoSecundario(verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho) {
+                    Task { await turno?.avisarACaminho() }
+                }
+                .disabled(turno?.avisandoACaminho == true)
+                .accessibilityIdentifier("botao-a-caminho")
+            }
             if viewModel.podeFazerCheckin {
                 BotaoPrimario(verbatim: Textos.fazerCheckin) { Task { await viewModel.iniciar(.checkin) } }
                     .accessibilityIdentifier("fazer-checkin")
@@ -142,6 +164,15 @@ struct SecaoDePresenca: View {
         .foregroundStyle(situacao.cor)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private var situacaoACaminho: LinhaDeSituacao? {
+        guard let data = turno?.aCaminhoEm else { return nil }
+        return LinhaDeSituacao(
+            texto: TextosDoProfissional.Turnos.avisouACaminho(formatador.hora(data)),
+            icone: "figure.walk",
+            cor: FrilaCor.texto
+        )
     }
 
     private var situacaoDoCheckin: LinhaDeSituacao? {

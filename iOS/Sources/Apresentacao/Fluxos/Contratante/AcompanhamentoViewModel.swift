@@ -357,9 +357,9 @@ public final class AcompanhamentoViewModel {
             && !recusadas.contains(turno.id) && !cancelamentosNaFila.contains(turno.posicao.id)
     }
 
-    /// A vaga que ainda não fechou: nem cancelada, nem encerrada, nem com o fim já passado.
+    /// A vaga que ainda não fechou: nem cancelada, nem encerrada, nem com o início já passado (RN12).
     public func podeCancelarVaga(_ vaga: VagaNoPainel) -> Bool {
-        vaga.estado != .cancelada && vaga.estado != .encerrada && vaga.vaga.periodo.fim > agora()
+        vaga.estado != .cancelada && vaga.estado != .encerrada && vaga.vaga.periodo.inicio > agora()
             && !cancelamentosNaFila.contains(vaga.vaga.id)
     }
 
