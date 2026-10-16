@@ -30,23 +30,23 @@ A arquitetura do aplicativo centraliza os endereços institucionais e termos leg
 Nas telas de perfil e configurações, a auditoria confirmou que todos os pontos de contato derivam estritamente da injeção de `EnderecosOficiais`:
 1. **Meu Perfil do Profissional (`iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:107-162`):**
    - Recebe `enderecos: EnderecosOficiais = .padrao` no ViewModel (`linha 111`).
-   - Apresenta o botão "Ajuda" (`TextosPerfilConta.ajuda`, `linha 161`), abrindo a folha modal `TelaAjudaPerfil(enderecos: enderecos)` (`linha 344`).
+   - Apresenta o botão "Ajuda" (`TextosPerfilConta.ajuda`, `linha 161`), abrindo a folha modal `TelaAjudaPerfil(enderecos: enderecos)` (`linha 185`).
 2. **Perfil do Estabelecimento (`iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:245-299`):**
    - Recebe `enderecos: EnderecosOficiais = .padrao` no ViewModel (`linha 247`).
    - Apresenta o botão "Ajuda" (`TextosPerfilConta.ajuda`, `linha 298`), abrindo a folha modal `TelaAjudaPerfil(enderecos: enderecos)` (`linha 344`).
 3. **Tela de Ajuda do Perfil (`iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:348-450`):**
    - Renderiza o link direto `enderecos.urlSuporte` com acessibilidade (`linhas 361-377`).
    - Expõe o endereço de texto `enderecos.emailSuporte` com seleção habilitada (`.textSelection(.enabled)`) e rótulo de acessibilidade `"E-mail: \(enderecos.emailSuporte)"` (`linhas 384-391`).
-   - Exibe o prazo de atendimento informativo: `"Respondemos em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, `linha 393`).
+   - Exibe o prazo de atendimento informativo: `"Respondemos o mais breve possível, com triagem em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 16, renderizado na linha 393).
    - Renderiza links externos para Termos de Uso (`enderecos.termosDeUso`, `linhas 399-414`) e Política de Privacidade (`enderecos.politicaDePrivacidade`, `linhas 415-430`).
    - Fornece rota de navegação para licenças de terceiros (`TelaLicencas()`, `linhas 431-440`).
 
 **Conclusão da auditoria de Perfil:** Nenhuma string hardcoded de e-mail de suporte existe de forma dispersa nas telas de perfil (`PerfisDaConta.swift`). O canal é derivado de `EnderecosOficiais.padrao.emailSuporte`.
 
 ### 1.2 Divergência Identificada de Canais de Suporte
-A auditoria identificou uma bifurcação entre dois canais de suporte no repositório:
+A auditoria identificou que o código do aplicativo unificou o canal em `suportefrila@gmail.com`:
 - **Canal em `EnderecosOficiais.padrao` (`EnderecosOficiais.swift:22`):** Configurado como `"suportefrila@gmail.com"` (vigente), verificado por testes de unidade e UI (`PerfisDaContaTests.swift:65,90,105`, `FrilaUITests.swift:740,781`, `ContaSuspensaUITests.swift:131`).
-- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `"suporte@frila.app"`, alternativa citada em `frila-docs/requisitos/ingestao-email-suporte-v1.1.md:13`, decisão pendente (decisão do Cauê). O canal vigente das telas de perfil permanece `suportefrila@gmail.com`.
+- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `suportefrila@gmail.com` (delegando a `EnderecosOficiais.padrao.emailSuporte` e explicitado nos textos de interface/acessibilidade). O endereço alternativo `"suporte@frila.app"` não existe em `iOS/Sources/`, constando apenas no contrato (`openapi.yaml:2954`) e em requisitos (`frila-docs/requisitos/ingestao-email-suporte-v1.1.md:13`, decisão pendente do Cauê). O canal vigente em todas as telas permanece `suportefrila@gmail.com`.
 
 ---
 
@@ -63,9 +63,9 @@ A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuá
 - **Mecanismo de Bloqueio (Conforme):** `BotaoBloquear` (`iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:20-60`), executando bloqueio definitivo entre profissional e estabelecimento para impedir visualizações mútuas, candidaturas e notificações.
 - **Informações de Contato (Conforme):** Disponibilizadas em `TelaAjudaPerfil` (`PerfisDaConta.swift:348-450`) com e-mail clicável e copiável.
 - **Prazo de Atendimento / SLA de Moderação (Alinhamento do app e backend pendente):**
-  - O texto informativo geral de perfil indica `"Respondemos em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 393; Fonte: Visão 7.2 e RF23).
-  - O protocolo de denúncia (`AcoesDeSeguranca.swift:83-89`) calcula a data limite a partir de `protocolo.prazoRespostaAte`, que no backend (`privado.prazo_de_resposta`) projeta o quinto dia útil.
-  - Compromisso de moderação e denúncia de conteúdo definido pelo Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. O texto do app e a data calculada pelo backend acima ainda precisam ser alinhados em missão própria.
+  - O texto informativo geral de perfil indica `"Respondemos o mais breve possível, com triagem em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 16, renderizado na linha 393; Fonte: Visão 7.2 e RF23). Dois fluxos do app ainda informam resposta "em até 5 dias úteis" sem menção à triagem: contestação de despacho (`TextosPorQueReceboVagas.swift:29`) e contestação de suspensão (`TextosContaSuspensa.swift:10`).
+  - O protocolo de denúncia (`AcoesDeSeguranca.swift:82-88`) calcula a data limite a partir de `protocolo.prazoRespostaAte`, que no backend (`privado.prazo_de_resposta`) projeta o quinto dia útil.
+  - Compromisso de moderação e denúncia de conteúdo definido pelo Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Os fluxos específicos acima e a data calculada pelo backend ainda precisam ser alinhados em missão própria.
 
 ---
 
@@ -87,7 +87,7 @@ Mapeamento integral de todos os itens normativos das Seções 7.2 e 7.3 do Docum
 | **7.2.C** | Texto curto explicando localização (só no toque do check-in e check-out) | Seção de Presença em Meu Turno | `iOS/Sources/Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift:68-73`<br>`iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:14-20` | **Tela existente**.<br>Exibe aviso prévio explicativo: "Sua localização, só neste toque: O Frila lê sua localização só quando você toca no botão, para medir a distância até o endereço da vaga. Só a distância é enviada: sua posição não sai do aparelho e nada é lido em segundo plano." |
 | **7.2.D** | Texto curto explicando permissão de notificação (no momento em que é pedida) | Tela de Explicação do Push | `iOS/Sources/Apresentacao/Fluxos/Push/TelasDaPermissaoDePush.swift:9-55`<br>`iOS/Sources/Apresentacao/Fluxos/Push/TextosDoPush.swift:11-35` | **Tela existente**.<br>Apresentada antes do diálogo do iOS no momento contextual de ativação (após salvar funções e horários pelo profissional, ou publicar vaga pelo contratante). Explica que a notificação é o canal que traz a vaga. |
 | **7.2.E** | Política de privacidade e Termos de uso em linguagem direta | Tela de Ajuda do Perfil | `iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:399-430`<br>`iOS/Sources/Apresentacao/EnderecosOficiais.swift:20-21` | **Tela existente**.<br>Links acessíveis e autenticados para as URLs oficiais `https://frila.app/termos` e `https://frila.app/privacidade`. |
-| **7.2.F** | Canal de suporte por e-mail acionável a partir do turno (prazo 5 dias úteis, sem atendimento ao vivo) | Folha de Suporte do Turno | `iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift:1-120`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/SuporteTurnoViewModel.swift:1-150`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/TextosDoSuporte.swift:4-48`<br>`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeuTurno.swift:195-215` | **Tela existente**.<br>Botão "Ajuda no turno" (RF23 / US22 / UC14). Registra protocolo via RPC `abrir_suporte`, exibe aviso "Respondemos em até 5 dias úteis. Não há atendimento ao vivo" e prepara compositor para `suporte@frila.app` com assunto e corpo pré-preenchidos. |
+| **7.2.F** | Canal de suporte por e-mail acionável a partir do turno (prazo 5 dias úteis, sem atendimento ao vivo) | Folha de Suporte do Turno | `iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift:1-301`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/SuporteTurnoViewModel.swift:1-318`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/TextosDoSuporte.swift:1-47`<br>`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeuTurno.swift:68-70, 90-103` | **Tela existente**.<br>Botão "Ajuda no turno" (RF23 / US22 / UC14). Registra protocolo via RPC `abrir_suporte`, exibe aviso "Respondemos o mais breve possível, com triagem em até 5 dias úteis." (`TextosDoSuporte.swift:7`) e prepara compositor para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`, `SuporteTurnoViewModel.swift:142`, `TextosDoSuporte.swift:36`) com assunto e corpo pré-preenchidos. |
 | **7.2.G** | Em risco imediato, orientação de contato com autoridades (190 e 180) | Folha de Suporte do Turno | `iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift:55-75`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/TextosDoSuporte.swift:17-21` | **Tela existente**.<br>Atalhos telefônicos diretos para ligar 190 (Polícia Militar) e 180 (Central de Atendimento à Mulher), sem aguardar resposta de rede da RPC. |
 
 ---
@@ -114,11 +114,11 @@ Redação proposta em conformidade estrita com o `iOS/Docs/GuiaDeVoz.md` (tom di
 
 ### 4.1 Diretrizes Normativas Aplicadas aos Textos
 1. **Identificação do suporte:** Canal oficial vigente da Equipe Frila.
-   - E-mail vigente no app e no perfil: `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`).
-   - Alternativa citada em `ingestao-email-suporte-v1.1.md:13`: `suporte@frila.app` (decisão pendente).
+   - E-mail vigente no app (perfil e turno): `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`, `SuporteTurnoViewModel.swift:142`, `TextosDoSuporte.swift:36,41,42`).
+   - Alternativa citada fora do código do app (`openapi.yaml:2954` e `ingestao-email-suporte-v1.1.md:13`): `suporte@frila.app` (decisão pendente).
 2. **Prazo de resposta institucional e SLA de moderação:**
-   - Suporte geral no aplicativo: `"Respondemos em até 5 dias úteis. Não há atendimento ao vivo."` (Fonte: Visão 7.2 e RF23 / `TextosDoSuporte.swift:7`).
-   - Moderação, denúncias e atendimento: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). A citação do app acima descreve o estado atual, ainda pendente de alinhamento.
+   - Suporte geral no aplicativo: `"Respondemos o mais breve possível, com triagem em até 5 dias úteis."` (`TextosDoSuporte.swift:7` e `PerfisDaConta.swift:16`; Fonte: Visão 7.2 e RF23). O prazo de "5 dias úteis" sem menção à triagem ainda consta em `TextosPorQueReceboVagas.swift:29` e `TextosContaSuspensa.swift:10`.
+   - Moderação, denúncias e atendimento: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). A citação do app acima descreve o estado atual, ainda pendente de alinhamento nos fluxos específicos de contestação.
 3. **Ausência de comissão:** Uso da expressão aprovada `"O Frila não desconta do valor pago pelo turno"`.
 4. **Sem jargões promocionais:** Banidos termos como "grátis", "100% gratuito", "em poucos toques" e "em instantes".
 
