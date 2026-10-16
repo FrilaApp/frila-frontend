@@ -109,14 +109,16 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** **Não**
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Análise Interna (*Analytics*) — Relatórios anônimos de incidentes coletados pelo Firebase Crashlytics para garantia de estabilidade, sem associação de `setUserID`. Conforme a documentação oficial da Google/Firebase (*Firebase Crashlytics Data Collection*), o SDK não vincula relatórios a identidades de usuário sem que `setUserID` seja invocado explicitamente; o identificador de instalação do Firebase (FID) opera exclusivamente para deduplicação técnica agregada.
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) no manifesto atual da `main` (`iOS/Resources/PrivacyInfo.xcprivacy`).
+     > **[DONO / Decisão de Privacidade]:** A documentação técnica do Firebase Crashlytics e as boas práticas de privacidade recomendam classificar como Análise Interna (*Analytics*), enquanto a `main` mantém `AppFunctionality`. A alteração de finalidade para `Analytics` no manifesto é uma decisão estratégica reservada ao proprietário do produto e ao time jurídico (`[DONO]`).
    - **Origem / Código:** `iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift`, `iOS/Resources/PrivacyInfo.xcprivacy`.
 
 2. **Outros Dados de Diagnóstico (*Other Diagnostic Data*):**
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** **Não**
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Análise Interna (*Analytics*) — Medição anônima de latência e tempo de resposta de RPCs de rede para observabilidade de desempenho.
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) no manifesto atual da `main` (`iOS/Resources/PrivacyInfo.xcprivacy`).
+     > **[DONO / Decisão de Privacidade]:** Medição anônima de latência e tempo de resposta de RPCs para observabilidade de desempenho. A alteração de finalidade para `Analytics` é uma decisão estratégica reservada ao proprietário (`[DONO]`).
    - **Origem / Código:** `iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift`, `iOS/Resources/PrivacyInfo.xcprivacy`.
 
 ---
@@ -163,12 +165,12 @@ Todas as URLs oficiais foram confirmadas em produção sob protocolo seguro HTTP
 
 | Finalidade | URL Oficial | Consta no App (`iOS/Sources/Apresentacao/EnderecosOficiais.swift`) | Consta na Ficha (`FichaAppStore.md`) |
 |---|---|:---:|:---:|
-| **Termos de Uso** | `https://frila.app/termos` | Sim (`enderecos.termosDeUso`) | Sim |
-| **Política de Privacidade** | `https://frila.app/privacidade` | Sim (`enderecos.politicaDePrivacidade`) | Sim |
+| **Termos de Uso** | `https://frila.netlify.app/termos` | Sim (`enderecos.termosDeUso`) | Sim (`https://frila.app/termos` com redirect) |
+| **Política de Privacidade** | `https://frila.netlify.app/privacidade` | Sim (`enderecos.politicaDePrivacidade`) | Sim (`https://frila.app/privacidade` com redirect) |
 | **Página de Suporte Web** | `https://frila.app/suporte` | Não (app usa `mailto:`, via `enderecos.urlSuporte`) | Sim (`URL de Suporte`) |
 | **E-mail de Suporte / DPO** | `suportefrila@gmail.com` | Sim (`enderecos.emailSuporte`) | Sim |
 
-> **Nota sobre URL e canal de suporte:** A página pública web em `https://frila.app/suporte` é a URL oficial registrada na ficha da App Store (`FichaAppStore.md` e `iOS/Docs/PaginaPublica/suporte.md`). No código do aplicativo, o suporte é acionado nativamente por e-mail via `enderecos.emailSuporte` (`"suportefrila@gmail.com"`) e pela propriedade computada `enderecos.urlSuporte` (`"mailto:suportefrila@gmail.com"`), sem dependência de requisições HTTP para a rota `/suporte`.
+> **Nota sobre URL e canal de suporte:** A página pública web em `https://frila.app/suporte` é a URL oficial registrada na ficha da App Store (`FichaAppStore.md` e `iOS/Docs/PaginaPublica/suporte.md`). No código do aplicativo, o suporte é acionado nativamente por e-mail via `enderecos.emailSuporte` (`"suportefrila@gmail.com"`) e pela propriedade computada `enderecos.urlSuporte` (`"mailto:suportefrila@gmail.com"`), sem dependência de requisições HTTP para a rota `/suporte`. As URLs de Termos e Privacidade apontam para a infraestrutura oficial na Netlify (`frila.netlify.app`), conforme alinhado no PR #314.
 
 ---
 
@@ -183,8 +185,8 @@ Todas as URLs oficiais foram confirmadas em produção sob protocolo seguro HTTP
 | Identificadores (UUID, FCM) | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeUserID`, `DeviceID`) | Sim (Seção 2.4) | `Dados/SessaoNoKeychainDoAparelho.swift`, `Dados/AparelhoDePush.swift` |
 | Conteúdo do Usuário | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherUserContent`) | Sim (Seção 2.5) | `Apresentacao/Fluxos/Contratante/PublicarVaga.swift`, `Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift` |
 | Data de Nascimento | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDataTypes`) | Sim (Seção 2.1 / Maioridade 18+) | `Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift` |
-| Relatórios de Falha | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeCrashData`, Analytics) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
-| Diagnósticos de Rede | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDiagnosticData`, Analytics) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
+| Relatórios de Falha | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeCrashData`, AppFunctionality [main] / Decisão [DONO]) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
+| Diagnósticos de Rede | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDiagnosticData`, AppFunctionality [main] / Decisão [DONO]) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
 | Interação com o Produto | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeProductInteraction`, Analytics) | Sim (Seção 2.6) | `Dominio/Telemetria.swift`, RPC `registrar_evento` |
 | Rastreamento de Terceiros | **Não** | **Não (`NSPrivacyTracking = false`)** | **Não** (Sem rastreadores) | Nenhum SDK de ads |
 | Exclusão In-App de Conta | Declarado | Conformidade com Diretriz 5.1.1 | Seção 5 (Direitos do Titular) | `Apresentacao/Fluxos/Perfil/PerfisDaConta.swift`, `Apresentacao/Fluxos/Conta/TelaExclusaoDeConta.swift` |

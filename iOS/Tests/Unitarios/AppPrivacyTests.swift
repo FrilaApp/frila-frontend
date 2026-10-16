@@ -26,7 +26,7 @@ struct AppPrivacyTests {
         #expect(trackingDomains?.isEmpty == true, "NSPrivacyTrackingDomains deve ser vazio")
     }
 
-    @Test("Manifesto de privacidade declara os tipos de dados funcionais e de diagnóstico obrigatórios")
+    @Test("Manifesto de privacidade declara os 12 tipos de dados obrigatórios e sem duplicatas")
     func tiposDeDadosDeclaradosNoManifesto() throws {
         let caminhoManifesto = Self.raiz.appending(path: "Resources/PrivacyInfo.xcprivacy")
         let dados = try Data(contentsOf: caminhoManifesto)
@@ -50,8 +50,12 @@ struct AppPrivacyTests {
             "NSPrivacyCollectedDataTypeProductInteraction",
         ]
 
+        // Asserção contra duplicatas no manifesto (cada tipo deve aparecer exatamente 1 vez)
+        #expect(tiposColetados.count == esperados.count, "O manifesto deve conter exatamente \(esperados.count) tipos de dados declarados")
+        let contagemPorTipo = Dictionary(grouping: nomesDosTipos, by: { $0 }).mapValues { $0.count }
         for esperado in esperados {
-            #expect(nomesDosTipos.contains(esperado), "Tipo de dado ausente no manifesto: \(esperado)")
+            let ocorrencias = contagemPorTipo[esperado] ?? 0
+            #expect(ocorrencias == 1, "Tipo de dado '\(esperado)' deve aparecer exatamente 1 vez no manifesto, mas apareceu \(ocorrencias) vezes")
         }
 
         for item in tiposColetados {
@@ -67,7 +71,7 @@ struct AppPrivacyTests {
                 #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"), "ProductInteraction deve ter finalidade Analytics")
             } else if tipo == "NSPrivacyCollectedDataTypeCrashData" || tipo == "NSPrivacyCollectedDataTypeOtherDiagnosticData" {
                 #expect(linked == false, "\(tipo ?? "") não deve ser vinculado ao usuário")
-                #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"), "\(tipo ?? "") deve ter finalidade Analytics")
+                #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"), "\(tipo ?? "") deve ter finalidade AppFunctionality na main atual")
             } else {
                 #expect(linked == true, "\(tipo ?? "") deve ser vinculado ao usuário (finalidade funcional)")
                 #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"), "\(tipo ?? "") deve ter finalidade AppFunctionality")
@@ -98,11 +102,11 @@ struct AppPrivacyTests {
         let enderecos = EnderecosOficiais.padrao
 
         #expect(enderecos.termosDeUso.scheme == "https")
-        #expect(enderecos.termosDeUso.host == "frila.app")
+        #expect(enderecos.termosDeUso.host == "frila.netlify.app")
         #expect(enderecos.termosDeUso.path == "/termos")
 
         #expect(enderecos.politicaDePrivacidade.scheme == "https")
-        #expect(enderecos.politicaDePrivacidade.host == "frila.app")
+        #expect(enderecos.politicaDePrivacidade.host == "frila.netlify.app")
         #expect(enderecos.politicaDePrivacidade.path == "/privacidade")
 
         #expect(enderecos.emailSuporte == "suportefrila@gmail.com")
