@@ -71,6 +71,7 @@ public struct TelaEntrada: View {
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity)
                         .accessibilityIdentifier("entrada-classificacao-indicativa")
                 }

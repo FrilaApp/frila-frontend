@@ -75,6 +75,7 @@ public struct TelaCadastro: View {
 
                     CampoFrila("Como você quer ser chamado", texto: $viewModel.nome)
                         .textContentType(.name)
+                        .accessibilityLabel(Text("Nome", bundle: bundleApresentacao))
                         .accessibilityIdentifier("cadastro-nome")
                 }
 
@@ -86,6 +87,7 @@ public struct TelaCadastro: View {
                     CampoFrila("(61) 9 0000-0000", texto: $viewModel.telefone)
                         .keyboardType(.phonePad)
                         .textContentType(.telephoneNumber)
+                        .accessibilityLabel(Text("Telefone com WhatsApp", bundle: bundleApresentacao))
                         .accessibilityIdentifier("cadastro-telefone")
 
                     Text("A outra parte só vê o seu número depois que o turno é confirmado.", bundle: bundleApresentacao)
@@ -100,11 +102,12 @@ public struct TelaCadastro: View {
 
                     CampoFrila("dd/mm/aaaa", texto: $viewModel.nascimentoTexto)
                         .keyboardType(.numbersAndPunctuation)
+                        .accessibilityLabel(Text("Data de nascimento", bundle: bundleApresentacao))
                         .accessibilityIdentifier("cadastro-nascimento")
                 }
 
                 // Checkbox 18+
-                HStack(spacing: FrilaEspaco.pequeno) {
+                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                     Button {
                         viewModel.maiorDeIdade.toggle()
                     } label: {
