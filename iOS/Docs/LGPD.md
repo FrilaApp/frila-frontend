@@ -5,7 +5,8 @@ elaborado a partir do dossiê técnico de privacidade aprovado no PR #192 (`iOS/
 e do código-fonte em `iOS/Sources/`.
 
 > **Pendências:**
-> - Simulação de incidente ao vivo (exercício da Seção 3 com a equipe).
+> - Simulação de incidente ao vivo com a equipe. A simulação de mesa foi feita em 16/10/2026 (Seção 3.7); o
+>   exercício ao vivo fica para depois do piloto.
 > - Avaliação jurídica sobre a indicação de encarregado (Art. 41 e Resolução CD/ANPD nº 2/2022, que trata de
 >   agentes de pequeno porte). Até ela sair, o responsável atende o canal do titular; este documento não
 >   afirma dispensa.
@@ -85,7 +86,7 @@ Conferidas no dossiê `SegurancaEPrivacidade.md` (PR #192):
 | Campo | Valor |
 |---|---|
 | **E-mail** | `suportefrila@gmail.com` |
-| **Acesso no app** | Perfil → "Política de privacidade" (link para `https://frila.app/privacidade`) |
+| **Acesso no app** | Perfil → "Política de privacidade" (link para `https://frila.netlify.app/privacidade`) |
 | **Acesso no app** | Perfil → "Exportar meus dados" / "Excluir conta" |
 | **Referência no código** | `EnderecosOficiais.swift:19-23`, `PerfisDaConta.swift:200-215` |
 
@@ -98,7 +99,7 @@ Conferidas no dossiê `SegurancaEPrivacidade.md` (PR #192):
 | Anonimização, bloqueio ou eliminação (Art. 18, IV) | Art. 18 | "Excluir conta" — RPC de exclusão + purga local (`ExclusaoDeContaViewModel.swift`, `SaidaDaConta.swift`) | — |
 | Portabilidade (Art. 18, V) | Art. 18 | "Exportar meus dados" em JSON; histórico de turnos em CSV/PDF (`HistoricoDeTurnosViewModel`) | — |
 | Eliminação de dados tratados com consentimento (Art. 18, VI) | Art. 18 | "Excluir conta" remove todos os dados | — |
-| Informação sobre compartilhamento (Art. 18, VII) | Art. 18 | Política de Privacidade em `https://frila.app/privacidade`; este documento (ROPA, Seção 1.3) | Publicar na página pública |
+| Informação sobre compartilhamento (Art. 18, VII) | Art. 18 | Política de Privacidade em `https://frila.netlify.app/privacidade`; este documento (ROPA, Seção 1.3) | Publicar na página pública |
 | Revogação do consentimento (Art. 18, IX) | Art. 18 | Saída da conta + exclusão; permissão de localização revogável nos Ajustes do iOS | — |
 
 ### 2.3 Procedimento de Atendimento
@@ -131,9 +132,15 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 #### Fase 1 — Detecção e Contenção (0-4 h)
 
 1. Identificar o vetor de incidente (acesso indevido ao banco, vazamento de credencial, vulnerabilidade, etc.).
-2. Isolar o componente afetado (revogar chaves, bloquear acesso, desativar Edge Function).
+2. Isolar o componente afetado (revogar chaves, bloquear acesso, desativar Edge Function). Quando houver
+   suspeita de credencial exposta, revogar também as que ficam fora do banco: sessões e chaves do Supabase,
+   senha de app do Gmail usada no envio do código de entrada, chave do APNs e do FCM e segredos do GitHub
+   Actions. Quem grava segredo novo é o Responsável; o valor nunca vai para chat, e-mail ou repositório.
 3. Preservar evidências (logs do Supabase, logs do Firebase Crashlytics, registros de acesso).
 4. Comunicar internamente ao responsável.
+5. Se o incidente puder estar no lado de um operador (Seção 1.3), pedir a ele o relato e as evidências pelos
+   canais oficiais e anotar data e hora do pedido.
+6. Abrir o registro do incidente (Seção 3.6) já nesta fase, com a data e a hora da ciência.
 
 #### Fase 2 — Avaliação (meta interna: até 1 dia útil)
 
@@ -148,6 +155,10 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 1. Notificar a ANPD pelo formulário oficial, se o incidente puder acarretar risco ou dano relevante.
 2. Notificar os titulares afetados por e-mail individual.
 3. Registrar internamente toda a comunicação.
+4. Prazo: adotamos os 3 dias úteis da Resolução, contados da ciência do incidente. A Resolução CD/ANPD
+   nº 2/2022 permite contar em dobro para agente de pequeno porte, mas o Frila não usa essa folga: se faltar
+   informação no prazo, comunica-se o que já se sabe e complementa-se depois, pelo prazo que o texto oficial
+   da Resolução fixar (conferir o número de dias no texto publicado no Diário Oficial da União antes de usar).
 
 #### Fase 4 — Remediação (até 10 dias úteis)
 
@@ -238,11 +249,59 @@ Atenciosamente,
 Equipe Frila
 ```
 
+### 3.6 Registro de Incidentes
+
+Todo incidente, inclusive o que não exigiu comunicação à ANPD nem aos titulares, entra num registro com: data e
+hora da ciência, descrição, dados e titulares afetados, gravidade (Fase 2), medidas de contenção com a hora de
+cada uma, decisão de comunicar ou não (com o motivo) e lições aprendidas. A Resolução CD/ANPD nº 15/2024 exige
+a guarda por no mínimo cinco anos, contados do registro. O registro fica fora do repositório público, em local
+de acesso restrito ao Responsável e à equipe técnica, e não leva o dado pessoal afetado, só a descrição dele.
+
+### 3.7 Simulação de Mesa (16/10/2026)
+
+**Natureza:** exercício de mesa, sem acionar ninguém nem alterar sistema. Os tempos abaixo são **estimativas** de
+quem leu o plano e os fatos do app; não são medição. A medição vem do exercício ao vivo.
+
+**Cenário (hipotético):** uma pessoa avisa em `suportefrila@gmail.com`, numa terça às 09h00, que uma regra de
+acesso do banco deixa qualquer conta autenticada ler o telefone e o documento de outros estabelecimentos.
+
+| Hora | Passo | Fase |
+|---|---|---|
+| 09h00 | Ciência: a mensagem chega ao canal do titular. É a hora que conta para os 3 dias úteis | 1 |
+| 09h15 | Responsável lê, abre o registro (3.6) e chama a equipe técnica | 1 |
+| 09h45 | Equipe técnica reproduz com duas contas de teste no ambiente de desenvolvimento e confirma | 1 |
+| 10h30 | **Contenção:** correção da regra aplicada em produção (ou, se não der, Edge Function e acesso à tabela desativados) | 1 |
+| 11h00 | Evidências preservadas (logs do Supabase), antes de qualquer limpeza | 1 |
+| Dia útil 1 | Avaliação: consulta aos logs diz se houve leitura por terceiros; cruza com o ROPA (telefone, documento); gravidade **alta** se houve leitura de documento | 2 |
+| Até o dia útil 3 | Comunicação à ANPD (3.4) e aos titulares (3.5), se houve risco ou dano relevante | 3 |
+| Até o dia útil 10 | Teste de regressão da regra, revisão das demais regras e lições aprendidas | 4 |
+
+**Tempo até a contenção (estimado):** 1 h 30 min, da ciência (09h00) até a correção em produção (10h30), em horário
+comercial e com a equipe técnica disponível. Fora do horário, o tempo depende de haver alguém de sobreaviso com
+acesso de administrador à produção.
+
+**Lacunas achadas e o que mudou:**
+
+1. A equipe técnica não tinha nome nem contato (3.2). Proposta: usar quem estiver de sobreaviso na escala do
+   piloto, depois que os sócios aprovarem a grade. Até lá, o Responsável aciona o time do backend diretamente.
+2. A Fase 1 só falava de chaves do banco; credenciais de fora do banco ficaram de fora. Incluídas na Fase 1.
+3. Não havia registro de incidentes. Incluído (3.6), com guarda de cinco anos.
+4. A Fase 3 não dizia se o Frila usa o prazo em dobro de pequeno porte. Anotado: não usa.
+5. Faltava pedir relato ao operador quando o incidente pode estar do lado dele. Incluído na Fase 1.
+6. O documento citava a URL antiga da política (`frila.app`). Corrigida para `frila.netlify.app`.
+
+### 3.8 Aprovação do Plano
+
+Aprovado em 16/10/2026 por Nick Fury, agente de IA que coordena o time técnico do Frila, **por delegação
+expressa do Responsável, Cauê Carneiro Kilanovic**, que decidiu que o plano seria estudado e aprovado dessa forma.
+Esta aprovação **não é parecer jurídico** e não substitui a avaliação sobre o encarregado (Pendências, no início
+do documento). O Responsável pode revogá-la ou pedir a revisão dos demais sócios a qualquer momento.
+
 ---
 
 ## 4. Coerência com a Política de Privacidade
 
-Checklist de coerência entre este registro e a política publicada em `https://frila.app/privacidade`:
+Checklist de coerência entre este registro e a política publicada em `https://frila.netlify.app/privacidade`:
 
 | Item | ROPA (este documento) | Política de Privacidade |
 |---|---|---|
@@ -255,7 +314,7 @@ Checklist de coerência entre este registro e a política publicada em `https://
 | Canal do titular | `suportefrila@gmail.com` | **Verificar:** deve constar na página pública |
 | Retenção e eliminação | Coluna "Retenção e Eliminação" | **Verificar:** prazos devem coincidir |
 
-> **Ação do Cauê:** revisar a página `https://frila.app/privacidade` usando esta tabela e corrigir
+> **Ação do Cauê:** revisar a página `https://frila.netlify.app/privacidade` usando esta tabela e corrigir
 > eventuais divergências antes da publicação na App Store.
 
 ---
@@ -266,3 +325,4 @@ Checklist de coerência entre este registro e a política publicada em `https://
 |---|---|---|
 | 2026-10-12 | Bucky (ajudante) | Versão inicial: ROPA, canal do titular e plano de incidentes |
 | 2026-10-15 | Nick Fury | Responsável pessoa física (sem CNPJ nem DPO); telefone em 7 dias (RN10); documento do estabelecimento; telemetria `evento_app`; Gmail como operador; incidente em 3 dias úteis (Res. CD/ANPD 15/2024) |
+| 2026-10-16 | Nick Fury | Plano de incidente: simulação de mesa (3.7), registro de incidentes por 5 anos (3.6), credenciais fora do banco na Fase 1, prazo de pequeno porte anotado, URL da política corrigida; aprovação por delegação do Responsável (3.8) |
