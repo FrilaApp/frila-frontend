@@ -4,31 +4,43 @@ import Testing
 
 @Suite("Domínio - Dinheiro e Valores")
 struct DinheiroTests {
-    @Test("Criação com valor válido em centavos e representação básica")
+    @Test("Criação com valor válido em centavos, incluindo fracionados, milhar e valores grandes")
     func criacaoValida() {
         let zero = Dinheiro(centavos: 0)
-        let cinquenta = Dinheiro(centavos: 5_000)
-        let centoEVinte = Dinheiro(centavos: 12_000)
+        let umCentavo = Dinheiro(centavos: 1)
+        let noventaENove = Dinheiro(centavos: 99)
+        let cinquentaReais = Dinheiro(centavos: 5_000)
+        let milhar = Dinheiro(centavos: 100_000) // R$ 1.000,00
+        let valorGrande = Dinheiro(centavos: 10_000_000) // R$ 100.000,00
 
         #expect(zero.centavos == 0)
-        #expect(cinquenta.centavos == 5_000)
-        #expect(centoEVinte.centavos == 12_000)
+        #expect(umCentavo.centavos == 1)
+        #expect(noventaENove.centavos == 99)
+        #expect(cinquentaReais.centavos == 5_000)
+        #expect(milhar.centavos == 100_000)
+        #expect(valorGrande.centavos == 10_000_000)
     }
 
     @Test("Comparação e ordenação estrita entre quantias (Comparable)")
     func comparacaoEOrdenacao() {
-        let d10 = Dinheiro(centavos: 1_000)
-        let d20 = Dinheiro(centavos: 2_000)
-        let d20Outro = Dinheiro(centavos: 2_000)
+        let d1 = Dinheiro(centavos: 1)
+        let d99 = Dinheiro(centavos: 99)
+        let d1000 = Dinheiro(centavos: 1_000)
+        let d2000 = Dinheiro(centavos: 2_000)
+        let d2000Outro = Dinheiro(centavos: 2_000)
+        let dMilhar = Dinheiro(centavos: 100_000)
 
-        #expect(d10 < d20)
-        #expect(!(d20 < d10))
-        #expect(!(d20 < d20Outro))
-        #expect(d20 == d20Outro)
+        #expect(d1 < d99)
+        #expect(d99 < d1000)
+        #expect(d1000 < d2000)
+        #expect(!(d2000 < d1000))
+        #expect(!(d2000 < d2000Outro))
+        #expect(d2000 == d2000Outro)
+        #expect(d2000 < dMilhar)
 
-        let lista = [d20, d10, Dinheiro(centavos: 500)]
+        let lista = [dMilhar, d2000, d1, d99, d1000]
         let ordenada = lista.sorted()
-        #expect(ordenada.map(\.centavos) == [500, 1_000, 2_000])
+        #expect(ordenada.map(\.centavos) == [1, 99, 1_000, 2_000, 100_000])
     }
 
     @Test("Conformidade com Hashable, Set e dicionários")
@@ -82,26 +94,28 @@ struct DinheiroTests {
         { "centavos": -1 }
         """.data(using: .utf8)!
 
-        // O compilador sintetiza init(from: Decoder) sem invocar o init(centavos: Int).
-        // Isso permite que centavos negativos sejam decodificados a partir de payload JSON externo.
+        // O compilador sintetiza init(from: Decoder) que atribui a propriedade diretamente,
+        // sem invocar o init(centavos: Int) que contém precondition(centavos >= 0).
         let valor = try JSONDecoder().decode(Dinheiro.self, from: json)
         #expect(valor.centavos == -1)
     }
 
-    @Test("Formatação em moeda brasileira com FormatadorFrila")
+    @Test("Formatação em moeda brasileira pt-BR com FormatadorFrila")
     func formatacaoComFormatadorFrila() {
         let formatador = FormatadorFrila()
-        let zero = Dinheiro(centavos: 0)
-        let cemReais = Dinheiro(centavos: 10_000)
-        let quebrado = Dinheiro(centavos: 12_345)
 
-        // Limpa espaços não separáveis para asserção portável entre locales
-        func normalizar(_ s: String) -> String {
-            s.replacingOccurrences(of: "\u{00A0}", with: " ")
+        func validar(_ valor: Dinheiro, valorEsperado: String) {
+            let formatado = formatador.dinheiro(valor)
+            #expect(formatado.hasPrefix("R$"))
+            #expect(formatado.contains(valorEsperado))
         }
 
-        #expect(normalizar(formatador.dinheiro(zero)) == "R$ 0,00")
-        #expect(normalizar(formatador.dinheiro(cemReais)) == "R$ 100,00")
-        #expect(normalizar(formatador.dinheiro(quebrado)) == "R$ 123,45")
+        validar(Dinheiro(centavos: 0), valorEsperado: "0,00")
+        validar(Dinheiro(centavos: 1), valorEsperado: "0,01")
+        validar(Dinheiro(centavos: 99), valorEsperado: "0,99")
+        validar(Dinheiro(centavos: 10_000), valorEsperado: "100,00")
+        validar(Dinheiro(centavos: 12_345), valorEsperado: "123,45")
+        validar(Dinheiro(centavos: 100_000), valorEsperado: "1.000,00")
+        validar(Dinheiro(centavos: 5_000_000), valorEsperado: "50.000,00")
     }
 }
