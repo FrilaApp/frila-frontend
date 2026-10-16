@@ -140,8 +140,9 @@ O teste e o validador estão integrados no job `parte-1` do workflow `.github/wo
 
 - **Classificação dos avisos:** A auditoria exaustiva dos 25 avisos originais confirmou **zero divergências reais no Swift**. 24 decorriam de limitações do regex anterior (duplicação snake_case com CodingKeys explícito, variáveis locais em decodificadores e vazamento de structs aninhados). O único aviso aceitável que permanece é `SessaoDTO.user`, campo opcional omitido intencionalmente no cliente.
 - **Isolamento e Autoridade do CodingKeys:** O validador isola structs aninhados por contagem de chaves e confere autoridade estrita ao `enum CodingKeys` quando presente, eliminando falsos positivos.
-- **Reprovação Estrita de Extras:**
+- **Reprovação Estrita de Extras e Campos Opcionais Não Documentados (P6):**
   - Structs `*DTO` no Swift sem respaldo no contrato OpenAPI (em `components.schemas` ou na lista de schemas inline/nested `DTOS_LEGITIMOS_RPC_E_NESTED`: `FiltroVagasDTO`, `VagaCanceladaDTO`, `RemocaoDTO`, `RegistrarEventoRespostaDTO`, `EquipeDTO`, `SuspensaoDTO`) são reprovados com erro e código de saída 1.
   - Campos extras no Swift em relação às propriedades do contrato foram promovidos a erro impeditivo.
+  - **Campos Opcionais Ausentes:** Qualquer campo opcional do OpenAPI ausente no DTO do app é reprovado como erro impeditivo (`sys.exit 1`), a menos que esteja explicitamente catalogado no dicionário `EXCECOES_OPCIONAIS_DOCUMENTADAS` com justificativa técnica. O único caso catalogado é `Sessao.user` (objeto do Supabase Auth ignorado pelo app em favor de `/rpc/minha_conta`).
   - *Nota sobre schemas inline:* Se uma nova RPC do backend devolver ou receber um objeto inline sem schema nomeado em `components.schemas`, seu DTO correspondente no Swift deve ser catalogado em `DTOS_LEGITIMOS_RPC_E_NESTED` no validador.
 

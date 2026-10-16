@@ -367,6 +367,16 @@ def conferir_dtos(
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
     }
 
+    # 5.2 Exceções documentadas para campos opcionais não mapeados no app (P6)
+    EXCECOES_OPCIONAIS_DOCUMENTADAS = {
+        "Sessao": {
+            "user": (
+                "Objeto de usuário do Supabase Auth ignorado pelo app: "
+                "a sessão salva tokens no Keychain e os dados da conta são lidos via /rpc/minha_conta."
+            )
+        }
+    }
+
     alias_reverso = {v: k for k, v in ALIAS_DTO.items()}
     for s_name in sorted(all_structs.keys()):
         if s_name.endswith("DTO") or s_name.startswith("DTO"):
@@ -411,9 +421,15 @@ def conferir_dtos(
 
         opcionais_ausentes = (all_props - required_props) - dto_fields
         if opcionais_ausentes:
-            avisos.append(
-                f"DTO {dto_name} (schema {schema_name}): campos opcionais do contrato não mapeados no DTO: {sorted(opcionais_ausentes)}"
-            )
+            for campo in sorted(opcionais_ausentes):
+                if schema_name in EXCECOES_OPCIONAIS_DOCUMENTADAS and campo in EXCECOES_OPCIONAIS_DOCUMENTADAS[schema_name]:
+                    avisos.append(
+                        f"DTO {dto_name} (schema {schema_name}): campo opcional '{campo}' não mapeado por exceção documentada ({EXCECOES_OPCIONAIS_DOCUMENTADAS[schema_name][campo]})"
+                    )
+                else:
+                    erros.append(
+                        f"DTO {dto_name} (schema {schema_name}): campo opcional '{campo}' não mapeado no DTO nem documentado como exceção"
+                    )
 
     return erros, avisos, len(openapi_objects)
 
@@ -484,8 +500,8 @@ def main() -> None:
         print(f"OK: {qtd_dtos}/{qtd_dtos} DTOs do contrato cobrem todos os campos obrigatórios.")
 
     if todos_avisos and not args.silencioso:
-        s = "aviso" if len(todos_avisos) == 1 else "avisos"
-        print(f"INFO: {len(todos_avisos)} {s} de campos opcionais do contrato não mapeados no app.")
+        s = "exceção documentada" if len(todos_avisos) == 1 else "exceções documentadas"
+        print(f"OK: {len(todos_avisos)} {s} de campos opcionais não mapeados no app.")
 
     if todos_erros:
         print("\nFALHA: divergências de contrato encontradas:", file=sys.stderr)

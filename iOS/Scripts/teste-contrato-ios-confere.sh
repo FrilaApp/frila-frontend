@@ -186,5 +186,18 @@ esperar_reprovacao "Campo extra em DTO no Swift" \
   --contrato "$CONTRATO_OFICIAL" \
   --sources "$TMPDIR_TESTE/Sources-campo-extra"
 
-echo "OK: autoteste de contrato-ios-confere.sh (12 verificações completas com aprovação e reprovação controlada)."
+# 13. Campo opcional no contrato não mapeado no Swift e não documentado como exceção (P6)
+cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-opcional-sem-excecao.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-opcional-sem-excecao.yaml'
+texto = open(caminho).read().replace('        criada_em:\n          \$ref: \'#/components/schemas/Instante\'', '        criada_em:\n          \$ref: \'#/components/schemas/Instante\'\n        campo_opcional_novo:\n          type: string')
+open(caminho, 'w').write(texto)
+"
+
+esperar_reprovacao "Campo opcional novo no contrato sem exceção documentada" \
+  "DTO AvaliacaoDTO (schema Avaliacao): campo opcional 'campo_opcional_novo' não mapeado no DTO nem documentado como exceção" \
+  --contrato "$TMPDIR_TESTE/Contrato/openapi-opcional-sem-excecao.yaml" \
+  --sources "$TMPDIR_TESTE/Sources"
+
+echo "OK: autoteste de contrato-ios-confere.sh (13 verificações completas com aprovação e reprovação controlada)."
 
