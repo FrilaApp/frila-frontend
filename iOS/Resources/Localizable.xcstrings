@@ -5571,6 +5571,16 @@
         }
       }
     },
+    "Confirmar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar"
+          }
+        }
+      }
+    },
     "Confirmar cancelamento": {
       "localizations": {
         "pt-BR": {
@@ -7981,6 +7991,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você é o único administrador deste estabelecimento. Não é possível excluir a conta enquanto houver outros membros."
+          }
+        }
+      }
+    },
+    "Concluir": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluir"
+          }
+        }
+      }
+    },
+    "Escolha Sim ou Não para avaliar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha Sim ou Não para avaliar."
+          }
+        }
+      }
+    },
+    "Descreva o motivo do cancelamento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descreva o motivo do cancelamento"
+          }
+        }
+      }
+    },
+    "caracteres": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "caracteres"
+          }
+        }
+      }
+    },
+    "Os dados de identificação do turno acima serão incluídos no e-mail automaticamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os dados de identificação do turno acima serão incluídos no e-mail automaticamente."
           }
         }
       }

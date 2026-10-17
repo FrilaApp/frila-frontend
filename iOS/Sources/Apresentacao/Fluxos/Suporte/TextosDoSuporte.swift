@@ -29,7 +29,8 @@ public enum TextosDoSuporte {
 
     public static let secaoRelato = String(localized: "Descrição do ocorrido", bundle: bundleApresentacao)
     public static let promptRelato = String(localized: "Descreva detalhes do que está acontecendo…", bundle: bundleApresentacao)
-    public static let dicaRelato = String(localized: "Opcional. Os dados de identificação do turno acima serão incluídos no e-mail automaticamente.", bundle: bundleApresentacao)
+    public static let dicaRelato = String(localized: "Os dados de identificação do turno acima serão incluídos no e-mail automaticamente.", bundle: bundleApresentacao)
+    public static let caracteres = String(localized: "caracteres", bundle: bundleApresentacao)
 
     public static let secaoAcoes = String(localized: "Envio do e-mail", bundle: bundleApresentacao)
     public static let botaoEnviarEmail = String(localized: "Abrir e-mail de suporte", bundle: bundleApresentacao)

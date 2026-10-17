@@ -160,6 +160,11 @@ public final class SuporteTurnoViewModel: Identifiable {
         motivo.ehRiscoSeguranca
     }
 
+    /// O relato não pode estar em branco para liberar a abertura do e-mail.
+    public var relatoValido: Bool {
+        !relato.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     /// Assunto padronizado com o protocolo curto quando registrado, ou identificador do turno (contrato 0.2.40, SU-RN04).
     public var assuntoEmail: String {
         if let protocolo {
