@@ -123,8 +123,161 @@ enum FontesFrila {
 /// Ponto único para controle de animações respeitando a preferência de Reduzir Movimento (#71.4).
 /// Quando `reduzir` é verdadeiro, retorna `nil` para que a transição ocorra de forma imediata sem deslocamento.
 public enum FrilaMovimento {
+    /// Compressão padrão para botões ao pressionar (0,96).
+    public static let pressScaleBotao: CGFloat = 0.96
+    /// Compressão tátil refinada para chips e pílulas compactas (0,94).
+    public static let pressScaleChip: CGFloat = 0.94
+    /// Mola tátil geral para botões (rigidez 350, amortecimento 25) do FrilaLowPhase.
+    public static let molaTatil: Animation = .interpolatingSpring(stiffness: 350, damping: 25)
+    /// Mola ultrarrápida para compressão de chips (rigidez 380, amortecimento 24).
+    public static let molaTatilChip: Animation = .interpolatingSpring(stiffness: 380, damping: 24)
+
     public static func animacao(_ animacao: Animation = .default, reduzir: Bool) -> Animation? {
         reduzir ? nil : animacao
+    }
+}
+
+/// Representação individual de uma camada de sombra dentro do sistema Beautiful Shadows (FrilaLowPhase).
+public struct CamadaDeSombra: Sendable, Equatable {
+    public let cor: Color
+    public let raio: CGFloat
+    public let x: CGFloat
+    public let y: CGFloat
+
+    public init(cor: Color, raio: CGFloat, x: CGFloat = 0, y: CGFloat) {
+        self.cor = cor
+        self.raio = raio
+        self.x = x
+        self.y = y
+    }
+}
+
+/// Níveis de elevação em três camadas coordenadas (rim, key, ambient) do FrilaLowPhase.
+/// Zero-shadow nos cartões com fio de 1 pt; sombra fraca no modo escuro; elevação sutil em folhas e docas.
+public enum FrilaElevacao: String, Sendable, CaseIterable, Equatable {
+    /// Zero-shadow canônico do MidFi: nenhuma sombra física (usado nos cartões com fio de 1 pt).
+    case nenhuma
+    /// Elevação sutil em 3 camadas (rim: 1.5pt, key: 5pt, ambient: 14pt).
+    case sutil
+    /// Elevação de folha modal e doca inferior em 3 camadas (rim: 2pt, key: 12pt, ambient: 28pt).
+    case folha
+
+    public func camadas(escuro: Bool) -> [CamadaDeSombra] {
+        switch self {
+        case .nenhuma:
+            return []
+        case .sutil:
+            if escuro {
+                return [
+                    CamadaDeSombra(cor: Color.black.opacity(0.26), raio: 1.5, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.20), raio: 5, x: 0, y: 2.5),
+                    CamadaDeSombra(cor: Color.black.opacity(0.14), raio: 14, x: 0, y: 6)
+                ]
+            } else {
+                return [
+                    CamadaDeSombra(cor: Color.black.opacity(0.04), raio: 1.5, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.03), raio: 5, x: 0, y: 2.5),
+                    CamadaDeSombra(cor: Color.black.opacity(0.02), raio: 14, x: 0, y: 6)
+                ]
+            }
+        case .folha:
+            if escuro {
+                // Sombra fraca no escuro, igual à regra do LowPhase
+                return [
+                    CamadaDeSombra(cor: Color.black.opacity(0.36), raio: 2, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.24), raio: 12, x: 0, y: 6),
+                    CamadaDeSombra(cor: Color.black.opacity(0.18), raio: 28, x: 0, y: 14)
+                ]
+            } else {
+                return [
+                    CamadaDeSombra(cor: Color.black.opacity(0.05), raio: 2, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.06), raio: 12, x: 0, y: 6),
+                    CamadaDeSombra(cor: Color.black.opacity(0.04), raio: 28, x: 0, y: 14)
+                ]
+            }
+        }
+    }
+}
+
+public struct ModificadorElevacaoFrila: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    public let elevacao: FrilaElevacao
+
+    public init(_ elevacao: FrilaElevacao) {
+        self.elevacao = elevacao
+    }
+
+    @ViewBuilder
+    public func body(content: Content) -> some View {
+        let escuro = colorScheme == .dark
+        let camadas = elevacao.camadas(escuro: escuro)
+        switch camadas.count {
+        case 0:
+            content
+        case 1:
+            content
+                .shadow(color: camadas[0].cor, radius: camadas[0].raio, x: camadas[0].x, y: camadas[0].y)
+        case 2:
+            content
+                .shadow(color: camadas[0].cor, radius: camadas[0].raio, x: camadas[0].x, y: camadas[0].y)
+                .shadow(color: camadas[1].cor, radius: camadas[1].raio, x: camadas[1].x, y: camadas[1].y)
+        case 3:
+            content
+                .shadow(color: camadas[0].cor, radius: camadas[0].raio, x: camadas[0].x, y: camadas[0].y)
+                .shadow(color: camadas[1].cor, radius: camadas[1].raio, x: camadas[1].x, y: camadas[1].y)
+                .shadow(color: camadas[2].cor, radius: camadas[2].raio, x: camadas[2].x, y: camadas[2].y)
+        default:
+            content
+                .shadow(color: camadas[0].cor, radius: camadas[0].raio, x: camadas[0].x, y: camadas[0].y)
+                .shadow(color: camadas[1].cor, radius: camadas[1].raio, x: camadas[1].x, y: camadas[1].y)
+                .shadow(color: camadas[2].cor, radius: camadas[2].raio, x: camadas[2].x, y: camadas[2].y)
+        }
+    }
+}
+
+/// Formatação fonética e acessível de moeda para VoiceOver e leitor de tela (Lacuna 11).
+public enum FrilaMoney {
+    public static let locale = Locale(identifier: "pt_BR")
+
+    /// Tradução fonética de valores em Real para VoiceOver.
+    /// Centavos por extenso, suporte a zero, 1 real e milhares ("160 reais por hora", "1 real", "0 reais", "1.000 reais").
+    public static func spoken(cents: Int, por unidade: String? = nil) -> String {
+        let reais = cents / 100
+        let centavos = cents % 100
+
+        let reaisFormatado: String
+        if reais == 1 {
+            reaisFormatado = "1 real"
+        } else if reais == 0 {
+            reaisFormatado = "0 reais"
+        } else if reais >= 1000 {
+            // Milhar: "1.000 reais", "2.500 reais" com separador pt-BR
+            reaisFormatado = "\(reais.formatted(.number.locale(locale))) reais"
+        } else {
+            reaisFormatado = "\(reais) reais"
+        }
+
+        let textoPrincipal: String
+        if centavos == 0 {
+            textoPrincipal = reaisFormatado
+        } else {
+            let centavosTexto = centavos == 1 ? "1 centavo" : "\(centavos) centavos"
+            if reais == 0 {
+                textoPrincipal = centavosTexto
+            } else {
+                textoPrincipal = "\(reaisFormatado) e \(centavosTexto)"
+            }
+        }
+
+        if let unidade, !unidade.isEmpty {
+            return "\(textoPrincipal) por \(unidade)"
+        }
+        return textoPrincipal
+    }
+
+    /// Conveniência aceitando reais e centavos inteiros.
+    public static func spoken(reais: Int, centavos: Int = 0, por unidade: String? = nil) -> String {
+        spoken(cents: (reais * 100) + centavos, por: unidade)
     }
 }
 
@@ -134,5 +287,11 @@ public extension View {
         padding(FrilaEspaco.medio)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+    }
+
+    /// Aplica o sistema Beautiful Shadows com três camadas coordenadas (rim, key, ambient).
+    /// Sem sombra nos cartões com fio de 1 pt; sombra calibrada para folhas e docas.
+    func elevacaoFrila(_ elevacao: FrilaElevacao) -> some View {
+        modifier(ModificadorElevacaoFrila(elevacao))
     }
 }

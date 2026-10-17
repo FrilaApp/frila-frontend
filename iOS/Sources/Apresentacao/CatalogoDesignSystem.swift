@@ -10,8 +10,25 @@ public struct CatalogoDesignSystem: View {
     @State private var codigo = ""
     @State private var filtro = true
     @State private var resposta: Bool?
+    @State private var exibirFolha = ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_FOLHA_DEMO")
     private let tituloCatalogo = "Frila UI"
     private let textoForcarFalha = "Forçar falha"
+    private let textoAbrirFolha = "Abrir folha de exemplo"
+    private let tituloFolha = "Folha com elevação"
+    private let corpoFolha = "Elevação em 3 camadas coordenadas (rim, key, ambient)."
+    private let subtituloTatil = "Comparação: normal vs pressionado"
+    private let rotuloNormal = "Normal"
+    private let rotuloPressionadoBotao = "Pressionado (0.96)"
+    private let rotuloPressionadoChip = "Pressionado (0.94)"
+
+    private var esquemaDeCor: ColorScheme? {
+        if ProcessInfo.processInfo.arguments.contains("-FRILA_MODO_ESCURO") {
+            return .dark
+        } else if ProcessInfo.processInfo.arguments.contains("-FRILA_MODO_CLARO") {
+            return .light
+        }
+        return nil
+    }
 
     public init(api: (any ApiCliente)? = nil, permitirSimulacaoDeConflito: Bool = false) {
         self.api = api
@@ -23,6 +40,47 @@ public struct CatalogoDesignSystem: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                     secao("Botões") { BotaoPrimario("Continuar") {}; BotaoSecundario("Voltar") {} }
+                    secao("Toque tátil") {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                            Text(verbatim: subtituloTatil)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                            HStack(spacing: FrilaEspaco.medio) {
+                                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                    Text(verbatim: rotuloNormal)
+                                        .font(FrilaTipo.nota)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                    BotaoPrimario("Continuar") {}
+                                }
+                                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                    Text(verbatim: rotuloPressionadoBotao)
+                                        .font(FrilaTipo.nota)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                    BotaoPrimario("Continuar") {}
+                                        .scaleEffect(FrilaMovimento.pressScaleBotao)
+                                        .opacity(0.92)
+                                }
+                            }
+                            HStack(spacing: FrilaEspaco.medio) {
+                                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                    Text(verbatim: rotuloNormal)
+                                        .font(FrilaTipo.nota)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                    FiltroPill("Perto de mim", selecionado: true) {}
+                                }
+                                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                    Text(verbatim: rotuloPressionadoChip)
+                                        .font(FrilaTipo.nota)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                    FiltroPill("Perto de mim", selecionado: true) {}
+                                        .scaleEffect(FrilaMovimento.pressScaleChip)
+                                        .opacity(0.92)
+                                }
+                            }
+                        }
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("secao-toque-tatil")
+                    }
                     secao("Campos") { CampoFrila("E-mail", texto: $texto); CampoCodigo(codigo: $codigo) }
                     secao("Filtros e reputação") {
                         FiltroPill("Perto de mim", selecionado: filtro) { filtro.toggle() }
@@ -41,6 +99,22 @@ public struct CatalogoDesignSystem: View {
                     if let api {
                         ValidacaoClienteAPI(api: api, permitirSimulacaoDeConflito: permitirSimulacaoDeConflito)
                     }
+                    secao("Folha") {
+                        Button(action: { exibirFolha = true }) {
+                            Text(verbatim: textoAbrirFolha)
+                                .font(FrilaTipo.botao)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, FrilaEspaco.grande)
+                                .padding(.vertical, FrilaEspaco.pequeno)
+                                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                                .foregroundStyle(FrilaCor.texto)
+                                .background(FrilaCor.superficie, in: Capsule())
+                                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(.tatil)
+                        .accessibilityIdentifier("abrir-folha-exemplo")
+                    }
                     secao("Vaga") { CartaoVaga(Self.vagaDeExemplo) }
                     // Entrada provisória da tela de licenças (#178): sai daqui quando existir a Ajuda.
                     NavigationLink { TelaLicencas() } label: {
@@ -57,9 +131,18 @@ public struct CatalogoDesignSystem: View {
                 .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
                 .frame(maxWidth: .infinity)
             }
+            .sheet(isPresented: $exibirFolha) {
+                FolhaFrila(verbatim: tituloFolha) {
+                    Text(verbatim: corpoFolha)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.texto)
+                }
+                .presentationDetents([.medium, .large])
+            }
             .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: tituloCatalogo))
         }
+        .preferredColorScheme(esquemaDeCor)
     }
 
     private func secao<Conteudo: View>(_ titulo: LocalizedStringKey, @ViewBuilder conteudo: () -> Conteudo) -> some View {

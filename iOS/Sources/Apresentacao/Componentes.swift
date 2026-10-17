@@ -1,6 +1,83 @@
 import FrilaDominio
 import SwiftUI
 
+/// Estilo tátil canônico para botões do Frila (escala 0,96, mola interpolante 350/25).
+/// Com Reduzir Movimento ativo: sem escala (1,0 imediato), mantendo atenuação de opacidade (0,92).
+public struct EstiloBotaoTatil: ButtonStyle {
+    public let reduceMotion: Bool
+    public let scale: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var envReduceMotion
+
+    public init(reduceMotion: Bool = false, scale: CGFloat = FrilaMovimento.pressScaleBotao) {
+        self.reduceMotion = reduceMotion
+        self.scale = scale
+    }
+
+    public func makeBody(configuration: Configuration) -> some View {
+        let isReduceActive = reduceMotion || envReduceMotion
+        configuration.label
+            .scaleEffect(isReduceActive ? 1.0 : (configuration.isPressed ? scale : 1.0))
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .animation(
+                isReduceActive ? .none : FrilaMovimento.molaTatil,
+                value: configuration.isPressed
+            )
+            .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, isPressed in
+                isPressed
+            }
+    }
+}
+
+/// Estilo tátil para chips e pílulas compactas (escala 0,94, mola 380/24).
+/// Garante que o alvo de toque permaneça ≥ 44 pt no layout do container.
+/// Com Reduzir Movimento ativo: sem escala (1,0 imediato), mantendo atenuação de opacidade (0,92).
+public struct EstiloChipTatil: ButtonStyle {
+    public let reduceMotion: Bool
+    public let scale: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var envReduceMotion
+
+    public init(reduceMotion: Bool = false, scale: CGFloat = FrilaMovimento.pressScaleChip) {
+        self.reduceMotion = reduceMotion
+        self.scale = scale
+    }
+
+    public func makeBody(configuration: Configuration) -> some View {
+        let isReduceActive = reduceMotion || envReduceMotion
+        configuration.label
+            .scaleEffect(isReduceActive ? 1.0 : (configuration.isPressed ? scale : 1.0))
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .animation(
+                isReduceActive ? .none : FrilaMovimento.molaTatilChip,
+                value: configuration.isPressed
+            )
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(Rectangle())
+            .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, isPressed in
+                isPressed
+            }
+    }
+}
+
+public extension ButtonStyle where Self == EstiloBotaoTatil {
+    static var tatil: EstiloBotaoTatil { EstiloBotaoTatil() }
+    static func tatil(reduceMotion: Bool = false, scale: CGFloat = FrilaMovimento.pressScaleBotao) -> EstiloBotaoTatil {
+        EstiloBotaoTatil(reduceMotion: reduceMotion, scale: scale)
+    }
+}
+
+public extension ButtonStyle where Self == EstiloChipTatil {
+    static var chipTatil: EstiloChipTatil { EstiloChipTatil() }
+    static func chipTatil(reduceMotion: Bool = false, scale: CGFloat = FrilaMovimento.pressScaleChip) -> EstiloChipTatil {
+        EstiloChipTatil(reduceMotion: reduceMotion, scale: scale)
+    }
+}
+
+public typealias HapticBounceButtonStyle = EstiloBotaoTatil
+public typealias FrilaChipBounceButtonStyle = EstiloChipTatil
+public typealias FrilaPressableButtonStyle = EstiloBotaoTatil
+
 public struct BotaoPrimario: View {
     private let titulo: Text
     private let carregando: Bool
@@ -27,14 +104,12 @@ public struct BotaoPrimario: View {
             .padding(.horizontal, FrilaEspaco.grande)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            // Sem isto o estilo `.plain` só recebe toque perto do texto: o frame é
-            // transparente e a borda do botão não responde (medido no catálogo, #139).
+            .foregroundStyle(FrilaCor.sobrePrimaria)
+            // Pílula escura do MidFi (`selectionFill`), 52 pt.
+            .background(FrilaCor.primaria, in: Capsule())
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(FrilaCor.sobrePrimaria)
-        // Pílula escura do MidFi (`selectionFill`), 52 pt.
-        .background(FrilaCor.primaria, in: Capsule())
+        .buttonStyle(.tatil)
         .disabled(carregando)
         // Enquanto carrega, o conteúdo é só o indicador: sem isto o botão perde o nome no VoiceOver.
         .accessibilityLabel(titulo)
@@ -62,13 +137,13 @@ public struct BotaoSecundario: View {
                 .padding(.horizontal, FrilaEspaco.grande)
                 .padding(.vertical, FrilaEspaco.pequeno)
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                .foregroundStyle(FrilaCor.texto)
+                // Botão de contorno do MidFi: superfície clara com fio de controle.
+                .background(FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
                 .contentShape(Capsule())
         }
-            .buttonStyle(.plain)
-            .foregroundStyle(FrilaCor.texto)
-            // Botão de contorno do MidFi: superfície clara com fio de controle.
-            .background(FrilaCor.superficie, in: Capsule())
-            .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+        .buttonStyle(.tatil)
     }
 }
 
@@ -174,11 +249,9 @@ public struct FiltroPill: View {
             .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
             .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
             .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-            // Chip de 32 pt visíveis dentro de um alvo de 44 pt.
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .contentShape(Rectangle())
+            .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.chipTatil)
         .accessibilityAddTraits(selecionado ? .isSelected : [])
         .accessibilityValue(Self.valorAcessibilidade(selecionado: selecionado))
     }
@@ -351,6 +424,12 @@ public struct CartaoVaga: View {
             Text(verbatim: formatador.dinheiro(vaga.valor)).font(FrilaTipo.preco).monospacedDigit()
             Text("por turno", bundle: bundleApresentacao).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(rotuloAcessibilidadeValor)
+    }
+
+    public var rotuloAcessibilidadeValor: String {
+        FrilaMoney.spoken(cents: vaga.valor.centavos, por: "turno")
     }
 
     private func linha(_ icone: String, @ViewBuilder texto: () -> Text) -> some View {
@@ -368,7 +447,7 @@ public struct CartaoVaga: View {
             String(localized: "Vaga de \(vaga.funcao.nome)", bundle: bundleApresentacao),
             vaga.estabelecimento.nome,
             formatador.intervalo(vaga.periodo),
-            formatador.dinheiro(vaga.valor),
+            rotuloAcessibilidadeValor,
             "a \(distancia)",
             vaga.local
         ]
@@ -441,7 +520,7 @@ public struct RespostaSimNao: View {
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.tatil)
         .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
         .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
         .overlay(Capsule().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
@@ -466,5 +545,18 @@ public struct FolhaFrila<Conteudo: View>: View {
         }
         .padding(FrilaEspaco.grande)
         .background(FrilaCor.superficie)
+        .elevacaoFrila(.folha)
+    }
+}
+
+public extension FrilaMoney {
+    static func spoken(_ valor: Dinheiro, por unidade: String? = nil) -> String {
+        spoken(cents: valor.centavos, por: unidade)
+    }
+}
+
+public extension FormatadorFrila {
+    func dinheiroFalado(_ valor: Dinheiro, por unidade: String? = nil) -> String {
+        FrilaMoney.spoken(cents: valor.centavos, por: unidade)
     }
 }
