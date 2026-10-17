@@ -5,6 +5,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
     func testContratanteComEstabelecimentoAbreMinhasVagasESai() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
         let captura = XCTAttachment(screenshot: app.screenshot())
@@ -19,6 +20,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
     func testPrimeiroAcessoDoContratanteAbreCadastroComResponsavelDaConta() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         let email = app.textFields["entrada-email"]
@@ -39,16 +41,16 @@ final class FluxoDoContratanteUITests: XCTestCase {
         perfil.tap()
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
-        nome.typeText("Responsável do Café")
+        nome.digitarEEsperar("Responsável do Café")
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
-        nascimento.typeText("15/05/1995")
+        nascimento.digitarEEsperar("15051995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
@@ -78,6 +80,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
             "-FRILA_SCENARIO", "primeiro-acesso",
             "-FRILA_CADASTRO_UI_TEST"
         ]
+        AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
         let email = app.textFields["entrada-email"]
@@ -98,16 +101,16 @@ final class FluxoDoContratanteUITests: XCTestCase {
         perfil.tap()
         let nome = app.textFields["cadastro-nome"]
         nome.tap()
-        nome.typeText("Responsável do Café")
+        nome.digitarEEsperar("Responsável do Café")
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
-        nascimento.typeText("15/05/1995")
+        nascimento.digitarEEsperar("15051995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
