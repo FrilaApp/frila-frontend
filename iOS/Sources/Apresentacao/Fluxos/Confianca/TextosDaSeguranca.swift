@@ -13,6 +13,8 @@ enum TextosDaSeguranca {
     static let efeitoBloqueio = String(localized: "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento.", bundle: bundleApresentacao)
     static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
     static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
+    static let concluir = String(localized: "Concluir", bundle: bundleApresentacao)
+    static let relatoValidoAcessibilidade = String(localized: "Mínimo de caracteres atendido", bundle: bundleApresentacao)
     static let motivo = String(localized: "Motivo da denúncia", bundle: bundleApresentacao)
     static let relato = String(localized: "Relato", bundle: bundleApresentacao)
     static let relatoMinimo = String(localized: "O relato deve conter pelo menos 10 caracteres.", bundle: bundleApresentacao)

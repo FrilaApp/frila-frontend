@@ -176,6 +176,8 @@ enum TextosDoProfissional {
             bundle: bundleApresentacao
         )
         public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)
+        public static let botaoConcluir = String(localized: "Concluir", bundle: bundleApresentacao)
+        public static let dicaEscolhaResposta = String(localized: "Escolha Sim ou Não para avaliar.", bundle: bundleApresentacao)
         public static let avaliadoSucesso = String(localized: "Avaliação registrada com sucesso!", bundle: bundleApresentacao)
         public static let avaliadoOffline = String(localized: "Avaliação salva. Será enviada quando a internet voltar.", bundle: bundleApresentacao)
         public static let suaResposta = String(localized: "Sua resposta", bundle: bundleApresentacao)

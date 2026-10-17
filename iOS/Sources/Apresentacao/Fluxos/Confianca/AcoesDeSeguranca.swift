@@ -148,10 +148,24 @@ private struct FolhaDeDenuncia: View {
                             .lineLimit(4...10)
                             .focused($focoNoRelato)
                             .accessibilityIdentifier("relato-denuncia")
+                            .accessibilityHint(Text(verbatim: model.relatoValido ? TextosDaSeguranca.relatoValidoAcessibilidade : "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
 
-                        Text(verbatim: TextosDaSeguranca.relatoMinimo)
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
+                        HStack {
+                            if model.relatoValido {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(FrilaCor.sucesso)
+                                    .accessibilityIdentifier("icone-relato-valido-denuncia")
+                            }
+                            Text(verbatim: TextosDaSeguranca.relatoMinimo)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(model.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                            Spacer()
+                            Text(verbatim: "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
+                                .font(FrilaTipo.nota.monospacedDigit())
+                                .foregroundStyle(model.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                                .accessibilityIdentifier("contador-relato-denuncia")
+                                .accessibilityLabel(Text(verbatim: model.relatoValido ? TextosDaSeguranca.relatoValidoAcessibilidade : "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
+                        }
                     }
                     .listRowBackground(FrilaCor.superficie)
                     .disabled(model.enviando)
@@ -187,17 +201,33 @@ private struct FolhaDeDenuncia: View {
                     }
                     .padding(FrilaEspaco.medio)
                     .background(FrilaCor.fundo.opacity(0.95))
+                } else {
+                    VStack(spacing: FrilaEspaco.minimo) {
+                        BotaoPrimario(verbatim: TextosDaSeguranca.concluir) {
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("concluir-denuncia")
+                    }
+                    .padding(FrilaEspaco.medio)
+                    .background(FrilaCor.fundo.opacity(0.95))
                 }
             }
             .navigationTitle(TextosDaSeguranca.denunciar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TextosDaSeguranca.fechar) { dismiss() }
-                        .accessibilityShowsLargeContentViewer {
-                            Text(verbatim: TextosDaSeguranca.fechar)
-                        }
-                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        .disabled(model.enviando)
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(verbatim: TextosDaSeguranca.fechar)
+                            .fixedSize()
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .fixedSize()
+                    .accessibilityShowsLargeContentViewer {
+                        Text(verbatim: TextosDaSeguranca.fechar)
+                    }
+                    .disabled(model.enviando)
+                    .accessibilityIdentifier("fechar-denuncia")
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
