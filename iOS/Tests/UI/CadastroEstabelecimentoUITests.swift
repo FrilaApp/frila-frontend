@@ -299,5 +299,64 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         }
         return (lat, lon)
     }
+
+    func testCapturasCadastroEstabelecimentoUX03() {
+        let app = abrir()
+
+        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        let seletorRA = app.buttons["regiao-administrativa"]
+        XCTAssertTrue(seletorRA.waitForExistence(timeout: 10))
+
+        for _ in 0..<5 where !seletorRA.isHittable {
+            app.swipeUp()
+        }
+        app.swipeUp()
+        XCTAssertTrue(seletorRA.isHittable)
+        salvarCaptura("01-cadastro-estabelecimento-padrao")
+
+        tocar(app.buttons["continuar-cadastro"])
+        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        salvarCaptura("03-tela-vizinha-publicar-vaga")
+    }
+
+    func testCapturaCadastroEstabelecimentoXXXL() {
+        let app = abrir(argumentos: [
+            "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
+            "-FRILA_CADASTRO_UI_TEST",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityXXXL"
+        ])
+
+        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        salvarCaptura("04-cadastro-estabelecimento-topo-xxxl")
+
+        let seletorRA = app.buttons["regiao-administrativa"]
+        XCTAssertTrue(seletorRA.waitForExistence(timeout: 10))
+
+        for _ in 0..<5 where !seletorRA.isHittable {
+            app.swipeUp()
+        }
+        app.swipeUp()
+        XCTAssertTrue(seletorRA.isHittable)
+        salvarCaptura("02-cadastro-estabelecimento-xxxl")
+    }
+
+    private func salvarCaptura(_ nome: String) {
+        let captura = XCUIScreen.main.screenshot()
+        let anexo = XCTAttachment(screenshot: captura)
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+
+        if let diretorio = ProcessInfo.processInfo.environment["FRILA_CAPTURAS_DIR"], !diretorio.isEmpty {
+            let destino = URL(fileURLWithPath: diretorio).appendingPathComponent("\(nome).png")
+            do {
+                try FileManager.default.createDirectory(at: URL(fileURLWithPath: diretorio), withIntermediateDirectories: true)
+                try captura.pngRepresentation.write(to: destino)
+            } catch {
+                XCTFail("Falha ao exportar captura para \(destino.path): \(error)")
+            }
+        }
+    }
 }
 

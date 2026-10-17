@@ -3091,6 +3091,16 @@
         }
       }
     },
+    "Selecione a Região Administrativa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecione a Região Administrativa"
+          }
+        }
+      }
+    },
     "Selecione uma função": {
       "localizations": {
         "pt-BR": {
@@ -7972,6 +7982,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você é o único administrador deste estabelecimento. Não é possível excluir a conta enquanto houver outros membros."
+          }
+        }
+      }
+    },
+    "Total da vaga: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total da vaga: %@"
+          }
+        }
+      }
+    },
+    "Republicar posições em urgência?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Republicar posições em urgência?"
+          }
+        }
+      }
+    },
+    "O primeiro profissional será confirmado na hora.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O primeiro profissional será confirmado na hora."
+          }
+        }
+      }
+    },
+    "Confirmar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar"
           }
         }
       }

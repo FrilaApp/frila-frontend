@@ -21,6 +21,7 @@ private enum TextosPublicarVaga {
     static let valorAjuda = String(localized: "O profissional recebe o valor integral", bundle: bundlePublicarVaga)
     static let posicoes = String(localized: "Posições", bundle: bundlePublicarVaga)
     static let posicoesExemplo = String(localized: "1", bundle: bundlePublicarVaga)
+    static let totalDaVaga = String(localized: "Total da vaga: %@", bundle: bundlePublicarVaga)
     static let inclusos = String(localized: "O que está incluso", bundle: bundlePublicarVaga)
     static let refeicao = String(localized: "Refeição", bundle: bundlePublicarVaga)
     static let transporte = String(localized: "Transporte", bundle: bundlePublicarVaga)
@@ -91,7 +92,15 @@ public final class PublicarVagaViewModel {
     public var estabelecimento: Estabelecimento?
     public var funcoes: [Funcao]
     public var funcaoID: UUID?
-    public var inicio: Date
+    public var inicio: Date {
+        didSet {
+            let duracao = fim.timeIntervalSince(oldValue)
+            if duracao > 0 {
+                fim = inicio.addingTimeInterval(duracao)
+            }
+            ajustarModoAoInicio()
+        }
+    }
     public var fim: Date
     public var local: String
     public var valorTexto = ""
@@ -160,6 +169,33 @@ public final class PublicarVagaViewModel {
 
     public var camposBloqueados: Bool { publicacaoPendente != nil }
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
+    public var valorTotalCentavos: Int {
+        guard let posicoes = Int(posicoesTexto), posicoes > 0 else { return 0 }
+        return valorCentavos * posicoes
+    }
+
+    private var posicoesNormalizadas: Int {
+        let valor = Int(posicoesTexto) ?? 1
+        return valor < 1 ? 1 : min(valor, 200)
+    }
+
+    public func incrementarPosicoes() {
+        let atual = posicoesNormalizadas
+        if atual < 200 {
+            posicoesTexto = String(atual + 1)
+        } else {
+            posicoesTexto = "200"
+        }
+    }
+
+    public func decrementarPosicoes() {
+        let atual = posicoesNormalizadas
+        if atual > 1 {
+            posicoesTexto = String(atual - 1)
+        } else {
+            posicoesTexto = "1"
+        }
+    }
     public var textoAoFechar: String {
         (publicacaoPendente != nil || resultado != nil) ? TextosPublicarVaga.voltar : TextosPublicarVaga.cancelar
     }
@@ -245,7 +281,6 @@ public final class PublicarVagaViewModel {
                 if let indice = argumentos.firstIndex(of: "-FRILA_PUBLICAR_INICIO_EM_HORAS"), argumentos.indices.contains(indice + 1),
                    let horas = Double(argumentos[indice + 1]) {
                     inicio = agora().addingTimeInterval(horas * 60 * 60)
-                    fim = inicio.addingTimeInterval(4 * 60 * 60)
                 }
             }
             #endif
@@ -565,15 +600,19 @@ public struct TelaPublicarVaga: View {
                     .allowsHitTesting(false)
                     if let erro = model.erros[.ponto] { Text(verbatim: erro).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo) }
                 }
-                if dynamicTypeSize.isAccessibilitySize {
+                if dynamicTypeSize >= .xxxLarge {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         campoValor
                         campoPosicoes
+                        campoTotalCalculado
                     }
                 } else {
-                    HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                        campoValor
-                        campoPosicoes
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                            campoValor
+                            campoPosicoes
+                        }
+                        campoTotalCalculado
                     }
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -733,13 +772,32 @@ public struct TelaPublicarVaga: View {
 
     private var campoPosicoes: some View {
         campo(.posicoes, titulo: TextosPublicarVaga.posicoes) {
-            TextField(TextosPublicarVaga.posicoesExemplo, text: $model.posicoesTexto)
-                .keyboardType(.numberPad)
-                .textFieldStyle(.plain)
-                .font(FrilaTipo.valorDoCampo)
-                .modifier(CaixaDoCampoDePublicacao())
+            HStack(spacing: FrilaEspaco.minimo) {
+                CampoPosicoesVaga(texto: $model.posicoesTexto)
+                    .frame(minHeight: FrilaMetrica.alturaDoCampo)
+                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
+                    .accessibilityIdentifier("posicoes-vaga-campo")
+                Stepper(
+                    "",
+                    onIncrement: { model.incrementarPosicoes() },
+                    onDecrement: { model.decrementarPosicoes() }
+                )
+                .labelsHidden()
                 .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
-                .accessibilityIdentifier("posicoes-vaga-campo")
+                .accessibilityValue(Text(verbatim: model.posicoesTexto))
+                .accessibilityIdentifier("posicoes-vaga-stepper")
+            }
+            .modifier(CaixaDoCampoDePublicacao())
+        }
+    }
+
+    private var campoTotalCalculado: some View {
+        HStack {
+            Text(verbatim: String(format: TextosPublicarVaga.totalDaVaga, FormatadorFrila().dinheiro(Dinheiro(centavos: model.valorTotalCentavos))))
+                .font(FrilaTipo.rotuloDoCampo)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityIdentifier("total-vaga-calculado")
+            Spacer()
         }
     }
 
@@ -898,3 +956,52 @@ struct CampoValorVaga: UIViewRepresentable {
         return String(format: TextosPublicarVaga.formatoValor, reais, resto)
     }
 }
+
+/// Campo numérico de posições com altura mínima de toque e comportamento UIKit compatível.
+struct CampoPosicoesVaga: UIViewRepresentable {
+    @Binding var texto: String
+    @Environment(\.isEnabled) private var habilitado
+
+    func makeCoordinator() -> Coordenador { Coordenador(texto: $texto) }
+
+    func makeUIView(context: Context) -> UITextField {
+        let campo = UITextField()
+        campo.keyboardType = .numberPad
+        campo.borderStyle = .none
+        campo.font = .preferredFont(forTextStyle: .body)
+        campo.adjustsFontForContentSizeCategory = true
+        campo.textColor = FrilaCor.textoUIKit
+        campo.placeholder = TextosPublicarVaga.posicoesExemplo
+        campo.accessibilityLabel = TextosPublicarVaga.posicoes
+        campo.accessibilityIdentifier = "posicoes-vaga-campo"
+        campo.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        campo.setContentHuggingPriority(.defaultLow, for: .vertical)
+        campo.addTarget(context.coordinator, action: #selector(Coordenador.editar(_:)), for: .editingChanged)
+        campo.delegate = context.coordinator
+        return campo
+    }
+
+    func updateUIView(_ campo: UITextField, context: Context) {
+        context.coordinator.texto = $texto
+        campo.isEnabled = habilitado
+        if campo.text != texto { campo.text = texto }
+    }
+
+    @MainActor
+    final class Coordenador: NSObject, UITextFieldDelegate {
+        var texto: Binding<String>
+
+        init(texto: Binding<String>) { self.texto = texto }
+
+        func textField(_ campo: UITextField, shouldChangeCharactersIn intervalo: NSRange, replacementString novo: String) -> Bool {
+            let permitidos = CharacterSet(charactersIn: "0123456789")
+            let conjuntoNovo = CharacterSet(charactersIn: novo)
+            return permitidos.isSuperset(of: conjuntoNovo)
+        }
+
+        @objc func editar(_ campo: UITextField) {
+            texto.wrappedValue = campo.text ?? ""
+        }
+    }
+}
+

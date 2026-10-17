@@ -389,3 +389,26 @@ falha esperada da tela corrigida, rode a suíte e atualize a tabela acima.
   - **Entrada de dados acessível**: teclado numérico (`.keyboardType(.numberPad)`) com máscara progressiva `dd/mm/aaaa` na data e máscara no telefone, facilitando digitação com VoiceOver e teclados assistivos.
   - **Indicação e foco de campo pendente**: ao tocar em Continuar com campos vazios ou termos desmarcados, o app destaca visualmente o campo com erro (`campoComErro`) e faz rolagem automática acessível (`ScrollViewReader`) até o elemento.
 
+---
+
+### UX-04 — seletores de disponibilidade (17/10/2026)
+
+`TelaPerfilProfissional` usa `DatePicker` nativo com `.hourAndMinute`, rótulos
+“Início” e “Fim” para VoiceOver e teste de alvo mínimo de 44 pt nos dois eixos.
+As roletas ficam lado a lado, com 216 pt no padrão e 248 pt nos tamanhos de
+acessibilidade. O conteúdo fica contido em cada coluna sem cortar o texto nativo.
+O menu nativo do dia usa um rótulo com altura livre para não cortar
+“Sexta-feira” em AX5. Adicionar anuncia “Adicionar horário”. Alterar dia,
+início ou fim deixa a faixa pendente; salvar a incorpora à lista antes do envio.
+A sugestão inicial, sem edição, não cria uma faixa. A adição explícita limpa a pendência.
+Início e fim iguais bloqueiam o envio; faixas noturnas continuam aceitas (#98 C2).
+A revisão `swiftui-pro` ficou restrita ao diff: estado no modelo observável, bindings
+diretos, controles nativos e APIs disponíveis desde o iOS 17. A prova visual e os
+resultados executados estão em `evidencias/ux-04-perfil-profissional/README.md`.
+
+Na tela vizinha Meu perfil, os tamanhos de acessibilidade empilham os rótulos de
+Telefone, E-mail, Funções e Horários disponíveis acima dos valores. Telefone e
+e-mail ficam em uma única linha com rolagem horizontal quando excedem o cartão,
+sem hifenização, truncamento do conteúdo ou redução da fonte. O valor completo
+continua na árvore de acessibilidade; rótulo e valor são lidos em sequência. No
+tamanho padrão, o `LabeledContent` e os tokens anteriores são preservados.

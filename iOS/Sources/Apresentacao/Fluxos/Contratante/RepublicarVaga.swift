@@ -49,7 +49,14 @@ public enum TextosRepublicarVaga {
 @MainActor @Observable
 public final class RepublicarVagaViewModel {
     public let vagaOriginal: VagaNoPainel
-    public var inicio: Date
+    public var inicio: Date {
+        didSet {
+            let duracao = fim.timeIntervalSince(oldValue)
+            if duracao > 0 {
+                fim = inicio.addingTimeInterval(duracao)
+            }
+        }
+    }
     public var fim: Date
     public private(set) var enviando = false
     public private(set) var resultado: VagaPublicada?
@@ -88,7 +95,8 @@ public final class RepublicarVagaViewModel {
         let antecedencia: TimeInterval = vagaOriginal.modo == .selecao ? 25 * 3600 : 3 * 3600
         let inicioPadrao = agora().addingTimeInterval(antecedencia)
         self.inicio = inicioPadrao
-        self.fim = inicioPadrao.addingTimeInterval(4 * 3600)
+        let duracaoOriginal = vagaOriginal.vaga.periodo.fim.timeIntervalSince(vagaOriginal.vaga.periodo.inicio)
+        self.fim = inicioPadrao.addingTimeInterval(duracaoOriginal)
         self.republicarAPI = { id, periodo, chave in
             try await api.republicarVaga(id: id, periodo: periodo, chave: chave)
         }
@@ -109,7 +117,8 @@ public final class RepublicarVagaViewModel {
         let antecedencia: TimeInterval = vagaOriginal.modo == .selecao ? 25 * 3600 : 3 * 3600
         let inicioPadrao = agora().addingTimeInterval(antecedencia)
         self.inicio = inicioPadrao
-        self.fim = inicioPadrao.addingTimeInterval(4 * 3600)
+        let duracaoOriginal = vagaOriginal.vaga.periodo.fim.timeIntervalSince(vagaOriginal.vaga.periodo.inicio)
+        self.fim = inicioPadrao.addingTimeInterval(duracaoOriginal)
         self.republicarAPI = republicar
     }
 
