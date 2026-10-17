@@ -1,6 +1,6 @@
 # Política de Privacidade — Frila
 
-**Última atualização:** 15 de outubro de 2026
+**Última atualização:** 17 de outubro de 2026
 
 A sua privacidade e a proteção dos seus dados pessoais são princípios fundamentais para o **Frila**. Esta Política de Privacidade explica de forma clara, transparente e acessível como coletamos, utilizamos, armazenamos, compartilhamos e protegemos suas informações quando você utiliza nosso aplicativo para iOS e serviços relacionados.
 
@@ -64,6 +64,7 @@ Seus dados pessoais só são compartilhados nas seguintes situações objetivas:
    - **Google Firebase (FCM e Crashlytics):** Entrega de notificações push no aparelho e coleta técnica de relatórios de travamento desvinculados de identidade pessoal.
    - **Google (Gmail):** Envio, para o seu e-mail, do código temporário de entrada.
    - **Apple Inc. (APNs):** Entrega das notificações push pelo sistema operacional iOS.
+   - **Netlify, Inc.:** Hospedagem das páginas públicas do Frila (Privacidade, Termos e Suporte).
 3. **Por obrigação legal ou ordem de autoridade competente:**
    - Em caso de determinação judicial, requisição formal de autoridade policial competente ou obrigação regulatória expressa, estritamente nos limites exigidos por lei.
 
