@@ -310,6 +310,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         for _ in 0..<5 where !seletorRA.isHittable {
             app.swipeUp()
         }
+        app.swipeUp()
         XCTAssertTrue(seletorRA.isHittable)
         salvarCaptura("01-cadastro-estabelecimento-padrao")
 
@@ -335,6 +336,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         for _ in 0..<5 where !seletorRA.isHittable {
             app.swipeUp()
         }
+        app.swipeUp()
         XCTAssertTrue(seletorRA.isHittable)
         salvarCaptura("02-cadastro-estabelecimento-xxxl")
     }

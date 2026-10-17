@@ -324,19 +324,38 @@ public struct TelaCadastroEstabelecimento: View {
                     CampoFrila(verbatim: TextosCadastro.documentoCampo, texto: Binding(get: { model.documentoFormatado }, set: { valor in model.atualizarDocumento(valor) }))
                         .keyboardType(.numberPad)
                 }
-                Picker(selection: $model.tipo) {
-                    ForEach(TipoEstabelecimento.allCases, id: \.self) { Text(verbatim: tipoNome($0)).tag($0) }
+                Menu {
+                    ForEach(TipoEstabelecimento.allCases, id: \.self) { tipo in
+                        Button {
+                            model.tipo = tipo
+                        } label: {
+                            if model.tipo == tipo {
+                                Label(tipoNome(tipo), systemImage: "checkmark")
+                            } else {
+                                Text(verbatim: tipoNome(tipo))
+                            }
+                        }
+                    }
                 } label: {
-                    Text(verbatim: TextosCadastro.tipo)
-                        .font(FrilaTipo.rotuloDoCampo)
-                        .foregroundStyle(FrilaCor.texto)
+                    HStack {
+                        Text(verbatim: tipoNome(model.tipo))
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(FrilaTipo.meta)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.vertical, FrilaEspaco.pequeno)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
                 }
-                .pickerStyle(.menu)
-                .tint(FrilaCor.texto)
-                .padding(.horizontal, FrilaEspaco.medio)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .accessibilityLabel(Text(verbatim: TextosCadastro.tipo))
+                .accessibilityValue(Text(verbatim: tipoNome(model.tipo)))
                 .accessibilityIdentifier("tipo-estabelecimento")
                 secaoEndereco
                 secaoSugestoes
@@ -344,18 +363,47 @@ public struct TelaCadastroEstabelecimento: View {
                     secaoMapa(ponto: point)
                 }
                 campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
-                    Picker(TextosCadastro.regiaoAdministrativa, selection: $model.regiaoAdministrativa) {
-                        Text(verbatim: TextosCadastro.selecioneRegiaoAdministrativa).tag("")
-                        ForEach(CadastroEstabelecimentoViewModel.regioesAdministrativas, id: \.self) { regiao in
-                            Text(verbatim: regiao).tag(regiao)
+                    Menu {
+                        Button {
+                            model.regiaoAdministrativa = ""
+                        } label: {
+                            if model.regiaoAdministrativa.isEmpty {
+                                Label(TextosCadastro.selecioneRegiaoAdministrativa, systemImage: "checkmark")
+                            } else {
+                                Text(verbatim: TextosCadastro.selecioneRegiaoAdministrativa)
+                            }
                         }
+                        ForEach(CadastroEstabelecimentoViewModel.regioesAdministrativas, id: \.self) { regiao in
+                            Button {
+                                model.regiaoAdministrativa = regiao
+                            } label: {
+                                if model.regiaoAdministrativa == regiao {
+                                    Label(regiao, systemImage: "checkmark")
+                                } else {
+                                    Text(verbatim: regiao)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecioneRegiaoAdministrativa : model.regiaoAdministrativa)
+                                .font(FrilaTipo.corpo)
+                                .foregroundStyle(model.regiaoAdministrativa.isEmpty ? FrilaCor.textoSecundario : FrilaCor.texto)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
+                        .padding(.horizontal, FrilaEspaco.medio)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
                     }
-                    .pickerStyle(.menu)
-                    .tint(FrilaCor.texto)
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .accessibilityLabel(Text(verbatim: TextosCadastro.regiaoAdministrativa))
+                    .accessibilityValue(Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecioneRegiaoAdministrativa : model.regiaoAdministrativa))
                     .accessibilityIdentifier("regiao-administrativa")
                     Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
                 }
