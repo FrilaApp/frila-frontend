@@ -115,3 +115,11 @@ Decisão do Cauê de 15/10/2026: o Frila é um projeto de estudantes, sem razão
 | `termos.md` | Seção 14 (Foro) | Comarca de Brasília, Distrito Federal | Confirmado pelo Cauê. |
 
 > Localidade Brasília/DF e foro da Comarca de Brasília, Distrito Federal confirmados pelo Cauê. Permanecem pendentes a avaliação jurídica sobre encarregado e a definição das URLs públicas aprovadas antes da publicação. Este ajuste documental não republica o site nem altera os textos ou prazos calculados pelo app e pelo backend.
+
+---
+
+## 7. Geração e Deploy
+
+- **Como gerar:** `python3 iOS/Scripts/gerar-paginas-publicas.py <pasta_saida>` (lê os `.md` desta pasta e gera os HTMLs).
+- **Deploy:** O deploy (`netlify deploy --prod`) é manual e restrito a quem tem acesso.
+
