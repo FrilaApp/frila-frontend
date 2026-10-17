@@ -272,7 +272,6 @@ public final class PublicarVagaViewModel {
                 if let indice = argumentos.firstIndex(of: "-FRILA_PUBLICAR_INICIO_EM_HORAS"), argumentos.indices.contains(indice + 1),
                    let horas = Double(argumentos[indice + 1]) {
                     inicio = agora().addingTimeInterval(horas * 60 * 60)
-                    fim = inicio.addingTimeInterval(4 * 60 * 60)
                 }
             }
             #endif

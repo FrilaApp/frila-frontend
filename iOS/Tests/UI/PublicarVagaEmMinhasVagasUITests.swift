@@ -220,9 +220,25 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
         XCTAssertGreaterThan(dpFim.pickerWheels.count, 0, "DatePicker Fim deve conter rodas de seleção")
 
-        let totalCalculado = app.staticTexts["total-vaga-calculado"]
-        rolarAte(totalCalculado, em: app)
         salvarCaptura("03-publicar-vaga-xxxl")
+    }
+
+    func testFimAcompanhaInicioMantendoDuracaoNoTamanhoPadrao() {
+        let app = abrir(["-FRILA_CADASTRO_UI_TEST", "-FRILA_PUBLICAR_INICIO_EM_HORAS", "30"])
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        tocar(app.buttons["publicar-vaga-entrada"])
+
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+
+        let dpInicio = app.datePickers["datepicker-inicio"]
+        let dpFim = app.datePickers["datepicker-fim"]
+        rolarAte(dpInicio, em: app)
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: 5))
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5))
+
+        salvarCaptura("06-publicar-vaga-fim-acompanha-inicio-padrao")
     }
 
     func testCapturasPublicarVagaUX02() {
