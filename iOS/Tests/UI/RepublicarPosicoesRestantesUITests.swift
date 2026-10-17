@@ -27,6 +27,12 @@ final class RepublicarPosicoesRestantesUITests: XCTestCase {
         }
     }
 
+    private func confirmarAlertaDeUrgencia(em app: XCUIApplication) {
+        let botaoConfirmar = app.alerts.buttons["Confirmar"].firstMatch
+        XCTAssertTrue(botaoConfirmar.waitForExistence(timeout: 5), "Alerta de confirmação de urgência deve exibir o botão Confirmar")
+        botaoConfirmar.tap()
+    }
+
     func testFluxoDeRepublicacaoEmMinhasVagasEDetalhePadrao() {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -53,6 +59,9 @@ final class RepublicarPosicoesRestantesUITests: XCTestCase {
 
         // 3. Toca em republicar: navega para a nova vaga de urgência criada (resolvida pelo Roteador no Environment)
         botaoNoDetalhe.tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        salvarCaptura("04-alerta-urgencia-padrao")
+        confirmarAlertaDeUrgencia(em: app)
 
         // Aguarda a nova vaga de urgência abrir na hierarquia do NavigationStack comprovando ID exato
         let novoTitulo = app.staticTexts["funcao-vaga-detalhe-50000000-0000-0000-0000-000000000001"]
@@ -94,6 +103,11 @@ final class RepublicarPosicoesRestantesUITests: XCTestCase {
         XCTAssertTrue(botaoNoDetalhe.waitForExistence(timeout: 10))
         rolarAte(botaoNoDetalhe, em: app)
         salvarCaptura("detalhe-xxxl")
+
+        botaoNoDetalhe.tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        salvarCaptura("05-alerta-urgencia-xxxl")
+        confirmarAlertaDeUrgencia(em: app)
     }
 
     func testRecusaMantemErroVisivelAposReleituraRemoverElegibilidade() {
@@ -116,6 +130,7 @@ final class RepublicarPosicoesRestantesUITests: XCTestCase {
 
         // Executa republicação: o dublê responde com a recusa simulada (sem_posicoes_restantes)
         botaoNoDetalhe.tap()
+        confirmarAlertaDeUrgencia(em: app)
 
         // 1. O aviso de erro de recusa aparece com a mensagem correspondente
         let avisoErro = app.descendants(matching: .any)["republicar-urgencia-detalhe-vaga-40000000-0000-0000-0000-000000000001-erro"]
@@ -154,6 +169,7 @@ final class RepublicarPosicoesRestantesUITests: XCTestCase {
 
         // 1. Primeiro toque: dublê simula semRede
         botaoNoDetalhe.tap()
+        confirmarAlertaDeUrgencia(em: app)
 
         // Aviso de erro transitório de rede aparece
         let avisoErro = app.descendants(matching: .any).matching(NSPredicate(format: "identifier ENDSWITH %@", "-erro")).firstMatch
@@ -164,6 +180,7 @@ final class RepublicarPosicoesRestantesUITests: XCTestCase {
 
         // 2. Segundo toque: deve reutilizar a mesma chave de idempotência
         botaoNoDetalhe.tap()
+        confirmarAlertaDeUrgencia(em: app)
 
         // Aguarda navegação para a nova vaga de urgência criada
         let novaVaga = app.staticTexts["funcao-vaga-detalhe-50000000-0000-0000-0000-000000000001"]

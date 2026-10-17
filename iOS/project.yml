@@ -102,6 +102,8 @@ targets:
         buildPhase: resources
       - path: Resources/Licencas.json
         buildPhase: resources
+      - path: Resources/Fonts
+        buildPhase: resources
       - path: Resources/Frameworks/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:

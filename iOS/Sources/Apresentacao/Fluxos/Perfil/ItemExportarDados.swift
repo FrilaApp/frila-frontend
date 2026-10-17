@@ -25,6 +25,7 @@ public struct FolhaCompartilhamento: UIViewControllerRepresentable {
     public func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
+/// Linha "Exportar meus dados" (#24), no estilo das linhas dos quadros "MeuPerfil" e "ExportarDados" do MidFi do Fabrício; o toque abre o compartilhar do iPhone com o arquivo.
 public struct ItemExportarDados: View {
     @Bindable private var viewModel: ExportarDadosViewModel
     private let identificador: String
@@ -40,30 +41,37 @@ public struct ItemExportarDados: View {
                 Task { await viewModel.exportarDados() }
             } label: {
                 HStack(spacing: FrilaEspaco.pequeno) {
-                    Label {
-                        Text(verbatim: TextosExportarDados.titulo)
-                    } icon: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
+                    Text(verbatim: TextosExportarDados.titulo)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.texto)
+                        .multilineTextAlignment(.leading)
+                    Spacer(minLength: FrilaEspaco.pequeno)
                     if viewModel.estaCarregando {
-                        Spacer()
                         ProgressView()
                             .controlSize(.small)
                             .accessibilityIdentifier("progresso-exportar-dados")
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityHidden(true)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                .padding(.vertical, FrilaEspaco.minimo)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
                 .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .disabled(viewModel.estaCarregando)
             .accessibilityIdentifier(identificador)
             .accessibilityLabel(TextosExportarDados.titulo)
             .accessibilityHint(TextosExportarDados.dicaAcessibilidade)
 
             Text(verbatim: TextosExportarDados.explicacao)
-                .font(.caption)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, FrilaEspaco.compacto)
                 .accessibilityIdentifier("\(identificador)-explicacao")
 
             if let erro = viewModel.mensagemErro {

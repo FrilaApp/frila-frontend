@@ -1,5 +1,3 @@
-// VISUAL PROVISÓRIO: o design de alta fidelidade do turno do contratante ainda não chegou (#19).
-
 import FrilaDominio
 import SwiftUI
 
@@ -100,8 +98,9 @@ enum TextosDoAcompanhamento {
     }
 }
 
-/// O turno visto por quem opera a casa: a chegada do profissional, a confirmação do check-in manual
-/// e a reabertura por atraso. Recebe o turno pelo id, que é o que o aviso do push traz.
+/// O turno visto por quem opera a casa, no quadro "TurnoContratante" do MidFi do Fabrício: a chegada do
+/// profissional, a confirmação do check-in manual e a reabertura por atraso. Recebe o turno pelo id,
+/// que é o que o aviso do push traz.
 struct TelaTurnoDoContratante: View {
     let viewModel: AcompanhamentoViewModel
     let turnoID: UUID
@@ -157,17 +156,20 @@ struct TelaTurnoDoContratante: View {
 
     @ViewBuilder private func conteudo(_ turno: TurnoAcompanhado) -> some View {
         Text(verbatim: TextosDoAcompanhamento.nome(turno))
-            .font(.largeTitle.bold())
+            .font(FrilaTipo.tituloGrande)
             .accessibilityAddTraits(.isHeader)
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: turno.vaga.funcao).font(.headline)
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: turno.vaga.funcao).font(FrilaTipo.resumo)
             Text(verbatim: turno.vaga.local)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
             Text(verbatim: String(
                 format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
             ))
+            .font(FrilaTipo.meta.monospacedDigit())
+            .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FrilaEspaco.medio)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
 
@@ -181,12 +183,11 @@ struct TelaTurnoDoContratante: View {
 
         AvisosDoAcompanhamento(viewModel: viewModel)
 
-        Text(verbatim: TextosDoAcompanhamento.chegada).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+        Text(verbatim: TextosDoAcompanhamento.chegada).font(FrilaTipo.tituloDoCartao).accessibilityAddTraits(.isHeader)
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             chegada(turno)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FrilaEspaco.medio)
         .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chegada-do-turno")
@@ -212,15 +213,11 @@ struct TelaTurnoDoContratante: View {
     }
 
     private func botaoSuporte(_ turno: TurnoAcompanhado) -> some View {
-        Button {
+        BotaoSecundario(verbatim: TextosDoSuporte.botaoAjudaTurno) {
             suporteModel = SuporteTurnoViewModel(
                 dados: ContextoSuporteTurno(turnoAcompanhado: turno),
                 api: api
             )
-        } label: {
-            Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
         }
         .accessibilityIdentifier("botao-ajuda-turno")
         .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
@@ -233,46 +230,51 @@ struct TelaTurnoDoContratante: View {
         if viewModel.podeAvaliar(turno) {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
-                    .font(.caption.weight(.bold))
+                    .font(FrilaTipo.microRotulo)
+                    .tracking(0.8)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityAddTraits(.isHeader)
 
                 if viewModel.jaAvaliado(turno) {
                     if let resposta = viewModel.respostaAvaliacao(turno) {
                         Text(verbatim: TextosDoProfissional.Avaliacao.statusResposta(resposta))
-                            .font(.body.weight(.semibold))
+                            .font(FrilaTipo.chip)
                             .accessibilityIdentifier("texto-status-avaliacao")
                     } else {
                         Text(verbatim: TextosDoProfissional.Avaliacao.statusAvaliado)
-                            .font(.body.weight(.semibold))
+                            .font(FrilaTipo.chip)
                             .accessibilityIdentifier("texto-status-avaliacao")
                     }
 
                     NavigationLink {
                         DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
                     } label: {
-                        HStack {
+                        HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                         }
+                        .font(FrilaTipo.botao)
+                        .foregroundStyle(FrilaCor.texto)
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                     }
                     .accessibilityIdentifier("botao-ver-avaliacao")
                 } else {
                     Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
-                        .font(.subheadline)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
 
                     NavigationLink {
                         DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
                     } label: {
-                        HStack {
+                        HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                         }
+                        .font(FrilaTipo.botao)
+                        .foregroundStyle(FrilaCor.texto)
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                     }
@@ -280,7 +282,6 @@ struct TelaTurnoDoContratante: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(FrilaEspaco.medio)
             .cartaoFrila()
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("cartao-avaliacao-turno")
@@ -296,7 +297,7 @@ struct TelaTurnoDoContratante: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 if bloqueios.contem(profissional) {
                     Text(verbatim: TextosDaSeguranca.voceBloqueouProfissional)
-                        .font(.caption)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("etiqueta-bloqueio-\(turno.posicao.id)")
                 }
@@ -332,10 +333,13 @@ struct TelaTurnoDoContratante: View {
         case let .aCaminho(desde):
             Text(verbatim: String(format: TextosDoAcompanhamento.aCaminho, formatador.hora(desde)))
         case .manualPendente:
-            Text(verbatim: TextosDoAcompanhamento.manualPendente).font(.headline)
-            Text(verbatim: TextosDoAcompanhamento.explicacaoDaConfirmacao).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: TextosDoAcompanhamento.manualPendente).font(FrilaTipo.resumo)
+            Text(verbatim: TextosDoAcompanhamento.explicacaoDaConfirmacao)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
             if let checkinEm = turno.posicao.checkinEm {
                 Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo ?? .manual))
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
             }
@@ -353,15 +357,17 @@ struct TelaTurnoDoContratante: View {
                     .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
             }
         case .verificada:
-            Text(verbatim: TextosDoAcompanhamento.verificada).font(.headline)
+            Text(verbatim: TextosDoAcompanhamento.verificada).font(FrilaTipo.resumo)
                 .accessibilityIdentifier("presenca-verificada-\(turnoID)")
             if let checkinEm = turno.posicao.checkinEm {
                 Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo))
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
             }
             if let confirmadoEm = turno.posicao.checkinConfirmadoEm {
                 Text(verbatim: String(format: TextosDoAcompanhamento.checkinConfirmado, formatador.hora(confirmadoEm)))
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("detalhe-confirmacao-\(turnoID)")
             }
@@ -369,21 +375,25 @@ struct TelaTurnoDoContratante: View {
             Text(verbatim: TextosDoAcompanhamento.naoVerificada)
         case .cancelada:
             // O bloco inteiro usa o id do turno: `turno.id` é o da posição, outro valor.
-            Text(verbatim: TextosDoAcompanhamento.cancelada).font(.headline)
+            Text(verbatim: TextosDoAcompanhamento.cancelada).font(FrilaTipo.resumo)
                 .accessibilityIdentifier("posicao-cancelada-\(turnoID)")
             if let cancelamento = turno.posicao.cancelamento {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: TextosDoAcompanhamento.textoDaCausa(cancelamento.causa))
+                        .font(FrilaTipo.meta)
                         .accessibilityIdentifier("cancelamento-causa-\(turnoID)")
                     Text(verbatim: TextosDoAcompanhamento.textoDaFalta(cancelamento.falta))
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("cancelamento-falta-\(turnoID)")
                     if let motivo = cancelamento.motivo, !motivo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(verbatim: String(format: TextosDoAcompanhamento.motivoCancelamento, motivo))
+                            .font(FrilaTipo.meta)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .accessibilityIdentifier("cancelamento-motivo-\(turnoID)")
                     }
                     Text(verbatim: String(format: TextosDoAcompanhamento.canceladaEm, formatador.dataEHora(cancelamento.canceladaEm)))
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("cancelamento-data-\(turnoID)")
                 }
@@ -482,7 +492,7 @@ struct PendenciasDoContratante: View {
 
     private func secao(_ titulo: String, id: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo).font(.title3.bold()).accessibilityAddTraits(.isHeader)
+            Text(verbatim: titulo).font(FrilaTipo.tituloDoCartao).accessibilityAddTraits(.isHeader)
             conteudo()
         }
         .accessibilityElement(children: .contain)
@@ -491,19 +501,16 @@ struct PendenciasDoContratante: View {
 
     private func cartao(_ turno: TurnoAcompanhado, detalhe: String, @ViewBuilder acao: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosDoAcompanhamento.nome(turno)).font(.headline)
-            Text(verbatim: turno.vaga.funcao).font(.subheadline)
-            Text(verbatim: detalhe).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: TextosDoAcompanhamento.nome(turno)).font(FrilaTipo.resumo)
+            Text(verbatim: turno.vaga.funcao).font(FrilaTipo.meta)
+            Text(verbatim: detalhe).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
             acao()
             if let turnoID = turno.posicao.turnoID {
-                Button { abrir(turnoID) } label: {
-                    Text(verbatim: TextosDoAcompanhamento.acompanharTurno).frame(minHeight: FrilaMetrica.alvoMinimo)
-                }
-                .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
+                BotaoSecundario(verbatim: TextosDoAcompanhamento.acompanharTurno) { abrir(turnoID) }
+                    .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FrilaEspaco.medio)
         .cartaoFrila()
         .accessibilityElement(children: .contain)
     }
@@ -538,6 +545,7 @@ public struct DestinoAvaliacaoDoContratante: View {
                 .disabled(viewModel.carregando)
             }
             .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo.ignoresSafeArea())
             .navigationTitle(TextosDoProfissional.Avaliacao.titulo)
             .accessibilityIdentifier("avaliacao-sem-conexao")
             .task {

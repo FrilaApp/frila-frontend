@@ -33,7 +33,7 @@ A suíte `CicloDePontaAPontaUITests.swift` valida ponta a ponta o ciclo completo
      - Tela: `TelaEntrada` (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaEntrada.swift`) → Campo `entrada-email`, botão `entrada-receber-codigo`.
      - Tela: `TelaCodigo` (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCodigo.swift`) → Campo `Código de acesso`, botão `codigo-entrar`.
   2. **Cadastro do Usuário:**
-     - Tela: `TelaCadastro` (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift`) → Botão `cadastro-perfil-contratante`, campos `cadastro-nome`, `cadastro-telefone`, `cadastro-nascimento`, botões `cadastro-maior-de-idade`, `cadastro-termos` e `cadastro-continuar`.
+     - Tela: `TelaCadastro` (`iOS/Sources/Apresentacao/Fluxos/Autenticacao/TelaCadastro.swift`) → Botão `cadastro-perfil-contratante`, campos `cadastro-nome`, `cadastro-telefone`, `cadastro-nascimento`, botões `cadastro-termos` e `cadastro-continuar`.
   3. **Cadastro do Estabelecimento:**
      - Tela: `CadastroEstabelecimento` (`iOS/Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift`) → Botão `continuar-cadastro`.
   4. **Publicação da Vaga:**

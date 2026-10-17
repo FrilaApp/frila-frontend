@@ -1,10 +1,7 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. Segue o protótipo low-fi "Vagas no DF" e
-// substitui por ora a alta fidelidade do profissional (#15) e os padrões de estado (#172).
-
 import FrilaDominio
 import SwiftUI
 
-/// Lista de vagas abertas do DF (#104). Tocar num cartão empilha o detalhe.
+/// Lista de vagas abertas do DF (#104), no quadro "Vagas" do MidFi do Fabrício. Tocar num cartão empilha o detalhe.
 public struct TelaVagas: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var viewModel: FeedVagasViewModel
@@ -111,7 +108,7 @@ public struct TelaVagas: View {
                         mensagem: TextosDoProfissional.Lista.vazioMensagem)
                 .accessibilityIdentifier("vagas-vazio")
         case let .carregada(vagas):
-            LazyVStack(spacing: FrilaEspaco.medio) {
+            LazyVStack(spacing: FrilaEspaco.compacto) {
                 ForEach(vagas) { vaga in
                     Button { abrir(vaga.id) } label: { CartaoVaga(vaga) }
                         .buttonStyle(.plain)
@@ -170,7 +167,8 @@ public struct TelaVagas: View {
     }
 }
 
-/// Pílula de filtro que abre um menu. O estado ativo não depende só de cor: ganha um ícone.
+/// Chip de filtro do MidFi que abre um menu: ativo escuro com texto claro, inativo claro com fio.
+/// O estado ativo não depende só de cor: ganha um ícone. O chip tem 32 pt visíveis num alvo de 44 pt.
 private struct PilulaDeFiltro: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let titulo: String
@@ -183,13 +181,15 @@ private struct PilulaDeFiltro: View {
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
             Image(systemName: "chevron.down").font(.caption).accessibilityHidden(true)
         }
-        .font(.subheadline.weight(.semibold))
-        .padding(.horizontal, FrilaEspaco.medio)
+        .font(ativo ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
+        .padding(.horizontal, FrilaEspaco.faixa)
         .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : 0)
+        .frame(minHeight: FrilaMetrica.alturaDoChip)
+        .foregroundStyle(ativo ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+        .background(ativo ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+        .overlay(Capsule().strokeBorder(ativo ? Color.clear : FrilaCor.borda, lineWidth: 1))
         .frame(minHeight: FrilaMetrica.alvoMinimo)
-        .background(ativo ? FrilaCor.primaria.opacity(0.12) : FrilaCor.superficie, in: Capsule())
-        .overlay(Capsule().stroke(ativo ? FrilaCor.primaria : FrilaCor.textoSecundario, lineWidth: 1))
-        .foregroundStyle(FrilaCor.texto)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityValue(ativo ? String(localized: "filtro ativo", bundle: bundleApresentacao) : "")
     }

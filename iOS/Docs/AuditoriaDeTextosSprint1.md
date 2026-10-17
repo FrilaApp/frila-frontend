@@ -76,7 +76,7 @@ Cada elemento de texto foi avaliado segundo os 5 eixos do `iOS/Docs/GuiaDeVoz.md
 | **TelaEntrada** | `TelaEntrada.swift:30` | `"E-mail"` | Formatos | Rótulo direto de campo | OK | — | Manter. |
 | **TelaEntrada** | `TelaEntrada.swift:42` | `"Sem senha e sem SMS: você entra com um código enviado ao seu e-mail."` | Tom de Voz | Seção 5.5 orienta: `"Digite seu e-mail para receber um código de acesso de 6 dígitos."` | Divergência | Média | Alinhar ao Guia: `"Digite seu e-mail para receber um código de acesso de 6 dígitos."` |
 | **TelaEntrada** | `TelaEntrada.swift:53` | `"Receber código"` (no botão primário) | Tom de Voz | Seção 5.5 prescreve o verbo `"Enviar código"` | Divergência | Média | Trocar rótulo do botão para `"Enviar código"`. |
-| **TelaEntrada** | `TelaEntrada.swift:63` | `"Ao continuar, você aceita os Termos de Uso e a Política de Privacidade."` | Tom de Voz | Aviso legal sóbrio | OK | — | Manter. |
+| **TelaEntrada** | `TelaEntrada.swift:63` | `"Ao continuar, você aceita os [Termos de Uso](https://frila.app/termos) e a [Política de Privacidade](https://frila.app/privacidade)."` | Tom de Voz | Aviso legal sóbrio com links markdown clicáveis para endereços oficiais (UX-01) | OK | — | Manter. |
 | **EntradaViewModel** | `EntradaViewModel.swift:28` | `"Informe um e-mail válido."` | Tom de Voz | Validação direta, sem culpa | OK | — | Manter. |
 | **EntradaViewModel** | `EntradaViewModel.swift:48` | `"Não foi possível enviar o código. Tente novamente."` | Tom / Erro | Mensagem com ação orientadora | OK | — | Manter. |
 | **TelaCodigo** | `TelaCodigo.swift:42` | `"Digite o código"` | Tom de Voz | Título direto | OK | — | Manter. |
@@ -95,7 +95,7 @@ Cada elemento de texto foi avaliado segundo os 5 eixos do `iOS/Docs/GuiaDeVoz.md
 | **TelaCadastro** | `TelaCadastro.swift:58` | `"Perfil de contratante: publique turnos e acompanhe quem vai trabalhar."` | Glossário | Seção 2.1: Contratante "publica vagas e administra turnos". Não se publica turnos. | **Violação** | **Alta** | `"Perfil de contratante: publique vagas e acompanhe quem vai trabalhar."` |
 | **TelaCadastro** | `TelaCadastro.swift:65` | `"O perfil fica fixo nesta conta. Para usar o outro lado, crie outra conta, com outro e-mail..."` | Tom de Voz | Explicação prática da RN25 | OK | — | Manter. |
 | **TelaCadastro** | `TelaCadastro.swift:91` | `"A outra parte só vê o seu número depois que o turno é confirmado."` | Tom / RN10 | Explicação clara do contato prévio | OK | — | Manter. |
-| **TelaCadastro** | `TelaCadastro.swift:124` | `"Tenho 18 anos ou mais"` | Glossário | Declaração afirmativa em primeira pessoa (RN20) | OK | — | Manter. |
+| **TelaCadastro** | `TelaCadastro.swift` | ~~`"Tenho 18 anos ou mais"`~~ | Glossário | Removida em 17/10 (UX-01): maioridade conferida pela data de nascimento calculada + aceite dos Termos | OK | — | Caixa eliminada; aviso inline para menor de 18 mantido. |
 | **CadastroViewModel**| `CadastroViewModel.swift:59` | `"O Frila é exclusivo para maiores de 18 anos."` | Glossário | Bate 100% com Seção 5.5 e código `menor_de_idade` | OK | — | Manter. |
 | **CadastroViewModel**| `CadastroViewModel.swift:118`| `"Esta conta já foi cadastrada."` | Tom / Erro | Seção 4.2 (`conta_existente`): `"Já existe uma conta cadastrada com este e-mail."` | Divergência | Média | `"Já existe uma conta cadastrada com este e-mail."` |
 
@@ -251,3 +251,13 @@ Em conformidade estrita com o arquivo da missão e as atribuições da equipe, a
    *Situação:* **Pendente (Design / Fabrício).** Fora do escopo do Thor.
 5. **Critério 5 do cartão (Textos iguais aos do guia de voz):**  
    *Situação:* **Auditado e mapeado neste documento.** O checklist do cartão Trello **não foi marcado**, aguardando aprovação formal do relatório pela Júlia e execução da missão de remediação.
+
+### UX-04 — horários do perfil (17/10/2026)
+
+Os campos livres de hora foram substituídos por seletores nativos. “Início”, “Fim”,
+“Dia da semana” e “Adicionar” reutilizam os textos já localizados; não há texto novo.
+O rótulo acessível de Adicionar reutiliza “Adicionar horário” de `TextosDoProfissional.Perfil`.
+O aviso de formato “Horário inválido. Use o formato HH:mm.” deixa de ser necessário
+na entrada normal da tela. O bloqueio de duração zero conserva a mensagem existente.
+Faixas noturnas mantêm a indicação “(dia seguinte)” (#98 C2), conforme alinhamento
+com Nick Fury. A faixa alterada e ainda não adicionada entra ao salvar o perfil.

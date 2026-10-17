@@ -1,7 +1,9 @@
 import FrilaDominio
 import SwiftUI
 
+/// Ações de denunciar e bloquear de um perfil (#39), com a folha de denúncia do quadro "Denuncia" do MidFi do Fabrício.
 struct AcoesDeSeguranca: View {
+    @ScaledMetric(relativeTo: .body) private var colunaDoIcone: CGFloat = 28
     @State private var model: SegurancaViewModel
     @State private var denunciando = false
     @State private var confirmandoBloqueio = false
@@ -29,18 +31,16 @@ struct AcoesDeSeguranca: View {
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Button { denunciando = true } label: {
-                Text(verbatim: TextosDaSeguranca.denunciar)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
+                linha(icone: "exclamationmark.bubble", titulo: TextosDaSeguranca.denunciar, corDoIcone: FrilaCor.textoSecundario, corDoTexto: FrilaCor.texto)
             }
+            .buttonStyle(.plain)
             .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.denunciar) \(nomeAlvo)"))
             .accessibilityIdentifier(identificadorDenunciar)
 
             Button { confirmandoBloqueio = true } label: {
-                Text(verbatim: TextosDaSeguranca.bloquear)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
+                linha(icone: "nosign", titulo: TextosDaSeguranca.bloquear, corDoIcone: FrilaCor.perigo, corDoTexto: FrilaCor.perigo)
             }
+            .buttonStyle(.plain)
             .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.bloquear) \(nomeAlvo)"))
             .disabled(model.bloqueando || model.bloqueado)
             .accessibilityIdentifier(identificadorBloquear)
@@ -57,9 +57,30 @@ struct AcoesDeSeguranca: View {
         } message: { Text(verbatim: TextosDaSeguranca.efeitoBloqueio) }
         .sheet(isPresented: $denunciando) { FolhaDeDenuncia(model: model) }
     }
+
+    /// Linha de ação: ícone em coluna fixa e texto, com toque de pelo menos 44 pt.
+    private func linha(icone: String, titulo: String, corDoIcone: Color, corDoTexto: Color) -> some View {
+        HStack(spacing: FrilaEspaco.compacto) {
+            Image(systemName: icone)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(corDoIcone)
+                .frame(width: colunaDoIcone)
+                .accessibilityHidden(true)
+            Text(verbatim: titulo)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(corDoTexto)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+        .contentShape(Rectangle())
+    }
 }
 
+/// Folha de denúncia, no quadro "Denuncia" do MidFi: campos em superfícies brancas sobre o fundo cinza,
+/// atalhos de emergência quando o motivo é risco à segurança e tela de protocolo com círculo de 72 pt.
 private struct FolhaDeDenuncia: View {
+    @ScaledMetric(relativeTo: .body) private var colunaDoIcone: CGFloat = 28
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: SegurancaViewModel
     @AccessibilityFocusState private var protocoloEmFoco: Bool
@@ -70,23 +91,47 @@ private struct FolhaDeDenuncia: View {
             Form {
                 if let protocolo = model.protocolo {
                     Section {
-                        Text(verbatim: TextosDaSeguranca.enviada)
-                            .font(.headline).accessibilityAddTraits(.isHeader)
-                            .accessibilityFocused($protocoloEmFoco)
-                        VStack(alignment: .leading) {
+                        VStack(spacing: FrilaEspaco.compacto) {
+                            Image(systemName: "checkmark")
+                                .font(.title)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                                .background(FrilaCor.controle, in: Circle())
+                                .accessibilityHidden(true)
+                            Text(verbatim: TextosDaSeguranca.enviada)
+                                .font(FrilaTipo.tituloDeEstado)
+                                .multilineTextAlignment(.center)
+                                .accessibilityAddTraits(.isHeader)
+                                .accessibilityFocused($protocoloEmFoco)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, FrilaEspaco.medio)
+                        .listRowBackground(Color.clear)
+                    }
+                    Section {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                             Text(verbatim: TextosDaSeguranca.protocolo)
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
                             Text(verbatim: protocolo.ocorrenciaID.uuidString)
+                                .font(FrilaTipo.corpo)
+                                .foregroundStyle(FrilaCor.texto)
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("protocolo-denuncia")
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                             Text(verbatim: TextosDaSeguranca.prazo)
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
                             Text(verbatim: String(format: "%02d/%02d/%04d", protocolo.prazoRespostaAte.dia,
                                                  protocolo.prazoRespostaAte.mes, protocolo.prazoRespostaAte.ano))
+                                .font(FrilaTipo.corpo.monospacedDigit())
+                                .foregroundStyle(FrilaCor.texto)
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("prazo-denuncia")
                     }
+                    .listRowBackground(FrilaCor.superficie)
                 } else {
                     Section {
                         Picker(TextosDaSeguranca.motivo, selection: $model.motivo) {
@@ -95,25 +140,46 @@ private struct FolhaDeDenuncia: View {
                             }
                         }
                         .pickerStyle(.navigationLink)
+                        .font(FrilaTipo.corpo)
                         .accessibilityIdentifier("motivo-denuncia")
 
                         TextField(TextosDaSeguranca.relato, text: $model.relato, axis: .vertical)
+                            .font(FrilaTipo.valorDoCampo)
                             .lineLimit(4...10)
                             .focused($focoNoRelato)
                             .accessibilityIdentifier("relato-denuncia")
+                            .accessibilityHint(Text(verbatim: model.relatoValido ? TextosDaSeguranca.relatoValidoAcessibilidade : "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
 
-                        Text(verbatim: TextosDaSeguranca.relatoMinimo)
-                            .font(.caption)
-                            .foregroundStyle(FrilaCor.textoSecundario)
+                        HStack {
+                            if model.relatoValido {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(FrilaCor.sucesso)
+                                    .accessibilityIdentifier("icone-relato-valido-denuncia")
+                            }
+                            Text(verbatim: TextosDaSeguranca.relatoMinimo)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(model.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                            Spacer()
+                            Text(verbatim: "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
+                                .font(FrilaTipo.nota.monospacedDigit())
+                                .foregroundStyle(model.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                                .accessibilityIdentifier("contador-relato-denuncia")
+                                .accessibilityLabel(Text(verbatim: model.relatoValido ? TextosDaSeguranca.relatoValidoAcessibilidade : "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
+                        }
                     }
+                    .listRowBackground(FrilaCor.superficie)
                     .disabled(model.enviando)
 
                     if model.motivo == .riscoSeguranca {
                         Section {
-                            Text(verbatim: TextosDaSeguranca.emergencia).accessibilityIdentifier("aviso-risco-imediato")
-                            Link(TextosDaSeguranca.policia, destination: URL(string: "tel:190")!)
-                            Link(TextosDaSeguranca.mulher, destination: URL(string: "tel:180")!)
+                            Text(verbatim: TextosDaSeguranca.emergencia)
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.texto)
+                                .accessibilityIdentifier("aviso-risco-imediato")
+                            atalhoDeEmergencia(TextosDaSeguranca.policia, numero: "190")
+                            atalhoDeEmergencia(TextosDaSeguranca.mulher, numero: "180")
                         }
+                        .listRowBackground(FrilaCor.controle)
                     }
 
                     if let erro = model.erroDenuncia {
@@ -121,6 +187,8 @@ private struct FolhaDeDenuncia: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(FrilaCor.fundo.ignoresSafeArea())
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
                 if model.protocolo == nil {
@@ -133,17 +201,33 @@ private struct FolhaDeDenuncia: View {
                     }
                     .padding(FrilaEspaco.medio)
                     .background(FrilaCor.fundo.opacity(0.95))
+                } else {
+                    VStack(spacing: FrilaEspaco.minimo) {
+                        BotaoPrimario(verbatim: TextosDaSeguranca.concluir) {
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("concluir-denuncia")
+                    }
+                    .padding(FrilaEspaco.medio)
+                    .background(FrilaCor.fundo.opacity(0.95))
                 }
             }
             .navigationTitle(TextosDaSeguranca.denunciar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TextosDaSeguranca.fechar) { dismiss() }
-                        .accessibilityShowsLargeContentViewer {
-                            Text(verbatim: TextosDaSeguranca.fechar)
-                        }
-                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        .disabled(model.enviando)
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(verbatim: TextosDaSeguranca.fechar)
+                            .fixedSize()
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .fixedSize()
+                    .accessibilityShowsLargeContentViewer {
+                        Text(verbatim: TextosDaSeguranca.fechar)
+                    }
+                    .disabled(model.enviando)
+                    .accessibilityIdentifier("fechar-denuncia")
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -161,8 +245,28 @@ private struct FolhaDeDenuncia: View {
             .onAppear { if model.protocolo != nil { protocoloEmFoco = true } }
         }
     }
+
+    /// Atalho de ligação de emergência: ícone em coluna fixa e toque de pelo menos 44 pt.
+    private func atalhoDeEmergencia(_ titulo: String, numero: String) -> some View {
+        Link(destination: URL(string: "tel:\(numero)")!) {
+            HStack(spacing: FrilaEspaco.compacto) {
+                Image(systemName: "phone.fill")
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: colunaDoIcone)
+                    .accessibilityHidden(true)
+                Text(verbatim: titulo)
+                    .font(FrilaTipo.rotuloDoCampo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+    }
 }
 
+/// Perfil público de quem está do outro lado do turno, com as ações de segurança (#39).
 struct TelaPerfilPublico: View {
     @State private var model: PerfilPublicoViewModel
     let perfil: PerfilPublico
@@ -188,8 +292,12 @@ struct TelaPerfilPublico: View {
                     case let .falha(erro):
                         EstadoErro(verbatim: erro) { Task { await model.carregar() } }
                     case let .carregado(perfil):
-                        Text(verbatim: perfil.nome).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
-                        if !perfil.funcoes.isEmpty { Text(verbatim: perfil.funcoes.joined(separator: ", ")) }
+                        Text(verbatim: perfil.nome).font(FrilaTipo.tituloGrande).accessibilityAddTraits(.isHeader)
+                        if !perfil.funcoes.isEmpty {
+                            Text(verbatim: perfil.funcoes.joined(separator: ", "))
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
                         SeloReputacao(perfil.reputacao)
                         AcoesDeSeguranca(perfil: perfil, api: api, bloqueios: bloqueios)
                             .id(perfil.id)

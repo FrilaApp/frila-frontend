@@ -46,7 +46,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
         vm.telefone = "61999991111"
         // Data correspondente a menor de 18 anos em 2026
         vm.nascimentoTexto = "01/01/2012"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -63,7 +62,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
         vm.nome = "Candidato Menor"
         vm.telefone = "61999992222"
         vm.nascimentoTexto = "01/01/2000" // Data declarada adulta
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -83,7 +81,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
         vm.nome = "Profissional Adulto"
         vm.telefone = "61999993333"
         vm.nascimentoTexto = "01/01/2000" // 26 anos
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -106,7 +103,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
             vm.nome = "Adulto Fallback"
             vm.telefone = "61999994444"
             vm.nascimentoTexto = "10/05/1995"
-            vm.maiorDeIdade = true
             vm.aceitouTermos = true
 
             let destino = await vm.criarConta()
@@ -127,7 +123,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
         vm.nome = "Menor Fallback"
         vm.telefone = "61999995555"
         vm.nascimentoTexto = "15/10/2010" // 16 anos
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -156,7 +151,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
             vm.nome = "Aniversariante Hoje"
             vm.telefone = "61999996666"
             vm.nascimentoTexto = "15/10/2008"
-            vm.maiorDeIdade = true
             vm.aceitouTermos = true
 
             let destino = await vm.criarConta()
@@ -172,7 +166,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
             vm.nome = "Aniversariante Amanhã"
             vm.telefone = "61999997777"
             vm.nascimentoTexto = "16/10/2008"
-            vm.maiorDeIdade = true
             vm.aceitouTermos = true
 
             let destino = await vm.criarConta()
@@ -189,7 +182,6 @@ struct MaioridadeEVerificacaoDeIdadeTests {
         vm.nome = "Menor Servidor"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "01/01/1990"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()

@@ -1,6 +1,3 @@
-// VISUAL PROVISÓRIO: o design de alta fidelidade do modo seleção ainda não chegou (#10). A tela usa
-// os componentes que já existem.
-
 import Foundation
 import FrilaDominio
 import Observation
@@ -370,7 +367,8 @@ enum SituacaoDaSelecao: Equatable {
     }
 }
 
-/// A seção "Candidatos" do detalhe da vaga em seleção, em Minhas vagas.
+/// A seção "Candidatos" do detalhe da vaga em seleção, em Minhas vagas, com os cartões de candidato dos quadros
+/// "Candidata" e "Acompanhar" do MidFi do Fabrício.
 struct SecaoDeCandidatos: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueios: BloqueiosDaSessao?
     private let vaga: VagaNoPainel
@@ -399,13 +397,15 @@ struct SecaoDeCandidatos: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            Text(verbatim: TextosDosCandidatos.titulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+            Text(verbatim: TextosDosCandidatos.titulo).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
             avisos
             switch situacao {
             case .aberta:
-                Text(verbatim: TextosDosCandidatos.explicacao).font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: TextosDosCandidatos.explicacao).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: TextosDosCandidatos.prazoDeEscolha(inicio: vaga.vaga.periodo.inicio))
-                    .font(.subheadline.weight(.semibold))
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("prazo-de-escolha")
                 lista(podeEscolher: true)
             case .oculta:
@@ -492,7 +492,7 @@ struct SecaoDeCandidatos: View {
         let perfil = candidato.profissional
         return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: perfil.nome).font(.headline)
+                Text(verbatim: perfil.nome).font(FrilaTipo.resumo)
                 if candidato.daEquipe {
                     // O selo tem texto e ícone: não é só cor (D7). Fica junto dos dados, para o
                     // leitor de tela dizê-lo com o nome. Não muda a ordem da lista (RN06).
@@ -501,15 +501,15 @@ struct SecaoDeCandidatos: View {
                     } icon: {
                         Image(systemName: "checkmark.seal.fill")
                     }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(FrilaCor.primaria)
+                    .font(FrilaTipo.nota.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
                     .padding(.horizontal, FrilaEspaco.pequeno)
                     .padding(.vertical, FrilaEspaco.minimo)
-                    .background(FrilaCor.primaria.opacity(0.12), in: Capsule())
+                    .background(FrilaCor.controle, in: Capsule())
                 }
                 if !perfil.funcoes.isEmpty {
                     Text(verbatim: String(format: TextosDosCandidatos.funcoes, perfil.funcoes.joined(separator: ", ")))
-                        .font(.subheadline)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
                 // Reputação sempre com o denominador (RN08); sem histórico, diz que não há.
@@ -520,6 +520,8 @@ struct SecaoDeCandidatos: View {
 
             Button { abrirPerfil(perfil) } label: {
                 Text(verbatim: TextosDosCandidatos.verPerfil)
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
             }
@@ -536,7 +538,6 @@ struct SecaoDeCandidatos: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FrilaEspaco.medio)
         .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("candidato-\(candidato.id)")
@@ -584,8 +585,8 @@ struct RotuloDaSelecao: View {
     var body: some View {
         if vaga.modo == .selecao {
             Text(verbatim: "\(TextosDosCandidatos.rotuloSelecao) · \(Self.detalhe(vaga))")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(FrilaCor.primaria)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
         }
     }
 

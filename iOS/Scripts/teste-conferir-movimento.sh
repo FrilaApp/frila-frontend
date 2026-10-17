@@ -63,6 +63,7 @@ struct TelaConforme: View {
                 selecionado = true
             }
         }
+        .animation(FrilaMovimento.animacao(reduzir: reduzirMovimento), value: selecionado)
     }
 }
 SWIFT
@@ -126,5 +127,41 @@ struct TelaRuim3: View {
 SWIFT
 
 esperar_reprovacao "modificador .animation solto" "Modificador .animation(...) solto" "$DIR_RUIM_3"
+
+# Caso 5: Modificador .animation(...) com token no argumento value e não no 1º argumento
+DIR_RUIM_4="$TMPDIR_TESTE/ruim_token_no_valor"
+mkdir -p "$DIR_RUIM_4"
+cat <<'SWIFT' > "$DIR_RUIM_4/TelaRuim4.swift"
+import SwiftUI
+
+struct TelaRuim4: View {
+    @State private var FrilaMovimento_animacaoX = false
+    var body: some View {
+        Circle()
+            .scaleEffect(FrilaMovimento_animacaoX ? 1.2 : 1.0)
+            .animation(.spring(), value: FrilaMovimento.animacaoX)
+    }
+}
+SWIFT
+
+esperar_reprovacao "modificador .animation com token fora do 1º argumento" "Modificador .animation(...) solto" "$DIR_RUIM_4"
+
+# Caso 6: Modificador .animation(...) com token como substring e não prefixo no 1º argumento
+DIR_RUIM_5="$TMPDIR_TESTE/ruim_token_substring_no_primeiro_arg"
+mkdir -p "$DIR_RUIM_5"
+cat <<'SWIFT' > "$DIR_RUIM_5/TelaRuim5.swift"
+import SwiftUI
+
+struct TelaRuim5: View {
+    @State private var ativo = false
+    var body: some View {
+        Circle()
+            .scaleEffect(ativo ? 1.2 : 1.0)
+            .animation(.easeIn.delay(FrilaMovimento.animacaoX), value: ativo)
+    }
+}
+SWIFT
+
+esperar_reprovacao "modificador .animation com token como substring do 1º argumento" "Modificador .animation(...) solto" "$DIR_RUIM_5"
 
 echo "OK: autoteste de conferir-movimento.sh passou"

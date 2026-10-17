@@ -12,6 +12,11 @@ public enum TextosRepublicarPosicoesRestantes {
         return String(format: String(localized: "Republicar %d posições em urgência", bundle: bundleApresentacao), posicoes)
     }
 
+    public static let tituloConfirmacao = String(localized: "Republicar posições em urgência?", bundle: bundleApresentacao)
+    public static let mensagemConfirmacao = String(localized: "O primeiro profissional será confirmado na hora.", bundle: bundleApresentacao)
+    public static let confirmar = String(localized: "Confirmar", bundle: bundleApresentacao)
+    public static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+
     // Recusas da RPC (contrato 0.2.41, RR-RN01, RR-RN03, RR-RN05)
     public static let jaRepublicada = String(localized: "As posições restantes desta vaga já foram republicadas em urgência.", bundle: bundleApresentacao)
     public static let semPosicoesRestantes = String(localized: "Todas as posições desta vaga foram preenchidas.", bundle: bundleApresentacao)
@@ -144,8 +149,10 @@ public final class RepublicarPosicoesRestantesViewModel {
     }
 }
 
+/// Atalho "Publicar de novo" das posições restantes, na pílula escura do quadro "RepetirVaga" do MidFi do Fabrício.
 public struct BotaoRepublicarPosicoesRestantes: View {
     @State private var viewModel: RepublicarPosicoesRestantesViewModel
+    @State private var confirmandoUrgencia = false
     private let podeRepublicar: Bool
     private let posicoesRestantes: Int
     var idAcessibilidade: String
@@ -208,7 +215,7 @@ public struct BotaoRepublicarPosicoesRestantes: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 if podeRepublicar {
                     Button {
-                        Task { await viewModel.executar() }
+                        confirmandoUrgencia = true
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             if viewModel.carregando {
@@ -221,11 +228,17 @@ public struct BotaoRepublicarPosicoesRestantes: View {
                                 Text(verbatim: TextosRepublicarPosicoesRestantes.rotuloBotao(viewModel.posicoesRestantes))
                             }
                         }
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, FrilaEspaco.medio)
+                        .padding(.vertical, FrilaEspaco.pequeno)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Capsule())
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(FrilaCor.primaria)
+                    // Pílula escura do MidFi, como o botão principal.
+                    .buttonStyle(.plain)
+                    .foregroundStyle(FrilaCor.sobrePrimaria)
+                    .background(FrilaCor.primaria, in: Capsule())
                     .disabled(viewModel.carregando)
                     .accessibilityIdentifier(idAcessibilidade)
                 }
@@ -234,6 +247,18 @@ public struct BotaoRepublicarPosicoesRestantes: View {
                     AvisoFrila(verbatim: erro, tom: .alerta)
                         .accessibilityIdentifier("\(idAcessibilidade)-erro")
                 }
+            }
+            .alert(
+                TextosRepublicarPosicoesRestantes.tituloConfirmacao,
+                isPresented: $confirmandoUrgencia
+            ) {
+                Button(TextosRepublicarPosicoesRestantes.cancelar, role: .cancel) {}
+                Button(TextosRepublicarPosicoesRestantes.confirmar) {
+                    Task { await viewModel.executar() }
+                }
+                .accessibilityIdentifier("confirmar-republicacao-urgencia-alerta")
+            } message: {
+                Text(verbatim: TextosRepublicarPosicoesRestantes.mensagemConfirmacao)
             }
             .onChange(of: posicoesRestantes) { _, novas in
                 viewModel.atualizarPosicoesRestantes(novas)

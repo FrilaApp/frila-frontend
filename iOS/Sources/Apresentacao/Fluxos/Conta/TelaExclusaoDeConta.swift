@@ -1,6 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
+/// Exclusão de conta (#25), nos quadros "ExcluirConta" e "ExcluirContaContratante" do MidFi do Fabrício: consequências em cartão, confirmação e botão de cápsula.
 public struct TelaExclusaoDeConta: View {
     @State private var viewModel: ExclusaoDeContaViewModel
     @State private var mostrarDialogoConfirmacao = false
@@ -48,12 +49,13 @@ public struct TelaExclusaoDeConta: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 Text(verbatim: TextosExclusaoDeConta.dialogoTitulo)
-                    .font(.title3.bold())
+                    .font(FrilaTipo.tituloDaFolha)
                     .foregroundStyle(FrilaCor.texto)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Text(verbatim: TextosExclusaoDeConta.dialogoMensagem)
+                    .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -73,16 +75,17 @@ public struct TelaExclusaoDeConta: View {
                     Task { await viewModel.confirmarExclusao() }
                 } label: {
                     Text(verbatim: TextosExclusaoDeConta.dialogoConfirmar)
-                        .font(.headline)
+                        .font(FrilaTipo.botao)
                         .multilineTextAlignment(.center)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                        .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                .background(FrilaCor.perigo, in: Capsule())
                 .accessibilityIdentifier("botao-confirmar-exclusao-dialogo")
             }
             .padding(FrilaEspaco.medio)
@@ -100,7 +103,7 @@ public struct TelaExclusaoDeConta: View {
     private var secaoConsequencias: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosExclusaoDeConta.secaoOQueAcontece)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -130,11 +133,13 @@ public struct TelaExclusaoDeConta: View {
         return layout {
             // Decorativo: o texto ao lado diz tudo; sem isto o VoiceOver lia o nome do símbolo.
             Image(systemName: icone)
-                .foregroundStyle(FrilaCor.perigo)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .frame(width: ladoDoIcone, height: ladoDoIcone)
+                .background(FrilaCor.controle, in: Circle())
                 .accessibilityHidden(true)
             Text(verbatim: texto)
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.texto)
         }
         .padding(.vertical, 2)
@@ -143,7 +148,7 @@ public struct TelaExclusaoDeConta: View {
     private var secaoTurnosFuturos: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosExclusaoDeConta.tituloTurnosFuturos)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -151,13 +156,13 @@ public struct TelaExclusaoDeConta: View {
                 HStack(spacing: FrilaEspaco.pequeno) {
                     ProgressView()
                     Text(verbatim: TextosExclusaoDeConta.carregandoTurnos)
-                        .font(.subheadline)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else if viewModel.turnosFuturos.isEmpty && !viewModel.listaTurnosIndisponivel {
                 Text(verbatim: TextosExclusaoDeConta.semTurnosFuturos)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("texto-sem-turnos-futuros")
             } else {
@@ -165,21 +170,21 @@ public struct TelaExclusaoDeConta: View {
                     ForEach(viewModel.turnosFuturos) { turno in
                         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                             Text(verbatim: turno.vaga.funcao)
-                                .font(.subheadline.bold())
+                                .font(FrilaTipo.meta.bold())
                                 .foregroundStyle(FrilaCor.texto)
                             Text(verbatim: turno.contraparte.nome)
-                                .font(.caption)
+                                .font(FrilaTipo.nota)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                             Text(verbatim: formatador.intervalo(turno.vaga.periodo))
-                                .font(.caption)
+                                .font(FrilaTipo.nota)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                             Text(verbatim: turno.vaga.local)
-                                .font(.caption)
+                                .font(FrilaTipo.nota)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(FrilaEspaco.pequeno)
-                        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+                        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
                         .accessibilityIdentifier("item-turno-futuro-\(turno.id)")
                     }
                 }
@@ -201,7 +206,7 @@ public struct TelaExclusaoDeConta: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Toggle(isOn: $viewModel.confirmouConsequencias) {
                 Text(verbatim: TextosExclusaoDeConta.confirmacaoCheck)
-                    .font(.subheadline.bold())
+                    .font(FrilaTipo.meta.bold())
                     .foregroundStyle(FrilaCor.texto)
             }
             .toggleStyle(.switch)
@@ -211,29 +216,26 @@ public struct TelaExclusaoDeConta: View {
     }
 
     private var botaoExcluir: some View {
-        Button(role: .destructive) {
+        let habilitado = viewModel.confirmouConsequencias && !viewModel.excluindo
+        return Button(role: .destructive) {
             mostrarDialogoConfirmacao = true
         } label: {
             HStack {
                 if viewModel.excluindo {
                     ProgressView()
-                        .tint(FrilaCor.sobrePrimaria)
+                        .tint(FrilaCor.textoSecundario)
                 } else {
                     Text(verbatim: TextosExclusaoDeConta.botaoExcluir)
-                        .font(.headline)
+                        .font(FrilaTipo.botao)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.medio))
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(FrilaCor.sobrePrimaria)
-        .background(
-            viewModel.confirmouConsequencias && !viewModel.excluindo
-                ? FrilaCor.perigo
-                : FrilaCor.borda,
-            in: RoundedRectangle(cornerRadius: FrilaRaio.medio)
-        )
+        .foregroundStyle(habilitado ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
+        .background(habilitado ? FrilaCor.perigo : FrilaCor.controle, in: Capsule())
         .disabled(!viewModel.confirmouConsequencias || viewModel.excluindo)
         .accessibilityIdentifier("botao-excluir-conta-definitivo")
     }

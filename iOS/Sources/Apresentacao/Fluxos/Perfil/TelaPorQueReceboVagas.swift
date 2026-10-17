@@ -1,9 +1,8 @@
 import FrilaDominio
 import SwiftUI
 
-/// "Por que recebo vagas" (RF27): o texto aprovado, os critérios reais e o pedido de revisão do
-/// despacho. Vai dentro da folha de Meu perfil, que põe a pilha de navegação e o Fechar. Design
-/// provisório, com os componentes base; o definitivo vem do design.
+/// "Por que recebo vagas" (RF27), no bloco do quadro "MeuPerfil" do MidFi do Fabrício: o texto aprovado, os critérios
+/// reais e o pedido de revisão do despacho. Vai dentro da folha de Meu perfil, que põe a pilha de navegação e o Fechar.
 public struct TelaPorQueReceboVagas: View {
     /// Em `@State`, e não `@Bindable`: a folha de Meu perfil recria esta view a cada re-render do
     /// perfil, e o view model criado no `init` tem de sobreviver a isso para a carga da `.task`
@@ -23,6 +22,7 @@ public struct TelaPorQueReceboVagas: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 Text(verbatim: TextosPerfilConta.explicacaoVagas)
+                    .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("perfil-explicacao-vagas")
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -92,7 +92,7 @@ public struct TelaPorQueReceboVagas: View {
     private func cartao(_ titulo: String, identificador: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: titulo)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
             conteudo()
@@ -105,14 +105,14 @@ public struct TelaPorQueReceboVagas: View {
 
     private func linha(_ texto: String) -> some View {
         Text(verbatim: texto)
-            .font(.body)
+            .font(FrilaTipo.corpo)
             .foregroundStyle(FrilaCor.texto)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func nota(_ texto: String) -> some View {
         Text(verbatim: texto)
-            .font(.caption)
+            .font(FrilaTipo.nota)
             .foregroundStyle(FrilaCor.textoSecundario)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -122,7 +122,7 @@ public struct TelaPorQueReceboVagas: View {
     private var secaoContestar: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosPorQueReceboVagas.secaoContestar)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -152,7 +152,7 @@ public struct TelaPorQueReceboVagas: View {
     private var formulario: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosPorQueReceboVagas.labelRelato)
-                .font(.subheadline.weight(.medium))
+                .font(FrilaTipo.meta.weight(.medium))
                 .foregroundStyle(FrilaCor.texto)
 
             TextField(
@@ -165,8 +165,8 @@ public struct TelaPorQueReceboVagas: View {
             .lineLimit(4...8)
             .textFieldStyle(.plain)
             .padding(FrilaEspaco.medio)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-despacho")
 
             HStack {
@@ -176,11 +176,11 @@ public struct TelaPorQueReceboVagas: View {
                         .accessibilityIdentifier("icone-relato-valido-despacho")
                 }
                 Text(verbatim: TextosPorQueReceboVagas.dicaRelato)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
                 Spacer()
                 Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
-                    .font(.caption.monospacedDigit())
+                    .font(FrilaTipo.nota.monospacedDigit())
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
                     .accessibilityIdentifier("contador-relato-despacho")
                     .accessibilityLabel(Text(verbatim: viewModel.relatoValido ? TextosPorQueReceboVagas.relatoValidoAcessibilidade : "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
@@ -212,7 +212,7 @@ public struct TelaPorQueReceboVagas: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Label {
                 Text(verbatim: TextosPorQueReceboVagas.pedidoEnviado)
-                    .font(.subheadline.weight(.semibold))
+                    .font(FrilaTipo.meta.weight(.semibold))
             } icon: {
                 Image(systemName: "checkmark.circle")
             }
@@ -221,30 +221,30 @@ public struct TelaPorQueReceboVagas: View {
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosPorQueReceboVagas.protocoloNumero)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: protocolo.ocorrenciaID.uuidString)
-                    .font(.subheadline.monospaced())
+                    .font(FrilaTipo.meta.monospaced())
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("protocolo-revisao-despacho")
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosPorQueReceboVagas.protocoloData)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: Self.formatarData(protocolo.criadaEm))
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.texto)
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosPorQueReceboVagas.prazoRespostaTitulo)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: Self.formatarDataCivil(protocolo.prazoRespostaAte))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrilaCor.primaria)
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("prazo-resposta-revisao")
             }
 

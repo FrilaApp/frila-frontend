@@ -15,6 +15,7 @@ private enum TextosCadastro {
     static let buscarEnderecoAjuda = String(localized: "Pesquisa o endereço digitado e atualiza o mapa", bundle: bundleApresentacao)
     static let selecionarEnderecoAjuda = String(localized: "Seleciona este endereço e ajusta o marcador no mapa", bundle: bundleApresentacao)
     static let regiaoAdministrativa = String(localized: "Região Administrativa", bundle: bundleApresentacao)
+    static let selecioneRegiaoAdministrativa = String(localized: "Selecione a Região Administrativa", bundle: bundleApresentacao)
     static let regiaoAdministrativaAjuda = String(localized: "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.", bundle: bundleApresentacao)
     static let ponto = String(localized: "Ponto do estabelecimento", bundle: bundleApresentacao)
     static let mapa = String(localized: "Mapa do estabelecimento", bundle: bundleApresentacao)
@@ -22,7 +23,6 @@ private enum TextosCadastro {
     static let dicaMarcador = String(localized: "Arraste para ajustar o ponto do estabelecimento no mapa", bundle: bundleApresentacao)
     static let responsavel = String(localized: "Responsável", bundle: bundleApresentacao)
     static let continuar = String(localized: "Continuar", bundle: bundleApresentacao)
-    static let estabelecimento = String(localized: "Estabelecimento", bundle: bundleApresentacao)
     static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleApresentacao)
     static let documentoDuplicado = String(localized: "Este documento já está cadastrado.", bundle: bundleApresentacao)
     static let falha = String(localized: "Não foi possível cadastrar o estabelecimento. Tente novamente.", bundle: bundleApresentacao)
@@ -83,10 +83,136 @@ public final class CadastroEstabelecimentoViewModel {
         catch { sugestoes = [] }
     }
 
+    /// As 35 Regiões Administrativas oficiais do Distrito Federal (fonte oficial GDF / SEGOV: https://segov.df.gov.br/category/administracoes-regionais).
+    public static let regioesAdministrativas: [String] = [
+        "Água Quente",
+        "Águas Claras",
+        "Arapoanga",
+        "Arniqueira",
+        "Brazlândia",
+        "Candangolândia",
+        "Ceilândia",
+        "Cruzeiro",
+        "Fercal",
+        "Gama",
+        "Guará",
+        "Itapoã",
+        "Jardim Botânico",
+        "Lago Norte",
+        "Lago Sul",
+        "Núcleo Bandeirante",
+        "Paranoá",
+        "Park Way",
+        "Planaltina",
+        "Plano Piloto",
+        "Recanto das Emas",
+        "Riacho Fundo",
+        "Riacho Fundo II",
+        "Samambaia",
+        "Santa Maria",
+        "São Sebastião",
+        "SCIA / Estrutural",
+        "SIA",
+        "Sobradinho",
+        "Sobradinho II",
+        "Sol Nascente/Pôr do Sol",
+        "Sudoeste/Octogonal",
+        "Taguatinga",
+        "Varjão",
+        "Vicente Pires"
+    ]
+
+    private struct RegraCasamentoRA {
+        let regex: NSRegularExpression
+        let regiao: String
+
+        init?(padrao: String, regiao: String) {
+            guard let regex = try? NSRegularExpression(pattern: padrao, options: [.caseInsensitive]) else { return nil }
+            self.regex = regex
+            self.regiao = regiao
+        }
+    }
+
+    private static let regrasDeCasamento: [RegraCasamentoRA] = [
+        RegraCasamentoRA(padrao: #"\b(riacho\s+fundo\s+(ii|2))\b"#, regiao: "Riacho Fundo II"),
+        RegraCasamentoRA(padrao: #"\b(sobradinho\s+(ii|2))\b"#, regiao: "Sobradinho II"),
+        RegraCasamentoRA(padrao: #"\briacho\s+fundo\b"#, regiao: "Riacho Fundo"),
+        RegraCasamentoRA(padrao: #"\bsobradinho\b"#, regiao: "Sobradinho"),
+        RegraCasamentoRA(padrao: #"\bagua\s+quente\b"#, regiao: "Água Quente"),
+        RegraCasamentoRA(padrao: #"\baguas\s+claras\b"#, regiao: "Águas Claras"),
+        RegraCasamentoRA(padrao: #"\barapoanga\b"#, regiao: "Arapoanga"),
+        RegraCasamentoRA(padrao: #"\barniqueira(s)?\b"#, regiao: "Arniqueira"),
+        RegraCasamentoRA(padrao: #"\bbrazlandia\b"#, regiao: "Brazlândia"),
+        RegraCasamentoRA(padrao: #"\bcandangolandia\b"#, regiao: "Candangolândia"),
+        RegraCasamentoRA(padrao: #"\bceilandia\b"#, regiao: "Ceilândia"),
+        RegraCasamentoRA(padrao: #"\bcruzeiro\b"#, regiao: "Cruzeiro"),
+        RegraCasamentoRA(padrao: #"\bfercal\b"#, regiao: "Fercal"),
+        RegraCasamentoRA(padrao: #"\bgama\b"#, regiao: "Gama"),
+        RegraCasamentoRA(padrao: #"\bguara\b"#, regiao: "Guará"),
+        RegraCasamentoRA(padrao: #"\bitapoa\b"#, regiao: "Itapoã"),
+        RegraCasamentoRA(padrao: #"\bjardim\s+botanico\b"#, regiao: "Jardim Botânico"),
+        RegraCasamentoRA(padrao: #"\blago\s+norte\b"#, regiao: "Lago Norte"),
+        RegraCasamentoRA(padrao: #"\blago\s+sul\b"#, regiao: "Lago Sul"),
+        RegraCasamentoRA(padrao: #"\bnucleo\s+bandeirante\b"#, regiao: "Núcleo Bandeirante"),
+        RegraCasamentoRA(padrao: #"\bparanoa\b"#, regiao: "Paranoá"),
+        RegraCasamentoRA(padrao: #"\bpark\s+way\b"#, regiao: "Park Way"),
+        RegraCasamentoRA(padrao: #"\bplanaltina\b"#, regiao: "Planaltina"),
+        RegraCasamentoRA(padrao: #"\b(plano\s+piloto|asa\s+sul|asa\s+norte|noroeste|vila\s+planalto)\b"#, regiao: "Plano Piloto"),
+        RegraCasamentoRA(padrao: #"\brecanto\s+das\s+emas\b"#, regiao: "Recanto das Emas"),
+        RegraCasamentoRA(padrao: #"\bsamambaia\b"#, regiao: "Samambaia"),
+        RegraCasamentoRA(padrao: #"\bsanta\s+maria\b"#, regiao: "Santa Maria"),
+        RegraCasamentoRA(padrao: #"\bsao\s+sebastiao\b"#, regiao: "São Sebastião"),
+        RegraCasamentoRA(padrao: #"\b(scia|estrutural|cidade\s+estrutural)\b"#, regiao: "SCIA / Estrutural"),
+        RegraCasamentoRA(padrao: #"\b(sia|setor\s+de\s+industria\s+e\s+abastecimento)\b"#, regiao: "SIA"),
+        RegraCasamentoRA(padrao: #"\b(sol\s+nascente|por\s+do\s+sol)\b"#, regiao: "Sol Nascente/Pôr do Sol"),
+        RegraCasamentoRA(padrao: #"\b(sudoeste|octogonal)\b"#, regiao: "Sudoeste/Octogonal"),
+        RegraCasamentoRA(padrao: #"\btaguatinga\b"#, regiao: "Taguatinga"),
+        RegraCasamentoRA(padrao: #"\bvarjao\b"#, regiao: "Varjão"),
+        RegraCasamentoRA(padrao: #"\bvicente\s+pires\b"#, regiao: "Vicente Pires")
+    ].compactMap { $0 }
+
+    public static func casarRegiaoAdministrativa(noTexto texto: String) -> String? {
+        let normalizado = texto
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "pt_BR"))
+            .lowercased()
+        let range = NSRange(normalizado.startIndex..<normalizado.endIndex, in: normalizado)
+        for regra in regrasDeCasamento {
+            if regra.regex.firstMatch(in: normalizado, options: [], range: range) != nil {
+                return regra.regiao
+            }
+        }
+        return nil
+    }
+
+    public static func inferirRegiaoAdministrativa(de item: MKMapItem) -> String? {
+        let placemark = item.placemark
+        if let subLocality = placemark.subLocality, let casada = casarRegiaoAdministrativa(noTexto: subLocality) {
+            return casada
+        }
+        if let subAdmin = placemark.subAdministrativeArea, let casada = casarRegiaoAdministrativa(noTexto: subAdmin) {
+            return casada
+        }
+        if let title = placemark.title, let casada = casarRegiaoAdministrativa(noTexto: title) {
+            return casada
+        }
+        if let name = placemark.name, let casada = casarRegiaoAdministrativa(noTexto: name) {
+            return casada
+        }
+        if let itemName = item.name, let casada = casarRegiaoAdministrativa(noTexto: itemName) {
+            return casada
+        }
+        return nil
+    }
+
     public func selecionar(_ item: MKMapItem) {
         endereco = item.name.map { "\($0), \(item.placemark.title ?? "")" } ?? (item.placemark.title ?? endereco)
         ponto = item.placemark.coordinate
         alvoDaCamera = item.placemark.coordinate
+        if let ra = Self.inferirRegiaoAdministrativa(de: item) {
+            regiaoAdministrativa = ra
+        } else {
+            regiaoAdministrativa = ""
+        }
         sugestoes = []
     }
 
@@ -144,6 +270,8 @@ public enum ErroDeCadastroEstabelecimento: Equatable {
 }
 public enum RegraCampoCadastro: Equatable { case obrigatorio, invalido }
 
+/// Cadastro do estabelecimento no primeiro acesso do contratante, no quadro "Estabelecimento" do MidFi do Fabrício:
+/// campos contornados, mapa com raio e o responsável da conta em cartão.
 public struct TelaCadastroEstabelecimento: View {
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
@@ -189,18 +317,45 @@ public struct TelaCadastroEstabelecimento: View {
     private var formulario: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(verbatim: TextosCadastro.titulo)
-                    .font(.largeTitle.bold())
+                Text(verbatim: TextosCadastro.titulo).font(FrilaTipo.tituloGrande)
                     .accessibilityAddTraits(.isHeader)
                 campo(TextosCadastro.nome, campo: .nome) { CampoFrila(verbatim: TextosCadastro.nomeCampo, texto: $model.nome) }
                 campo(TextosCadastro.documento, campo: .documento) {
-                    TextField(text: Binding(get: { model.documentoFormatado }, set: { valor in model.atualizarDocumento(valor) }), prompt: Text(verbatim: TextosCadastro.documentoCampo)) { Text(verbatim: TextosCadastro.documentoCampo) }
-                        .keyboardType(.numberPad).textFieldStyle(.roundedBorder).accessibilityLabel(Text(verbatim: TextosCadastro.documentoCampo))
+                    CampoFrila(verbatim: TextosCadastro.documentoCampo, texto: Binding(get: { model.documentoFormatado }, set: { valor in model.atualizarDocumento(valor) }))
+                        .keyboardType(.numberPad)
                 }
-                Picker(selection: $model.tipo) {
-                    ForEach(TipoEstabelecimento.allCases, id: \.self) { Text(verbatim: tipoNome($0)).tag($0) }
-                } label: { Text(verbatim: TextosCadastro.tipo)
+                Menu {
+                    ForEach(TipoEstabelecimento.allCases, id: \.self) { tipo in
+                        Button {
+                            model.tipo = tipo
+                        } label: {
+                            if model.tipo == tipo {
+                                Label(tipoNome(tipo), systemImage: "checkmark")
+                            } else {
+                                Text(verbatim: tipoNome(tipo))
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(verbatim: tipoNome(model.tipo))
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(FrilaTipo.meta)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.vertical, FrilaEspaco.pequeno)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
                 }
+                .accessibilityLabel(Text(verbatim: TextosCadastro.tipo))
+                .accessibilityValue(Text(verbatim: tipoNome(model.tipo)))
                 .accessibilityIdentifier("tipo-estabelecimento")
                 secaoEndereco
                 secaoSugestoes
@@ -208,23 +363,68 @@ public struct TelaCadastroEstabelecimento: View {
                     secaoMapa(ponto: point)
                 }
                 campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
-                    CampoFrila(verbatim: TextosCadastro.regiaoAdministrativa, texto: $model.regiaoAdministrativa)
-                        .textInputAutocapitalization(.words)
-                        .accessibilityIdentifier("regiao-administrativa")
-                    Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
+                    Menu {
+                        Button {
+                            model.regiaoAdministrativa = ""
+                        } label: {
+                            if model.regiaoAdministrativa.isEmpty {
+                                Label(TextosCadastro.selecioneRegiaoAdministrativa, systemImage: "checkmark")
+                            } else {
+                                Text(verbatim: TextosCadastro.selecioneRegiaoAdministrativa)
+                            }
+                        }
+                        ForEach(CadastroEstabelecimentoViewModel.regioesAdministrativas, id: \.self) { regiao in
+                            Button {
+                                model.regiaoAdministrativa = regiao
+                            } label: {
+                                if model.regiaoAdministrativa == regiao {
+                                    Label(regiao, systemImage: "checkmark")
+                                } else {
+                                    Text(verbatim: regiao)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecioneRegiaoAdministrativa : model.regiaoAdministrativa)
+                                .font(FrilaTipo.corpo)
+                                .foregroundStyle(model.regiaoAdministrativa.isEmpty ? FrilaCor.textoSecundario : FrilaCor.texto)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
+                        .padding(.horizontal, FrilaEspaco.medio)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    }
+                    .accessibilityLabel(Text(verbatim: TextosCadastro.regiaoAdministrativa))
+                    .accessibilityValue(Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecioneRegiaoAdministrativa : model.regiaoAdministrativa))
+                    .accessibilityIdentifier("regiao-administrativa")
+                    Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
                 }
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: TextosCadastro.responsavel)
-                        .font(.headline)
+                        .font(FrilaTipo.rotuloDoCampo)
                         .accessibilityAddTraits(.isHeader)
-                    Text(verbatim: responsavelNome); Text(verbatim: responsavelTelefone).foregroundStyle(FrilaCor.textoSecundario)
-                }.accessibilityIdentifier("responsavel-conta")
+                    Text(verbatim: responsavelNome).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto)
+                    Text(verbatim: responsavelTelefone).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .cartaoFrila()
+                .accessibilityIdentifier("responsavel-conta")
                 if let erro = model.erro { AvisoFrila(verbatim: mensagem(erro), tom: .erro).accessibilityIdentifier("erro-cadastro") }
                 BotaoPrimario(verbatim: TextosCadastro.continuar, carregando: model.enviando) { Task { await model.salvar() } }
                     .accessibilityIdentifier("continuar-cadastro")
-            }.padding()
+            }.padding(FrilaEspaco.medio)
         }
-        .navigationTitle(Text(verbatim: TextosCadastro.estabelecimento))
+        .background(FrilaCor.fundo.ignoresSafeArea())
+        // Sem título na barra: "Cadastrar estabelecimento" no conteúdo já é o título da tela.
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     @ViewBuilder
@@ -232,6 +432,10 @@ public struct TelaCadastroEstabelecimento: View {
         campo(TextosCadastro.endereco, campo: .endereco) {
             HStack {
                 CampoFrila(verbatim: TextosCadastro.endereco, texto: $model.endereco)
+                    .submitLabel(.search)
+                    .onSubmit {
+                        Task { await model.buscarEndereco() }
+                    }
                 Button {
                     Task { await model.buscarEndereco() }
                 } label: {
@@ -240,6 +444,7 @@ public struct TelaCadastroEstabelecimento: View {
                         .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                 }
+                .foregroundStyle(FrilaCor.texto)
                 .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityLabel(Text(verbatim: TextosCadastro.buscarEndereco))
                 .accessibilityHint(Text(verbatim: TextosCadastro.buscarEnderecoAjuda))
@@ -255,7 +460,14 @@ public struct TelaCadastroEstabelecimento: View {
                 model.selecionar(item)
             } label: {
                 Text(verbatim: item.placemark.title ?? item.name ?? "")
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.leading)
+                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.vertical, FrilaEspaco.pequeno)
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -308,14 +520,16 @@ public struct TelaCadastroEstabelecimento: View {
             }
         }
         .frame(height: 220)
-        Text(verbatim: TextosCadastro.dicaMapa).font(.caption)
+        .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+        Text(verbatim: TextosCadastro.dicaMapa).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
     }
 
     @ViewBuilder
     private func marcadorMapa(proxy: MapProxy, ponto: CLLocationCoordinate2D, posicao: CGPoint) -> some View {
         Image(systemName: "mappin.and.ellipse")
             .font(.title)
-            .foregroundStyle(FrilaCor.perigo)
+            .foregroundStyle(FrilaCor.marca)
             .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
             .contentShape(Rectangle())
             .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
@@ -344,9 +558,9 @@ public struct TelaCadastroEstabelecimento: View {
 
     @ViewBuilder private func campo<Conteudo: View>(_ titulo: String, campo: CampoCadastro, @ViewBuilder conteudo: () -> Conteudo) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: titulo).font(.headline)
+            Text(verbatim: titulo).font(FrilaTipo.rotuloDoCampo)
             conteudo().erroDeCampoFrila(mensagemDoCampo(campo))
-            if case let .campo(campoErro, regra)? = model.erro, campoErro == campo { Text(verbatim: erroCampo(regra)).font(.caption).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-campo-\(titulo.lowercased())") }
+            if case let .campo(campoErro, regra)? = model.erro, campoErro == campo { Text(verbatim: erroCampo(regra)).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-campo-\(titulo.lowercased())") }
         }
     }
 

@@ -1,6 +1,3 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. As telas de destino do push seguem o low-fi do
-// profissional (#15) até a alta fidelidade chegar.
-
 import FrilaDominio
 import SwiftUI
 
@@ -115,6 +112,7 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
 
 /// A tela própria da vaga que não dá mais para pegar (RN10): diz o que aconteceu e leva de volta à
 /// lista. Os textos são os mesmos do resultado da candidatura.
+/// Segue o quadro "Preenchida" do MidFi do Fabrício: ícone em círculo, título, apoio e o botão de volta.
 struct TelaVagaIndisponivel: View {
     private typealias Textos = TextosDoProfissional.Candidatura
     private typealias TextosDaSelecao = TextosDaCandidaturaEmSelecao
@@ -133,11 +131,27 @@ struct TelaVagaIndisponivel: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: titulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
-                    Text(verbatim: mensagem).font(.body).foregroundStyle(FrilaCor.textoSecundario)
+                VStack(spacing: FrilaEspaco.compacto) {
+                    Image(systemName: "lock")
+                        .font(.title)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                        .background(FrilaCor.controle, in: Circle())
+                        .accessibilityHidden(true)
+                    VStack(spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: titulo)
+                            .font(FrilaTipo.tituloDeEstado)
+                            .foregroundStyle(FrilaCor.texto)
+                            .multilineTextAlignment(.center)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(verbatim: mensagem)
+                            .font(FrilaTipo.meta)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .multilineTextAlignment(.center)
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, FrilaEspaco.grande)
+                .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("vaga-indisponivel")
 
@@ -202,6 +216,7 @@ enum BuscaDoTurnoDoAviso: Equatable {
 
 /// O turno de um aviso (#8). O aviso só traz o id, então o turno é procurado entre os da conta que
 /// está no aparelho: o de outra conta nunca aparece, porque não vem na leitura.
+/// Sem o turno, o estado segue o padrão de estados do MidFi do Fabrício (círculo de 72 pt, título e apoio).
 struct DestinoDoTurnoDoAviso<Conteudo: View>: View {
     @State private var estado = BuscaDoTurnoDoAviso.carregando
     private let turnoID: UUID
@@ -243,11 +258,27 @@ struct DestinoDoTurnoDoAviso<Conteudo: View>: View {
         case .carregando, .achou:
             EstadoCarregando()
         case .naoEncontrado:
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: TextosDoPush.Turno.naoEncontradoTitulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
-                Text(verbatim: TextosDoPush.Turno.naoEncontradoMensagem).font(.body).foregroundStyle(FrilaCor.textoSecundario)
+            VStack(spacing: FrilaEspaco.compacto) {
+                Image(systemName: "calendar.badge.exclamationmark")
+                    .font(.title)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                    .background(FrilaCor.controle, in: Circle())
+                    .accessibilityHidden(true)
+                VStack(spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: TextosDoPush.Turno.naoEncontradoTitulo)
+                        .font(FrilaTipo.tituloDeEstado)
+                        .foregroundStyle(FrilaCor.texto)
+                        .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(verbatim: TextosDoPush.Turno.naoEncontradoMensagem)
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .multilineTextAlignment(.center)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, FrilaEspaco.grande)
+            .frame(maxWidth: .infinity)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("turno-do-aviso-nao-encontrado")
             BotaoSecundario(verbatim: TextosDoPush.Turno.verMeusTurnos, acao: verMeusTurnos)

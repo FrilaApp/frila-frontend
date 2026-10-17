@@ -1,8 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// "Equipe de confiança" em Estabelecimento (#24): a lista da equipe e a remoção, com confirmação.
-/// Design provisório, com os componentes base; o definitivo vem do design.
+/// "Equipe de confiança" em Estabelecimento (#24), nos quadros "Estabelecimento" e "ContaContratante" do MidFi do Fabrício: a lista da equipe em cartões e a remoção, com confirmação.
 public struct TelaEquipeDeConfianca: View {
     @State private var viewModel: EquipeDeConfiancaViewModel
     @State private var aRemover: PerfilPublico?
@@ -19,7 +18,7 @@ public struct TelaEquipeDeConfianca: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 Text(verbatim: TextosEquipeDeConfianca.explicacao)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("equipe-explicacao")
@@ -82,12 +81,12 @@ public struct TelaEquipeDeConfianca: View {
     private func cartao(_ perfil: PerfilPublico) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: perfil.nome)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
             if !perfil.funcoes.isEmpty {
                 Text(verbatim: perfil.funcoes.joined(separator: ", "))
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
             SeloReputacao(perfil.reputacao)
@@ -130,7 +129,7 @@ struct BotaoIncluirNaEquipe: View {
                 } icon: {
                     Image(systemName: "checkmark.seal")
                 }
-                .font(.subheadline)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.sucesso)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("na-equipe-\(identificador)")
@@ -141,6 +140,7 @@ struct BotaoIncluirNaEquipe: View {
                     } icon: {
                         Image(systemName: "person.badge.plus")
                     }
+                    .font(FrilaTipo.meta.weight(.semibold))
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
                 }

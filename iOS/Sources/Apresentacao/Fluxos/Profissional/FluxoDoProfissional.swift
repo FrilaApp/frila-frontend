@@ -1,10 +1,8 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final (substitui por ora #15/#172).
-
 import FrilaDominio
 import Observation
 import SwiftUI
 
-/// Abas de navegação principal do profissional (conforme protótipo low-fi).
+/// Abas de navegação principal do profissional, conforme os quadros "Vagas" e "MeuTurno" do MidFi do Fabrício.
 public enum AbaDoProfissional: Hashable, Sendable {
     case vagas
     case turnos
@@ -210,6 +208,8 @@ public struct FluxoDoProfissional<Barra: View>: View {
                                 }
                                 .disabled(recuperandoIdentidade)
                                 .padding(FrilaEspaco.medio)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(FrilaCor.fundo)
                                 .navigationTitle(TextosDoProfissional.Avaliacao.titulo)
                                 .accessibilityIdentifier("avaliacao-sem-conexao")
                             }

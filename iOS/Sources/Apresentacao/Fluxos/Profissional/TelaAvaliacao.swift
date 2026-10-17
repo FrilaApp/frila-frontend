@@ -1,7 +1,10 @@
 import FrilaDominio
 import SwiftUI
 
+/// Avaliação do turno pelo profissional, no quadro "AvaliarLocal" do MidFi do Fabrício: pergunta em
+/// título grande, resposta Sim/Não, nota de apoio em cartão e botão escuro de envio.
 public struct TelaAvaliacao: View {
+    @Environment(\.dismiss) private var dismiss
     @Bindable private var viewModel: AvaliacaoTurnoViewModel
 
     public init(viewModel: AvaliacaoTurnoViewModel) {
@@ -42,6 +45,7 @@ public struct TelaAvaliacao: View {
                 botaoDeAcao
             }
             .padding(FrilaEspaco.medio)
+            .padding(.bottom, FrilaEspaco.enorme)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
@@ -55,7 +59,9 @@ public struct TelaAvaliacao: View {
 
     private var cabecalho: some View {
         Text(verbatim: viewModel.pergunta)
-            .font(.title2.bold())
+            .font(FrilaTipo.tituloGrande)
+            .foregroundStyle(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.minimo)
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("pergunta-avaliacao")
     }
@@ -64,11 +70,11 @@ public struct TelaAvaliacao: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Label {
                 Text(verbatim: viewModel.explicacao)
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } icon: {
                 Image(systemName: "hand.thumbsup.fill")
-                    .foregroundStyle(FrilaCor.primaria)
+                    .foregroundStyle(FrilaCor.textoSecundario)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -114,17 +120,34 @@ public struct TelaAvaliacao: View {
 
     @ViewBuilder
     private var botaoDeAcao: some View {
-        if !viewModel.jaAvaliado {
+        if viewModel.sucesso {
             BotaoPrimario(
-                verbatim: TextosDoProfissional.Avaliacao.botaoEnviar,
-                carregando: viewModel.salvando
+                verbatim: TextosDoProfissional.Avaliacao.botaoConcluir
             ) {
-                Task {
-                    _ = await viewModel.salvar()
-                }
+                dismiss()
             }
-            .disabled(viewModel.resposta == nil || viewModel.salvando)
-            .accessibilityIdentifier("botao-enviar-avaliacao")
+            .accessibilityIdentifier("botao-concluir-avaliacao")
+        } else if !viewModel.jaAvaliado {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                if viewModel.resposta == nil {
+                    Text(verbatim: TextosDoProfissional.Avaliacao.dicaEscolhaResposta)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .accessibilityIdentifier("dica-escolha-resposta-avaliacao")
+                }
+
+                BotaoPrimario(
+                    verbatim: TextosDoProfissional.Avaliacao.botaoEnviar,
+                    carregando: viewModel.salvando
+                ) {
+                    Task {
+                        _ = await viewModel.salvar()
+                    }
+                }
+                .disabled(viewModel.resposta == nil || viewModel.salvando)
+                .accessibilityIdentifier("botao-enviar-avaliacao")
+            }
         }
     }
 }

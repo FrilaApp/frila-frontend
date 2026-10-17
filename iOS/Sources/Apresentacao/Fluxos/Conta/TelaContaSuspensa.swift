@@ -1,6 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
+/// Conta suspensa (#105), no estilo dos quadros "ContaContratante" e "ExcluirConta" do MidFi do Fabrício: aviso neutro, cartões agrupados e ações em linhas com chevron.
 public struct TelaContaSuspensa: View {
     @Bindable private var viewModel: ContaSuspensaViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -40,15 +41,15 @@ public struct TelaContaSuspensa: View {
     private var secaoMotivoESuspensao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosContaSuspensa.secaoMotivo)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.motivoTitulo)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: viewModel.motivo.isEmpty ? "—" : viewModel.motivo)
-                    .font(.body)
+                    .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("texto-motivo-suspensao")
             }
@@ -56,10 +57,10 @@ public struct TelaContaSuspensa: View {
             if let data = viewModel.dataSuspensao {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: TextosContaSuspensa.desdeTitulo)
-                        .font(.caption)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                     Text(verbatim: formatarData(data))
-                        .font(.subheadline)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityIdentifier("texto-data-suspensao")
                 }
@@ -67,10 +68,10 @@ public struct TelaContaSuspensa: View {
 
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "clock.badge.exclamationmark")
-                    .foregroundStyle(FrilaCor.primaria)
+                    .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityHidden(true)
                 Text(verbatim: TextosContaSuspensa.prazoAnaliseDescricao)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
             .padding(.top, FrilaEspaco.minimo)
@@ -82,7 +83,7 @@ public struct TelaContaSuspensa: View {
     private var secaoContestacao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosContaSuspensa.secaoContestacao)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
 
             if let explicacao409 = viewModel.avisoExplicacao409 {
@@ -116,7 +117,7 @@ public struct TelaContaSuspensa: View {
             HStack {
                 Label {
                     Text(verbatim: viewModel.emAnalise ? TextosContaSuspensa.emAnalise : TextosContaSuspensa.protocoloTitulo)
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.meta.weight(.semibold))
                 } icon: {
                     Image(systemName: "clock.arrow.circlepath")
                 }
@@ -127,35 +128,35 @@ public struct TelaContaSuspensa: View {
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.protocoloNumero)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: protocolo.ocorrenciaID.uuidString)
-                    .font(.subheadline.monospaced())
+                    .font(FrilaTipo.meta.monospaced())
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("protocolo-contestacao")
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.protocoloData)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: formatarData(protocolo.criadaEm))
-                    .font(.subheadline)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.texto)
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.prazoRespostaTitulo)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: formatarDataCivil(protocolo.prazoRespostaAte))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrilaCor.primaria)
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("prazo-resposta-contestacao")
             }
 
             Text(verbatim: viewModel.mensagemDoProtocolo)
-                .font(.caption)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .padding(.top, FrilaEspaco.minimo)
                 .accessibilityIdentifier("mensagem-protocolo-contestacao")
@@ -165,7 +166,7 @@ public struct TelaContaSuspensa: View {
     private var formularioContestacao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosContaSuspensa.labelRelato)
-                .font(.subheadline.weight(.medium))
+                .font(FrilaTipo.meta.weight(.semibold))
                 .foregroundStyle(FrilaCor.texto)
 
             TextField(
@@ -178,8 +179,9 @@ public struct TelaContaSuspensa: View {
             .lineLimit(4...8)
             .textFieldStyle(.plain)
             .padding(FrilaEspaco.medio)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.borda))
+            .font(FrilaTipo.valorDoCampo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-contestacao")
 
             HStack {
@@ -189,11 +191,11 @@ public struct TelaContaSuspensa: View {
                         .accessibilityIdentifier("icone-relato-valido-contestacao")
                 }
                 Text(verbatim: TextosContaSuspensa.dicaRelato)
-                    .font(.caption)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
                 Spacer()
                 Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
-                    .font(.caption.monospacedDigit())
+                    .font(FrilaTipo.nota.monospacedDigit())
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
                     .accessibilityIdentifier("contador-relato-contestacao")
                     .accessibilityLabel(Text(verbatim: viewModel.relatoValido ? TextosContaSuspensa.relatoValidoAcessibilidade : "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
@@ -228,10 +230,12 @@ public struct TelaContaSuspensa: View {
     private var secaoAcoes: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosContaSuspensa.secaoAcoes)
-                .font(.headline)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
 
             ItemExportarDados(viewModel: exportarModel, identificador: "conta-suspensa-exportar-dados")
+
+            Divider().overlay(FrilaCor.divisoria)
 
             NavigationLink {
                 TelaExclusaoDeConta(
@@ -241,28 +245,39 @@ public struct TelaContaSuspensa: View {
                     )
                 )
             } label: {
-                Label {
-                    Text(verbatim: TextosContaSuspensa.excluir)
-                } icon: {
-                    Image(systemName: "person.crop.circle.badge.xmark")
-                }
+                linhaDeAcao(TextosContaSuspensa.excluir, cor: FrilaCor.perigo)
             }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            .buttonStyle(.plain)
             .accessibilityIdentifier("conta-suspensa-excluir-conta")
+
+            Divider().overlay(FrilaCor.divisoria)
 
             Button {
                 viewModel.executarSair()
             } label: {
-                Label {
-                    Text(verbatim: TextosContaSuspensa.sair)
-                } icon: {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                }
+                linhaDeAcao(TextosContaSuspensa.sair, cor: FrilaCor.texto)
             }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            .buttonStyle(.plain)
             .accessibilityIdentifier("conta-suspensa-sair")
         }
         .cartaoFrila()
+    }
+
+    /// Linha de lista do MidFi: texto à esquerda, chevron em `textoSecundario` à direita, 52 pt de altura mínima.
+    private func linhaDeAcao(_ titulo: String, cor: Color) -> some View {
+        HStack(spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(cor)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: FrilaEspaco.pequeno)
+            Image(systemName: "chevron.right")
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func formatarData(_ data: Date) -> String {

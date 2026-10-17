@@ -243,7 +243,6 @@ struct TelemetriaTests {
         vmCadastro.nome = "Profissional Teste"
         vmCadastro.telefone = "(61) 98765-4321"
         vmCadastro.nascimentoTexto = "01/01/1990"
-        vmCadastro.maiorDeIdade = true
         vmCadastro.aceitouTermos = true
 
         let destino = await vmCadastro.criarConta()
@@ -262,7 +261,6 @@ struct TelemetriaTests {
         vmFalha.nome = "Profissional Teste 2"
         vmFalha.telefone = "(61) 98765-4322"
         vmFalha.nascimentoTexto = "01/01/1990"
-        vmFalha.maiorDeIdade = true
         vmFalha.aceitouTermos = true
         let destinoSucessoMesmoComTelemetriaFalhando = await vmFalha.criarConta()
         #expect(destinoSucessoMesmoComTelemetriaFalhando != nil)
@@ -276,7 +274,6 @@ struct TelemetriaTests {
         vmCadastro.nome = "Profissional Teste"
         vmCadastro.telefone = "(61) 98765-4321"
         vmCadastro.nascimentoTexto = "01/01/1990"
-        vmCadastro.maiorDeIdade = true
         vmCadastro.aceitouTermos = true
 
         let destino = await vmCadastro.criarConta()
@@ -304,7 +301,6 @@ struct TelemetriaTests {
         vmCadastro.nome = "Profissional Teste"
         vmCadastro.telefone = "(61) 98765-4321"
         vmCadastro.nascimentoTexto = "01/01/1990"
-        vmCadastro.maiorDeIdade = true
         vmCadastro.aceitouTermos = true
 
         let destino1 = await vmCadastro.criarConta()

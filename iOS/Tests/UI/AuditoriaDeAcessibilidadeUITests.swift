@@ -173,9 +173,11 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
         codigo.tap()
         codigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"], em: app)
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            tocar(app.buttons["codigo-entrar"], em: app)
+        }
 
-        guard esperar(app.buttons["cadastro-maior-de-idade"], "O cadastro deve abrir") else { return }
+        guard esperar(app.buttons["cadastro-termos"], "O cadastro deve abrir") else { return }
         auditar(app, tela: "cadastro")
     }
 

@@ -448,4 +448,105 @@ struct PublicarVagaTests {
         #expect(vm.funcoes == funcoesIniciais)
         #expect(api.totalChamadas == 0)
     }
+
+    @Test("Cálculo do valor total da vaga e limites do stepper de posições (Achado 6)")
+    @MainActor
+    func calculoDoValorTotalEStepper() throws {
+        let fila = FilaPublicacaoTeste()
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { self.agora }) { _ in
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+        vm.valorTexto = "15000" // R$ 150,00
+        vm.posicoesTexto = "1"
+        #expect(vm.valorTotalCentavos == 15000)
+
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "2")
+        #expect(vm.valorTotalCentavos == 30000)
+
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "3")
+        #expect(vm.valorTotalCentavos == 45000)
+
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "2")
+        #expect(vm.valorTotalCentavos == 30000)
+
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+        #expect(vm.valorTotalCentavos == 15000)
+
+        // Normalização de vazio para 1 ao usar stepper
+        vm.posicoesTexto = ""
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+        vm.posicoesTexto = ""
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+
+        // Normalização de "0" para 1 ao usar stepper
+        vm.posicoesTexto = "0"
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+        vm.posicoesTexto = "0"
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+
+        // Teste de 1 (limite inferior)
+        vm.posicoesTexto = "1"
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "2")
+
+        // Teste de 200 (limite superior)
+        vm.posicoesTexto = "200"
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "200")
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "199")
+
+        // Valor ou posições inválidas resultam em 0 centavos
+        vm.posicoesTexto = "0"
+        #expect(vm.valorTotalCentavos == 0)
+        vm.posicoesTexto = "abc"
+        #expect(vm.valorTotalCentavos == 0)
+    }
+
+    @Test("Ao mudar o Início, o Fim acompanha mantendo a duração (Achados 7 e 9)")
+    @MainActor
+    func sincronizacaoDoFimAoMudarInicio() throws {
+        let fila = FilaPublicacaoTeste()
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { self.agora }) { _ in
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+
+        let duracaoInicial = vm.fim.timeIntervalSince(vm.inicio)
+        #expect(duracaoInicial > 0)
+
+        // Ao mudar o Início, Fim acompanha mantendo a duração
+        let novoInicio = vm.inicio.addingTimeInterval(2 * 3600)
+        vm.inicio = novoInicio
+        #expect(vm.fim == novoInicio.addingTimeInterval(duracaoInicial))
+        #expect(vm.fim.timeIntervalSince(vm.inicio) == duracaoInicial)
+
+        // Ajuste manual de Fim: define nova duração
+        let novaDuracaoManual: TimeInterval = 6 * 3600
+        vm.fim = vm.inicio.addingTimeInterval(novaDuracaoManual)
+        #expect(vm.fim.timeIntervalSince(vm.inicio) == novaDuracaoManual)
+
+        // Próxima mudança de Início preserva a nova duração ajustada à mão
+        let outroInicio = vm.inicio.addingTimeInterval(1 * 3600)
+        vm.inicio = outroInicio
+        #expect(vm.fim == outroInicio.addingTimeInterval(novaDuracaoManual))
+
+        // Fim escolhido à mão antes do início (inválido): não move o fim ao alterar o início
+        let fimInvalido = outroInicio.addingTimeInterval(-3600)
+        vm.fim = fimInvalido
+        let inicioDepois = outroInicio.addingTimeInterval(2 * 3600)
+        vm.inicio = inicioDepois
+        #expect(vm.fim == fimInvalido)
+        #expect(!vm.validar())
+        #expect(vm.erros[.fim] != nil)
+    }
 }

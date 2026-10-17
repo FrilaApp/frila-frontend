@@ -1,8 +1,7 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. Substitui por ora a alta fidelidade do
-// profissional (#15) e os padrões de estado (#172).
-//
-// Textos PROVISÓRIOS, tirados do protótipo low-fi dos cartões #104/#105 (telas "Vagas no DF" e
-// "Detalhe da vaga"). O guia de voz (#186) ainda não existe; quando existir, os textos mudam só aqui.
+// Textos das telas do profissional, que seguem os quadros MidFi do Fabrício (Vagas, Vaga, MeuTurno,
+// TurnoHoje, AvaliarLocal, MeuPerfil e Disponibilidade). Os textos continuam PROVISÓRIOS, tirados do
+// protótipo dos cartões #104/#105. O guia de voz (#186) ainda não existe; quando existir, os textos
+// mudam só aqui.
 
 import Foundation
 import FrilaDominio
@@ -185,6 +184,8 @@ enum TextosDoProfissional {
             bundle: bundleApresentacao
         )
         public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)
+        public static let botaoConcluir = String(localized: "Concluir", bundle: bundleApresentacao)
+        public static let dicaEscolhaResposta = String(localized: "Escolha Sim ou Não para avaliar.", bundle: bundleApresentacao)
         public static let avaliadoSucesso = String(localized: "Avaliação registrada.", bundle: bundleApresentacao)
         public static let avaliadoOffline = String(localized: "Avaliação salva. Será enviada quando a internet voltar.", bundle: bundleApresentacao)
         public static let suaResposta = String(localized: "Sua resposta", bundle: bundleApresentacao)

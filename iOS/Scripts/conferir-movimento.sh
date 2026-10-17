@@ -119,7 +119,33 @@ def encontrar_chamadas_with_animation(limpo):
             chamadas.append((m.start(), argumentos))
     return chamadas
 
-padrao_animation_modifier = re.compile(r'\.animation\s*\(')
+def encontrar_chamadas_animation_modifier(limpo):
+    chamadas = []
+    for m in re.finditer(r'\.animation\s*\(', limpo):
+        pos = m.end()
+        ini_args = pos
+        nivel = 1
+        n = len(limpo)
+        while pos < n and nivel > 0:
+            if limpo[pos] == '(':
+                nivel += 1
+            elif limpo[pos] == ')':
+                nivel -= 1
+            pos += 1
+        argumentos = limpo[ini_args:pos-1] if nivel == 0 else ""
+        chamadas.append((m.start(), argumentos))
+    return chamadas
+
+def primeiro_argumento(argumentos):
+    nivel = 0
+    for i, c in enumerate(argumentos):
+        if c in '([{':
+            nivel += 1
+        elif c in ')]}':
+            nivel -= 1
+        elif c == ',' and nivel == 0:
+            return argumentos[:i].strip()
+    return argumentos.strip()
 
 for caminho in arquivos:
     with open(caminho, encoding="utf-8") as f:
@@ -149,10 +175,16 @@ for caminho in arquivos:
         ))
 
     # 2. Checagem de .animation(...) modificador direto
-    for m in padrao_animation_modifier.finditer(limpo):
-        num_linha = conteudo[:m.start()].count('\n') + 1
+    for inicio_match, argumentos in encontrar_chamadas_animation_modifier(limpo):
+        num_linha = conteudo[:inicio_match].count('\n') + 1
         nome_arquivo = os.path.basename(caminho)
         chave_excecao = f"{nome_arquivo}:{num_linha}"
+
+        primeiro_arg = primeiro_argumento(argumentos).strip()
+
+        # Exige que o 1º argumento comece pelo ponto único FrilaMovimento.animacao( (#71.4)
+        if primeiro_arg.startswith("FrilaMovimento.animacao("):
+            continue
 
         if chave_excecao in EXCECOES_NAO_DESLOCAMENTO:
             continue

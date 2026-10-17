@@ -76,6 +76,8 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Acessibilidade: alvos de toque do tamanho mínimo e leitura nos maiores tamanhos de texto (#139).
 - Licenças das bibliotecas de código aberto usadas pelo app (#178).
 - Telemetria do piloto: porta, DTOs e cliente para registrar_evento (contrato 0.2.41, RN15, RNF08), com dicionário fechado e sem texto livre nem dados pessoais.
+- Visual novo, do design do Fabrício (FrilaLowPhase e MidFi): tema neutro no claro e no escuro, terracota só
+  como acento, cartões sobre fundo agrupado, campos e botões de 52 pt e a Bricolage Grotesque só no publicar vaga.
 - Telemetria do piloto: fiação dos 14 eventos nas telas e ViewModels (T-0017, contrato 0.2.41, RN15, RNF08), cobrindo ciclo de vida do app, funil de vagas, candidaturas, presença (check-in/checkout), avaliações, contatos, resiliência offline e atualização obrigatória.
 - Telas de cadastro, código, estabelecimento, publicação e perfil usam os tokens de espaçamento e de
   área de toque do design em vez de valores soltos, sem mudar a aparência.

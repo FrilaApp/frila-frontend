@@ -1,12 +1,9 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. Segue o protótipo low-fi ("Detalhe da vaga",
-// "Vaga preenchida", "Meu turno") e substitui por ora a alta fidelidade do profissional (#15).
-
 import FrilaDominio
 import SwiftUI
 
 private typealias Textos = TextosDoProfissional.Candidatura
 
-/// Candidatar-me, no detalhe (#105). O botão fica desabilitado enquanto a chamada está em voo.
+/// Candidatar-me, no rodapé do quadro "Vaga" do MidFi do Fabrício (#105). O botão fica desabilitado enquanto a chamada está em voo.
 /// Resultados com tela própria vão pelo roteador; não encontrada e falha ficam aqui, com nova tentativa.
 /// Na vaga de seleção em que a conta já tem candidatura pendente (#10), o lugar do botão é da
 /// candidatura enviada, com Retirar candidatura.
@@ -89,7 +86,7 @@ public struct AreaDeCandidatura: View {
     }
 }
 
-/// Tela própria de cada resultado da candidatura (#105).
+/// Tela própria de cada resultado da candidatura (#105), nos quadros "Vaga", "Preenchida" e "MeuTurno" do MidFi do Fabrício.
 public struct TelaResultadoDaCandidatura: View {
     private let vaga: Vaga
     private let resultado: ResultadoDaCandidatura
@@ -219,8 +216,13 @@ public struct TelaResultadoDaCandidatura: View {
     private var resumoDaVaga: some View {
         let formatador = FormatadorFrila()
         return VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)").font(.headline)
+            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
+                .font(FrilaTipo.rotuloDoCampo)
+                .foregroundStyle(FrilaCor.texto)
             Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
+                .font(FrilaTipo.meta)
+                .monospacedDigit()
+                .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -229,10 +231,14 @@ public struct TelaResultadoDaCandidatura: View {
 
     private func mensagem(_ titulo: String, _ texto: String, id: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
-            Text(verbatim: texto).font(.body).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: titulo)
+                .font(FrilaTipo.tituloGrande)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+            Text(verbatim: texto).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, FrilaEspaco.minimo)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(id)
     }
@@ -262,13 +268,23 @@ private struct TurnoConfirmado: View {
 
     var body: some View {
         let formatador = FormatadorFrila()
-        Text(verbatim: Textos.confirmadoTitulo).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+        Text(verbatim: Textos.confirmadoTitulo)
+            .font(FrilaTipo.tituloGrande)
+            .foregroundStyle(FrilaCor.texto)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, FrilaEspaco.minimo)
+            .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("resultado-confirmada")
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)").font(.headline)
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
+                .font(FrilaTipo.rotuloDoCampo)
+                .foregroundStyle(FrilaCor.texto)
             Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
+                .font(FrilaTipo.meta)
+                .monospacedDigit()
+                .foregroundStyle(FrilaCor.texto)
             Text(verbatim: "\(vaga.local) · \(TextosDoProfissional.Detalhe.quemRecebe.lowercased()): \(vaga.responsavelLocal)")
-                .font(.subheadline).foregroundStyle(FrilaCor.textoSecundario)
+                .font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -276,11 +292,19 @@ private struct TurnoConfirmado: View {
 
         if let contato {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: Textos.contato).font(.footnote.weight(.semibold)).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: Textos.contato)
+                    .font(FrilaTipo.microRotulo)
+                    .textCase(.uppercase)
+                    .tracking(0.8)
+                    .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityAddTraits(.isHeader)
-                Text(verbatim: "\(contato.nome) · \(contato.telefone)").font(.body.weight(.semibold))
+                Text(verbatim: "\(contato.nome) · \(contato.telefone)")
+                    .font(FrilaTipo.rotuloDoCampo)
+                    .foregroundStyle(FrilaCor.texto)
                 Link(destination: contato.whatsappURL) {
                     Text(verbatim: Textos.abrirWhatsApp)
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .foregroundStyle(FrilaCor.texto)
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                 }
@@ -288,7 +312,7 @@ private struct TurnoConfirmado: View {
                 .contentShape(Rectangle())
                 .accessibilityIdentifier("contato-do-turno")
 
-                Text(verbatim: Textos.contatoLiberado).font(.caption).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: Textos.contatoLiberado).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()

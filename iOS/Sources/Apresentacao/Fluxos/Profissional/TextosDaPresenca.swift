@@ -1,6 +1,6 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final. Textos PROVISÓRIOS do check-in e do check-out
-// (#17), até a alta fidelidade da chegada ao turno e o guia de voz (#186). Ficam num arquivo próprio,
-// como extensão de `TextosDoProfissional`, para não disputar o arquivo com os outros cartões do turno.
+// Textos do check-in e do check-out (#17), na seção "Chegada" do quadro MidFi "TurnoHoje" do Fabrício.
+// Continuam PROVISÓRIOS até o guia de voz (#186). Ficam num arquivo próprio, como extensão de
+// `TextosDoProfissional`, para não disputar o arquivo com os outros cartões do turno.
 
 import Foundation
 import FrilaDominio

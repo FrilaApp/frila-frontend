@@ -1,19 +1,15 @@
-// BAIXA FIDELIDADE DESCARTÁVEL: não é design final (#98).
-// Interface provisória para cadastro/edição do perfil profissional (funções, ponto base e grade semanal).
-
 import FrilaDominio
 import MapKit
 import SwiftUI
 
+/// Cadastro e edição do perfil profissional (#98): funções, ponto base e grade semanal, nos quadros
+/// "MeuPerfil", "Disponibilidade" e "EditarDisponibilidade" do MidFi do Fabrício (cartões brancos com
+/// rótulo em caixa alta, campos de 52 pt e botão escuro).
 public struct TelaPerfilProfissional: View {
     // `@State`: o modelo vive com a tela. A tela de cima recria este valor a cada redesenho, e sem
     // isso o formulário já carregado seria trocado por um modelo novo, vazio.
     @State private var viewModel: PerfilProfissionalViewModel
     private let aoSalvar: () -> Void
-    @State private var diaNovo: Int = 5 // Sexta-feira padrão
-    @State private var inicioNovo: String = "18:00"
-    @State private var fimNovo: String = "02:00"
-    @State private var erroFormatoJanela: String?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
@@ -87,16 +83,19 @@ public struct TelaPerfilProfissional: View {
 
     private var secaoCabecalho: some View {
         Text(verbatim: TextosDoProfissional.Perfil.cabecalho)
-            .font(.title2.bold())
+            .font(FrilaTipo.tituloGrande)
             .foregroundStyle(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.minimo)
             .accessibilityAddTraits(.isHeader)
     }
 
     private var secaoFuncoes: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             Text(verbatim: TextosDoProfissional.Perfil.secaoFuncoes)
-                .font(.headline)
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
             LazyVGrid(
@@ -118,10 +117,12 @@ public struct TelaPerfilProfissional: View {
     }
 
     private var secaoPontoBase: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             Text(verbatim: TextosDoProfissional.Perfil.pontoBase)
-                .font(.headline)
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
             HStack(spacing: FrilaEspaco.pequeno) {
@@ -134,8 +135,8 @@ public struct TelaPerfilProfissional: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(FrilaCor.sobrePrimaria)
-                        .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
-                        .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.medio))
+                        .frame(width: FrilaMetrica.alturaDoCampo, height: FrilaMetrica.alturaDoCampo)
+                        .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
                         .accessibilityHidden(true)
                 }
                 .buttonStyle(.plain)
@@ -144,7 +145,7 @@ public struct TelaPerfilProfissional: View {
             }
 
             Text(verbatim: TextosDoProfissional.Perfil.dicaPontoBase)
-                .font(.footnote)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
             if viewModel.carregandoBusca {
@@ -158,13 +159,13 @@ public struct TelaPerfilProfissional: View {
                         Button {
                             viewModel.selecionarSugestao(item)
                         } label: {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                                 Text(verbatim: item.name ?? "")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(FrilaTipo.meta.weight(.semibold))
                                     .foregroundStyle(FrilaCor.texto)
                                 if let title = item.placemark.title {
                                     Text(verbatim: title)
-                                        .font(.caption)
+                                        .font(FrilaTipo.nota)
                                         .foregroundStyle(FrilaCor.textoSecundario)
                                 }
                             }
@@ -174,12 +175,12 @@ public struct TelaPerfilProfissional: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("sugestao-endereco-\(index)")
                         if index < min(viewModel.sugestoes.count, 5) - 1 {
-                            Divider()
+                            Divider().overlay(FrilaCor.divisoria)
                         }
                     }
                 }
                 .padding(FrilaEspaco.pequeno)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+                .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
             }
 
             if viewModel.pontoBase != nil {
@@ -189,7 +190,7 @@ public struct TelaPerfilProfissional: View {
                     Image(systemName: "mappin.circle.fill")
                         .accessibilityHidden(true)
                 }
-                .font(.caption.weight(.medium))
+                .font(FrilaTipo.nota.weight(.medium))
                 .foregroundStyle(FrilaCor.sucesso)
                 .accessibilityIdentifier("label-ponto-base-selecionado")
             }
@@ -198,15 +199,17 @@ public struct TelaPerfilProfissional: View {
     }
 
     private var secaoHorarios: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios)
-                .font(.headline)
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
             if viewModel.disponibilidades.isEmpty {
                 Text(verbatim: TextosDoProfissional.Perfil.nenhumHorario)
-                    .font(.footnote)
+                    .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
             } else {
                 VStack(spacing: FrilaEspaco.minimo) {
@@ -217,14 +220,15 @@ public struct TelaPerfilProfissional: View {
                             : AnyLayout(HStackLayout())
                         linhaLayout {
                             Text(verbatim: formatado.dia)
-                                .font(.subheadline.weight(.semibold))
+                                .font(FrilaTipo.meta.weight(.semibold))
                                 .foregroundStyle(FrilaCor.texto)
                             if !dynamicTypeSize.isAccessibilitySize {
                                 Spacer()
                             }
                             HStack {
                                 Text(verbatim: formatado.horario)
-                                    .font(.subheadline)
+                                    .font(FrilaTipo.meta)
+                                    .monospacedDigit()
                                     .foregroundStyle(FrilaCor.textoSecundario)
                                 Spacer()
                                 Button {
@@ -243,7 +247,7 @@ public struct TelaPerfilProfissional: View {
                             }
                         }
                         .padding(.vertical, FrilaEspaco.minimo)
-                        Divider()
+                        Divider().overlay(FrilaCor.divisoria)
                     }
                 }
             }
@@ -251,70 +255,88 @@ public struct TelaPerfilProfissional: View {
             // Bloco de Adicionar Horário
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Perfil.adicionarHorario)
-                    .font(.subheadline.bold())
+                    .font(FrilaTipo.rotuloDoCampo)
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityAddTraits(.isHeader)
 
-                Picker(selection: $diaNovo) {
-                    Text(verbatim: TextosDoProfissional.Perfil.domingo).tag(0)
-                    Text(verbatim: TextosDoProfissional.Perfil.segunda).tag(1)
-                    Text(verbatim: TextosDoProfissional.Perfil.terca).tag(2)
-                    Text(verbatim: TextosDoProfissional.Perfil.quarta).tag(3)
-                    Text(verbatim: TextosDoProfissional.Perfil.quinta).tag(4)
-                    Text(verbatim: TextosDoProfissional.Perfil.sexta).tag(5)
-                    Text(verbatim: TextosDoProfissional.Perfil.sabado).tag(6)
+                Menu {
+                    Picker(selection: $viewModel.diaNovo) {
+                        Text(verbatim: TextosDoProfissional.Perfil.domingo).tag(0)
+                        Text(verbatim: TextosDoProfissional.Perfil.segunda).tag(1)
+                        Text(verbatim: TextosDoProfissional.Perfil.terca).tag(2)
+                        Text(verbatim: TextosDoProfissional.Perfil.quarta).tag(3)
+                        Text(verbatim: TextosDoProfissional.Perfil.quinta).tag(4)
+                        Text(verbatim: TextosDoProfissional.Perfil.sexta).tag(5)
+                        Text(verbatim: TextosDoProfissional.Perfil.sabado).tag(6)
+                    } label: {
+                        Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
+                    }
                 } label: {
-                    Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
+                    HStack {
+                        Text(verbatim: PerfilProfissionalViewModel.nomeDoDia(viewModel.diaNovo))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: FrilaEspaco.minimo)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .accessibilityHidden(true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                .contentShape(Rectangle())
+                .accessibilityLabel(TextosDoProfissional.Perfil.diaSemana)
+                .accessibilityValue(PerfilProfissionalViewModel.nomeDoDia(viewModel.diaNovo))
                 .accessibilityIdentifier("picker-dia-semana")
 
-                let camposHorarioLayout = dynamicTypeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.pequeno))
-                    : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
-                camposHorarioLayout {
-                    CampoFrila(verbatim: TextosDoProfissional.Perfil.inicio, texto: $inicioNovo)
+                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: TextosDoProfissional.Perfil.inicio)
+                            .font(FrilaTipo.rotuloDoCampo)
+                            .foregroundStyle(FrilaCor.texto)
+                        DatePicker(selection: $viewModel.inicioNovo, displayedComponents: .hourAndMinute) {
+                            Text(verbatim: TextosDoProfissional.Perfil.inicio)
+                        }
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 248 : 216)
+                        .clipShape(.rect)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("campo-hora-inicio")
-                    CampoFrila(verbatim: TextosDoProfissional.Perfil.fim, texto: $fimNovo)
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: TextosDoProfissional.Perfil.fim)
+                            .font(FrilaTipo.rotuloDoCampo)
+                            .foregroundStyle(FrilaCor.texto)
+                        DatePicker(selection: $viewModel.fimNovo, displayedComponents: .hourAndMinute) {
+                            Text(verbatim: TextosDoProfissional.Perfil.fim)
+                        }
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 248 : 216)
+                        .clipShape(.rect)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("campo-hora-fim")
-                }
-
-                if let erroFormato = erroFormatoJanela {
-                    Text(verbatim: erroFormato)
-                        .font(.caption)
-                        .foregroundStyle(FrilaCor.perigo)
+                    }
                 }
 
                 Button {
-                    do {
-                        let inicio = try HoraDoDia(inicioNovo.trimmingCharacters(in: .whitespaces))
-                        let fim = try HoraDoDia(fimNovo.trimmingCharacters(in: .whitespaces))
-                        guard inicio != fim else {
-                            erroFormatoJanela = TextosDoProfissional.Perfil.erroJanelaDuracaoZero
-                            return
-                        }
-                        viewModel.adicionarJanela(diaDaSemana: diaNovo, inicio: inicio, fim: fim)
-                        erroFormatoJanela = nil
-                    } catch {
-                        erroFormatoJanela = TextosDoProfissional.Perfil.erroHorarioInvalido
-                    }
+                    viewModel.adicionarJanelaDoFormulario()
                 } label: {
                     Text(verbatim: TextosDoProfissional.Perfil.adicionar)
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.botao)
                         .padding(.horizontal, FrilaEspaco.medio)
                         .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, minHeight: FrilaMetrica.alvoMinimo)
-                        .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+                        .background(FrilaCor.primaria, in: Capsule())
                         .foregroundStyle(FrilaCor.sobrePrimaria)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
+                .accessibilityLabel(TextosDoProfissional.Perfil.adicionarHorario)
                 .accessibilityIdentifier("botao-adicionar-janela")
             }
-            .padding(FrilaEspaco.pequeno)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+            .padding(FrilaEspaco.compacto)
+            .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
         }
         .cartaoFrila()
     }

@@ -1,6 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
+/// Entrada por e-mail (#13), no quadro "Main" do MidFi do Fabrício: título, campo de e-mail e o botão escuro de enviar o código.
 public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
@@ -12,23 +13,23 @@ public struct TelaEntrada: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-                Spacer(minLength: 40)
+            VStack(alignment: .leading, spacing: FrilaEspaco.enorme) {
+                Spacer(minLength: FrilaEspaco.enorme)
 
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text("Frila", bundle: bundleApresentacao)
-                        .font(.largeTitle.bold())
+                        .font(FrilaTipo.tituloGrande)
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityAddTraits(.isHeader)
 
                     Text("Turnos avulsos no DF, perto de você.", bundle: bundleApresentacao)
-                        .font(.title3)
+                        .font(FrilaTipo.subtituloDaTela)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text("E-mail", bundle: bundleApresentacao)
-                        .font(.subheadline.weight(.semibold))
+                        .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
 
                     CampoFrila("voce@exemplo.com", texto: $viewModel.email)
@@ -36,11 +37,20 @@ public struct TelaEntrada: View {
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .submitLabel(.send)
+                        .onSubmit {
+                            guard !viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !viewModel.carregando else { return }
+                            Task {
+                                if await viewModel.solicitarCodigo() {
+                                    aoAvancarParaCodigo(viewModel.email)
+                                }
+                            }
+                        }
                         .accessibilityLabel(Text("E-mail", bundle: bundleApresentacao))
                         .accessibilityIdentifier("entrada-email")
 
                     Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
-                        .font(.footnote)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
 
@@ -60,8 +70,8 @@ public struct TelaEntrada: View {
                     .disabled(viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.carregando)
                     .accessibilityIdentifier("entrada-receber-codigo")
 
-                    Text("Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.", bundle: bundleApresentacao)
-                        .font(.footnote)
+                    Text("Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade).", bundle: bundleApresentacao)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
@@ -76,9 +86,11 @@ public struct TelaEntrada: View {
                         .accessibilityIdentifier("entrada-classificacao-indicativa")
                 }
 
-                Spacer(minLength: 40)
+                Spacer(minLength: FrilaEspaco.enorme)
             }
             .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+            .frame(maxWidth: .infinity)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
     }

@@ -19,8 +19,8 @@ Nick Fury, por delegação do Cauê (responsável pessoa física, sem CNPJ). Sub
    |---|---|---|
    | 1. App Store | Desde 24/02/2026, bloqueia no Brasil o download de app 18+ por quem não foi confirmado adulto. | Apple |
    | 2. Declared Age Range | Em iOS 26.2 ou mais novo, consulta a faixa etária do aparelho no cadastro. `.abaixoDe18` bloqueia. | `iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift` |
-   | 3. Data de nascimento | Menos de 18 anos é recusado no app e no servidor (`422 menor_de_idade`, CHECK no banco). | `CadastroViewModel.swift`; RPC `criar_conta` (RN20) |
-   | 4. Termos | Aceite de "Tenho 18 anos ou mais" e termos com a classificação indicativa. | `TelaCadastro.swift`; `PaginaPublica/termos.md`, seção 3 |
+   | 3. Data de nascimento | Menos de 18 anos é recusado no app e no servidor (`422 menor_de_idade`, CHECK no banco). No app, a idade é calculada da data digitada (`dd/mm/aaaa`); menor de 18 vê a mensagem inline "O Frila é exclusivo para maiores de 18 anos." e o botão Continuar fica bloqueado. Nascido em 29 de fevereiro cujo 18º aniversário cai em ano não bissexto completa a maioridade em 1º de março (regra conservadora). | `CadastroViewModel.swift`; RPC `criar_conta` (RN20) |
+   | 4. Termos | Aceite dos termos (com a classificação indicativa e a declaração de maioridade na seção 3). Não há caixa de seleção separada "Tenho 18 anos ou mais": a autodeclaração registrada é a data de nascimento calculada + o aceite dos Termos (Lei 15.211/2025). | `TelaCadastro.swift`; `PaginaPublica/termos.md`, seção 3 |
 
 3. **Divergência:** se o aparelho disser menor e a data disser adulto, vale a mais protetiva e o
    cadastro é bloqueado (Decreto 12.880, art. 25 §4º). Teste:

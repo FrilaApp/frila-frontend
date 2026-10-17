@@ -419,5 +419,18 @@ struct SuporteTurnoTests {
 
         #expect(!vm.falhaAoAbrirEmail)
     }
+
+    @Test("Cenário 15: Botão desabilitado com relato em branco (relatoValido requer conteúdo sem contar espaços)")
+    func relatoValidoNaoPermiteEmBranco() {
+        let contexto = criarContextoExemplo()
+        let vm = SuporteTurnoViewModel(dados: contexto, relatoInicial: "")
+        #expect(!vm.relatoValido, "relato vazio deve ser inválido para manter botão desabilitado")
+
+        vm.relato = "   \n\t   "
+        #expect(!vm.relatoValido, "relato apenas com espaços/linhas deve ser inválido")
+
+        vm.relato = "Houve atraso no início"
+        #expect(vm.relatoValido, "relato com conteúdo textual é válido e habilita botão")
+    }
 }
 
