@@ -86,8 +86,8 @@ public struct TelaHistoricoDeTurnos: View {
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { esteMes; mesPassado; intervalo }
             }
             if model.atalho == .intervalo {
-                seletorDeData(TextosHistoricoDeTurnos.de, selecao: inicio, faixa: ...model.fimEscolhido, identificador: "historico-de")
-                seletorDeData(TextosHistoricoDeTurnos.ate, selecao: fim, faixa: ...model.agora, identificador: "historico-ate")
+                seletorDeData(TextosHistoricoDeTurnos.de, selecao: inicio, faixa: model.faixaDe, identificador: "historico-de")
+                seletorDeData(TextosHistoricoDeTurnos.ate, selecao: fim, faixa: model.faixaAte, identificador: "historico-ate")
             }
             if let periodo = model.periodo {
                 Text(verbatim: TextosHistoricoDeTurnos.resumo(de: Self.texto(periodo.de), ate: Self.texto(periodo.ate)))
@@ -123,6 +123,24 @@ public struct TelaHistoricoDeTurnos: View {
         _ titulo: String,
         selecao: Binding<Date>,
         faixa: PartialRangeThrough<Date>,
+        identificador: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: titulo).font(FrilaTipo.meta)
+            DatePicker(titulo, selection: selecao, in: faixa, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                .environment(\.timeZone, FormatadorFrila.fuso)
+                .environment(\.locale, FormatadorFrila.locale)
+                .accessibilityIdentifier(identificador)
+        }
+    }
+
+    private func seletorDeData(
+        _ titulo: String,
+        selecao: Binding<Date>,
+        faixa: ClosedRange<Date>,
         identificador: String
     ) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
