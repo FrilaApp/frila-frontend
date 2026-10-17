@@ -2,8 +2,15 @@
 
 Decisão do cartão #198: **Firebase Crashlytics** substitui MetricKit + Organizer do Xcode.
 `ColetorMetricKit` foi removido para não duplicar a coleta de diagnósticos nem manter um
-relatório local que não chegava ao time. O único produto Firebase integrado é
-`FirebaseCrashlytics`; Analytics e Messaging não fazem parte desta integração.
+relatório local que não chegava ao time.
+
+O aplicativo integra apenas dois produtos do Firebase (`iOS/project.yml:124-127`):
+- **FirebaseCrashlytics** (`iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift:1-2`): coleta e relatório de falhas e telemetria mínima de erros não fatais da API.
+- **FirebaseMessaging** (`iOS/Sources/Infraestrutura/CanalDePushDoAparelho.swift:1`): exclusivamente para ciclo de vida de tokens e entrega de notificações push ([Push](Push.md)).
+
+Analytics não faz parte da integração nem é utilizado.
+
+Há isolamento estrito entre os produtos e seus propósitos: o Crashlytics não recebe nenhum dado de push (tokens FCM/APNs ou conteúdo de notificações), e o Messaging não recebe relatórios de falha ou telemetria de diagnóstico.
 
 ## Inicialização e símbolos
 
