@@ -215,12 +215,19 @@ private struct FolhaDeDenuncia: View {
             .navigationTitle(TextosDaSeguranca.denunciar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TextosDaSeguranca.fechar) { dismiss() }
-                        .accessibilityShowsLargeContentViewer {
-                            Text(verbatim: TextosDaSeguranca.fechar)
-                        }
-                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        .disabled(model.enviando)
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(verbatim: TextosDaSeguranca.fechar)
+                            .fixedSize()
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    }
+                    .fixedSize()
+                    .accessibilityShowsLargeContentViewer {
+                        Text(verbatim: TextosDaSeguranca.fechar)
+                    }
+                    .disabled(model.enviando)
+                    .accessibilityIdentifier("fechar-denuncia")
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()

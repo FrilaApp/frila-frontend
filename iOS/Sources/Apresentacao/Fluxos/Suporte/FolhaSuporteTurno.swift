@@ -44,13 +44,17 @@ public struct FolhaSuporteTurno: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TextosDoSuporte.fechar) {
+                    Button {
                         dismiss()
+                    } label: {
+                        Text(verbatim: TextosDoSuporte.fechar)
+                            .fixedSize()
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     }
+                    .fixedSize()
                     .accessibilityShowsLargeContentViewer {
                         Text(verbatim: TextosDoSuporte.fechar)
                     }
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityIdentifier("botao-fechar-suporte")
                 }
             }
