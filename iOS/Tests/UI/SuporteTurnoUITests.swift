@@ -20,7 +20,7 @@ final class SuporteTurnoUITests: XCTestCase {
         // 2. O aviso de prazo de até 5 dias úteis deve estar visível (Critério 2)
         let avisoPrazo = app.descendants(matching: .any)["aviso-prazo-suporte"]
         XCTAssertTrue(avisoPrazo.waitForExistence(timeout: Espera.aparecer), "O aviso de prazo de 5 dias úteis deve estar visível")
-        XCTAssertTrue(avisoPrazo.label.contains("Respondemos o mais breve possível, com triagem em até 5 dias úteis"), "Deve explicitar a triagem em até 5 dias úteis")
+        XCTAssertTrue(avisoPrazo.label.contains("A Equipe Frila responde por e-mail em até 5 dias úteis"), "Deve explicitar o prazo em até 5 dias úteis")
 
         // 3. Seleção de motivo de risco de segurança exibe aviso imediato e atalhos 190 e 180 (Critério 3)
         let opcaoRisco = app.descendants(matching: .any)["opcao-motivo-risco_seguranca"]

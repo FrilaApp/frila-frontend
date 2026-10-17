@@ -22,7 +22,7 @@ extension TextosDoProfissional {
         static let lendo = String(localized: "Lendo sua localização…", bundle: bundleApresentacao)
         static let enviando = String(localized: "Enviando…", bundle: bundleApresentacao)
 
-        static let semGPSTitulo = String(localized: "Não consegui pelo GPS", bundle: bundleApresentacao)
+        static let semGPSTitulo = String(localized: "Sinal do GPS não encontrado", bundle: bundleApresentacao)
         static let motivoPermissaoNegada = String(localized: "O Frila está sem permissão para usar a localização. Você pode liberar nos Ajustes.", bundle: bundleApresentacao)
         static let motivoAproximada = String(localized: "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço.", bundle: bundleApresentacao)
         static let motivoSemSinal = String(localized: "O GPS não respondeu em 10 segundos.", bundle: bundleApresentacao)
