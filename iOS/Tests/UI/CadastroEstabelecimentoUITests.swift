@@ -304,7 +304,13 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let app = abrir()
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Região Administrativa"].exists)
+        let seletorRA = app.buttons["regiao-administrativa"]
+        XCTAssertTrue(seletorRA.waitForExistence(timeout: 10))
+
+        for _ in 0..<5 where !seletorRA.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(seletorRA.isHittable)
         salvarCaptura("01-cadastro-estabelecimento-padrao")
 
         tocar(app.buttons["continuar-cadastro"])
@@ -321,6 +327,15 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         ])
 
         XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        salvarCaptura("04-cadastro-estabelecimento-topo-xxxl")
+
+        let seletorRA = app.buttons["regiao-administrativa"]
+        XCTAssertTrue(seletorRA.waitForExistence(timeout: 10))
+
+        for _ in 0..<5 where !seletorRA.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(seletorRA.isHittable)
         salvarCaptura("02-cadastro-estabelecimento-xxxl")
     }
 
