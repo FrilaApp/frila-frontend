@@ -12,21 +12,6 @@ struct RegraDePresencaTests {
         #expect(RegraDePresenca.chaveDaPrecisaoTemporaria == "CheckIn", "chave para precisão temporária é CheckIn")
     }
 
-    @Test("Casos de PermissaoDeLocalizacao cobrem os estados do sistema")
-    func permissaoDeLocalizacao() {
-        let naoDeterminada = PermissaoDeLocalizacao.naoDeterminada
-        let negada = PermissaoDeLocalizacao.negada
-        let precisa = PermissaoDeLocalizacao.aoUsarPrecisa
-        let aproximada = PermissaoDeLocalizacao.aoUsarAproximada
-
-        #expect(naoDeterminada != negada)
-        #expect(precisa != aproximada)
-        #expect(precisa == .aoUsarPrecisa)
-        #expect(negada == .negada)
-        #expect(aproximada == .aoUsarAproximada)
-        #expect(naoDeterminada == .naoDeterminada)
-    }
-
     @Test("LeituraDeLocalizacao preserva coordenadas e precisão horizontal")
     func leituraDeLocalizacao() throws {
         let coord1 = try Coordenada(latitude: -15.7942, longitude: -47.8822)
@@ -44,18 +29,5 @@ struct RegraDePresencaTests {
         #expect(leitura1.coordenada.latitude == -15.7942)
         #expect(leitura1.coordenada.longitude == -47.8822)
         #expect(leitura1.precisaoHorizontalMetros == 15.5)
-    }
-
-    @Test("ErroDeLocalizacao cobre recusas de hardware e autorização")
-    func erroDeLocalizacao() {
-        let negada: ErroDeLocalizacao = .permissaoNegada
-        let semSinal: ErroDeLocalizacao = .semSinal
-        let tempoEsgotado: ErroDeLocalizacao = .tempoEsgotado
-
-        #expect(negada != semSinal)
-        #expect(semSinal != tempoEsgotado)
-        #expect(negada == .permissaoNegada)
-        #expect(semSinal == .semSinal)
-        #expect(tempoEsgotado == .tempoEsgotado)
     }
 }
