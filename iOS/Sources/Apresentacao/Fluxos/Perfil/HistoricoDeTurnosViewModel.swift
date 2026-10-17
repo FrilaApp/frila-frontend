@@ -65,7 +65,7 @@ public final class HistoricoDeTurnosViewModel {
     }
 
     /// Faixa permitida para a data inicial ("De"): até a data de "Até" (quando houver, limitada a hoje).
-    public var faixaDe: PartialRangeThrough<Date> {
+    public var faixaDe: ClosedRange<Date> {
         limites.faixaDe
     }
 
@@ -132,18 +132,13 @@ public final class HistoricoDeTurnosViewModel {
         /// Data máxima permitida para o seletor "Até" (hoje).
         public let maximoAte: Date
 
-        public var faixaDe: PartialRangeThrough<Date> {
-            ...maximoDe
+        public var faixaDe: ClosedRange<Date> {
+            .distantPast...maximoDe
         }
 
         public var faixaAte: ClosedRange<Date> {
             let minimo = minimoAte ?? maximoAte
             return min(minimo, maximoAte)...maximoAte
-        }
-
-        public var intervaloValido: Bool {
-            guard let minimoAte else { return true }
-            return minimoAte <= maximoDe
         }
 
         public init(de: Date?, ate: Date?, agora: Date) {
@@ -172,16 +167,6 @@ public final class HistoricoDeTurnosViewModel {
             let novoFim = min(fim, agora)
             let novoInicio = inicioAtual > novoFim ? novoFim : min(inicioAtual, agora)
             return (novoInicio, novoFim)
-        }
-
-        /// Ajusta um intervalo inconsistente já existente (De > Até ou datas no futuro).
-        public static func ajustar(inicio: Date, fim: Date, agora: Date) -> (inicio: Date, fim: Date) {
-            let fimNormalizado = min(fim, agora)
-            let inicioNormalizado = min(inicio, agora)
-            if inicioNormalizado > fimNormalizado {
-                return (fimNormalizado, fimNormalizado)
-            }
-            return (inicioNormalizado, fimNormalizado)
         }
     }
 

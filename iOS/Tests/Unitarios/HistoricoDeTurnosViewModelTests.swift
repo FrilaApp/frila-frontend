@@ -198,7 +198,6 @@ struct HistoricoDeTurnosViewModelTests {
         let limites = HistoricoDeTurnosViewModel.RegraDeLimites(de: de, ate: ate, agora: agora)
         #expect(limites.maximoDe == ate)
         #expect(limites.minimoAte == de)
-        #expect(!limites.intervaloValido)
 
         // Ajuste puro ao alterar o Fim para antes do Início: leva o Início junto
         let ajustadoFim = HistoricoDeTurnosViewModel.RegraDeLimites.ajustarAoMudarFim(fim: ate, inicioAtual: de, agora: agora)
@@ -209,11 +208,6 @@ struct HistoricoDeTurnosViewModelTests {
         let ajustadoInicio = HistoricoDeTurnosViewModel.RegraDeLimites.ajustarAoMudarInicio(inicio: de, fimAtual: ate, agora: agora)
         #expect(ajustadoInicio.inicio == de)
         #expect(ajustadoInicio.fim == de)
-
-        // Ajuste de inconsistência já existente
-        let ajustadoInconsistencia = HistoricoDeTurnosViewModel.RegraDeLimites.ajustar(inicio: de, fim: ate, agora: agora)
-        #expect(ajustadoInconsistencia.inicio == ate)
-        #expect(ajustadoInconsistencia.fim == ate)
 
         // No ViewModel: faixas do DatePicker respeitam limites e nunca invertem
         let diretorio = try Self.diretorio()
@@ -237,7 +231,6 @@ struct HistoricoDeTurnosViewModelTests {
         let limites = HistoricoDeTurnosViewModel.RegraDeLimites(de: mesmoDia, ate: mesmoDia, agora: agora)
         #expect(limites.maximoDe == mesmoDia)
         #expect(limites.minimoAte == mesmoDia)
-        #expect(limites.intervaloValido)
         #expect(limites.faixaDe.upperBound == mesmoDia)
         #expect(limites.faixaAte.lowerBound == mesmoDia)
         #expect(limites.faixaAte.upperBound == agora)
@@ -266,7 +259,6 @@ struct HistoricoDeTurnosViewModelTests {
         #expect(soDe.faixaDe.upperBound == agora)
         #expect(soDe.faixaAte.lowerBound == dia)
         #expect(soDe.faixaAte.upperBound == agora)
-        #expect(soDe.intervaloValido)
 
         // Só "Até" preenchido: máxima de "De" é "Até"; mínima de "Até" é nil (sem piso)
         let soAte = HistoricoDeTurnosViewModel.RegraDeLimites(de: nil, ate: dia, agora: agora)
@@ -275,14 +267,12 @@ struct HistoricoDeTurnosViewModelTests {
         #expect(soAte.faixaDe.upperBound == dia)
         #expect(soAte.faixaAte.lowerBound == agora)
         #expect(soAte.faixaAte.upperBound == agora)
-        #expect(soAte.intervaloValido)
 
         // Nenhum preenchido: limites padrão até agora
         let nenhum = HistoricoDeTurnosViewModel.RegraDeLimites(de: nil, ate: nil, agora: agora)
         #expect(nenhum.maximoDe == agora)
         #expect(nenhum.minimoAte == nil)
         #expect(nenhum.maximoDe == agora)
-        #expect(nenhum.intervaloValido)
     }
 
     @Test("0.2.37: datas livres de 30 dias exportam; 31 dias e atalhos de mês com 31 dias não chegam à API")

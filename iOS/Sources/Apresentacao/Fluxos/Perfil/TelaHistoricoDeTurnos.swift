@@ -122,24 +122,6 @@ public struct TelaHistoricoDeTurnos: View {
     private func seletorDeData(
         _ titulo: String,
         selecao: Binding<Date>,
-        faixa: PartialRangeThrough<Date>,
-        identificador: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: titulo).font(FrilaTipo.meta)
-            DatePicker(titulo, selection: selecao, in: faixa, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                .environment(\.timeZone, FormatadorFrila.fuso)
-                .environment(\.locale, FormatadorFrila.locale)
-                .accessibilityIdentifier(identificador)
-        }
-    }
-
-    private func seletorDeData(
-        _ titulo: String,
-        selecao: Binding<Date>,
         faixa: ClosedRange<Date>,
         identificador: String
     ) -> some View {
