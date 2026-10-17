@@ -7984,6 +7984,46 @@
           }
         }
       }
+    },
+    "Total da vaga: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total da vaga: %@"
+          }
+        }
+      }
+    },
+    "Republicar posições em urgência?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Republicar posições em urgência?"
+          }
+        }
+      }
+    },
+    "O primeiro profissional será confirmado na hora.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O primeiro profissional será confirmado na hora."
+          }
+        }
+      }
+    },
+    "Confirmar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

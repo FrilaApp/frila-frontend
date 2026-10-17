@@ -33,10 +33,11 @@ struct RepublicarVagaViewModelTests {
     private func criarVagaNoPainel(
         id: UUID = UUID(),
         modo: ModoPreenchimento = .urgencia,
-        posicoes: Int = 2
+        posicoes: Int = 2,
+        duracao: TimeInterval = Self.duasHoras
     ) throws -> VagaNoPainel {
         let base = Date(timeIntervalSince1970: 1_800_000_000)
-        let periodo = try Periodo(inicio: base.addingTimeInterval(Self.duasHoras), fim: base.addingTimeInterval(Self.quatroHoras))
+        let periodo = try Periodo(inicio: base.addingTimeInterval(Self.duasHoras), fim: base.addingTimeInterval(Self.duasHoras + duracao))
         let resumo = VagaResumo(
             id: id,
             funcao: "Garçom",
@@ -722,7 +723,7 @@ struct RepublicarVagaViewModelTests {
     @Test("Início padrão de vaga em seleção é 25 h e abre sem erro de validação")
     @MainActor
     func selecaoAbreComInicioPadraoValido() throws {
-        let vaga = try criarVagaNoPainel(modo: .selecao)
+        let vaga = try criarVagaNoPainel(modo: .selecao, duracao: Self.quatroHoras)
         let base = Date(timeIntervalSince1970: 1_800_000_000)
         let viewModel = RepublicarVagaViewModel(
             vagaOriginal: vaga,
@@ -740,7 +741,7 @@ struct RepublicarVagaViewModelTests {
     @Test("Início padrão de vaga em urgência continua 3 h")
     @MainActor
     func urgenciaContinuaComInicioPadrao3h() throws {
-        let vaga = try criarVagaNoPainel(modo: .urgencia)
+        let vaga = try criarVagaNoPainel(modo: .urgencia, duracao: Self.quatroHoras)
         let base = Date(timeIntervalSince1970: 1_800_000_000)
         let viewModel = RepublicarVagaViewModel(
             vagaOriginal: vaga,
@@ -752,6 +753,47 @@ struct RepublicarVagaViewModelTests {
         #expect(viewModel.fim == base.addingTimeInterval(7 * 3600))
         #expect(viewModel.validar())
         #expect(viewModel.erros.isEmpty)
+    }
+
+    @Test("Republicação copia a duração exata da vaga original e não 4 horas fixas (Achado 9)")
+    @MainActor
+    func republicacaoCopiaDuracaoOriginal() throws {
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let duracao6Horas: TimeInterval = 6 * 3600
+        let vaga6h = try criarVagaNoPainel(duracao: duracao6Horas)
+
+        let vm = RepublicarVagaViewModel(
+            vagaOriginal: vaga6h,
+            agora: { @Sendable in base },
+            republicar: { _, _, _ in throw ErroDaApi(codigo: .desconhecido) }
+        )
+
+        // Duração deve ser 6 horas (copiada da vaga original), e não 4 horas
+        let duracaoNaViewModel = vm.fim.timeIntervalSince(vm.inicio)
+        #expect(duracaoNaViewModel == duracao6Horas)
+        #expect(vm.fim == vm.inicio.addingTimeInterval(duracao6Horas))
+    }
+
+    @Test("Na republicação, ao mudar o Início, o Fim acompanha mantendo a duração (Achado 9)")
+    @MainActor
+    func republicacaoSincronizaFimAoMudarInicio() throws {
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let duracao5Horas: TimeInterval = 5 * 3600
+        let vaga = try criarVagaNoPainel(duracao: duracao5Horas)
+
+        let vm = RepublicarVagaViewModel(
+            vagaOriginal: vaga,
+            agora: { @Sendable in base },
+            republicar: { _, _, _ in throw ErroDaApi(codigo: .desconhecido) }
+        )
+
+        #expect(vm.fim.timeIntervalSince(vm.inicio) == duracao5Horas)
+
+        // Altera o Início: o Fim deve acompanhar mantendo a duração de 5 horas
+        let novoInicio = vm.inicio.addingTimeInterval(4 * 3600)
+        vm.inicio = novoInicio
+        #expect(vm.fim == novoInicio.addingTimeInterval(duracao5Horas))
+        #expect(vm.fim.timeIntervalSince(vm.inicio) == duracao5Horas)
     }
 
 }

@@ -21,6 +21,7 @@ private enum TextosPublicarVaga {
     static let valorAjuda = String(localized: "O profissional recebe o valor integral", bundle: bundlePublicarVaga)
     static let posicoes = String(localized: "Posições", bundle: bundlePublicarVaga)
     static let posicoesExemplo = String(localized: "1", bundle: bundlePublicarVaga)
+    static let totalDaVaga = String(localized: "Total da vaga: %@", bundle: bundlePublicarVaga)
     static let inclusos = String(localized: "O que está incluso", bundle: bundlePublicarVaga)
     static let refeicao = String(localized: "Refeição", bundle: bundlePublicarVaga)
     static let transporte = String(localized: "Transporte", bundle: bundlePublicarVaga)
@@ -91,7 +92,15 @@ public final class PublicarVagaViewModel {
     public var estabelecimento: Estabelecimento?
     public var funcoes: [Funcao]
     public var funcaoID: UUID?
-    public var inicio: Date
+    public var inicio: Date {
+        didSet {
+            let duracao = fim.timeIntervalSince(oldValue)
+            if duracao > 0 {
+                fim = inicio.addingTimeInterval(duracao)
+            }
+            ajustarModoAoInicio()
+        }
+    }
     public var fim: Date
     public var local: String
     public var valorTexto = ""
@@ -160,6 +169,24 @@ public final class PublicarVagaViewModel {
 
     public var camposBloqueados: Bool { publicacaoPendente != nil }
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
+    public var valorTotalCentavos: Int {
+        guard let posicoes = Int(posicoesTexto), posicoes > 0 else { return 0 }
+        return valorCentavos * posicoes
+    }
+
+    public func incrementarPosicoes() {
+        let atual = Int(posicoesTexto) ?? 1
+        if atual < 200 {
+            posicoesTexto = String(max(1, atual + 1))
+        }
+    }
+
+    public func decrementarPosicoes() {
+        let atual = Int(posicoesTexto) ?? 1
+        if atual > 1 {
+            posicoesTexto = String(min(200, atual - 1))
+        }
+    }
     public var textoAoFechar: String {
         (publicacaoPendente != nil || resultado != nil) ? TextosPublicarVaga.voltar : TextosPublicarVaga.cancelar
     }
@@ -569,11 +596,15 @@ public struct TelaPublicarVaga: View {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         campoValor
                         campoPosicoes
+                        campoTotalCalculado
                     }
                 } else {
-                    HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                        campoValor
-                        campoPosicoes
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                            campoValor
+                            campoPosicoes
+                        }
+                        campoTotalCalculado
                     }
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -733,13 +764,32 @@ public struct TelaPublicarVaga: View {
 
     private var campoPosicoes: some View {
         campo(.posicoes, titulo: TextosPublicarVaga.posicoes) {
-            TextField(TextosPublicarVaga.posicoesExemplo, text: $model.posicoesTexto)
-                .keyboardType(.numberPad)
-                .textFieldStyle(.plain)
-                .font(FrilaTipo.valorDoCampo)
-                .modifier(CaixaDoCampoDePublicacao())
-                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
-                .accessibilityIdentifier("posicoes-vaga-campo")
+            HStack(spacing: FrilaEspaco.minimo) {
+                TextField(TextosPublicarVaga.posicoesExemplo, text: $model.posicoesTexto)
+                    .keyboardType(.numberPad)
+                    .textFieldStyle(.plain)
+                    .font(FrilaTipo.valorDoCampo)
+                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
+                    .accessibilityIdentifier("posicoes-vaga-campo")
+                Stepper(
+                    "",
+                    onIncrement: { model.incrementarPosicoes() },
+                    onDecrement: { model.decrementarPosicoes() }
+                )
+                .labelsHidden()
+                .accessibilityIdentifier("posicoes-vaga-stepper")
+            }
+            .modifier(CaixaDoCampoDePublicacao())
+        }
+    }
+
+    private var campoTotalCalculado: some View {
+        HStack {
+            Text(verbatim: String(format: TextosPublicarVaga.totalDaVaga, FormatadorFrila().dinheiro(Dinheiro(centavos: model.valorTotalCentavos))))
+                .font(FrilaTipo.rotuloDoCampo)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityIdentifier("total-vaga-calculado")
+            Spacer()
         }
     }
 

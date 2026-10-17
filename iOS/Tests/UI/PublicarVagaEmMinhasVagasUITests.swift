@@ -219,6 +219,60 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "DatePicker Fim deve existir")
         XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
         XCTAssertGreaterThan(dpFim.pickerWheels.count, 0, "DatePicker Fim deve conter rodas de seleção")
+
+        let totalCalculado = app.staticTexts["total-vaga-calculado"]
+        rolarAte(totalCalculado, em: app)
+        salvarCaptura("03-publicar-vaga-xxxl")
+    }
+
+    func testCapturasPublicarVagaUX02() {
+        let app = abrir()
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        salvarCaptura("01-minhas-vagas-vizinha-padrao")
+
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        tocar(entrada)
+
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+
+        let valor = app.textFields["Valor por posição"]
+        rolarAte(valor, em: app)
+        valor.tap()
+        esperarFocoDoTeclado(valor)
+        valor.digitarEEsperar("15000", esperado: "150,00")
+
+        let stepper = app.steppers["posicoes-vaga-stepper"]
+        rolarAte(stepper, em: app)
+        XCTAssertTrue(stepper.waitForExistence(timeout: 5))
+        // Incrementa posições de 1 para 2 via stepper
+        stepper.buttons.element(boundBy: 1).tap()
+
+        let totalCalculado = app.staticTexts["total-vaga-calculado"]
+        rolarAte(totalCalculado, em: app)
+        XCTAssertTrue(totalCalculado.waitForExistence(timeout: 5))
+        XCTAssertTrue(totalCalculado.label.contains("300,00"))
+
+        salvarCaptura("02-publicar-vaga-padrao")
+    }
+
+    private func salvarCaptura(_ nome: String) {
+        let captura = XCUIScreen.main.screenshot()
+        let anexo = XCTAttachment(screenshot: captura)
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+
+        if let diretorio = ProcessInfo.processInfo.environment["FRILA_CAPTURAS_DIR"], !diretorio.isEmpty {
+            let destino = URL(fileURLWithPath: diretorio).appendingPathComponent("\(nome).png")
+            do {
+                try FileManager.default.createDirectory(at: URL(fileURLWithPath: diretorio), withIntermediateDirectories: true)
+                try captura.pngRepresentation.write(to: destino)
+            } catch {
+                XCTFail("Falha ao exportar captura para \(destino.path): \(error)")
+            }
+        }
     }
 
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {
