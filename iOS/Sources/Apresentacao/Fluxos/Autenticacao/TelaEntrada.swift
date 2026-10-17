@@ -37,6 +37,15 @@ public struct TelaEntrada: View {
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .submitLabel(.send)
+                        .onSubmit {
+                            guard !viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !viewModel.carregando else { return }
+                            Task {
+                                if await viewModel.solicitarCodigo() {
+                                    aoAvancarParaCodigo(viewModel.email)
+                                }
+                            }
+                        }
                         .accessibilityLabel(Text("E-mail", bundle: bundleApresentacao))
                         .accessibilityIdentifier("entrada-email")
 
@@ -61,7 +70,7 @@ public struct TelaEntrada: View {
                     .disabled(viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.carregando)
                     .accessibilityIdentifier("entrada-receber-codigo")
 
-                    Text("Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.", bundle: bundleApresentacao)
+                    Text("Ao continuar, você aceita os [Termos de Uso](https://frila.app/termos) e a [Política de Privacidade](https://frila.app/privacidade).", bundle: bundleApresentacao)
                         .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .multilineTextAlignment(.center)

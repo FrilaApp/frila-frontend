@@ -8,6 +8,8 @@ public struct TelaCodigo: View {
     var aoConcluir: (DestinoCodigo) -> Void
     @FocusState private var campoFocado: Bool
 
+    @State private var concluido = false
+
     public init(
         viewModel: CodigoViewModel,
         aoVoltar: @escaping () -> Void,
@@ -111,11 +113,7 @@ public struct TelaCodigo: View {
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                     BotaoPrimario("Confirmar código", carregando: viewModel.carregando) {
-                        Task {
-                            if let destino = await viewModel.confirmarCodigo() {
-                                aoConcluir(destino)
-                            }
-                        }
+                        confirmar()
                     }
                     .disabled(!viewModel.codigoValido || viewModel.carregando)
                     .accessibilityIdentifier("codigo-entrar")
@@ -154,6 +152,22 @@ public struct TelaCodigo: View {
         .background(FrilaCor.fundo.ignoresSafeArea())
         .onAppear {
             campoFocado = true
+        }
+        .onChange(of: viewModel.codigo) { _, novoCodigo in
+            if novoCodigo.count == 6 && viewModel.codigoValido {
+                confirmar()
+            }
+        }
+    }
+
+    private func confirmar() {
+        guard !viewModel.carregando, viewModel.codigoValido, !concluido else { return }
+        Task {
+            if let destino = await viewModel.confirmarCodigo() {
+                guard !concluido else { return }
+                concluido = true
+                aoConcluir(destino)
+            }
         }
     }
 
