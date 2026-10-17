@@ -769,7 +769,7 @@ public struct VagaCancelada: Codable, Hashable, Sendable {
     }
 }
 
-public enum CausaDoCancelamento: String, Codable, Hashable, Sendable {
+public enum CausaDoCancelamento: String, Codable, CaseIterable, Hashable, Sendable {
     case profissional
     case estabelecimento
     case reaberturaPorAtraso = "reabertura_por_atraso"
