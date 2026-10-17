@@ -119,4 +119,40 @@ final class CancelamentoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.buttons["cancelar-vaga-\(vagaID)"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.buttons["republicar-detalhe-vaga-\(vagaID)"].exists)
     }
+
+    func testFolhaDeCancelamentoExibeErro409PosicaoNaoCancelavel() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "checkin-manual-pendente", "-FRILA_CACHE_VAZIO_UI_TEST"]
+        AjudanteDeLancamentoUITests.preparar(app)
+        app.launch()
+
+        let acompanhar = app.buttons["acompanhar-turno-\(turnoID)"]
+        XCTAssertTrue(acompanhar.waitForExistence(timeout: 15))
+        tocar(acompanhar)
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: Espera.aparecer))
+        let cancelar = app.buttons["cancelar-posicao-\(posicaoID)"]
+        if !cancelar.isHittable { app.swipeUp() }
+        tocar(cancelar)
+
+        let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
+        XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer))
+
+        tocar(app.buttons["motivo-movimentoMenor"])
+        let confirmar = app.buttons["confirmar-cancelamento"]
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
+        esperarHabilitado(confirmar, true)
+        XCTAssertTrue(confirmar.isEnabled)
+        tocar(confirmar)
+
+        let falha = app.descendants(matching: .any)["falha-do-cancelamento"].firstMatch
+        for _ in 0..<5 where !falha.exists {
+            folha.swipeUp()
+            _ = falha.waitForExistence(timeout: 2)
+        }
+        XCTAssertTrue(falha.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(falha.label.contains("Esta posição não pode mais ser cancelada. Atualize a tela para ver como ela está."), falha.label)
+        XCTAssertTrue(folha.exists)
+        XCTAssertTrue(confirmar.isEnabled)
+    }
 }
