@@ -373,6 +373,7 @@ struct CatalogoStringsTests {
             "WhatsApp",
             "%@ – %@",
             "Região Administrativa",
+            "Selecione a Região Administrativa",
             "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.",
             "Ainda não há turnos considerados.",
             "Meu perfil",

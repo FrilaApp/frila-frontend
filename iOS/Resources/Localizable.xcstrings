@@ -3091,6 +3091,16 @@
         }
       }
     },
+    "Selecione a Região Administrativa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecione a Região Administrativa"
+          }
+        }
+      }
+    },
     "Selecione uma função": {
       "localizations": {
         "pt-BR": {
