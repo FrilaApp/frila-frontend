@@ -95,6 +95,59 @@ struct PerfilProfissionalViewModelTests {
         #expect(api.dadosPerfilCriado == nil)
     }
 
+    @Test("Faixa pendente 23:59–00:00 aceita a passagem da meia-noite")
+    func janelaPendenteNaViradaDoDia() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.inicioNovo = try #require(Calendar.current.date(bySettingHour: 23, minute: 59, second: 0, of: .now))
+        vm.fimNovo = try #require(Calendar.current.date(bySettingHour: 0, minute: 0, second: 0, of: .now))
+        let janela = JanelaDeDisponibilidade(diaDaSemana: 5, inicio: try HoraDoDia("23:59"), fim: try HoraDoDia("00:00"))
+
+        #expect(await vm.salvar())
+        #expect(api.dadosPerfilCriado?.disponibilidades == [janela])
+        #expect(vm.mensagemDeErro == nil)
+    }
+
+    @Test("Faixa pendente 00:00–00:00 rejeita duração zero sem enviar à API")
+    func janelaPendenteMeiaNoiteIgualRejeitada() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.inicioNovo = try #require(Calendar.current.date(bySettingHour: 0, minute: 0, second: 0, of: .now))
+        vm.fimNovo = vm.inicioNovo
+
+        #expect(await vm.salvar() == false)
+        #expect(vm.temJanelaPendente)
+        #expect(vm.disponibilidades.isEmpty)
+        #expect(vm.mensagemDeErro == TextosDoProfissional.Perfil.erroJanelaDuracaoZero)
+        #expect(api.chamadasCriarPerfil == 0)
+    }
+
+    @Test("Corrigir a faixa pendente inválida permite salvar e limpa a mensagem anterior")
+    func corrigirJanelaPendenteLimpaMensagem() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.inicioNovo = try #require(Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: .now))
+        vm.fimNovo = vm.inicioNovo
+        #expect(await vm.salvar() == false)
+        #expect(vm.mensagemDeErro == TextosDoProfissional.Perfil.erroJanelaDuracaoZero)
+        #expect(api.chamadasCriarPerfil == 0)
+
+        vm.fimNovo = try #require(Calendar.current.date(bySettingHour: 2, minute: 0, second: 0, of: .now))
+        let janela = JanelaDeDisponibilidade(diaDaSemana: 5, inicio: try HoraDoDia("18:00"), fim: try HoraDoDia("02:00"))
+        #expect(await vm.salvar())
+        #expect(api.chamadasCriarPerfil == 1)
+        #expect(api.dadosPerfilCriado?.disponibilidades == [janela])
+        #expect(vm.sucesso)
+        #expect(!vm.temJanelaPendente)
+        #expect(vm.mensagemDeErro == nil)
+    }
+
     @Test("Adicionar explicitamente limpa a pendência e salvar não recria faixa removida")
     func adicionarLimpaPendencia() async throws {
         let api = criarDubleApi()

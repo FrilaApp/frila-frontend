@@ -256,6 +256,7 @@ Em conformidade estrita com o arquivo da missão e as atribuições da equipe, a
 
 Os campos livres de hora foram substituídos por seletores nativos. “Início”, “Fim”,
 “Dia da semana” e “Adicionar” reutilizam os textos já localizados; não há texto novo.
+O rótulo acessível de Adicionar reutiliza “Adicionar horário” de `TextosDoProfissional.Perfil`.
 O aviso de formato “Horário inválido. Use o formato HH:mm.” deixa de ser necessário
 na entrada normal da tela. O bloqueio de duração zero conserva a mensagem existente.
 Faixas noturnas mantêm a indicação “(dia seguinte)” (#98 C2), conforme alinhamento

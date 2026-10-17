@@ -252,20 +252,31 @@ public struct TelaPerfilProfissional: View {
                     .font(FrilaTipo.rotuloDoCampo)
                     .foregroundStyle(FrilaCor.texto)
 
-                Picker(selection: $viewModel.diaNovo) {
-                    Text(verbatim: TextosDoProfissional.Perfil.domingo).tag(0)
-                    Text(verbatim: TextosDoProfissional.Perfil.segunda).tag(1)
-                    Text(verbatim: TextosDoProfissional.Perfil.terca).tag(2)
-                    Text(verbatim: TextosDoProfissional.Perfil.quarta).tag(3)
-                    Text(verbatim: TextosDoProfissional.Perfil.quinta).tag(4)
-                    Text(verbatim: TextosDoProfissional.Perfil.sexta).tag(5)
-                    Text(verbatim: TextosDoProfissional.Perfil.sabado).tag(6)
+                Menu {
+                    Picker(selection: $viewModel.diaNovo) {
+                        Text(verbatim: TextosDoProfissional.Perfil.domingo).tag(0)
+                        Text(verbatim: TextosDoProfissional.Perfil.segunda).tag(1)
+                        Text(verbatim: TextosDoProfissional.Perfil.terca).tag(2)
+                        Text(verbatim: TextosDoProfissional.Perfil.quarta).tag(3)
+                        Text(verbatim: TextosDoProfissional.Perfil.quinta).tag(4)
+                        Text(verbatim: TextosDoProfissional.Perfil.sexta).tag(5)
+                        Text(verbatim: TextosDoProfissional.Perfil.sabado).tag(6)
+                    } label: {
+                        Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
+                    }
                 } label: {
-                    Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
+                    HStack {
+                        Text(verbatim: PerfilProfissionalViewModel.nomeDoDia(viewModel.diaNovo))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: FrilaEspaco.minimo)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .accessibilityHidden(true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                .contentShape(Rectangle())
+                .accessibilityLabel(TextosDoProfissional.Perfil.diaSemana)
+                .accessibilityValue(PerfilProfissionalViewModel.nomeDoDia(viewModel.diaNovo))
                 .accessibilityIdentifier("picker-dia-semana")
 
                 HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
@@ -279,8 +290,9 @@ public struct TelaPerfilProfissional: View {
                         .datePickerStyle(.wheel)
                         .labelsHidden()
                         .frame(minWidth: 0, maxWidth: .infinity)
-                        .frame(height: 132)
-                        .clipped()
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 248 : 216)
+                        .clipShape(.rect)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("campo-hora-inicio")
                     }
                     VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
@@ -293,8 +305,9 @@ public struct TelaPerfilProfissional: View {
                         .datePickerStyle(.wheel)
                         .labelsHidden()
                         .frame(minWidth: 0, maxWidth: .infinity)
-                        .frame(height: 132)
-                        .clipped()
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 248 : 216)
+                        .clipShape(.rect)
+                        .contentShape(Rectangle())
                         .accessibilityIdentifier("campo-hora-fim")
                     }
                 }
@@ -312,6 +325,7 @@ public struct TelaPerfilProfissional: View {
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
+                .accessibilityLabel(TextosDoProfissional.Perfil.adicionarHorario)
                 .accessibilityIdentifier("botao-adicionar-janela")
             }
             .padding(FrilaEspaco.compacto)

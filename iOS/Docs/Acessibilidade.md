@@ -383,7 +383,10 @@ falha esperada da tela corrigida, rode a suíte e atualize a tabela acima.
 
 `TelaPerfilProfissional` usa `DatePicker` nativo com `.hourAndMinute`, rótulos
 “Início” e “Fim” para VoiceOver e teste de alvo mínimo de 44 pt nos dois eixos.
-As roletas ficam lado a lado, com altura limitada a 132 pt e recorte, inclusive em AX5. Alterar dia,
+As roletas ficam lado a lado, com 216 pt no padrão e 248 pt nos tamanhos de
+acessibilidade. O conteúdo fica contido em cada coluna sem cortar o texto nativo.
+O menu nativo do dia usa um rótulo com altura livre para não cortar
+“Sexta-feira” em AX5. Adicionar anuncia “Adicionar horário”. Alterar dia,
 início ou fim deixa a faixa pendente; salvar a incorpora à lista antes do envio.
 A sugestão inicial, sem edição, não cria uma faixa. A adição explícita limpa a pendência.
 Início e fim iguais bloqueiam o envio; faixas noturnas continuam aceitas (#98 C2).
