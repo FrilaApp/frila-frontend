@@ -378,7 +378,7 @@ struct CatalogoStringsTests {
             "Meu perfil",
             "Perfil do estabelecimento",
             "Respondemos o mais breve possível, com triagem em até 5 dias úteis.",
-            "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.",
+            "Você recebe notificações de vagas da sua função, a até 15 km do seu ponto base, quando o turno inteiro cabe nos horários em que você marcou disponibilidade. Todas as vagas do DF aparecem na lista.",
             "Compareceu a %lld de %lld turno",
             "Compareceu a %lld de %lld turnos",
             "Termos de uso",

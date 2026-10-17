@@ -2371,12 +2371,12 @@
         }
       }
     },
-    "Sinal do GPS não encontrado": {
+    "Localização não confirmada": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sinal do GPS não encontrado"
+            "value": "Localização não confirmada"
           }
         }
       }
@@ -4481,12 +4481,12 @@
         }
       }
     },
-    "A Equipe Frila responde por e-mail em até 5 dias úteis.": {
+    "Respondemos o mais breve possível, com triagem em até 5 dias úteis.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A Equipe Frila responde por e-mail em até 5 dias úteis."
+            "value": "Respondemos o mais breve possível, com triagem em até 5 dias úteis."
           }
         }
       }

@@ -13,7 +13,7 @@ enum TextosPerfilConta {
     static let explicacaoVagas = String(localized: "Você recebe notificações de vagas da sua função, a até 15 km do seu ponto base, quando o turno inteiro cabe nos horários em que você marcou disponibilidade. Todas as vagas do DF aparecem na lista.", bundle: bundleApresentacao)
     static let ajuda = String(localized: "Ajuda", bundle: bundleApresentacao)
     static let suporte = String(localized: "Fale com o suporte", bundle: bundleApresentacao)
-    static let prazoSuporte = String(localized: "A Equipe Frila responde por e-mail em até 5 dias úteis.", bundle: bundleApresentacao)
+    static let prazoSuporte = String(localized: "Respondemos o mais breve possível, com triagem em até 5 dias úteis.", bundle: bundleApresentacao)
     static let termos = String(localized: "Termos de uso", bundle: bundleApresentacao)
     static let privacidade = String(localized: "Política de privacidade", bundle: bundleApresentacao)
     static let licencas = String(localized: "Licenças de terceiros", bundle: bundleApresentacao)
