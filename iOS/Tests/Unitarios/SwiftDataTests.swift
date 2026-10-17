@@ -283,18 +283,25 @@ struct SwiftDataTests {
         let funcao = Funcao(id: UUID(), nome: "Barista", categoria: "Cafeteria")
         let sessao = SessaoUsuario(usuarioID: UUID(), perfil: .profissional)
 
+        let dadosTurno = try encoder.encode(turno)
+        let dadosContato = try JSONEncoder().encode(contato)
+        let dadosAcao = try encoder.encode(acao)
+        let dadosRecusada = try JSONEncoder().encode(acaoRecusada)
+        let dadosFuncao = try JSONEncoder().encode(funcao)
+        let dadosSessao = try JSONEncoder().encode(sessao)
+
         do {
             let esquemaV3 = Schema(versionedSchema: EsquemaFrilaV3.self)
             let configV3 = ModelConfiguration("FrilaV3", schema: esquemaV3, url: url)
             let containerV3 = try ModelContainer(for: esquemaV3, configurations: [configV3])
             let contextoV3 = ModelContext(containerV3)
 
-            contextoV3.insert(TurnoPersistido(id: turnoID, conteudo: try encoder.encode(turno), fim: periodo.fim, contatoVisivelAte: turno.contatoVisivelAte, salvoEm: agora))
-            contextoV3.insert(ContatoDoTurnoPersistido(turnoID: turnoID, conteudo: try JSONEncoder().encode(contato)))
-            contextoV3.insert(AcaoPendentePersistida(id: acao.id, tipo: acao.tipo.rawValue, conteudo: try encoder.encode(acao), instanteDoToque: acao.instanteDoToque))
-            contextoV3.insert(AcaoRecusadaPersistida(id: acaoRecusada.id, conteudo: try JSONEncoder().encode(acaoRecusada)))
-            contextoV3.insert(FuncaoPersistida(id: funcao.id, conteudo: try JSONEncoder().encode(funcao)))
-            contextoV3.insert(SessaoPersistida(conteudo: try JSONEncoder().encode(sessao)))
+            contextoV3.insert(TurnoPersistido(id: turnoID, conteudo: dadosTurno, fim: periodo.fim, contatoVisivelAte: turno.contatoVisivelAte, salvoEm: agora))
+            contextoV3.insert(ContatoDoTurnoPersistido(turnoID: turnoID, conteudo: dadosContato))
+            contextoV3.insert(AcaoPendentePersistida(id: acao.id, tipo: acao.tipo.rawValue, conteudo: dadosAcao, instanteDoToque: acao.instanteDoToque))
+            contextoV3.insert(AcaoRecusadaPersistida(id: acaoRecusada.id, conteudo: dadosRecusada))
+            contextoV3.insert(FuncaoPersistida(id: funcao.id, conteudo: dadosFuncao))
+            contextoV3.insert(SessaoPersistida(conteudo: dadosSessao))
             try contextoV3.save()
         }
 
@@ -332,11 +339,107 @@ struct SwiftDataTests {
             #expect(lidaSessao?.usuarioID == sessao.usuarioID)
             #expect(lidaSessao?.perfil == .profissional)
 
-            let evento = EventoDeTelemetriaPersistido(id: UUID(), conteudo: Data("{}".utf8), guardadoEm: agora)
             let contextoV4 = ModelContext(containerV4)
+
+            // Comparação campo a campo dos modelos persistidos no container migrado
+            let turnosPersistidos = try contextoV4.fetch(FetchDescriptor<TurnoPersistido>())
+            #expect(turnosPersistidos.count == 1)
+            let turnoPersistido = try #require(turnosPersistidos.first)
+            #expect(turnoPersistido.id == turnoID)
+            #expect(turnoPersistido.fim == periodo.fim)
+            #expect(turnoPersistido.salvoEm == agora)
+            #expect(turnoPersistido.contatoVisivelAte == turno.contatoVisivelAte)
+            #expect(turnoPersistido.conteudo == dadosTurno)
+
+            let contatosPersistidos = try contextoV4.fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
+            #expect(contatosPersistidos.count == 1)
+            let contatoPersistido = try #require(contatosPersistidos.first)
+            #expect(contatoPersistido.turnoID == turnoID)
+            #expect(contatoPersistido.conteudo == dadosContato)
+
+            let pendentesPersistidas = try contextoV4.fetch(FetchDescriptor<AcaoPendentePersistida>())
+            #expect(pendentesPersistidas.count == 1)
+            let pendentePersistida = try #require(pendentesPersistidas.first)
+            #expect(pendentePersistida.id == acao.id)
+            #expect(pendentePersistida.tipo == acao.tipo.rawValue)
+            #expect(pendentePersistida.instanteDoToque == acao.instanteDoToque)
+            #expect(pendentePersistida.conteudo == dadosAcao)
+
+            let recusadasPersistidas = try contextoV4.fetch(FetchDescriptor<AcaoRecusadaPersistida>())
+            #expect(recusadasPersistidas.count == 1)
+            let recusadaPersistida = try #require(recusadasPersistidas.first)
+            #expect(recusadaPersistida.id == acaoRecusada.id)
+            #expect(recusadaPersistida.conteudo == dadosRecusada)
+
+            let funcoesPersistidas = try contextoV4.fetch(FetchDescriptor<FuncaoPersistida>())
+            #expect(funcoesPersistidas.count == 1)
+            let funcaoPersistida = try #require(funcoesPersistidas.first)
+            #expect(funcaoPersistida.id == funcao.id)
+            #expect(funcaoPersistida.conteudo == dadosFuncao)
+
+            let sessoesPersistidas = try contextoV4.fetch(FetchDescriptor<SessaoPersistida>())
+            #expect(sessoesPersistidas.count == 1)
+            let sessaoPersistida = try #require(sessoesPersistidas.first)
+            #expect(sessaoPersistida.chave == "sessao-atual")
+            #expect(sessaoPersistida.conteudo == dadosSessao)
+
+            let evento = EventoDeTelemetriaPersistido(id: UUID(), conteudo: Data("{}".utf8), guardadoEm: agora)
             contextoV4.insert(evento)
             try contextoV4.save()
             #expect(try contextoV4.fetchCount(FetchDescriptor<EventoDeTelemetriaPersistido>()) == 1)
         }
+    }
+
+    @Test("Banco V3 pré-gravado (fixture binário) migra para V4 sem instanciar EsquemaFrilaV3 no teste")
+    func migracaoEsquemaV3ParaV4ComFixtureBinario() async throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let fixtureOriginal = raiz.appending(path: "Tests/Fixtures/SwiftData/FrilaV3-gravado-esquema-v3.store")
+        guard FileManager.default.fileExists(atPath: fixtureOriginal.path) else {
+            Issue.record("Fixture binário não encontrado em \(fixtureOriginal.path)")
+            return
+        }
+
+        let diretorio = FileManager.default.temporaryDirectory.appending(path: "frila-migracao-fixture-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let urlDestino = diretorio.appending(path: "FrilaV3.store")
+        try FileManager.default.copyItem(at: fixtureOriginal, to: urlDestino)
+
+        let esquemaV4 = Schema(versionedSchema: EsquemaFrilaV4.self)
+        let configV4 = ModelConfiguration("FrilaV3", schema: esquemaV4, url: urlDestino)
+        let containerV4 = try ModelContainer(for: esquemaV4, migrationPlan: MigracaoFrila.self, configurations: [configV4])
+        let cache = ArmazenamentoSwiftData(modelContainer: containerV4)
+
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let turnos = try await cache.turnosValidos(em: agora)
+        #expect(turnos.count == 1)
+        #expect(turnos.first?.id == UUID(uuidString: "11111111-2222-3333-4444-555555555555"))
+        #expect(turnos.first?.vaga.funcao == "Barista")
+        #expect(turnos.first?.contato?.telefone == "+5561988887777")
+
+        let pendentes = try await cache.pendentes()
+        #expect(pendentes.count == 1)
+        #expect(pendentes.first?.tipo == .checkin)
+        #expect(pendentes.first?.distanciaMetros == 15)
+
+        let recusadas = try await cache.recusadas()
+        #expect(recusadas.count == 1)
+        #expect(recusadas.first?.codigo == .vagaEncerrada)
+
+        let funcoes = try await cache.funcoes()
+        #expect(funcoes.count == 1)
+        #expect(funcoes.first?.nome == "Barista")
+
+        let sessao = try await cache.sessao()
+        #expect(sessao?.usuarioID == UUID(uuidString: "66666666-7777-8888-9999-000000000000"))
+        #expect(sessao?.perfil == .profissional)
+
+        // Valida que o container migrado aceita novo registro V4
+        let evento = EventoDeTelemetriaPersistido(id: UUID(), conteudo: Data("{}".utf8), guardadoEm: agora)
+        let contextoV4 = ModelContext(containerV4)
+        contextoV4.insert(evento)
+        try contextoV4.save()
+        #expect(try contextoV4.fetchCount(FetchDescriptor<EventoDeTelemetriaPersistido>()) == 1)
     }
 }
