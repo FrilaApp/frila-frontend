@@ -811,6 +811,50 @@ final class AutenticacaoUITests: XCTestCase {
         fecharTecladoSeVisivel(app: appAX5)
 
         salvar(appAX5, nome: "02-cadastro-ax5.png")
+
+        // 3. Menor de 18 anos com erro inline (tamanho padrão)
+        let appMenor = XCUIApplication()
+        appMenor.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        AjudanteDeLancamentoUITests.preparar(appMenor)
+        appMenor.launch()
+
+        let emailMenor = appMenor.textFields["entrada-email"]
+        XCTAssertTrue(emailMenor.waitForExistence(timeout: 10))
+        emailMenor.tap()
+        emailMenor.digitarEEsperar("jovem@frila.app")
+        tocar(appMenor.buttons["entrada-receber-codigo"])
+
+        let tfCodigoMenor = appMenor.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigoMenor.waitForExistence(timeout: 10))
+        tfCodigoMenor.tap()
+        tfCodigoMenor.typeText("123456")
+        if appMenor.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            appMenor.buttons["codigo-entrar"].tap()
+        }
+
+        XCTAssertTrue(appMenor.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
+        let nomeMenor = appMenor.textFields["cadastro-nome"]
+        nomeMenor.tap()
+        nomeMenor.typeText("Menor de Idade")
+
+        let telefoneMenor = appMenor.textFields["cadastro-telefone"]
+        telefoneMenor.tap()
+        telefoneMenor.typeText("61988887777")
+        fecharTecladoSeVisivel(app: appMenor)
+
+        let nascimentoMenor = appMenor.textFields["cadastro-nascimento"]
+        rolarAte(nascimentoMenor, app: appMenor)
+        nascimentoMenor.tap()
+        nascimentoMenor.typeText("15102010")
+        fecharTecladoSeVisivel(app: appMenor)
+
+        let erroMenor = appMenor.descendants(matching: .any)["cadastro-menor-idade-erro"]
+        XCTAssertTrue(erroMenor.waitForExistence(timeout: Espera.aparecer))
+        let btnContinuarMenor = appMenor.buttons["cadastro-continuar"]
+        rolarAte(btnContinuarMenor, app: appMenor)
+        XCTAssertFalse(btnContinuarMenor.isEnabled)
+
+        salvar(appMenor, nome: "03-cadastro-menor-idade.png")
     }
 }
 

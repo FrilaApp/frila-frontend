@@ -105,10 +105,8 @@ expor a data de nascimento do usuário.
 
 1. Adotar `DeclaredAgeRange` como sinal primário de aferição de idade em dispositivos Apple.
    Se a faixa retornada indicar menor de 18 anos, impedir o cadastro.
-2. Para usuários sem faixa declarada (dispositivos sem Family Sharing), manter o mecanismo
-   de aferição por **data de nascimento informada e calculada + aceite dos Termos de Uso**
-   (que contêm a declaração formal de maioridade legal), sem caixa de seleção separada no formulário,
-   conforme prevê a Lei 15.211/2025.
+2. Para usuários sem faixa declarada (dispositivos sem Family Sharing), manter um mecanismo
+   complementar de autodeclaração **registrada** (data de nascimento calculada + aceite dos Termos), conforme exige a Lei 15.211/2025.
 3. Registrar a autodeclaração em log auditável (timestamp, hash do dado, versão do app),
    sem armazenar a data de nascimento em texto aberto fora do perfil do usuário.
 
@@ -154,11 +152,12 @@ adesão. Estão redigidos em linguagem clara, conforme exige a LGPD (art. 14, §
 > Fundamentação legal: Constituição Federal, art. 7º, XXXIII; CLT, arts. 402–441; ECA,
 > Lei 8.069/1990, arts. 60–69; ECA Digital, Lei 15.211/2025; LGPD, Lei 13.709/2018, art. 14.
 
-### 4.3. Aviso na tela de cadastro do app (UI)
+### 4.3. Aviso na tela de cadastro do app (sugestão de texto para a UI)
 
-A conferência de maioridade no app é realizada automaticamente pelo cálculo sobre a **data de nascimento informada** combinada ao **aceite dos Termos de Uso** (que contêm a declaração formal de maioridade legal), dispensando caixa de seleção separada no formulário.
+> Para usar o Frila, você precisa ter 18 anos ou mais. Ao continuar, você declara ter
+> completado 18 anos.
 
-Caso o cálculo da data de nascimento indique menor de 18 anos, o app exibe mensagem inline explicativa e impede o avanço bloqueando o botão Continuar:
+A aferição na tela é feita por data de nascimento calculada e aceite dos Termos (sem caixa de seleção separada). Caso o cálculo da data indique menor de 18 anos, exibe mensagem inline e bloqueia o botão Continuar:
 > O Frila é exclusivo para maiores de 18 anos.
 
 ---

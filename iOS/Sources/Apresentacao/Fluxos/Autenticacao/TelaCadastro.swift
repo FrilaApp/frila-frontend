@@ -4,6 +4,7 @@ import SwiftUI
 /// Cadastro (#12), nos quadros "Perfil" (escolha do perfil) e "Main" (campos) do MidFi do Fabrício: voltar circular, cartões de perfil e botão escuro de continuar.
 public struct TelaCadastro: View {
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Bindable var viewModel: CadastroViewModel
     var aoVoltar: () -> Void
     var aoConcluir: (DestinoAposEntrada) -> Void
@@ -189,7 +190,7 @@ public struct TelaCadastro: View {
                             if let destino = await viewModel.criarConta() {
                                 aoConcluir(destino)
                             } else if let campo = viewModel.campoComErro {
-                                withAnimation {
+                                withAnimation(FrilaMovimento.animacao(reduzir: reduzirMovimento)) {
                                     proxy.scrollTo(campo, anchor: .center)
                                 }
                             }
