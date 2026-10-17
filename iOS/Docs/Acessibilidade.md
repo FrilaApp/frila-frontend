@@ -378,3 +378,14 @@ TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 xcodebuild test -project Frila.x
 Cada achado sai no log como `AUDITORIA|tela|tamanho|tipo|classe|descrição|elemento|detalhe` e
 também como anexo `auditoria-<tela>-<tamanho>` no result bundle. Para a próxima rodada: tire a
 falha esperada da tela corrigida, rode a suíte e atualize a tabela acima.
+
+---
+
+## Atualização UX-01 (Cadastro e Entrada — 17/10/2026)
+
+- **Tela de Cadastro (`TelaCadastro.swift`)**:
+  - **Remoção da checkbox de maioridade (`cadastro-maior-de-idade`)**: a verificação etária passa a ser puramente calculada a partir da data de nascimento inserida e dos Termos de Uso.
+  - **Mensagem explicativa inline (`cadastro-menor-idade-erro`)**: caso a data informada seja de menor de 18 anos, exibe mensagem clara em vermelho e bloqueia o botão Continuar (`.disabled`).
+  - **Entrada de dados acessível**: teclado numérico (`.keyboardType(.numberPad)`) com máscara progressiva `dd/mm/aaaa` na data e máscara no telefone, facilitando digitação com VoiceOver e teclados assistivos.
+  - **Indicação e foco de campo pendente**: ao tocar em Continuar com campos vazios ou termos desmarcados, o app destaca visualmente o campo com erro (`campoComErro`) e faz rolagem automática acessível (`ScrollViewReader`) até o elemento.
+

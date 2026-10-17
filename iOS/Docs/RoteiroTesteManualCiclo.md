@@ -73,7 +73,7 @@ Antes de iniciar a execução do roteiro, ambos os aparelhos devem atender aos s
   2. Em `TelaCodigo`, inserir o código de verificação recebido (ou código padrão de teste do ambiente) e tocar em "Entrar" (`codigo-entrar`).
   3. Em `TelaCadastro`, selecionar o cartão "Quero contratar profissionais" (`cadastro-perfil-contratante`).
   4. Preencher o nome do responsável em `cadastro-nome` (ex.: "Gerente Carlos"), telefone celular com DDD em `cadastro-telefone` (ex.: "61988887777") e data de nascimento em `cadastro-nascimento` (ex.: "10/05/1990").
-  5. Marcar os seletores de maioridade (`cadastro-maior-de-idade`) e de concordância com os termos de uso (`cadastro-termos`). Tocar em "Continuar" (`cadastro-continuar`).
+  5. Marcar o seletor de concordância com os termos de uso (`cadastro-termos`). A maioridade é conferida pela data de nascimento. Tocar em "Continuar" (`cadastro-continuar`).
   6. Em `CadastroEstabelecimento`, inserir nome do estabelecimento (ex.: "Café da Asa"), telefone comercial e endereço físico completo no DF. Tocar no botão "Continuar cadastro" (`continuar-cadastro`).
 - **Resultado Esperado:** Conta criada no backend (`public.criar_conta('contratante')`) e estabelecimento registrado (`public.cadastrar_estabelecimento`). O aplicativo direciona imediatamente para `TelaPublicarVaga`.
 
@@ -90,7 +90,7 @@ Antes de iniciar a execução do roteiro, ambos os aparelhos devem atender aos s
   1. Abrir o app no Aparelho B e digitar o e-mail da conta de teste do profissional em `TelaEntrada`. Tocar em "Receber código de acesso".
   2. Inserir o código de verificação recebido (ou código padrão de teste do ambiente) em `TelaCodigo` e tocar em "Entrar".
   3. Em `TelaCadastro`, selecionar o cartão "Quero trabalhar em turnos" (`cadastro-perfil-profissional`).
-  4. Preencher nome completo (ex.: "Lucas Silva"), telefone WhatsApp (ex.: "61977776666"), data de nascimento maior de 18 anos, marcar maioridade e termos de uso, e tocar em "Continuar".
+  4. Preencher nome completo (ex.: "Lucas Silva"), telefone WhatsApp (ex.: "61977776666"), data de nascimento maior de 18 anos, marcar os termos de uso e tocar em "Continuar".
   5. Em `TelaPerfilProfissional`, selecionar a função correspondente ao teste (ex.: "Garçom"), definir o ponto base em bairro do DF (ex.: "Asa Sul") e salvar o perfil tocando em `botao-salvar-perfil`.
 - **Resultado Esperado:** Conta criada (`public.criar_conta('profissional')`) e perfil profissional salvo com funções ativas. O app transita para a aba principal de mural de vagas no DF (`TelaVagas`).
 

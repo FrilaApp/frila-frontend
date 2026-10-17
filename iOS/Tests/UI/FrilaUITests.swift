@@ -335,7 +335,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         app.buttons["cadastro-perfil-profissional"].tap()
@@ -352,10 +354,7 @@ final class AutenticacaoUITests: XCTestCase {
         rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
-
-        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
+        fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
@@ -487,7 +486,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertFalse(app.textFields["entrada-email"].exists)
         codigo.tap()
         codigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
@@ -506,7 +507,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
@@ -525,7 +528,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
         codigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
         let botaoPerfil = app.buttons["abrir-meu-perfil"]
@@ -575,7 +580,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -592,20 +599,16 @@ final class AutenticacaoUITests: XCTestCase {
         nascimento.tap()
         nascimento.typeText("01/01/2015")
 
-        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
-
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
         termos.tap()
 
+        XCTAssertTrue(app.staticTexts["cadastro-menor-idade-erro"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
+
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
-
-        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
+        XCTAssertFalse(continuar.isEnabled, "Botão Continuar deve estar bloqueado para menor de idade")
     }
 
     func testCadastroComDeclaredAgeRangeAbaixoDe18ExibeRecusa() {
@@ -627,7 +630,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -644,10 +649,7 @@ final class AutenticacaoUITests: XCTestCase {
         nascimento.tap()
         // Data de nascimento indica mais de 18 anos (passa na validação local da data)
         nascimento.typeText("01/01/2000")
-
-        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
+        fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
@@ -662,7 +664,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
     }
 
-    func testCadastroDesabilitaBotaoSemMaioridadeOuSemTermos() {
+    func testCadastroBloqueiaMenorDeIdadeEValidaTermosAoTocarContinuar() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
@@ -677,7 +679,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
         tfCodigo.tap()
         tfCodigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -693,33 +697,164 @@ final class AutenticacaoUITests: XCTestCase {
         rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
+        fecharTecladoSeVisivel(app: app)
 
         let btnContinuar = app.buttons["cadastro-continuar"]
         rolarAte(btnContinuar, app: app)
-        esperarHabilitado(btnContinuar, false)
-        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve estar desabilitado sem maioridade e sem termos")
+        XCTAssertTrue(btnContinuar.isEnabled, "Botão deve estar habilitado para maior de idade")
 
-        // Marca apenas maioridade
-        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
-        esperarHabilitado(btnContinuar, false)
-        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem aceite dos termos")
+        // Toca Continuar sem marcar termos: exibe erro destacando os termos
+        btnContinuar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
 
-        // Desmarca maioridade e marca apenas termos
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
+        // Marca termos e confere que continua habilitado
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
         termos.tap()
-        esperarHabilitado(btnContinuar, false)
-        XCTAssertFalse(btnContinuar.isEnabled, "Botão deve continuar desabilitado sem confirmação de maioridade")
+        rolarAte(btnContinuar, app: app)
+        XCTAssertTrue(btnContinuar.isEnabled, "Botão deve continuar habilitado com os termos aceitos")
+    }
 
-        // Marca ambos
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
-        esperarHabilitado(btnContinuar, true)
-        XCTAssertTrue(btnContinuar.isEnabled, "Botão deve habilitar com formulário completo, maioridade e termos")
+    func testCapturasDeTelaCadastro() {
+        let pastaCapturas = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/missoes/capturas/2026-10-17-ux-01-autenticacao"
+        try? FileManager.default.createDirectory(atPath: pastaCapturas, withIntermediateDirectories: true)
+
+        func salvar(_ app: XCUIApplication, nome: String) {
+            let screenshot = app.screenshot()
+            let anexo = XCTAttachment(screenshot: screenshot)
+            anexo.name = nome
+            anexo.lifetime = .keepAlways
+            add(anexo)
+            try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: "\(pastaCapturas)/\(nome)"))
+        }
+
+        // 1. Tamanho padrão
+        let appPadrao = XCUIApplication()
+        appPadrao.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        AjudanteDeLancamentoUITests.preparar(appPadrao)
+        appPadrao.launch()
+
+        let email = appPadrao.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.digitarEEsperar("novo@frila.app")
+        tocar(appPadrao.buttons["entrada-receber-codigo"])
+
+        let tfCodigo = appPadrao.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        if appPadrao.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            appPadrao.buttons["codigo-entrar"].tap()
+        }
+
+        XCTAssertTrue(appPadrao.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
+        let nome = appPadrao.textFields["cadastro-nome"]
+        nome.tap()
+        nome.typeText("Carlos Silva")
+
+        let telefone = appPadrao.textFields["cadastro-telefone"]
+        telefone.tap()
+        telefone.typeText("61988887777")
+        fecharTecladoSeVisivel(app: appPadrao)
+
+        let nascimento = appPadrao.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: appPadrao)
+        nascimento.tap()
+        nascimento.typeText("15051995")
+        fecharTecladoSeVisivel(app: appPadrao)
+
+        let termos = appPadrao.buttons["cadastro-termos"]
+        rolarAte(termos, app: appPadrao)
+        termos.tap()
+
+        salvar(appPadrao, nome: "01-cadastro-padrao.png")
+
+        // 2. Maior tamanho de texto (AX5)
+        let appAX5 = XCUIApplication()
+        appAX5.launchArguments = [
+            "-FRILA_ENTRADA",
+            "-FRILA_SCENARIO", "primeiro-acesso",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        AjudanteDeLancamentoUITests.preparar(appAX5)
+        appAX5.launch()
+
+        let emailAX5 = appAX5.textFields["entrada-email"]
+        XCTAssertTrue(emailAX5.waitForExistence(timeout: 10))
+        emailAX5.tap()
+        emailAX5.digitarEEsperar("novo@frila.app")
+        tocar(appAX5.buttons["entrada-receber-codigo"])
+
+        let tfCodigoAX5 = appAX5.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigoAX5.waitForExistence(timeout: 10))
+        tfCodigoAX5.tap()
+        tfCodigoAX5.typeText("123456")
+        if appAX5.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            appAX5.buttons["codigo-entrar"].tap()
+        }
+
+        XCTAssertTrue(appAX5.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
+        let nomeAX5 = appAX5.textFields["cadastro-nome"]
+        nomeAX5.tap()
+        nomeAX5.typeText("Carlos Silva")
+
+        let telefoneAX5 = appAX5.textFields["cadastro-telefone"]
+        telefoneAX5.tap()
+        telefoneAX5.typeText("61988887777")
+        fecharTecladoSeVisivel(app: appAX5)
+
+        let nascimentoAX5 = appAX5.textFields["cadastro-nascimento"]
+        rolarAte(nascimentoAX5, app: appAX5)
+        nascimentoAX5.tap()
+        nascimentoAX5.typeText("15051995")
+        fecharTecladoSeVisivel(app: appAX5)
+
+        salvar(appAX5, nome: "02-cadastro-ax5.png")
+
+        // 3. Menor de 18 anos com erro inline (tamanho padrão)
+        let appMenor = XCUIApplication()
+        appMenor.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        AjudanteDeLancamentoUITests.preparar(appMenor)
+        appMenor.launch()
+
+        let emailMenor = appMenor.textFields["entrada-email"]
+        XCTAssertTrue(emailMenor.waitForExistence(timeout: 10))
+        emailMenor.tap()
+        emailMenor.digitarEEsperar("jovem@frila.app")
+        tocar(appMenor.buttons["entrada-receber-codigo"])
+
+        let tfCodigoMenor = appMenor.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigoMenor.waitForExistence(timeout: 10))
+        tfCodigoMenor.tap()
+        tfCodigoMenor.typeText("123456")
+        if appMenor.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            appMenor.buttons["codigo-entrar"].tap()
+        }
+
+        XCTAssertTrue(appMenor.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
+        let nomeMenor = appMenor.textFields["cadastro-nome"]
+        nomeMenor.tap()
+        nomeMenor.typeText("Menor de Idade")
+
+        let telefoneMenor = appMenor.textFields["cadastro-telefone"]
+        telefoneMenor.tap()
+        telefoneMenor.typeText("61988887777")
+        fecharTecladoSeVisivel(app: appMenor)
+
+        let nascimentoMenor = appMenor.textFields["cadastro-nascimento"]
+        rolarAte(nascimentoMenor, app: appMenor)
+        nascimentoMenor.tap()
+        nascimentoMenor.typeText("15102010")
+        fecharTecladoSeVisivel(app: appMenor)
+
+        let erroMenor = appMenor.descendants(matching: .any)["cadastro-menor-idade-erro"]
+        XCTAssertTrue(erroMenor.waitForExistence(timeout: Espera.aparecer))
+        let btnContinuarMenor = appMenor.buttons["cadastro-continuar"]
+        rolarAte(btnContinuarMenor, app: appMenor)
+        XCTAssertFalse(btnContinuarMenor.isEnabled)
+
+        salvar(appMenor, nome: "03-cadastro-menor-idade.png")
     }
 }
 

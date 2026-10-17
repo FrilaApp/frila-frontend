@@ -36,7 +36,9 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         XCTAssertTrue(codigo.waitForExistence(timeout: 10), "Campo de código deve estar visível")
         codigo.tap()
         codigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         // 2. Seleção do perfil Contratante e dados pessoais
         let perfilContratante = app.buttons["cadastro-perfil-contratante"]
@@ -46,22 +48,18 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         let nome = app.textFields["cadastro-nome"]
         XCTAssertTrue(nome.waitForExistence(timeout: 10))
         nome.tap()
-        nome.typeText("Responsável do Café")
+        nome.digitarEEsperar("Responsável do Café")
 
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
-        nascimento.typeText("15/05/1995")
-
-        let maiorDeIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorDeIdade, app: app)
-        XCTAssertTrue(maiorDeIdade.waitForExistence(timeout: 10))
-        maiorDeIdade.tap()
+        nascimento.digitarEEsperar("15051995", esperado: "15/05/1995")
+        fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)

@@ -271,7 +271,7 @@ private struct EntradaDoApp: View {
                   ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_CACHE_UI_TEST") {
             nil
         } else {
-            armazenamento
+            armazenamento ?? (api is ApiClienteEmMemoria ? Self.armazenamentoDeTeste : nil)
         }
         #endif
         self.armazenamento = armazenamento

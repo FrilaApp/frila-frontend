@@ -106,8 +106,7 @@ expor a data de nascimento do usuário.
 1. Adotar `DeclaredAgeRange` como sinal primário de aferição de idade em dispositivos Apple.
    Se a faixa retornada indicar menor de 18 anos, impedir o cadastro.
 2. Para usuários sem faixa declarada (dispositivos sem Family Sharing), manter um mecanismo
-   complementar de autodeclaração **registrada** (data de nascimento informada e persistida,
-   não uma caixa de seleção descartável), conforme exige a Lei 15.211/2025.
+   complementar de autodeclaração **registrada** (data de nascimento calculada + aceite dos Termos), conforme exige a Lei 15.211/2025.
 3. Registrar a autodeclaração em log auditável (timestamp, hash do dado, versão do app),
    sem armazenar a data de nascimento em texto aberto fora do perfil do usuário.
 
@@ -157,6 +156,11 @@ adesão. Estão redigidos em linguagem clara, conforme exige a LGPD (art. 14, §
 
 > Para usar o Frila, você precisa ter 18 anos ou mais. Ao continuar, você declara ter
 > completado 18 anos.
+
+A aferição na tela é feita por data de nascimento calculada e aceite dos Termos (sem caixa de seleção separada). Caso o cálculo da data indique menor de 18 anos, exibe mensagem inline e bloqueia o botão Continuar:
+> O Frila é exclusivo para maiores de 18 anos.
+
+Para nascidos em 29 de fevereiro quando o 18º aniversário cai em ano não bissexto, a maioridade é completada em 1º de março (regra conservadora).
 
 ---
 
