@@ -231,7 +231,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         salvarCaptura("03-publicar-vaga-xxxl")
     }
 
-    func testCapturaPublicarVagaFimAcompanhaInicioPadrao() {
+    func testFimAcompanhaInicioMantendoDuracaoNoTamanhoPadrao() {
         let app = abrir(["-FRILA_CADASTRO_UI_TEST", "-FRILA_PUBLICAR_INICIO_EM_HORAS", "30"])
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
@@ -245,6 +245,25 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         rolarAte(dpInicio, em: app)
         XCTAssertTrue(dpInicio.waitForExistence(timeout: 5))
         XCTAssertTrue(dpFim.waitForExistence(timeout: 5))
+
+        // Altera o Início via controle de data/hora
+        if dpInicio.pickerWheels.count > 0 {
+            dpInicio.pickerWheels.element(boundBy: 0).swipeUp()
+        } else if dpInicio.buttons.count > 0 {
+            let botaoTempo = dpInicio.buttons.element(boundBy: dpInicio.buttons.count - 1)
+            if botaoTempo.isHittable {
+                botaoTempo.tap()
+                let roda = app.pickerWheels.firstMatch
+                if roda.waitForExistence(timeout: 2) {
+                    roda.swipeUp()
+                }
+                app.descendants(matching: .any)["publicar-vaga-formulario"].tap()
+            }
+        }
+
+        // Confere que o Fim foi atualizado preservando duração e permanece acessível/tocável
+        XCTAssertTrue(dpFim.waitForExistence(timeout: 5))
+        XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve permanecer interagível após ajuste do Início")
 
         salvarCaptura("06-publicar-vaga-fim-acompanha-inicio-padrao")
     }

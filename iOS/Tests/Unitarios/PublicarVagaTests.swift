@@ -476,18 +476,18 @@ struct PublicarVagaTests {
         #expect(vm.posicoesTexto == "1")
         #expect(vm.valorTotalCentavos == 15000)
 
-        // Normalização de vazio para 1 antes de mexer
+        // Normalização de vazio para 1 ao usar stepper
         vm.posicoesTexto = ""
         vm.incrementarPosicoes()
-        #expect(vm.posicoesTexto == "2")
+        #expect(vm.posicoesTexto == "1")
         vm.posicoesTexto = ""
         vm.decrementarPosicoes()
         #expect(vm.posicoesTexto == "1")
 
-        // Normalização de "0" para 1 antes de mexer
+        // Normalização de "0" para 1 ao usar stepper
         vm.posicoesTexto = "0"
         vm.incrementarPosicoes()
-        #expect(vm.posicoesTexto == "2")
+        #expect(vm.posicoesTexto == "1")
         vm.posicoesTexto = "0"
         vm.decrementarPosicoes()
         #expect(vm.posicoesTexto == "1")

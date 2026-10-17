@@ -136,6 +136,17 @@ def encontrar_chamadas_animation_modifier(limpo):
         chamadas.append((m.start(), argumentos))
     return chamadas
 
+def primeiro_argumento(argumentos):
+    nivel = 0
+    for i, c in enumerate(argumentos):
+        if c in '([{':
+            nivel += 1
+        elif c in ')]}':
+            nivel -= 1
+        elif c == ',' and nivel == 0:
+            return argumentos[:i].strip()
+    return argumentos.strip()
+
 for caminho in arquivos:
     with open(caminho, encoding="utf-8") as f:
         conteudo = f.read()
@@ -169,8 +180,10 @@ for caminho in arquivos:
         nome_arquivo = os.path.basename(caminho)
         chave_excecao = f"{nome_arquivo}:{num_linha}"
 
-        # Se usa FrilaMovimento.animacao, está em conformidade com o critério 71.4
-        if "FrilaMovimento.animacao" in argumentos:
+        primeiro_arg = primeiro_argumento(argumentos)
+
+        # Exige que o 1º argumento passe pelo ponto único FrilaMovimento.animacao (#71.4)
+        if "FrilaMovimento.animacao" in primeiro_arg:
             continue
 
         if chave_excecao in EXCECOES_NAO_DESLOCAMENTO:
