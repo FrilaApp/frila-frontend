@@ -123,16 +123,24 @@ struct SwiftDataTests {
         try await armazenamento.salvar(turnos: [turnoValido], em: agora)
         try await armazenamento.salvar(contato: turnoValido.contato!, doTurno: turnoValido.id)
 
+        // Controle positivo: turno ativo com contato visível DEVE permanecer
+        let turnoAtivo = try turno(fim: agora.addingTimeInterval(7200), contatoVisivelAte: agora.addingTimeInterval(3600))
+        try await armazenamento.salvar(turnos: [turnoAtivo], em: agora)
+        try await armazenamento.salvar(contato: turnoAtivo.contato!, doTurno: turnoAtivo.id)
+
         let contexto = ModelContext(container)
-        #expect(try contexto.fetchCount(FetchDescriptor<ContatoDoTurnoPersistido>()) == 3)
+        #expect(try contexto.fetchCount(FetchDescriptor<ContatoDoTurnoPersistido>()) == 4)
 
-        // Ao ler turnos válidos, deve apagar o TurnoPersistido vencido E todos os contatos vencidos/órfãos/expirados
+        // Ao ler turnos válidos, deve apagar o TurnoPersistido vencido E os contatos vencidos/órfãos/expirados,
+        // preservando o contato do turno ativo
         let validos = try await armazenamento.turnosValidos(em: agora)
-        #expect(validos.map(\.id) == [turnoValido.id])
+        #expect(Set(validos.map(\.id)) == Set([turnoValido.id, turnoAtivo.id]))
 
-        // Todos os 3 contatos devem ter sido removidos do banco
+        // Apenas o contato do turno ativo deve restar no banco
         let contatosRestantes = try contexto.fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
-        #expect(contatosRestantes.isEmpty)
+        #expect(contatosRestantes.count == 1)
+        #expect(contatosRestantes.first?.turnoID == turnoAtivo.id)
+        #expect(try await armazenamento.contato(doTurno: turnoAtivo.id, em: agora) == turnoAtivo.contato)
         #expect(try await armazenamento.contato(doTurno: turnoVencido.id, em: agora) == nil)
         #expect(try await armazenamento.contato(doTurno: orfaoID, em: agora) == nil)
     }
