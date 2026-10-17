@@ -36,6 +36,7 @@ public struct TelaContaSuspensa: View {
     private var avisoCabecalho: some View {
         AvisoFrila(verbatim: TextosContaSuspensa.avisoPrincipal, tom: .alerta)
             .accessibilityIdentifier("aviso-conta-suspensa")
+            .accessibilityElement(children: .combine)
     }
 
     private var secaoMotivoESuspensao: some View {
@@ -53,6 +54,7 @@ public struct TelaContaSuspensa: View {
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("texto-motivo-suspensao")
             }
+            .accessibilityElement(children: .combine)
 
             if let data = viewModel.dataSuspensao {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
@@ -64,6 +66,7 @@ public struct TelaContaSuspensa: View {
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityIdentifier("texto-data-suspensao")
                 }
+                .accessibilityElement(children: .combine)
             }
 
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
@@ -134,7 +137,9 @@ public struct TelaContaSuspensa: View {
                     .font(FrilaTipo.meta.monospaced())
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("protocolo-contestacao")
+                    .speechSpellsOutCharacters(true)
             }
+            .accessibilityElement(children: .combine)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.protocoloData)
@@ -144,6 +149,7 @@ public struct TelaContaSuspensa: View {
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.texto)
             }
+            .accessibilityElement(children: .combine)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.prazoRespostaTitulo)
@@ -154,6 +160,7 @@ public struct TelaContaSuspensa: View {
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("prazo-resposta-contestacao")
             }
+            .accessibilityElement(children: .combine)
 
             Text(verbatim: viewModel.mensagemDoProtocolo)
                 .font(FrilaTipo.nota)
