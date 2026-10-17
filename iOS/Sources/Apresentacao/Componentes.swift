@@ -74,10 +74,6 @@ public extension ButtonStyle where Self == EstiloChipTatil {
     }
 }
 
-public typealias HapticBounceButtonStyle = EstiloBotaoTatil
-public typealias FrilaChipBounceButtonStyle = EstiloChipTatil
-public typealias FrilaPressableButtonStyle = EstiloBotaoTatil
-
 public struct BotaoPrimario: View {
     private let titulo: Text
     private let carregando: Bool
@@ -518,12 +514,12 @@ public struct RespostaSimNao: View {
             }
             .font(FrilaTipo.botao)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+            .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+            .overlay(Capsule().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
             .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
-        .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-        .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
-        .overlay(Capsule().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
         .accessibilityLabel(Text(titulo, bundle: bundleApresentacao))
         .accessibilityValue(Text(resposta == valor ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
         .accessibilityAddTraits(resposta == valor ? .isSelected : [])

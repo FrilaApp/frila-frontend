@@ -41,42 +41,47 @@ final class CapturasDesignD01UITests: XCTestCase {
         return app
     }
 
+    private func capturarDurantePressao(elemento: XCUIElement, duracao: TimeInterval = 2.0, nome: String) {
+        let exp = expectation(description: "captura-\(nome)")
+        let pasta = Self.pastaCapturas
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.6) {
+            let shot = XCUIScreen.main.screenshot()
+            try? FileManager.default.createDirectory(atPath: pasta, withIntermediateDirectories: true)
+            let destino = URL(fileURLWithPath: "\(pasta)/\(nome)")
+            try? shot.pngRepresentation.write(to: destino)
+            exp.fulfill()
+        }
+        elemento.press(forDuration: duracao)
+        wait(for: [exp], timeout: duracao + 3.0)
+    }
+
     func testCapturasToqueTatilEPressao() {
-        // 1. Padrão Claro
-        let app1 = abrirCatalogo(tamanho: Self.padrao, modoEscuro: false)
-        let secaoTatil1 = app1.descendants(matching: .any)["secao-toque-tatil"]
-        _ = secaoTatil1.waitForExistence(timeout: 5)
-        let shot1 = app1.screenshot()
-        salvarCaptura(shot1, nome: "botao-chip-pressionados-padrao-claro.png")
-        salvarCaptura(shot1, nome: "botao-pressionado-padrao-claro.png")
-        salvarCaptura(shot1, nome: "chip-pressionado-padrao-claro.png")
+        executarCapturasToque(tamanho: Self.padrao, modoEscuro: false, sufixo: "padrao-claro")
+        executarCapturasToque(tamanho: Self.padrao, modoEscuro: true, sufixo: "padrao-escuro")
+        executarCapturasToque(tamanho: Self.ax5, modoEscuro: false, sufixo: "ax5-claro")
+        executarCapturasToque(tamanho: Self.ax5, modoEscuro: true, sufixo: "ax5-escuro")
+    }
 
-        // 2. Padrão Escuro
-        let app2 = abrirCatalogo(tamanho: Self.padrao, modoEscuro: true)
-        let secaoTatil2 = app2.descendants(matching: .any)["secao-toque-tatil"]
-        _ = secaoTatil2.waitForExistence(timeout: 5)
-        let shot2 = app2.screenshot()
-        salvarCaptura(shot2, nome: "botao-chip-pressionados-padrao-escuro.png")
-        salvarCaptura(shot2, nome: "botao-pressionado-padrao-escuro.png")
-        salvarCaptura(shot2, nome: "chip-pressionado-padrao-escuro.png")
+    private func executarCapturasToque(tamanho: String, modoEscuro: Bool, sufixo: String) {
+        let app = abrirCatalogo(tamanho: tamanho, modoEscuro: modoEscuro)
+        let secaoTatil = app.descendants(matching: .any)["secao-toque-tatil"]
+        _ = secaoTatil.waitForExistence(timeout: 5)
 
-        // 3. AX5 Claro
-        let app3 = abrirCatalogo(tamanho: Self.ax5, modoEscuro: false)
-        let secaoTatil3 = app3.descendants(matching: .any)["secao-toque-tatil"]
-        _ = secaoTatil3.waitForExistence(timeout: 5)
-        let shot3 = app3.screenshot()
-        salvarCaptura(shot3, nome: "botao-chip-pressionados-ax5-claro.png")
-        salvarCaptura(shot3, nome: "botao-pressionado-ax5-claro.png")
-        salvarCaptura(shot3, nome: "chip-pressionado-ax5-claro.png")
+        // 1. Captura da visão geral / comparação normal
+        let shotNormal = app.screenshot()
+        salvarCaptura(shotNormal, nome: "botao-chip-pressionados-\(sufixo).png")
 
-        // 4. AX5 Escuro
-        let app4 = abrirCatalogo(tamanho: Self.ax5, modoEscuro: true)
-        let secaoTatil4 = app4.descendants(matching: .any)["secao-toque-tatil"]
-        _ = secaoTatil4.waitForExistence(timeout: 5)
-        let shot4 = app4.screenshot()
-        salvarCaptura(shot4, nome: "botao-chip-pressionados-ax5-escuro.png")
-        salvarCaptura(shot4, nome: "botao-pressionado-ax5-escuro.png")
-        salvarCaptura(shot4, nome: "chip-pressionado-ax5-escuro.png")
+        // 2. Captura com o botão de fato pressionado (compressão tátil ativa)
+        let botao = app.buttons["Continuar"].firstMatch
+        if botao.waitForExistence(timeout: 5) {
+            capturarDurantePressao(elemento: botao, nome: "botao-pressionado-\(sufixo).png")
+        }
+
+        // 3. Captura com o chip de fato pressionado (compressão tátil ativa)
+        let chip = app.buttons["Perto de mim"].firstMatch
+        if chip.waitForExistence(timeout: 5) {
+            capturarDurantePressao(elemento: chip, nome: "chip-pressionado-\(sufixo).png")
+        }
     }
 
     func testCapturasFolhaComElevacao() {

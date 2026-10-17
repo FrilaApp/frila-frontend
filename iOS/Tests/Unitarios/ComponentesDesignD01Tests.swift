@@ -60,6 +60,19 @@ struct ComponentesDesignD01Tests {
         #expect(FrilaMoney.spoken(reais: 2500, centavos: 75) == "2.500 reais e 75 centavos")
     }
 
+    @Test("Leitura de dinheiro para valores negativos e limites especificados")
+    func leituraDinheiroValoresNegativos() {
+        #expect(FrilaMoney.spoken(cents: -150) == "menos 1 real e 50 centavos")
+        #expect(FrilaMoney.spoken(cents: -150, por: "hora") == "menos 1 real e 50 centavos por hora")
+        #expect(FrilaMoney.spoken(cents: 0) == "0 reais")
+        #expect(FrilaMoney.spoken(cents: 1) == "1 centavo")
+        #expect(FrilaMoney.spoken(cents: 100) == "1 real")
+        #expect(FrilaMoney.spoken(cents: 100_000) == "1.000 reais")
+        #expect(FrilaMoney.spoken(cents: -100) == "menos 1 real")
+        #expect(FrilaMoney.spoken(cents: -50) == "menos 50 centavos")
+        #expect(FrilaMoney.spoken(reais: -1, centavos: 50) == "menos 1 real e 50 centavos")
+    }
+
     // MARK: - Lacuna 2: Estilos Táteis e Reduzir Movimento
 
     @Test("Tokens de movimento e compressão tátil")
@@ -112,9 +125,11 @@ struct ComponentesDesignD01Tests {
         let camadasClaro = FrilaElevacao.folha.camadas(escuro: false)
         #expect(camadasClaro.count == 3)
 
-        // Camada 1: Rim / Contato (raio milimétrico, y curto)
+        // Camada 1: Rim / Contato (raio milimétrico, y curto, opacidade controlada)
         #expect(camadasClaro[0].raio == 2)
         #expect(camadasClaro[0].y == 1)
+        #expect(camadasClaro[0].opacidade == 0.05)
+        #expect(camadasClaro[0].cor == Color.black.opacity(0.05))
 
         // Camada 2: Key / Luz direta (raio médio, y intermediário)
         #expect(camadasClaro[1].raio == 12)
@@ -124,10 +139,13 @@ struct ComponentesDesignD01Tests {
         #expect(camadasClaro[2].raio == 28)
         #expect(camadasClaro[2].y == 14)
 
-        // Modo escuro: 3 camadas calibradas com sombra fraca
+        // Modo escuro: 3 camadas calibradas com sombra fraca (opacidade rim verificada)
         let camadasEscuro = FrilaElevacao.folha.camadas(escuro: true)
         #expect(camadasEscuro.count == 3)
         #expect(camadasEscuro[0].raio == 2)
+        #expect(camadasEscuro[0].y == 1)
+        #expect(camadasEscuro[0].opacidade == 0.36)
+        #expect(camadasEscuro[0].cor == Color.black.opacity(0.36))
         #expect(camadasEscuro[1].raio == 12)
         #expect(camadasEscuro[2].raio == 28)
     }
