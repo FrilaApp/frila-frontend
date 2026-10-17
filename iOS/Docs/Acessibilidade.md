@@ -393,3 +393,10 @@ Início e fim iguais bloqueiam o envio; faixas noturnas continuam aceitas (#98 C
 A revisão `swiftui-pro` ficou restrita ao diff: estado no modelo observável, bindings
 diretos, controles nativos e APIs disponíveis desde o iOS 17. A prova visual e os
 resultados executados estão em `evidencias/ux-04-perfil-profissional/README.md`.
+
+Na tela vizinha Meu perfil, os tamanhos de acessibilidade empilham os rótulos de
+Telefone, E-mail, Funções e Horários disponíveis acima dos valores. Telefone e
+e-mail ficam em uma única linha com rolagem horizontal quando excedem o cartão,
+sem hifenização, truncamento do conteúdo ou redução da fonte. O valor completo
+continua na árvore de acessibilidade; rótulo e valor são lidos em sequência. No
+tamanho padrão, o `LabeledContent` e os tokens anteriores são preservados.

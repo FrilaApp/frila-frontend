@@ -153,6 +153,75 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         conferirDisponibilidade(ax5: true)
     }
 
+    func testMeuPerfilContatosNoTamanhoPadrao() {
+        conferirContatosDoPerfil(ax5: false)
+    }
+
+    func testMeuPerfilContatosEmAX5SemPartirValores() {
+        conferirContatosDoPerfil(ax5: true)
+    }
+
+    private func conferirContatosDoPerfil(ax5: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
+        app.launch()
+        defer { app.terminate() }
+        let perfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
+        perfil.tap()
+        XCTAssertTrue(app.buttons["perfil-funcoes-horarios"].waitForExistence(timeout: 10))
+        capturarDisponibilidade(app, nome: ax5 ? "perfil-ax5" : "perfil-padrao")
+
+        let categoria: UIContentSizeCategory = ax5 ? .accessibilityExtraExtraExtraLarge : .large
+        let fonte = UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: UITraitCollection(preferredContentSizeCategory: categoria))
+        for id in ["perfil-telefone", "perfil-email", "perfil-funcoes", "perfil-horarios"] {
+            let rotulo = app.staticTexts["\(id)-rotulo"]
+            let valor = app.staticTexts["\(id)-valor"]
+            guard rotulo.exists && valor.exists else {
+                XCTFail("Rótulo e valor identificáveis: \(id)")
+                return
+            }
+            if ax5 {
+                for _ in 0..<10 where !valor.isHittable { app.swipeUp() }
+                XCTAssertGreaterThanOrEqual(valor.frame.minY, rotulo.frame.maxY, "\(id): rótulo acima do valor")
+                XCTAssertTrue(valor.isHittable, id)
+            } else {
+                XCTAssertLessThan(abs(rotulo.frame.midY - valor.frame.midY), 2, "\(id): aparência horizontal preservada")
+            }
+            if id == "perfil-telefone" || id == "perfil-email" {
+                XCTAssertEqual(valor.label, id == "perfil-telefone" ? "+5561988887777" : "ana.cunha@frila.app")
+                XCTAssertGreaterThanOrEqual(valor.frame.height, fonte.lineHeight - 2, "A fonte acompanha Dynamic Type sem encolher")
+                XCTAssertLessThan(valor.frame.height, fonte.lineHeight * 1.5, "Contato inteiro em uma linha, sem hifenização")
+                if ax5 {
+                    let rolagem = app.scrollViews["\(id)-rolagem"]
+                    XCTAssertTrue(rolagem.exists)
+                    XCTAssertAlvoMinimo(rolagem.frame.height)
+                    XCTAssertLessThanOrEqual(rolagem.frame.maxX, app.frame.maxX)
+                    if valor.frame.width > rolagem.frame.width {
+                        let xAntes = valor.frame.minX
+                        rolagem.swipeLeft()
+                        XCTAssertLessThan(valor.frame.minX, xAntes, "O fim do contato fica acessível por rolagem")
+                        XCTAssertLessThanOrEqual(valor.frame.maxX, rolagem.frame.maxX + 2)
+                    }
+                }
+            }
+            if ax5 && id == "perfil-email" {
+                capturarDisponibilidade(app, nome: "perfil-ax5-contatos-fim")
+            }
+        }
+        if ax5 {
+            let funcoes = app.staticTexts["perfil-funcoes-rotulo"]
+            for _ in 0..<4 where funcoes.frame.minY < 130 {
+                let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.30))
+                let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.43))
+                inicio.press(forDuration: 0.05, thenDragTo: fim)
+            }
+            XCTAssertGreaterThanOrEqual(funcoes.frame.minY, 130)
+            capturarDisponibilidade(app, nome: "perfil-ax5-funcoes-horarios")
+        }
+    }
+
     private func conferirDisponibilidade(ax5: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
