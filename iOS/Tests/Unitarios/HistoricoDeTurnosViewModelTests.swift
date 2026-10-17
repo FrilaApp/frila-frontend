@@ -188,6 +188,93 @@ struct HistoricoDeTurnosViewModelTests {
         #expect(duble.pedidos.last?.periodo == (try PeriodoDeExportacao(de: DataCivil("2026-09-05"), ate: DataCivil("2026-09-10"))))
     }
 
+    @Test("Regra de limites: De > Até ajusta o outro limite e mantém faixas consistentes (UX-06)")
+    func regraDeLimitesDeMaiorQueAte() throws {
+        let de = try #require(ContratoAPI.instante("2026-09-20T15:00:00Z"))
+        let ate = try #require(ContratoAPI.instante("2026-09-10T15:00:00Z"))
+        let agora = try #require(ContratoAPI.instante("2026-10-03T15:00:00Z"))
+
+        // Regra pura: limites máximos e mínimos calculados
+        let limites = HistoricoDeTurnosViewModel.RegraDeLimites(de: de, ate: ate, agora: agora)
+        #expect(limites.maximoDe == ate)
+        #expect(limites.minimoAte == de)
+
+        // Ajuste puro ao alterar o Fim para antes do Início: leva o Início junto
+        let ajustadoFim = HistoricoDeTurnosViewModel.RegraDeLimites.ajustarAoMudarFim(fim: ate, inicioAtual: de, agora: agora)
+        #expect(ajustadoFim.fim == ate)
+        #expect(ajustadoFim.inicio == ate)
+
+        // Ajuste puro ao alterar o Início para depois do Fim: leva o Fim junto
+        let ajustadoInicio = HistoricoDeTurnosViewModel.RegraDeLimites.ajustarAoMudarInicio(inicio: de, fimAtual: ate, agora: agora)
+        #expect(ajustadoInicio.inicio == de)
+        #expect(ajustadoInicio.fim == de)
+
+        // No ViewModel: faixas do DatePicker respeitam limites e nunca invertem
+        let diretorio = try Self.diretorio()
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let vm = Self.modelo(DubleExportarTurnos(.success(.semTurnos)), agora: agora, diretorio: diretorio)
+        vm.escolher(.intervalo)
+        vm.escolher(inicio: de)
+        vm.escolher(fim: ate) // Troca de "Até" para antes do "De"
+        #expect(vm.inicioEscolhido == ate)
+        #expect(vm.fimEscolhido == ate)
+        #expect(vm.faixaDe.upperBound == ate)
+        #expect(vm.faixaAte.lowerBound == ate)
+        #expect(vm.faixaAte.upperBound == agora)
+    }
+
+    @Test("Regra de limites: De = Até é intervalo válido de um único dia (UX-06)")
+    func regraDeLimitesDeIgualAte() throws {
+        let mesmoDia = try #require(ContratoAPI.instante("2026-09-15T15:00:00Z"))
+        let agora = try #require(ContratoAPI.instante("2026-10-03T15:00:00Z"))
+
+        let limites = HistoricoDeTurnosViewModel.RegraDeLimites(de: mesmoDia, ate: mesmoDia, agora: agora)
+        #expect(limites.maximoDe == mesmoDia)
+        #expect(limites.minimoAte == mesmoDia)
+        #expect(limites.faixaDe.upperBound == mesmoDia)
+        #expect(limites.faixaAte.lowerBound == mesmoDia)
+        #expect(limites.faixaAte.upperBound == agora)
+
+        let diretorio = try Self.diretorio()
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let vm = Self.modelo(DubleExportarTurnos(.success(.semTurnos)), agora: agora, diretorio: diretorio)
+        vm.escolher(.intervalo)
+        vm.escolher(inicio: mesmoDia)
+        vm.escolher(fim: mesmoDia)
+        #expect(vm.periodo == (try PeriodoDeExportacao(de: DataCivil("2026-09-15"), ate: DataCivil("2026-09-15"))))
+        #expect(vm.faixaDe.upperBound == mesmoDia)
+        #expect(vm.faixaAte.lowerBound == mesmoDia)
+        #expect(vm.faixaAte.upperBound == agora)
+    }
+
+    @Test("Regra de limites: só um preenchido calcula limites parciais sem quebrar faixas (UX-06)")
+    func regraDeLimitesSoUmPreenchido() throws {
+        let dia = try #require(ContratoAPI.instante("2026-09-15T15:00:00Z"))
+        let agora = try #require(ContratoAPI.instante("2026-10-03T15:00:00Z"))
+
+        // Só "De" preenchido: máxima de "De" é agora; mínima de "Até" é "De"
+        let soDe = HistoricoDeTurnosViewModel.RegraDeLimites(de: dia, ate: nil, agora: agora)
+        #expect(soDe.maximoDe == agora)
+        #expect(soDe.minimoAte == dia)
+        #expect(soDe.faixaDe.upperBound == agora)
+        #expect(soDe.faixaAte.lowerBound == dia)
+        #expect(soDe.faixaAte.upperBound == agora)
+
+        // Só "Até" preenchido: máxima de "De" é "Até"; mínima de "Até" é nil (sem piso)
+        let soAte = HistoricoDeTurnosViewModel.RegraDeLimites(de: nil, ate: dia, agora: agora)
+        #expect(soAte.maximoDe == dia)
+        #expect(soAte.minimoAte == nil)
+        #expect(soAte.faixaDe.upperBound == dia)
+        #expect(soAte.faixaAte.lowerBound == agora)
+        #expect(soAte.faixaAte.upperBound == agora)
+
+        // Nenhum preenchido: limites padrão até agora
+        let nenhum = HistoricoDeTurnosViewModel.RegraDeLimites(de: nil, ate: nil, agora: agora)
+        #expect(nenhum.maximoDe == agora)
+        #expect(nenhum.minimoAte == nil)
+        #expect(nenhum.maximoDe == agora)
+    }
+
     @Test("0.2.37: datas livres de 30 dias exportam; 31 dias e atalhos de mês com 31 dias não chegam à API")
     func limiteDeTrintaDias() async throws {
         let diretorio = try Self.diretorio()
