@@ -776,6 +776,8 @@ public struct TelaPublicarVaga: View {
                     onDecrement: { model.decrementarPosicoes() }
                 )
                 .labelsHidden()
+                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
+                .accessibilityValue(Text(verbatim: model.posicoesTexto))
                 .accessibilityIdentifier("posicoes-vaga-stepper")
             }
             .modifier(CaixaDoCampoDePublicacao())
