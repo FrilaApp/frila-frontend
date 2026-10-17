@@ -63,6 +63,7 @@ struct TelaConforme: View {
                 selecionado = true
             }
         }
+        .animation(FrilaMovimento.animacao(reduzir: reduzirMovimento), value: selecionado)
     }
 }
 SWIFT
