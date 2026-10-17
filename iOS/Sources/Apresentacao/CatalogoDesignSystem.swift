@@ -20,6 +20,8 @@ public struct CatalogoDesignSystem: View {
     private let rotuloNormal = "Normal"
     private let rotuloPressionadoBotao = "Pressionado (0.96)"
     private let rotuloPressionadoChip = "Pressionado (0.94)"
+    private let textoExemploBotao = "Exemplo"
+    private let textoExemploChip = "Opção"
 
     private var esquemaDeCor: ColorScheme? {
         if ProcessInfo.processInfo.arguments.contains("-FRILA_MODO_ESCURO") {
@@ -50,13 +52,13 @@ public struct CatalogoDesignSystem: View {
                                     Text(verbatim: rotuloNormal)
                                         .font(FrilaTipo.nota)
                                         .foregroundStyle(FrilaCor.textoSecundario)
-                                    BotaoPrimario("Continuar") {}
+                                    BotaoPrimario(verbatim: textoExemploBotao) {}
                                 }
                                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                                     Text(verbatim: rotuloPressionadoBotao)
                                         .font(FrilaTipo.nota)
                                         .foregroundStyle(FrilaCor.textoSecundario)
-                                    BotaoPrimario("Continuar") {}
+                                    BotaoPrimario(verbatim: textoExemploBotao) {}
                                         .scaleEffect(FrilaMovimento.pressScaleBotao)
                                         .opacity(0.92)
                                 }
@@ -66,13 +68,13 @@ public struct CatalogoDesignSystem: View {
                                     Text(verbatim: rotuloNormal)
                                         .font(FrilaTipo.nota)
                                         .foregroundStyle(FrilaCor.textoSecundario)
-                                    FiltroPill("Perto de mim", selecionado: true) {}
+                                    FiltroPill(verbatim: textoExemploChip, selecionado: true) {}
                                 }
                                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                                     Text(verbatim: rotuloPressionadoChip)
                                         .font(FrilaTipo.nota)
                                         .foregroundStyle(FrilaCor.textoSecundario)
-                                    FiltroPill("Perto de mim", selecionado: true) {}
+                                    FiltroPill(verbatim: textoExemploChip, selecionado: true) {}
                                         .scaleEffect(FrilaMovimento.pressScaleChip)
                                         .opacity(0.92)
                                 }
