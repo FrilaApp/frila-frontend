@@ -44,6 +44,7 @@ public struct TelaContaSuspensa: View {
             Text(verbatim: TextosContaSuspensa.secaoMotivo)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.motivoTitulo)
@@ -88,6 +89,7 @@ public struct TelaContaSuspensa: View {
             Text(verbatim: TextosContaSuspensa.secaoContestacao)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             if let explicacao409 = viewModel.avisoExplicacao409 {
                 AvisoFrila(verbatim: explicacao409, tom: .alerta)
@@ -239,6 +241,7 @@ public struct TelaContaSuspensa: View {
             Text(verbatim: TextosContaSuspensa.secaoAcoes)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             ItemExportarDados(viewModel: exportarModel, identificador: "conta-suspensa-exportar-dados")
 
