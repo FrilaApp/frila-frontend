@@ -162,6 +162,7 @@ struct BotaoDeExclusaoDeConta: View {
 
 /// Perfil do profissional (#18), no quadro "MeuPerfil" do MidFi do Fabrício: dados no cartão, linhas num cartão único com chevron e "Excluir conta" de contorno.
 public struct TelaMeuPerfilProfissional: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -188,11 +189,11 @@ public struct TelaMeuPerfilProfissional: View {
                 else if let conta = model.conta, let perfil = model.perfil {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text(verbatim: conta.nome).font(Font.title2.bold()).foregroundStyle(FrilaCor.texto).accessibilityAddTraits(.isHeader)
-                        linha(TextosPerfilConta.telefone, conta.telefone)
-                        linha(TextosPerfilConta.email, conta.email)
+                        linha(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", contato: true)
+                        linha(TextosPerfilConta.email, conta.email, id: "perfil-email", contato: true)
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
-                        linha(TextosPerfilConta.funcao, perfil.funcoes.map(\.nome).joined(separator: ", "))
-                        linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao))
+                        linha(TextosPerfilConta.funcao, perfil.funcoes.map(\.nome).joined(separator: ", "), id: "perfil-funcoes")
+                        linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao), id: "perfil-horarios")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .cartaoFrila()
@@ -240,17 +241,37 @@ public struct TelaMeuPerfilProfissional: View {
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
 
-    private func linha(_ titulo: String, _ valor: String) -> some View {
-        LabeledContent {
-            Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-        } label: {
-            Text(verbatim: titulo)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.texto)
+    @ViewBuilder
+    private func linha(_ titulo: String, _ valor: String, id: String, contato: Bool = false) -> some View {
+        let rotulo = Text(verbatim: titulo)
+            .font(FrilaTipo.meta)
+            .foregroundStyle(FrilaCor.texto)
+            .accessibilityIdentifier("\(id)-rotulo")
+        let conteudo = Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
+            .font(FrilaTipo.meta)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .accessibilityIdentifier("\(id)-valor")
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                rotulo.fixedSize(horizontal: false, vertical: true)
+                if contato {
+                    // Contatos longos permanecem inteiros, com o fim acessível por rolagem.
+                    ScrollView(.horizontal) {
+                        conteudo.fixedSize(horizontal: true, vertical: false)
+                            .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("\(id)-rolagem")
+                } else {
+                    conteudo.fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .contain)
+        } else {
+            LabeledContent { conteudo } label: { rotulo }
+                .accessibilityElement(children: .combine)
         }
-        .accessibilityElement(children: .combine)
     }
 
     /// "Excluir conta" do MidFi: botão de contorno `perigo` num cartão próprio, longe das linhas comuns.

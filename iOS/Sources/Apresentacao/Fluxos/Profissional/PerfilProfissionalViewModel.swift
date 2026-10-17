@@ -19,6 +19,16 @@ public final class PerfilProfissionalViewModel {
     public private(set) var sugestoes: [MKMapItem] = []
     public private(set) var carregandoBusca: Bool = false
     public private(set) var disponibilidades: [JanelaDeDisponibilidade] = []
+    public var diaNovo: Int = 5 {
+        didSet { temJanelaPendente = true }
+    }
+    public var inicioNovo: Date = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: .now) ?? .now {
+        didSet { temJanelaPendente = true }
+    }
+    public var fimNovo: Date = Calendar.current.date(bySettingHour: 2, minute: 0, second: 0, of: .now) ?? .now {
+        didSet { temJanelaPendente = true }
+    }
+    public private(set) var temJanelaPendente = false
     public private(set) var carregando: Bool = false
     public private(set) var salvando: Bool = false
     public var mensagemDeErro: String?
@@ -137,6 +147,25 @@ public final class PerfilProfissionalViewModel {
         mensagemDeErro = nil
     }
 
+    @discardableResult
+    public func adicionarJanelaDoFormulario() -> Bool {
+        let calendario = Calendar.current
+        do {
+            let inicio = try HoraDoDia(hora: calendario.component(.hour, from: inicioNovo), minuto: calendario.component(.minute, from: inicioNovo))
+            let fim = try HoraDoDia(hora: calendario.component(.hour, from: fimNovo), minuto: calendario.component(.minute, from: fimNovo))
+            guard (0...6).contains(diaNovo), inicio != fim else {
+                mensagemDeErro = TextosDoProfissional.Perfil.erroJanelaDuracaoZero
+                return false
+            }
+            adicionarJanela(diaDaSemana: diaNovo, inicio: inicio, fim: fim)
+            temJanelaPendente = false
+            return true
+        } catch {
+            mensagemDeErro = TextosDoProfissional.Perfil.erroHorarioInvalido
+            return false
+        }
+    }
+
     public func removerJanela(em indices: IndexSet) {
         disponibilidades.remove(atOffsets: indices)
     }
@@ -190,6 +219,8 @@ public final class PerfilProfissionalViewModel {
             mensagemDeErro = TextosDoProfissional.Perfil.erroSemPontoBase
             return false
         }
+
+        if temJanelaPendente, !adicionarJanelaDoFormulario() { return false }
 
         salvando = true
         defer { salvando = false }
