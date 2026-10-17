@@ -246,4 +246,22 @@ struct SegurancaViewModelTests {
         let filtradas = bloqueios.filtrar([])
         #expect(filtradas.isEmpty)
     }
+
+    // MARK: - Limite do relato (UX-05)
+
+    @Test("Limite do relato: relatoValido exige pelo menos 10 caracteres sem contar espaços nas pontas")
+    func limiteDoRelatoExigeDezCaracteres() async throws {
+        let api = ApiDeSeguranca()
+        let model = SegurancaViewModel(perfil: try await perfil(api), api: api, bloqueios: BloqueiosDaSessao())
+        model.relato = ""
+        #expect(!model.relatoValido)
+        model.relato = "123456789"
+        #expect(!model.relatoValido)
+        model.relato = "  123456789  "
+        #expect(!model.relatoValido)
+        model.relato = "1234567890"
+        #expect(model.relatoValido)
+        model.relato = "  1234567890  "
+        #expect(model.relatoValido)
+    }
 }

@@ -196,10 +196,19 @@ public struct FolhaSuporteTurno: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-suporte")
+            .accessibilityHint(Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count) \(TextosDoSuporte.caracteres)"))
 
-            Text(verbatim: TextosDoSuporte.dicaRelato)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
+            HStack {
+                Text(verbatim: TextosDoSuporte.dicaRelato)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                Spacer()
+                Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)")
+                    .font(FrilaTipo.nota.monospacedDigit())
+                    .foregroundStyle(viewModel.relatoValido ? FrilaCor.texto : FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("contador-relato-suporte")
+                    .accessibilityLabel(Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count) \(TextosDoSuporte.caracteres)"))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -283,7 +292,7 @@ public struct FolhaSuporteTurno: View {
                     })
                 }
             }
-            .disabled(viewModel.enviando)
+            .disabled(viewModel.enviando || !viewModel.relatoValido)
             .accessibilityIdentifier("botao-enviar-email-suporte")
             .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaEnviarEmail))
 

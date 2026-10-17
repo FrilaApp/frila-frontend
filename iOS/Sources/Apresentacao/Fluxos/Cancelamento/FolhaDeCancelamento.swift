@@ -75,10 +75,11 @@ public struct FolhaDeCancelamento: View {
         if let motivo = viewModel.motivo {
             // O rótulo do campo é o mesmo do título: obrigatório em "Outro motivo", opcional nos demais.
             let rotulo = motivo.exigeDetalhes ? TextosDoCancelamento.detalhesObrigatorios : TextosDoCancelamento.detalhesTitulo
+            let prompt = motivo.exigeDetalhes ? Text(verbatim: TextosDoCancelamento.placeholderDetalhes) : nil
             Text(verbatim: rotulo)
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
-            TextField(text: $viewModel.detalhes, prompt: nil, axis: .vertical) {
+            TextField(text: $viewModel.detalhes, prompt: prompt, axis: .vertical) {
                 Text(verbatim: rotulo)
             }
             .lineLimit(2...5)

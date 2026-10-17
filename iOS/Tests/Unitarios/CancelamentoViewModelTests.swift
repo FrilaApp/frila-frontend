@@ -290,4 +290,14 @@ private final class ChamadaEspiada: @unchecked Sendable {
         await viewModel.confirmar()
         #expect(viewModel.estado == .falha(TextosDoCancelamento.falhaAoGuardar))
     }
+
+    @Test func outroMotivoExigeDetalhesEOutrosMotivosNaoExigem() {
+        for motivo in MotivoDeCancelamento.allCases {
+            if motivo == .outro {
+                #expect(motivo.exigeDetalhes)
+            } else {
+                #expect(!motivo.exigeDetalhes)
+            }
+        }
+    }
 }
