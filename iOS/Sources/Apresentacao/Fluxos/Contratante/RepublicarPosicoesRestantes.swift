@@ -253,7 +253,7 @@ public struct BotaoRepublicarPosicoesRestantes: View {
                 isPresented: $confirmandoUrgencia
             ) {
                 Button(TextosRepublicarPosicoesRestantes.cancelar, role: .cancel) {}
-                Button(TextosRepublicarPosicoesRestantes.confirmar, role: .destructive) {
+                Button(TextosRepublicarPosicoesRestantes.confirmar) {
                     Task { await viewModel.executar() }
                 }
                 .accessibilityIdentifier("confirmar-republicacao-urgencia-alerta")

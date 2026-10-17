@@ -174,13 +174,16 @@ public final class PublicarVagaViewModel {
         return valorCentavos * posicoes
     }
 
-    private var posicoesNormalizadas: Int {
-        let valor = Int(posicoesTexto) ?? 1
-        return valor < 1 ? 1 : min(valor, 200)
+    private var posicoesValidas: Int? {
+        guard let valor = Int(posicoesTexto), valor >= 1 else { return nil }
+        return min(valor, 200)
     }
 
     public func incrementarPosicoes() {
-        let atual = posicoesNormalizadas
+        guard let atual = posicoesValidas else {
+            posicoesTexto = "1"
+            return
+        }
         if atual < 200 {
             posicoesTexto = String(atual + 1)
         } else {
@@ -189,7 +192,10 @@ public final class PublicarVagaViewModel {
     }
 
     public func decrementarPosicoes() {
-        let atual = posicoesNormalizadas
+        guard let atual = posicoesValidas else {
+            posicoesTexto = "1"
+            return
+        }
         if atual > 1 {
             posicoesTexto = String(atual - 1)
         } else {
