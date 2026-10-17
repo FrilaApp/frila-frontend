@@ -71,6 +71,15 @@ struct ComponentesDesignD01Tests {
         #expect(FrilaMoney.spoken(cents: -100) == "menos 1 real")
         #expect(FrilaMoney.spoken(cents: -50) == "menos 50 centavos")
         #expect(FrilaMoney.spoken(reais: -1, centavos: 50) == "menos 1 real e 50 centavos")
+
+        // Limites extremos: Int.min e Int.max tratados com magnitude sem perda de centavos
+        #expect(FrilaMoney.spoken(cents: Int.min) == "menos 92.233.720.368.547.758 reais e 8 centavos")
+        #expect(FrilaMoney.spoken(cents: Int.max) == "92.233.720.368.547.758 reais e 7 centavos")
+
+        // Guarda de overflow em spoken(reais:centavos:)
+        #expect(FrilaMoney.spoken(reais: Int.max) == "9.223.372.036.854.775.807 reais")
+        #expect(FrilaMoney.spoken(reais: Int.min) == "menos 9.223.372.036.854.775.808 reais")
+        #expect(FrilaMoney.spoken(reais: Int.max, centavos: 50, por: "hora") == "9.223.372.036.854.775.807 reais por hora")
     }
 
     // MARK: - Lacuna 2: Estilos Táteis e Reduzir Movimento
@@ -128,7 +137,6 @@ struct ComponentesDesignD01Tests {
         // Camada 1: Rim / Contato (raio milimétrico, y curto, opacidade controlada)
         #expect(camadasClaro[0].raio == 2)
         #expect(camadasClaro[0].y == 1)
-        #expect(camadasClaro[0].opacidade == 0.05)
         #expect(camadasClaro[0].cor == Color.black.opacity(0.05))
 
         // Camada 2: Key / Luz direta (raio médio, y intermediário)
@@ -144,7 +152,6 @@ struct ComponentesDesignD01Tests {
         #expect(camadasEscuro.count == 3)
         #expect(camadasEscuro[0].raio == 2)
         #expect(camadasEscuro[0].y == 1)
-        #expect(camadasEscuro[0].opacidade == 0.36)
         #expect(camadasEscuro[0].cor == Color.black.opacity(0.36))
         #expect(camadasEscuro[1].raio == 12)
         #expect(camadasEscuro[2].raio == 28)

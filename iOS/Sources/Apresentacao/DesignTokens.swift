@@ -140,22 +140,12 @@ public enum FrilaMovimento {
 /// Representação individual de uma camada de sombra dentro do sistema Beautiful Shadows (FrilaLowPhase).
 public struct CamadaDeSombra: Sendable, Equatable {
     public let cor: Color
-    public let opacidade: CGFloat
     public let raio: CGFloat
     public let x: CGFloat
     public let y: CGFloat
 
-    public init(cor: Color, opacidade: CGFloat, raio: CGFloat, x: CGFloat = 0, y: CGFloat) {
-        self.cor = cor
-        self.opacidade = opacidade
-        self.raio = raio
-        self.x = x
-        self.y = y
-    }
-
     public init(cor: Color, raio: CGFloat, x: CGFloat = 0, y: CGFloat) {
         self.cor = cor
-        self.opacidade = 1.0
         self.raio = raio
         self.x = x
         self.y = y
@@ -179,30 +169,30 @@ public enum FrilaElevacao: String, Sendable, CaseIterable, Equatable {
         case .sutil:
             if escuro {
                 return [
-                    CamadaDeSombra(cor: Color.black.opacity(0.26), opacidade: 0.26, raio: 1.5, x: 0, y: 1),
-                    CamadaDeSombra(cor: Color.black.opacity(0.20), opacidade: 0.20, raio: 5, x: 0, y: 2.5),
-                    CamadaDeSombra(cor: Color.black.opacity(0.14), opacidade: 0.14, raio: 14, x: 0, y: 6)
+                    CamadaDeSombra(cor: Color.black.opacity(0.26), raio: 1.5, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.20), raio: 5, x: 0, y: 2.5),
+                    CamadaDeSombra(cor: Color.black.opacity(0.14), raio: 14, x: 0, y: 6)
                 ]
             } else {
                 return [
-                    CamadaDeSombra(cor: Color.black.opacity(0.04), opacidade: 0.04, raio: 1.5, x: 0, y: 1),
-                    CamadaDeSombra(cor: Color.black.opacity(0.03), opacidade: 0.03, raio: 5, x: 0, y: 2.5),
-                    CamadaDeSombra(cor: Color.black.opacity(0.02), opacidade: 0.02, raio: 14, x: 0, y: 6)
+                    CamadaDeSombra(cor: Color.black.opacity(0.04), raio: 1.5, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.03), raio: 5, x: 0, y: 2.5),
+                    CamadaDeSombra(cor: Color.black.opacity(0.02), raio: 14, x: 0, y: 6)
                 ]
             }
         case .folha:
             if escuro {
                 // Sombra fraca no escuro, igual à regra do LowPhase
                 return [
-                    CamadaDeSombra(cor: Color.black.opacity(0.36), opacidade: 0.36, raio: 2, x: 0, y: 1),
-                    CamadaDeSombra(cor: Color.black.opacity(0.24), opacidade: 0.24, raio: 12, x: 0, y: 6),
-                    CamadaDeSombra(cor: Color.black.opacity(0.18), opacidade: 0.18, raio: 28, x: 0, y: 14)
+                    CamadaDeSombra(cor: Color.black.opacity(0.36), raio: 2, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.24), raio: 12, x: 0, y: 6),
+                    CamadaDeSombra(cor: Color.black.opacity(0.18), raio: 28, x: 0, y: 14)
                 ]
             } else {
                 return [
-                    CamadaDeSombra(cor: Color.black.opacity(0.05), opacidade: 0.05, raio: 2, x: 0, y: 1),
-                    CamadaDeSombra(cor: Color.black.opacity(0.06), opacidade: 0.06, raio: 12, x: 0, y: 6),
-                    CamadaDeSombra(cor: Color.black.opacity(0.04), opacidade: 0.04, raio: 28, x: 0, y: 14)
+                    CamadaDeSombra(cor: Color.black.opacity(0.05), raio: 2, x: 0, y: 1),
+                    CamadaDeSombra(cor: Color.black.opacity(0.06), raio: 12, x: 0, y: 6),
+                    CamadaDeSombra(cor: Color.black.opacity(0.04), raio: 28, x: 0, y: 14)
                 ]
             }
         }
@@ -217,11 +207,18 @@ public struct ModificadorElevacaoFrila: ViewModifier {
         self.elevacao = elevacao
     }
 
+    @ViewBuilder
     public func body(content: Content) -> some View {
         let escuro = colorScheme == .dark
-        let camadas = elevacao.camadas(escuro: escuro)
-        return camadas.reduce(AnyView(content)) { acumulador, camada in
-            AnyView(acumulador.shadow(color: camada.cor, radius: camada.raio, x: camada.x, y: camada.y))
+        let c = elevacao.camadas(escuro: escuro)
+        switch elevacao {
+        case .nenhuma:
+            content
+        case .sutil, .folha:
+            content
+                .shadow(color: c[0].cor, radius: c[0].raio, x: c[0].x, y: c[0].y)
+                .shadow(color: c[1].cor, radius: c[1].raio, x: c[1].x, y: c[1].y)
+                .shadow(color: c[2].cor, radius: c[2].raio, x: c[2].x, y: c[2].y)
         }
     }
 }
@@ -234,9 +231,9 @@ public enum FrilaMoney {
     /// Centavos por extenso, suporte a zero, 1 real, negativos e milhares ("160 reais por hora", "1 real", "0 reais", "1.000 reais", "menos 1 real e 50 centavos").
     public static func spoken(cents: Int, por unidade: String? = nil) -> String {
         let isNegative = cents < 0
-        let absCents = cents == Int.min ? Int.max : abs(cents)
-        let reais = absCents / 100
-        let centavos = absCents % 100
+        let mag = cents.magnitude
+        let reais = mag / 100
+        let centavos = mag % 100
 
         let reaisFormatado: String
         if reais == 1 {
@@ -274,7 +271,21 @@ public enum FrilaMoney {
 
     /// Conveniência aceitando reais e centavos inteiros.
     public static func spoken(reais: Int, centavos: Int = 0, por unidade: String? = nil) -> String {
-        let totalCents = (reais * 100) + (reais < 0 ? -abs(centavos) : centavos)
+        let (reaisEmCentavos, overflowMult) = reais.multipliedReportingOverflow(by: 100)
+        let centavosAjustados = reais < 0 ? -abs(centavos) : centavos
+        let (totalCents, overflowSoma) = reaisEmCentavos.addingReportingOverflow(centavosAjustados)
+
+        if overflowMult || overflowSoma {
+            // Em caso de overflow aritmético, devolve representação segura baseada na magnitude dos reais
+            let isNegative = reais < 0
+            let mag = reais.magnitude
+            let texto = "\(isNegative ? "menos " : "")\(mag.formatted(.number.locale(locale))) reais"
+            if let unidade, !unidade.isEmpty {
+                return "\(texto) por \(unidade)"
+            }
+            return texto
+        }
+
         return spoken(cents: totalCents, por: unidade)
     }
 }
