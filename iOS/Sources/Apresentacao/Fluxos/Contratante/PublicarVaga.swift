@@ -773,10 +773,8 @@ public struct TelaPublicarVaga: View {
     private var campoPosicoes: some View {
         campo(.posicoes, titulo: TextosPublicarVaga.posicoes) {
             HStack(spacing: FrilaEspaco.minimo) {
-                TextField(TextosPublicarVaga.posicoesExemplo, text: $model.posicoesTexto)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.plain)
-                    .font(FrilaTipo.valorDoCampo)
+                CampoPosicoesVaga(texto: $model.posicoesTexto)
+                    .frame(minHeight: FrilaMetrica.alturaDoCampo)
                     .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
                     .accessibilityIdentifier("posicoes-vaga-campo")
                 Stepper(
@@ -958,3 +956,52 @@ struct CampoValorVaga: UIViewRepresentable {
         return String(format: TextosPublicarVaga.formatoValor, reais, resto)
     }
 }
+
+/// Campo numérico de posições com altura mínima de toque e comportamento UIKit compatível.
+struct CampoPosicoesVaga: UIViewRepresentable {
+    @Binding var texto: String
+    @Environment(\.isEnabled) private var habilitado
+
+    func makeCoordinator() -> Coordenador { Coordenador(texto: $texto) }
+
+    func makeUIView(context: Context) -> UITextField {
+        let campo = UITextField()
+        campo.keyboardType = .numberPad
+        campo.borderStyle = .none
+        campo.font = .preferredFont(forTextStyle: .body)
+        campo.adjustsFontForContentSizeCategory = true
+        campo.textColor = FrilaCor.textoUIKit
+        campo.placeholder = TextosPublicarVaga.posicoesExemplo
+        campo.accessibilityLabel = TextosPublicarVaga.posicoes
+        campo.accessibilityIdentifier = "posicoes-vaga-campo"
+        campo.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        campo.setContentHuggingPriority(.defaultLow, for: .vertical)
+        campo.addTarget(context.coordinator, action: #selector(Coordenador.editar(_:)), for: .editingChanged)
+        campo.delegate = context.coordinator
+        return campo
+    }
+
+    func updateUIView(_ campo: UITextField, context: Context) {
+        context.coordinator.texto = $texto
+        campo.isEnabled = habilitado
+        if campo.text != texto { campo.text = texto }
+    }
+
+    @MainActor
+    final class Coordenador: NSObject, UITextFieldDelegate {
+        var texto: Binding<String>
+
+        init(texto: Binding<String>) { self.texto = texto }
+
+        func textField(_ campo: UITextField, shouldChangeCharactersIn intervalo: NSRange, replacementString novo: String) -> Bool {
+            let permitidos = CharacterSet(charactersIn: "0123456789")
+            let conjuntoNovo = CharacterSet(charactersIn: novo)
+            return permitidos.isSuperset(of: conjuntoNovo)
+        }
+
+        @objc func editar(_ campo: UITextField) {
+            texto.wrappedValue = campo.text ?? ""
+        }
+    }
+}
+
