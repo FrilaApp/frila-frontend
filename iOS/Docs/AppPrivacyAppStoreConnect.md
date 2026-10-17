@@ -55,8 +55,8 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Funcionalidade do App (*App Functionality*) — Validação presencial do check-in no local do turno por aproximação geográfica e cálculo da distância do profissional até o ponto da vaga. Não há coleta em segundo plano (*background location*).
-   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift`, `iOS/Sources/Apresentacao/Fluxos/Profissional/PresencaDoTurnoViewModel.swift`, `iOS/Sources/App/Info.plist` (`NSLocationWhenInUseUsageDescription`).
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) — Cadastro e alteração do ponto base do profissional (`ponto_base`) para despacho e cálculo de proximidade de vagas (a até 15 km), e cadastro da coordenada geográfica de estabelecimentos (`ponto`) pelo contratante. O check-in e check-out presenciais NÃO enviam coordenadas geográficas ao servidor: a leitura da localização do aparelho é utilizada exclusivamente no dispositivo para calcular a distância em metros até o ponto da vaga, enviando apenas o valor inteiro da distância e o instante do toque (RN22). Não há coleta de localização em segundo plano (*background location*).
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Profissional/PerfilProfissionalViewModel.swift` (`pontoBase`), `iOS/Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift` (`ponto`), `iOS/Sources/Dados/DTOsContrato.swift` (`CadastroPerfilProfissionalDTO.ponto_base`, `CadastroEstabelecimentoDTO.ponto`), `iOS/Sources/App/Info.plist` (`NSLocationWhenInUseUsageDescription`).
 
 ---
 
@@ -181,7 +181,7 @@ Todas as URLs oficiais foram confirmadas em produção sob protocolo seguro HTTP
 | Nome e E-mail | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeName`, `EmailAddress`) | Sim (Seção 2.1) | `Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift`, `Apresentacao/Fluxos/Autenticacao/EntradaViewModel.swift` |
 | Telefone | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePhoneNumber`) | Sim (Seção 2.1) | `Dominio/Portas.swift`, `Apresentacao/Fluxos/Profissional/TelaMeusTurnos.swift` |
 | Endereço Físico | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePhysicalAddress`) | Sim (Seção 2.2) | `Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift`, `Dominio/Localizacao.swift` |
-| Localização Precisa | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePreciseLocation`) | Sim (Seção 2.3) | `Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift`, `Apresentacao/Fluxos/Profissional/PresencaDoTurnoViewModel.swift` |
+| Localização Precisa | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePreciseLocation`) | Sim (Seção 2.2) | Ponto base (`PerfilProfissionalViewModel.swift`), ponto do estabelecimento (`CadastroEstabelecimento.swift`) e `Dados/DTOsContrato.swift` (o check-in envia apenas a distância calculada, não coordenadas) |
 | Identificadores (UUID, FCM) | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeUserID`, `DeviceID`) | Sim (Seção 2.4) | `Dados/SessaoNoKeychainDoAparelho.swift`, `Dados/AparelhoDePush.swift` |
 | Conteúdo do Usuário | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherUserContent`) | Sim (Seção 2.5) | `Apresentacao/Fluxos/Contratante/PublicarVaga.swift`, `Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift` |
 | Data de Nascimento | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDataTypes`) | Sim (Seção 2.1 / Maioridade 18+) | `Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift` |
