@@ -442,4 +442,18 @@ struct SwiftDataTests {
         try contextoV4.save()
         #expect(try contextoV4.fetchCount(FetchDescriptor<EventoDeTelemetriaPersistido>()) == 1)
     }
+
+    @Test("Container persistente exclui o diretório Frila de backups (iCloud e Finder)")
+    func diretorioExcluidoDeBackup() throws {
+        let suporte = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let diretorio = suporte.appending(path: "Frila", directoryHint: .isDirectory)
+        _ = try PersistenciaFrila.criarContainer(emMemoria: false)
+        let valores = try diretorio.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        #expect(valores.isExcludedFromBackup == true)
+    }
 }

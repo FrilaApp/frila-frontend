@@ -1,5 +1,6 @@
 import Foundation
 import FrilaDominio
+import OSLog
 
 /// Sair da conta apaga o cache e a fila deste aparelho. O cache guarda o telefone da outra parte
 /// (RN10) e a fila guarda ações da conta que saiu: nada disso pode sobrar para a próxima conta que
@@ -84,9 +85,18 @@ public struct SaidaDaConta: ContaRepositorio {
         if let armazenamento {
             // `ArmazenamentoSwiftData.limpar` apaga turnos, funções, sessão e fila de uma vez; as duas
             // chamadas mantêm a regra certa se as portas passarem a ter implementações separadas.
-            try? await (armazenamento as any CacheLocal).limpar()
-            try? await (armazenamento as any FilaDeAcoes).limpar()
+            do {
+                try await (armazenamento as any CacheLocal).limpar()
+            } catch {
+                Logger(subsystem: "frila", category: "cache").error("[cache] falha ao limpar CacheLocal na saída da conta: \(error.localizedDescription)")
+            }
+            do {
+                try await (armazenamento as any FilaDeAcoes).limpar()
+            } catch {
+                Logger(subsystem: "frila", category: "cache").error("[cache] falha ao limpar FilaDeAcoes na saída da conta: \(error.localizedDescription)")
+            }
         }
         limparDestino()
+        URLCache.shared.removeAllCachedResponses()
     }
 }

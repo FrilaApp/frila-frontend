@@ -147,6 +147,10 @@ public enum PersistenciaFrila {
             )
             let diretorio = suporte.appending(path: "Frila", directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+            var valores = URLResourceValues()
+            valores.isExcludedFromBackup = true
+            var diretorioMutavel = diretorio
+            try diretorioMutavel.setResourceValues(valores)
             try FileManager.default.setAttributes(
                 [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
                 ofItemAtPath: diretorio.path()
