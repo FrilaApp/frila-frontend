@@ -156,7 +156,9 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         tocar(codigo)
         codigo.digitarEEsperar("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
         abrirTurno(app)
         conferirAvaliacaoNegativa(app)
     }

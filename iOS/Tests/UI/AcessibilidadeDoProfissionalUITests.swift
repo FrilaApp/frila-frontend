@@ -28,15 +28,11 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
         codigo.typeText("123456")
-        app.buttons["codigo-entrar"].tap()
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
-        // 3. TelaCadastro: checkboxes com alvos >= 44x44 pt
-        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
-        XCTAssertTrue(maiorIdade.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(maiorIdade.frame.width)
-        XCTAssertAlvoMinimo(maiorIdade.frame.height)
-        XCTAssertTrue(maiorIdade.isHittable)
-
+        // 3. TelaCadastro: checkbox de termos com alvos >= 44x44 pt
         let termos = app.buttons["cadastro-termos"]
         XCTAssertTrue(termos.waitForExistence(timeout: 10))
         // Com os campos de 52 pt do MidFi, os termos ficam abaixo da dobra em telas menores.
@@ -45,10 +41,8 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertAlvoMinimo(termos.frame.height)
         XCTAssertTrue(termos.isHittable)
 
-        // Alterna opcoes pelo toque
-        maiorIdade.tap()
+        // Alterna opcao pelo toque
         termos.tap()
-        XCTAssertTrue(maiorIdade.isSelected)
         XCTAssertTrue(termos.isSelected)
     }
 

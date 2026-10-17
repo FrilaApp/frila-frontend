@@ -30,7 +30,9 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
         codigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         let perfil = app.buttons["cadastro-perfil-contratante"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
@@ -47,10 +49,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
-
-        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
+        fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
@@ -90,7 +89,9 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
         codigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         let perfil = app.buttons["cadastro-perfil-contratante"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
@@ -107,10 +108,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
-
-        let maiorIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorIdade, app: app)
-        maiorIdade.tap()
+        fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)

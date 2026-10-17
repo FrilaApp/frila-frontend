@@ -36,7 +36,9 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         XCTAssertTrue(codigo.waitForExistence(timeout: 10), "Campo de código deve estar visível")
         codigo.tap()
         codigo.typeText("123456")
-        tocar(app.buttons["codigo-entrar"])
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
 
         // 2. Seleção do perfil Contratante e dados pessoais
         let perfilContratante = app.buttons["cadastro-perfil-contratante"]
@@ -57,11 +59,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         rolarAte(nascimento, app: app)
         nascimento.tap()
         nascimento.typeText("15/05/1995")
-
-        let maiorDeIdade = app.buttons["cadastro-maior-de-idade"]
-        rolarAte(maiorDeIdade, app: app)
-        XCTAssertTrue(maiorDeIdade.waitForExistence(timeout: 10))
-        maiorDeIdade.tap()
+        fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)

@@ -59,7 +59,6 @@ struct EntradaECadastroBordasTests {
         vm.nome = "Beatriz Souza"
         vm.telefone = "(61) 98888-7777"
         vm.nascimentoTexto = "12/04/1998"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
         return vm
     }
