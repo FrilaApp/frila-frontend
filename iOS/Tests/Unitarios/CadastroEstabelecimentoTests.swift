@@ -10,11 +10,145 @@ struct CadastroEstabelecimentoTests {
     @Test("Máscara mantém CPF e CNPJ visualmente formatados e envia apenas dígitos")
     func mascara() {
         let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        // CPF completo (11 dígitos)
         vm.atualizarDocumento("12345678901")
         #expect(vm.documentoFormatado == "123.456.789-01")
+        #expect(vm.documento == "12345678901")
+
+        // CNPJ completo (14 dígitos)
         vm.atualizarDocumento("12345678000199")
         #expect(vm.documentoFormatado == "12.345.678/0001-99")
         #expect(vm.documento == "12345678000199")
+
+        // Dígitos parciais (digitação progressiva)
+        vm.atualizarDocumento("123")
+        #expect(vm.documentoFormatado == "123")
+        vm.atualizarDocumento("1234")
+        #expect(vm.documentoFormatado == "123.4")
+        vm.atualizarDocumento("123456")
+        #expect(vm.documentoFormatado == "123.456")
+        vm.atualizarDocumento("1234567")
+        #expect(vm.documentoFormatado == "123.456.7")
+        vm.atualizarDocumento("123456789")
+        #expect(vm.documentoFormatado == "123.456.789")
+        vm.atualizarDocumento("1234567890")
+        #expect(vm.documentoFormatado == "123.456.789-0")
+        vm.atualizarDocumento("123456789012")
+        #expect(vm.documentoFormatado == "12.345.678/9012")
+        vm.atualizarDocumento("1234567890123")
+        #expect(vm.documentoFormatado == "12.345.678/9012-3")
+        vm.atualizarDocumento("12345678901234")
+        #expect(vm.documentoFormatado == "12.345.678/9012-34")
+
+        // Filtragem de caracteres não numéricos e teto em 14 dígitos
+        vm.atualizarDocumento("12.345.678/0001-99 abc !?")
+        #expect(vm.documento == "12345678000199")
+        #expect(vm.documentoFormatado == "12.345.678/0001-99")
+
+        vm.atualizarDocumento("1234567800019999999")
+        #expect(vm.documento.count == 14)
+        #expect(vm.documento == "12345678000199")
+    }
+
+    @Test("Validação de documento recusa tamanhos diferentes de 11 e 14 dígitos")
+    func validacaoDocumento() async {
+        for docInvalido in ["", "1", "1234567890", "123456789012", "1234567890123"] {
+            let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+            preencher(vm)
+            vm.atualizarDocumento(docInvalido)
+            await vm.salvar()
+            #expect(vm.erro == .campo(.documento, .invalido), "Documento '\(docInvalido)' deveria ser inválido")
+            #expect(!vm.concluido)
+        }
+    }
+
+    @Test("Lista oficial contém exatamente as 35 Regiões Administrativas do DF sem repetição")
+    func lista35RegioesAdministrativasOficiais() {
+        let ras = CadastroEstabelecimentoViewModel.regioesAdministrativas
+        #expect(ras.count == 35, "Devem existir exatamente 35 RAs oficiais do DF")
+        #expect(Set(ras).count == 35, "A lista não pode conter RAs repetidas")
+
+        // Contém RAs clássicas e recentes do GDF (leis 7.190 e 7.191 de 2022)
+        let esperadas = [
+            "Água Quente", "Águas Claras", "Arapoanga", "Arniqueira", "Brazlândia",
+            "Candangolândia", "Ceilândia", "Cruzeiro", "Fercal", "Gama",
+            "Guará", "Itapoã", "Jardim Botânico", "Lago Norte", "Lago Sul",
+            "Núcleo Bandeirante", "Paranoá", "Park Way", "Planaltina", "Plano Piloto",
+            "Recanto das Emas", "Riacho Fundo", "Riacho Fundo II", "Samambaia", "Santa Maria",
+            "São Sebastião", "SCIA / Estrutural", "SIA", "Sobradinho", "Sobradinho II",
+            "Sol Nascente/Pôr do Sol", "Sudoeste/Octogonal", "Taguatinga", "Varjão", "Vicente Pires"
+        ]
+        for esperada in esperadas {
+            #expect(ras.contains(esperada), "Deveria conter a RA \(esperada)")
+        }
+        #expect(ras == ras.sorted { $0.localizedStandardCompare($1) == .orderedAscending }, "A lista deve estar em ordem alfabética para facilitar a seleção")
+    }
+
+    @Test("Casamento de RA por texto identifica regiões, numerais romanos e bairros do Plano Piloto")
+    func casamentoDeRegiaoPorTexto() {
+        // Casamentos diretos e com acentuação/maiúsculas
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Águas Claras, Brasília - DF") == "Águas Claras")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Av. das Castanheiras - aguas claras") == "Águas Claras")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Taguatinga Sul") == "Taguatinga")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Ceilândia Centro") == "Ceilândia")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Guará II") == "Guará")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Gama Leste") == "Gama")
+
+        // Bairros clássicos que casam com Plano Piloto
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Asa Sul") == "Plano Piloto")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Asa Norte, Brasília - DF") == "Plano Piloto")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Noroeste") == "Plano Piloto")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Vila Planalto") == "Plano Piloto")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Plano Piloto") == "Plano Piloto")
+
+        // Distinção de numerais romanos (II antes de I)
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Riacho Fundo II, QN 14") == "Riacho Fundo II")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Riacho Fundo 2") == "Riacho Fundo II")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Riacho Fundo I") == "Riacho Fundo")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Riacho Fundo") == "Riacho Fundo")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Sobradinho II") == "Sobradinho II")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Sobradinho") == "Sobradinho")
+
+        // Nomes compostos com barra
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Sudoeste") == "Sudoeste/Octogonal")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Octogonal") == "Sudoeste/Octogonal")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Estrutural") == "SCIA / Estrutural")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "SCIA Trecho 2") == "SCIA / Estrutural")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Sol Nascente") == "Sol Nascente/Pôr do Sol")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Pôr do Sol") == "Sol Nascente/Pôr do Sol")
+
+        // RAs recentes
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Arapoanga") == "Arapoanga")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Água Quente") == "Água Quente")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Arniqueiras") == "Arniqueira")
+
+        // SIA (não deve casar falso-positivo com Brasília)
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "SIA Trecho 3") == "SIA")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Setor de Indústria e Abastecimento") == "SIA")
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Brasília, DF") == nil)
+
+        // Casos que não devem casar
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Goiânia, GO") == nil)
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "Rua 12, Casa 3") == nil)
+        #expect(CadastroEstabelecimentoViewModel.casarRegiaoAdministrativa(noTexto: "") == nil)
+    }
+
+    @Test("Selecionar endereço pré-seleciona a RA correspondente ou deixa vazio se não houver casamento")
+    func preSelecaoAoSelecionarItem() {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let coord = CLLocationCoordinate2D(latitude: -15.83, longitude: -48.02)
+
+        // Item com nome casando com Águas Claras
+        let itemAguasClaras = MKMapItem(placemark: MKPlacemark(coordinate: coord))
+        itemAguasClaras.name = "Restaurante Águas Claras"
+        vm.selecionar(itemAguasClaras)
+        #expect(vm.regiaoAdministrativa == "Águas Claras")
+
+        // Item com endereço que não casa com nenhuma RA: deve limpar para não gravar RA não visualizada
+        let itemDesconhecido = MKMapItem(placemark: MKPlacemark(coordinate: coord))
+        itemDesconhecido.name = "Loja em Valparaíso de Goiás"
+        vm.selecionar(itemDesconhecido)
+        #expect(vm.regiaoAdministrativa.isEmpty, "Quando o endereço não traz RA conhecida, deve deixar vazio")
     }
 
     @Test("Selecionar um segundo endereço atualiza o ponto e o alvo da câmera")
