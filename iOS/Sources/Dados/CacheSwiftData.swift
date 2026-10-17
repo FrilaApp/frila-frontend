@@ -207,8 +207,21 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
         let limite = instante.addingTimeInterval(-24 * 60 * 60)
         let todos = try modelContext.fetch(FetchDescriptor<TurnoPersistido>())
         let vencidos = todos.filter { $0.fim <= limite }
+        let idsValidos = Set(todos.filter { $0.fim > limite }.map(\.id))
         vencidos.forEach(modelContext.delete)
-        if !vencidos.isEmpty { try modelContext.save() }
+
+        let contatosGuardados = try modelContext.fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
+        let contatosParaRemover = contatosGuardados.filter { registro in
+            guard idsValidos.contains(registro.turnoID) else { return true }
+            guard let contato = try? JSONDecoder().decode(Contato.self, from: registro.conteudo) else { return true }
+            return !contato.estaVisivel(em: instante)
+        }
+        contatosParaRemover.forEach(modelContext.delete)
+
+        if !vencidos.isEmpty || !contatosParaRemover.isEmpty {
+            try modelContext.save()
+        }
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let turnos: [Turno] = try legiveis(todos.filter { $0.fim > limite }, decoder, origem: "turnos")

@@ -101,6 +101,42 @@ struct SwiftDataTests {
         #expect(validos.first?.contato == nil)
     }
 
+    @Test("Turno vencido há mais de 24 h apaga o ContatoDoTurnoPersistido e limpa contatos órfãos")
+    func contatoDoTurnoVencidoEApagado() async throws {
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+
+        // Turno vencido há 25h com contato ainda dentro da validade teórica
+        let turnoVencido = try turno(fim: agora.addingTimeInterval(-25 * 3600), contatoVisivelAte: agora.addingTimeInterval(3600))
+        try await armazenamento.salvar(turnos: [turnoVencido], em: agora.addingTimeInterval(-26 * 3600))
+        try await armazenamento.salvar(contato: turnoVencido.contato!, doTurno: turnoVencido.id)
+
+        // Contato órfão (turnoID que nem existe mais no cache)
+        let orfaoID = UUID()
+        let whatsapp = try #require(URL(string: "https://wa.me/5511988887777"))
+        let contatoOrfao = Contato(nome: "Órfão", telefone: "+5511988887777", whatsappURL: whatsapp, visivelAte: agora.addingTimeInterval(3600))
+        try await armazenamento.salvar(contato: contatoOrfao, doTurno: orfaoID)
+
+        // Contato de turno válido com prazo visivelAte já expirado
+        let turnoValido = try turno(fim: agora.addingTimeInterval(3600), contatoVisivelAte: agora.addingTimeInterval(-10))
+        try await armazenamento.salvar(turnos: [turnoValido], em: agora)
+        try await armazenamento.salvar(contato: turnoValido.contato!, doTurno: turnoValido.id)
+
+        let contexto = ModelContext(container)
+        #expect(try contexto.fetchCount(FetchDescriptor<ContatoDoTurnoPersistido>()) == 3)
+
+        // Ao ler turnos válidos, deve apagar o TurnoPersistido vencido E todos os contatos vencidos/órfãos/expirados
+        let validos = try await armazenamento.turnosValidos(em: agora)
+        #expect(validos.map(\.id) == [turnoValido.id])
+
+        // Todos os 3 contatos devem ter sido removidos do banco
+        let contatosRestantes = try contexto.fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
+        #expect(contatosRestantes.isEmpty)
+        #expect(try await armazenamento.contato(doTurno: turnoVencido.id, em: agora) == nil)
+        #expect(try await armazenamento.contato(doTurno: orfaoID, em: agora) == nil)
+    }
+
     @Test("Turno guardado antes do contrato 0.2.20, sem a região da vaga, continua abrindo offline")
     func turnoGuardadoAntesDaRegiaoAdministrativa() async throws {
         let container = try PersistenciaFrila.criarContainer(emMemoria: true)
