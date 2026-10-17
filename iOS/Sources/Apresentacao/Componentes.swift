@@ -20,7 +20,7 @@ public struct EstiloBotaoTatil: ButtonStyle {
             .scaleEffect(isReduceActive ? 1.0 : (configuration.isPressed ? scale : 1.0))
             .opacity(configuration.isPressed ? 0.92 : 1.0)
             .animation(
-                isReduceActive ? .none : FrilaMovimento.molaTatil,
+                FrilaMovimento.animacao(FrilaMovimento.molaTatil, reduzir: isReduceActive),
                 value: configuration.isPressed
             )
             .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, isPressed in
@@ -49,7 +49,7 @@ public struct EstiloChipTatil: ButtonStyle {
             .scaleEffect(isReduceActive ? 1.0 : (configuration.isPressed ? scale : 1.0))
             .opacity(configuration.isPressed ? 0.92 : 1.0)
             .animation(
-                isReduceActive ? .none : FrilaMovimento.molaTatilChip,
+                FrilaMovimento.animacao(FrilaMovimento.molaTatilChip, reduzir: isReduceActive),
                 value: configuration.isPressed
             )
             .frame(minHeight: FrilaMetrica.alvoMinimo)
