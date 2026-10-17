@@ -378,3 +378,15 @@ TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 xcodebuild test -project Frila.x
 Cada achado sai no log como `AUDITORIA|tela|tamanho|tipo|classe|descrição|elemento|detalhe` e
 também como anexo `auditoria-<tela>-<tamanho>` no result bundle. Para a próxima rodada: tire a
 falha esperada da tela corrigida, rode a suíte e atualize a tabela acima.
+
+### UX-04 — seletores de disponibilidade (17/10/2026)
+
+`TelaPerfilProfissional` usa `DatePicker` nativo com `.hourAndMinute`, rótulos
+“Início” e “Fim” para VoiceOver e teste de alvo mínimo de 44 pt nos dois eixos.
+As roletas ficam lado a lado, com altura limitada a 132 pt e recorte, inclusive em AX5. Alterar dia,
+início ou fim deixa a faixa pendente; salvar a incorpora à lista antes do envio.
+A sugestão inicial, sem edição, não cria uma faixa. A adição explícita limpa a pendência.
+Início e fim iguais bloqueiam o envio; faixas noturnas continuam aceitas (#98 C2).
+A revisão `swiftui-pro` ficou restrita ao diff: estado no modelo observável, bindings
+diretos, controles nativos e APIs disponíveis desde o iOS 17. A prova visual e os
+resultados executados estão em `evidencias/ux-04-perfil-profissional/README.md`.

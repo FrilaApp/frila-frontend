@@ -10,10 +10,6 @@ public struct TelaPerfilProfissional: View {
     // isso o formulário já carregado seria trocado por um modelo novo, vazio.
     @State private var viewModel: PerfilProfissionalViewModel
     private let aoSalvar: () -> Void
-    @State private var diaNovo: Int = 5 // Sexta-feira padrão
-    @State private var inicioNovo: String = "18:00"
-    @State private var fimNovo: String = "02:00"
-    @State private var erroFormatoJanela: String?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
@@ -256,7 +252,7 @@ public struct TelaPerfilProfissional: View {
                     .font(FrilaTipo.rotuloDoCampo)
                     .foregroundStyle(FrilaCor.texto)
 
-                Picker(selection: $diaNovo) {
+                Picker(selection: $viewModel.diaNovo) {
                     Text(verbatim: TextosDoProfissional.Perfil.domingo).tag(0)
                     Text(verbatim: TextosDoProfissional.Perfil.segunda).tag(1)
                     Text(verbatim: TextosDoProfissional.Perfil.terca).tag(2)
@@ -272,35 +268,39 @@ public struct TelaPerfilProfissional: View {
                 .contentShape(Rectangle())
                 .accessibilityIdentifier("picker-dia-semana")
 
-                let camposHorarioLayout = dynamicTypeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.pequeno))
-                    : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
-                camposHorarioLayout {
-                    CampoFrila(verbatim: TextosDoProfissional.Perfil.inicio, texto: $inicioNovo)
+                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: TextosDoProfissional.Perfil.inicio)
+                            .font(FrilaTipo.rotuloDoCampo)
+                            .foregroundStyle(FrilaCor.texto)
+                        DatePicker(selection: $viewModel.inicioNovo, displayedComponents: .hourAndMinute) {
+                            Text(verbatim: TextosDoProfissional.Perfil.inicio)
+                        }
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .frame(height: 132)
+                        .clipped()
                         .accessibilityIdentifier("campo-hora-inicio")
-                    CampoFrila(verbatim: TextosDoProfissional.Perfil.fim, texto: $fimNovo)
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: TextosDoProfissional.Perfil.fim)
+                            .font(FrilaTipo.rotuloDoCampo)
+                            .foregroundStyle(FrilaCor.texto)
+                        DatePicker(selection: $viewModel.fimNovo, displayedComponents: .hourAndMinute) {
+                            Text(verbatim: TextosDoProfissional.Perfil.fim)
+                        }
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .frame(height: 132)
+                        .clipped()
                         .accessibilityIdentifier("campo-hora-fim")
-                }
-
-                if let erroFormato = erroFormatoJanela {
-                    Text(verbatim: erroFormato)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.perigo)
+                    }
                 }
 
                 Button {
-                    do {
-                        let inicio = try HoraDoDia(inicioNovo.trimmingCharacters(in: .whitespaces))
-                        let fim = try HoraDoDia(fimNovo.trimmingCharacters(in: .whitespaces))
-                        guard inicio != fim else {
-                            erroFormatoJanela = TextosDoProfissional.Perfil.erroJanelaDuracaoZero
-                            return
-                        }
-                        viewModel.adicionarJanela(diaDaSemana: diaNovo, inicio: inicio, fim: fim)
-                        erroFormatoJanela = nil
-                    } catch {
-                        erroFormatoJanela = TextosDoProfissional.Perfil.erroHorarioInvalido
-                    }
+                    viewModel.adicionarJanelaDoFormulario()
                 } label: {
                     Text(verbatim: TextosDoProfissional.Perfil.adicionar)
                         .font(FrilaTipo.botao)

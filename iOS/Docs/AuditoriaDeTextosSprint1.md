@@ -251,3 +251,12 @@ Em conformidade estrita com o arquivo da missão e as atribuições da equipe, a
    *Situação:* **Pendente (Design / Fabrício).** Fora do escopo do Thor.
 5. **Critério 5 do cartão (Textos iguais aos do guia de voz):**  
    *Situação:* **Auditado e mapeado neste documento.** O checklist do cartão Trello **não foi marcado**, aguardando aprovação formal do relatório pela Júlia e execução da missão de remediação.
+
+### UX-04 — horários do perfil (17/10/2026)
+
+Os campos livres de hora foram substituídos por seletores nativos. “Início”, “Fim”,
+“Dia da semana” e “Adicionar” reutilizam os textos já localizados; não há texto novo.
+O aviso de formato “Horário inválido. Use o formato HH:mm.” deixa de ser necessário
+na entrada normal da tela. O bloqueio de duração zero conserva a mensagem existente.
+Faixas noturnas mantêm a indicação “(dia seguinte)” (#98 C2), conforme alinhamento
+com Nick Fury. A faixa alterada e ainda não adicionada entra ao salvar o perfil.

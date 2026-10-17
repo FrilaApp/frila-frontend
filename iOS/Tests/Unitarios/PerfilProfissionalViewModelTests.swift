@@ -58,6 +58,86 @@ struct PerfilProfissionalViewModelTests {
         #expect(api.dadosPerfilCriado?.disponibilidades.count == 1)
     }
 
+    @Test("Salvar inclui a faixa pendente, inclusive noturna, na criação e na edição",
+          arguments: [PerfilProfissionalViewModel.Modo.criacao, .edicao])
+    func salvarIncluiJanelaPendente(modo: PerfilProfissionalViewModel.Modo) async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api, modo: modo)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.diaNovo = 6
+        vm.inicioNovo = try #require(Calendar.current.date(bySettingHour: 19, minute: 30, second: 0, of: .now))
+        vm.fimNovo = try #require(Calendar.current.date(bySettingHour: 2, minute: 15, second: 0, of: .now))
+        let janela = JanelaDeDisponibilidade(diaDaSemana: 6, inicio: try HoraDoDia("19:30"), fim: try HoraDoDia("02:15"))
+
+        #expect(await vm.salvar())
+        #expect(vm.disponibilidades == [janela])
+        #expect(!vm.temJanelaPendente)
+        if modo == .criacao {
+            #expect(api.dadosPerfilCriado?.disponibilidades == [janela])
+        } else {
+            #expect(api.alteracaoPerfilEnviada?.disponibilidades == [janela])
+        }
+    }
+
+    @Test("Faixa pendente de duração zero impede salvar e mantém a edição")
+    func janelaPendenteIgualImpedeSalvar() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.fimNovo = vm.inicioNovo
+
+        #expect(await vm.salvar() == false)
+        #expect(vm.temJanelaPendente)
+        #expect(vm.disponibilidades.isEmpty)
+        #expect(vm.mensagemDeErro == TextosDoProfissional.Perfil.erroJanelaDuracaoZero)
+        #expect(api.dadosPerfilCriado == nil)
+    }
+
+    @Test("Adicionar explicitamente limpa a pendência e salvar não recria faixa removida")
+    func adicionarLimpaPendencia() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.diaNovo = 1
+        #expect(vm.adicionarJanelaDoFormulario())
+        #expect(!vm.temJanelaPendente)
+        let janela = try #require(vm.disponibilidades.first)
+        vm.removerJanela(janela)
+
+        #expect(await vm.salvar())
+        #expect(api.dadosPerfilCriado?.disponibilidades.isEmpty == true)
+    }
+
+    @Test("Salvar sem editar os seletores não adiciona a sugestão inicial")
+    func salvarSemPendenciaNaoAdicionaSugestao() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+
+        #expect(await vm.salvar())
+        #expect(api.dadosPerfilCriado?.disponibilidades.isEmpty == true)
+    }
+
+    @Test("Falha de rede e repetição preservam a faixa pendente sem duplicá-la")
+    func falhaAoSalvarPreservaJanelaSemDuplicar() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api)
+        vm.alternarFuncao(UUID())
+        vm.definirPontoBase(try Coordenada(latitude: -15.8, longitude: -47.9))
+        vm.diaNovo = 2
+        api.erroAoSalvar = ErroDaApi(codigo: .semRede)
+
+        #expect(await vm.salvar() == false)
+        #expect(vm.disponibilidades.count == 1)
+        api.erroAoSalvar = nil
+        #expect(await vm.salvar())
+        #expect(api.dadosPerfilCriado?.disponibilidades.count == 1)
+    }
+
     @Test("Criar o perfil da conta sem perfil libera o destino profissional (#97)")
     func criacaoLiberaVagas() async throws {
         let api = ApiClienteEmMemoria(cenario: .semPerfilProfissional)

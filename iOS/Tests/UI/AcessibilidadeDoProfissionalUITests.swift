@@ -146,8 +146,17 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
     // MARK: - 5. Perfil Profissional
 
     func testPerfilProfissionalAlvosDeDisponibilidadeEAdicao() {
+        conferirDisponibilidade(ax5: false)
+    }
+
+    func testPerfilProfissionalSeletoresEmAX5() {
+        conferirDisponibilidade(ax5: true)
+    }
+
+    private func conferirDisponibilidade(ax5: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
         app.launch()
 
         let btnPerfil = app.buttons["abrir-meu-perfil"]
@@ -156,6 +165,8 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         let btnFuncoes = app.buttons["perfil-funcoes-horarios"]
         XCTAssertTrue(btnFuncoes.waitForExistence(timeout: 10))
+        capturarDisponibilidade(app, nome: ax5 ? "perfil-ax5" : "perfil-padrao")
+        for _ in 0..<8 where !btnFuncoes.isHittable { app.swipeUp() }
         btnFuncoes.tap()
 
         let pickerDia = app.descendants(matching: .any)["picker-dia-semana"]
@@ -171,6 +182,33 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             XCTAssertAlvoMinimo(remover.frame.width)
             XCTAssertAlvoMinimo(remover.frame.height)
         }
+
+        let seletorInicio = app.datePickers["campo-hora-inicio"]
+        for _ in 0..<12 {
+            let quadro = seletorInicio.frame
+            if quadro.minY > 130, quadro.maxY < app.frame.maxY - 140 { break }
+            let subir = quadro.maxY >= app.frame.maxY - 140
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: subir ? 0.75 : 0.40))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: subir ? 0.50 : 0.55))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+        capturarDisponibilidade(app, nome: ax5 ? "horarios-ax5" : "horarios-padrao")
+        for (id, rotulo) in [("campo-hora-inicio", "Início"), ("campo-hora-fim", "Fim")] {
+            let seletor = app.datePickers[id]
+            XCTAssertTrue(seletor.exists, "A hora deve usar um seletor nativo")
+            XCTAssertEqual(seletor.label, rotulo)
+            XCTAssertAlvoMinimo(seletor.frame.height)
+            XCTAssertAlvoMinimo(seletor.frame.width)
+            XCTAssertTrue(seletor.isHittable)
+            XCTAssertFalse(app.textFields[id].exists)
+        }
+    }
+
+    private func capturarDisponibilidade(_ app: XCUIApplication, nome: String) {
+        let anexo = XCTAttachment(screenshot: app.screenshot())
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
     }
 
     // MARK: - 6. Candidatura e Contato do Turno
