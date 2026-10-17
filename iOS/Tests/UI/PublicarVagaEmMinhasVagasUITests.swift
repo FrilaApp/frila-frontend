@@ -208,6 +208,13 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
+        let campoValor = app.textFields["valor-vaga-campo"]
+        let campoPosicoes = app.textFields["posicoes-vaga-campo"]
+        rolarAte(campoValor, em: app)
+        XCTAssertTrue(campoValor.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(campoPosicoes.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertGreaterThan(campoPosicoes.frame.width, 150, "Campo de posições deve ter largura útil em coluna no tamanho XXXL")
+
         let dpInicio = app.datePickers["datepicker-inicio"]
         rolarAte(dpInicio, em: app)
         XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "DatePicker Início deve existir")
@@ -220,10 +227,11 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
         XCTAssertGreaterThan(dpFim.pickerWheels.count, 0, "DatePicker Fim deve conter rodas de seleção")
 
+        rolarAte(campoValor, em: app)
         salvarCaptura("03-publicar-vaga-xxxl")
     }
 
-    func testFimAcompanhaInicioMantendoDuracaoNoTamanhoPadrao() {
+    func testCapturaPublicarVagaFimAcompanhaInicioPadrao() {
         let app = abrir(["-FRILA_CADASTRO_UI_TEST", "-FRILA_PUBLICAR_INICIO_EM_HORAS", "30"])
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
@@ -262,8 +270,11 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let stepper = app.steppers["posicoes-vaga-stepper"]
         rolarAte(stepper, em: app)
         XCTAssertTrue(stepper.waitForExistence(timeout: 5))
+        XCTAssertEqual(stepper.label, "Posições")
+        XCTAssertEqual(stepper.value as? String, "1")
         // Incrementa posições de 1 para 2 via stepper
         stepper.buttons.element(boundBy: 1).tap()
+        XCTAssertEqual(stepper.value as? String, "2")
 
         let totalCalculado = app.staticTexts["total-vaga-calculado"]
         rolarAte(totalCalculado, em: app)

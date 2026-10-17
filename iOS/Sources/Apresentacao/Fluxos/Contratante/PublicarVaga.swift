@@ -174,17 +174,26 @@ public final class PublicarVagaViewModel {
         return valorCentavos * posicoes
     }
 
+    private var posicoesNormalizadas: Int {
+        let valor = Int(posicoesTexto) ?? 1
+        return valor < 1 ? 1 : min(valor, 200)
+    }
+
     public func incrementarPosicoes() {
-        let atual = Int(posicoesTexto) ?? 1
+        let atual = posicoesNormalizadas
         if atual < 200 {
-            posicoesTexto = String(max(1, atual + 1))
+            posicoesTexto = String(atual + 1)
+        } else {
+            posicoesTexto = "200"
         }
     }
 
     public func decrementarPosicoes() {
-        let atual = Int(posicoesTexto) ?? 1
+        let atual = posicoesNormalizadas
         if atual > 1 {
-            posicoesTexto = String(min(200, atual - 1))
+            posicoesTexto = String(atual - 1)
+        } else {
+            posicoesTexto = "1"
         }
     }
     public var textoAoFechar: String {
@@ -591,7 +600,7 @@ public struct TelaPublicarVaga: View {
                     .allowsHitTesting(false)
                     if let erro = model.erros[.ponto] { Text(verbatim: erro).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo) }
                 }
-                if dynamicTypeSize.isAccessibilitySize {
+                if dynamicTypeSize >= .xxxLarge {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         campoValor
                         campoPosicoes

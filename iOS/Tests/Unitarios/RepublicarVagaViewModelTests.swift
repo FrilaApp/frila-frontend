@@ -723,6 +723,8 @@ struct RepublicarVagaViewModelTests {
     @Test("Início padrão de vaga em seleção é 25 h e abre sem erro de validação")
     @MainActor
     func selecaoAbreComInicioPadraoValido() throws {
+        // A asserção do fim (base + 29 h = 25 h início + 4 h duração) depende desta duração
+        // fixada na fixture, pois a republicação preserva e copia a duração original da vaga.
         let vaga = try criarVagaNoPainel(modo: .selecao, duracao: Self.quatroHoras)
         let base = Date(timeIntervalSince1970: 1_800_000_000)
         let viewModel = RepublicarVagaViewModel(
@@ -741,6 +743,8 @@ struct RepublicarVagaViewModelTests {
     @Test("Início padrão de vaga em urgência continua 3 h")
     @MainActor
     func urgenciaContinuaComInicioPadrao3h() throws {
+        // A asserção do fim (base + 7 h = 3 h início + 4 h duração) depende desta duração
+        // fixada na fixture, pois a republicação preserva e copia a duração original da vaga.
         let vaga = try criarVagaNoPainel(modo: .urgencia, duracao: Self.quatroHoras)
         let base = Date(timeIntervalSince1970: 1_800_000_000)
         let viewModel = RepublicarVagaViewModel(

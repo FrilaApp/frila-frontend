@@ -476,15 +476,35 @@ struct PublicarVagaTests {
         #expect(vm.posicoesTexto == "1")
         #expect(vm.valorTotalCentavos == 15000)
 
-        // Limite inferior: não desce abaixo de 1
+        // Normalização de vazio para 1 antes de mexer
+        vm.posicoesTexto = ""
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "2")
+        vm.posicoesTexto = ""
         vm.decrementarPosicoes()
         #expect(vm.posicoesTexto == "1")
 
-        // Limite superior: não sobe acima de 200
+        // Normalização de "0" para 1 antes de mexer
+        vm.posicoesTexto = "0"
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "2")
+        vm.posicoesTexto = "0"
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+
+        // Teste de 1 (limite inferior)
+        vm.posicoesTexto = "1"
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "1")
+        vm.incrementarPosicoes()
+        #expect(vm.posicoesTexto == "2")
+
+        // Teste de 200 (limite superior)
         vm.posicoesTexto = "200"
-        #expect(vm.valorTotalCentavos == 15000 * 200)
         vm.incrementarPosicoes()
         #expect(vm.posicoesTexto == "200")
+        vm.decrementarPosicoes()
+        #expect(vm.posicoesTexto == "199")
 
         // Valor ou posições inválidas resultam em 0 centavos
         vm.posicoesTexto = "0"
