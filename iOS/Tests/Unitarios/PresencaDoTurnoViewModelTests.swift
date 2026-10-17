@@ -224,7 +224,7 @@ struct PresencaDoTurnoViewModelTests {
 
     // MARK: Falhas do GPS
 
-    @Test("Permissão negada no pedido leva a 'Não consegui pelo GPS' sem ler a posição, e o manual funciona")
+    @Test("Permissão negada no pedido leva a 'Localização não confirmada' sem ler a posição, e o manual funciona")
     func permissaoNegada() async throws {
         let cena = try await Cena.montar()
         let leitor = cena.leitor(permissao: .naoDeterminada, respostaAoPedido: .negada)

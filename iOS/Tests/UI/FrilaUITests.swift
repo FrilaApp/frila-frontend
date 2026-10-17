@@ -1040,7 +1040,7 @@ final class PerfilUITests: XCTestCase {
 
         let textoExplicacao = app.descendants(matching: .any)["perfil-explicacao-vagas"]
         XCTAssertTrue(textoExplicacao.waitForExistence(timeout: Espera.aparecer), "o texto explicativo deve existir")
-        let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
+        let fraseEsperada = "Você recebe notificações de vagas da sua função, a até 15 km do seu ponto base, quando o turno inteiro cabe nos horários em que você marcou disponibilidade. Todas as vagas do DF aparecem na lista."
         XCTAssertEqual(textoExplicacao.label, fraseEsperada)
 
         let botaoFechar = app.buttons["fechar-explicacao-vagas"].exists ? app.buttons["fechar-explicacao-vagas"] : app.buttons["Fechar"]

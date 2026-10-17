@@ -148,7 +148,7 @@ struct PerfisDaContaTests {
 
     @Test("Texto explicativo de 'Por que recebo vagas' corresponde à redação aprovada (#54)")
     func explicacaoPorQueReceboVagasTextoAprovado() {
-        let fraseEsperada = "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
+        let fraseEsperada = "Você recebe notificações de vagas da sua função, a até 15 km do seu ponto base, quando o turno inteiro cabe nos horários em que você marcou disponibilidade. Todas as vagas do DF aparecem na lista."
         #expect(TextosPerfilConta.explicacaoVagas == fraseEsperada)
     }
 

@@ -122,7 +122,7 @@ Os dados do turno devem obedecer ao contrato de API e às regras de integridade 
 1. O profissional tenta o check-in distante do ponto da vaga (> 200 metros, ex.: a 350 m), ou com precisão degradada (> 100 m), ou com permissão negada (`PresencaDoTurnoViewModel.MotivoSemGPS`, `iOS/Sources/Apresentacao/Fluxos/Profissional/PresencaDoTurnoViewModel.swift:16`).
 2. O app detecta a condição e transiciona para `PresencaDoTurnoViewModel.Etapa.semGPS(.checkin, motivo)` (`iOS/Sources/Apresentacao/Fluxos/Profissional/PresencaDoTurnoViewModel.swift:34`).
 3. **Resultado Esperado na Tela do Profissional**:
-   - Cartão de aviso `sem-gps` exibe o título "Não consegui pelo GPS" (`TextosDoProfissional.Presenca.semGPSTitulo`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:25`, `iOS/Sources/Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift:80`).
+   - Cartão de aviso `sem-gps` exibe o título "Localização não confirmada" (`TextosDoProfissional.Presenca.semGPSTitulo`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:25`, `iOS/Sources/Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift:80`).
    - Mensagem explicativa correspondente (ex.: "O GPS indica que você está a cerca de [X] m do endereço da vaga.", `TextosDoProfissional.Presenca.motivoLonge`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:30`).
    - Orientação: "Você pode fazer o check-in manual. Ele fica aguardando a confirmação do contratante." (`TextosDoProfissional.Presenca.manualExplicacao`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:35`).
    - Botão primário visível: "Fazer check-in manual" (`TextosDoProfissional.Presenca.checkinManual`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:36`, identificador `registro-manual`, `iOS/Sources/Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift:87`).
@@ -398,7 +398,7 @@ Todas as telas, botões, identificadores de acessibilidade, enums, regras de neg
 | `TextosDoProfissional.Presenca.agoraNao` | Texto ("Agora não") | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:20` |
 | `TextosDoProfissional.Presenca.lendo` | Texto ("Lendo sua localização…") | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:22` |
 | `TextosDoProfissional.Presenca.enviando` | Texto ("Enviando…") | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:23` |
-| `TextosDoProfissional.Presenca.semGPSTitulo` | Texto ("Não consegui pelo GPS") | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:25` |
+| `TextosDoProfissional.Presenca.semGPSTitulo` | Texto ("Localização não confirmada") | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:25` |
 | `TextosDoProfissional.Presenca.manualExplicacao` | Texto explicativo | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:35` |
 | `TextosDoProfissional.Presenca.checkinManual` | Texto ("Fazer check-in manual") | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:36` |
 | `TextosDoProfissional.Presenca.tentarGPS` | Texto ("Tentar o GPS de novo") | `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:39` |

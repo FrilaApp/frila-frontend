@@ -2371,12 +2371,12 @@
         }
       }
     },
-    "Não consegui pelo GPS": {
+    "Localização não confirmada": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não consegui pelo GPS"
+            "value": "Localização não confirmada"
           }
         }
       }
@@ -4571,12 +4571,12 @@
         }
       }
     },
-    "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.": {
+    "Você recebe notificações de vagas da sua função, a até 15 km do seu ponto base, quando o turno inteiro cabe nos horários em que você marcou disponibilidade. Todas as vagas do DF aparecem na lista.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista."
+            "value": "Você recebe notificações de vagas da sua função, a até 15 km do seu ponto base, quando o turno inteiro cabe nos horários em que você marcou disponibilidade. Todas as vagas do DF aparecem na lista."
           }
         }
       }
@@ -7355,12 +7355,12 @@
         }
       }
     },
-    "Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente de novo.": {
+    "Muitos pedidos em pouco tempo. Aguarde antes de tentar novamente.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente de novo."
+            "value": "Muitos pedidos em pouco tempo. Aguarde antes de tentar novamente."
           }
         }
       }

@@ -42,6 +42,6 @@ public enum TextosPorQueReceboVagas {
     public static let relatoObrigatorio = String(localized: "Conte o que aconteceu antes de enviar.", bundle: bundleApresentacao)
     public static let relatoMinimo = String(localized: "O relato deve conter pelo menos 10 caracteres.", bundle: bundleApresentacao)
     public static let contaSuspensa = String(localized: "Sua conta está suspensa. Enquanto a suspensão durar, não é possível pedir a revisão.", bundle: bundleApresentacao)
-    public static let limiteExcedido = String(localized: "Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente de novo.", bundle: bundleApresentacao)
+    public static let limiteExcedido = String(localized: "Muitos pedidos em pouco tempo. Aguarde antes de tentar novamente.", bundle: bundleApresentacao)
     public static let erroEnviar = String(localized: "Não foi possível enviar o pedido. Tente novamente.", bundle: bundleApresentacao)
 }
