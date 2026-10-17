@@ -59,6 +59,21 @@ public final class HistoricoDeTurnosViewModel {
 
     public var estaCarregando: Bool { estado == .carregando }
 
+    /// Regra pura de limites calculada a partir do estado atual (#23, UX-06).
+    public var limites: RegraDeLimites {
+        RegraDeLimites(de: inicioEscolhido, ate: fimEscolhido, agora: relogio.agora)
+    }
+
+    /// Faixa permitida para a data inicial ("De"): até a data de "Até" (quando houver, limitada a hoje).
+    public var faixaDe: ClosedRange<Date> {
+        limites.faixaDe
+    }
+
+    /// Faixa permitida para a data final ("Até"): da data de "De" (quando houver) até hoje.
+    public var faixaAte: ClosedRange<Date> {
+        limites.faixaAte
+    }
+
     /// O período que vai para o servidor, ou nil para datas inválidas ou janela acima de 30 dias.
     /// O botão Exportar fica desabilitado enquanto for nil.
     public var periodo: PeriodoDeExportacao? {
@@ -94,16 +109,65 @@ public final class HistoricoDeTurnosViewModel {
 
     /// Mantém o início antes do fim: puxar o início para depois do fim leva o fim junto.
     public func escolher(inicio: Date) {
-        inicioEscolhido = min(inicio, relogio.agora)
-        if fimEscolhido < inicioEscolhido { fimEscolhido = inicioEscolhido }
+        let ajustado = RegraDeLimites.ajustarAoMudarInicio(inicio: inicio, fimAtual: fimEscolhido, agora: relogio.agora)
+        inicioEscolhido = ajustado.inicio
+        fimEscolhido = ajustado.fim
         esquecerResultado()
     }
 
     /// O fim nunca passa de hoje; puxá-lo para antes do início leva o início junto.
     public func escolher(fim: Date) {
-        fimEscolhido = min(fim, relogio.agora)
-        if inicioEscolhido > fimEscolhido { inicioEscolhido = fimEscolhido }
+        let ajustado = RegraDeLimites.ajustarAoMudarFim(fim: fim, inicioAtual: inicioEscolhido, agora: relogio.agora)
+        inicioEscolhido = ajustado.inicio
+        fimEscolhido = ajustado.fim
         esquecerResultado()
+    }
+
+    /// Regra pura de cálculo de limites para os seletores de período (#23, UX-06).
+    public struct RegraDeLimites: Equatable, Sendable {
+        /// Data máxima permitida para o seletor "De" (o valor de "Até", quando houver, limitado a hoje).
+        public let maximoDe: Date
+        /// Data mínima permitida para o seletor "Até" (o valor de "De", quando houver, limitado a hoje).
+        public let minimoAte: Date?
+        /// Data máxima permitida para o seletor "Até" (hoje).
+        public let maximoAte: Date
+
+        public var faixaDe: ClosedRange<Date> {
+            .distantPast...maximoDe
+        }
+
+        public var faixaAte: ClosedRange<Date> {
+            let minimo = minimoAte ?? maximoAte
+            return min(minimo, maximoAte)...maximoAte
+        }
+
+        public init(de: Date?, ate: Date?, agora: Date) {
+            maximoAte = agora
+            if let ate {
+                maximoDe = min(ate, agora)
+            } else {
+                maximoDe = agora
+            }
+            if let de {
+                minimoAte = min(de, agora)
+            } else {
+                minimoAte = nil
+            }
+        }
+
+        /// Ajusta os limites quando algo já guardado ficar inválido ao alterar o início (De > Até ou futuro).
+        public static func ajustarAoMudarInicio(inicio: Date, fimAtual: Date, agora: Date) -> (inicio: Date, fim: Date) {
+            let novoInicio = min(inicio, agora)
+            let novoFim = fimAtual < novoInicio ? novoInicio : min(fimAtual, agora)
+            return (novoInicio, novoFim)
+        }
+
+        /// Ajusta os limites quando algo já guardado ficar inválido ao alterar o fim (troca de "Até" para antes do "De" ou futuro).
+        public static func ajustarAoMudarFim(fim: Date, inicioAtual: Date, agora: Date) -> (inicio: Date, fim: Date) {
+            let novoFim = min(fim, agora)
+            let novoInicio = inicioAtual > novoFim ? novoFim : min(inicioAtual, agora)
+            return (novoInicio, novoFim)
+        }
     }
 
     public func exportar() async {
