@@ -160,10 +160,86 @@ final class HistoricoDeTurnosUITests: XCTestCase {
             || app.sheets.firstMatch.waitForExistence(timeout: 5)
     }
 
+    func testCapturasHistoricoDeTurnosUX06() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launch()
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "O botão do perfil deve estar visível")
+        botaoPerfil.tap()
+
+        let entrada = app.buttons["perfil-historico-turnos"]
+        XCTAssertTrue(entrada.waitForExistence(timeout: 5), "O perfil deve ter a entrada do histórico de turnos")
+        salvarCaptura(app, "03-tela-vizinha-perfil")
+
+        for _ in 0..<8 where !entrada.isHittable { app.swipeUp() }
+        entrada.tap()
+
+        XCTAssertTrue(app.buttons["historico-exportar"].waitForExistence(timeout: 5), "A tela do histórico abre com o botão Exportar")
+
+        let intervalo = app.buttons["historico-intervalo"]
+        XCTAssertTrue(intervalo.waitForExistence(timeout: 5))
+        intervalo.tap()
+
+        let ate = app.descendants(matching: .any)["historico-ate"]
+        XCTAssertTrue(ate.waitForExistence(timeout: 5))
+        ate.tap()
+
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        salvarCaptura(app, "01-historico-turnos-seletor-padrao")
+    }
+
+    func testCapturaHistoricoDeTurnosXXXL() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "success",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "O botão do perfil deve estar visível")
+        botaoPerfil.tap()
+
+        let entrada = app.buttons["perfil-historico-turnos"]
+        XCTAssertTrue(entrada.waitForExistence(timeout: 5), "O perfil deve ter a entrada do histórico de turnos")
+        for _ in 0..<8 where !entrada.isHittable { app.swipeUp() }
+        entrada.tap()
+
+        XCTAssertTrue(app.buttons["historico-exportar"].waitForExistence(timeout: 5), "A tela do histórico abre com o botão Exportar")
+
+        let intervalo = app.buttons["historico-intervalo"]
+        XCTAssertTrue(intervalo.waitForExistence(timeout: 5))
+        intervalo.tap()
+
+        let ate = app.descendants(matching: .any)["historico-ate"]
+        XCTAssertTrue(ate.waitForExistence(timeout: 5))
+        ate.tap()
+
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        salvarCaptura(app, "02-historico-turnos-seletor-xxxl")
+    }
+
     private func anexar(_ app: XCUIApplication, _ nome: String) {
-        let anexo = XCTAttachment(screenshot: app.screenshot())
+        salvarCaptura(app, nome)
+    }
+
+    private func salvarCaptura(_ app: XCUIApplication, _ nome: String) {
+        let captura = app.screenshot()
+        let anexo = XCTAttachment(screenshot: captura)
         anexo.name = nome
         anexo.lifetime = .keepAlways
         add(anexo)
+
+        if let diretorio = ProcessInfo.processInfo.environment["FRILA_CAPTURAS_DIR"], !diretorio.isEmpty {
+            let destino = URL(fileURLWithPath: diretorio).appendingPathComponent("\(nome).png")
+            do {
+                try FileManager.default.createDirectory(at: URL(fileURLWithPath: diretorio), withIntermediateDirectories: true)
+                try captura.pngRepresentation.write(to: destino)
+            } catch {
+                XCTFail("Falha ao exportar captura para \(destino.path): \(error)")
+            }
+        }
     }
 }

@@ -146,8 +146,86 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
     // MARK: - 5. Perfil Profissional
 
     func testPerfilProfissionalAlvosDeDisponibilidadeEAdicao() {
+        conferirDisponibilidade(ax5: false)
+    }
+
+    func testPerfilProfissionalSeletoresEmAX5() {
+        conferirDisponibilidade(ax5: true)
+    }
+
+    func testMeuPerfilContatosNoTamanhoPadrao() {
+        conferirContatosDoPerfil(ax5: false)
+    }
+
+    func testMeuPerfilContatosEmAX5SemPartirValores() {
+        conferirContatosDoPerfil(ax5: true)
+    }
+
+    private func conferirContatosDoPerfil(ax5: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
+        app.launch()
+        defer { app.terminate() }
+        let perfil = app.buttons["abrir-meu-perfil"]
+        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
+        perfil.tap()
+        XCTAssertTrue(app.buttons["perfil-funcoes-horarios"].waitForExistence(timeout: 10))
+        capturarDisponibilidade(app, nome: ax5 ? "perfil-ax5" : "perfil-padrao")
+
+        let categoria: UIContentSizeCategory = ax5 ? .accessibilityExtraExtraExtraLarge : .large
+        let fonte = UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: UITraitCollection(preferredContentSizeCategory: categoria))
+        for id in ["perfil-telefone", "perfil-email", "perfil-funcoes", "perfil-horarios"] {
+            let rotulo = app.staticTexts["\(id)-rotulo"]
+            let valor = app.staticTexts["\(id)-valor"]
+            guard rotulo.exists && valor.exists else {
+                XCTFail("Rótulo e valor identificáveis: \(id)")
+                return
+            }
+            if ax5 {
+                for _ in 0..<10 where !valor.isHittable { app.swipeUp() }
+                XCTAssertGreaterThanOrEqual(valor.frame.minY, rotulo.frame.maxY, "\(id): rótulo acima do valor")
+                XCTAssertTrue(valor.isHittable, id)
+            } else {
+                XCTAssertLessThan(abs(rotulo.frame.midY - valor.frame.midY), 2, "\(id): aparência horizontal preservada")
+            }
+            if id == "perfil-telefone" || id == "perfil-email" {
+                XCTAssertEqual(valor.label, id == "perfil-telefone" ? "+5561988887777" : "ana.cunha@frila.app")
+                XCTAssertGreaterThanOrEqual(valor.frame.height, fonte.lineHeight - 2, "A fonte acompanha Dynamic Type sem encolher")
+                XCTAssertLessThan(valor.frame.height, fonte.lineHeight * 1.5, "Contato inteiro em uma linha, sem hifenização")
+                if ax5 {
+                    let rolagem = app.scrollViews["\(id)-rolagem"]
+                    XCTAssertTrue(rolagem.exists)
+                    XCTAssertAlvoMinimo(rolagem.frame.height)
+                    XCTAssertLessThanOrEqual(rolagem.frame.maxX, app.frame.maxX)
+                    if valor.frame.width > rolagem.frame.width {
+                        let xAntes = valor.frame.minX
+                        rolagem.swipeLeft()
+                        XCTAssertLessThan(valor.frame.minX, xAntes, "O fim do contato fica acessível por rolagem")
+                        XCTAssertLessThanOrEqual(valor.frame.maxX, rolagem.frame.maxX + 2)
+                    }
+                }
+            }
+            if ax5 && id == "perfil-email" {
+                capturarDisponibilidade(app, nome: "perfil-ax5-contatos-fim")
+            }
+        }
+        if ax5 {
+            let funcoes = app.staticTexts["perfil-funcoes-rotulo"]
+            for _ in 0..<4 where funcoes.frame.minY < 130 {
+                let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.30))
+                let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.43))
+                inicio.press(forDuration: 0.05, thenDragTo: fim)
+            }
+            XCTAssertGreaterThanOrEqual(funcoes.frame.minY, 130)
+            capturarDisponibilidade(app, nome: "perfil-ax5-funcoes-horarios")
+        }
+    }
+
+    private func conferirDisponibilidade(ax5: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
         app.launch()
 
         let btnPerfil = app.buttons["abrir-meu-perfil"]
@@ -156,21 +234,63 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
         let btnFuncoes = app.buttons["perfil-funcoes-horarios"]
         XCTAssertTrue(btnFuncoes.waitForExistence(timeout: 10))
+        capturarDisponibilidade(app, nome: ax5 ? "perfil-ax5" : "perfil-padrao")
+        for _ in 0..<8 where !btnFuncoes.isHittable { app.swipeUp() }
         btnFuncoes.tap()
 
         let pickerDia = app.descendants(matching: .any)["picker-dia-semana"]
         XCTAssertTrue(pickerDia.waitForExistence(timeout: 10))
         XCTAssertAlvoMinimo(pickerDia.frame.height)
+        XCTAssertAlvoMinimo(pickerDia.frame.width)
+        XCTAssertEqual(pickerDia.label, "Dia da semana")
+        XCTAssertEqual(pickerDia.value as? String, "Sexta-feira")
 
         let botaoAdicionar = app.buttons["botao-adicionar-janela"]
         XCTAssertTrue(botaoAdicionar.waitForExistence(timeout: 10))
         XCTAssertAlvoMinimo(botaoAdicionar.frame.height)
+        XCTAssertAlvoMinimo(botaoAdicionar.frame.width)
+        XCTAssertEqual(botaoAdicionar.label, "Adicionar horário")
 
         let remover = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
         if remover.waitForExistence(timeout: 5) {
             XCTAssertAlvoMinimo(remover.frame.width)
             XCTAssertAlvoMinimo(remover.frame.height)
         }
+
+        let seletorInicio = app.datePickers["campo-hora-inicio"]
+        let horasAntesDaRolagem = seletorInicio.pickerWheels.allElementsBoundByIndex.map { $0.value as? String }
+        for _ in 0..<12 {
+            let quadro = pickerDia.frame.union(seletorInicio.frame)
+            if quadro.minY > 130, quadro.maxY < app.frame.maxY - 140 { break }
+            let subir = quadro.maxY >= app.frame.maxY - 140
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: subir ? 0.75 : 0.40))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: subir ? 0.50 : 0.55))
+            inicio.press(forDuration: 0.05, thenDragTo: fim)
+        }
+        XCTAssertTrue(pickerDia.isHittable)
+        XCTAssertEqual(seletorInicio.pickerWheels.allElementsBoundByIndex.map { $0.value as? String }, horasAntesDaRolagem)
+        capturarDisponibilidade(app, nome: ax5 ? "horarios-ax5" : "horarios-padrao")
+        for (id, rotulo) in [("campo-hora-inicio", "Início"), ("campo-hora-fim", "Fim")] {
+            let seletor = app.datePickers[id]
+            XCTAssertTrue(seletor.exists, "A hora deve usar um seletor nativo")
+            XCTAssertEqual(seletor.label, rotulo)
+            XCTAssertAlvoMinimo(seletor.frame.height)
+            XCTAssertAlvoMinimo(seletor.frame.width)
+            XCTAssertTrue(seletor.isHittable)
+            XCTAssertFalse(app.textFields[id].exists)
+        }
+        pickerDia.tap()
+        let domingo = app.buttons["Domingo"]
+        XCTAssertTrue(domingo.waitForExistence(timeout: 5))
+        domingo.tap()
+        XCTAssertEqual(pickerDia.value as? String, "Domingo")
+    }
+
+    private func capturarDisponibilidade(_ app: XCUIApplication, nome: String) {
+        let anexo = XCTAttachment(screenshot: app.screenshot())
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
     }
 
     // MARK: - 6. Candidatura e Contato do Turno

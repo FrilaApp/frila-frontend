@@ -605,4 +605,13 @@ struct RepublicarPosicoesRestantesTests {
         vm.atualizarPosicoesRestantes(-5)
         #expect(vm.posicoesRestantes == 3)
     }
+
+    @Test("Textos do alerta de confirmação de urgência estão em conformidade (Achado 10)")
+    func textosDeConfirmacaoDeUrgencia() {
+        #expect(TextosRepublicarPosicoesRestantes.tituloConfirmacao == "Republicar posições em urgência?")
+        #expect(TextosRepublicarPosicoesRestantes.mensagemConfirmacao == "O primeiro profissional será confirmado na hora.")
+        #expect(TextosRepublicarPosicoesRestantes.confirmar == "Confirmar")
+        #expect(TextosRepublicarPosicoesRestantes.cancelar == "Cancelar")
+    }
 }
+
