@@ -5571,6 +5571,16 @@
         }
       }
     },
+    "Confirmar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar"
+          }
+        }
+      }
+    },
     "Confirmar cancelamento": {
       "localizations": {
         "pt-BR": {

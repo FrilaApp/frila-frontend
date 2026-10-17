@@ -8,6 +8,7 @@ public struct FolhaDeCancelamento: View {
     @Bindable private var viewModel: CancelamentoViewModel
     private let fechar: () -> Void
     @FocusState private var focoNosDetalhes: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(viewModel: CancelamentoViewModel, fechar: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -21,14 +22,22 @@ public struct FolhaDeCancelamento: View {
                     switch viewModel.estado {
                     case .pronto, .enviando, .falha:
                         formulario
+                        if dynamicTypeSize.isAccessibilitySize {
+                            botoesDeAcao
+                        }
                     case let .concluido(desfecho):
                         desfechoView(desfecho)
+                        if dynamicTypeSize.isAccessibilitySize {
+                            botoesDeAcao
+                        }
                     }
                 }
             }
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
-                botoesDeAcao
+                if !dynamicTypeSize.isAccessibilitySize {
+                    botoesDeAcao
+                }
             }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -117,15 +126,15 @@ public struct FolhaDeCancelamento: View {
                     .disabled(viewModel.estado == .enviando)
                     .accessibilityIdentifier("voltar-do-cancelamento")
             }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
+            .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
+            .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
         case .concluido:
             VStack(spacing: FrilaEspaco.pequeno) {
                 BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
                     .accessibilityIdentifier("fechar-cancelamento")
             }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
+            .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
+            .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
         }
     }
 

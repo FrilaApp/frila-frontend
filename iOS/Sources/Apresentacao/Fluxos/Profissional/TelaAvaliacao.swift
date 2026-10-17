@@ -45,6 +45,7 @@ public struct TelaAvaliacao: View {
                 botaoDeAcao
             }
             .padding(FrilaEspaco.medio)
+            .padding(.bottom, FrilaEspaco.enorme)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
