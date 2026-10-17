@@ -721,12 +721,12 @@
         }
       }
     },
-    "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.": {
+    "Ao continuar, você aceita os [Termos de Uso](https://frila.app/termos) e a [Política de Privacidade](https://frila.app/privacidade).": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade."
+            "value": "Ao continuar, você aceita os [Termos de Uso](https://frila.app/termos) e a [Política de Privacidade](https://frila.app/privacidade)."
           }
         }
       }
@@ -3351,16 +3351,7 @@
         }
       }
     },
-    "Tenho 18 anos ou mais": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tenho 18 anos ou mais"
-          }
-        }
-      }
-    },
+
     "Tentar novamente": {
       "localizations": {
         "pt-BR": {

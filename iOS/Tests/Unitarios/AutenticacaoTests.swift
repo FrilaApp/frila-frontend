@@ -188,7 +188,6 @@ struct AutenticacaoTests {
         vm.nome = "Maria Oliveira"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "15/05/1995"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = false
 
         #expect(!vm.formularioPreenchido)
@@ -201,17 +200,19 @@ struct AutenticacaoTests {
         }
     }
 
-    @Test("CadastroViewModel bloqueia submissão quando maiorDeIdade é falso e não chama a API")
-    func maiorDeIdadeFalsoBloqueiaSubmissaoENaoChamaAPI() async throws {
-        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
-        let vm = CadastroViewModel(api: api, email: "novo@frila.app")
+    @Test("CadastroViewModel bloqueia submissão quando data é de menor de idade e não chama a API")
+    func dataMenorDeIdadeBloqueiaSubmissaoENaoChamaAPI() async throws {
+        let relogioFixo = try RelogioFixo(agora: #require(ISO8601DateFormatter().date(from: "2026-10-01T12:00:00Z")))
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso, relogio: relogioFixo)
+        let vm = CadastroViewModel(api: api, email: "novo@frila.app", relogio: relogioFixo)
 
         vm.nome = "Maria Oliveira"
         vm.telefone = "61999998888"
-        vm.nascimentoTexto = "15/05/1995"
-        vm.maiorDeIdade = false
+        // 17 anos em 01/10/2026
+        vm.nascimentoTexto = "15/10/2008"
         vm.aceitouTermos = true
 
+        #expect(vm.ehMenorDeIdade)
         #expect(!vm.formularioPreenchido)
         let destino = await vm.criarConta()
         #expect(destino == nil)
@@ -232,7 +233,6 @@ struct AutenticacaoTests {
         vm.telefone = "61999998888"
         // 17 anos em 01/10/2026
         vm.nascimentoTexto = "02/10/2008"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -252,7 +252,6 @@ struct AutenticacaoTests {
         vm.nome = "Menor de Idade"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "01/01/1990"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -271,7 +270,6 @@ struct AutenticacaoTests {
         vm.nome = "Candidato Jovem"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "15/05/1995"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -293,7 +291,6 @@ struct AutenticacaoTests {
         vm.nome = "Candidato Adulto"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "15/05/1995"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -312,7 +309,6 @@ struct AutenticacaoTests {
         vm.nome = "Candidato Privativo"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "15/05/1995"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -331,7 +327,6 @@ struct AutenticacaoTests {
         vm.nome = "Candidato Sistema Antigo"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "15/05/1995"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -371,7 +366,6 @@ struct AutenticacaoTests {
         vm.nome = "Conta Repetida"
         vm.telefone = "61999998888"
         vm.nascimentoTexto = "01/01/1990"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -388,7 +382,6 @@ struct AutenticacaoTests {
         vm.nome = "Beatriz Souza"
         vm.telefone = "(61) 98888-7777"
         vm.nascimentoTexto = "12/04/1998"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         #expect(vm.formularioPreenchido)
@@ -409,7 +402,6 @@ struct AutenticacaoTests {
         vm.nome = "Carlos Gerente"
         vm.telefone = "61977776666"
         vm.nascimentoTexto = "20/08/1985"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         let destino = await vm.criarConta()
@@ -428,7 +420,6 @@ struct AutenticacaoTests {
         vm.nome = "Beatriz Souza"
         vm.telefone = "(61) 98888-7777"
         vm.nascimentoTexto = "12/04/1998"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         #expect(vm.formularioPreenchido)
@@ -579,7 +570,6 @@ struct AutenticacaoTests {
         vm.nome = "Teste da Silva"
         vm.telefone = "11999998888"
         vm.nascimentoTexto = "01/01/1990"
-        vm.maiorDeIdade = true
         vm.aceitouTermos = true
 
         async let primeira = vm.criarConta()
@@ -588,6 +578,168 @@ struct AutenticacaoTests {
 
         let chamadas = await api.chamadasACriarConta
         #expect(chamadas == 1)
+    }
+
+    // MARK: - Missão UX-01: Máscaras, Validações e Maioridade
+
+    @Test("CadastroViewModel: máscara progressiva de data de nascimento insere barras nas posições 2 e 5")
+    func mascaraDataNascimentoProgressiva() {
+        #expect(CadastroViewModel.formatarDataNascimento("1") == "1")
+        #expect(CadastroViewModel.formatarDataNascimento("17", textoAnterior: "1") == "17/")
+        #expect(CadastroViewModel.formatarDataNascimento("17/1", textoAnterior: "17/") == "17/1")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10", textoAnterior: "17/1") == "17/10/")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10/2", textoAnterior: "17/10/") == "17/10/2")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10/2000", textoAnterior: "17/10/200") == "17/10/2000")
+        // Limita a 8 dígitos (máximo dd/mm/aaaa)
+        #expect(CadastroViewModel.formatarDataNascimento("17/10/20009", textoAnterior: "17/10/2000") == "17/10/2000")
+    }
+
+    @Test("CadastroViewModel: apagar na máscara de data remove dígito anterior à barra")
+    func mascaraDataNascimentoApagar() {
+        // Usuário está em "17/" e aperta backspace (ficando "17")
+        #expect(CadastroViewModel.formatarDataNascimento("17", textoAnterior: "17/") == "1")
+        // Usuário está em "17/10/" e aperta backspace (ficando "17/10")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10", textoAnterior: "17/10/") == "17/1")
+    }
+
+    @Test("CadastroViewModel: colar data com ou sem barras formata corretamente")
+    func mascaraDataNascimentoColar() {
+        #expect(CadastroViewModel.formatarDataNascimento("17102000") == "17/10/2000")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10/2000") == "17/10/2000")
+        #expect(CadastroViewModel.formatarDataNascimento("01011990") == "01/01/1990")
+    }
+
+    @Test("CadastroViewModel: máscara de telefone formata 10 e 11 dígitos no padrão brasileiro")
+    func mascaraTelefoneFormatacao() {
+        #expect(CadastroViewModel.formatarTelefone("6") == "(6")
+        #expect(CadastroViewModel.formatarTelefone("61", textoAnterior: "6") == "(61) ")
+        #expect(CadastroViewModel.formatarTelefone("619", textoAnterior: "(61) ") == "(61) 9")
+        // 10 dígitos (fixo): (DD) XXXX-XXXX
+        #expect(CadastroViewModel.formatarTelefone("6133334444") == "(61) 3333-4444")
+        // 11 dígitos (móvel): (DD) 9XXXX-XXXX
+        #expect(CadastroViewModel.formatarTelefone("61988887777") == "(61) 98888-7777")
+        // Colagem com código +55
+        #expect(CadastroViewModel.formatarTelefone("+5561988887777") == "(61) 98888-7777")
+        #expect(CadastroViewModel.formatarTelefone("5561988887777") == "(61) 98888-7777")
+    }
+
+    @Test("CadastroViewModel: apagar na máscara de telefone remove caracteres de controle e dígitos correspondentes")
+    func mascaraTelefoneApagar() {
+        #expect(CadastroViewModel.formatarTelefone("(61)", textoAnterior: "(61) ") == "(6")
+        #expect(CadastroViewModel.formatarTelefone("(61) 9888", textoAnterior: "(61) 9888-") == "(61) 988")
+    }
+
+    @Test("CadastroViewModel: ao tocar em Continuar com campo pendente, indica o campo com erro")
+    func validacaoAoTocarContinuarIndicaCampo() async {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let vm = CadastroViewModel(api: api, email: "teste@frila.app")
+
+        // 1. Nome vazio
+        var destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.campoComErro == .nome)
+        #expect(vm.erro == "Informe seu nome completo.")
+
+        // 2. Preenche nome, telefone vazio
+        vm.nome = "Carlos Silva"
+        destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.campoComErro == .telefone)
+        #expect(vm.erro == "Informe um telefone válido com DDD.")
+
+        // 3. Preenche telefone, nascimento vazio
+        vm.telefone = "61988887777"
+        destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.campoComErro == .nascimento)
+        #expect(vm.erro == "Informe a data de nascimento no formato dd/mm/aaaa.")
+
+        // 4. Preenche nascimento válido (maior de 18), termos desmarcados
+        vm.nascimentoTexto = "15/05/1995"
+        destino = await vm.criarConta()
+        #expect(destino == nil)
+        #expect(vm.campoComErro == .termos)
+        #expect(vm.erro == "É necessário aceitar os Termos de uso e a Política de privacidade para continuar.")
+
+        // 5. Aceita termos: tudo válido
+        vm.aceitouTermos = true
+        destino = await vm.criarConta()
+        #expect(destino == .funcoesEHorarios)
+        #expect(vm.campoComErro == nil)
+        #expect(vm.erro == nil)
+    }
+
+    @Test("CadastroViewModel: data completa de menor de 18 ativa ehMenorDeIdade e bloqueia submissão")
+    func dataMenorDeIdadeCalculada() {
+        let relogioFixo = RelogioFixo(agora: ISO8601DateFormatter().date(from: "2026-10-01T12:00:00Z")!)
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso, relogio: relogioFixo)
+        let vm = CadastroViewModel(api: api, email: "jovem@frila.app", relogio: relogioFixo)
+
+        vm.nome = "Jovem Menor"
+        vm.telefone = "61988887777"
+        vm.aceitouTermos = true
+
+        // Data incompleta: ehMenorDeIdade ainda falso
+        vm.nascimentoTexto = "02/10"
+        #expect(!vm.ehMenorDeIdade)
+
+        // 17 anos (nasceu em 02/10/2008, hoje é 01/10/2026): ehMenorDeIdade verdadeiro
+        vm.nascimentoTexto = "02/10/2008"
+        #expect(vm.ehMenorDeIdade)
+        #expect(!vm.formularioPreenchido)
+
+        // 18 anos completos (nasceu em 01/10/2008): ehMenorDeIdade falso
+        vm.nascimentoTexto = "01/10/2008"
+        #expect(!vm.ehMenorDeIdade)
+        #expect(vm.formularioPreenchido)
+    }
+
+    @Test("CadastroViewModel: nascido em 29/02 atinge maioridade em 01/03 no ano não bissexto")
+    func maioridadeNascidosEm29Fevereiro() async {
+        let iso = ISO8601DateFormatter()
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+
+        // 1. Nascido em 29/02/2012 (ano bissexto), 18 anos em 2030 (não bissexto)
+        // 28/02/2030: ainda menor de 18
+        let relogio20300228 = RelogioFixo(agora: iso.date(from: "2030-02-28T12:00:00Z")!)
+        let vm2030Menor = CadastroViewModel(api: api, email: "bissexto@frila.app", relogio: relogio20300228)
+        vm2030Menor.nome = "Jovem Bissexto"
+        vm2030Menor.telefone = "61988887777"
+        vm2030Menor.aceitouTermos = true
+        vm2030Menor.nascimentoTexto = "29/02/2012"
+        #expect(vm2030Menor.ehMenorDeIdade)
+        #expect(!vm2030Menor.formularioPreenchido)
+        let destinoBloqueado = await vm2030Menor.criarConta()
+        #expect(destinoBloqueado == nil)
+        #expect(vm2030Menor.campoComErro == .nascimento)
+        #expect(vm2030Menor.erro == "O Frila é exclusivo para maiores de 18 anos.")
+
+        // 01/03/2030: completa 18 anos (adulto)
+        let relogio20300301 = RelogioFixo(agora: iso.date(from: "2030-03-01T12:00:00Z")!)
+        let vm2030Adulto = CadastroViewModel(api: api, email: "bissexto@frila.app", relogio: relogio20300301)
+        vm2030Adulto.nome = "Jovem Bissexto"
+        vm2030Adulto.telefone = "61988887777"
+        vm2030Adulto.aceitouTermos = true
+        vm2030Adulto.nascimentoTexto = "29/02/2012"
+        #expect(!vm2030Adulto.ehMenorDeIdade)
+        #expect(vm2030Adulto.formularioPreenchido)
+
+        // 2. Nascido em 29/02/2008 (ano bissexto), 18 anos em 2026 (não bissexto)
+        // 28/02/2026: menor
+        let relogio20260228 = RelogioFixo(agora: iso.date(from: "2026-02-28T12:00:00Z")!)
+        let vm2026Menor = CadastroViewModel(api: api, email: "bissexto2008@frila.app", relogio: relogio20260228)
+        vm2026Menor.nascimentoTexto = "29/02/2008"
+        #expect(vm2026Menor.ehMenorDeIdade)
+
+        // 01/03/2026: completa 18 anos (adulto)
+        let relogio20260301 = RelogioFixo(agora: iso.date(from: "2026-03-01T12:00:00Z")!)
+        let vm2026Adulto = CadastroViewModel(api: api, email: "bissexto2008@frila.app", relogio: relogio20260301)
+        vm2026Adulto.nome = "Adulto Bissexto"
+        vm2026Adulto.telefone = "61988887777"
+        vm2026Adulto.aceitouTermos = true
+        vm2026Adulto.nascimentoTexto = "29/02/2008"
+        #expect(!vm2026Adulto.ehMenorDeIdade)
+        #expect(vm2026Adulto.formularioPreenchido)
     }
 
     // MARK: - Recuperação Offline e Saída da Conta
