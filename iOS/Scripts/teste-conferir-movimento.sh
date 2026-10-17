@@ -128,4 +128,22 @@ SWIFT
 
 esperar_reprovacao "modificador .animation solto" "Modificador .animation(...) solto" "$DIR_RUIM_3"
 
+# Caso 5: Modificador .animation(...) com token no argumento value e não no 1º argumento
+DIR_RUIM_4="$TMPDIR_TESTE/ruim_token_no_valor"
+mkdir -p "$DIR_RUIM_4"
+cat <<'SWIFT' > "$DIR_RUIM_4/TelaRuim4.swift"
+import SwiftUI
+
+struct TelaRuim4: View {
+    @State private var FrilaMovimento_animacaoX = false
+    var body: some View {
+        Circle()
+            .scaleEffect(FrilaMovimento_animacaoX ? 1.2 : 1.0)
+            .animation(.spring(), value: FrilaMovimento.animacaoX)
+    }
+}
+SWIFT
+
+esperar_reprovacao "modificador .animation com token fora do 1º argumento" "Modificador .animation(...) solto" "$DIR_RUIM_4"
+
 echo "OK: autoteste de conferir-movimento.sh passou"
