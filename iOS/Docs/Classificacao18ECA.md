@@ -160,6 +160,8 @@ adesão. Estão redigidos em linguagem clara, conforme exige a LGPD (art. 14, §
 A aferição na tela é feita por data de nascimento calculada e aceite dos Termos (sem caixa de seleção separada). Caso o cálculo da data indique menor de 18 anos, exibe mensagem inline e bloqueia o botão Continuar:
 > O Frila é exclusivo para maiores de 18 anos.
 
+Para nascidos em 29 de fevereiro quando o 18º aniversário cai em ano não bissexto, a maioridade é completada em 1º de março (regra conservadora).
+
 ---
 
 ## 5. Checklist de conformidade

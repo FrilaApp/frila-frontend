@@ -38,13 +38,28 @@ public final class CadastroViewModel {
     }
 
     public var ehMenorDeIdade: Bool {
-        guard let nascimento = normalizarDataNascimento(nascimentoTexto),
-              let hoje = DataCivil.deSaoPaulo(relogio.agora),
-              let aniversario18 = try? DataCivil(ano: nascimento.ano + 18, mes: nascimento.mes, dia: nascimento.dia)
-        else {
+        guard let nascimento = normalizarDataNascimento(nascimentoTexto) else {
             return false
         }
-        return aniversario18 > hoje
+        guard let hoje = DataCivil.deSaoPaulo(relogio.agora),
+              let data18 = Self.aniversario18(nascimento: nascimento)
+        else {
+            return true
+        }
+        return data18 > hoje
+    }
+
+    /// Calcula a data civil em que o usuário completa 18 anos.
+    /// Para nascidos em 29 de fevereiro quando o ano do 18º aniversário não é bissexto,
+    /// adota 1º de março (regra conservadora: o menor nunca passa antes da hora).
+    public static func aniversario18(nascimento: DataCivil) -> DataCivil? {
+        if let exato = try? DataCivil(ano: nascimento.ano + 18, mes: nascimento.mes, dia: nascimento.dia) {
+            return exato
+        }
+        if nascimento.mes == 2 && nascimento.dia == 29 {
+            return try? DataCivil(ano: nascimento.ano + 18, mes: 3, dia: 1)
+        }
+        return nil
     }
 
     public var formularioPreenchido: Bool {
@@ -76,9 +91,7 @@ public final class CadastroViewModel {
         }
 
         // Validação preventiva da maioridade no cliente antes de enviar ao servidor
-        if let hoje = DataCivil.deSaoPaulo(relogio.agora),
-           let aniversario18 = try? DataCivil(ano: nascimento.ano + 18, mes: nascimento.mes, dia: nascimento.dia),
-           aniversario18 > hoje {
+        if ehMenorDeIdade {
             campoComErro = .nascimento
             erro = String(localized: "O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
             return nil

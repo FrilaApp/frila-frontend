@@ -185,6 +185,36 @@ struct EntradaECadastroBordasTests {
         #expect(api.cadastroEnviado == nil)
     }
 
+    @Test("Cadastro: nascido em 29/02 é bloqueado antes de 01/03 do ano em que completa 18 anos")
+    func maioridadeBissextoBordas() async {
+        let iso = ISO8601DateFormatter()
+        let api = ApiDeEntrada()
+
+        // Nascido em 29/02/2008, tentando em 28/02/2026 (menor)
+        let relogioMenor = RelogioFixo(agora: iso.date(from: "2026-02-28T12:00:00Z")!)
+        let vmMenor = CadastroViewModel(api: api, email: "bissexto@frila.app", relogio: relogioMenor)
+        vmMenor.nome = "Jovem Bissexto"
+        vmMenor.telefone = "(61) 98888-7777"
+        vmMenor.nascimentoTexto = "29/02/2008"
+        vmMenor.aceitouTermos = true
+
+        #expect(await vmMenor.criarConta() == nil)
+        #expect(vmMenor.campoComErro == .nascimento)
+        #expect(vmMenor.erro == "O Frila é exclusivo para maiores de 18 anos.")
+        #expect(api.cadastroEnviado == nil)
+
+        // Nascido em 29/02/2008, tentando em 01/03/2026 (adulto)
+        let relogioAdulto = RelogioFixo(agora: iso.date(from: "2026-03-01T12:00:00Z")!)
+        let vmAdulto = CadastroViewModel(api: api, email: "bissexto@frila.app", relogio: relogioAdulto)
+        vmAdulto.nome = "Jovem Bissexto"
+        vmAdulto.telefone = "(61) 98888-7777"
+        vmAdulto.nascimentoTexto = "29/02/2008"
+        vmAdulto.aceitouTermos = true
+
+        #expect(await vmAdulto.criarConta() != nil)
+        #expect(api.cadastroEnviado != nil)
+    }
+
     @Test("Cadastro: o telefone vai em E.164 — DDD brasileiro ganha +55; com + ou com o 55 na frente fica como veio",
           arguments: [
               ("(61) 98888-7777", "+5561988887777"),

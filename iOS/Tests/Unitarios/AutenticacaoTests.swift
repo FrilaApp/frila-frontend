@@ -694,6 +694,54 @@ struct AutenticacaoTests {
         #expect(vm.formularioPreenchido)
     }
 
+    @Test("CadastroViewModel: nascido em 29/02 atinge maioridade em 01/03 no ano não bissexto")
+    func maioridadeNascidosEm29Fevereiro() async {
+        let iso = ISO8601DateFormatter()
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+
+        // 1. Nascido em 29/02/2012 (ano bissexto), 18 anos em 2030 (não bissexto)
+        // 28/02/2030: ainda menor de 18
+        let relogio20300228 = RelogioFixo(agora: iso.date(from: "2030-02-28T12:00:00Z")!)
+        let vm2030Menor = CadastroViewModel(api: api, email: "bissexto@frila.app", relogio: relogio20300228)
+        vm2030Menor.nome = "Jovem Bissexto"
+        vm2030Menor.telefone = "61988887777"
+        vm2030Menor.aceitouTermos = true
+        vm2030Menor.nascimentoTexto = "29/02/2012"
+        #expect(vm2030Menor.ehMenorDeIdade)
+        #expect(!vm2030Menor.formularioPreenchido)
+        let destinoBloqueado = await vm2030Menor.criarConta()
+        #expect(destinoBloqueado == nil)
+        #expect(vm2030Menor.campoComErro == .nascimento)
+        #expect(vm2030Menor.erro == "O Frila é exclusivo para maiores de 18 anos.")
+
+        // 01/03/2030: completa 18 anos (adulto)
+        let relogio20300301 = RelogioFixo(agora: iso.date(from: "2030-03-01T12:00:00Z")!)
+        let vm2030Adulto = CadastroViewModel(api: api, email: "bissexto@frila.app", relogio: relogio20300301)
+        vm2030Adulto.nome = "Jovem Bissexto"
+        vm2030Adulto.telefone = "61988887777"
+        vm2030Adulto.aceitouTermos = true
+        vm2030Adulto.nascimentoTexto = "29/02/2012"
+        #expect(!vm2030Adulto.ehMenorDeIdade)
+        #expect(vm2030Adulto.formularioPreenchido)
+
+        // 2. Nascido em 29/02/2008 (ano bissexto), 18 anos em 2026 (não bissexto)
+        // 28/02/2026: menor
+        let relogio20260228 = RelogioFixo(agora: iso.date(from: "2026-02-28T12:00:00Z")!)
+        let vm2026Menor = CadastroViewModel(api: api, email: "bissexto2008@frila.app", relogio: relogio20260228)
+        vm2026Menor.nascimentoTexto = "29/02/2008"
+        #expect(vm2026Menor.ehMenorDeIdade)
+
+        // 01/03/2026: completa 18 anos (adulto)
+        let relogio20260301 = RelogioFixo(agora: iso.date(from: "2026-03-01T12:00:00Z")!)
+        let vm2026Adulto = CadastroViewModel(api: api, email: "bissexto2008@frila.app", relogio: relogio20260301)
+        vm2026Adulto.nome = "Adulto Bissexto"
+        vm2026Adulto.telefone = "61988887777"
+        vm2026Adulto.aceitouTermos = true
+        vm2026Adulto.nascimentoTexto = "29/02/2008"
+        #expect(!vm2026Adulto.ehMenorDeIdade)
+        #expect(vm2026Adulto.formularioPreenchido)
+    }
+
     // MARK: - Recuperação Offline e Saída da Conta
 
     @Test("DestinoDaConta: semRede com destino guardado recupera o destino")
