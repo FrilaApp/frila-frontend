@@ -67,6 +67,10 @@ public struct TelaCodigo: View {
                             .focused($campoFocado)
                             .opacity(0.01)
                             .frame(maxWidth: .infinity, minHeight: 60)
+                            .accessibilityLabel(Text("Código de acesso", bundle: bundleApresentacao))
+                            .accessibilityValue(viewModel.textoAcessibilidadeCodigo)
+                            .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
+                            .accessibilityIdentifier("codigo-campo")
 
                         // 6 caixas visuais
                         HStack(spacing: FrilaEspaco.pequeno) {
@@ -74,7 +78,8 @@ public struct TelaCodigo: View {
                                 let caractere = caractereNoIndice(indice)
                                 Text(verbatim: caractere)
                                     .font(.title.weight(.semibold).monospacedDigit())
-                                    .minimumScaleFactor(0.5)
+                                    .minimumScaleFactor(0.8)
+                                    .lineLimit(1)
                                     .foregroundStyle(FrilaCor.texto)
                                     .frame(maxWidth: .infinity, minHeight: 60)
                                     .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
@@ -94,11 +99,6 @@ public struct TelaCodigo: View {
                             campoFocado = true
                         }
                     }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text("Código de acesso", bundle: bundleApresentacao))
-                    .accessibilityValue(viewModel.textoAcessibilidadeCodigo)
-                    .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
-                    .accessibilityIdentifier("codigo-campo")
                 }
 
                 if let erro = viewModel.erro {

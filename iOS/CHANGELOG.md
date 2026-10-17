@@ -39,6 +39,8 @@ Primeira versão da App Store. Atende o Distrito Federal.
 - Entrada por código de seis dígitos enviado ao e-mail, e escolha do perfil no primeiro acesso (#97).
 - Perfis de conta e reputação: quantas pessoas chamariam de novo e a taxa de comparecimento (#54).
 - A sessão é encerrada no aparelho quando o servidor recusa a autenticação.
+- A tela de entrada mostra "Classificação indicativa: 18 anos", e os termos (versão 2026-10-15)
+  explicam como a idade é verificada e como contestar.
 
 ### Para quem trabalha
 - Lista de vagas do DF com filtros por função, data e distância, e o detalhe de cada vaga (#104).
@@ -73,10 +75,12 @@ Primeira versão da App Store. Atende o Distrito Federal.
   rede voltar (#111).
 - Acessibilidade: alvos de toque do tamanho mínimo e leitura nos maiores tamanhos de texto (#139).
 - Licenças das bibliotecas de código aberto usadas pelo app (#178).
-- Relato automático de falhas, sem dados pessoais (#198).
 - Telemetria do piloto: porta, DTOs e cliente para registrar_evento (contrato 0.2.41, RN15, RNF08), com dicionário fechado e sem texto livre nem dados pessoais.
 - Visual novo, do design do Fabrício (FrilaLowPhase e MidFi): tema neutro no claro e no escuro, terracota só
   como acento, cartões sobre fundo agrupado, campos e botões de 52 pt e a Bricolage Grotesque só no publicar vaga.
+- Telemetria do piloto: fiação dos 14 eventos nas telas e ViewModels (T-0017, contrato 0.2.41, RN15, RNF08), cobrindo ciclo de vida do app, funil de vagas, candidaturas, presença (check-in/checkout), avaliações, contatos, resiliência offline e atualização obrigatória.
+- Telas de cadastro, código, estabelecimento, publicação e perfil usam os tokens de espaçamento e de
+  área de toque do design em vez de valores soltos, sem mudar a aparência.
 
 ### Privacidade e conformidade
 - A localização é pedida só durante o uso. No check-in e no check-out, a coordenada lida do GPS
@@ -85,4 +89,6 @@ Primeira versão da App Store. Atende o Distrito Federal.
   enviados ao servidor.
 - O app não rastreia e não pede permissão de rastreamento.
 - O manifesto de privacidade declara os dados da conta e o uso de `UserDefaults` (#96).
+- A extensão de notificação tem manifesto de privacidade próprio: não coleta dados, não rastreia e
+  declara só a leitura do `UserDefaults` do grupo do app (motivo `1C8F.1`).
 - O build de Release não leva catálogo de componentes nem atalhos de desenvolvimento (#96).

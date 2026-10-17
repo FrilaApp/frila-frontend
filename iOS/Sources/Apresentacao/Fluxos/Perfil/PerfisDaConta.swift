@@ -13,7 +13,7 @@ enum TextosPerfilConta {
     static let explicacaoVagas = String(localized: "Você recebe notificação de vagas da sua função, perto de você, quando o turno inteiro cabe nos horários em que marcou disponibilidade. Todas as vagas do DF aparecem na lista.", bundle: bundleApresentacao)
     static let ajuda = String(localized: "Ajuda", bundle: bundleApresentacao)
     static let suporte = String(localized: "Fale com o suporte", bundle: bundleApresentacao)
-    static let prazoSuporte = String(localized: "Respondemos em até 5 dias úteis.", bundle: bundleApresentacao)
+    static let prazoSuporte = String(localized: "Respondemos o mais breve possível, com triagem em até 5 dias úteis.", bundle: bundleApresentacao)
     static let termos = String(localized: "Termos de uso", bundle: bundleApresentacao)
     static let privacidade = String(localized: "Política de privacidade", bundle: bundleApresentacao)
     static let licencas = String(localized: "Licenças de terceiros", bundle: bundleApresentacao)
@@ -472,6 +472,7 @@ struct TelaAjudaPerfil: View {
                         Image(systemName: "arrow.up.right")
                             .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityHidden(true)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())
@@ -488,6 +489,7 @@ struct TelaAjudaPerfil: View {
                         Image(systemName: "arrow.up.right")
                             .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityHidden(true)
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())

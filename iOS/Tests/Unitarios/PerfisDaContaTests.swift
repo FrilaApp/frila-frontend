@@ -68,8 +68,8 @@ struct PerfisDaContaTests {
     @Test("Constante oficial reúne os endereços de Termos de uso e Política de privacidade (#54)")
     func constanteDeEnderecosOficiais() {
         let padrao = EnderecosOficiais.padrao
-        #expect(padrao.termosDeUso.absoluteString == "https://frila.app/termos")
-        #expect(padrao.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+        #expect(padrao.termosDeUso.absoluteString == "https://frila.netlify.app/termos")
+        #expect(padrao.politicaDePrivacidade.absoluteString == "https://frila.netlify.app/privacidade")
         #expect(padrao.emailSuporte == "suportefrila@gmail.com")
         #expect(padrao.urlSuporte?.absoluteString == "mailto:suportefrila@gmail.com")
         #expect(padrao.urlSuporte?.scheme == "mailto")
@@ -89,8 +89,8 @@ struct PerfisDaContaTests {
         let tela = TelaMeuPerfilProfissional(api: api, sair: {})
 
         #expect(tela.enderecos == EnderecosOficiais.padrao)
-        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
-        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.netlify.app/termos")
+        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.netlify.app/privacidade")
 
         let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
         #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)
@@ -104,8 +104,8 @@ struct PerfisDaContaTests {
         let tela = TelaPerfilEstabelecimento(api: api, sair: {})
 
         #expect(tela.enderecos == EnderecosOficiais.padrao)
-        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.app/termos")
-        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.app/privacidade")
+        #expect(tela.enderecos.termosDeUso.absoluteString == "https://frila.netlify.app/termos")
+        #expect(tela.enderecos.politicaDePrivacidade.absoluteString == "https://frila.netlify.app/privacidade")
 
         let ajuda = TelaAjudaPerfil(enderecos: tela.enderecos)
         #expect(ajuda.enderecos.termosDeUso == EnderecosOficiais.padrao.termosDeUso)

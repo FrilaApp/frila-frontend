@@ -166,7 +166,7 @@ struct ModoAviaoMeuTurnoTests {
             context.insert(AcaoRecusadaPersistida(id: recusa.id, conteudo: try JSONEncoder().encode(recusa)))
             try context.save()
         }
-        let esquema = Schema(versionedSchema: EsquemaFrilaV3.self)
+        let esquema = Schema(versionedSchema: EsquemaFrilaV4.self)
         let config = ModelConfiguration("Contato", schema: esquema, url: url)
         do {
             let container = try ModelContainer(for: esquema, migrationPlan: MigracaoFrila.self, configurations: [config])

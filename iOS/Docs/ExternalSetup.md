@@ -21,7 +21,10 @@ Os dois plists foram cadastrados no GitHub Actions como `FRILA_FIREBASE_GOOGLE_S
 Sem o plist, a fase de cópia e o envio de dSYMs avisam e saem sem falhar; o Crashlytics fica
 desabilitado naquele build. A injeção da CI continua exigindo os segredos quando ela é executada.
 
-Firebase não é banco, autenticação nem backend. O app usa somente Crashlytics para relatório de
-falhas; Firebase Messaging continua fora deste cartão e será tratado separadamente.
+Firebase não é banco, autenticação nem backend. O app usa Firebase Crashlytics para relatório de
+falhas e Firebase Messaging exclusivamente para entrega de notificações push ([Push](Push.md));
+Analytics não faz parte da integração.
 
 Responsável, organização Apple, conta Firebase e política de rotação devem constar no gestor de segredos da equipe, não neste repositório.
+
+Mudanças feitas em painéis externos (antes → depois, motivo, prova) ficam em `DiarioDeConfiguracao.md`.

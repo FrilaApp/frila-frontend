@@ -109,10 +109,14 @@ enum ContratoAPI {
     struct SessaoDTO: Decodable {
         let accessToken: String
         let refreshToken: String
+        let tokenType: String?
+        let expiresIn: Int?
 
         enum CodingKeys: String, CodingKey {
             case accessToken = "access_token"
             case refreshToken = "refresh_token"
+            case tokenType = "token_type"
+            case expiresIn = "expires_in"
         }
     }
 
@@ -1326,20 +1330,42 @@ enum ContratoAPI {
     // MARK: Aplicativo
 
     struct ConfiguracaoDoAppDTO: Decodable {
+        let plataforma: Plataforma?
         let versaoMinima: String
         let versaoRecomendada: String
         let urlDaLoja: URL
         let mensagem: String?
 
         enum CodingKeys: String, CodingKey {
+            case plataforma
             case mensagem
             case versaoMinima = "versao_minima"
             case versaoRecomendada = "versao_recomendada"
             case urlDaLoja = "url_da_loja"
         }
 
+        /// Hosts oficiais permitidos para o redirecionamento da App Store (Apple).
+        static let hostsDaAppStore: Set<String> = ["apps.apple.com", "itunes.apple.com"]
+        static let urlPadraoDaLoja = URL(string: "https://apps.apple.com/")!
+        private static let log = Logger(subsystem: "com.frila.org.app", category: "contrato")
+
         func dominio() -> ConfiguracaoApp {
-            ConfiguracaoApp(versaoMinima: versaoMinima, versaoRecomendada: versaoRecomendada, mensagem: mensagem, urlDaLoja: urlDaLoja)
+            ConfiguracaoApp(
+                versaoMinima: versaoMinima,
+                versaoRecomendada: versaoRecomendada,
+                mensagem: mensagem,
+                urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja)
+            )
+        }
+
+        /// A URL como veio, se for https e pertencer aos domínios oficiais da App Store da Apple;
+        /// caso contrário (esquema inseguro, host arbitrário ou malicioso), recorre à URL oficial segura da App Store.
+        static func urlSeguraDaLoja(_ url: URL) -> URL {
+            if url.scheme?.lowercased() == "https", let host = url.host()?.lowercased(), hostsDaAppStore.contains(host) {
+                return url
+            }
+            log.notice("url_da_loja_saneada")
+            return urlPadraoDaLoja
         }
     }
 

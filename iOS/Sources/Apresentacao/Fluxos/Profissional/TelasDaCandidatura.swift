@@ -128,6 +128,12 @@ public struct TelaResultadoDaCandidatura: View {
                     } icon: {
                         Image(systemName: "chevron.left")
                     }
+                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
+                }
+                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                .accessibilityShowsLargeContentViewer {
+                    Text(verbatim: Textos.voltarParaLista)
                 }
                 .accessibilityIdentifier("voltar-para-lista-navegacao")
             }

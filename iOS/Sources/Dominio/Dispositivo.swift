@@ -61,6 +61,27 @@ public struct AparelhoGuardado: Codable, Equatable, Sendable {
     }
 }
 
+extension AparelhoGuardado: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String {
+        "AparelhoGuardado(token: [REDACTED], vinculo: \(String(describing: vinculo)), contaAnterior: \(String(describing: contaAnterior)))"
+    }
+
+    public var debugDescription: String {
+        description
+    }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                ("token", "[REDACTED]"),
+                ("vinculo", vinculo as Any),
+                ("contaAnterior", contaAnterior as Any)
+            ]
+        )
+    }
+}
+
 /// Onde o `AparelhoGuardado` fica entre uma abertura e outra. Falha ao gravar ou ao ler não derruba
 /// nada: sem o guardado, o token chega de novo do FCM e o registro se repete na abertura seguinte.
 public protocol ArmazenamentoDoAparelho: Sendable {

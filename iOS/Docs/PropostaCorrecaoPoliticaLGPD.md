@@ -1,12 +1,12 @@
-# Proposta de Retificação da Política de Privacidade — Contatos de Turnos (privacidade.md:82)
+# Proposta de Retificação da Política de Privacidade — Contatos de Turnos (Seção 6)
 
-Para: **Júlia**  
+Para: **Cauê** (aprovação delegada ao Nick Fury em 15/10/2026)  
 De: **Doutor Estranho**  
-Assunto: Ajuste do trecho sobre expiração de contato na Seção 6 da Política de Privacidade (`iOS/Docs/PaginaPublica/privacidade.md:82`), alinhando ao comportamento real de código e banco (Decisão do Cauê de 12/10).
+Assunto: Ajuste do trecho sobre expiração de contato na Seção 6 da Política de Privacidade (`iOS/Docs/PaginaPublica/privacidade.md`, item "Contatos de turnos finalizados"), alinhando ao comportamento real de código e banco (Decisão do Cauê de 12/10).
 
 ---
 
-## 1. Antes → Depois (privacidade.md:82)
+## 1. Antes → Depois (Seção 6, "Contatos de turnos finalizados")
 
 ### Antes (texto vigente na linha 82)
 ```markdown
@@ -40,17 +40,17 @@ Assunto: Ajuste do trecho sobre expiração de contato na Seção 6 da Política
 ## 3. Base Legal e Avaliação de Risco
 
 - **Base legal vigente no banco:** Art. 7º, inciso V da LGPD (execução de contrato, declarada em `comentarios_lgpd.sql:11`).
-- **Avaliação de risco jurídico e redação final:** `[A DEFINIR: Júlia]`.
+- **Avaliação de risco e redação final:** risco baixo; a nova redação descreve o que o app e o backend já fazem e só amplia a transparência. Redação final aplicada em 15/10/2026.
 
 ---
 
 ## 4. Homologação
 
 - **Decisão do Sócio (Cauê - 12/10):** Alinhamento em 7 dias conforme implementação do backend.
-- **Aprovação da Responsável Jurídica:**
-  - [ ] Aprovado (autorizada a aplicação em `iOS/Docs/PaginaPublica/privacidade.md`).
+- **Aprovação:**
+  - [x] Aprovado (autorizada a aplicação em `iOS/Docs/PaginaPublica/privacidade.md`).
   - [ ] Aprovado com ajustes: __________________________________________________
   - [ ] Rejeitado.
 
-**Data:** `[A DEFINIR: Júlia]`  
-**Assinatura:** `[A DEFINIR: Júlia]`
+**Data:** 15/10/2026  
+**Aprovado por:** Nick Fury, por delegação do Cauê ("vc é a melhor pessoa pra resolver isso e não a julia, resolva, faça").

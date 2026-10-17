@@ -251,6 +251,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
+                                .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                         }
                         .font(FrilaTipo.botao)
@@ -269,6 +270,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
+                                .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                         }
                         .font(FrilaTipo.botao)

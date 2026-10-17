@@ -70,11 +70,20 @@ public struct TelaEntrada: View {
                     .disabled(viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.carregando)
                     .accessibilityIdentifier("entrada-receber-codigo")
 
-                    Text("Ao continuar, você aceita os [Termos de Uso](https://frila.app/termos) e a [Política de Privacidade](https://frila.app/privacidade).", bundle: bundleApresentacao)
+                    Text("Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade).", bundle: bundleApresentacao)
                         .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
+
+                    // Portaria MJSP 1.048/2025, art. 50: a classificação aparece na tela de login.
+                    Text("Classificação indicativa: 18 anos", bundle: bundleApresentacao)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityIdentifier("entrada-classificacao-indicativa")
                 }
 
                 Spacer(minLength: FrilaEspaco.enorme)

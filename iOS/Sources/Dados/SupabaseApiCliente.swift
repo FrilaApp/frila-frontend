@@ -13,7 +13,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     private let filaDeSessao = FilaDeSessao()
 
     public convenience init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
-        self.init(url: url, chavePublicavel: chavePublicavel, telemetria: telemetria, sessaoHTTP: .shared)
+        self.init(url: url, chavePublicavel: chavePublicavel, telemetria: telemetria, sessaoHTTP: Self.sessaoComPrazo())
     }
 
     /// A sessão HTTP e o armazenamento da sessão só mudam nos testes, que respondem às chamadas
@@ -39,6 +39,21 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         )
         cliente = SupabaseClient(supabaseURL: url, supabaseKey: chavePublicavel, options: options)
         self.telemetria = telemetria
+    }
+
+    /// A configuração de URLSession com prazos sensatos (15 s requisição, 60 s recurso, sem esperar conectividade).
+    public static func configuracaoComPrazo() -> URLSessionConfiguration {
+        let configuracao = URLSessionConfiguration.default
+        configuracao.timeoutIntervalForRequest = 15
+        configuracao.timeoutIntervalForResource = 60
+        configuracao.waitsForConnectivity = false
+        return configuracao
+    }
+
+    /// A sessão compartilhada espera 60 s por resposta; com 4G ruim a tela ficava esse tempo girando.
+    /// Aqui cada pedido tem 15 s e o conjunto 60 s. Sem rede, a falha vem na hora (não espera conectar).
+    public static func sessaoComPrazo() -> URLSession {
+        URLSession(configuration: configuracaoComPrazo())
     }
 
     // MARK: Entrada
@@ -196,13 +211,15 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         // Leitura de tabela, fora do `rpc()`: o 401 precisa encerrar a sessão do mesmo jeito.
         let sessaoUsada = cliente.auth.currentSession?.accessToken
         do {
-            let resposta: [ContratoAPI.FuncaoDTO] = try await cliente
-                .from("funcao")
-                .select("id,nome,categoria")
-                .eq("ativo", value: true)
-                .execute()
-                .value
-            return resposta.map { $0.dominio() }
+            return try await executarComRetentativaSeTransiente(podeRetentar: true) { [cliente] in
+                let resposta: [ContratoAPI.FuncaoDTO] = try await cliente
+                    .from("funcao")
+                    .select("id,nome,categoria")
+                    .eq("ativo", value: true)
+                    .execute()
+                    .value
+                return resposta.map { $0.dominio() }
+            }
         } catch {
             if Self.comprovaSessaoInvalida(error) {
                 _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
@@ -538,6 +555,64 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    /// Funções RPC do contrato estritamente de consulta (idempotentes e seguras para retentativa).
+    /// Chamadas com efeito colateral (candidaturas, publicações, check-in, etc.) nunca entram aqui.
+    public static let rpcsDeLeitura: Set<String> = [
+        "minha_conta",
+        "meu_perfil_profissional",
+        "criterios_de_notificacao",
+        "meus_estabelecimentos",
+        "meu_estabelecimento",
+        "painel_estabelecimento",
+        "equipe_de_confianca",
+        "vagas_abertas",
+        "detalhe_vaga",
+        "perfil_publico",
+        "minhas_candidaturas",
+        "candidatos_da_vaga",
+        "minhas_vagas",
+        "meus_turnos",
+        "contato_do_turno",
+        "situacao_da_conta",
+        "historico_profissional",
+        "avaliacoes_do_turno",
+        "configuracao_do_app",
+    ]
+
+    /// Falhas transitórias de rede que justificam uma retentativa imediata em leituras idempotentes
+    /// (oscilação de sinal 4G, timeout de requisição ou perda passageira de conexão).
+    /// Casos persistentes (sem conexão com a internet, dados móveis desativados, roaming desligado)
+    /// NÃO são retentados para permitir que a interface responda de imediato pelo cache local.
+    public static let codigosDeRedeTransiente: Set<URLError.Code> = [
+        .networkConnectionLost, .timedOut, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+    ]
+
+    public static func ehErroTransienteDeRede(_ error: Error) -> Bool {
+        if let urlError = error as? URLError {
+            return codigosDeRedeTransiente.contains(urlError.code)
+        }
+        if case let FunctionsError.httpError(codigo, _) = error, [502, 503, 504].contains(codigo) {
+            return true
+        }
+        return false
+    }
+
+    private func executarComRetentativaSeTransiente<T>(
+        podeRetentar: Bool,
+        operacao: () async throws -> T
+    ) async throws -> T {
+        do {
+            return try await operacao()
+        } catch {
+            guard podeRetentar, !Task.isCancelled, Self.ehErroTransienteDeRede(error) else {
+                throw error
+            }
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { throw error }
+            return try await operacao()
+        }
+    }
+
     // As leituras que o contrato descreve em GET vão por POST: o PostgREST aceita os dois para
     // qualquer função, e o POST não esbarra na transação somente-leitura do GET.
     private func rpc<Resposta: Decodable>(_ nome: String, params: some Encodable = SemParametros()) async throws -> Resposta {
@@ -546,8 +621,11 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         // A sessão com que a chamada sai, só em memória e nunca registrada. Serve para um 401 que
         // chegue depois de uma entrada nova não derrubar a sessão nova.
         let sessaoUsada = cliente.auth.currentSession?.accessToken
+        let podeRetentar = Self.rpcsDeLeitura.contains(nome)
         do {
-            return try await cliente.rpc(nome, params: params).execute().value
+            return try await executarComRetentativaSeTransiente(podeRetentar: podeRetentar) { [cliente] in
+                try await cliente.rpc(nome, params: params).execute().value
+            }
         } catch {
             if Self.comprovaSessaoInvalida(error) {
                 _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)

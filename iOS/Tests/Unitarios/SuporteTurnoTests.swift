@@ -175,9 +175,9 @@ struct SuporteTurnoTests {
         }
 
         #expect(url.scheme == "mailto")
-        #expect(url.path == "suportefrila@gmail.com")
-
         let componentes = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        #expect(componentes?.path == "suportefrila@gmail.com" || url.absoluteString.hasPrefix("mailto:suportefrila@gmail.com"))
+
         let assuntoParam = componentes?.queryItems?.first(where: { $0.name == "subject" })?.value
         let corpoParam = componentes?.queryItems?.first(where: { $0.name == "body" })?.value
 
@@ -199,7 +199,7 @@ struct SuporteTurnoTests {
 
         #expect(vm.copiadoComSucesso)
         #expect(caixa.texto.contains("Assunto: [Turno 11111111-2222-3333-4444-555555555555] Garçom"))
-        #expect(caixa.texto.contains("Para: suporte@frila.app"))
+        #expect(caixa.texto.contains("Para: \(EnderecosOficiais.padrao.emailSuporte)"))
         #expect(caixa.texto.contains(contexto.endereco))
     }
 

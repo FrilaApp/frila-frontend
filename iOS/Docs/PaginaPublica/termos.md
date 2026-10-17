@@ -1,21 +1,18 @@
 # Termos de Uso — Frila
 
-**Última atualização:** 12 de outubro de 2026.
-
 Bem-vindo aos Termos de Uso do **Frila**. Ao criar uma conta, acessar ou utilizar o aplicativo Frila para iOS e seus serviços associados, você concorda expressamente com as disposições estabelecidas neste documento. Se você não concordar com estes termos, não deverá utilizar a plataforma.
 
-Estes termos regem o relacionamento entre a empresa mantenedora da plataforma e os usuários que utilizam o aplicativo, sejam profissionais independentes ou estabelecimentos contratantes.
+Estes termos regem o relacionamento entre o responsável pelo projeto Frila e os usuários que utilizam o aplicativo, sejam profissionais independentes ou estabelecimentos contratantes.
 
 ---
 
-## 1. Identificação da Empresa
+## 1. Identificação do Responsável
 
 A plataforma Frila é desenvolvida e operada por:
 
-- **Razão Social:** [A DEFINIR: Razão Social da empresa operadora]
-- **CNPJ:** [A DEFINIR: Número de inscrição no CNPJ]
-- **Endereço da Sede:** [A DEFINIR: Endereço completo da sede da empresa]
-- **Canal de Contato Oficial:** `suportefrila@gmail.com`
+- **Responsável:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
+- **Localidade:** Brasília/DF
+- **Canal do titular de dados e do suporte:** `suportefrila@gmail.com`
 
 ---
 
@@ -34,10 +31,18 @@ O **Frila** é uma plataforma de tecnologia voltada exclusivamente para a **apro
 
 ## 3. Requisito Obrigatório de Maioridade (Classificação 18+)
 
+**Classificação indicativa: 18 anos.** O Frila é permitido apenas para maiores de 18 anos, porque envolve trabalho avulso que pode ocorrer à noite ou em locais com bebida alcoólica.
+
 ### Cláusula de Declaração de Maioridade
 **O uso do Frila é estritamente proibido para pessoas com menos de 18 (dezoito) anos de idade.**
 
 Ao se cadastrar no aplicativo, você declara sob as penas da lei que possui **18 (dezoito) anos completos ou mais** na data do cadastro.
+
+### Como a idade é verificada
+- Para criar a conta, você confirma ter 18 anos ou mais e informa sua data de nascimento. O app e o servidor conferem essa data.
+- O app também pode consultar o sistema do seu aparelho (recurso de faixa etária da Apple) para confirmar a faixa de idade. O Frila recebe só a faixa, não a sua data de nascimento pelo aparelho.
+- Se o sistema indicar menos de 18 anos, a conta não é criada. Se o sistema não responder ou você não autorizar a consulta, valem a sua data de nascimento e a sua declaração.
+- Se você acha que sua idade foi aferida de forma errada, escreva para `suportefrila@gmail.com`.
 
 - A vedação ao acesso de menores fundamenta-se nas normas de proteção trabalhista e da juventude da Constituição Federal (art. 7º, XXXIII), da Consolidação das Leis do Trabalho (arts. 402 a 441), do Estatuto da Criança e do Adolescente (Lei nº 8.069/1990, arts. 60 a 69), do Decreto nº 6.481/2008 (Piores Formas de Trabalho Infantil) e da **Lei nº 15.211/2025 (ECA Digital)**.
 - O Frila reserva-se o direito de exigir comprovação de idade a qualquer momento. Contas vinculadas a menores de 18 anos ou que contenham declarações falsas serão imediatamente suspensas e seus dados serão descartados.
@@ -92,7 +97,7 @@ O Frila preza por um ambiente profissional, seguro e respeitoso para todos. É t
 Em conformidade com a **Diretriz 1.2 das Diretrizes de Revisão da App Store da Apple**:
 - **Canal de Denúncia:** Usuários podem denunciar condutas abusivas, assédio ou descumprimento de regras diretamente na tela do aplicativo, com geração de número de protocolo rastreável.
 - **Bloqueio Mútuo Imediato:** Qualquer usuário pode acionar a ferramenta de bloqueio de outro usuário na tela de detalhes. Uma vez ativado o bloqueio, as partes nunca mais poderão interagir, ver vagas ou enviar mensagens uma à outra.
-- **Moderação em até 24 Horas:** Nossa equipe operacional monitora denúncias com o compromisso de analisar relatos e remover/ocultar conteúdos ofensivos em até 24 (vinte e quatro) horas corridas. Contas infratoras serão advertidas, suspensas ou banidas permanentemente.
+- **Moderação de denúncias:** Nossa equipe operacional atende denúncias o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Conteúdos ofensivos poderão ser removidos ou ocultados. Contas infratoras serão advertidas, suspensas ou banidas permanentemente.
 - **Direito de Contestação:** Usuários que tiverem contas suspensas por moderação têm o direito de enviar justificativa formal e pedido de revisão pelo próprio aplicativo (em tela dedicada de contestação) ou pelo e-mail de suporte.
 
 ---
@@ -108,6 +113,14 @@ Após cada turno concluído, profissional e contratante podem avaliar a experiê
 - Todos os elementos visuais, marcas, logotipos, códigos-fonte, arquitetura e interfaces do Frila são de titularidade exclusiva de seus desenvolvedores e protegidos pela legislação de propriedade intelectual.
 - O usuário recebe uma licença pessoal, revogável, não exclusiva e intransferível para utilizar o aplicativo em seu dispositivo iOS, estritamente de acordo com estes termos.
 - O catálogo de bibliotecas de código aberto utilizadas no aplicativo é público e acessível na tela de licenças do app (**Perfil** → **Ajuda** → **Licenças de terceiros**).
+
+### Conteúdo publicado por você
+
+- **Titularidade:** vagas, descrições, nomes de estabelecimentos, avaliações, relatos e qualquer outro conteúdo que você publicar no Frila continuam sendo seus. Ao publicar, você declara ter o direito de fazê-lo e que o conteúdo não viola direitos autorais, marcas, a imagem ou a privacidade de outras pessoas.
+- **Licença para o Frila funcionar:** você concede ao Frila uma licença gratuita, não exclusiva e mundial, limitada ao necessário para operar o aplicativo: armazenar, exibir aos usuários que podem ver o conteúdo (por exemplo, a vaga aos profissionais) e fazer adaptações técnicas, como redimensionar ou formatar o texto. O Frila não vende nem cede o seu conteúdo a terceiros para outros fins.
+- **Duração:** a licença vale enquanto o conteúdo estiver no Frila. Ao excluir o conteúdo ou a conta, o conteúdo deixa de ser exibido, respeitados os prazos legais de guarda descritos na Política de Privacidade.
+- **O que não pode ser publicado:** conteúdo ilícito, ofensivo, discriminatório, enganoso ou que viole direito de terceiros, conforme a seção 8. Conteúdo denunciado pode ser ocultado ou removido pela moderação, nos prazos da seção 8.
+- **Responsabilidade:** você é responsável pelo conteúdo que publica. Se alguém reclamar de um conteúdo seu, o Frila poderá ocultá-lo enquanto o caso é analisado.
 
 ---
 
@@ -138,4 +151,4 @@ Estes Termos de Uso poderão ser revisados periodicamente. Quando houver altera�
 
 Estes Termos de Uso são regidos e interpretados de acordo com a legislação da República Federativa do Brasil.
 
-Para a resolução de quaisquer controvérsias decorrentes destes Termos que não possam ser solucionadas amigavelmente pelo canal de suporte oficial, fica eleito o foro da Comarca de [A DEFINIR: Comarca e Estado do Foro competente], com renúncia a qualquer outro, por mais privilegiado que seja.
+Para a resolução de quaisquer controvérsias decorrentes destes Termos que não possam ser solucionadas amigavelmente pelo canal de suporte oficial, fica eleito o foro da Comarca de Brasília, Distrito Federal, com renúncia a qualquer outro, por mais privilegiado que seja.

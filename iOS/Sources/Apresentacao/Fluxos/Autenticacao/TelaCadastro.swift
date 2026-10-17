@@ -80,6 +80,7 @@ public struct TelaCadastro: View {
                             .foregroundStyle(FrilaCor.texto)
 
                         CampoFrila("Como você quer ser chamado", texto: $viewModel.nome)
+                            .accessibilityLabel(Text("Nome", bundle: bundleApresentacao))
                             .textContentType(.name)
                             .textInputAutocapitalization(.words)
                             .accessibilityIdentifier("cadastro-nome")
@@ -99,6 +100,7 @@ public struct TelaCadastro: View {
                             .foregroundStyle(FrilaCor.texto)
 
                         CampoFrila("(61) 9 0000-0000", texto: $viewModel.telefone)
+                            .accessibilityLabel(Text("Telefone com WhatsApp", bundle: bundleApresentacao))
                             .keyboardType(.phonePad)
                             .textContentType(.telephoneNumber)
                             .accessibilityIdentifier("cadastro-telefone")
@@ -122,6 +124,7 @@ public struct TelaCadastro: View {
                             .foregroundStyle(FrilaCor.texto)
 
                         CampoFrila("dd/mm/aaaa", texto: $viewModel.nascimentoTexto)
+                            .accessibilityLabel(Text("Data de nascimento", bundle: bundleApresentacao))
                             .keyboardType(.numberPad)
                             .accessibilityIdentifier("cadastro-nascimento")
 
@@ -157,14 +160,14 @@ public struct TelaCadastro: View {
                             .accessibilityValue(Text(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
                             .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected] : [])
                             .accessibilityAction(named: Text("Termos de uso", bundle: bundleApresentacao)) {
-                                if let url = URL(string: "https://frila.app/termos") { openURL(url) }
+                                openURL(EnderecosOficiais.padrao.termosDeUso)
                             }
                             .accessibilityAction(named: Text("Política de privacidade", bundle: bundleApresentacao)) {
-                                if let url = URL(string: "https://frila.app/privacidade") { openURL(url) }
+                                openURL(EnderecosOficiais.padrao.politicaDePrivacidade)
                             }
                             .accessibilityIdentifier("cadastro-termos")
 
-                            Text("Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)", bundle: bundleApresentacao)
+                            Text("Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)", bundle: bundleApresentacao)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.texto)
                                 .padding(.top, 10)

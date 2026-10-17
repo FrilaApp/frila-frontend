@@ -148,7 +148,10 @@ public struct FluxoDoProfissional<Barra: View>: View {
                                 roteador.aba = .turnos
                             } label: {
                                 Label(TextosDoProfissional.Turnos.tituloMeusTurnos, systemImage: "calendar")
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                                    .contentShape(Rectangle())
                             }
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                             .accessibilityShowsLargeContentViewer()
                             .accessibilityIdentifier("abrir-meus-turnos")
                         }
@@ -386,11 +389,11 @@ private struct DestinoDoMeuTurno: View {
     ) {
         // Sem leitor de localização (prévias), a tela fica sem a seção de presença.
         let presenca = localizacao.map {
-            PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar)
+            PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar, cache: .compartilhado)
         }
         _viewModel = State(initialValue: MeuTurnoViewModel(
             turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca,
-            aoAvaliar: aoRegistrar, aoCancelar: aoRegistrar
+            aoAvaliar: aoRegistrar, aoCancelar: aoRegistrar, cache: .compartilhado
         ))
     }
 

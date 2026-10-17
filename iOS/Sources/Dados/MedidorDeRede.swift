@@ -15,9 +15,9 @@ public final class MedidorDeRede: NSObject, URLSessionTaskDelegate, @unchecked S
         self.registro = registro
     }
 
-    /// A sessão que o `SupabaseApiCliente` usa no build de medição, no lugar da `.shared`.
+    /// A sessão que o `SupabaseApiCliente` usa no build de medição, com os mesmos prazos da produção (15 s requisição, 60 s recurso).
     public static func sessao(registro: RegistroDeMedicoes = .compartilhado) -> URLSession {
-        URLSession(configuration: .default, delegate: MedidorDeRede(registro: registro), delegateQueue: nil)
+        URLSession(configuration: SupabaseApiCliente.configuracaoComPrazo(), delegate: MedidorDeRede(registro: registro), delegateQueue: nil)
     }
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {

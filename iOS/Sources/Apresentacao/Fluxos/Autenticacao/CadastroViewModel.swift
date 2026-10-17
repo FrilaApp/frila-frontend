@@ -7,6 +7,8 @@ public final class CadastroViewModel {
     private let api: any ApiCliente
     private let relogio: any Relogio
     private let verificadorDeIdade: any VerificadorDeIdade
+    private let telemetria: RegistradorDeTelemetria?
+    private var jaEmitiuCadastro = false
     public let email: String
 
     public enum CampoCadastro: Hashable, Sendable {
@@ -29,12 +31,14 @@ public final class CadastroViewModel {
         api: any ApiCliente,
         email: String,
         relogio: any Relogio = RelogioDoSistema(),
-        verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel()
+        verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel(),
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.api = api
         self.email = email
         self.relogio = relogio
         self.verificadorDeIdade = verificadorDeIdade
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
     }
 
     public var ehMenorDeIdade: Bool {
@@ -121,11 +125,16 @@ public final class CadastroViewModel {
             telefone: telefoneE164,
             nascimento: nascimento,
             perfil: perfil,
-            versaoTermos: "2026-09-22"
+            // Termos com a classificação indicativa de 18 anos e a contestação da idade.
+            versaoTermos: "2026-10-15"
         )
 
         do {
             let conta = try await api.criarConta(cadastro)
+            if !jaEmitiuCadastro {
+                jaEmitiuCadastro = true
+                await telemetria?.registrar(.cadastroConcluido)
+            }
             switch conta.perfil {
             case .profissional:
                 DestinoGuardado.salvar(.funcoesEHorarios)

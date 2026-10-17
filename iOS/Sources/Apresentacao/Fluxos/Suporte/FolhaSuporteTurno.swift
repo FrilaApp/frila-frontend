@@ -130,6 +130,7 @@ public struct FolhaSuporteTurno: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(verbatim: motivo.rotulo))
+                    .accessibilityValue(FrilaAcessibilidade.textoSelecao(selecionado: viewModel.motivo == motivo))
                     .accessibilityIdentifier("opcao-motivo-\(motivo.rawValue)")
                     .accessibilityAddTraits(viewModel.motivo == motivo ? .isSelected : [])
                 }

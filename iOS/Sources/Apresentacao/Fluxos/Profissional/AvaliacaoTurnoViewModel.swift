@@ -153,12 +153,14 @@ public final class AvaliacaoTurnoViewModel {
     private let fila: (any FilaDeAcoes)?
     private let armazenamento: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
+    private let telemetria: RegistradorDeTelemetria?
     private let repositorioTurnos: (any TurnoRepositorio)?
     private let aoEnfileirar: ((Bool) -> Void)?
     private let aoAvaliar: ((Avaliacao) -> Void)?
     private var acaoOfflineID: UUID?
     public private(set) var recusaDaFila: AcaoRecusada?
     private var recusaExibidaID: UUID?
+    private var jaEmitiuAvaliacao = false
 
     public init(
         turnoID: UUID,
@@ -172,7 +174,8 @@ public final class AvaliacaoTurnoViewModel {
         explicacao: String? = nil,
         aoAvaliar: ((Avaliacao) -> Void)? = nil,
         aoEnfileirar: ((Bool) -> Void)? = nil,
-        repositorioTurnos: (any TurnoRepositorio)? = nil
+        repositorioTurnos: (any TurnoRepositorio)? = nil,
+        telemetria: RegistradorDeTelemetria? = nil
     ) {
         self.turnoID = turnoID
         self.contaID = contaID
@@ -181,6 +184,7 @@ public final class AvaliacaoTurnoViewModel {
         self.fila = fila
         self.armazenamento = armazenamento
         self.relogio = relogio
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
         self.aoAvaliar = aoAvaliar
         self.aoEnfileirar = aoEnfileirar
         self.repositorioTurnos = repositorioTurnos
@@ -314,6 +318,10 @@ public final class AvaliacaoTurnoViewModel {
             jaAvaliado = true
             sucesso = true
             mensagemDeSucesso = TextosDoProfissional.Avaliacao.avaliadoSucesso
+            if !jaEmitiuAvaliacao {
+                jaEmitiuAvaliacao = true
+                await telemetria?.registrar(.avaliacaoEnviada, turnoID: turnoID)
+            }
             recusaDaFila = nil
             try? await fila?.resolverRecusas(AcaoPendente(
                 tipo: .avaliacao, turnoID: turnoID, contaID: contaID,

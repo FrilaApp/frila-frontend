@@ -114,6 +114,14 @@ enum TextosDoProfissional {
         static let lembretesEVisibilidade = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.", bundle: bundleApresentacao)
         static let verNoMapas = String(localized: "Ver no Mapas", bundle: bundleApresentacao)
         static let quemRecebe = String(localized: "quem recebe", bundle: bundleApresentacao)
+        static let botaoEstouACaminho = String(localized: "Estou a caminho", bundle: bundleApresentacao)
+        static func avisouACaminho(_ hora: String) -> String {
+            String(localized: "Você avisou que está a caminho às \(hora).", bundle: bundleApresentacao)
+        }
+        static let erroACaminhoForaDaJanela = String(localized: "O aviso a caminho só pode ser enviado de 3 horas antes até 15 minutos após o início do turno.", bundle: bundleApresentacao)
+        static let erroACaminhoSemRede = String(localized: "Sem conexão. Tente de novo quando a internet voltar.", bundle: bundleApresentacao)
+        static let erroACaminhoGenerico = String(localized: "Não foi possível enviar o aviso. Tente novamente.", bundle: bundleApresentacao)
+        static let tentarDeNovo = String(localized: "Tentar de novo", bundle: bundleApresentacao)
     }
 
     static func simNao(_ valor: Bool) -> String { valor ? String(localized: "sim", bundle: bundleApresentacao) : String(localized: "não", bundle: bundleApresentacao) }
@@ -159,7 +167,7 @@ enum TextosDoProfissional {
         public static let erroCoordenadasInvalidas = String(localized: "Coordenadas inválidas.", bundle: bundleApresentacao)
         public static let erroCarregar = String(localized: "Não foi possível carregar as informações.", bundle: bundleApresentacao)
         public static let erroSalvar = String(localized: "Não foi possível salvar o perfil.", bundle: bundleApresentacao)
-        public static let perfilSalvoComSucesso = String(localized: "Perfil salvo com sucesso!", bundle: bundleApresentacao)
+        public static let perfilSalvoComSucesso = String(localized: "Perfil salvo.", bundle: bundleApresentacao)
         public static let buscar = String(localized: "Buscar", bundle: bundleApresentacao)
     }
 
@@ -178,7 +186,7 @@ enum TextosDoProfissional {
         public static let botaoEnviar = String(localized: "Enviar avaliação", bundle: bundleApresentacao)
         public static let botaoConcluir = String(localized: "Concluir", bundle: bundleApresentacao)
         public static let dicaEscolhaResposta = String(localized: "Escolha Sim ou Não para avaliar.", bundle: bundleApresentacao)
-        public static let avaliadoSucesso = String(localized: "Avaliação registrada com sucesso!", bundle: bundleApresentacao)
+        public static let avaliadoSucesso = String(localized: "Avaliação registrada.", bundle: bundleApresentacao)
         public static let avaliadoOffline = String(localized: "Avaliação salva. Será enviada quando a internet voltar.", bundle: bundleApresentacao)
         public static let suaResposta = String(localized: "Sua resposta", bundle: bundleApresentacao)
         public static let erroIndisponivel = String(localized: "A avaliação só fica disponível após o término do turno e com presença confirmada.", bundle: bundleApresentacao)

@@ -38,6 +38,11 @@ struct FrilaApp: App {
             armazenamento = nil
         }
         self.armazenamento = armazenamento
+        // Os registradores de telemetria das telas guardam o evento sem rede neste banco. Fora dos
+        // testes: o app hospeda a suíte unitária e o banco real não deve ver os eventos dela.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            FilaDeTelemetriaDoApp.ligar(armazenamento)
+        }
 
         do throws(ErroDeConfiguracao) {
             let ambiente = try ConfiguracaoAmbiente()
@@ -47,6 +52,7 @@ struct FrilaApp: App {
             if api is ApiClienteEmMemoria {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
                 CacheEquipeDeConfianca.compartilhado.limpar()
+                CacheDeLeituras.compartilhado.limpar()
             }
             if Self.desativarAnimacoes {
                 MainActor.assumeIsolated {
@@ -230,6 +236,7 @@ private struct EntradaDoApp: View {
     let aparelho: AparelhoDePush
     let canal: any CanalDePush
     let verificadorDeIdade: any VerificadorDeIdade
+    private let telemetria: RegistradorDeTelemetria
     private let repositorioTurnos: any TurnoRepositorio
     @Environment(\.scenePhase) private var fase
     @State private var roteador: RoteadorDoProfissional
@@ -251,11 +258,13 @@ private struct EntradaDoApp: View {
     init(_ dependencias: Dependencias, armazenamento: ArmazenamentoSwiftData?, navegacao: NavegacaoDoApp) {
         let api = dependencias.api
         let localizacao = dependencias.localizacao
+        let telemetria = RegistradorDeTelemetria(api: api)
         self.api = api
+        self.telemetria = telemetria
         aparelho = dependencias.aparelho
         canal = dependencias.canal
         verificadorDeIdade = dependencias.verificadorDeIdade
-        _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: dependencias.permissao, abrirAjustes: {
+        _permissaoDePush = State(initialValue: PermissaoDePushModelo(permissao: dependencias.permissao, telemetria: telemetria, abrirAjustes: {
             guard let ajustes = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
             UIApplication.shared.open(ajustes)
         }))
@@ -378,18 +387,22 @@ private struct EntradaDoApp: View {
         }
         // Sem ampliar o observador (que só avisa encerramento): ao voltar a ficar ativo, a entrada
         // confere a sessão de novo. Cobre quem entrou pela seção de validação (Debug) e saiu do app.
-        .onChange(of: fase) { _, nova in
+        .onChange(of: fase) { antiga, nova in
             // Sem a tela de carregamento: ela desmontaria a entrada, e quem foi buscar o código no
             // e-mail voltaria para a tela do e-mail.
             if nova == .active, destinoAtual == nil { Task { await avaliarSessao(mostrandoCarregamento: false) } }
             // A pessoa pode ter mudado a permissão de notificação nos Ajustes.
-            if nova == .active { Task { await permissaoDePush.atualizar() } }
+            if TelemetriaCicloDeVida.deveRegistrarAbertura(de: antiga, para: nova) {
+                Task { await permissaoDePush.atualizar() }
+                Task { await telemetria.registrar(.appAberto) }
+            }
         }
         .task {
             guard let observador = api as? any ObservadorDeSessao else { return }
             for await _ in observador.encerramentos() {
                 UserDefaultsArmazenamentoAvaliacoes().limpar()
                 CacheEquipeDeConfianca.compartilhado.limpar()
+                CacheDeLeituras.compartilhado.limpar()
                 await aparelho.desvincular()
                 await canal.suspenderEntrega()
                 await canal.limparEntregues()
@@ -418,20 +431,24 @@ private struct EntradaDoApp: View {
             ))
         }
         #endif
-        let reenvio = ReenvioAoReconectar(
-            monitor: MonitorDeConexaoDoSistema(),
-            sincronizador: SincronizadorAcoes(fila: armazenamento, api: api, avaliacaoJaRegistrada: { acao in
-                guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
-                UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
-            }, avaliacaoRecusada: { acao in
-                guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
-                UserDefaultsArmazenamentoAvaliacoes().remover(para: turnoID, contaID: contaID)
-            })
-        )
+        let sincronizador = SincronizadorAcoes(fila: armazenamento, api: api, avaliacaoJaRegistrada: { acao in
+            guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
+            UserDefaultsArmazenamentoAvaliacoes().registrarSemResposta(para: turnoID, contaID: contaID)
+        }, avaliacaoRecusada: { acao in
+            guard let turnoID = acao.turnoID, let contaID = acao.contaID else { return }
+            UserDefaultsArmazenamentoAvaliacoes().remover(para: turnoID, contaID: contaID)
+        })
+        let telemetria = telemetria
+        // Ao reconectar e na abertura com rede: primeiro as ações (que podem gerar eventos), depois a telemetria.
+        let reenvio = ReenvioAoReconectar(monitor: MonitorDeConexaoDoSistema()) {
+            await sincronizador.sincronizar()
+            await telemetria.reenviar()
+        }
         let saida = SaidaDaConta(api: api, armazenamento: armazenamento, aparelho: aparelho, canal: canal,
                                 limparAvaliacoes: {
                                     UserDefaultsArmazenamentoAvaliacoes().limpar()
                                     CacheEquipeDeConfianca.compartilhado.limpar()
+                                    CacheDeLeituras.compartilhado.limpar()
                                 })
         let observador = api as? any ObservadorDeSessao
         await withTaskGroup(of: Void.self) { grupo in
@@ -750,6 +767,7 @@ private struct EntradaDoApp: View {
                                 limparAvaliacoes: {
                                     UserDefaultsArmazenamentoAvaliacoes().limpar()
                                     CacheEquipeDeConfianca.compartilhado.limpar()
+                                    CacheDeLeituras.compartilhado.limpar()
                                 }).sair()
         roteador.voltarParaLista()
         destinoAtual = nil

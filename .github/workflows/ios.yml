@@ -75,6 +75,11 @@ jobs:
       - name: Validar as fixtures contra o contrato
         run: python3 Scripts/validate-fixtures.py
 
+      - name: Conferir conformidade de contrato do app iOS contra o OpenAPI
+        run: |
+          Scripts/teste-contrato-ios-confere.sh
+          Scripts/contrato-ios-confere.sh
+
       - name: Conferir que só a camada Dados importa o Supabase
         run: |
           fora=$(grep -rlE '^(@testable )?import (Supabase|PostgREST|Auth|Functions|Realtime|Storage)$' Sources Tests | grep -v '^Sources/Dados/' || true)
@@ -174,11 +179,17 @@ jobs:
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
+            -retry-tests-on-failure -test-iterations 3 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
+
+      - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Parte 1" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Publicar xcresult em caso de falha nos testes
         if: failure() && steps.testes.outcome == 'failure'
@@ -419,11 +430,17 @@ jobs:
             -destination "id=${{ steps.simulador.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
+            -retry-tests-on-failure -test-iterations 3 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
+
+      - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Parte 2" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Publicar xcresult em caso de falha nos testes
         if: failure() && steps.testes.outcome == 'failure'

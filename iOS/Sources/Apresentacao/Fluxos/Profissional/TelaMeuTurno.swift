@@ -43,7 +43,9 @@ public struct TelaMeuTurno: View {
                 }
                 if viewModel.permiteAcoesDoTurno {
                     if let presenca = viewModel.presenca {
-                        SecaoDePresenca(viewModel: presenca)
+                        SecaoDePresenca(viewModel: presenca, turno: viewModel)
+                    } else if viewModel.podeAvisarACaminho || viewModel.aCaminhoEm != nil {
+                        cartaoACaminhoSemPresenca
                     }
                     cartaoContato
                 }
@@ -213,6 +215,48 @@ public struct TelaMeuTurno: View {
         .accessibilityIdentifier("cancelamento-do-turno")
     }
 
+    private var cartaoACaminhoSemPresenca: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosDoProfissional.Presenca.titulo.uppercased())
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+
+            if let data = viewModel.aCaminhoEm {
+                Label {
+                    Text(verbatim: TextosDoProfissional.Turnos.avisouACaminho(formatador.hora(data)))
+                } icon: {
+                    Image(systemName: "figure.walk")
+                }
+                .font(.subheadline)
+                .foregroundStyle(FrilaCor.texto)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("a-caminho-situacao")
+            }
+            if let erro = viewModel.mensagemErroACaminho {
+                AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("a-caminho-erro")
+                if viewModel.podeTentarAvisarDeNovo {
+                    BotaoSecundario(verbatim: TextosDoProfissional.Turnos.tentarDeNovo) {
+                        Task { await viewModel.avisarACaminho() }
+                    }
+                    .accessibilityIdentifier("tentar-a-caminho-de-novo")
+                }
+            }
+            if viewModel.podeExibirBotaoACaminho {
+                BotaoSecundario(verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho) {
+                    Task { await viewModel.avisarACaminho() }
+                }
+                .disabled(viewModel.avisandoACaminho)
+                .accessibilityIdentifier("botao-a-caminho")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("presenca-do-turno")
+    }
+
     private var cartaoContato: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoProfissional.Candidatura.contato.uppercased())
@@ -236,6 +280,7 @@ public struct TelaMeuTurno: View {
                     Link(destination: urlWhatsApp) {
                         HStack {
                             Image(systemName: "message.fill")
+                                .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
                         }
                         .font(FrilaTipo.meta.weight(.semibold))
@@ -243,6 +288,9 @@ public struct TelaMeuTurno: View {
                         .frame(minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                     }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        Task { await viewModel.registrarContatoAberto() }
+                    })
                     .accessibilityIdentifier("botao-whatsapp")
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
                     #if DEBUG
@@ -289,6 +337,7 @@ public struct TelaMeuTurno: View {
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")
+                            .accessibilityHidden(true)
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                     }
                     .font(FrilaTipo.meta.weight(.semibold))
@@ -309,6 +358,7 @@ public struct TelaMeuTurno: View {
                 } label: {
                     HStack {
                         Image(systemName: "star.fill")
+                            .accessibilityHidden(true)
                         Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                     }
                     .font(FrilaTipo.meta.weight(.semibold))

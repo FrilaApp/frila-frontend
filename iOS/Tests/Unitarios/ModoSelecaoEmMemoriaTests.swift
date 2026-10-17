@@ -96,7 +96,7 @@ struct ModoSelecaoEmMemoriaTests {
         #expect(try await cena.api.perfilPublico(id: Cena.carla.id) == Cena.carla)
     }
 
-    @Test("O candidato que a casa bloqueou continua na lista, mas sai da conta do painel, como no backend")
+    @Test("O candidato que a casa bloqueou sai da lista e da conta do painel, e escolhê-lo é 403 sem details (0.2.42)")
     func candidatoBloqueado() async throws {
         let api = ApiClienteEmMemoria(cenario: .selecaoComCandidatos)
         let casa = try #require(try await api.meusEstabelecimentos().first)
@@ -107,9 +107,17 @@ struct ModoSelecaoEmMemoriaTests {
 
         _ = try await api.bloquear(Alvo(candidatos[1].profissional))
 
-        // `candidatos_da_vaga` não filtra bloqueio; `candidatos_pendentes` do painel filtra.
-        #expect(try await api.candidatosDaVaga(id: vaga.id) == candidatos)
+        // 0.2.42 (RF26, RN10): `candidatos_da_vaga` e `candidatos_pendentes` do painel filtram o bloqueio.
+        #expect(try await api.candidatosDaVaga(id: vaga.id) == [candidatos[0], candidatos[2], candidatos[3]])
         #expect(try await api.painelEstabelecimento(id: casa.id, periodo: periodo).vagas.first?.candidatosPendentes == 3)
+        // Escolher o bloqueado responde como candidatura inexistente: 403 sem_permissao, sem `details`.
+        do {
+            _ = try await api.escolherCandidato(candidaturaID: candidatos[1].candidaturaID)
+            Issue.record("escolher candidato bloqueado deveria ser recusado")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .semPermissao)
+            #expect(erro.detalhes == nil)
+        }
     }
 
     @Test("A posição aberta tem o mesmo id a cada leitura do painel, e a escolha confirma numa delas")

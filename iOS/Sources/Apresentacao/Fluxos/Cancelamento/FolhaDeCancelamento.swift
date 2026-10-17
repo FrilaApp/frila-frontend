@@ -163,6 +163,7 @@ public struct FolhaDeCancelamento: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(escolhido ? [.isSelected] : [])
+        .accessibilityValue(FrilaAcessibilidade.textoSelecao(selecionado: escolhido))
         .accessibilityIdentifier("motivo-\(motivo.rawValue)")
     }
 

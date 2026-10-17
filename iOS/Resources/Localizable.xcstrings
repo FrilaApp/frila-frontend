@@ -1,12 +1,52 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
-    "por turno": {
+    "Estou a caminho": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "por turno"
+            "value": "Estou a caminho"
+          }
+        }
+      }
+    },
+    "Você avisou que está a caminho às %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você avisou que está a caminho às %@."
+          }
+        }
+      }
+    },
+    "O aviso a caminho só pode ser enviado de 3 horas antes até 15 minutos após o início do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O aviso a caminho só pode ser enviado de 3 horas antes até 15 minutos após o início do turno."
+          }
+        }
+      }
+    },
+    "Não foi possível enviar o aviso. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar o aviso. Tente novamente."
+          }
+        }
+      }
+    },
+    "Tentar de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar de novo"
           }
         }
       }
@@ -721,12 +761,12 @@
         }
       }
     },
-    "Ao continuar, você aceita os [Termos de Uso](https://frila.app/termos) e a [Política de Privacidade](https://frila.app/privacidade).": {
+    "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ao continuar, você aceita os [Termos de Uso](https://frila.app/termos) e a [Política de Privacidade](https://frila.app/privacidade)."
+            "value": "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade."
           }
         }
       }
@@ -871,12 +911,12 @@
         }
       }
     },
-    "Avaliação registrada com sucesso!": {
+    "Avaliação registrada.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avaliação registrada com sucesso!"
+            "value": "Avaliação registrada."
           }
         }
       }
@@ -1137,6 +1177,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chamaria de novo?"
+          }
+        }
+      }
+    },
+    "Classificação indicativa: 18 anos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Classificação indicativa: 18 anos"
           }
         }
       }
@@ -2071,12 +2121,12 @@
         }
       }
     },
-    "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)": {
+    "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Li e aceito os [Termos de uso](https://frila.app/termos) e a [Política de privacidade](https://frila.app/privacidade)"
+            "value": "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)"
           }
         }
       }
@@ -2721,12 +2771,12 @@
         }
       }
     },
-    "Perfil salvo com sucesso!": {
+    "Perfil salvo.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Perfil salvo com sucesso!"
+            "value": "Perfil salvo."
           }
         }
       }
@@ -3091,16 +3141,6 @@
         }
       }
     },
-    "Selecione a Região Administrativa": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selecione a Região Administrativa"
-          }
-        }
-      }
-    },
     "Selecione uma função": {
       "localizations": {
         "pt-BR": {
@@ -3351,7 +3391,16 @@
         }
       }
     },
-
+    "Tenho 18 anos ou mais": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tenho 18 anos ou mais"
+          }
+        }
+      }
+    },
     "Tentar novamente": {
       "localizations": {
         "pt-BR": {
@@ -4432,12 +4481,12 @@
         }
       }
     },
-    "Respondemos em até 5 dias úteis.": {
+    "Respondemos o mais breve possível, com triagem em até 5 dias úteis.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Respondemos em até 5 dias úteis."
+            "value": "Respondemos o mais breve possível, com triagem em até 5 dias úteis."
           }
         }
       }
@@ -6686,12 +6735,12 @@
         }
       }
     },
-    "Abre o compositor de e-mail com os dados pré-preenchidos para suporte@frila.app": {
+    "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abre o compositor de e-mail com os dados pré-preenchidos para suporte@frila.app"
+            "value": "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com"
           }
         }
       }
@@ -7236,12 +7285,12 @@
         }
       }
     },
-    "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suporte@frila.app.": {
+    "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suportefrila@gmail.com.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suporte@frila.app."
+            "value": "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suportefrila@gmail.com."
           }
         }
       }
@@ -7726,16 +7775,6 @@
         }
       }
     },
-    "Respondemos em até 5 dias úteis. Não há atendimento ao vivo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Respondemos em até 5 dias úteis. Não há atendimento ao vivo."
-          }
-        }
-      }
-    },
     "Risco imediato": {
       "localizations": {
         "pt-BR": {
@@ -7826,12 +7865,12 @@
         }
       }
     },
-    "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suporte@frila.app.": {
+    "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suportefrila@gmail.com.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suporte@frila.app."
+            "value": "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suportefrila@gmail.com."
           }
         }
       }
@@ -7946,12 +7985,12 @@
         }
       }
     },
-    "Vaga republicada com sucesso!": {
+    "Vaga republicada.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vaga republicada com sucesso!"
+            "value": "Vaga republicada."
           }
         }
       }
@@ -7982,6 +8021,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você é o único administrador deste estabelecimento. Não é possível excluir a conta enquanto houver outros membros."
+          }
+        }
+      }
+    },
+    "por turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "por turno"
+          }
+        }
+      }
+    },
+    "Selecione a Região Administrativa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecione a Região Administrativa"
           }
         }
       }
@@ -8072,6 +8131,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Os dados de identificação do turno acima serão incluídos no e-mail automaticamente."
+          }
+        }
+      }
+    },
+    "Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade)."
           }
         }
       }

@@ -85,6 +85,56 @@ esperar_reprovacao() {
 
 app="$(novo_app_bom bom)"
 esperar_aprovacao "$app"
+"$SCRIPT" "$app"
+
+# XCTest não pode acompanhar o app, nem como arquivo nem em uma pasta aninhada.
+for caminho in 'FrilaTests.xctest' 'Extensao.appex/FrilaTests.xctest'; do
+  for tipo in arquivo diretorio; do
+    app="$(novo_app_bom "xctest-$tipo-$RANDOM")"
+    teste="$app/PlugIns/$caminho"
+    mkdir -p "$(dirname "$teste")"
+    if [[ "$tipo" == diretorio ]]; then
+      mkdir -p "$teste"
+    else
+      : > "$teste"
+    fi
+    esperar_reprovacao "XCTest empacotado ($tipo)" "bundle contém teste XCTest em $teste" "$app"
+    echo "OK: XCTest reprovado ($tipo): PlugIns/$caminho"
+  done
+done
+
+# Os valores são sintéticos e montados em partes; a saída deve conter só tipo e arquivo.
+for tipo in JWT sb_secret; do
+  for caminho in Frila Frameworks/Teste.framework/Teste PlugIns/Extensao.appex/Extensao; do
+    app="$(novo_app_bom "segredo-$tipo-$RANDOM")"
+    arquivo="$app/$caminho"
+    mkdir -p "$(dirname "$arquivo")"
+    if [[ "$tipo" == JWT ]]; then
+      printf '\0ey%s%s.%s.%s\0' 'J' 'abcdefghijklmnopqr_-' 'conteudo' 'assinatura' >> "$arquivo"
+    else
+      printf '\0sb_%s_%s\0' 'secret' 'abcdefghijklmnopqr_-' >> "$arquivo"
+    fi
+    if saida="$("$SCRIPT" "$app" 2>&1)"; then
+      echo "FALHA: $tipo em $caminho deveria reprovar" >&2
+      exit 1
+    fi
+    [[ "$saida" == "FALHA: binário de Release contém segredo $tipo em $arquivo" ]] || {
+      echo "FALHA: diagnóstico de $tipo em $caminho deve conter somente tipo e arquivo" >&2
+      exit 1
+    }
+    echo "OK: $tipo reprovado em $caminho; diagnóstico sem valor"
+  done
+done
+
+app="$(novo_app_bom prefixo-da-guarda)"
+printf '\0sb_%s_\0' 'secret' >> "$app/Frila"
+esperar_aprovacao "$app"
+echo "OK: prefixo seco sb_secret_ da guarda aprovado"
+
+app="$(novo_app_bom chaves-publicas)"
+printf '\0sb_%s_%s\0AI%s%s\0' 'publishable' 'abcdefghijklmnopqr_-' 'za' 'abcdefghijklmnopqr_-' >> "$app/Frila"
+esperar_aprovacao "$app"
+echo "OK: chaves públicas sb_publishable e AIza aprovadas"
 
 app="$(novo_app_bom icone-aninhado)"
 plutil -remove CFBundleIconName "$app/Info.plist"

@@ -96,6 +96,7 @@ public struct TelaPerfilProfissional: View {
                 .textCase(.uppercase)
                 .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
 
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 120), spacing: FrilaEspaco.pequeno)],
@@ -122,6 +123,7 @@ public struct TelaPerfilProfissional: View {
                 .textCase(.uppercase)
                 .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
 
             HStack(spacing: FrilaEspaco.pequeno) {
                 CampoFrila(verbatim: TextosDoProfissional.Perfil.buscarPontoBase, texto: $viewModel.enderecoTexto)
@@ -135,6 +137,7 @@ public struct TelaPerfilProfissional: View {
                         .foregroundStyle(FrilaCor.sobrePrimaria)
                         .frame(width: FrilaMetrica.alturaDoCampo, height: FrilaMetrica.alturaDoCampo)
                         .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                        .accessibilityHidden(true)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.buscar))
@@ -185,6 +188,7 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: viewModel.descricaoPontoBase ?? TextosDoProfissional.Perfil.pontoBaseSalvo)
                 } icon: {
                     Image(systemName: "mappin.circle.fill")
+                        .accessibilityHidden(true)
                 }
                 .font(FrilaTipo.nota.weight(.medium))
                 .foregroundStyle(FrilaCor.sucesso)
@@ -201,6 +205,7 @@ public struct TelaPerfilProfissional: View {
                 .textCase(.uppercase)
                 .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
 
             if viewModel.disponibilidades.isEmpty {
                 Text(verbatim: TextosDoProfissional.Perfil.nenhumHorario)
@@ -233,6 +238,7 @@ public struct TelaPerfilProfissional: View {
                                         .foregroundStyle(FrilaCor.perigo)
                                         .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                                         .contentShape(Rectangle())
+                                        .accessibilityHidden(true)
                                 }
                                 .buttonStyle(.plain)
                                 .contentShape(Rectangle())
@@ -251,6 +257,7 @@ public struct TelaPerfilProfissional: View {
                 Text(verbatim: TextosDoProfissional.Perfil.adicionarHorario)
                     .font(FrilaTipo.rotuloDoCampo)
                     .foregroundStyle(FrilaCor.texto)
+                    .accessibilityAddTraits(.isHeader)
 
                 Menu {
                     Picker(selection: $viewModel.diaNovo) {

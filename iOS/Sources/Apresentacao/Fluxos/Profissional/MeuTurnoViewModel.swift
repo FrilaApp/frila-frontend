@@ -35,12 +35,72 @@ public final class MeuTurnoViewModel {
     public var permiteAcoesDoTurno: Bool { !cancelado }
     public var cancelamento: CancelamentoDoTurno? { cancelamentoLocal ?? (cancelado ? turno.cancelamento : nil) }
 
+    public var temCheckin: Bool {
+        if let presenca {
+            return presenca.checkin != .naoFeito || turno.checkin != nil
+        }
+        return turno.checkin != nil
+    }
+
     /// Só a posição confirmada e antes do fim previsto pode ser cancelada (RN12). Depois do
-    /// início ainda pode: o aviso da folha diz que o turno fica descoberto.
+    /// início ainda pode: o aviso da folha diz que o turno fica descoberto. Com check-in, a API
+    /// recusa o cancelamento (409 posicao_nao_cancelavel).
     public var podeCancelar: Bool {
         guard permiteAcoesDoTurno, !cancelamentoNaFila else { return false }
         guard turno.estado == nil || turno.estado == .confirmada else { return false }
+        guard !temCheckin else { return false }
         return turno.vaga.periodo.fim > relogio.agora
+    }
+
+    // MARK: - Estou a caminho (US14)
+
+    public private(set) var avisoACaminhoLocal: Date?
+    public private(set) var avisandoACaminho: Bool = false
+    public private(set) var mensagemErroACaminho: String?
+    public private(set) var podeTentarAvisarDeNovo: Bool = false
+
+    public var aCaminhoEm: Date? {
+        turno.aCaminhoEm ?? avisoACaminhoLocal
+    }
+
+    /// No turno confirmado, dentro da janela (de 3 h antes até 15 min depois do início),
+    /// sem check-in e ainda sem aviso (US14, RF12).
+    public var podeAvisarACaminho: Bool {
+        guard permiteAcoesDoTurno else { return false }
+        guard turno.estado == nil || turno.estado == .confirmada else { return false }
+        guard aCaminhoEm == nil else { return false }
+        guard !temCheckin else { return false }
+        let agora = relogio.agora
+        let inicio = turno.vaga.periodo.inicio
+        let limiteInferior = inicio.addingTimeInterval(-3 * 60 * 60)
+        let limiteSuperior = inicio.addingTimeInterval(15 * 60)
+        return agora >= limiteInferior && agora <= limiteSuperior
+    }
+
+    public var podeExibirBotaoACaminho: Bool {
+        podeAvisarACaminho && !podeTentarAvisarDeNovo
+    }
+
+    public func avisarACaminho() async {
+        guard !avisandoACaminho, podeAvisarACaminho || podeTentarAvisarDeNovo else { return }
+        avisandoACaminho = true
+        mensagemErroACaminho = nil
+        podeTentarAvisarDeNovo = false
+        defer { avisandoACaminho = false }
+
+        do {
+            let resultado = try await api.avisarACaminho(turnoID: turno.id)
+            avisoACaminhoLocal = resultado.aCaminhoEm
+        } catch let erro as ErroDaApi where erro.codigo == .aCaminhoForaDaJanela {
+            mensagemErroACaminho = TextosDoProfissional.Turnos.erroACaminhoForaDaJanela
+            podeTentarAvisarDeNovo = false
+        } catch let erro as ErroDaApi where erro.codigo == .semRede {
+            mensagemErroACaminho = TextosDoProfissional.Turnos.erroACaminhoSemRede
+            podeTentarAvisarDeNovo = true
+        } catch {
+            mensagemErroACaminho = TextosDoProfissional.Turnos.erroACaminhoGenerico
+            podeTentarAvisarDeNovo = true
+        }
     }
     public var causaDoCancelamento: String? {
         cancelamento.map { TextosDoProfissional.Turnos.causaDoCancelamento($0.causa) }
@@ -56,7 +116,11 @@ public final class MeuTurnoViewModel {
     private let filaDeAcoes: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
+    private let telemetria: RegistradorDeTelemetria?
+    private var ultimoRegistroContato: Date?
     private var cacheLocal: (any CacheLocal)? { filaDeAcoes as? any CacheLocal }
+
+    private let cache: CacheDeLeituras?
 
     public init(
         turno: Turno,
@@ -67,8 +131,11 @@ public final class MeuTurnoViewModel {
         relogio: any Relogio = RelogioDoSistema(),
         presenca: PresencaDoTurnoViewModel? = nil,
         aoAvaliar: (() -> Void)? = nil,
-        aoCancelar: (() -> Void)? = nil
+        aoCancelar: (() -> Void)? = nil,
+        telemetria: RegistradorDeTelemetria? = nil,
+        cache: CacheDeLeituras? = nil
     ) {
+        self.cache = cache
         self.turno = turno
         self.aoAvaliar = aoAvaliar
         self.aoCancelar = aoCancelar
@@ -78,6 +145,7 @@ public final class MeuTurnoViewModel {
         self.armazenamentoAvaliacoes = armazenamentoAvaliacoes
         self.relogio = relogio
         self.presenca = turno.cancelado ? nil : presenca
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
 
         if turno.cancelado {
             self.contato = nil
@@ -190,6 +258,16 @@ public final class MeuTurnoViewModel {
         return componentes?.url ?? contato.whatsappURL
     }
 
+    /// Registra telemetria de abertura do WhatsApp com a contraparte (apenas ID do turno, RN15).
+    public func registrarContatoAberto() async {
+        let agora = relogio.agora
+        if let ultimo = ultimoRegistroContato, agora.timeIntervalSince(ultimo) < 5.0 {
+            return
+        }
+        ultimoRegistroContato = agora
+        await telemetria?.registrar(.contatoAberto, turnoID: turno.id)
+    }
+
     public var urlMapas: URL? {
         var componentes = URLComponents(string: "https://maps.apple.com/")
         componentes?.queryItems = [URLQueryItem(name: "q", value: turno.vaga.local)]
@@ -235,6 +313,17 @@ public final class MeuTurnoViewModel {
         carregandoContato = true
         defer { carregandoContato = false }
 
+        // O detalhe da vaga não depende do contato: os dois pedidos saem juntos.
+        let api = self.api
+        let cache = self.cache
+        let vagaID = turno.vaga.id
+        let buscarDetalhe: Task<Vaga?, Never>? = responsavelLocal == nil
+            ? Task {
+                let buscar: @Sendable () async throws -> Vaga = { try await api.detalheDaVaga(id: vagaID) }
+                return if let cache { try? await cache.detalhe(id: vagaID, buscar: buscar) } else { try? await buscar() }
+            }
+            : nil
+
         do {
             let novoContato = try await api.contatoDoTurno(id: turno.id)
             if novoContato.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora) {
@@ -269,7 +358,7 @@ public final class MeuTurnoViewModel {
 
         // Tenta obter o responsável local detalhado da vaga
         if responsavelLocal == nil {
-            if let vagaDetalhe = try? await api.detalheDaVaga(id: turno.vaga.id) {
+            if let vagaDetalhe = await buscarDetalhe?.value {
                 self.responsavelLocal = vagaDetalhe.responsavelLocal
                 presenca?.definir(pontoDaVaga: vagaDetalhe.ponto)
             }

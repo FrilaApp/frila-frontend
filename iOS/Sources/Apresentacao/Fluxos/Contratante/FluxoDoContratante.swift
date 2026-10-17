@@ -122,7 +122,10 @@ public struct FluxoDoContratante: View {
                             mostrandoPerfilEstabelecimento = false
                         } label: {
                             Label(String(localized: "Fechar", bundle: bundleApresentacao), systemImage: "xmark")
+                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                                .contentShape(Rectangle())
                         }
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .accessibilityShowsLargeContentViewer()
                     }
                 }
@@ -144,6 +147,7 @@ public struct FluxoDoContratante: View {
                         Button(String(localized: "Fechar", bundle: bundleApresentacao)) {
                             mostrandoExclusaoDeConta = false
                         }
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .accessibilityShowsLargeContentViewer()
                     }
                 }

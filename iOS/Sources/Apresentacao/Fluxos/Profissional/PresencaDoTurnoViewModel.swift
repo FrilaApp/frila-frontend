@@ -65,9 +65,14 @@ public final class PresencaDoTurnoViewModel {
     private let localizacao: any LeitorDeLocalizacao
     private let fila: (any FilaDeAcoes)?
     private let relogio: any Relogio
+    private let telemetria: RegistradorDeTelemetria?
+    private let cache: CacheDeLeituras?
     private let aoRegistrar: @MainActor () -> Void
     private var pontoDaVaga: Coordenada?
     private var toque: Date?
+    private var jaEmitiuCheckinConcluido = false
+    private var jaEmitiuCheckoutConcluido = false
+    private var jaEmitiuEnfileiramento = false
 
     public init(
         turno: Turno,
@@ -76,8 +81,11 @@ public final class PresencaDoTurnoViewModel {
         fila: (any FilaDeAcoes)? = nil,
         relogio: any Relogio = RelogioDoSistema(),
         pontoDaVaga: Coordenada? = nil,
-        aoRegistrar: @escaping @MainActor () -> Void = {}
+        aoRegistrar: @escaping @MainActor () -> Void = {},
+        telemetria: RegistradorDeTelemetria? = nil,
+        cache: CacheDeLeituras? = nil
     ) {
+        self.cache = cache
         self.turno = turno
         self.api = api
         self.localizacao = localizacao
@@ -85,6 +93,7 @@ public final class PresencaDoTurnoViewModel {
         self.relogio = relogio
         self.pontoDaVaga = pontoDaVaga
         self.aoRegistrar = aoRegistrar
+        self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
         checkin = turno.checkin.map { .registrado(RegistroFeito(instante: $0.instante, distanciaMetros: $0.distanciaMetros, manual: $0.tipo == .manual)) } ?? .naoFeito
         checkout = turno.checkout.map { .registrado(RegistroFeito(instante: $0.instante, distanciaMetros: $0.distanciaMetros, manual: false)) } ?? .naoFeito
         verificacao = turno.verificacao
@@ -162,6 +171,9 @@ public final class PresencaDoTurnoViewModel {
         toque = relogio.agora
         // Ocupado antes do primeiro `await`: o segundo toque de um toque duplo para na guarda acima.
         etapa = .lendo(registro)
+        if registro == .checkin {
+            await telemetria?.registrar(.checkinTentado, turnoID: turno.id)
+        }
         if await localizacao.permissao() == .naoDeterminada {
             etapa = .explicando(registro)
         } else {
@@ -251,7 +263,11 @@ public final class PresencaDoTurnoViewModel {
 
     private func pontoDaVagaOuBuscar() async -> Coordenada? {
         if let pontoDaVaga { return pontoDaVaga }
-        pontoDaVaga = try? await api.detalheDaVaga(id: turno.vaga.id).ponto
+        let api = self.api
+        let vagaID = turno.vaga.id
+        let buscar: @Sendable () async throws -> Vaga = { try await api.detalheDaVaga(id: vagaID) }
+        let vaga = if let cache { try? await cache.detalhe(id: vagaID, buscar: buscar) } else { try? await buscar() }
+        pontoDaVaga = vaga?.ponto
         return pontoDaVaga
     }
 
@@ -266,8 +282,18 @@ public final class PresencaDoTurnoViewModel {
             // O servidor é quem diz o que ficou gravado: reenviar devolve o registro anterior.
             let feito = RegistroFeito(instante: resultado.registradoEm, distanciaMetros: resultado.distanciaMetros, manual: resultado.tipo == .manual)
             switch registro {
-            case .checkin: checkin = .registrado(feito)
-            case .checkout: checkout = .registrado(RegistroFeito(instante: feito.instante, distanciaMetros: feito.distanciaMetros, manual: false))
+            case .checkin:
+                checkin = .registrado(feito)
+                if !jaEmitiuCheckinConcluido {
+                    jaEmitiuCheckinConcluido = true
+                    await telemetria?.registrar(.checkinConcluido, turnoID: turno.id, ocorridoEm: feito.instante)
+                }
+            case .checkout:
+                checkout = .registrado(RegistroFeito(instante: feito.instante, distanciaMetros: feito.distanciaMetros, manual: false))
+                if !jaEmitiuCheckoutConcluido {
+                    jaEmitiuCheckoutConcluido = true
+                    await telemetria?.registrar(.checkoutConcluido, turnoID: turno.id, ocorridoEm: feito.instante)
+                }
             }
             verificacao = resultado.verificacao
             try? await fila?.resolverRecusas(AcaoPendente(
@@ -298,6 +324,10 @@ public final class PresencaDoTurnoViewModel {
         )
         do {
             try await fila.enfileirar(acao)
+            if !jaEmitiuEnfileiramento {
+                jaEmitiuEnfileiramento = true
+                await telemetria?.registrar(.acaoEnfileiradaOffline, turnoID: turno.id, ocorridoEm: toque)
+            }
         } catch {
             mensagemDeErro = TextosDoProfissional.Presenca.falhaAoGuardar
             return

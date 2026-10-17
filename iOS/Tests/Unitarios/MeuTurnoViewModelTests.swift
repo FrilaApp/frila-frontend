@@ -83,6 +83,12 @@ private final class ApiClienteDuble: ApiClienteEncaminhador, @unchecked Sendable
         if let onContatoDoTurno { return try await onContatoDoTurno(id) }
         return try await base.contatoDoTurno(id: id)
     }
+
+    var onAvisarACaminho: (@Sendable (UUID) async throws -> ResultadoACaminho)?
+    override func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho {
+        if let onAvisarACaminho { return try await onAvisarACaminho(turnoID) }
+        return try await base.avisarACaminho(turnoID: turnoID)
+    }
 }
 
 @MainActor
@@ -354,5 +360,158 @@ struct MeuTurnoViewModelTests {
         let segundo = try #require(vm.criarAvaliacaoViewModel())
         #expect(primeiro === segundo)
         #expect(segundo.resposta == true)
+    }
+
+    // MARK: - Estou a caminho e cancelamento (US14, RN12)
+
+    @Test("Janela do aviso Estou a caminho: antes, limites inferior/superior, dentro e depois")
+    func janelaDoAvisoACaminho() async throws {
+        let agora = dataReferencia()
+        let relogio = RelogioSimulado(agora)
+        let inicio = agora.addingTimeInterval(3 * 3600) // daqui a 3 horas
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let turno = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: fim)
+        let api = ApiClienteEmMemoria()
+
+        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: relogio)
+
+        // 1. Antes da janela: 3h e 1s antes do início
+        relogio.agora = inicio.addingTimeInterval(-3 * 3600 - 1)
+        #expect(!vm.podeAvisarACaminho)
+
+        // 2. Limite inferior: exatamente 3h antes
+        relogio.agora = inicio.addingTimeInterval(-3 * 3600)
+        #expect(vm.podeAvisarACaminho)
+
+        // 3. Dentro da janela: 1h antes do início
+        relogio.agora = inicio.addingTimeInterval(-1 * 3600)
+        #expect(vm.podeAvisarACaminho)
+
+        // 4. Limite superior: exatamente 15 minutos após o início
+        relogio.agora = inicio.addingTimeInterval(15 * 60)
+        #expect(vm.podeAvisarACaminho)
+
+        // 5. Depois da janela: 15 minutos e 1s após o início
+        relogio.agora = inicio.addingTimeInterval(15 * 60 + 1)
+        #expect(!vm.podeAvisarACaminho)
+    }
+
+    @Test("Turno já avisado não oferece o botão Estou a caminho novamente")
+    func turnoJaAvisadoNaoPodeAvisarDeNovo() async throws {
+        let agora = dataReferencia()
+        let relogio = RelogioSimulado(agora)
+        let inicio = agora.addingTimeInterval(1 * 3600)
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let base = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: fim)
+        let turnoAvisado = base.com(aCaminhoEm: agora.addingTimeInterval(-600))
+        let vm = MeuTurnoViewModel(turno: turnoAvisado, api: ApiClienteEmMemoria(), relogio: relogio)
+
+        #expect(!vm.podeAvisarACaminho)
+        #expect(vm.aCaminhoEm != nil)
+    }
+
+    @Test("Turno com check-in não oferece Estou a caminho nem permite cancelar")
+    func turnoComCheckinNaoAvisaENaoCancela() async throws {
+        let agora = dataReferencia()
+        let relogio = RelogioSimulado(agora)
+        let inicio = agora.addingTimeInterval(1 * 3600)
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let checkin = Presenca(instante: agora, tipo: .geolocalizado, distanciaMetros: 50)
+        let base = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: fim)
+        let turnoComCheckin = Turno(
+            id: base.id, posicaoID: base.posicaoID, vaga: base.vaga, contraparte: base.contraparte,
+            contatoVisivelAte: base.contatoVisivelAte, checkin: checkin,
+            verificacao: .verificado, valorAcordado: base.valorAcordado, podeAvaliar: false
+        )
+        let vm = MeuTurnoViewModel(turno: turnoComCheckin, api: ApiClienteEmMemoria(), relogio: relogio)
+
+        #expect(!vm.podeAvisarACaminho)
+        #expect(!vm.podeCancelar)
+    }
+
+    @Test("Aviso a caminho com erro fora da janela exibe mensagem do Guia de Voz e não oferece tentar de novo")
+    func avisoForaDaJanelaExibeGuiaDeVoz() async throws {
+        let agora = dataReferencia()
+        let relogio = RelogioSimulado(agora)
+        let inicio = agora.addingTimeInterval(1 * 3600)
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let turno = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: fim)
+        let api = ApiClienteDuble()
+        api.onAvisarACaminho = { _ in throw ErroDaApi(codigo: .aCaminhoForaDaJanela) }
+
+        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: relogio)
+        #expect(vm.podeAvisarACaminho)
+
+        await vm.avisarACaminho()
+        #expect(vm.mensagemErroACaminho == TextosDoProfissional.Turnos.erroACaminhoForaDaJanela)
+        #expect(!vm.podeTentarAvisarDeNovo)
+    }
+
+    @Test("Aviso a caminho sem rede exibe mensagem recuperável com Tentar de novo")
+    func avisoSemRedeExibeMensagemRecuperavel() async throws {
+        let agora = dataReferencia()
+        let relogio = RelogioSimulado(agora)
+        let inicio = agora.addingTimeInterval(1 * 3600)
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let turno = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: fim)
+        let api = ApiClienteDuble()
+        api.onAvisarACaminho = { _ in throw ErroDaApi(codigo: .semRede) }
+
+        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: relogio)
+        await vm.avisarACaminho()
+
+        #expect(vm.mensagemErroACaminho == TextosDoProfissional.Turnos.erroACaminhoSemRede)
+        #expect(vm.podeTentarAvisarDeNovo)
+        #expect(!vm.podeExibirBotaoACaminho, "Após falha de rede, o botão Estou a caminho deve ser ocultado para manter apenas Tentar de novo")
+
+        // Sucesso na segunda tentativa
+        let gravadoEm = agora.addingTimeInterval(10)
+        api.onAvisarACaminho = { id in ResultadoACaminho(turnoID: id, aCaminhoEm: gravadoEm) }
+        await vm.avisarACaminho()
+
+        #expect(vm.aCaminhoEm == gravadoEm)
+        #expect(vm.mensagemErroACaminho == nil)
+        #expect(!vm.podeAvisarACaminho)
+        #expect(!vm.podeExibirBotaoACaminho)
+    }
+
+    @Test("Toque duplo em avisarACaminho dispara apenas uma chamada à API")
+    func toqueDuploAvisaApenasUmaVez() async throws {
+        final class Contador: @unchecked Sendable {
+            private let lock = NSLock()
+            private var contagem = 0
+            func incrementar() {
+                lock.lock()
+                contagem += 1
+                lock.unlock()
+            }
+            var valor: Int {
+                lock.lock()
+                defer { lock.unlock() }
+                return contagem
+            }
+        }
+
+        let agora = dataReferencia()
+        let relogio = RelogioSimulado(agora)
+        let inicio = agora.addingTimeInterval(1 * 3600)
+        let fim = inicio.addingTimeInterval(4 * 3600)
+        let turno = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: fim)
+        let api = ApiClienteDuble()
+        let gravadoEm = agora.addingTimeInterval(5)
+        let contador = Contador()
+        api.onAvisarACaminho = { id in
+            contador.incrementar()
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            return ResultadoACaminho(turnoID: id, aCaminhoEm: gravadoEm)
+        }
+
+        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: relogio)
+        async let t1: Void = vm.avisarACaminho()
+        async let t2: Void = vm.avisarACaminho()
+        _ = await (t1, t2)
+
+        #expect(contador.valor == 1)
+        #expect(vm.aCaminhoEm == gravadoEm)
     }
 }

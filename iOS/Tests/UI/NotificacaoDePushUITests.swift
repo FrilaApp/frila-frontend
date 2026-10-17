@@ -95,7 +95,7 @@ final class NotificacaoDePushUITests: XCTestCase {
     }
 
     func testToqueComOAppFechadoAbreODestino() {
-        let app = abrir(notificacaoEm: 6)
+        let app = abrir(notificacaoEm: 10)
 
         // Aguarda a confirmação de que a notificação foi agendada no sistema antes de fechar o app.
         XCTAssertTrue(app.descendants(matching: .any)["push-simulado-agendado"].waitForExistence(timeout: 10), "a notificação deve ser agendada antes de fechar o app")

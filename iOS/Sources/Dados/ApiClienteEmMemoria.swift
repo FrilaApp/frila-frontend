@@ -65,6 +65,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case turnoCanceladoSemDetalhes = "turno-cancelado-sem-detalhes"
         case turnoCanceladoOutro = "turno-cancelado-outro"
         case turnoAvaliado = "turno-avaliado"
+        /// Turno dentro da janela de Estou a caminho (1 h para o início) (US14).
+        case aCaminho = "a-caminho"
         /// Conta de contratante com uma vaga de seleção de uma posição e quatro candidatos pendentes (#10).
         case selecaoComCandidatos = "selecao-com-candidatos"
         /// Como `selecaoComCandidatos`, mas outro membro da casa ocupa a última posição antes: a
@@ -173,6 +175,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var avaliacoes: [UUID: Avaliacao] = [:]
 
     private let cenario: Cenario
+    private var redeCaida = false
     private let relogio: any Relogio
     private let envelopes: [String: EnvelopeErroAPI]
     private let catalogo: [Funcao]
@@ -365,6 +368,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 // A meia hora a mais segura o "10 h"/"48 h" do aviso (horas para baixo) durante o teste.
                 case .turnoConfirmadoPerto: 10 * 60 * 60 + 30 * 60
                 case .turnoConfirmadoLonge, .cancelarSemRede: 48 * 60 * 60 + 30 * 60
+                case .aCaminho: 1 * 60 * 60
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,
@@ -899,7 +903,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 return VagaNoPainel(
                     vaga: vaga.resumo, modo: vaga.modo, estado: vaga.estado, oculta: vaga.oculta, alertaVagaVazia: vazia,
                     // Como `candidatos_pendentes` do backend: o candidato que a casa bloqueou não entra
-                    // na conta, embora `candidatos_da_vaga` continue a listá-lo.
+                    // na conta (nem em `candidatos_da_vaga`, desde a 0.2.42).
                     candidatosPendentes: candidaturas.count {
                         $0.vagaID == vaga.id && $0.estado == .pendente && bloqueios[Alvo($0.profissional)] == nil
                     },
@@ -1340,13 +1344,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// é `404`; a de outra casa, `403 sem_permissao`; só os pendentes, por ordem de chegada, e nunca
     /// pela reputação nem pela equipe (RN06). `da_equipe` (0.2.38, D7) diz quem está na equipe de
     /// confiança da casa e não muda a ordem. Continua respondendo na vaga ocultada, fechada ou cheia.
+    /// 0.2.42 (RF26, RN10): candidato com bloqueio com a casa não aparece na lista.
     public func candidatosDaVaga(id: UUID) async throws -> [Candidato] {
         try verificarFalhaGeral()
         guard let vaga = vagas.first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         guard estabelecimentos.contains(where: { $0.id == vaga.estabelecimento.id }) else { throw erro("sem_permissao") }
         let equipe = equipesDeConfianca[vaga.estabelecimento.id] ?? []
         return candidaturas
-            .filter { $0.vagaID == id && $0.estado == .pendente }
+            .filter { $0.vagaID == id && $0.estado == .pendente && bloqueios[Alvo($0.profissional)] == nil }
             .sorted { $0.criadaEm != $1.criadaEm ? $0.criadaEm < $1.criadaEm : $0.id.uuidString < $1.id.uuidString }
             .map {
                 Candidato(candidaturaID: $0.id, profissional: $0.profissional, criadaEm: $0.criadaEm, daEquipe: equipe.contains($0.profissional.id))
@@ -1354,7 +1359,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     /// Segue `escolher_candidato` do backend (`20260929234100_modo_selecao.sql`), na ordem das recusas
-    /// dele: candidatura que não existe ou de outra casa é `403 sem_permissao`; a já escolhida, `409
+    /// dele: candidatura que não existe, de outra casa ou de candidato com bloqueio com a casa é `403
+    /// sem_permissao` sem `details`, antes de qualquer `409` (0.2.42, RF26, RN10); a já escolhida, `409
     /// candidatura_indisponivel`; vaga ocultada, `422 vaga_oculta`; vaga cheia, `409
     /// posicao_ja_preenchida`, antes do estado da candidatura, que é o que ouve quem perde a corrida
     /// (RN19); vaga fechada pelas 24 h, cancelada ou encerrada, `409 vaga_encerrada`; candidatura
@@ -1367,7 +1373,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         try verificarFalhaGeral()
         guard let indice = candidaturas.firstIndex(where: { $0.id == candidaturaID }),
               let daVaga = vagas.firstIndex(where: { $0.id == candidaturas[indice].vagaID }),
-              estabelecimentos.contains(where: { $0.id == vagas[daVaga].estabelecimento.id }) else { throw erro("sem_permissao") }
+              estabelecimentos.contains(where: { $0.id == vagas[daVaga].estabelecimento.id }),
+              bloqueios[Alvo(candidaturas[indice].profissional)] == nil else { throw erro("sem_permissao") }
         if cenario == .escolhaPerdeCorrida, !corridaJaPerdida {
             // Outro membro da casa escolheu outro candidato um instante antes, e a escolha dele vale.
             corridaJaPerdida = true
@@ -1963,6 +1970,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return true
     }
 
+    public func limparEventosRegistrados() {
+        eventosRegistrados.removeAll()
+    }
+
     // MARK: Moderação
 
     /// Ocultar e reexibir uma vaga (contrato 0.2.23). Fica fora da porta `ApiCliente` de propósito:
@@ -2271,8 +2282,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     private func verificarRede() throws {
-        if cenario == .semRede { throw ErroDaApi(codigo: .semRede) }
+        if cenario == .semRede || redeCaida { throw ErroDaApi(codigo: .semRede) }
     }
+
+    /// Derruba e devolve a rede no meio de um teste (o cenário `.semRede` é fixo desde a criação).
+    public func definirRedeCaida(_ caida: Bool) { redeCaida = caida }
 
     private func verificarFalhaGeral() throws {
         try verificarRede()

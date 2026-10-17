@@ -34,6 +34,44 @@ private final class ApiSemRedeNoCancelamento: ApiClienteEncaminhador, @unchecked
     override func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada { throw ErroDaApi(codigo: .semRede) }
 }
 
+/// Dublê com erro específico no cancelamento para testar respostas da API (422 motivo, 409 etc.).
+private final class ApiComErroNoCancelamento: ApiClienteEncaminhador, @unchecked Sendable {
+    let erroParaLancar: ErroDaApi
+    init(base: ApiClienteEmMemoria, erro: ErroDaApi) {
+        self.erroParaLancar = erro
+        super.init(base: base)
+    }
+    override func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento { throw erroParaLancar }
+    override func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada { throw erroParaLancar }
+}
+
+/// Fila que armazena e remove recusas para testar recusa definitiva e aviso dismissível.
+private actor FilaComRecusaMemoria: FilaDeAcoes {
+    private var itens: [AcaoPendente] = []
+    private var listaRecusadas: [AcaoRecusada] = []
+
+    func enfileirar(_ acao: AcaoPendente) throws { itens.append(acao) }
+    func pendentes() throws -> [AcaoPendente] { itens }
+    func remover(id: UUID) throws { itens.removeAll { $0.id == id } }
+    func limpar() throws {
+        itens.removeAll()
+        listaRecusadas.removeAll()
+    }
+
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {
+        try remover(id: acao.id)
+        listaRecusadas.append(AcaoRecusada(acao: acao, codigo: codigo))
+    }
+
+    func recusadas() async throws -> [AcaoRecusada] {
+        listaRecusadas
+    }
+
+    func reconhecerRecusa(id: UUID) async throws {
+        listaRecusadas.removeAll { $0.id == id }
+    }
+}
+
 private let hora: TimeInterval = 3_600
 private let agoraDoTeste = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -231,5 +269,114 @@ private struct Cena {
         await folha.confirmar()
         #expect(folha.estado == .falha(TextosDoCancelamento.posicaoNaoCancelavel))
         #expect(cena.viewModel.resultado == nil)
+    }
+
+    // MARK: - Lacunas fechadas (Casos 1, 3 e 8)
+
+    @Test func cancelamentoOfflineDoContratanteAvisaEnvioQuandoVoltarEMarcaPendente() async throws {
+        let cena = try await Cena.montar(semRede: true)
+        let folha = try #require(cena.viewModel.criarCancelamento(de: try cena.turno()))
+        folha.motivo = .movimentoMenor
+        await folha.confirmar()
+
+        #expect(folha.estado == .concluido(.naFila))
+        #expect(TextosDoCancelamento.desfecho(.naFila, lado: .contratante) == "Sem conexão. O cancelamento será enviado quando a internet voltar.")
+        #expect(cena.viewModel.resultado == .cancelamentoNaFila)
+        #expect(TextosDoAcompanhamento.resultado(try #require(cena.viewModel.resultado)) == "Sem conexão. O cancelamento será enviado quando a internet voltar.")
+        #expect(!cena.viewModel.podeCancelar(try cena.turno()))
+        #expect(try cena.turno().posicao.estado == .confirmada)
+
+        let acao = try #require(await cena.fila.itens.first)
+        #expect(acao.tipo == .cancelamentoPosicao)
+        #expect(acao.alvoID == cena.posicaoID)
+    }
+
+    @Test func erro422MotivoNoContratanteExibeAvisoDoFiltroEMantemConfirmarHabilitado() async throws {
+        let relogio = RelogioDeTeste(agoraDoTeste)
+        let base = ApiClienteEmMemoria(cenario: .contratante, relogio: relogio)
+        let erroRecusa = ErroDaApi(codigo: .campoInvalido, detalhes: "motivo")
+        let api = ApiComErroNoCancelamento(base: base, erro: erroRecusa)
+        let casa = try #require(try await base.meusEstabelecimentos().first)
+        let funcao = try #require(try await base.funcoes().first)
+        let inicio = agoraDoTeste.addingTimeInterval(30 * hora)
+        let vagaID = try await base.publicarVaga(PublicacaoVaga(
+            estabelecimentoID: casa.id, funcaoID: funcao.id,
+            periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * hora)),
+            local: "CLS 405, Asa Sul, Brasília - DF", regiaoAdministrativa: "Plano Piloto",
+            ponto: try Coordenada(latitude: -15.8121, longitude: -47.8997), valor: Dinheiro(centavos: 12000),
+            posicoes: 2, inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false),
+            responsavelLocal: "Marina", chave: UUID()
+        )).vagaID
+        let candidatura = try await base.candidatar(vagaID: vagaID)
+        let fila = FilaDeAcoesMemoria()
+        let viewModel = AcompanhamentoViewModel(
+            api: api, estabelecimentoID: casa.id, agora: { relogio.agora }, fila: fila
+        )
+        await viewModel.carregar()
+        let vaga = try #require(viewModel.vaga(id: vagaID))
+        let posicao = try #require(vaga.posicoes.first { $0.id == candidatura.posicaoID })
+        let turno = TurnoAcompanhado(vaga: vaga.vaga, posicao: posicao)
+
+        let folha = try #require(viewModel.criarCancelamento(de: turno))
+        folha.motivo = .movimentoMenor
+        await folha.confirmar()
+
+        #expect(folha.estado == .falha(TextosDoCancelamento.motivoRecusado))
+        #expect(TextosDoCancelamento.motivoRecusado == "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo.")
+        #expect(folha.podeConfirmar)
+        #expect(viewModel.resultado == nil)
+    }
+
+    @Test func recusaDefinitivaDeCancelamentoOfflineSaiDaFilaEntraEmRecusasEFicaDismissivel() async throws {
+        let relogio = RelogioDeTeste(agoraDoTeste)
+        let base = ApiClienteEmMemoria(cenario: .contratante, relogio: relogio)
+        let erroDefinitivo = ErroDaApi(codigo: .posicaoNaoCancelavel)
+        let api = ApiComErroNoCancelamento(base: base, erro: erroDefinitivo)
+        let casa = try #require(try await base.meusEstabelecimentos().first)
+        let fila = FilaComRecusaMemoria()
+
+        let posicaoID = UUID()
+        let turnoID = UUID()
+        let acao = AcaoPendente(
+            tipo: .cancelamentoPosicao,
+            turnoID: turnoID,
+            instanteDoToque: relogio.agora,
+            chave: UUID(),
+            alvoID: posicaoID,
+            motivo: "Movimento menor que o esperado"
+        )
+        try await fila.enfileirar(acao)
+        #expect(try await fila.pendentes().count == 1)
+        #expect(try await fila.recusadas().isEmpty)
+
+        // Sincronizador tenta enviar a ação e recebe erro 409 definitivo (recusaDefinitivaDeCancelamento).
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+
+        // 1. Ação sai da fila de pendentes
+        #expect(try await fila.pendentes().isEmpty)
+
+        // 2. Ação entra nas recusadas da fila com a mensagem correspondente
+        let recusadasNaFila = try await fila.recusadas()
+        #expect(recusadasNaFila.count == 1)
+        let recusa = try #require(recusadasNaFila.first)
+        #expect(recusa.id == acao.id)
+        #expect(recusa.turnoID == turnoID)
+        #expect(recusa.tipo == .cancelamentoPosicao)
+        #expect(recusa.codigo == .posicaoNaoCancelavel)
+        #expect(TextosDaFila.texto(recusa) == TextosDoCancelamento.posicaoNaoCancelavel)
+
+        // 3. ViewModel carrega as recusas para exibição na tela
+        let viewModel = AcompanhamentoViewModel(
+            api: api, estabelecimentoID: casa.id, agora: { relogio.agora }, fila: fila
+        )
+        await viewModel.carregarRecusasDaFila(para: turnoID)
+        #expect(viewModel.recusasDaFila.count == 1)
+        #expect(viewModel.recusasDaFila.first?.id == recusa.id)
+
+        // 4. Aviso dismissível: ao fechar pela tela, sai de recusasDaFila e é reconhecido na fila
+        await viewModel.fecharAvisoDaFila(id: recusa.id)
+        #expect(viewModel.recusasDaFila.isEmpty)
+        #expect(try await fila.recusadas().isEmpty)
     }
 }

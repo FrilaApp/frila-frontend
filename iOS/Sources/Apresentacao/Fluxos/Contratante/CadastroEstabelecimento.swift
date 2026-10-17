@@ -408,7 +408,9 @@ public struct TelaCadastroEstabelecimento: View {
                     Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: TextosCadastro.responsavel).font(FrilaTipo.rotuloDoCampo)
+                    Text(verbatim: TextosCadastro.responsavel)
+                        .font(FrilaTipo.rotuloDoCampo)
+                        .accessibilityAddTraits(.isHeader)
                     Text(verbatim: responsavelNome).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto)
                     Text(verbatim: responsavelTelefone).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
                 }
@@ -438,6 +440,7 @@ public struct TelaCadastroEstabelecimento: View {
                     Task { await model.buscarEndereco() }
                 } label: {
                     Image(systemName: "magnifyingglass")
+                        .accessibilityHidden(true)
                         .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .contentShape(Rectangle())
                 }
@@ -527,7 +530,7 @@ public struct TelaCadastroEstabelecimento: View {
         Image(systemName: "mappin.and.ellipse")
             .font(.title)
             .foregroundStyle(FrilaCor.marca)
-            .frame(width: 44, height: 44)
+            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
             .contentShape(Rectangle())
             .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
             .accessibilityIdentifier("marcador-mapa")

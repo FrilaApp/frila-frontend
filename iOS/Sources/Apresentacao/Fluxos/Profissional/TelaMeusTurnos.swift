@@ -145,9 +145,8 @@ public struct TelaMeusTurnos: View {
                 }
             }
         case let .falha(mensagem):
-            VStack(spacing: FrilaEspaco.medio) {
-                AvisoFrila(verbatim: mensagem, tom: .alerta)
-                BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+            EstadoErro(verbatim: mensagem) {
+                Task { await viewModel.carregar() }
             }
             .accessibilityIdentifier("meus-turnos-erro")
         }

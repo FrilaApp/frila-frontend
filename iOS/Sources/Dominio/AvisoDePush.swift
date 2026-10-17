@@ -25,6 +25,9 @@ public enum TipoDeAviso: String, CaseIterable, Sendable {
     case selecaoLembrete = "selecao_lembrete"
 }
 
+/// Paridade direta com o schema TipoNotificacao do contrato OpenAPI.
+public typealias TipoNotificacao = TipoDeAviso
+
 /// O que o toque numa notificação traz. O servidor só deixa passar o `tipo`, quatro ids e `reaberta`
 /// (RN15): nenhum nome, telefone ou endereço, e nada que diga de quem é o aviso. O que a tela mostra
 /// vem do servidor, lido com a sessão de quem está no aparelho.

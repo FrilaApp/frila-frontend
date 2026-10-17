@@ -288,13 +288,18 @@ public struct TelaMinhasVagas: View {
                     AvisoDePermissaoDePush(perfil: .contratante)
 
                     if let erro = viewModel.erro {
-                        AvisoFrila(verbatim: erro, tom: .erro)
-                        BotaoSecundario(verbatim: TextosMinhasVagas.tentarNovamente) {
-                            Task { await viewModel.carregar() }
+                        if viewModel.vagas.isEmpty {
+                            EstadoErro(verbatim: erro) {
+                                Task { await viewModel.carregar() }
+                            }
+                        } else {
+                            AvisoFrila(verbatim: erro, tom: .erro)
+                            BotaoSecundario(verbatim: TextosMinhasVagas.tentarNovamente) {
+                                Task { await viewModel.carregar() }
+                            }
                         }
                     } else if viewModel.carregando && viewModel.vagas.isEmpty {
-                        ProgressView()
-                            .accessibilityLabel(Text(verbatim: TextosMinhasVagas.atualizar))
+                        EstadoCarregando()
                     } else if viewModel.vagas.isEmpty {
                         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                             Text(verbatim: TextosMinhasVagas.vaziaTitulo).font(FrilaTipo.tituloDoCartao)
@@ -585,6 +590,7 @@ private struct TelaDetalheVagaContratante: View {
     @State private var vagaParaRepublicar: VagaNoPainel?
     @State private var republicacaoConcluida = false
     @State private var cancelamento: CancelamentoViewModel?
+    @State private var ultimoContatoAberto: [UUID: Date] = [:]
     private let formatador = FormatadorFrila()
 
     var body: some View {
@@ -738,6 +744,14 @@ private struct TelaDetalheVagaContratante: View {
                                 Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                let agora = Date()
+                                if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {
+                                    return
+                                }
+                                ultimoContatoAberto[turnoID] = agora
+                                Task { _ = await RegistradorDeTelemetria(api: api).registrar(.contatoAberto, turnoID: turnoID) }
+                            })
                         }
                     }
                     .font(FrilaTipo.meta.weight(.semibold))

@@ -17,7 +17,7 @@ O **Frila** é um aplicativo que conecta estabelecimentos do setor de alimentaç
 
 ### Para o Profissional
 1. **Crie sua conta e defina seu ponto de referência:** cadastre seu nome, e-mail e telefone, informe sua data de nascimento (o Frila é exclusivo para maiores de 18 anos) e escolha a região onde deseja receber oportunidades.
-2. **Candidate-se às vagas:** visualize detalhes completos do turno — horário, função, localização e o valor a ser pago — e candidate-se com apenas um toque.
+2. **Candidate-se às vagas:** visualize detalhes completos do turno — horário, função, localização e o valor a ser pago — e candidate-se pelo app.
 3. **Realize o turno e receba o valor integral:** compareça ao local combinado, confirme sua presença pelo aplicativo na chegada e na saída, e receba o pagamento acertado diretamente do estabelecimento contratante, sem desconto de taxas pelo aplicativo.
 
 ### Para o Estabelecimento (Contratante)
@@ -41,7 +41,7 @@ Sua integridade e tranquilidade são nossa prioridade máxima. Para garantir um 
 
 - **Denúncia de irregularidades e abusos:** Caso você presencie ou sofra qualquer conduta inadequada, assédio, discriminação, descumprimento de combinados ou situação de risco, utilize o botão de denúncia disponível nos detalhes da vaga ou do turno. Você poderá relatar o ocorrido e gerar um número de protocolo para acompanhamento.
 - **Bloqueio mútuo de usuários:** Se você não deseja mais ter contato com determinado estabelecimento ou profissional, utilize a opção de bloqueio no aplicativo. Uma vez bloqueado, as duas partes nunca mais visualizarão perfis, vagas ou candidaturas uma da outra.
-- **Moderação ativa (Diretriz 1.2 da Apple):** Relatos e denúncias de conteúdo ofensivo ou abusivo são avaliados por nossa equipe operacional, com compromisso de moderação e remoção tempestiva em até 24 horas corridas. Contas que violarem as regras de convivência e a legislação vigente serão suspensas ou encerradas.
+- **Moderação ativa (Diretriz 1.2 da Apple):** Relatos e denúncias de conteúdo ofensivo ou abusivo são avaliados por nossa equipe operacional, o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Conteúdos que violarem as regras poderão ser removidos ou ocultados, e as contas responsáveis poderão ser suspensas ou encerradas.
 - **Contatos de Emergência:** Em situações que envolvam ameaça imediata à segurança ou integridade física, contate diretamente as autoridades policiais (ligue 190) ou a Central de Atendimento à Mulher (ligue 180). O Frila oferece atalhos diretos para esses números na folha de suporte do turno.
 
 ---
@@ -51,6 +51,7 @@ Sua integridade e tranquilidade são nossa prioridade máxima. Para garantir um 
 Se você tiver dúvidas, problemas com acesso, contestações de suspensão de conta ou solicitações sobre seus dados pessoais:
 
 - **E-mail oficial de suporte:** `suportefrila@gmail.com`
+- **Prazo de atendimento:** o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 - **Pelo próprio aplicativo:** No menu **Perfil**, toque em **Ajuda** para abrir os canais diretos de suporte, consultar termos de uso e política de privacidade.
 - **Em turnos em andamento:** Durante a realização de um turno confirmado, utilize a opção **Ajuda no turno** para abrir um chamado operacional com registro do turno correspondente.
 

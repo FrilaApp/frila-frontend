@@ -155,6 +155,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         tocar(codigo)
+        // A tela do código avança sozinha ao completar os seis dígitos; o botão só aparece se ela não avançar.
         codigo.typeText("123456")
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
