@@ -347,13 +347,13 @@ final class AutenticacaoUITests: XCTestCase {
 
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
-        nascimento.typeText("15/05/1995")
+        nascimento.digitarEEsperar("15/05/1995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
@@ -591,13 +591,13 @@ final class AutenticacaoUITests: XCTestCase {
 
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
-        nascimento.typeText("01/01/2015")
+        nascimento.digitarEEsperar("01/01/2015", esperado: "01/01/2015")
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
@@ -641,14 +641,14 @@ final class AutenticacaoUITests: XCTestCase {
 
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
         // Data de nascimento indica mais de 18 anos (passa na validação local da data)
-        nascimento.typeText("01/01/2000")
+        nascimento.digitarEEsperar("01/01/2000", esperado: "01/01/2000")
         fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
@@ -690,13 +690,13 @@ final class AutenticacaoUITests: XCTestCase {
 
         let telefone = app.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
-        nascimento.typeText("15/05/1995")
+        nascimento.digitarEEsperar("15/05/1995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: app)
 
         let btnContinuar = app.buttons["cadastro-continuar"]
@@ -755,13 +755,13 @@ final class AutenticacaoUITests: XCTestCase {
 
         let telefone = appPadrao.textFields["cadastro-telefone"]
         telefone.tap()
-        telefone.typeText("61988887777")
+        telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: appPadrao)
 
         let nascimento = appPadrao.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: appPadrao)
         nascimento.tap()
-        nascimento.typeText("15051995")
+        nascimento.digitarEEsperar("15/05/1995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: appPadrao)
 
         let termos = appPadrao.buttons["cadastro-termos"]
@@ -801,13 +801,13 @@ final class AutenticacaoUITests: XCTestCase {
 
         let telefoneAX5 = appAX5.textFields["cadastro-telefone"]
         telefoneAX5.tap()
-        telefoneAX5.typeText("61988887777")
+        telefoneAX5.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: appAX5)
 
         let nascimentoAX5 = appAX5.textFields["cadastro-nascimento"]
         rolarAte(nascimentoAX5, app: appAX5)
         nascimentoAX5.tap()
-        nascimentoAX5.typeText("15051995")
+        nascimentoAX5.digitarEEsperar("15/05/1995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: appAX5)
 
         salvar(appAX5, nome: "02-cadastro-ax5.png")
@@ -839,13 +839,13 @@ final class AutenticacaoUITests: XCTestCase {
 
         let telefoneMenor = appMenor.textFields["cadastro-telefone"]
         telefoneMenor.tap()
-        telefoneMenor.typeText("61988887777")
+        telefoneMenor.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: appMenor)
 
         let nascimentoMenor = appMenor.textFields["cadastro-nascimento"]
         rolarAte(nascimentoMenor, app: appMenor)
         nascimentoMenor.tap()
-        nascimentoMenor.typeText("15102010")
+        nascimentoMenor.digitarEEsperar("15102010", esperado: "15/10/2010")
         fecharTecladoSeVisivel(app: appMenor)
 
         let erroMenor = appMenor.descendants(matching: .any)["cadastro-menor-idade-erro"]
@@ -1052,12 +1052,37 @@ extension XCUIElement {
     /// a formatação intermediária varia durante a edição, informe `esperado` para validar
     /// contenção do texto ou equivalência dos dígitos numéricos.
     func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = Espera.aparecer, file: StaticString = #filePath, line: UInt = #line) {
-        typeText(texto)
         let valorEsperado = esperado ?? (texto.hasSuffix("\n") ? String(texto.dropLast()) : texto)
+
+        if let esperado, esperado != texto || !esperado.filter(\.isNumber).isEmpty {
+            // Em campos mascarados (telefone, data, valor), digita em pedaços curtos
+            // e aguarda o campo registrar cada pedaço antes de enviar o próximo, evitando que
+            // a reescrita síncrona do UITextField pelo SwiftUI descarte teclas rápidas contínuas.
+            let pedacos = Self.quebrarEmPedacos(texto)
+            for pedaco in pedacos {
+                let digitosAntes = ((value as? String) ?? "").filter(\.isNumber).count
+                let novosDigitos = pedaco.filter(\.isNumber).count
+                typeText(pedaco)
+                if novosDigitos > 0 {
+                    let predicadoPasso = NSPredicate { elemento, _ in
+                        guard let elemento = elemento as? XCUIElement,
+                              let atual = elemento.value as? String else { return false }
+                        return atual.filter(\.isNumber).count >= digitosAntes + novosDigitos
+                    }
+                    let esperaPasso = XCTNSPredicateExpectation(predicate: predicadoPasso, object: self)
+                    _ = XCTWaiter.wait(for: [esperaPasso], timeout: 2.0)
+                }
+            }
+        } else {
+            typeText(texto)
+        }
+
         let predicado = NSPredicate { elemento, _ in
             guard let elemento = elemento as? XCUIElement, let atual = elemento.value as? String else { return false }
             if let esperado {
-                return atual.contains(esperado) || (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber))
+                return atual == esperado ||
+                    atual.contains(esperado) ||
+                    (!esperado.filter(\.isNumber).isEmpty && atual.filter(\.isNumber) == esperado.filter(\.isNumber))
             }
             return atual == valorEsperado
         }
@@ -1069,6 +1094,45 @@ extension XCUIElement {
                 "O campo deveria mostrar \"\(valorEsperado)\" depois da digitação", file: file, line: line
             )
         }
+    }
+
+    private static func quebrarEmPedacos(_ texto: String) -> [String] {
+        let digitos = texto.filter(\.isNumber)
+        // Telefone celular (11 dígitos): DDD (2), prefixo (5), sufixo (4)
+        if digitos.count == 11 {
+            let ddd = String(digitos.prefix(2))
+            let meio = String(digitos.dropFirst(2).prefix(5))
+            let fim = String(digitos.suffix(4))
+            return [ddd, meio, fim]
+        }
+        // Telefone fixo (10 dígitos): DDD (2), prefixo (4), sufixo (4)
+        if digitos.count == 10 {
+            let ddd = String(digitos.prefix(2))
+            let meio = String(digitos.dropFirst(2).prefix(4))
+            let fim = String(digitos.suffix(4))
+            return [ddd, meio, fim]
+        }
+        // Data civil (8 dígitos): dia (2), mês (2), ano (4)
+        if digitos.count == 8 {
+            let dia = String(digitos.prefix(2))
+            let mes = String(digitos.dropFirst(2).prefix(2))
+            let ano = String(digitos.suffix(4))
+            return [dia, mes, ano]
+        }
+        // Se já vier com barras (ex.: partes separadas por barra)
+        if texto.contains("/") {
+            let partes = texto.split(separator: "/").map(String.init)
+            if !partes.isEmpty { return partes }
+        }
+        // Padrão genérico: pedaços de até 3 caracteres
+        var pedacos: [String] = []
+        var resto = texto[...]
+        while !resto.isEmpty {
+            let pedaco = String(resto.prefix(3))
+            pedacos.append(pedaco)
+            resto = resto.dropFirst(3)
+        }
+        return pedacos.isEmpty ? [texto] : pedacos
     }
 }
 

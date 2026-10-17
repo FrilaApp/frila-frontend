@@ -58,7 +58,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         let nascimento = app.textFields["cadastro-nascimento"]
         rolarAte(nascimento, app: app)
         nascimento.tap()
-        nascimento.digitarEEsperar("15051995", esperado: "15/05/1995")
+        nascimento.digitarEEsperar("15/05/1995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
