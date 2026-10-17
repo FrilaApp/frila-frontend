@@ -180,10 +180,10 @@ for caminho in arquivos:
         nome_arquivo = os.path.basename(caminho)
         chave_excecao = f"{nome_arquivo}:{num_linha}"
 
-        primeiro_arg = primeiro_argumento(argumentos)
+        primeiro_arg = primeiro_argumento(argumentos).strip()
 
-        # Exige que o 1º argumento passe pelo ponto único FrilaMovimento.animacao (#71.4)
-        if "FrilaMovimento.animacao" in primeiro_arg:
+        # Exige que o 1º argumento comece pelo ponto único FrilaMovimento.animacao( (#71.4)
+        if primeiro_arg.startswith("FrilaMovimento.animacao("):
             continue
 
         if chave_excecao in EXCECOES_NAO_DESLOCAMENTO:
