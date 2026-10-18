@@ -200,6 +200,32 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 > Um abraço,
 > Equipe Frila (suportefrila@gmail.com)
 
+### 8.5 Mensagem de Atualização
+> **Assunto:** Atualização do piloto do Frila
+>
+> Olá!
+>
+> Temos uma atualização sobre o piloto: [DESCREVER A MUDANÇA CONFIRMADA].
+>
+> Para continuar usando o app: [INCLUIR SOMENTE AS ORIENTAÇÕES VALIDADAS PARA A MUDANÇA].
+>
+> Em caso de dúvidas, escreva para suportefrila@gmail.com.
+
+### 8.6 Mensagem de Problema no Aplicativo
+> **Assunto:** Aviso sobre o funcionamento do Frila
+>
+> Olá!
+>
+> Identificamos um problema em [RECURSO AFETADO].
+>
+> Situação confirmada: [DESCREVER O IMPACTO VERIFICADO].
+>
+> Orientação: [INCLUIR O PRÓXIMO PASSO VALIDADO PELA EQUIPE].
+>
+> Se precisar relatar uma dificuldade, escreva para suportefrila@gmail.com.
+
+Antes de enviar qualquer modelo, preencher os campos entre colchetes com informações confirmadas. O convite depende da confirmação do link de instalação pelo Cauê.
+
 ---
 
 ## 9. Pendências e Responsabilidades (Em Aberto)
