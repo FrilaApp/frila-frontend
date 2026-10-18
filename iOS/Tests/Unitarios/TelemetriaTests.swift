@@ -908,9 +908,9 @@ struct TelemetriaTests {
         #expect(try await fila.eventosPendentes().isEmpty)
     }
 
-    @Test("Só guarda o que passa com o tempo: rede, servidor e sessão sim; recusa 4xx não")
+    @Test("Só guarda o que passa com o tempo: rede, servidor, sessão (401) e permissão (403); recusa 422/400 de formato não")
     func quaisErrosSaoGuardados() {
-        let guarda: [CodigoErroAPI] = [.semRede, .desconhecido, .respostaInvalida, .limiteExcedido, .naoAutenticado]
+        let guarda: [CodigoErroAPI] = [.semRede, .desconhecido, .respostaInvalida, .limiteExcedido, .naoAutenticado, .semPermissao, .contaSuspensa]
         for codigo in guarda {
             #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: codigo)))
         }
@@ -918,7 +918,124 @@ struct TelemetriaTests {
         for codigo in descarta {
             #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: codigo)))
         }
+        #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .campoInvalido, codigoOriginal: "400")))
+        #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .desconhecido, codigoOriginal: "http_400")))
+        #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .respostaInvalida, codigoOriginal: "http_400")))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .respostaInvalida, codigoOriginal: "http_500")))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .desconhecido, codigoOriginal: "http_503")))
         #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: URLError(.notConnectedToInternet)))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: URLError(.timedOut)))
+    }
+
+    @Test("Erro 403 (semPermissao e contaSuspensa) preserva o evento na fila analítica de telemetria")
+    func erro403PreservaFilaDeTelemetria() async throws {
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .semPermissao)))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .contaSuspensa)))
+    }
+
+    @Test("Status HTTP transitórios (408 e 5xx) mapeados pela API preservam o evento na fila analítica de telemetria", arguments: [408, 500, 502, 503, 504])
+    func statusHttpTransitoriosPreservamTelemetria(statusCode: Int) {
+        let erroMapeado = DecodificadorErroAPI.mapear(statusCode: statusCode, dados: Data("Erro do gateway".utf8))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: erroMapeado))
+    }
+
+    @Test("Reenvio expurga evento recusado definitivamente com 422 e não bloqueia a fila")
+    func reenvioExpurgaRecusa422ENaoBloqueiaFila() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        let conta = try await api.minhaConta().id
+
+        // Evento 1: vaga_id inexistente faz api.registrarEvento lançar 422 campo_invalido
+        let invalido = EventoDeTelemetriaPendente(
+            contaID: conta,
+            registro: RegistroDeEvento(evento: .checkinConcluido, vagaID: UUID(), ocorridoEm: Self.instante),
+            guardadoEm: Self.instante
+        )
+        // Evento 2: válido, deve ser enviado com sucesso após o descarte do inválido
+        let valido = EventoDeTelemetriaPendente(
+            contaID: conta,
+            registro: RegistroDeEvento(evento: .appAberto, ocorridoEm: Self.instante),
+            guardadoEm: Self.instante
+        )
+
+        await fila.inserir(invalido)
+        await fila.inserir(valido)
+
+        await registrador.reenviar()
+
+        // O evento inválido foi expurgado da fila
+        let pendentes = try await fila.eventosPendentes()
+        #expect(pendentes.isEmpty)
+
+        // O evento válido foi enviado com sucesso
+        let enviados = await api.eventosRegistrados
+        #expect(enviados.count == 1)
+        #expect(enviados.first?.evento == .appAberto)
+    }
+
+    @Test("Reenvio no SwiftData expurga EventoDeTelemetriaPersistido em caso de erro 4xx definitivo")
+    func reenvioSwiftDataExpurgaErroDefinitivo() async throws {
+        let container = try PersistenciaFrila.criarContainer(emMemoria: true)
+        let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
+        let api = ApiClienteEmMemoria(relogio: RelogioFixo(agora: Self.instante))
+        let conta = try await api.minhaConta().id
+        try await armazenamento.salvar(sessao: SessaoUsuario(usuarioID: conta, perfil: .profissional))
+
+        let registrador = RegistradorDeTelemetria(
+            api: api,
+            fila: armazenamento,
+            relogio: RelogioFixo(agora: Self.instante)
+        )
+
+        // 1 evento inválido com vagaID inexistente (recusa 422 campo_invalido)
+        try await armazenamento.guardar(
+            RegistroDeEvento(evento: .checkinConcluido, vagaID: UUID(), ocorridoEm: Self.instante),
+            em: Self.instante,
+            limite: 10
+        )
+        // 1 evento válido
+        try await armazenamento.guardar(
+            RegistroDeEvento(evento: .appAberto, ocorridoEm: Self.instante),
+            em: Self.instante,
+            limite: 10
+        )
+
+        #expect(try await armazenamento.eventosPendentes().count == 2)
+
+        await registrador.reenviar()
+
+        // Ambos saíram do banco: o 422 por expurgo definitivo, o válido por envio bem-sucedido
+        #expect(try await armazenamento.eventosPendentes().isEmpty)
+        let enviados = await api.eventosRegistrados
+        #expect(enviados.count == 1)
+        #expect(enviados.first?.evento == .appAberto)
+    }
+
+    @Test("Reenvio com falha temporária de rede preserva toda a fila e não expurga")
+    func reenvioComErroTemporarioPreservaFila() async throws {
+        let (api, fila, registrador) = try await cenarioOffline()
+        let conta = try await api.minhaConta().id
+
+        let item1 = EventoDeTelemetriaPendente(
+            contaID: conta,
+            registro: RegistroDeEvento(evento: .appAberto, ocorridoEm: Self.instante),
+            guardadoEm: Self.instante
+        )
+        let item2 = EventoDeTelemetriaPendente(
+            contaID: conta,
+            registro: RegistroDeEvento(evento: .checkinConcluido, ocorridoEm: Self.instante),
+            guardadoEm: Self.instante
+        )
+
+        await fila.inserir(item1)
+        await fila.inserir(item2)
+        await api.definirRedeCaida(true)
+
+        await registrador.reenviar()
+
+        // Nenhum item expurgado
+        let pendentes = try await fila.eventosPendentes()
+        #expect(pendentes.count == 2)
+        #expect(await api.eventosRegistrados.isEmpty)
     }
 
     @Test("O registrador sem fila mantém o comportamento antigo: falha de rede só devolve false")

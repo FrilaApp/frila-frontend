@@ -80,4 +80,12 @@ struct ErrosAPITests {
         #expect(erro.codigo == .desconhecido)
         #expect(erro.codigoOriginal == "codigo_novo")
     }
+
+    @Test("Resposta HTTP 400 sem envelope do contrato preserva respostaInvalida e etiqueta http_400")
+    func badRequestSemEnvelope() {
+        let dados = Data("Bad Request".utf8)
+        let erro = DecodificadorErroAPI.mapear(statusCode: 400, dados: dados)
+        #expect(erro.codigo == .respostaInvalida)
+        #expect(erro.codigoOriginal == "http_400")
+    }
 }

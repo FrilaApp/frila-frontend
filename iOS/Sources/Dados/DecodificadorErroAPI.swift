@@ -11,6 +11,10 @@ public enum DecodificadorErroAPI {
             let original = erro.codigo == .respostaInvalida ? "http_401" : erro.codigoOriginal
             return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original, detalhes: erro.detalhes)
         }
+        if statusCode == 400, erro.codigo == .desconhecido || erro.codigo == .respostaInvalida {
+            let original = erro.codigo == .respostaInvalida ? "http_400" : erro.codigoOriginal
+            return ErroDaApi(codigo: .respostaInvalida, codigoOriginal: original, detalhes: erro.detalhes)
+        }
         return erro
     }
 

@@ -951,6 +951,45 @@ struct AparelhoDePushTests {
         #expect(await dono(Tokens.aparelho) == nil)
         #expect(await aparelho.vinculo() == nil)
     }
+
+    @Test("Caracterização: múltiplas rotações rápidas de token do FCM concorrentes com trocas de conta preservam a ordem e o token final")
+    func rotacoesRapidasConcorrentesComTrocaDeConta() async throws {
+        let aparelho = aparelho()
+        let contaA = try await conta()
+        let contaB = outraConta
+
+        // Inicializa com token base e conta A
+        await aparelho.receber(token: "token-fcm-inicial-0000")
+        await aparelho.registrar(para: contaA)
+
+        // Sequência de tokens do FCM simulando rotações rápidas sucessivas
+        let tokensRotacao = (1...10).map { "token-fcm-rotacao-\(String(format: "%04d", $0))" }
+        let ultimoToken = tokensRotacao.last!
+
+        // Dispara simultaneamente rotações do FCM e trocas de conta intercaladas
+        await withTaskGroup(of: Void.self) { grupo in
+            grupo.addTask {
+                for token in tokensRotacao {
+                    _ = await aparelho.receber(token: token)
+                }
+            }
+            grupo.addTask {
+                for _ in 1...5 {
+                    _ = await aparelho.registrar(para: contaB)
+                    _ = await aparelho.registrar(para: contaA)
+                }
+            }
+        }
+
+        // Assegura que o estado final no armazenamento reflete estritamente o último token emitido
+        let guardadoFinal = guardado.ler()
+        #expect(guardadoFinal?.token == ultimoToken)
+
+        // O aparelho permanece vinculado à conta ativa final sem inconsistência de concorrência
+        let vinculoFinal = await aparelho.vinculo()
+        #expect(vinculoFinal?.contaID == contaA)
+        #expect(await dono(ultimoToken) == contaA)
+    }
 }
 
 @Suite("O guardado do aparelho no Keychain")
