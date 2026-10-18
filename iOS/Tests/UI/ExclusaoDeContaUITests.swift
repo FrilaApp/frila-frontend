@@ -250,13 +250,11 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertTrue(consequencias.waitForExistence(timeout: Espera.aparecer))
         anexar(app, "Contratante\(tamanho)Consequencias")
 
-        // A hierarquia real propaga o identifier do turno aos quatro textos, sem contêiner pai.
-        let funcaoDoTurno = app.staticTexts.matching(NSPredicate(
-            format: "identifier == %@ AND label == %@",
-            "item-turno-futuro-82000000-0000-0000-0000-000000000001", "Garçom"
-        )).element
-        XCTAssertTrue(funcaoDoTurno.waitForExistence(timeout: Espera.aparecer))
-        rolarAte(funcaoDoTurno, em: app)
+        // O contêiner com children: .combine reúne o cartão em um único elemento acessível com o identifier do turno.
+        let itemTurno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(itemTurno.waitForExistence(timeout: Espera.aparecer), "Turno futuro do contratante deve ser exibido")
+        XCTAssertTrue(itemTurno.label.contains("Garçom"), "Rótulo combinado do turno futuro deve conter a função Garçom")
+        rolarAte(itemTurno, em: app)
         XCTAssertFalse(app.staticTexts["texto-sem-turnos-futuros"].exists)
         anexar(app, "Contratante\(tamanho)TurnoFuturo")
 
