@@ -82,7 +82,7 @@ Indica ausência de registros ou resultados após uma busca, filtro ou listagem 
 Comunica falha de operação, recusa de regra de negócio pelo servidor ou erro inesperado de sistema.
 
 - **Padrão Visual:**
-  - *Tela Inteira:* Componente `EstadoErro` (`EstadosDeTela.swift:40–69`). Ícone SF Symbol `"exclamationmark.triangle"` em tamanho `.largeTitle` (`FrilaCor.textoSecundario`), título fixo `"Algo deu errado"` em `.headline`, mensagem explicativa em `.body` secundário e botão `BotaoSecundario("Tentar novamente", acao: tentarNovamente)` com altura mínima de 44 pt. Emite anúncio semântico via `AnunciarAoAparecer(tom: .erro)`.
+  - *Tela Inteira:* Componente `EstadoErro` (`EstadosDeTela.swift:40–69`). Ícone SF Symbol `"exclamationmark.triangle"` em tamanho `.largeTitle` (`FrilaCor.textoSecundario`), título fixo `"Algo deu errado"` em `.headline`, mensagem explicativa em `.body` secundário e botão `BotaoPrimario("Tentar novamente", acao: tentarNovamente)` com altura mínima de 44 pt. Emite anúncio semântico via `AnunciarAoAparecer(tom: .erro)`.
   - *Faixa / Banner:* Componente `AvisoFrila(tom: .erro)` (`Componentes.swift:215–280`). Faixa com fundo preenchido na cor `FrilaCor.perigo` com 12% de opacidade, bordas arredondadas (raio 12 pt), texto em estilo `.callout`, ícone `"xmark.octagon.fill"` e prefixo de acessibilidade `"Erro: "`.
 - **Texto-base:**
   - Título fixo de tela: `"Algo deu errado"` (`EstadosDeTela.swift:60`).

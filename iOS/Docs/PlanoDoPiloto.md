@@ -154,9 +154,9 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 > O uso do aplicativo é totalmente gratuito durante o piloto. As vagas e confirmações ocorrem dentro da plataforma, e o pagamento da diária é feito diretamente pelo contratante ao término do expediente.
 >
 > Para instalar a versão do piloto no seu iPhone, acesse o link oficial:
-> `https://frila.app/piloto`
+> `[LINK DE INSTALAÇÃO DO PILOTO A CONFIRMAR PELO CAUÊ]`
 >
-> Em caso de dúvidas, nossa equipe atende pelo e-mail suporte@frila.app.
+> Em caso de dúvidas, nossa equipe atende pelo e-mail suportefrila@gmail.com.
 
 ### 8.2 Mensagem de Boas-Vindas e Primeiros Passos
 > **Assunto:** Boas-vindas ao piloto do Frila
@@ -172,7 +172,7 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 >
 > O Frila conecta estabelecimentos e profissionais; a combinação de trabalho e o acerto de valores ocorrem diretamente entre as partes.
 >
-> Nosso canal oficial de ajuda é suporte@frila.app.
+> Nosso canal oficial de ajuda é suportefrila@gmail.com.
 
 ### 8.3 Mensagem de Lembrete Operacional de Turno
 > **Assunto:** Lembrete do seu turno confirmado no Frila
@@ -198,7 +198,7 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 > Avisaremos em breve sobre a disponibilidade do Frila na App Store.
 >
 > Um abraço,
-> Equipe Frila (suporte@frila.app)
+> Equipe Frila (suportefrila@gmail.com)
 
 ---
 
