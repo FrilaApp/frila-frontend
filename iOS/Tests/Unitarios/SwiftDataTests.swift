@@ -259,4 +259,84 @@ struct SwiftDataTests {
         #expect(try restante.fetchCount(FetchDescriptor<ContatoDoTurnoPersistido>()) == 0)
         #expect(try restante.fetchCount(FetchDescriptor<AcaoRecusadaPersistida>()) == 0)
     }
+
+    @Test("Banco V3 migra para V4 conservando turnos, contato, pendentes, recusadas, funções e sessão")
+    func migracaoEsquemaV3ParaV4ConservaDadosEContato() async throws {
+        let diretorio = FileManager.default.temporaryDirectory.appending(path: "frila-migracao-v3-v4-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diretorio) }
+        let url = diretorio.appending(path: "FrilaV3.store")
+
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let turnoID = UUID()
+        let periodo = try Periodo(inicio: agora, fim: agora.addingTimeInterval(14_400))
+        let resumo = VagaResumo(id: UUID(), funcao: "Barista", local: "Asa Norte", regiaoAdministrativa: "Brasília", periodo: periodo, valor: Dinheiro(centavos: 15_000))
+        let reputacao = Reputacao(positivas: 5, total: 5, taxaComparecimento: 1, turnosConsiderados: 5, turnosRealizados: 5)
+        let contato = Contato(nome: "Gerente Café", telefone: "+5561988887777", whatsappURL: try #require(URL(string: "https://wa.me/5561988887777")), visivelAte: agora.addingTimeInterval(86_400))
+        let turno = Turno(id: turnoID, posicaoID: UUID(), vaga: resumo, contraparte: PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Café Gourmet", reputacao: reputacao), contatoVisivelAte: agora.addingTimeInterval(86_400), verificacao: .pendente, valorAcordado: Dinheiro(centavos: 15_000), podeAvaliar: false, contato: nil)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        let acao = AcaoPendente(tipo: .checkin, turnoID: turnoID, instanteDoToque: agora, chave: UUID(), distanciaMetros: 15)
+        let acaoRecusada = AcaoRecusada(acao: acao, codigo: .vagaEncerrada)
+        let funcao = Funcao(id: UUID(), nome: "Barista", categoria: "Cafeteria")
+        let sessao = SessaoUsuario(usuarioID: UUID(), perfil: .profissional)
+
+        do {
+            let esquemaV3 = Schema(versionedSchema: EsquemaFrilaV3.self)
+            let configV3 = ModelConfiguration("FrilaV3", schema: esquemaV3, url: url)
+            let containerV3 = try ModelContainer(for: esquemaV3, configurations: [configV3])
+            let contextoV3 = ModelContext(containerV3)
+
+            contextoV3.insert(TurnoPersistido(id: turnoID, conteudo: try encoder.encode(turno), fim: periodo.fim, contatoVisivelAte: turno.contatoVisivelAte, salvoEm: agora))
+            contextoV3.insert(ContatoDoTurnoPersistido(turnoID: turnoID, conteudo: try JSONEncoder().encode(contato)))
+            contextoV3.insert(AcaoPendentePersistida(id: acao.id, tipo: acao.tipo.rawValue, conteudo: try encoder.encode(acao), instanteDoToque: acao.instanteDoToque))
+            contextoV3.insert(AcaoRecusadaPersistida(id: acaoRecusada.id, conteudo: try JSONEncoder().encode(acaoRecusada)))
+            contextoV3.insert(FuncaoPersistida(id: funcao.id, conteudo: try JSONEncoder().encode(funcao)))
+            contextoV3.insert(SessaoPersistida(conteudo: try JSONEncoder().encode(sessao)))
+            try contextoV3.save()
+        }
+
+        let esquemaV4 = Schema(versionedSchema: EsquemaFrilaV4.self)
+        let configV4 = ModelConfiguration("FrilaV3", schema: esquemaV4, url: url)
+        do {
+            let containerV4 = try ModelContainer(for: esquemaV4, migrationPlan: MigracaoFrila.self, configurations: [configV4])
+            let cache = ArmazenamentoSwiftData(modelContainer: containerV4)
+
+            let turnos = try await cache.turnosValidos(em: agora)
+            #expect(turnos.count == 1)
+            #expect(turnos.first?.id == turnoID)
+            #expect(turnos.first?.vaga.funcao == "Barista")
+            #expect(turnos.first?.contato?.telefone == "+5561988887777")
+
+            let lidoContato = try await cache.contato(doTurno: turnoID, em: agora)
+            #expect(lidoContato?.telefone == "+5561988887777")
+            #expect(lidoContato?.nome == "Gerente Café")
+
+            let pendentes = try await cache.pendentes()
+            #expect(pendentes.count == 1)
+            #expect(pendentes.first?.id == acao.id)
+            #expect(pendentes.first?.distanciaMetros == 15)
+
+            let recusadas = try await cache.recusadas()
+            #expect(recusadas.count == 1)
+            #expect(recusadas.first?.id == acaoRecusada.id)
+            #expect(recusadas.first?.codigo == .vagaEncerrada)
+
+            let funcoes = try await cache.funcoes()
+            #expect(funcoes.count == 1)
+            #expect(funcoes.first?.id == funcao.id)
+
+            let lidaSessao = try await cache.sessao()
+            #expect(lidaSessao?.usuarioID == sessao.usuarioID)
+            #expect(lidaSessao?.perfil == .profissional)
+
+            let evento = EventoDeTelemetriaPersistido(id: UUID(), conteudo: Data("{}".utf8), guardadoEm: agora)
+            let contextoV4 = ModelContext(containerV4)
+            contextoV4.insert(evento)
+            try contextoV4.save()
+            #expect(try contextoV4.fetchCount(FetchDescriptor<EventoDeTelemetriaPersistido>()) == 1)
+        }
+    }
 }
