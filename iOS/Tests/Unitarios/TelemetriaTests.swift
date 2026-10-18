@@ -908,9 +908,9 @@ struct TelemetriaTests {
         #expect(try await fila.eventosPendentes().isEmpty)
     }
 
-    @Test("Só guarda o que passa com o tempo: rede, servidor e sessão sim; recusa 4xx não")
+    @Test("Só guarda o que passa com o tempo: rede, servidor, sessão (401) e permissão (403); recusa 422/400 de formato não")
     func quaisErrosSaoGuardados() {
-        let guarda: [CodigoErroAPI] = [.semRede, .desconhecido, .respostaInvalida, .limiteExcedido, .naoAutenticado]
+        let guarda: [CodigoErroAPI] = [.semRede, .desconhecido, .respostaInvalida, .limiteExcedido, .naoAutenticado, .semPermissao, .contaSuspensa]
         for codigo in guarda {
             #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: codigo)))
         }
@@ -921,6 +921,12 @@ struct TelemetriaTests {
         #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .campoInvalido, codigoOriginal: "400")))
         #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .desconhecido, codigoOriginal: "http_400")))
         #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: URLError(.notConnectedToInternet)))
+    }
+
+    @Test("Erro 403 (semPermissao e contaSuspensa) preserva o evento na fila analítica de telemetria")
+    func erro403PreservaFilaDeTelemetria() async throws {
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .semPermissao)))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .contaSuspensa)))
     }
 
     @Test("Reenvio expurga evento recusado definitivamente com 422 e não bloqueia a fila")
