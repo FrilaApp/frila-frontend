@@ -920,7 +920,11 @@ struct TelemetriaTests {
         }
         #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .campoInvalido, codigoOriginal: "400")))
         #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .desconhecido, codigoOriginal: "http_400")))
+        #expect(!RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .respostaInvalida, codigoOriginal: "http_400")))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .respostaInvalida, codigoOriginal: "http_500")))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .desconhecido, codigoOriginal: "http_503")))
         #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: URLError(.notConnectedToInternet)))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: URLError(.timedOut)))
     }
 
     @Test("Erro 403 (semPermissao e contaSuspensa) preserva o evento na fila analítica de telemetria")

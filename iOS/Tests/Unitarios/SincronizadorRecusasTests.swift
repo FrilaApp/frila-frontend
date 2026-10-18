@@ -281,6 +281,20 @@ struct SincronizadorRecusasTests {
             #expect(try await fila.recusadas().isEmpty)
         }
     }
+
+    @Test("HTTP 400 sem envelope do contrato é tratado como transitório para ações e permanece na fila", arguments: [TipoAcaoPendente.checkin, .checkout])
+    func badRequestSemEnvelopePermaneceEmPendentes(tipo: TipoAcaoPendente) async throws {
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let erro400 = DecodificadorErroAPI.mapear(statusCode: 400, dados: Data("Bad Request".utf8))
+        let api = ApiPresencaRecusada(erro: erro400)
+        let acao = AcaoPendente(tipo: tipo, turnoID: UUID(), instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID())
+        try await fila.enfileirar(acao)
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+        #expect(try await fila.pendentes() == [acao])
+        #expect(try await fila.recusadas().isEmpty)
+        #expect(api.total == 1)
+    }
 }
 
 @Suite("Persistência dos avisos da fila")

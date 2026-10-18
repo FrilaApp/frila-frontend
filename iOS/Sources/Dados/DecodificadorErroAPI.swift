@@ -13,7 +13,7 @@ public enum DecodificadorErroAPI {
         }
         if statusCode == 400, erro.codigo == .desconhecido || erro.codigo == .respostaInvalida {
             let original = erro.codigo == .respostaInvalida ? "http_400" : erro.codigoOriginal
-            return ErroDaApi(codigo: .campoInvalido, codigoOriginal: original, detalhes: erro.detalhes)
+            return ErroDaApi(codigo: .respostaInvalida, codigoOriginal: original, detalhes: erro.detalhes)
         }
         return erro
     }
