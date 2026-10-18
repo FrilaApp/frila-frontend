@@ -35,8 +35,8 @@ public struct TelaContaSuspensa: View {
 
     private var avisoCabecalho: some View {
         AvisoFrila(verbatim: TextosContaSuspensa.avisoPrincipal, tom: .alerta)
-            .accessibilityIdentifier("aviso-conta-suspensa")
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("aviso-conta-suspensa")
     }
 
     private var secaoMotivoESuspensao: some View {
@@ -53,9 +53,9 @@ public struct TelaContaSuspensa: View {
                 Text(verbatim: viewModel.motivo.isEmpty ? "—" : viewModel.motivo)
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("texto-motivo-suspensao")
             }
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("texto-motivo-suspensao")
 
             if let data = viewModel.dataSuspensao {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
@@ -65,9 +65,9 @@ public struct TelaContaSuspensa: View {
                     Text(verbatim: formatarData(data))
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.texto)
-                        .accessibilityIdentifier("texto-data-suspensao")
                 }
                 .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("texto-data-suspensao")
             }
 
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
@@ -160,9 +160,9 @@ public struct TelaContaSuspensa: View {
                 Text(verbatim: formatarDataCivil(protocolo.prazoRespostaAte))
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("prazo-resposta-contestacao")
             }
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("prazo-resposta-contestacao")
 
             Text(verbatim: viewModel.mensagemDoProtocolo)
                 .font(FrilaTipo.nota)
