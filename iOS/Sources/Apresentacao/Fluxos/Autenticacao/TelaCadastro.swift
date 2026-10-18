@@ -99,11 +99,18 @@ public struct TelaCadastro: View {
                             .font(FrilaTipo.meta.weight(.semibold))
                             .foregroundStyle(FrilaCor.texto)
 
-                        CampoFrila("(61) 9 0000-0000", texto: $viewModel.telefone)
-                            .accessibilityLabel(Text("Telefone com WhatsApp", bundle: bundleApresentacao))
-                            .keyboardType(.phonePad)
-                            .textContentType(.telephoneNumber)
-                            .accessibilityIdentifier("cadastro-telefone")
+                        CampoMascara(
+                            texto: $viewModel.telefone,
+                            placeholder: String(localized: "(61) 9 0000-0000", bundle: bundleApresentacao),
+                            rotuloAcessibilidade: String(localized: "Telefone com WhatsApp", bundle: bundleApresentacao),
+                            identificadorAcessibilidade: "cadastro-telefone",
+                            teclado: .phonePad,
+                            tipoConteudo: .telephoneNumber,
+                            formatar: CadastroViewModel.formatarTelefone
+                        )
+                        .caixaDoCampoFrila()
+                        .accessibilityLabel(Text("Telefone com WhatsApp", bundle: bundleApresentacao))
+                        .accessibilityIdentifier("cadastro-telefone")
 
                         if viewModel.campoComErro == .telefone, let erro = viewModel.erro {
                             Text(verbatim: erro)
@@ -123,10 +130,18 @@ public struct TelaCadastro: View {
                             .font(FrilaTipo.meta.weight(.semibold))
                             .foregroundStyle(FrilaCor.texto)
 
-                        CampoFrila("dd/mm/aaaa", texto: $viewModel.nascimentoTexto)
-                            .accessibilityLabel(Text("Data de nascimento", bundle: bundleApresentacao))
-                            .keyboardType(.numberPad)
-                            .accessibilityIdentifier("cadastro-nascimento")
+                        CampoMascara(
+                            texto: $viewModel.nascimentoTexto,
+                            placeholder: String(localized: "dd/mm/aaaa", bundle: bundleApresentacao),
+                            rotuloAcessibilidade: String(localized: "Data de nascimento", bundle: bundleApresentacao),
+                            identificadorAcessibilidade: "cadastro-nascimento",
+                            teclado: .numberPad,
+                            tipoConteudo: nil,
+                            formatar: CadastroViewModel.formatarDataNascimento
+                        )
+                        .caixaDoCampoFrila()
+                        .accessibilityLabel(Text("Data de nascimento", bundle: bundleApresentacao))
+                        .accessibilityIdentifier("cadastro-nascimento")
 
                         if viewModel.ehMenorDeIdade {
                             Text("O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
@@ -215,21 +230,13 @@ public struct TelaCadastro: View {
                 viewModel.erro = nil
             }
         }
-        .onChange(of: viewModel.telefone) { antiga, nova in
-            let formatada = CadastroViewModel.formatarTelefone(nova, textoAnterior: antiga)
-            if formatada != nova {
-                viewModel.telefone = formatada
-            }
+        .onChange(of: viewModel.telefone) { _, _ in
             if viewModel.campoComErro == .telefone {
                 viewModel.campoComErro = nil
                 viewModel.erro = nil
             }
         }
-        .onChange(of: viewModel.nascimentoTexto) { antiga, nova in
-            let formatada = CadastroViewModel.formatarDataNascimento(nova, textoAnterior: antiga)
-            if formatada != nova {
-                viewModel.nascimentoTexto = formatada
-            }
+        .onChange(of: viewModel.nascimentoTexto) { _, _ in
             if viewModel.campoComErro == .nascimento {
                 viewModel.campoComErro = nil
                 viewModel.erro = nil
