@@ -432,5 +432,14 @@ struct SuporteTurnoTests {
         vm.relato = "Houve atraso no início"
         #expect(vm.relatoValido, "relato com conteúdo textual é válido e habilita botão")
     }
+
+    @Test("Cenário 16: Plural correto de caracteres no VoiceOver e dica de relato obrigatório")
+    func pluralDeCaracteresEDicaRelatoObrigatorio() {
+        #expect(TextosDoSuporte.quantidadeCaracteres(0) == "0 caractere")
+        #expect(TextosDoSuporte.quantidadeCaracteres(1) == "1 caractere")
+        #expect(TextosDoSuporte.quantidadeCaracteres(2) == "2 caracteres")
+        #expect(TextosDoSuporte.quantidadeCaracteres(10) == "10 caracteres")
+        #expect(TextosDoSuporte.dicaRelatoObrigatorio == "Preencha a descrição do ocorrido para abrir o e-mail de suporte.")
+    }
 }
 

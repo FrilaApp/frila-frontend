@@ -8144,6 +8144,48 @@
           }
         }
       }
+    },
+    "%lld caracteres": {
+      "localizations": {
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld caractere"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld caracteres"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Preencha a descrição do ocorrido para abrir o e-mail de suporte.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preencha a descrição do ocorrido para abrir o e-mail de suporte."
+          }
+        }
+      }
+    },
+    "Ajustar posições": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustar posições"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

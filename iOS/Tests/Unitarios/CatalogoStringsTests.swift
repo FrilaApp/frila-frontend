@@ -242,6 +242,7 @@ struct CatalogoStringsTests {
             "Remover horário de %@",
             "%@ às %@",
             "Olá! Sou o profissional do turno de %@ em %@ no %@.",
+            "%lld caracteres",
         ]
         for padrao in padroesInterpolados {
             #expect(chaves.contains(padrao), "padrão interpolado fora do catálogo: \(padrao)")
@@ -486,6 +487,8 @@ struct CatalogoStringsTests {
             TextosDoSuporte.emailSuporteRotulo,
             TextosDoSuporte.protocoloRegistrado,
             TextosDoSuporte.caracteres,
+            TextosDoSuporte.dicaRelatoObrigatorio,
+            "Ajustar posições",
             TextosDaSeguranca.concluir,
             TextosDaSeguranca.relatoValidoAcessibilidade,
             TextosDoCancelamento.placeholderDetalhes,

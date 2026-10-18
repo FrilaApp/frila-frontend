@@ -201,7 +201,7 @@ public struct FolhaSuporteTurno: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-suporte")
-            .accessibilityHint(Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count) \(TextosDoSuporte.caracteres)"))
+            .accessibilityHint(Text(verbatim: TextosDoSuporte.quantidadeCaracteres(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)))
 
             HStack {
                 Text(verbatim: TextosDoSuporte.dicaRelato)
@@ -212,7 +212,7 @@ public struct FolhaSuporteTurno: View {
                     .font(FrilaTipo.nota.monospacedDigit())
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.texto : FrilaCor.textoSecundario)
                     .accessibilityIdentifier("contador-relato-suporte")
-                    .accessibilityLabel(Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count) \(TextosDoSuporte.caracteres)"))
+                    .accessibilityLabel(Text(verbatim: TextosDoSuporte.quantidadeCaracteres(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -286,6 +286,14 @@ public struct FolhaSuporteTurno: View {
                     .accessibilityIdentifier("aviso-falha-email-suporte")
             }
 
+            if !viewModel.relatoValido {
+                Text(verbatim: TextosDoSuporte.dicaRelatoObrigatorio)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("dica-relato-obrigatorio-suporte")
+            }
+
             BotaoPrimario(verbatim: TextosDoSuporte.botaoEnviarEmail) {
                 Task {
                     await viewModel.registrarEEnviar(abridorURL: { url in
@@ -299,7 +307,7 @@ public struct FolhaSuporteTurno: View {
             }
             .disabled(viewModel.enviando || !viewModel.relatoValido)
             .accessibilityIdentifier("botao-enviar-email-suporte")
-            .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaEnviarEmail))
+            .accessibilityHint(Text(verbatim: viewModel.relatoValido ? TextosDoSuporte.dicaEnviarEmail : TextosDoSuporte.dicaRelatoObrigatorio))
 
             BotaoSecundario(verbatim: TextosDoSuporte.botaoCopiarDados) {
                 viewModel.copiarDadosParaTransferencia()
