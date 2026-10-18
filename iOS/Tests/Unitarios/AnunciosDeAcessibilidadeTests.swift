@@ -70,4 +70,10 @@ struct AnunciosDeAcessibilidadeTests {
         #expect(String(resolvido.characters) == texto)
         #expect(resolvido.runs.first?.inlinePresentationIntent == nil)
     }
+
+    @Test("Rótulo de acessibilidade para tom de erro inclui prefixo 'Erro: ' para leitura semântica do VoiceOver")
+    func rotuloErro() {
+        let rotulo = AvisoFrila.rotuloAcessibilidade(texto: "Código incorreto. Confira os números e tente novamente.", tom: .erro)
+        #expect(rotulo == "Erro: Código incorreto. Confira os números e tente novamente.")
+    }
 }

@@ -354,7 +354,7 @@ public struct AvisoFrila: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom)))
-        .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(textoResolvido.characters), tom: tom)))
+        .modifier(AnunciarAoAparecer(anuncio: .init(texto: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom), tom: tom)))
         .font(.callout)
         .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
