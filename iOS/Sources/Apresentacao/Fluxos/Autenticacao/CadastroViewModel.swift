@@ -120,13 +120,26 @@ public final class CadastroViewModel {
             return nil
         }
 
+        let sinalIdade: SinalIdade?
+        switch resultadoIdade {
+        case .dezoitoOuMais:
+            sinalIdade = .dezoitoOuMais
+        case .recusou:
+            sinalIdade = .recusou
+        case .indisponivel:
+            sinalIdade = .indisponivel
+        case .abaixoDe18:
+            sinalIdade = nil
+        }
+
         let cadastro = CadastroConta(
             nome: nomeLimpo,
             telefone: telefoneE164,
             nascimento: nascimento,
             perfil: perfil,
             // Termos com a classificação indicativa de 18 anos e a contestação da idade.
-            versaoTermos: "2026-10-15"
+            versaoTermos: "2026-10-15",
+            sinalIdade: sinalIdade
         )
 
         do {

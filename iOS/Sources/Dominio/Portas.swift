@@ -7,13 +7,23 @@ public struct CadastroConta: Codable, Equatable, Sendable {
     public let perfil: PerfilConta
     /// Versão dos termos que a tela exibiu. O instante do aceite é carimbado pelo servidor.
     public let versaoTermos: String
+    /// Faixa etária aferida via Declared Age Range (contrato 0.2.45, Lei 15.211/2025).
+    public let sinalIdade: SinalIdade?
 
-    public init(nome: String, telefone: String, nascimento: DataCivil, perfil: PerfilConta, versaoTermos: String) {
+    public init(
+        nome: String,
+        telefone: String,
+        nascimento: DataCivil,
+        perfil: PerfilConta,
+        versaoTermos: String,
+        sinalIdade: SinalIdade? = nil
+    ) {
         self.nome = nome
         self.telefone = telefone
         self.nascimento = nascimento
         self.perfil = perfil
         self.versaoTermos = versaoTermos
+        self.sinalIdade = sinalIdade
     }
 }
 

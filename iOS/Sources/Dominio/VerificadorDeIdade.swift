@@ -12,6 +12,27 @@ public enum ResultadoVerificacaoIdade: String, Equatable, Sendable {
     case indisponivel
 }
 
+/// Sinal de idade enviado na criação de conta (contrato 0.2.45, Lei 15.211/2025, RN20).
+public enum SinalIdade: String, Codable, Equatable, Sendable {
+    case dezoitoOuMais = "dezoito_ou_mais"
+    case recusou
+    case indisponivel
+
+    public init?(_ resultado: ResultadoVerificacaoIdade) {
+        switch resultado {
+        case .dezoitoOuMais:
+            self = .dezoitoOuMais
+        case .recusou:
+            self = .recusou
+        case .indisponivel:
+            self = .indisponivel
+        case .abaixoDe18:
+            return nil
+        }
+    }
+}
+
+
 /// Porta no domínio para verificação de maioridade via Declared Age Range (iOS 26.2+, RN20).
 public protocol VerificadorDeIdade: Sendable {
     @MainActor

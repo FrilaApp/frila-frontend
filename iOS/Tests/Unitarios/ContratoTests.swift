@@ -191,6 +191,43 @@ struct ContratoTests {
         #expect(try Self.objeto(ContratoAPI.CriarConta(cadastro)) == Self.fixture("requisicao-criar-conta"))
     }
 
+    @Test("criar_conta codifica sinal_idade com cada um dos 3 valores e omite a chave sem sinal")
+    func criarContaSinalIdade() throws {
+        let base = CadastroConta(
+            nome: "Ana Cunha",
+            telefone: "+5561988887777",
+            nascimento: try DataCivil("1998-04-12"),
+            perfil: .profissional,
+            versaoTermos: "2026-09-22"
+        )
+
+        // Sem sinal: a chave é omitida do corpo JSON
+        let semSinal = try Self.objeto(ContratoAPI.CriarConta(base))
+        #expect(semSinal["sinal_idade"] == nil)
+
+        // Com cada um dos 3 valores do contrato 0.2.45
+        let dezoitoOuMais = CadastroConta(
+            nome: base.nome, telefone: base.telefone, nascimento: base.nascimento,
+            perfil: base.perfil, versaoTermos: base.versaoTermos, sinalIdade: .dezoitoOuMais
+        )
+        let objDezoito = try Self.objeto(ContratoAPI.CriarConta(dezoitoOuMais))
+        #expect(objDezoito["sinal_idade"] as? String == "dezoito_ou_mais")
+
+        let recusou = CadastroConta(
+            nome: base.nome, telefone: base.telefone, nascimento: base.nascimento,
+            perfil: base.perfil, versaoTermos: base.versaoTermos, sinalIdade: .recusou
+        )
+        let objRecusou = try Self.objeto(ContratoAPI.CriarConta(recusou))
+        #expect(objRecusou["sinal_idade"] as? String == "recusou")
+
+        let indisponivel = CadastroConta(
+            nome: base.nome, telefone: base.telefone, nascimento: base.nascimento,
+            perfil: base.perfil, versaoTermos: base.versaoTermos, sinalIdade: .indisponivel
+        )
+        let objIndisponivel = try Self.objeto(ContratoAPI.CriarConta(indisponivel))
+        #expect(objIndisponivel["sinal_idade"] as? String == "indisponivel")
+    }
+
     @Test("Perfil profissional sai no formato do contrato, com janela que atravessa a meia-noite")
     func perfilProfissional() throws {
         let garcom = try #require(UUID(uuidString: "20000000-0000-0000-0000-000000000001"))
