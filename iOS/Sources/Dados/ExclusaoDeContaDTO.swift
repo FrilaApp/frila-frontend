@@ -5,8 +5,8 @@ import FrilaDominio
 public struct RequisicaoExclusaoConta: Encodable, Sendable {
     public let confirmar: Bool
 
-    public init(confirmar: Bool = true) {
-        self.confirmar = confirmar
+    public init() {
+        self.confirmar = true
     }
 }
 
