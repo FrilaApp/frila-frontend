@@ -64,7 +64,12 @@ public final class CadastroEstabelecimentoViewModel {
     }
 
     public var documentoFormatado: String {
-        let digitos = String(documento.filter(\.isNumber).prefix(14))
+        get { Self.formatarDocumento(documento) }
+        set { atualizarDocumento(newValue) }
+    }
+
+    static func formatarDocumento(_ texto: String) -> String {
+        let digitos = String(texto.filter(\.isNumber).prefix(14))
         if digitos.count <= 11 {
             return Self.mascara(digitos, padroes: [(3, "."), (6, "."), (9, "-")])
         }
@@ -321,8 +326,14 @@ public struct TelaCadastroEstabelecimento: View {
                     .accessibilityAddTraits(.isHeader)
                 campo(TextosCadastro.nome, campo: .nome) { CampoFrila(verbatim: TextosCadastro.nomeCampo, texto: $model.nome) }
                 campo(TextosCadastro.documento, campo: .documento) {
-                    CampoFrila(verbatim: TextosCadastro.documentoCampo, texto: Binding(get: { model.documentoFormatado }, set: { valor in model.atualizarDocumento(valor) }))
-                        .keyboardType(.numberPad)
+                    CampoMascara(
+                        texto: $model.documentoFormatado,
+                        placeholder: TextosCadastro.documentoCampo,
+                        rotuloAcessibilidade: TextosCadastro.documentoCampo,
+                        formatar: { texto, _ in CadastroEstabelecimentoViewModel.formatarDocumento(texto) }
+                    )
+                    .caixaDoCampoFrila()
+                    .modifier(ErroLidoComoValor(texto: model.documentoFormatado, erro: mensagemDoCampo(.documento)))
                 }
                 Menu {
                     ForEach(TipoEstabelecimento.allCases, id: \.self) { tipo in

@@ -360,6 +360,30 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         salvarCaptura("02-cadastro-estabelecimento-xxxl")
     }
 
+    func testMascaraDocumentoCPFECNPJNoTamanhoPadrao() {
+        conferirMascaraDocumento(categoria: "UICTContentSizeCategoryL", sufixo: "padrao")
+    }
+
+    func testMascaraDocumentoCPFECNPJNoMaiorTextoAX5() {
+        conferirMascaraDocumento(categoria: "UICTContentSizeCategoryAccessibilityXXXL", sufixo: "ax5")
+    }
+
+    private func conferirMascaraDocumento(categoria: String?, sufixo: String) {
+        for (digitos, esperado, nome) in [("12345678901", "123.456.789-01", "cpf"), ("12345678000199", "12.345.678/0001-99", "cnpj")] {
+            var argumentos = ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO"]
+            if let categoria { argumentos += ["-UIPreferredContentSizeCategoryName", categoria] }
+            let app = abrir(argumentos: argumentos)
+            defer { app.terminate() }
+            let campo = app.textFields["CPF ou CNPJ"]
+            XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer))
+            for _ in 0..<4 where !campo.isHittable { app.swipeUp() }
+            campo.tap()
+            campo.typeText(digitos)
+            XCTAssertEqual(campo.value as? String, esperado)
+            salvarCaptura("mascara-\(nome)-\(sufixo)")
+        }
+    }
+
     private func salvarCaptura(_ nome: String) {
         let captura = XCUIScreen.main.screenshot()
         let anexo = XCTAttachment(screenshot: captura)
