@@ -453,8 +453,17 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
         try modelContext.delete(model: AcaoPendentePersistida.self)
         try modelContext.delete(model: AcaoRecusadaPersistida.self)
         try modelContext.delete(model: ContatoDoTurnoPersistido.self)
-        // Os eventos pendentes são da conta que saiu: não podem sair pelo login da próxima.
         try modelContext.delete(model: EventoDeTelemetriaPersistido.self)
         try modelContext.save()
+    }
+
+    public func possuiDadosLocais() -> Bool {
+        let turnos = (try? modelContext.fetchCount(FetchDescriptor<TurnoPersistido>())) ?? 0
+        let contatos = (try? modelContext.fetchCount(FetchDescriptor<ContatoDoTurnoPersistido>())) ?? 0
+        let pendentes = (try? modelContext.fetchCount(FetchDescriptor<AcaoPendentePersistida>())) ?? 0
+        let recusadas = (try? modelContext.fetchCount(FetchDescriptor<AcaoRecusadaPersistida>())) ?? 0
+        let funcoes = (try? modelContext.fetchCount(FetchDescriptor<FuncaoPersistida>())) ?? 0
+        let telemetria = (try? modelContext.fetchCount(FetchDescriptor<EventoDeTelemetriaPersistido>())) ?? 0
+        return turnos > 0 || contatos > 0 || pendentes > 0 || recusadas > 0 || funcoes > 0 || telemetria > 0
     }
 }
