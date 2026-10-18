@@ -452,8 +452,18 @@ struct SwiftDataTests {
             create: true
         )
         let diretorio = suporte.appending(path: "Frila", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+        var valoresIniciais = URLResourceValues()
+        valoresIniciais.isExcludedFromBackup = false
+        var diretorioMutavel = diretorio
+        try diretorioMutavel.setResourceValues(valoresIniciais)
+        let antes = try diretorio.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        #expect(antes.isExcludedFromBackup == false)
+
         _ = try PersistenciaFrila.criarContainer(emMemoria: false)
-        let valores = try diretorio.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        var diretorioAposCriar = suporte.appending(path: "Frila", directoryHint: .isDirectory)
+        diretorioAposCriar.removeAllCachedResourceValues()
+        let valores = try diretorioAposCriar.resourceValues(forKeys: [.isExcludedFromBackupKey])
         #expect(valores.isExcludedFromBackup == true)
     }
 }

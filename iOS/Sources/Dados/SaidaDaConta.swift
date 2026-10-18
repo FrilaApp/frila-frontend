@@ -12,6 +12,7 @@ public struct SaidaDaConta: ContaRepositorio {
     private let armazenamento: (any CacheLocal & FilaDeAcoes)?
     private let aparelho: AparelhoDePush?
     private let canal: (any CanalDePush)?
+    private static let log = Logger(subsystem: "com.frila.org.app", category: "cache")
 
     public init(api: any ApiCliente, armazenamento: (any CacheLocal & FilaDeAcoes)?,
                 aparelho: AparelhoDePush? = nil, canal: (any CanalDePush)? = nil,
@@ -88,12 +89,12 @@ public struct SaidaDaConta: ContaRepositorio {
             do {
                 try await (armazenamento as any CacheLocal).limpar()
             } catch {
-                Logger(subsystem: "frila", category: "cache").error("[cache] falha ao limpar CacheLocal na saída da conta: \(error.localizedDescription)")
+                Self.log.error("[cache] falha ao limpar CacheLocal na saída da conta tipo=\(String(reflecting: type(of: error)), privacy: .public)")
             }
             do {
                 try await (armazenamento as any FilaDeAcoes).limpar()
             } catch {
-                Logger(subsystem: "frila", category: "cache").error("[cache] falha ao limpar FilaDeAcoes na saída da conta: \(error.localizedDescription)")
+                Self.log.error("[cache] falha ao limpar FilaDeAcoes na saída da conta tipo=\(String(reflecting: type(of: error)), privacy: .public)")
             }
         }
         limparDestino()
