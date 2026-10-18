@@ -138,10 +138,10 @@ public struct TelaContaSuspensa: View {
                 Text(verbatim: protocolo.ocorrenciaID.uuidString)
                     .font(FrilaTipo.meta.monospaced())
                     .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("protocolo-contestacao")
                     .speechSpellsOutCharacters(true)
             }
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("protocolo-contestacao")
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.protocoloData)
