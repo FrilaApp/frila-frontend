@@ -142,9 +142,10 @@ public actor RegistradorDeTelemetria {
 
     /// Falha de rede, de servidor (5xx, 429) ou de sessão em renovação passa com o tempo, então o
     /// evento fica guardado. Recusa do servidor (422 `campo_obrigatorio`, `campo_invalido`,
-    /// `registro_no_futuro`, 403, 404) é definitiva: reenviar o mesmo evento falharia sempre.
+    /// `registro_no_futuro`, 403, 404, 400) é definitiva: reenviar o mesmo evento falharia sempre.
     static func deveGuardar(depoisDe erro: Error) -> Bool {
         guard let erro = erro as? ErroDaApi else { return true }
+        if erro.codigoOriginal == "400" || erro.codigoOriginal == "http_400" { return false }
         switch erro.codigo {
         case .semRede, .desconhecido, .respostaInvalida, .limiteExcedido, .naoAutenticado: return true
         default: return false
