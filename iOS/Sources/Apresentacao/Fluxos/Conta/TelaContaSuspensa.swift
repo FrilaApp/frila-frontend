@@ -35,6 +35,7 @@ public struct TelaContaSuspensa: View {
 
     private var avisoCabecalho: some View {
         AvisoFrila(verbatim: TextosContaSuspensa.avisoPrincipal, tom: .alerta)
+            .accessibilityElement(children: .combine)
             .accessibilityIdentifier("aviso-conta-suspensa")
     }
 
@@ -43,6 +44,7 @@ public struct TelaContaSuspensa: View {
             Text(verbatim: TextosContaSuspensa.secaoMotivo)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.motivoTitulo)
@@ -51,8 +53,9 @@ public struct TelaContaSuspensa: View {
                 Text(verbatim: viewModel.motivo.isEmpty ? "—" : viewModel.motivo)
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("texto-motivo-suspensao")
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("texto-motivo-suspensao")
 
             if let data = viewModel.dataSuspensao {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
@@ -62,8 +65,9 @@ public struct TelaContaSuspensa: View {
                     Text(verbatim: formatarData(data))
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.texto)
-                        .accessibilityIdentifier("texto-data-suspensao")
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("texto-data-suspensao")
             }
 
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
@@ -85,6 +89,7 @@ public struct TelaContaSuspensa: View {
             Text(verbatim: TextosContaSuspensa.secaoContestacao)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             if let explicacao409 = viewModel.avisoExplicacao409 {
                 AvisoFrila(verbatim: explicacao409, tom: .alerta)
@@ -133,8 +138,10 @@ public struct TelaContaSuspensa: View {
                 Text(verbatim: protocolo.ocorrenciaID.uuidString)
                     .font(FrilaTipo.meta.monospaced())
                     .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("protocolo-contestacao")
+                    .speechSpellsOutCharacters(true)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("protocolo-contestacao")
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.protocoloData)
@@ -144,6 +151,7 @@ public struct TelaContaSuspensa: View {
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.texto)
             }
+            .accessibilityElement(children: .combine)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosContaSuspensa.prazoRespostaTitulo)
@@ -152,8 +160,9 @@ public struct TelaContaSuspensa: View {
                 Text(verbatim: formatarDataCivil(protocolo.prazoRespostaAte))
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("prazo-resposta-contestacao")
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("prazo-resposta-contestacao")
 
             Text(verbatim: viewModel.mensagemDoProtocolo)
                 .font(FrilaTipo.nota)
@@ -232,6 +241,7 @@ public struct TelaContaSuspensa: View {
             Text(verbatim: TextosContaSuspensa.secaoAcoes)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
 
             ItemExportarDados(viewModel: exportarModel, identificador: "conta-suspensa-exportar-dados")
 

@@ -119,9 +119,9 @@ final class ContaSuspensaUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "contestacao-respondida"]
         app.launch()
-        let protocolo = app.staticTexts["protocolo-contestacao"]
+        let protocolo = app.descendants(matching: .any)["protocolo-contestacao"]
         XCTAssertTrue(protocolo.waitForExistence(timeout: 10))
-        XCTAssertEqual(protocolo.label, "11111111-2222-3333-4444-555555555555")
+        XCTAssertTrue(protocolo.label.contains("11111111-2222-3333-4444-555555555555"))
         let mensagem = app.staticTexts["mensagem-protocolo-contestacao"]
         for _ in 0..<5 where !mensagem.isHittable { app.swipeUp() }
         XCTAssertTrue(mensagem.exists)
