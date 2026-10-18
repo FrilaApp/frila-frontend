@@ -516,4 +516,12 @@ struct ErrosDaEntradaTests {
         #expect(!cliente.haSessaoGuardada)
         #expect(roteiro.logouts == 1)
     }
+
+    @Test("Erro do Keychain (errSecInteractionNotAllowed, errSecAuthFailed) NÃO é considerado sessão inválida e não encerra sessão")
+    func erroDeKeychainNaoComprovaSessaoInvalida() {
+        #expect(!SupabaseApiCliente.comprovaSessaoInvalida(ErroDoKeychainDaSessao.status(errSecInteractionNotAllowed)))
+        #expect(!SupabaseApiCliente.comprovaSessaoInvalida(ErroDoKeychainDaSessao.status(errSecAuthFailed)))
+        #expect(!SupabaseApiCliente.comprovaSessaoInvalida(ErroDoKeychainDaSessao.status(errSecItemNotFound)))
+    }
 }
+
