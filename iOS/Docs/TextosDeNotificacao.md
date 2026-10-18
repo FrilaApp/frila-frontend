@@ -190,15 +190,15 @@ Exibida quando a notificação traz um identificador de turno que não pertence 
 | Nenhum push com motivo de suspensão | **Atendido** | Push de suspensão contém mensagem neutra e genérica ("Aviso sobre sua conta / Sua conta foi suspensa. Abra o aplicativo para mais detalhes."). |
 | Nenhum push com relato de denúncia | **Atendido** | Denúncias e relatos são restritos ao canal interno da Equipe Frila e e-mail operacional. |
 | Sem promessa vaga de tempo | **Atendido** | Prazos baseados exclusivamente em marcos objetivos ("às 19:00", "em 3 horas", "ao chegar ao local"). |
-| Contagem de caracteres e compatibilidade com iPhone SE | **Atendido** | Todos os títulos ≤ 40 caracteres (13 a 34 car.). Todos os corpos ≤ 110 caracteres (44 a 95 car.), com exceção pontual documentada em `candidatura_recusada` (128 car. no contrato). |
+| Contagem de caracteres e compatibilidade com iPhone SE | **Pendente de capturas no SE** | A contagem é coberta por `TextosDeNotificacaoTests`, com exceção documentada de `candidatura_recusada` (128 car. no contrato). Esse teste não verifica corte na tela bloqueada. Falta conferir cada texto no simulador do iPhone SE (3ª geração) e anexar as capturas ao cartão `VyY2SGsX`. |
 
 ---
 
 ## 7. Decisões Marcadas para Produto e Design
 
-1. **Aprovação Formal dos Textos:**
-   - **Responsável:** Júlia (Produto / Conteúdo).
-   - **Ação:** Validar e aprovar a redação definitiva de todos os 32 cenários descritos na tabela da Seção 4.
+1. **Aprovação da Redação Registrada:**
+   - **Aprovação:** Nick Fury, por delegação do Cauê, em 16/10 ([registro no cartão](https://trello.com/c/VyY2SGsX#comment-6ad245c6eae4ae436dacdaa1)).
+   - **Limite:** A aprovação da redação não comprova as capturas no iPhone SE nem a entrega e conferência dos frames; esses critérios continuam abertos.
 2. **Ajuste de Caracteres em `candidatura_recusada`:**
    - **Responsável:** Júlia.
    - **Decisão:** O contrato OpenAPI 0.2.38 fixou o corpo em 128 caracteres (*"O estabelecimento escolheu outro profissional para esta vaga. Sua candidatura foi encerrada e você está livre para outras vagas."*), ultrapassando o limite visual de 110 caracteres da tela bloqueada do iPhone SE. Proposta recomendada: encurtar para *"A vaga foi preenchida com outro profissional. Você está livre para novas vagas."* (79 car., decidido em 16/10/2026; cartão xNIWtzuk do backend).

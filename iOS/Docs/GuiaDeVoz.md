@@ -358,4 +358,4 @@ Trechos de texto com redação normativa aprovada por requisitos e decisões de 
 | **Cada texto usa só termos do glossário** | Concluído | Vocabulário auditado em todas as tabelas e exemplos. |
 | **Nenhuma promessa de tempo** | Concluído | Eliminados termos como "em instantes", "rápido" ou "em poucos minutos". |
 | **Nada de "comissão"** | Concluído | Termo estritamente proibido; uso de "valor integral sem desconto". |
-| **Aprovação da Júlia e do Fabrício no cartão** | Pendente de pessoa | Depende da aprovação da Júlia (glossário/mensagens) e do Fabrício (voz/formatos). Listado no relatório de entrega. |
+| **Aprovação da redação e aplicação nos frames** | Parcial | Redação aprovada pelo Nick Fury por delegação do Cauê em 16/10 ([registro no cartão](https://trello.com/c/gNlXnAYP#comment-6ad240a62aea955ad05a7fb7)). Falta Fabrício conferir a aplicação do guia nos frames de alta fidelidade; o critério composto continua aberto. |

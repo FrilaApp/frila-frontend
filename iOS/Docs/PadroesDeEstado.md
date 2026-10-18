@@ -93,7 +93,7 @@ Comunica falha de operação, recusa de regra de negócio pelo servidor ou erro 
   - Falha de turno em push: `"Não foi possível abrir este turno."` (`TextosDoPush.swift:71`).
   - Falha de presença no turno: Mensagens de recusa da API repassadas via `AvisoFrila(tom: .erro)`.
 - **Ação:**
-  - Retentativa explícita: `BotaoSecundario("Tentar novamente")` disparando nova tentativa assíncrona.
+  - Retentativa explícita no `EstadoErro`: `BotaoPrimario("Tentar novamente", acao: tentarNovamente)` disparando nova tentativa assíncrona.
   - Fechamento/Descarte: Banners contextuais podem incluir botão secundário de dispensa.
 - **Onde o app já usa (arquivo:linha):**
   - `iOS/Sources/Apresentacao/EstadosDeTela.swift:40`: Definição de `EstadoErro`.
