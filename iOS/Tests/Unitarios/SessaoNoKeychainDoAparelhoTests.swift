@@ -64,4 +64,76 @@ struct SessaoNoKeychainDoAparelhoTests {
     func servicoPadraoEODoSDK() {
         #expect(SessaoNoKeychainDoAparelho.servicoPadrao == "supabase.gotrue.swift")
     }
+
+    // MARK: - Resiliência e Dublê de Falha de Keychain
+
+    @Test("retrieve com dispositivo bloqueado (errSecInteractionNotAllowed) lança ErroDoKeychainDaSessao")
+    func retrieveComDispositivoBloqueadoLancaErro() {
+        let duble = OperacoesDoKeychainDuble(statusCopy: errSecInteractionNotAllowed)
+        let armazenamento = SessaoNoKeychainDoAparelho(servico: "teste", operacoes: duble)
+
+        #expect(throws: ErroDoKeychainDaSessao.status(errSecInteractionNotAllowed)) {
+            try armazenamento.retrieve(key: Self.chave)
+        }
+    }
+
+    @Test("retrieve com falha de autorização (errSecAuthFailed) lança ErroDoKeychainDaSessao")
+    func retrieveComFalhaDeAutorizacaoLancaErro() {
+        let duble = OperacoesDoKeychainDuble(statusCopy: errSecAuthFailed)
+        let armazenamento = SessaoNoKeychainDoAparelho(servico: "teste", operacoes: duble)
+
+        #expect(throws: ErroDoKeychainDaSessao.status(errSecAuthFailed)) {
+            try armazenamento.retrieve(key: Self.chave)
+        }
+    }
+
+    @Test("store com erro no SecItemAdd lança ErroDoKeychainDaSessao com o código exato")
+    func storeComErroLancaStatus() {
+        let duble = OperacoesDoKeychainDuble(statusAdd: errSecDiskFull)
+        let armazenamento = SessaoNoKeychainDoAparelho(servico: "teste", operacoes: duble)
+
+        #expect(throws: ErroDoKeychainDaSessao.status(errSecDiskFull)) {
+            try armazenamento.store(key: Self.chave, value: Data("token".utf8))
+        }
+    }
+
+    @Test("remove com erro diferente de errSecItemNotFound lança ErroDoKeychainDaSessao")
+    func removeComErroLancaStatus() {
+        let duble = OperacoesDoKeychainDuble(statusDelete: errSecInteractionNotAllowed)
+        let armazenamento = SessaoNoKeychainDoAparelho(servico: "teste", operacoes: duble)
+
+        #expect(throws: ErroDoKeychainDaSessao.status(errSecInteractionNotAllowed)) {
+            try armazenamento.remove(key: Self.chave)
+        }
+    }
+
+    @Test("remove com errSecItemNotFound é resiliente e não lança erro")
+    func removeComItemNaoEncontradoNaoLanca() throws {
+        let duble = OperacoesDoKeychainDuble(statusDelete: errSecItemNotFound)
+        let armazenamento = SessaoNoKeychainDoAparelho(servico: "teste", operacoes: duble)
+
+        try armazenamento.remove(key: Self.chave)
+    }
+}
+
+private struct OperacoesDoKeychainDuble: OperacoesDoKeychainDaSessao {
+    var statusAdd: OSStatus = errSecSuccess
+    var statusCopy: OSStatus = errSecSuccess
+    var statusDelete: OSStatus = errSecSuccess
+    var dadosRetornados: Data?
+
+    func secItemAdd(_ attributes: CFDictionary, _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        statusAdd
+    }
+
+    func secItemCopyMatching(_ query: CFDictionary, _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        if statusCopy == errSecSuccess, let dados = dadosRetornados {
+            result?.pointee = dados as CFData
+        }
+        return statusCopy
+    }
+
+    func secItemDelete(_ query: CFDictionary) -> OSStatus {
+        statusDelete
+    }
 }
