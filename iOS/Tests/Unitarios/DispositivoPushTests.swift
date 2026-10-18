@@ -146,4 +146,84 @@ struct DispositivoPushTests {
         #expect(disp.atualizadoEm == data)
         #expect(disp.vinculoID == vinculo)
     }
+
+    @Test("TipoDeAviso possui paridade exata com os 19 casos de TipoNotificacao no contrato")
+    func paridadeDeTiposDeNotificacaoComContrato() {
+        let casosDoContrato: Set<String> = [
+            "vaga",
+            "vagas_agrupadas",
+            "vaga_sem_elegiveis",
+            "confirmacao",
+            "lembrete_24h",
+            "lembrete_3h",
+            "inicio_sem_checkin",
+            "atraso_15min",
+            "fim_sem_checkout",
+            "vaga_vazia",
+            "checkin",
+            "checkin_manual_pendente",
+            "cancelamento",
+            "avaliacao_disponivel",
+            "suspensao",
+            "reativacao",
+            "candidatura_recusada",
+            "selecao_encerrada",
+            "selecao_lembrete"
+        ]
+
+        let casosImplementados = Set(TipoDeAviso.allCases.map(\.rawValue))
+        #expect(casosImplementados == casosDoContrato, "Os casos de TipoDeAviso devem espelhar fielmente o schema TipoNotificacao")
+        #expect(TipoDeAviso.allCases.count == 19)
+
+        for caso in TipoDeAviso.allCases {
+            #expect(TipoDeAviso(rawValue: caso.rawValue) == caso)
+            #expect(TipoNotificacao(rawValue: caso.rawValue) == caso)
+        }
+    }
+
+    @Test("AvisoDePush decodifica todos os 19 tipos contratuais e preserva chaves canônicas (RN15)")
+    func decodificacaoEExportacaoAvisoDePush() {
+        let vagaID = UUID()
+        let turnoID = UUID()
+        let posicaoID = UUID()
+
+        for caso in TipoDeAviso.allCases {
+            let payload: [AnyHashable: Any] = [
+                "tipo": caso.rawValue,
+                "vaga_id": vagaID.uuidString,
+                "turno_id": turnoID.uuidString,
+                "posicao_id": posicaoID.uuidString
+            ]
+
+            let aviso = AvisoDePush(payload: payload)
+            #expect(aviso != nil, "AvisoDePush deve ser construído para o tipo contratual \(caso.rawValue)")
+            #expect(aviso?.tipo == caso)
+            #expect(aviso?.vagaID == vagaID)
+            #expect(aviso?.turnoID == turnoID)
+            #expect(aviso?.posicaoID == posicaoID)
+
+            let exportado = aviso?.payload
+            #expect(exportado?["tipo"] == caso.rawValue)
+            #expect(exportado?["vaga_id"] == vagaID.uuidString.lowercased())
+            #expect(exportado?["turno_id"] == turnoID.uuidString.lowercased())
+            #expect(exportado?["posicao_id"] == posicaoID.uuidString.lowercased())
+        }
+
+        // Tipo desconhecido ou ausente rejeita a inicialização
+        #expect(AvisoDePush(payload: ["tipo": "desconhecido_fora_do_contrato"]) == nil)
+        #expect(AvisoDePush(payload: [:]) == nil)
+
+        // Ids corrompidos são ignorados sem falhar a criação
+        let payloadIdInvalido: [AnyHashable: Any] = [
+            "tipo": "confirmacao",
+            "vaga_id": "nao-eh-uuid",
+            "turno_id": "12345"
+        ]
+        let avisoInvalido = AvisoDePush(payload: payloadIdInvalido)
+        #expect(avisoInvalido != nil)
+        #expect(avisoInvalido?.tipo == .confirmacao)
+        #expect(avisoInvalido?.vagaID == nil)
+        #expect(avisoInvalido?.turnoID == nil)
+    }
 }
+
