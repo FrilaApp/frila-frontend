@@ -27,6 +27,14 @@ public actor SincronizadorAcoes {
             // Falha de identidade não é recusa da ação: sem conta conhecida, só legados seguem.
             contaAtualID = nil
         }
+
+        // Se o banco/cache local possui sessão associada e ela difere da conta autenticada na API
+        // (troca de conta em andamento antes do expurgo/obtenção da nova identidade),
+        // o sincronizador trava e aborta imediatamente para não processar ações em nome da conta errada.
+        if let contaAtualID, let sessaoLocal = try? await (fila as? any CacheLocal)?.sessao(), sessaoLocal.usuarioID != contaAtualID {
+            return
+        }
+
         for acao in acoes {
             if let contaID = acao.contaID, contaID != contaAtualID { continue }
             // Legados sem autor conservam o caminho anterior nos builds de desenvolvimento;

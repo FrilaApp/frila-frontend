@@ -301,6 +301,60 @@ struct TrocaDeContaTests {
         let sessaoFinal = try await local.sessao()
         #expect(sessaoFinal?.usuarioID != contaB_ID, "Sessão de B não pode ser gravada se a purga falhou")
     }
+
+    @Test("Ordem vs Sincronizador: sincronizador disparado no meio da troca de conta não envia ações de A como B")
+    func sincronizadorDisparadoNoMeioDaTrocaNaoEnviaAcoesDeAComoB() async throws {
+        let local = try criarArmazenamentoLocal()
+        let instante = Date(timeIntervalSince1970: 1_800_000_000)
+
+        let contaA_ID = UUID()
+        let contaB_ID = UUID()
+
+        let contaA = Conta(
+            id: contaA_ID, perfil: .profissional, nome: "Usuário A",
+            telefone: "+5561999991111", email: "contaA@frila.app",
+            nascimento: try DataCivil(ano: 1995, mes: 5, dia: 10), estado: .ativa
+        )
+        let contaB = Conta(
+            id: contaB_ID, perfil: .profissional, nome: "Usuário B",
+            telefone: "+5561999992222", email: "contaB@frila.app",
+            nascimento: try DataCivil(ano: 1998, mes: 8, dia: 20), estado: .ativa
+        )
+
+        let api = ApiClienteMonitoravel(contaInicial: contaA, contasCadastradas: [
+            contaA.email: contaA,
+            contaB.email: contaB
+        ])
+
+        // 1. Aparelho está com Conta A no cache e na fila (ação com autor explícito e ação legada sem autor)
+        try await local.salvar(sessao: SessaoUsuario(usuarioID: contaA_ID, perfil: .profissional))
+        let acaoComAutorA = AcaoPendente(tipo: .checkin, turnoID: UUID(), contaID: contaA_ID, instanteDoToque: instante, chave: UUID())
+        try await local.enfileirar(acaoComAutorA)
+        let acaoSemAutorA = AcaoPendente(tipo: .checkin, turnoID: UUID(), contaID: nil, instanteDoToque: instante, chave: UUID())
+        try await local.enfileirar(acaoSemAutorA)
+
+        // 2. Conta B autentica na API (verificarCodigo), MAS IdentidadeDaAvaliacao AINDA NÃO RODOU
+        // Portanto, a API já tem credencial de B, enquanto o banco local ainda tem a sessão de A!
+        try await api.verificarCodigo(email: contaB.email, codigo: "123456")
+        #expect(try await api.minhaConta().id == contaB_ID)
+        #expect(try await local.sessao()?.usuarioID == contaA_ID)
+
+        // 3. Corrida: o sincronizador é disparado neste exato momento (ex.: reconexão de rede)
+        let sincronizador = SincronizadorAcoes(fila: local, api: api)
+        await sincronizador.sincronizar()
+
+        // 4. Afirmação: NENHUMA ação foi enviada para a API em nome de B!
+        #expect(api.checkinsRecebidos.isEmpty, "Nenhuma ação de A pode ser enviada com o token de B no meio da troca!")
+
+        // 5. Agora IdentidadeDaAvaliacao roda e conclui a transição
+        let identificada = try await IdentidadeDaAvaliacao.obter(api: api, cache: local)
+        #expect(identificada == contaB_ID)
+
+        // 6. Banco limpo para B; nova sincronização continua sem vazar dados de A
+        await sincronizador.sincronizar()
+        #expect(api.checkinsRecebidos.isEmpty)
+        #expect(try await local.pendentes().isEmpty)
+    }
 }
 
 // MARK: - Dublê de API com monitoramento de chamadas para o teste de privacidade
