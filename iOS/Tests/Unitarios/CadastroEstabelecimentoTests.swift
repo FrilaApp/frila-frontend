@@ -50,6 +50,16 @@ struct CadastroEstabelecimentoTests {
         #expect(vm.documento == "12345678000199")
     }
 
+    @Test("Binding do documento formatado mantém somente os dígitos no cadastro")
+    func bindingDocumentoFormatado() {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        for (formatado, digitos) in [("123.456.789-01", "12345678901"), ("12.345.678/0001-99", "12345678000199")] {
+            vm.documentoFormatado = formatado
+            #expect(vm.documento == digitos)
+            #expect(vm.documentoFormatado == formatado)
+        }
+    }
+
     @Test("Validação de documento recusa tamanhos diferentes de 11 e 14 dígitos")
     func validacaoDocumento() async {
         for docInvalido in ["", "1", "1234567890", "123456789012", "1234567890123"] {

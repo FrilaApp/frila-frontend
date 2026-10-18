@@ -137,7 +137,8 @@ public struct CampoMascara: UIViewRepresentable {
             let alvoDigitos = digitosAntes + digitosInseridos
 
             if alvoDigitos == 0 {
-                let pos = campo.beginningOfDocument
+                let separadoresIniciais = textoFormatado.prefix { !$0.isNumber }.utf16.count
+                let pos = campo.position(from: campo.beginningOfDocument, offset: separadoresIniciais) ?? campo.endOfDocument
                 campo.selectedTextRange = campo.textRange(from: pos, to: pos)
                 return
             }

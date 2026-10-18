@@ -1,3 +1,4 @@
+import FrilaDominio
 import SwiftUI
 import UIKit
 @testable import FrilaApresentacao
@@ -313,8 +314,114 @@ final class CampoMascaraTests: XCTestCase {
         XCTAssertEqual(texto, "")
     }
 
+    func testCPFEmSequenciaRapidaNaTelaDoEstabelecimento() throws {
+        try comCampoDocumento { campo in
+            let esperados = ["1", "12", "123", "123.4", "123.45", "123.456", "123.456.7", "123.456.78", "123.456.789", "123.456.789-0", "123.456.789-01"]
+            for (tecla, esperado) in zip("12345678901", esperados) {
+                try editar(campo, intervalo: NSRange(location: ((campo.text ?? "") as NSString).length, length: 0), texto: String(tecla))
+                XCTAssertEqual(campo.text, esperado)
+            }
+        }
+    }
+
+    func testCNPJEmSequenciaRapidaTrocaMascaraNoDecimoSegundoDigito() throws {
+        try comCampoDocumento { campo in
+            let esperados = ["1", "12", "123", "123.4", "123.45", "123.456", "123.456.7", "123.456.78", "123.456.780", "123.456.780-0", "123.456.780-00", "12.345.678/0001", "12.345.678/0001-9", "12.345.678/0001-99"]
+            for (tecla, esperado) in zip("12345678000199", esperados) {
+                try editar(campo, intervalo: NSRange(location: ((campo.text ?? "") as NSString).length, length: 0), texto: String(tecla))
+                XCTAssertEqual(campo.text, esperado)
+                XCTAssertEqual(try cursor(em: campo), (esperado as NSString).length)
+            }
+        }
+    }
+
+    func testColagemDeCPFEDeCNPJNaTelaDoEstabelecimento() throws {
+        try comCampoDocumento { campo in
+            for (colado, esperado) in [("12345678901", "123.456.789-01"), ("12.345.678/0001-99", "12.345.678/0001-99")] {
+                try editar(campo, intervalo: NSRange(location: 0, length: ((campo.text ?? "") as NSString).length), texto: colado)
+                XCTAssertEqual(campo.text, esperado)
+                XCTAssertEqual(try cursor(em: campo), (esperado as NSString).length)
+            }
+        }
+    }
+
+    func testApagarNoMeioDoCPFEDeCNPJNaTelaDoEstabelecimento() throws {
+        try comCampoDocumento { campo in
+            for (documento, esperado) in [("12345678901", "123.467.890-1"), ("12345678000199", "12.346.780/0019-9")] {
+                try editar(campo, intervalo: NSRange(location: 0, length: ((campo.text ?? "") as NSString).length), texto: documento)
+                try editar(campo, intervalo: NSRange(location: 5, length: 1), texto: "")
+                XCTAssertEqual(campo.text, esperado)
+                XCTAssertEqual(try cursor(em: campo), 5)
+            }
+            // Ao voltar de 12 para 11 dígitos, a mesma regra volta ao CPF.
+            try editar(campo, intervalo: NSRange(location: 0, length: ((campo.text ?? "") as NSString).length), texto: "123456789012")
+            try editar(campo, intervalo: NSRange(location: 0, length: 1), texto: "")
+            XCTAssertEqual(campo.text, "234.567.890-12")
+            XCTAssertEqual(try cursor(em: campo), 0)
+        }
+    }
+
+    func testCursorSemDigitosAntesFicaDepoisDoSeparadorInicial() throws {
+        var texto = "(61) 98888-7777"
+        let tela = UIHostingController(rootView: CampoMascara(
+            texto: Binding(get: { texto }, set: { texto = $0 }),
+            placeholder: "(61) 9 0000-0000",
+            rotuloAcessibilidade: "Telefone com WhatsApp",
+            formatar: CadastroViewModel.formatarTelefone
+        ))
+        let janela = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 100))
+        janela.rootViewController = tela
+        janela.makeKeyAndVisible()
+        tela.view.layoutIfNeeded()
+        defer { janela.isHidden = true }
+        let campo = try XCTUnwrap(campoDeTexto(em: tela.view))
+        try editar(campo, intervalo: NSRange(location: 1, length: 1), texto: "")
+        XCTAssertEqual(campo.text, "(19) 8888-7777")
+        XCTAssertEqual(texto, "(19) 8888-7777")
+        XCTAssertEqual(try cursor(em: campo), 1)
+    }
+
+    private func comCampoDocumento(_ verificar: (UITextField) throws -> Void) throws {
+        let tela = UIHostingController(rootView: TelaCadastroEstabelecimento(
+            api: ApiClienteEncaminhador(), fila: FilaDaMascara(),
+            responsavelNome: "Responsável de teste", responsavelTelefone: "(61) 99999-0000"
+        ))
+        let janela = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 874))
+        janela.rootViewController = tela
+        janela.makeKeyAndVisible()
+        tela.view.layoutIfNeeded()
+        defer { janela.isHidden = true }
+        let campo = try XCTUnwrap(camposDeTexto(em: tela.view).first { $0.placeholder == "CPF ou CNPJ" })
+        try verificar(campo)
+    }
+
+    private func editar(_ campo: UITextField, intervalo: NSRange, texto: String) throws {
+        let delegado = try XCTUnwrap(campo.delegate)
+        let aplicarPeloUIKit = try XCTUnwrap(delegado.textField?(campo, shouldChangeCharactersIn: intervalo, replacementString: texto))
+        XCTAssertFalse(aplicarPeloUIKit, "A máscara deve ser aplicada no mesmo evento, antes da próxima tecla")
+    }
+
+    private func cursor(em campo: UITextField) throws -> Int {
+        let selecao = try XCTUnwrap(campo.selectedTextRange)
+        return campo.offset(from: campo.beginningOfDocument, to: selecao.start)
+    }
+
+    private func camposDeTexto(em view: UIView) -> [UITextField] {
+        if let campo = view as? UITextField { return [campo] }
+        return view.subviews.flatMap { camposDeTexto(em: $0) }
+    }
+
     private func campoDeTexto(em view: UIView) -> UITextField? {
         if let campo = view as? UITextField { return campo }
         return view.subviews.lazy.compactMap { self.campoDeTexto(em: $0) }.first
     }
+}
+
+private actor FilaDaMascara: FilaDeAcoes {
+    func enfileirar(_ acao: AcaoPendente) {}
+    func pendentes() -> [AcaoPendente] { [] }
+    func remover(id: UUID) {}
+    func recusar(_ acao: AcaoPendente, codigo: CodigoErroAPI) async throws {}
+    func recusadas() -> [AcaoRecusada] { [] }
+    func limpar() {}
 }
