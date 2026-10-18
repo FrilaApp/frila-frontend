@@ -102,12 +102,12 @@ public struct TelaCodigo: View {
                 }
 
                 if let erro = viewModel.erro {
-                    AvisoFrila(verbatim: erro, tom: .erro)
+                    AvisoFrila(verbatim: erro, tom: .erro, anunciar: true)
                         .accessibilityIdentifier("codigo-erro")
                 }
 
                 if let info = viewModel.mensagemInformativa {
-                    AvisoFrila(verbatim: info, tom: .informativo)
+                    AvisoFrila(verbatim: info, tom: .informativo, anunciar: true)
                         .accessibilityIdentifier("codigo-info")
                 }
 

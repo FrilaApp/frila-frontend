@@ -55,7 +55,7 @@ public struct TelaEntrada: View {
                 }
 
                 if let erro = viewModel.erro {
-                    AvisoFrila(verbatim: erro, tom: .erro)
+                    AvisoFrila(verbatim: erro, tom: .erro, anunciar: true)
                         .accessibilityIdentifier("entrada-erro")
                 }
 

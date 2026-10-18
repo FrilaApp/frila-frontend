@@ -76,4 +76,26 @@ struct AnunciosDeAcessibilidadeTests {
         let rotulo = AvisoFrila.rotuloAcessibilidade(texto: "Código incorreto. Confira os números e tente novamente.", tom: .erro)
         #expect(rotulo == "Erro: Código incorreto. Confira os números e tente novamente.")
     }
+
+    @Test("AvisoFrila estático (padrão anunciar = false) NÃO produz anúncio de acessibilidade")
+    func avisoEstaticoNaoAnuncia() {
+        let estatico = AvisoFrila(verbatim: "Sua conta está suspensa.", tom: .alerta)
+        #expect(estatico.anuncioDeAcessibilidade() == nil)
+
+        var controle = ControleDoAnuncio()
+        #expect(controle.aparecer(estatico.anuncioDeAcessibilidade()) == nil)
+    }
+
+    @Test("AvisoFrila dinâmico (opt-in anunciar = true) produz anúncio com rótulo semântico e prioridade alta")
+    func avisoDinamicoAnunciaComRotuloSemantico() {
+        let dinamico = AvisoFrila(verbatim: "Código incorreto.", tom: .erro, anunciar: true)
+        let anuncio = dinamico.anuncioDeAcessibilidade()
+        #expect(anuncio != nil)
+        #expect(anuncio?.texto == "Erro: Código incorreto.")
+        #expect(anuncio?.tom == .erro)
+        #expect(anuncio?.mensagem.accessibilitySpeechAnnouncementPriority == .high)
+
+        var controle = ControleDoAnuncio()
+        #expect(controle.aparecer(anuncio) == anuncio)
+    }
 }

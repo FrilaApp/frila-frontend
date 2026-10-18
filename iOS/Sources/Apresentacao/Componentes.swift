@@ -323,15 +323,23 @@ public struct AvisoFrila: View {
     public enum Tom: Equatable, Sendable { case informativo, alerta, erro }
     private let conteudo: ConteudoDoAnuncio
     private let tom: Tom
+    private let anunciar: Bool
 
-    public init(_ texto: String.LocalizationValue, tom: Tom = .informativo) {
+    public init(_ texto: String.LocalizationValue, tom: Tom = .informativo, anunciar: Bool = false) {
         self.conteudo = .localizado(texto)
         self.tom = tom
+        self.anunciar = anunciar
     }
 
-    public init(verbatim: String, tom: Tom = .informativo) {
+    public init(verbatim: String, tom: Tom = .informativo, anunciar: Bool = false) {
         self.conteudo = .literal(verbatim)
         self.tom = tom
+        self.anunciar = anunciar
+    }
+
+    func anuncioDeAcessibilidade() -> AnuncioDeAcessibilidade? {
+        guard anunciar else { return nil }
+        return AnuncioDeAcessibilidade(texto: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom), tom: tom)
     }
 
     public var body: some View {
@@ -354,7 +362,7 @@ public struct AvisoFrila: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom)))
-        .modifier(AnunciarAoAparecer(anuncio: .init(texto: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom), tom: tom)))
+        .modifier(AnunciarAoAparecer(anuncio: anuncioDeAcessibilidade()))
         .font(.callout)
         .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
