@@ -188,6 +188,29 @@ public struct CampoFrila: View {
     }
 }
 
+public struct CaixaDoCampoFrila: ViewModifier {
+    public init() {}
+
+    public func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous)
+                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
+            )
+    }
+}
+
+public extension View {
+    func caixaDoCampoFrila() -> some View {
+        modifier(CaixaDoCampoFrila())
+    }
+}
+
+
 /// Faz o erro do campo ser lido como parte do valor ("texto, Erro: mensagem") e não como dica,
 /// que o VoiceOver pode omitir. Sem erro, o campo mantém o valor padrão do sistema.
 struct ErroLidoComoValor: ViewModifier {
