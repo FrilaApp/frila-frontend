@@ -136,7 +136,111 @@ ASC_KEY_PATH=~/caminho/AuthKey.p8 ASC_KEY_ID=... ASC_ISSUER_ID=... \
 
 ---
 
-## 6. Alertas pendentes (para configurar)
+## 6. Checagem diária do piloto (10 min)
+
+Roteiro operacional de 10 minutos para execução diária durante o piloto, cobrindo
+a saúde dos serviços no Supabase, Firebase e limites da infraestrutura.
+
+### Passo 1: Alertas emitidos nas últimas 24 h (~2 min)
+
+- **Onde ver:** Painel do Supabase > **SQL Editor** ou caixa de e-mail de alertas da equipe.
+- **SQL:**
+  ```sql
+  select codigo, ultimo_em, suprimidos
+    from privado.alerta_emitido
+   where ultimo_em > now() - interval '24 hours'
+   order by ultimo_em desc;
+  ```
+- **Ação por código:**
+  | Código de alerta | Significado | Ação recomendada |
+  |---|---|---|
+  | `job_despacho_parado` | Job `reprocessar_despacho` ausente ou inativo no pg_cron | Verificar `cron.job` e reativar o agendamento |
+  | `fila_despacho_antiga` | Mensagens retidas há mais de 15 min em `pgmq.q_despacho` | Investigar Edge Function `despachar` e conectividade |
+  | `fila_email_antiga` | Mensagens retidas há mais de 15 min em `pgmq.q_email` | Conferir worker/cron de envio e serviço SMTP |
+  | `job_cron_falhou` | Falhas nos últimos 15 min em `cron.job_run_details` | Consultar: `select * from cron.job_run_details where status = 'failed' order by end_time desc limit 10;` |
+  | `notificacao_push_falhou` | Notificações com `estado_entrega = 'falhou'` na última hora | Conferir motivo em `public.notificacao` e logs da Edge Function `enviar-push` |
+  | `fcm_configuracao_suspeita` | Erros `NOT_FOUND` no FCM (project_id ou URL incorreta) | Conferir secret `FCM_SERVICE_ACCOUNT` da Edge Function |
+  | `despacho_esperando_alem_do_teto` | Despachos retidos além do teto da RN23 (> 45 min) em vagas ativas | Investigar bloqueio de profissional ou falha no agrupamento |
+  | `falha_execucao_edge_function` | Edge Functions registraram falha técnica recente | Consultar `privado.falha_execucao` (Passo 2) |
+
+### Passo 2: Falhas de execução recentes (~1 min)
+
+- **Onde ver:** Painel do Supabase > **SQL Editor** e **Edge Functions** > Logs.
+- **SQL:**
+  ```sql
+  select origem, codigo, detalhes, criada_em
+    from privado.falha_execucao
+   where criada_em > now() - interval '24 hours'
+   order by criada_em desc
+   limit 50;
+  ```
+- **Ação:** Se houver recorrência para uma mesma origem e código, inspecionar logs da Edge Function correspondente no painel do Supabase.
+
+### Passo 3: Notificações com falha (~1 min)
+
+- **Onde ver:** Painel do Supabase > **SQL Editor**.
+- **SQL:**
+  ```sql
+  select tipo, motivo_falha, count(*) as total
+    from public.notificacao
+   where estado_entrega = 'falhou'
+     and enviada_em > now() - interval '24 hours'
+   group by tipo, motivo_falha
+   order by total desc;
+  ```
+- **Ação:** Avaliar se a causa é pontual (ex.: token APNs/FCM expirado/desinstalado) ou sistêmica (credencial inválida ou falha no provedor de push).
+
+### Passo 4: Fila do despacho (~1 min)
+
+- **Onde ver:** Painel do Supabase > **SQL Editor**.
+- **SQL:**
+  ```sql
+  select count(*) as total_mensagens,
+         now() - min(enqueued_at) as idade_mais_velha
+    from pgmq.q_despacho;
+  ```
+- **Ação:** Idade superior a 15 minutos é anormal e indica represamento (dispara alerta `fila_despacho_antiga`). Verificar se o pg_cron está ativo e se a Edge Function `despachar` está respondendo.
+
+### Passo 5: Falhas do app no Crashlytics (~2 min)
+
+- **Onde ver:** [Firebase Console](https://console.firebase.google.com/) > projeto `frila-prod` > **Crashlytics**.
+- **O que checar:**
+  - Taxa de usuários sem falhas (*crash-free users*).
+  - Novas falhas fatais (*crashes*): confirmar presença de dSYM e stack trace simbolizado.
+  - Erros não fatais agrupados pelo domínio `frila.api.<codigo>`.
+
+### Passo 6: E-mails não entregues (~1 min)
+
+- **Onde ver:** Painel do Supabase > **Authentication** > **Logs** (ou painel do provedor SMTP após migração).
+- **Estado atual:** Pendência conhecida enquanto o SMTP próprio de produção estiver em configuração (cartão SMTP).
+- **Quando o SMTP próprio estiver ativo:**
+  - Conferir rejeições (*bounces*) e falhas de entrega de OTP no painel do provedor.
+  - Conferir a fila `pgmq.q_email`:
+    ```sql
+    select count(*) as total_mensagens,
+           now() - min(enqueued_at) as idade_mais_velha
+      from pgmq.q_email;
+    ```
+
+### Passo 7: Limites do plano gratuito do Supabase (~1 min)
+
+- **Onde ver:** Painel do Supabase > projeto `frila-prod` > **Settings** > **Usage** (ou aba **Reports**).
+- **O que checar:**
+  - **Database Size:** conferir consumo em relação ao limite de 500 MB.
+  - **Monthly Active Users (MAU):** conferir consumo em relação a 50.000 usuários ativos/mês.
+  - **Edge Function Invocations:** conferir volume em relação a 500.000 chamadas/mês.
+  - **Inatividade:** confirmar tráfego recente (projetos sem atividade por 7 dias são pausados automaticamente no plano gratuito).
+
+### Passo 8: Registro do dia (~1 min)
+
+- **O que registrar:**
+  - **Sem incidente:** anotar data, hora e confirmação de que todos os itens estão verdes.
+  - **Com incidente:** registrar horário de detecção, sintoma/código, causa provável e ação de contenção/correção (ou número do cartão/issue aberta).
+- **Onde registrar:** a definir pelo Cauê (ex.: issue no repositório, canal da operação ou documento de acompanhamento).
+
+---
+
+## 7. Alertas pendentes (para configurar)
 
 O cartão #76 pede "alerta de teste chega ao time por e-mail". Opções a avaliar:
 
@@ -148,7 +252,7 @@ O cartão #76 pede "alerta de teste chega ao time por e-mail". Opções a avalia
 
 ---
 
-## 7. Checklist antes de liberar para produção
+## 8. Checklist antes de liberar para produção
 
 - [ ] Migrações do `frila-dev` aplicadas no `frila-prod` (banco não está mais vazio).
 - [ ] Auth configurado no frila-prod (templates, redirect URLs, SMTP próprio com SPF/DKIM).
@@ -164,7 +268,7 @@ O cartão #76 pede "alerta de teste chega ao time por e-mail". Opções a avalia
 
 ---
 
-## 8. Referências
+## 9. Referências
 
 - [Environments](Environments.md) — ambientes, segredos e como o valor chega ao app.
 - [ExternalSetup](ExternalSetup.md) — dependências externas e estado de cada uma.
