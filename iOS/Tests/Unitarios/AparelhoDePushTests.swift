@@ -952,7 +952,7 @@ struct AparelhoDePushTests {
         #expect(await aparelho.vinculo() == nil)
     }
 
-    @Test("Múltiplas rotações rápidas de token do FCM concorrentes com trocas de conta preservam a ordem e o token final")
+    @Test("Caracterização: múltiplas rotações rápidas de token do FCM concorrentes com trocas de conta preservam a ordem e o token final")
     func rotacoesRapidasConcorrentesComTrocaDeConta() async throws {
         let aparelho = aparelho()
         let contaA = try await conta()

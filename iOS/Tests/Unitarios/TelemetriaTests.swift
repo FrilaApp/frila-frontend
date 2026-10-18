@@ -933,6 +933,12 @@ struct TelemetriaTests {
         #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: ErroDaApi(codigo: .contaSuspensa)))
     }
 
+    @Test("Status HTTP transitórios (408 e 5xx) mapeados pela API preservam o evento na fila analítica de telemetria", arguments: [408, 500, 502, 503, 504])
+    func statusHttpTransitoriosPreservamTelemetria(statusCode: Int) {
+        let erroMapeado = DecodificadorErroAPI.mapear(statusCode: statusCode, dados: Data("Erro do gateway".utf8))
+        #expect(RegistradorDeTelemetria.deveGuardar(depoisDe: erroMapeado))
+    }
+
     @Test("Reenvio expurga evento recusado definitivamente com 422 e não bloqueia a fila")
     func reenvioExpurgaRecusa422ENaoBloqueiaFila() async throws {
         let (api, fila, registrador) = try await cenarioOffline()

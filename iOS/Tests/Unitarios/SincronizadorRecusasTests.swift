@@ -54,13 +54,19 @@ private final class ApiSaidaRecusada: ApiClienteEncaminhador, @unchecked Sendabl
 }
 
 private final class ApiCancelamentoRecusado: ApiClienteEncaminhador, @unchecked Sendable {
-    let codigo: CodigoErroAPI
-    init(codigo: CodigoErroAPI) { self.codigo = codigo; super.init() }
+    let erro: any Error
+    private let trava = NSLock()
+    private var envios = 0
+    var total: Int { trava.withLock { envios } }
+    init(erro: any Error) { self.erro = erro; super.init() }
+    convenience init(codigo: CodigoErroAPI) { self.init(erro: ErroDaApi(codigo: codigo)) }
     override func cancelarPosicao(id: UUID, motivo: String) async throws -> ResultadoCancelamento {
-        throw ErroDaApi(codigo: codigo)
+        trava.withLock { envios += 1 }
+        throw erro
     }
     override func cancelarVaga(id: UUID, motivo: String) async throws -> VagaCancelada {
-        throw ErroDaApi(codigo: codigo)
+        trava.withLock { envios += 1 }
+        throw erro
     }
 }
 
@@ -288,6 +294,21 @@ struct SincronizadorRecusasTests {
         let erro400 = DecodificadorErroAPI.mapear(statusCode: 400, dados: Data("Bad Request".utf8))
         let api = ApiPresencaRecusada(erro: erro400)
         let acao = AcaoPendente(tipo: tipo, turnoID: UUID(), instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID())
+        try await fila.enfileirar(acao)
+        let sincronizador = SincronizadorAcoes(fila: fila, api: api)
+        await sincronizador.sincronizar()
+        #expect(try await fila.pendentes() == [acao])
+        #expect(try await fila.recusadas().isEmpty)
+        #expect(api.total == 1)
+    }
+
+    @Test("HTTP 400 sem envelope do contrato é tratado como transitório para cancelamento e permanece na fila", arguments: [TipoAcaoPendente.cancelamentoPosicao, .cancelamentoVaga])
+    func badRequestSemEnvelopePermaneceEmPendentesCancelamento(tipo: TipoAcaoPendente) async throws {
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        let erro400 = DecodificadorErroAPI.mapear(statusCode: 400, dados: Data("Bad Request".utf8))
+        let api = ApiCancelamentoRecusado(erro: erro400)
+        let conta = try await api.minhaConta()
+        let acao = AcaoPendente(tipo: tipo, turnoID: UUID(), contaID: conta.id, instanteDoToque: Date(timeIntervalSince1970: 1_800_000_000), chave: UUID(), alvoID: UUID(), motivo: "Imprevisto")
         try await fila.enfileirar(acao)
         let sincronizador = SincronizadorAcoes(fila: fila, api: api)
         await sincronizador.sincronizar()
