@@ -31,10 +31,14 @@ public enum TextosDoSuporte {
     public static let promptRelato = String(localized: "Descreva detalhes do que está acontecendo…", bundle: bundleApresentacao)
     public static let dicaRelato = String(localized: "Os dados de identificação do turno acima serão incluídos no e-mail automaticamente.", bundle: bundleApresentacao)
     public static let caracteres = String(localized: "caracteres", bundle: bundleApresentacao)
+    public static func quantidadeCaracteres(_ quantidade: Int) -> String {
+        String(localized: "\(quantidade) caracteres", bundle: bundleApresentacao)
+    }
 
     public static let secaoAcoes = String(localized: "Envio do e-mail", bundle: bundleApresentacao)
     public static let botaoEnviarEmail = String(localized: "Abrir e-mail de suporte", bundle: bundleApresentacao)
     public static let dicaEnviarEmail = String(localized: "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com", bundle: bundleApresentacao)
+    public static let dicaRelatoObrigatorio = String(localized: "Preencha a descrição do ocorrido para abrir o e-mail de suporte.", bundle: bundleApresentacao)
     public static let botaoCopiarDados = String(localized: "Copiar dados do e-mail", bundle: bundleApresentacao)
     public static let dicaCopiarDados = String(localized: "Copia o assunto e o corpo formatados para colar no seu aplicativo de e-mail", bundle: bundleApresentacao)
     public static let dadosCopiados = String(localized: "Dados copiados para a área de transferência.", bundle: bundleApresentacao)

@@ -153,6 +153,8 @@ public struct TelaMeuTurno: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: FrilaEspaco.minimo) {
                     enderecoEMapa
+                    Text(verbatim: "·")
+                        .accessibilityHidden(true)
                     quemRecebe
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -189,7 +191,7 @@ public struct TelaMeuTurno: View {
     }
 
     private var quemRecebe: some View {
-        Text(verbatim: "· \(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
+        Text(verbatim: "\(TextosDoProfissional.Turnos.quemRecebe): \(viewModel.quemRecebeExibicao)")
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("quem-recebe-no-turno")
     }

@@ -270,7 +270,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let stepper = app.steppers["posicoes-vaga-stepper"]
         rolarAte(stepper, em: app)
         XCTAssertTrue(stepper.waitForExistence(timeout: 5))
-        XCTAssertEqual(stepper.label, "Posições")
+        XCTAssertEqual(stepper.label, "Ajustar posições")
         XCTAssertEqual(stepper.value as? String, "1")
         // Incrementa posições de 1 para 2 via stepper
         stepper.buttons.element(boundBy: 1).tap()

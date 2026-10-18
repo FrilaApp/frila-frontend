@@ -609,6 +609,15 @@ struct AutenticacaoTests {
         #expect(CadastroViewModel.formatarDataNascimento("01011990") == "01/01/1990")
     }
 
+    @Test("CadastroViewModel: digitação com barras manuais não duplica barras nem corrompe a máscara")
+    func mascaraDataNascimentoDigitarComBarras() {
+        #expect(CadastroViewModel.formatarDataNascimento("17//", textoAnterior: "17/") == "17/")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10//", textoAnterior: "17/10/") == "17/10/")
+        #expect(CadastroViewModel.formatarDataNascimento("17/", textoAnterior: "17") == "17/")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10/", textoAnterior: "17/10") == "17/10/")
+        #expect(CadastroViewModel.formatarDataNascimento("17/10/2000/", textoAnterior: "17/10/2000") == "17/10/2000")
+    }
+
     @Test("CadastroViewModel: máscara de telefone formata 10 e 11 dígitos no padrão brasileiro")
     func mascaraTelefoneFormatacao() {
         #expect(CadastroViewModel.formatarTelefone("6") == "(6")

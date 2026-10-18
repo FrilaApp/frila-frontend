@@ -154,6 +154,7 @@ private struct FolhaDeDenuncia: View {
                             if model.relatoValido {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(FrilaCor.sucesso)
+                                    .accessibilityHidden(true)
                                     .accessibilityIdentifier("icone-relato-valido-denuncia")
                             }
                             Text(verbatim: TextosDaSeguranca.relatoMinimo)

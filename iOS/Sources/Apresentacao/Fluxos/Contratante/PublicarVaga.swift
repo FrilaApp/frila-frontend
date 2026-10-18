@@ -20,6 +20,7 @@ private enum TextosPublicarVaga {
     static let formatoValor = String(localized: "R$ %d,%02d", bundle: bundlePublicarVaga)
     static let valorAjuda = String(localized: "O profissional recebe o valor integral", bundle: bundlePublicarVaga)
     static let posicoes = String(localized: "Posições", bundle: bundlePublicarVaga)
+    static let ajustarPosicoes = String(localized: "Ajustar posições", bundle: bundlePublicarVaga)
     static let posicoesExemplo = String(localized: "1", bundle: bundlePublicarVaga)
     static let totalDaVaga = String(localized: "Total da vaga: %@", bundle: bundlePublicarVaga)
     static let inclusos = String(localized: "O que está incluso", bundle: bundlePublicarVaga)
@@ -791,7 +792,7 @@ public struct TelaPublicarVaga: View {
                     onDecrement: { model.decrementarPosicoes() }
                 )
                 .labelsHidden()
-                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.posicoes))
+                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.ajustarPosicoes))
                 .accessibilityValue(Text(verbatim: model.posicoesTexto))
                 .accessibilityIdentifier("posicoes-vaga-stepper")
             }
