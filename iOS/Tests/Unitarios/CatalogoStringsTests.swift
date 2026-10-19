@@ -514,4 +514,49 @@ struct CatalogoStringsTests {
         }
         #expect(faltantes.isEmpty, "chaves de v1.1 fora do catálogo: \(faltantes)")
     }
+
+    @Test("Chaves dos novos componentes do Lote 1 (SearchCapsule e ProposalBar) estão cadastradas no catálogo pt-BR")
+    func componentesLote1EstaoNoCatalogo() throws {
+        let (chaves, _) = try Self.carregarCatalogo()
+
+        let chavesLote1 = [
+            "Valoração Bruta do Contrato:",
+            "Taxa de Serviço da Plataforma (5%):",
+            "Repasse Líquido Estimado:",
+            "CAPITAL EST.",
+            "Enviar Proposta",
+            "/h",
+            "Est. ",
+            "Est. %@",
+            "Detalhamento de taxas visível",
+            "Detalhamento de taxas oculto",
+            "Toque para alternar o detalhamento de taxas da plataforma",
+            "Líq. %@/h",
+            "Líquido %@",
+            "Envia proposta a %@",
+            "ÁREA",
+            "CONTRATO",
+            "ORÇAMENTO",
+            "⌘K",
+            "Filtro de Área",
+            "Filtro de Contrato",
+            "Filtro de Orçamento",
+            "Filtro de Área: %@",
+            "Filtro de Contrato: %@",
+            "Filtro de Orçamento: %@",
+            "Buscar ou pressionar Command K",
+            "%@, %@",
+            "Toque para filtrar por especialidade e competências",
+            "Toque para filtrar por duração e regime de trabalho",
+            "Toque para abrir o histograma de remuneração",
+        ]
+
+        var faltantes: [String] = []
+        for chave in chavesLote1 {
+            if !chaves.contains(chave) {
+                faltantes.append(chave)
+            }
+        }
+        #expect(faltantes.isEmpty, "chaves dos componentes do Lote 1 fora do catálogo: \(faltantes)")
+    }
 }
