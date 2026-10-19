@@ -980,6 +980,7 @@ struct CampoPosicoesVaga: UIViewRepresentable {
         campo.font = .preferredFont(forTextStyle: .body)
         campo.adjustsFontForContentSizeCategory = true
         campo.textColor = FrilaCor.textoUIKit
+        campo.text = texto
         campo.placeholder = TextosPublicarVaga.posicoesExemplo
         campo.accessibilityLabel = TextosPublicarVaga.posicoes
         campo.accessibilityIdentifier = "posicoes-vaga-campo"

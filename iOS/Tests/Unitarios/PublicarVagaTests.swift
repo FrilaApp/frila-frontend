@@ -503,6 +503,7 @@ struct PublicarVagaTests {
         vm.posicoesTexto = "200"
         vm.incrementarPosicoes()
         #expect(vm.posicoesTexto == "200")
+        #expect(vm.valorTotalCentavos == 15000 * 200)
         vm.decrementarPosicoes()
         #expect(vm.posicoesTexto == "199")
 
