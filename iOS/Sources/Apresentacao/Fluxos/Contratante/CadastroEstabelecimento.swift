@@ -287,11 +287,11 @@ public struct TelaCadastroEstabelecimento: View {
     private let api: any ApiCliente
     private let responsavelNome: String
     private let responsavelTelefone: String
-    private let fila: any FilaDeAcoes
+    private let fila: (any FilaDeAcoes)?
     private let sair: () -> Void
     private let aoPublicarPrimeiraVaga: () -> Void
 
-    public init(api: any ApiCliente, fila: any FilaDeAcoes, responsavelNome: String, responsavelTelefone: String, sair: @escaping () -> Void = {}, aoPublicarPrimeiraVaga: @escaping () -> Void = {}) {
+    public init(api: any ApiCliente, fila: (any FilaDeAcoes)? = nil, responsavelNome: String, responsavelTelefone: String, sair: @escaping () -> Void = {}, aoPublicarPrimeiraVaga: @escaping () -> Void = {}) {
         let model = CadastroEstabelecimentoViewModel(api: api)
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST") {
@@ -313,7 +313,11 @@ public struct TelaCadastroEstabelecimento: View {
 
     public var body: some View {
         if model.concluido, let estabelecimento = model.estabelecimentoCriado {
-            TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone, sair: sair, aoPublicar: aoPublicarPrimeiraVaga)
+            if let fila {
+                TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone, sair: sair, aoPublicar: aoPublicarPrimeiraVaga)
+            } else {
+                Color.clear.task { aoPublicarPrimeiraVaga() }
+            }
         } else {
             NavigationStack { formulario }
         }
