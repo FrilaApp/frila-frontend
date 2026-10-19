@@ -91,6 +91,7 @@ enum ContratoAPI {
         let telefone: String
         let nascimento: String
         let termosVersao: String
+        let sinalIdade: SinalIdade?
 
         init(_ cadastro: CadastroConta) {
             perfil = cadastro.perfil
@@ -98,11 +99,13 @@ enum ContratoAPI {
             telefone = cadastro.telefone
             nascimento = cadastro.nascimento.contrato
             termosVersao = cadastro.versaoTermos
+            sinalIdade = cadastro.sinalIdade
         }
 
         enum CodingKeys: String, CodingKey {
             case perfil, nome, telefone, nascimento
             case termosVersao = "termos_versao"
+            case sinalIdade = "sinal_idade"
         }
     }
 

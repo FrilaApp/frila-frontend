@@ -175,6 +175,34 @@ struct ContratoDoClienteSupabaseTests {
         #expect(conta.estado == .ativa)
     }
 
+    @Test("criar_conta envia sinal_idade no corpo da RPC para cada valor do contrato e omite sem sinal")
+    func criarContaComSinalIdade() async throws {
+        let valores: [(SinalIdade, String)] = [
+            (.dezoitoOuMais, "dezoito_ou_mais"),
+            (.recusou, "recusou"),
+            (.indisponivel, "indisponivel"),
+        ]
+
+        for (sinal, esperado) in valores {
+            try rpc("criar_conta", "usuario")
+            _ = try await cliente().criarConta(CadastroConta(
+                nome: "Ana Cunha", telefone: "+5561988887777", nascimento: try DataCivil(ano: 1998, mes: 4, dia: 12),
+                perfil: .profissional, versaoTermos: "2026-09-22", sinalIdade: sinal
+            ))
+            let corpo = try corpoEnviado(para: "/rest/v1/rpc/criar_conta")
+            #expect(corpo["sinal_idade"] as? String == esperado)
+        }
+
+        // Sem sinal: a chave sinal_idade não está presente no corpo enviado
+        try rpc("criar_conta", "usuario")
+        _ = try await cliente().criarConta(CadastroConta(
+            nome: "Ana Cunha", telefone: "+5561988887777", nascimento: try DataCivil(ano: 1998, mes: 4, dia: 12),
+            perfil: .profissional, versaoTermos: "2026-09-22"
+        ))
+        let corpoSemSinal = try corpoEnviado(para: "/rest/v1/rpc/criar_conta")
+        #expect(corpoSemSinal["sinal_idade"] == nil)
+    }
+
     @Test("criar_perfil_profissional manda funções, ponto_base e janelas no formato do contrato")
     func criarPerfilProfissional() async throws {
         try rpc("criar_perfil_profissional", "perfil-profissional")

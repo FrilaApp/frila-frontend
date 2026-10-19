@@ -263,7 +263,7 @@ struct AutenticacaoTests {
 
     @Test("CadastroViewModel com Declared Age Range abaixo de 18 recusa no cliente e não chama a API")
     func cadastroComDeclaredAgeRangeAbaixoDe18RecusaENaoChamaAPI() async throws {
-        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let api = ApiClienteEspiaoCadastro()
         let verificador = VerificadorDeIdadeSimulado(resultado: .abaixoDe18)
         let vm = CadastroViewModel(api: api, email: "jovem@frila.app", verificadorDeIdade: verificador)
 
@@ -276,15 +276,16 @@ struct AutenticacaoTests {
         #expect(destino == nil)
         #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
         #expect(verificador.chamadasAVerificar == 1)
-        #expect(await api.chamadasACriarConta == 0)
+        #expect(api.chamadasACriarConta == 0)
+        #expect(api.ultimoCadastroRecebido == nil)
         await #expect(throws: ErroDaApi.self) {
             _ = try await api.minhaConta()
         }
     }
 
-    @Test("CadastroViewModel com Declared Age Range 18 ou mais segue e chama a API")
+    @Test("CadastroViewModel com Declared Age Range 18 ou mais segue e chama a API com sinalIdade .dezoitoOuMais")
     func cadastroComDeclaredAgeRangeDezoitoOuMaisSegueEChamaAPI() async throws {
-        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let api = ApiClienteEspiaoCadastro()
         let verificador = VerificadorDeIdadeSimulado(resultado: .dezoitoOuMais)
         let vm = CadastroViewModel(api: api, email: "adulto@frila.app", verificadorDeIdade: verificador)
 
@@ -297,12 +298,13 @@ struct AutenticacaoTests {
         #expect(destino == .funcoesEHorarios)
         #expect(vm.erro == nil)
         #expect(verificador.chamadasAVerificar == 1)
-        #expect(await api.chamadasACriarConta == 1)
+        #expect(api.chamadasACriarConta == 1)
+        #expect(api.ultimoCadastroRecebido?.sinalIdade == .dezoitoOuMais)
     }
 
-    @Test("CadastroViewModel com Declared Age Range recusado pela pessoa segue só com a data e chama a API")
+    @Test("CadastroViewModel com Declared Age Range recusado pela pessoa segue só com a data e chama a API com sinalIdade .recusou")
     func cadastroComDeclaredAgeRangeRecusadoSegueEChamaAPI() async throws {
-        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let api = ApiClienteEspiaoCadastro()
         let verificador = VerificadorDeIdadeSimulado(resultado: .recusou)
         let vm = CadastroViewModel(api: api, email: "recusou@frila.app", verificadorDeIdade: verificador)
 
@@ -315,12 +317,13 @@ struct AutenticacaoTests {
         #expect(destino == .funcoesEHorarios)
         #expect(vm.erro == nil)
         #expect(verificador.chamadasAVerificar == 1)
-        #expect(await api.chamadasACriarConta == 1)
+        #expect(api.chamadasACriarConta == 1)
+        #expect(api.ultimoCadastroRecebido?.sinalIdade == .recusou)
     }
 
-    @Test("CadastroViewModel com Declared Age Range indisponível (erro ou iOS antigo) segue só com a data e chama a API")
+    @Test("CadastroViewModel com Declared Age Range indisponível (erro ou iOS antigo) segue só com a data e chama a API com sinalIdade .indisponivel")
     func cadastroComDeclaredAgeRangeIndisponivelSegueEChamaAPI() async throws {
-        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let api = ApiClienteEspiaoCadastro()
         let verificador = VerificadorDeIdadeSimulado(resultado: .indisponivel)
         let vm = CadastroViewModel(api: api, email: "legado@frila.app", verificadorDeIdade: verificador)
 
@@ -333,7 +336,8 @@ struct AutenticacaoTests {
         #expect(destino == .funcoesEHorarios)
         #expect(vm.erro == nil)
         #expect(verificador.chamadasAVerificar == 1)
-        #expect(await api.chamadasACriarConta == 1)
+        #expect(api.chamadasACriarConta == 1)
+        #expect(api.ultimoCadastroRecebido?.sinalIdade == .indisponivel)
     }
 
     @Test("VerificadorDeIdadeDoSistema interpreta limites da faixa etária com corte em 18")
