@@ -87,6 +87,15 @@ struct FluxoDoContratanteTests {
         #expect(model.estado == .cadastro(try await api.minhaConta()))
     }
 
+    @Test("Fluxo do contratante e cadastro de estabelecimento aceitam fila nula")
+    func primeiroAcessoComFilaNula() throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso)
+        let telaCadastro = TelaCadastroEstabelecimento(api: api, fila: nil, responsavelNome: "Responsável", responsavelTelefone: "(61) 98888-7777")
+        _ = telaCadastro
+        let fluxo = FluxoDoContratante(api: api, fila: nil, sair: {})
+        _ = fluxo
+    }
+
     private static func conta() throws -> Conta {
         Conta(id: UUID(), perfil: .contratante, nome: "Responsável do Café", telefone: "61988887777",
               email: "contratante@frila.app", nascimento: try DataCivil(ano: 1995, mes: 5, dia: 15), estado: .ativa)

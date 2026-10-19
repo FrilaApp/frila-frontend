@@ -162,13 +162,9 @@ public struct FluxoDoContratante: View {
         case .carregando:
             EstadoCarregando()
         case let .cadastro(conta):
-            if let fila {
-                TelaCadastroEstabelecimento(api: api, fila: fila, responsavelNome: conta.nome,
-                                           responsavelTelefone: conta.telefone, sair: sair,
-                                           aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
-            } else {
-                erro(MensagemDoErroAPI.texto(ErroDaApi(codigo: .desconhecido)))
-            }
+            TelaCadastroEstabelecimento(api: api, fila: fila, responsavelNome: conta.nome,
+                                       responsavelTelefone: conta.telefone, sair: sair,
+                                       aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
         case let .vagas(estabelecimento):
             DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, sair: sair)
         case let .erro(mensagem):
