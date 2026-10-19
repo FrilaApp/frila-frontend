@@ -280,8 +280,10 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela - 16, "DatePicker Fim extrapolou a margem direita: \(dpFim.frame.maxX) > \(larguraTela - 16)")
     }
 
-    private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
-        let janela = app.windows.firstMatch.frame
+    private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 12) {
+        if elemento.isHittable { return }
+        let janela = app.windows.firstMatch
+        let quadroJanela = janela.frame
         let margemSuperior: CGFloat = 120
         let margemInferior: CGFloat = 60
 
@@ -293,7 +295,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             let quadro = elemento.frame
             let direcao = direcaoParaTrazerParaATela(
                 quadro: quadro,
-                alturaJanela: janela.height,
+                alturaJanela: quadroJanela.height,
                 margemSuperior: margemSuperior,
                 margemInferior: margemInferior,
                 isHittable: elemento.isHittable
@@ -304,7 +306,12 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             case .rolarParaBaixo:
                 app.swipeDown()
             case .rolarParaCima:
-                app.swipeUp()
+                // Em AX5 os DatePickers usam .wheel (largura 320 pt), que intercepta toques verticais no centro
+                // da tela (dx: 0.5) girando a roda em vez de rolar a ScrollView. Rolar pela margem direita (dx: 0.90)
+                // evita o seletor em roda e atinge diretamente a ScrollView.
+                let inicio = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: 0.85))
+                let fim = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: 0.15))
+                inicio.press(forDuration: 0.01, thenDragTo: fim)
             }
         }
     }

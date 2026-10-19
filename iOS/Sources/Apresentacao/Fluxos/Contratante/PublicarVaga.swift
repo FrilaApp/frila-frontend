@@ -765,6 +765,7 @@ public struct TelaPublicarVaga: View {
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(Text(verbatim: TextosPublicarVaga.titulo))
+        .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(model.enviando || model.restaurandoPublicacao)
         .accessibilityIdentifier("publicar-vaga-formulario")
     }
