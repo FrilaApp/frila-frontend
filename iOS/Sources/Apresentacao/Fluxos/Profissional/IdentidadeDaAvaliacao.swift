@@ -21,7 +21,7 @@ public enum IdentidadeDaAvaliacao {
                 if let anterior = try await cache?.sessao() {
                     precisaPurgar = (anterior.usuarioID != sessao.usuarioID)
                 } else {
-                    precisaPurgar = (await cache?.possuiDadosLocais() == true)
+                    precisaPurgar = false
                 }
             } catch {
                 precisaPurgar = true

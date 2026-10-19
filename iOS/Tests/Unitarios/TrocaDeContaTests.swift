@@ -191,15 +191,15 @@ struct TrocaDeContaTests {
         #expect(contatoRestante == nil, "Contato da conta anterior deve ter sido purgado")
     }
 
-    @Test("Sessão anterior nula mas com resíduos no cache aciona expurgo preventivo")
-    func sessaoNulaComDadosResiduaisAcionaExpurgoPreventivo() async throws {
+    @Test("Sessão anterior nula preserva dados locais (sessão inicial / fila offline)")
+    func sessaoAnteriorNulaPreservaDadosLocais() async throws {
         let local = try criarArmazenamentoLocal()
         let instante = Date(timeIntervalSince1970: 1_800_000_000)
 
-        // Resíduos órfãos (ex: saída incompleta onde apenas a sessão foi apagada, restando turnos/fila)
-        let turnoOrfao = try criarTurno(id: UUID(), instante: instante, telefone: "+5561999990001")
-        try await local.salvar(turnos: [turnoOrfao], em: instante)
-        let acaoPendente = AcaoPendente(tipo: .checkin, turnoID: turnoOrfao.id, instanteDoToque: instante, chave: UUID())
+        // Dados locais presentes antes da obtenção da primeira identidade (ex: ação enfileirada offline)
+        let turnoInicial = try criarTurno(id: UUID(), instante: instante, telefone: "+5561999990001")
+        try await local.salvar(turnos: [turnoInicial], em: instante)
+        let acaoPendente = AcaoPendente(tipo: .checkin, turnoID: turnoInicial.id, instanteDoToque: instante, chave: UUID())
         try await local.enfileirar(acaoPendente)
 
         let contaB_ID = UUID()
@@ -213,16 +213,16 @@ struct TrocaDeContaTests {
         ])
 
         #expect(try await local.sessao() == nil, "Sessão deve ser nil previamente")
-        #expect(try await !local.turnosValidos(em: instante).isEmpty, "Deve conter resíduos")
+        #expect(try await !local.turnosValidos(em: instante).isEmpty, "Deve conter dados locais")
         #expect(try await !local.pendentes().isEmpty, "Deve conter fila pendente")
 
         let contaIdentificada = try await IdentidadeDaAvaliacao.obter(api: api, cache: local)
         #expect(contaIdentificada == contaB_ID)
 
         let turnosApos = try await local.turnosValidos(em: instante)
-        #expect(turnosApos.isEmpty, "Turnos órfãos devem ter sido purgados")
+        #expect(!turnosApos.isEmpty, "Turnos iniciais não devem ser purgados se não havia sessão de outro usuário")
         let pendentesApos = try await local.pendentes()
-        #expect(pendentesApos.isEmpty, "Ações órfãs devem ter sido purgadas")
+        #expect(!pendentesApos.isEmpty, "Fila inicial não deve ser purgada se não havia sessão de outro usuário")
     }
 
     @Test("Mesma conta reentrando preserva fila offline e cache intactos")
