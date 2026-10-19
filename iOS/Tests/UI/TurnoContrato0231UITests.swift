@@ -5,10 +5,10 @@ final class TurnoContrato0231UITests: XCTestCase {
     private let turnoID = "22000000-0000-0000-0000-000000000001"
 
     private func abrirTurno(_ app: XCUIApplication) {
-        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer))
         tocar(app.tabBars.buttons["Meus turnos"])
         let cartao = app.buttons["meu-turno-\(turnoID)"]
-        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        XCTAssertTrue(cartao.waitForExistence(timeout: Espera.aparecer))
         tocar(cartao)
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
     }
@@ -17,32 +17,45 @@ final class TurnoContrato0231UITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado", "-FRILA_CACHE_VAZIO_UI_TEST", "-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"]
         app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: Espera.aparecer))
         abrirTurno(app)
         let aviso = app.descendants(matching: .any)["aviso-acao-recusada-checkin"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(aviso.label.contains("O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido."))
         XCTAssertFalse(app.descendants(matching: .any)["presenca-do-turno"].exists)
         XCTAssertFalse(app.buttons["fazer-checkin"].exists)
-        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
-        tocar(app.buttons["meu-turno-\(turnoID)"])
-        XCTAssertTrue(aviso.waitForExistence(timeout: 10), "a recusa permanece registrada ao reabrir")
+        let botaoVoltar = app.navigationBars["Meu turno"].buttons.firstMatch
+        XCTAssertTrue(botaoVoltar.waitForExistence(timeout: Espera.aparecer))
+        tocar(botaoVoltar)
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: Espera.aparecer))
+        tocar(cartao)
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer), "a recusa permanece registrada ao reabrir")
     }
 
     func testFecharAvisoDeRecusaNaoVoltaAoReabrirTurnoCancelado() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "turno-cancelado", "-FRILA_CACHE_VAZIO_UI_TEST", "-FRILA_CHECKIN_CANCELADO_NA_FILA_UI_TEST"]
         app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: Espera.aparecer))
         abrirTurno(app)
         let aviso = app.descendants(matching: .any)["aviso-acao-recusada-checkin"].firstMatch
-        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
         let fechar = app.buttons["fechar-aviso-acao-recusada-checkin"]
-        XCTAssertTrue(fechar.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(fechar.waitForExistence(timeout: Espera.aparecer), "O botão fechar do aviso de recusa deve existir")
+        if !fechar.isHittable {
+            app.swipeUp()
+        }
         tocar(fechar)
         // 10 s, como as outras esperas do aviso: no runner da CI uma só consulta à árvore de
         // acessibilidade levou 4,2 s (execução 37504092755), e a espera de 5 s estourou na primeira.
-        XCTAssertTrue(aviso.waitForNonExistence(timeout: 10), "o aviso não fechou depois do toque em fechar")
-        tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
-        tocar(app.buttons["meu-turno-\(turnoID)"])
+        XCTAssertTrue(aviso.waitForNonExistence(timeout: Espera.aparecer), "o aviso não fechou depois do toque em fechar")
+        let botaoVoltar = app.navigationBars["Meu turno"].buttons.firstMatch
+        XCTAssertTrue(botaoVoltar.waitForExistence(timeout: Espera.aparecer))
+        tocar(botaoVoltar)
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: Espera.aparecer))
+        tocar(cartao)
         XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(aviso.exists, "o reconhecimento persiste ao reabrir a tela")
         XCTAssertFalse(app.buttons["fazer-checkin"].exists)
