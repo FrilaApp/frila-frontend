@@ -217,7 +217,7 @@ public struct FrilaProposalBar: View {
             let textoTaxaLiquida = "Líq. \(formatarMoeda(netRate))/h"
             let rotuloA11yLiquido = "Líquido \(FrilaMoney.spoken(reais: netRate, por: "hora"))"
             Button(action: {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                withAnimation(FrilaMovimento.animacao(.spring(response: 0.28, dampingFraction: 0.75), reduzir: envReduceMotion)) {
                     showingFeeDetails.toggle()
                 }
             }) {
