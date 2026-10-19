@@ -67,17 +67,17 @@ public struct FrilaSearchCapsule: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private let rotuloArea = "ÁREA"
-    private let rotuloContrato = "CONTRATO"
-    private let rotuloOrcamento = "ORÇAMENTO"
-    private let rotuloKeycap = "⌘K"
-    private let a11yArea = "Filtro de Área"
-    private let a11yContrato = "Filtro de Contrato"
-    private let a11yOrcamento = "Filtro de Orçamento"
-    private let a11yBuscar = "Buscar ou pressionar Command K"
-    private let hintArea = "Toque para filtrar por especialidade e competências"
-    private let hintContrato = "Toque para filtrar por duração e regime de trabalho"
-    private let hintOrcamento = "Toque para abrir o histograma de remuneração"
+    private let rotuloArea = String(localized: "ÁREA", bundle: bundleApresentacao)
+    private let rotuloContrato = String(localized: "CONTRATO", bundle: bundleApresentacao)
+    private let rotuloOrcamento = String(localized: "ORÇAMENTO", bundle: bundleApresentacao)
+    private let rotuloKeycap = String(localized: "⌘K", bundle: bundleApresentacao)
+    private let a11yArea = String(localized: "Filtro de Área", bundle: bundleApresentacao)
+    private let a11yContrato = String(localized: "Filtro de Contrato", bundle: bundleApresentacao)
+    private let a11yOrcamento = String(localized: "Filtro de Orçamento", bundle: bundleApresentacao)
+    private let a11yBuscar = String(localized: "Buscar ou pressionar Command K", bundle: bundleApresentacao)
+    private let hintArea = String(localized: "Toque para filtrar por especialidade e competências", bundle: bundleApresentacao)
+    private let hintContrato = String(localized: "Toque para filtrar por duração e regime de trabalho", bundle: bundleApresentacao)
+    private let hintOrcamento = String(localized: "Toque para abrir o histograma de remuneração", bundle: bundleApresentacao)
 
     public init(
         isDark: Bool = false,

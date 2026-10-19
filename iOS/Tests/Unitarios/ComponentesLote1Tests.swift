@@ -1,4 +1,4 @@
-import FrilaApresentacao
+@testable import FrilaApresentacao
 import FrilaDominio
 import SwiftUI
 import Testing
@@ -81,17 +81,19 @@ struct ComponentesLote1Tests {
         #expect(barra.hourlyRate == 160)
         #expect(barra.totalEstimate == 25600)
 
-        // Taxa líquida: 160 * 0.95 = 152
-        let taxaLiquidaEsperada = Int(Double(160) * 0.95)
-        #expect(taxaLiquidaEsperada == 152)
+        // Valida diretamente a struct CalculoDeRetencao e propriedades do componente (sem placebo)
+        #expect(barra.calculoDeRetencao.taxaLiquidaHora == 152)
+        #expect(barra.calculoDeRetencao.totalLiquido == 24320)
+        #expect(barra.calculoDeRetencao.taxaPlataforma == 1280)
 
-        // Total líquido: 25600 * 0.95 = 24320
-        let totalLiquidoEsperado = Int(Double(25600) * 0.95)
-        #expect(totalLiquidoEsperado == 24320)
+        #expect(barra.netRate == 152)
+        #expect(barra.netTotal == 24320)
+        #expect(barra.platformFee == 1280)
 
-        // Taxa da plataforma: 25600 - 24320 = 1280
-        let taxaPlataformaEsperada = 25600 - totalLiquidoEsperado
-        #expect(taxaPlataformaEsperada == 1280)
+        let calculoOutro = FrilaProposalBar.CalculoDeRetencao(valorHora: 200, totalEstimado: 10000)
+        #expect(calculoOutro.taxaLiquidaHora == 190)
+        #expect(calculoOutro.totalLiquido == 9500)
+        #expect(calculoOutro.taxaPlataforma == 500)
     }
 
     @Test("ProposalBar dispara ação de envio onSubmit")

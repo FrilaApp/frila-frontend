@@ -8186,6 +8186,296 @@
           }
         }
       }
+    },
+    "Valoração Bruta do Contrato:": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valoração Bruta do Contrato:"
+          }
+        }
+      }
+    },
+    "Taxa de Serviço da Plataforma (5%):": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taxa de Serviço da Plataforma (5%):"
+          }
+        }
+      }
+    },
+    "Repasse Líquido Estimado:": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repasse Líquido Estimado:"
+          }
+        }
+      }
+    },
+    "CAPITAL EST.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CAPITAL EST."
+          }
+        }
+      }
+    },
+    "Enviar Proposta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar Proposta"
+          }
+        }
+      }
+    },
+    "/h": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "/h"
+          }
+        }
+      }
+    },
+    "Est. ": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Est. "
+          }
+        }
+      }
+    },
+    "Est. %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Est. %@"
+          }
+        }
+      }
+    },
+    "Detalhamento de taxas visível": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalhamento de taxas visível"
+          }
+        }
+      }
+    },
+    "Detalhamento de taxas oculto": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalhamento de taxas oculto"
+          }
+        }
+      }
+    },
+    "Toque para alternar o detalhamento de taxas da plataforma": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para alternar o detalhamento de taxas da plataforma"
+          }
+        }
+      }
+    },
+    "Líq. %@/h": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Líq. %@/h"
+          }
+        }
+      }
+    },
+    "Líquido %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Líquido %@"
+          }
+        }
+      }
+    },
+    "Envia proposta a %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envia proposta a %@"
+          }
+        }
+      }
+    },
+    "ÁREA": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ÁREA"
+          }
+        }
+      }
+    },
+    "CONTRATO": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CONTRATO"
+          }
+        }
+      }
+    },
+    "ORÇAMENTO": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ORÇAMENTO"
+          }
+        }
+      }
+    },
+    "⌘K": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘K"
+          }
+        }
+      }
+    },
+    "Filtro de Área": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtro de Área"
+          }
+        }
+      }
+    },
+    "Filtro de Contrato": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtro de Contrato"
+          }
+        }
+      }
+    },
+    "Filtro de Orçamento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtro de Orçamento"
+          }
+        }
+      }
+    },
+    "Filtro de Área: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtro de Área: %@"
+          }
+        }
+      }
+    },
+    "Filtro de Contrato: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtro de Contrato: %@"
+          }
+        }
+      }
+    },
+    "Filtro de Orçamento: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtro de Orçamento: %@"
+          }
+        }
+      }
+    },
+    "Buscar ou pressionar Command K": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar ou pressionar Command K"
+          }
+        }
+      }
+    },
+    "%@, %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %@"
+          }
+        }
+      }
+    },
+    "Toque para filtrar por especialidade e competências": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para filtrar por especialidade e competências"
+          }
+        }
+      }
+    },
+    "Toque para filtrar por duração e regime de trabalho": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para filtrar por duração e regime de trabalho"
+          }
+        }
+      }
+    },
+    "Toque para abrir o histograma de remuneração": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para abrir o histograma de remuneração"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

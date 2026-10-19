@@ -16,16 +16,38 @@ public struct FrilaProposalBar: View {
     @Environment(\.accessibilityReduceMotion) private var envReduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private let rotuloValoracaoBruta = "Valoração Bruta do Contrato:"
-    private let rotuloTaxaPlataforma = "Taxa de Serviço da Plataforma (5%):"
-    private let rotuloRepasseLiquido = "Repasse Líquido Estimado:"
-    private let rotuloCapitalEst = "CAPITAL EST."
-    private let rotuloEnviarProposta = "Enviar Proposta"
-    private let rotuloSufixoHora = "/h"
-    private let rotuloEstimativaPrefixo = "Est. "
-    private let estadoTaxasVisivel = "Detalhamento de taxas visível"
-    private let estadoTaxasOculto = "Detalhamento de taxas oculto"
-    private let hintExpandirTaxas = "Toque para alternar o detalhamento de taxas da plataforma"
+    private let rotuloValoracaoBruta = String(localized: "Valoração Bruta do Contrato:", bundle: bundleApresentacao)
+    private let rotuloTaxaPlataforma = String(localized: "Taxa de Serviço da Plataforma (5%):", bundle: bundleApresentacao)
+    private let rotuloRepasseLiquido = String(localized: "Repasse Líquido Estimado:", bundle: bundleApresentacao)
+    private let rotuloCapitalEst = String(localized: "CAPITAL EST.", bundle: bundleApresentacao)
+    private let rotuloEnviarProposta = String(localized: "Enviar Proposta", bundle: bundleApresentacao)
+    private let rotuloSufixoHora = String(localized: "/h", bundle: bundleApresentacao)
+    private let rotuloEstimativaPrefixo = String(localized: "Est. ", bundle: bundleApresentacao)
+    private let estadoTaxasVisivel = String(localized: "Detalhamento de taxas visível", bundle: bundleApresentacao)
+    private let estadoTaxasOculto = String(localized: "Detalhamento de taxas oculto", bundle: bundleApresentacao)
+    private let hintExpandirTaxas = String(localized: "Toque para alternar o detalhamento de taxas da plataforma", bundle: bundleApresentacao)
+
+    public struct CalculoDeRetencao: Equatable, Sendable {
+        public let taxaLiquidaHora: Int
+        public let totalLiquido: Int
+        public let taxaPlataforma: Int
+
+        public init(valorHora: Int, totalEstimado: Int) {
+            let liqHora = Int(Double(valorHora) * 0.95)
+            let liqTotal = Int(Double(totalEstimado) * 0.95)
+            self.taxaLiquidaHora = liqHora
+            self.totalLiquido = liqTotal
+            self.taxaPlataforma = totalEstimado - liqTotal
+        }
+    }
+
+    var calculoDeRetencao: CalculoDeRetencao {
+        CalculoDeRetencao(valorHora: hourlyRate, totalEstimado: totalEstimate)
+    }
+
+    var netRate: Int { calculoDeRetencao.taxaLiquidaHora }
+    var netTotal: Int { calculoDeRetencao.totalLiquido }
+    var platformFee: Int { calculoDeRetencao.taxaPlataforma }
 
     public init(
         isDark: Bool = false,
@@ -40,10 +62,6 @@ public struct FrilaProposalBar: View {
         self.isSubmitting = isSubmitting
         self.onSubmit = onSubmit
     }
-
-    private var netRate: Int { Int(Double(hourlyRate) * 0.95) }
-    private var netTotal: Int { Int(Double(totalEstimate) * 0.95) }
-    private var platformFee: Int { totalEstimate - netTotal }
 
     private func formatarMoeda(_ valor: Int) -> String {
         let estilo = IntegerFormatStyle<Int>.Currency(code: "BRL", locale: Locale(identifier: "pt_BR"))
@@ -214,8 +232,8 @@ public struct FrilaProposalBar: View {
             }
 
             // Alternador de taxa líquida (disclosure)
-            let textoTaxaLiquida = "Líq. \(formatarMoeda(netRate))/h"
-            let rotuloA11yLiquido = "Líquido \(FrilaMoney.spoken(reais: netRate, por: "hora"))"
+            let textoTaxaLiquida = String(localized: "Líq. \(formatarMoeda(netRate))/h", bundle: bundleApresentacao)
+            let rotuloA11yLiquido = String(localized: "Líquido \(FrilaMoney.spoken(reais: netRate, por: "hora"))", bundle: bundleApresentacao)
             Button(action: {
                 withAnimation(FrilaMovimento.animacao(.spring(response: 0.28, dampingFraction: 0.75), reduzir: envReduceMotion)) {
                     showingFeeDetails.toggle()
@@ -259,7 +277,7 @@ public struct FrilaProposalBar: View {
     }
 
     private func botaoEnviar(expandirLargura: Bool) -> some View {
-        let dicaEnvio = "Envia proposta a \(FrilaMoney.spoken(reais: hourlyRate, por: "hora"))"
+        let dicaEnvio = String(localized: "Envia proposta a \(FrilaMoney.spoken(reais: hourlyRate, por: "hora"))", bundle: bundleApresentacao)
         return Button(action: onSubmit) {
             HStack(spacing: FrilaEspaco.pequeno) {
                 if isSubmitting {
