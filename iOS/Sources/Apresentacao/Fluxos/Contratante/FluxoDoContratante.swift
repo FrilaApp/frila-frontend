@@ -73,37 +73,30 @@ public struct FluxoDoContratante: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                if case .vagas = model.estado {
-                    Button {
-                        mostrandoPerfilEstabelecimento = true
-                    } label: {
-                        Image(systemName: "person.crop.circle")
-                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+            if case .cadastro = model.estado {
+                // Toolbar nativo dentro de TelaCadastroEstabelecimento
+            } else {
+                HStack {
+                    Spacer()
+                    if case .vagas = model.estado {
+                        Button {
+                            mostrandoPerfilEstabelecimento = true
+                        } label: {
+                            Image(systemName: "person.crop.circle")
+                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        }
+                        .foregroundStyle(FrilaCor.texto)
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                        .accessibilityIdentifier("abrir-perfil-estabelecimento")
                     }
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
-                    .accessibilityIdentifier("abrir-perfil-estabelecimento")
+                    Button(action: sair) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
+                        .foregroundStyle(FrilaCor.texto)
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .accessibilityIdentifier("sair-fluxo-contratante")
                 }
-                if case .cadastro = model.estado {
-                    Button(role: .destructive) {
-                        mostrandoExclusaoDeConta = true
-                    } label: {
-                        Text("Excluir conta", bundle: bundleApresentacao)
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.perigo)
-                    }
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityIdentifier("contratante-sem-estabelecimento-excluir-conta")
-                }
-                Button(action: sair) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityIdentifier("sair-fluxo-contratante")
+                .padding(.horizontal, FrilaEspaco.medio)
             }
-            .padding(.horizontal, FrilaEspaco.medio)
             conteudo.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
@@ -164,6 +157,7 @@ public struct FluxoDoContratante: View {
         case let .cadastro(conta):
             TelaCadastroEstabelecimento(api: api, fila: fila, responsavelNome: conta.nome,
                                        responsavelTelefone: conta.telefone, sair: sair,
+                                       excluirConta: { mostrandoExclusaoDeConta = true },
                                        aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
         case let .vagas(estabelecimento):
             DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, sair: sair)

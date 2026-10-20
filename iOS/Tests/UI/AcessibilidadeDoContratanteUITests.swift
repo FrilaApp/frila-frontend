@@ -19,7 +19,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     func testCadastroEstabelecimentoAlvosERotulos() throws {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
 
         // 2.1 Botão de busca (lupa): alvo >= 44x44 pt
         let botaoBusca = app.buttons["buscar-endereco-botao"]
@@ -46,7 +46,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     func testPublicarVagaAlvosNoTamanhoPadrao() {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
@@ -89,7 +89,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             Self.ax5
         ])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
@@ -147,7 +147,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     func testPerfilDoEstabelecimentoToolbarEHintsSemVazamento() {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 

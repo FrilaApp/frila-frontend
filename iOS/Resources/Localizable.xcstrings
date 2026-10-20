@@ -8836,6 +8836,106 @@
           }
         }
       }
+    },
+    "por pessoa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "por pessoa"
+          }
+        }
+      }
+    },
+    "Refeição e transporte inclusos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refeição e transporte inclusos"
+          }
+        }
+      }
+    },
+    "Refeição inclusa, sem transporte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refeição inclusa, sem transporte"
+          }
+        }
+      }
+    },
+    "Sem refeição, transporte incluso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem refeição, transporte incluso"
+          }
+        }
+      }
+    },
+    "Sem refeição nem transporte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem refeição nem transporte"
+          }
+        }
+      }
+    },
+    "1 posição aberta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 posição aberta"
+          }
+        }
+      }
+    },
+    "%lld de %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %lld"
+          }
+        }
+      }
+    },
+    " avaliações indicam que trabalhariam lá de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " avaliações indicam que trabalhariam lá de novo"
+          }
+        }
+      }
+    },
+    "%lld de %lld avaliações indicam que trabalhariam lá de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %lld avaliações indicam que trabalhariam lá de novo"
+          }
+        }
+      }
+    },
+    "Ainda sem avaliações.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda sem avaliações."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

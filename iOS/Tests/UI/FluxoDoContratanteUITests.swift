@@ -63,7 +63,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["continuar-cadastro"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Responsável do Café"].exists)
-        XCTAssertTrue(app.staticTexts["+5561988887777"].exists)
+        XCTAssertTrue(app.staticTexts["(61) 98888-7777"].exists)
         let captura = XCTAttachment(screenshot: app.screenshot())
         captura.lifetime = .keepAlways
         add(captura)
@@ -203,7 +203,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         let responsavel = app.staticTexts["Responsável do Café"]
         trazerParaATela(responsavel, em: app)
         XCTAssertTrue(responsavel.exists)
-        XCTAssertTrue(app.staticTexts["+5561988887777"].exists)
+        XCTAssertTrue(app.staticTexts["(61) 98888-7777"].exists)
         XCTAssertFalse(app.staticTexts["Algo deu errado"].exists)
         anexarCaptura(app, nome: "fila-nula-\(captura)-responsavel")
 

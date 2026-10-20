@@ -391,7 +391,7 @@ final class CampoMascaraTests: XCTestCase {
         janela.makeKeyAndVisible()
         tela.view.layoutIfNeeded()
         defer { janela.isHidden = true }
-        let campo = try XCTUnwrap(camposDeTexto(em: tela.view).first { $0.placeholder == "CPF ou CNPJ" })
+        let campo = try XCTUnwrap(camposDeTexto(em: tela.view).first { $0.placeholder == "Só números" })
         try verificar(campo)
     }
 

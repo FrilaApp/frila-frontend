@@ -14,7 +14,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     func testCadastroSegueParaPublicarVaga() {
         let app = abrir()
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Responsável"].exists)
         // Obrigatória desde o contrato 0.2.20: o roteiro de teste já a traz preenchida.
         XCTAssertTrue(app.staticTexts["Região Administrativa"].exists)
@@ -34,7 +34,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
         let app = abrir()
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
         XCTAssertEqual(marcador.label, "Ponto do estabelecimento")
@@ -104,7 +104,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     func testArrastarMapaLongeDoMarcadorNaoMudaPonto() throws {
         let app = abrir()
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
 
@@ -210,7 +210,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             "UICTContentSizeCategoryAccessibilityXXXL"
         ])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
@@ -261,7 +261,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     func testDatePickersContidosNaLarguraDaTelaNoTamanhoPadrao() {
         let app = abrir()
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
 
@@ -329,7 +329,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
     func testCapturasCadastroEstabelecimentoUX03() {
         let app = abrir()
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         let seletorRA = app.buttons["regiao-administrativa"]
         XCTAssertTrue(seletorRA.waitForExistence(timeout: 10))
 
@@ -353,7 +353,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             "UICTContentSizeCategoryAccessibilityXXXL"
         ])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         salvarCaptura("04-cadastro-estabelecimento-topo-xxxl")
 
         let seletorRA = app.buttons["regiao-administrativa"]
@@ -381,7 +381,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             if let categoria { argumentos += ["-UIPreferredContentSizeCategoryName", categoria] }
             let app = abrir(argumentos: argumentos)
             defer { app.terminate() }
-            let campo = app.textFields["CPF ou CNPJ"]
+            let campo = app.textFields["CNPJ ou CPF"]
             XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer))
             for _ in 0..<4 where !campo.isHittable { app.swipeUp() }
             campo.tap()

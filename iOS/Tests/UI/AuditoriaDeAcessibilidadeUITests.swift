@@ -465,7 +465,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func cadastroDoEstabelecimentoEPublicarVaga(ax5: Bool) {
         let app = abrir(["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"], ax5: ax5)
-        guard esperar(app.staticTexts["Cadastrar estabelecimento"], "O cadastro deve abrir") else { return }
+        guard esperar(app.staticTexts["Dados do negócio"], "O cadastro deve abrir") else { return }
         auditar(app, tela: "cadastro-estabelecimento")
 
         tocar(app.buttons["continuar-cadastro"], em: app)
