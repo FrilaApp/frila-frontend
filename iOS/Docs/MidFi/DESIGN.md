@@ -11,6 +11,14 @@ Quando o quadro e este documento divergirem, vale este documento. Se faltar regr
 4. **Estado é texto, não cor.** Erro e alerta usam ícone, peso e contorno preto de 2 pt, nunca vermelho. O vermelho (`FrilaCor.perigo`) fica só para ação destrutiva.
 5. **Densidade calma.** Margem lateral de 16, respiro de 24 a 32 entre blocos, nada encostado.
 
+## 1.1 Liquid Glass nativo (decisão do Fabrício, 2026-10-20)
+O app é compilado com o SDK do iOS 26, então os controles de sistema ganham Liquid Glass sozinhos no iOS 26 e caem para o visual clássico no 17 e no 18. A regra é **não atrapalhar o sistema**:
+- **Nativos, sem customização visual:** a barra de abas (`TabView` com `.tabItem`), os botões de barra de ferramentas (`ToolbarItem` com `Button` ou `Menu`, ícone SF Symbol), o botão voltar da navegação e as folhas (`.sheet`). Proibido nesses elementos: `.toolbarBackground(...)`, `UITabBarAppearance`, `UINavigationBarAppearance`, círculo branco desenhado à mão no lugar do voltar, ou fundo pintado na barra de abas.
+- **Podem ser customizados:** títulos e cabeçalhos de tela (título grande próprio, subtítulo), cartões, campos, chips e o CTA preto em pílula.
+- **Barra inferior de ação:** no iOS 26, `.safeAreaBar(edge: .bottom)` (efeito de borda nativo, sem material pintado); no 17 e no 18, `safeAreaInset(edge: .bottom)` com `.regularMaterial`. Usar `if #available(iOS 26, *)`.
+- APIs de vidro (`.glassEffect`, `.buttonStyle(.glass)`) só dentro de `if #available(iOS 26, *)`, com alternativa para o 17 e o 18. Não usar shaders próprios (DP-02).
+- Capturas de revisão sempre no simulador **iOS 26.4** (o `captura.sh` já usa iPhone 17 com iOS 26.4).
+
 ## 2. Tokens (já existem em `DesignTokens.swift` e `DesignSystem.xcassets`)
 | Papel | MidFi | Token |
 |---|---|---|
@@ -40,8 +48,8 @@ Espaços: 4, 8, 12, 16, 24 e 32 (`FrilaEspaco`). Raios: campo e aviso 16 (`Frila
 Bricolage Grotesque só nas perguntas do formulário de publicar vaga (decisão DP-03). Nunca itálico.
 
 ## 4. Peças de tela
-- **Barra de status e topo.** Nas telas empilhadas, botão voltar em círculo branco de 44 pt com chevron, no canto superior esquerdo. Título de navegação centralizado (17 semibold) só em detalhes: "Detalhe da vaga", "Vaga preenchida". Nas telas de primeiro nível não há barra de navegação: o título grande abre a tela.
-- **Barra inferior fixa.** Fundo translúcido (`.regularMaterial`) com fio superior e padding 12/16. Leva o CTA preto de 52 pt em largura total, e opcionalmente uma ajuda de 13 pt centralizada abaixo. Há duas variantes com resumo:
+- **Barra de status e topo.** Nas telas empilhadas, o botão voltar é o **nativo** da navegação (no iOS 26 ele já vem como círculo de vidro, igual ao quadro). Título de navegação centralizado (17 semibold) só em detalhes: "Detalhe da vaga", "Vaga preenchida". Nas telas de primeiro nível não há barra de navegação: o título grande abre a tela.
+- **Barra inferior fixa.** Ver seção 1.1: `.safeAreaBar` no iOS 26 e `.regularMaterial` antes dele, com padding 12/16. Leva o CTA preto de 52 pt em largura total, e opcionalmente uma ajuda de 13 pt centralizada abaixo. Há duas variantes com resumo:
   - Publicar: resumo em duas linhas, total em 20 bold e CTA à direita.
   - Detalhe da vaga: aviso de contato com ícone em cima, preço à esquerda e CTA "Aceitar turno" à direita.
 - **Campo.** Rótulo acima (15 semibold) e caixa branca de 52 pt, raio 16, contorno `borda` de 1 pt e ícone de apoio opcional à esquerda (18 pt, cor de apoio). O seletor leva chevron para baixo à direita. No erro, o contorno vira 2 pt `texto` e a mensagem aparece abaixo, com ícone de triângulo.
@@ -53,7 +61,7 @@ Bricolage Grotesque só nas perguntas do formulário de publicar vaga (decisão 
 - **Cartão de atenção** (Minhas vagas, "Precisa de atenção"): cartão branco com contorno preto de 2 pt, alerta com triângulo em cima, CTA preto e secundário dentro do cartão.
 - **Progresso de posições.** Barra segmentada de 4 pt, um segmento por posição: preenchido em `texto`, vazio em `controle`.
 - **Aviso.** Bloco `controle`, raio 16, ícone de 20 pt e texto 15. Título em semibold na mesma frase.
-- **Barra de abas.** Cápsula flutuante translúcida com 3 itens (ícone em cima, rótulo de 11 pt). O item ativo fica numa cápsula `controle`. Contratante: Minhas vagas, Turnos, Perfil. Profissional: Vagas, Meus turnos, Perfil.
+- **Barra de abas.** `TabView` nativo (no iOS 26 já é a cápsula flutuante de vidro do quadro). Nada de barra desenhada à mão. Contratante: Minhas vagas, Turnos, Perfil. Profissional: Vagas, Meus turnos, Perfil.
 - **Folha** (Publicar): modal com puxador, "Cancelar" à esquerda e título centralizado "Nova vaga".
 
 ## 5. Critérios de gosto (o que a revisão de design cobra)
