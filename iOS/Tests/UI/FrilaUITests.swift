@@ -51,7 +51,7 @@ final class FrilaUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
         email.tap()
         email.digitarEEsperar("teste@frila.app")
-        app.buttons["Receber código"].tap()
+        app.buttons["Enviar código"].tap()
 
         XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.staticTexts["teste@frila.app"].exists)
@@ -66,7 +66,7 @@ final class FrilaUITests: XCTestCase {
         let email = app.textFields["validacao-email"]
         email.tap()
         email.digitarEEsperar("teste@frila.app")
-        app.buttons["Receber código"].tap()
+        app.buttons["Enviar código"].tap()
         XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: Espera.aparecer))
 
         let codigo = app.textFields["validacao-codigo"]
@@ -96,7 +96,7 @@ final class VagasUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
         let aviso = app.descendants(matching: .any)["aviso-rn10"]
         XCTAssertTrue(aviso.waitForExistence(timeout: 10))
-        XCTAssertTrue(aviso.label.contains("seu telefone e WhatsApp serão mostrados"))
+        XCTAssertTrue(aviso.label.contains("seu telefone e WhatsApp ficam disponíveis"))
         // O detalhe não mostra telefone nem documento do estabelecimento.
         let comTelefone = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", ".*\\(?\\d{2}\\)? ?9? ?\\d{4}-?\\d{4}.*"))
         XCTAssertEqual(comTelefone.count, 0)
@@ -124,7 +124,7 @@ final class VagasUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.descendants(matching: .any)["vagas-erro"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Tentar novamente"].exists)
+        XCTAssertTrue(app.buttons["vagas-tentar-de-novo"].exists)
     }
 
     func testSemRedeMostraOEstadoSemConexao() {
@@ -133,7 +133,7 @@ final class VagasUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.descendants(matching: .any)["vagas-sem-conexao"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Tentar novamente"].exists)
+        XCTAssertTrue(app.buttons["vagas-tentar-de-novo"].exists)
     }
 
     func testListaComTamanhoDeAcessibilidadeMantemTituloEFiltros() {

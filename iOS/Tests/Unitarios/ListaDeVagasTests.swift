@@ -656,7 +656,7 @@ struct DetalheVagaViewModelTests {
         let vaga = try #require(try await vagasDoDuble().first)
         let cartao = CartaoVaga(vaga)
         let rotulo = cartao.rotuloDeAcessibilidade
-        #expect(rotulo.contains(vaga.local))
+        #expect(rotulo.contains(vaga.regiaoAdministrativa))
         #expect(rotulo.contains("\(vaga.posicoesAbertas) posições abertas"))
         if vaga.inclusos.refeicao {
             #expect(rotulo.contains("Refeição"))

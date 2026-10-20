@@ -104,7 +104,7 @@ public enum FrilaTipo {
     /// Contexto da resposta: Bricolage Regular 17, acompanha `.body`.
     public static var contextoDaResposta: Font { bricolage("BricolageGrotesque-Regular", tamanho: 17, relativoA: .body) }
     /// Microrrótulo em caixa alta (use com `.textCase(.uppercase)` e `.tracking(0.8)`).
-    public static let microRotulo = Font.caption2.weight(.semibold)
+    public static let microRotulo = Font.footnote.weight(.semibold)
 
     private static func bricolage(_ nome: String, tamanho: CGFloat, relativoA estilo: Font.TextStyle) -> Font {
         _ = FontesFrila.registradas
