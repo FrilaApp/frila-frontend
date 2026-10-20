@@ -3,8 +3,8 @@ import Observation
 import SwiftUI
 
 /// Os avisos da área de ação do detalhe (candidatura que falhou, candidatura retirada). Nos
-/// tamanhos de acessibilidade a área de ação fica presa ao rodapé, sem rolagem: um aviso longo
-/// ali é cortado e esconde a vaga. Por isso, nesses tamanhos, quem está no rodapé publica o aviso
+/// tamanhos de acessibilidade e com o botão fixo de candidatura no rodapé, a área de ação fica presa ao rodapé,
+/// sem rolagem: um aviso longo ali é cortado e esconde a vaga. Por isso, quem está no rodapé publica o aviso
 /// aqui, e o detalhe o mostra dentro da rolagem; o rodapé fica só com os botões.
 @MainActor @Observable
 final class AvisosDoDetalhe {
@@ -75,7 +75,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
                     if bloqueios.contem(vaga.estabelecimento) {
                         AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
                             .accessibilityIdentifier("detalhe-nao-encontrada")
-                    } else { conteudo(vaga) }
+                    } else {
+                        conteudo(vaga)
+                    }
                 case .naoEncontrada:
                     AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
                         .accessibilityIdentifier("detalhe-nao-encontrada")
@@ -90,11 +92,8 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
         .accessibilityIdentifier("tela-detalhe-vaga")
         .safeAreaInset(edge: .bottom) {
-            if dynamicTypeSize.isAccessibilitySize, case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
-                acao(vaga)
-                    .environment(avisosDaAcao)
-                    .padding(FrilaEspaco.medio)
-                    .background(FrilaCor.fundo)
+            if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
+                rodapeCandidatura(vaga)
             }
         }
         .background(FrilaCor.fundo)
@@ -109,15 +108,35 @@ public struct TelaDetalheVaga<Acao: View>: View {
         return { if case .carregado = viewModel.estado { true } else { false } }
     }
 
+    private func rodapeCandidatura(_ vaga: Vaga) -> some View {
+        acao(vaga)
+            .environment(avisosDaAcao)
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.vertical, FrilaEspaco.compacto)
+            .background(FrilaMaterial.padrao)
+            .overlay(alignment: .top) {
+                Divider().background(FrilaCor.divisoria)
+            }
+    }
+
     @ViewBuilder
     private func conteudo(_ vaga: Vaga) -> some View {
         let formatador = FormatadorFrila()
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: vaga.funcao.nome)
-                .font(FrilaTipo.tituloGrande)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
-            Text(verbatim: cabecalho(vaga)).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            HStack(spacing: FrilaEspaco.pequeno) {
+                FrilaEditorialTag(modoTitulo(vaga.modoEfetivo(em: .now)).uppercased())
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                Text(verbatim: vaga.funcao.nome)
+                    .font(FrilaTipo.tituloGrande)
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityAddTraits(.isHeader)
+                Text(verbatim: cabecalho(vaga))
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, FrilaEspaco.minimo)
@@ -145,7 +164,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
             // urgência (0.2.38, D4 e D5): o primeiro que aceitar é confirmado na hora.
             campo(modoTitulo(vaga.modoEfetivo(em: .now)), modoDetalhe(vaga.modoEfetivo(em: .now)))
             Divider().overlay(FrilaCor.divisoria)
-            Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -172,14 +193,22 @@ public struct TelaDetalheVaga<Acao: View>: View {
             NavigationLink {
                 TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
             } label: {
-                Text(verbatim: TextosDaSeguranca.verPerfil)
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    .padding(.horizontal, FrilaEspaco.minimo)
-                    .contentShape(Rectangle())
+                HStack {
+                    Text(verbatim: TextosDaSeguranca.verPerfil)
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .foregroundStyle(FrilaCor.texto)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(FrilaTipo.microRotulo)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .padding(.horizontal, FrilaEspaco.medio)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .cartaoFrila()
             .accessibilityIdentifier("abrir-perfil-estabelecimento")
         }
 
@@ -191,10 +220,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
         AvisoFrila(verbatim: avisoRN10(vaga), tom: .alerta)
             .accessibilityIdentifier("aviso-rn10")
 
-        if !dynamicTypeSize.isAccessibilitySize {
-            acao(vaga)
-        } else if !avisosDaAcao.avisos.isEmpty {
-            // Os avisos de quem está no rodapé: aqui cabem inteiros, e a vaga continua legível.
+        if !avisosDaAcao.avisos.isEmpty {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 ForEach(avisosDaAcao.avisos) { aviso in
                     AvisoFrila(verbatim: aviso.texto, tom: aviso.tom)
@@ -208,6 +234,8 @@ public struct TelaDetalheVaga<Acao: View>: View {
             AcoesDeSeguranca(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
                 .id(vaga.estabelecimento.id)
         }
+
+        Spacer(minLength: FrilaEspaco.grande)
     }
 
     private func campo(_ titulo: String, _ valor: String) -> some View {
