@@ -51,7 +51,7 @@ final class FrilaUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
         email.tap()
         email.digitarEEsperar("teste@frila.app")
-        app.buttons["Enviar código"].tap()
+        app.buttons["Receber código"].tap()
 
         XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.staticTexts["teste@frila.app"].exists)
@@ -66,7 +66,7 @@ final class FrilaUITests: XCTestCase {
         let email = app.textFields["validacao-email"]
         email.tap()
         email.digitarEEsperar("teste@frila.app")
-        app.buttons["Enviar código"].tap()
+        app.buttons["Receber código"].tap()
         XCTAssertTrue(app.staticTexts["Código enviado. Consulte a caixa de entrada do e-mail de teste."].waitForExistence(timeout: Espera.aparecer))
 
         let codigo = app.textFields["validacao-codigo"]
