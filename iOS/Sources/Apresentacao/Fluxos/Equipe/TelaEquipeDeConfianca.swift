@@ -39,8 +39,7 @@ public struct TelaEquipeDeConfianca: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosEquipeDeConfianca.titulo))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+
         .task { await viewModel.carregar() }
         .refreshable { await viewModel.carregar() }
         .accessibilityIdentifier("tela-equipe-de-confianca")

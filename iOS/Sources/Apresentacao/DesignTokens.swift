@@ -314,8 +314,13 @@ public extension View {
     }
 
     /// Aplica fundo com material translúcido nativo do SwiftUI para efeito de vidro seguro no iOS 17+ (DP-02).
+    @ViewBuilder
     func vidroFrila(_ material: Material = FrilaMaterial.padrao, raio: CGFloat = FrilaRaio.folha) -> some View {
-        background(material, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: raio, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        if #available(iOS 26, *) {
+            glassEffect(.regular, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
+        } else {
+            background(material, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: raio, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        }
     }
 }

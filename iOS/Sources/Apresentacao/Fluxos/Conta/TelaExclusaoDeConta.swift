@@ -34,9 +34,7 @@ public struct TelaExclusaoDeConta: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosExclusaoDeConta.titulo))
         .navigationBarTitleDisplayMode(.inline)
-        // Sem fundo, a barra inline deixava o texto da rolagem passar por trás do Voltar e do título.
-        .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+
         .task { await viewModel.carregar() }
         .sheet(isPresented: $mostrarDialogoConfirmacao) { confirmacaoFinal }
         .accessibilityIdentifier("tela-exclusao-de-conta")
