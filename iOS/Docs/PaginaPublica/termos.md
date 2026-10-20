@@ -12,7 +12,7 @@ A plataforma Frila é desenvolvida e operada por:
 
 - **Responsável:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
 - **Localidade:** Brasília/DF
-- **Canal do titular de dados e do suporte:** `suportefrila@gmail.com`
+- **Canal do titular de dados e do suporte:** `suporte@frilabr.com`
 
 ---
 
@@ -42,7 +42,7 @@ Ao se cadastrar no aplicativo, você declara sob as penas da lei que possui **18
 - Para criar a conta, você confirma ter 18 anos ou mais e informa sua data de nascimento. O app e o servidor conferem essa data.
 - O app também pode consultar o sistema do seu aparelho (recurso de faixa etária da Apple) para confirmar a faixa de idade. O Frila recebe só a faixa, não a sua data de nascimento pelo aparelho.
 - Se o sistema indicar menos de 18 anos, a conta não é criada. Se o sistema não responder ou você não autorizar a consulta, valem a sua data de nascimento e a sua declaração.
-- Se você acha que sua idade foi aferida de forma errada, escreva para `suportefrila@gmail.com`.
+- Se você acha que sua idade foi aferida de forma errada, escreva para `suporte@frilabr.com`.
 
 - A vedação ao acesso de menores fundamenta-se nas normas de proteção trabalhista e da juventude da Constituição Federal (art. 7º, XXXIII), da Consolidação das Leis do Trabalho (arts. 402 a 441), do Estatuto da Criança e do Adolescente (Lei nº 8.069/1990, arts. 60 a 69), do Decreto nº 6.481/2008 (Piores Formas de Trabalho Infantil) e da **Lei nº 15.211/2025 (ECA Digital)**.
 - O Frila reserva-se o direito de exigir comprovação de idade a qualquer momento. Contas vinculadas a menores de 18 anos ou que contenham declarações falsas serão imediatamente suspensas e seus dados serão descartados.
@@ -137,7 +137,7 @@ Na máxima extensão permitida pela legislação aplicável:
 
 Você pode deixar de utilizar o Frila e encerrar sua conta a qualquer momento:
 - Pelo aplicativo, acessando **Perfil** → **Excluir conta**, o que acionará o processo automatizado de exclusão definitiva dos seus dados pessoais.
-- Pelo e-mail oficial: `suportefrila@gmail.com`.
+- Pelo e-mail oficial: `suporte@frilabr.com`.
 
 ---
 

@@ -92,5 +92,5 @@ os.makedirs(out, exist_ok=True)
 for p, t in pages:
     md = open(f"{src}/{p}.md", encoding='utf-8').read()
     os.makedirs(f"{out}/{p}", exist_ok=True)
-    open(f"{out}/{p}/index.html", "w", encoding="utf-8").write(f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{t} — Frila</title><meta name="color-scheme" content="light dark">{CSS}</head><body><main>{nav}{conv(md)}<footer>Frila · <a href="mailto:suportefrila@gmail.com">suportefrila@gmail.com</a></footer></main></body></html>\n')
+    open(f"{out}/{p}/index.html", "w", encoding="utf-8").write(f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{t} — Frila</title><meta name="color-scheme" content="light dark">{CSS}</head><body><main>{nav}{conv(md)}<footer>Frila · <a href="mailto:suporte@frilabr.com">suporte@frilabr.com</a></footer></main></body></html>\n')
 open(f"{out}/index.html", "w", encoding="utf-8").write('<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/privacidade"><title>Frila</title>\n')

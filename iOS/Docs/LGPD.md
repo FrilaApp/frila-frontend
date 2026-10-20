@@ -21,7 +21,7 @@ e do código-fonte em `iOS/Sources/`.
 |---|---|
 | **Responsável (controlador)** | Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes), Brasília/DF |
 | **CNPJ, sede e encarregado** | Não há. O projeto não tem empresa constituída; a indicação de encarregado depende da avaliação jurídica listada nas pendências |
-| **Canal do Titular** | `suportefrila@gmail.com` — referência: `EnderecosOficiais.swift:22` |
+| **Canal do Titular** | `privacidade@frilabr.com` — referência: `EnderecosOficiais.swift:22` |
 | **Política de Privacidade** | `https://frila.netlify.app/privacidade` — referência: `EnderecosOficiais.swift:20-21` (o domínio `frila.app` ainda não está em uso) |
 
 ### 1.2 Operações de Tratamento
@@ -85,7 +85,7 @@ Conferidas no dossiê `SegurancaEPrivacidade.md` (PR #192):
 
 | Campo | Valor |
 |---|---|
-| **E-mail** | `suportefrila@gmail.com` |
+| **E-mail** | `privacidade@frilabr.com` |
 | **Acesso no app** | Perfil → "Política de privacidade" (link para `https://frila.netlify.app/privacidade`) |
 | **Acesso no app** | Perfil → "Exportar meus dados" / "Excluir conta" |
 | **Referência no código** | `EnderecosOficiais.swift:19-23`, `PerfisDaConta.swift:200-215` |
@@ -104,7 +104,7 @@ Conferidas no dossiê `SegurancaEPrivacidade.md` (PR #192):
 
 ### 2.3 Procedimento de Atendimento
 
-1. O titular envia solicitação para `suportefrila@gmail.com` identificando-se e descrevendo o pedido.
+1. O titular envia solicitação para `privacidade@frilabr.com` identificando-se e descrevendo o pedido.
 2. Prazo de resposta: **15 dias corridos** (Art. 18, § 5º e Art. 19).
 3. Solicitações de acesso e portabilidade: encaminhar ao titular o resultado da RPC `exportar-meus-dados`.
 4. Solicitações de exclusão: confirmar a identidade e processar a exclusão via RPC; confirmar por e-mail.
@@ -178,7 +178,7 @@ Data da ciência do incidente: ____/____/________
 1. IDENTIFICAÇÃO DO CONTROLADOR
    Responsável (pessoa física): Cauê Carneiro Kilanovic
    CPF: ________________
-   E-mail: suportefrila@gmail.com
+   E-mail: privacidade@frilabr.com
    Telefone: ________________
 
 2. DESCRIÇÃO DO INCIDENTE
@@ -242,7 +242,7 @@ O que recomendamos que você faça:
 - [Recomendação 1, ex.: alterar senha de serviços que usem o mesmo e-mail]
 - [Recomendação 2]
 
-Estamos à disposição pelo e-mail suportefrila@gmail.com para esclarecer
+Estamos à disposição pelo e-mail privacidade@frilabr.com para esclarecer
 quaisquer dúvidas.
 
 Atenciosamente,
@@ -262,7 +262,7 @@ de acesso restrito ao Responsável e à equipe técnica, e não leva o dado pess
 **Natureza:** exercício de mesa, sem acionar ninguém nem alterar sistema. Os tempos abaixo são **estimativas** de
 quem leu o plano e os fatos do app; não são medição. A medição vem do exercício ao vivo.
 
-**Cenário (hipotético):** uma pessoa avisa em `suportefrila@gmail.com`, numa terça às 09h00, que uma regra de
+**Cenário (hipotético):** uma pessoa avisa em `privacidade@frilabr.com`, numa terça às 09h00, que uma regra de
 acesso do banco deixa qualquer conta autenticada ler o telefone e o documento de outros estabelecimentos.
 
 | Hora | Passo | Fase |
@@ -311,7 +311,7 @@ Checklist de coerência entre este registro e a política publicada em `https://
 | Compartilhamento | Seção 1.3 (Supabase, Firebase, Apple, Gmail) | **Verificar:** deve listar os mesmos operadores |
 | Transferência internacional | Seção 1.4 | **Verificar:** deve mencionar transferência para EUA |
 | Direitos do titular | Seção 2.2 | **Verificar:** deve listar todos os direitos dos Arts. 17-22 |
-| Canal do titular | `suportefrila@gmail.com` | **Verificar:** deve constar na página pública |
+| Canal do titular | `privacidade@frilabr.com` | **Verificar:** deve constar na página pública |
 | Retenção e eliminação | Coluna "Retenção e Eliminação" | **Verificar:** prazos devem coincidir |
 
 > **Ação do Cauê:** revisar a página `https://frila.netlify.app/privacidade` usando esta tabela e corrigir

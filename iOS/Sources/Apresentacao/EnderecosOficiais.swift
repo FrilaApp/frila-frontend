@@ -19,6 +19,6 @@ public struct EnderecosOficiais: Sendable, Equatable {
     public static let padrao = EnderecosOficiais(
         termosDeUso: URL(string: "https://frila.netlify.app/termos")!,
         politicaDePrivacidade: URL(string: "https://frila.netlify.app/privacidade")!,
-        emailSuporte: "suportefrila@gmail.com"
+        emailSuporte: "suporte@frilabr.com"
     )
 }

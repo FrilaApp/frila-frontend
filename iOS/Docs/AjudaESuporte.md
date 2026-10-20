@@ -24,7 +24,7 @@ Atende ao cartão Trello [#182 (MNm4dGWq)](https://trello.com/c/MNm4dGWq).
 A arquitetura do aplicativo centraliza os endereços institucionais e termos legais na estrutura `EnderecosOficiais` (`iOS/Sources/Apresentacao/EnderecosOficiais.swift:4-24`):
 - `termosDeUso`: `https://frila.app/termos`
 - `politicaDePrivacidade`: `https://frila.app/privacidade`
-- `emailSuporte`: `suportefrila@gmail.com`
+- `emailSuporte`: `suporte@frilabr.com`
 - `urlSuporte`: `mailto:\(emailSuporte)`
 
 Nas telas de perfil e configurações, a auditoria confirmou que todos os pontos de contato derivam estritamente da injeção de `EnderecosOficiais`:
@@ -44,9 +44,9 @@ Nas telas de perfil e configurações, a auditoria confirmou que todos os pontos
 **Conclusão da auditoria de Perfil:** Nenhuma string hardcoded de e-mail de suporte existe de forma dispersa nas telas de perfil (`PerfisDaConta.swift`). O canal é derivado de `EnderecosOficiais.padrao.emailSuporte`.
 
 ### 1.2 Divergência Identificada de Canais de Suporte
-A auditoria identificou que o código do aplicativo unificou o canal em `suportefrila@gmail.com`:
-- **Canal em `EnderecosOficiais.padrao` (`EnderecosOficiais.swift:22`):** Configurado como `"suportefrila@gmail.com"` (vigente), verificado por testes de unidade e UI (`PerfisDaContaTests.swift:65,90,105`, `FrilaUITests.swift:740,781`, `ContaSuspensaUITests.swift:131`).
-- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `suportefrila@gmail.com` (delegando a `EnderecosOficiais.padrao.emailSuporte` e explicitado nos textos de interface/acessibilidade). O endereço alternativo `"suporte@frila.app"` não existe em `iOS/Sources/`, constando apenas no contrato (`openapi.yaml:2954`) e em requisitos (`frila-docs/requisitos/ingestao-email-suporte-v1.1.md:13`, decisão pendente do Cauê). O canal vigente em todas as telas permanece `suportefrila@gmail.com`.
+A auditoria identificou que o código do aplicativo unificou o canal em `suporte@frilabr.com`:
+- **Canal em `EnderecosOficiais.padrao` (`EnderecosOficiais.swift:22`):** Configurado como `"suporte@frilabr.com"` (vigente), verificado por testes de unidade e UI (`PerfisDaContaTests.swift:65,90,105`, `FrilaUITests.swift:740,781`, `ContaSuspensaUITests.swift:131`).
+- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `suporte@frilabr.com` (delegando a `EnderecosOficiais.padrao.emailSuporte` e explicitado nos textos de interface/acessibilidade). O endereço alternativo `"suporte@frila.app"` não existe em `iOS/Sources/`, constando apenas no contrato (`openapi.yaml:2954`) e em requisitos (`frila-docs/requisitos/ingestao-email-suporte-v1.1.md:13`, decisão pendente do Cauê). O canal vigente em todas as telas permanece `suporte@frilabr.com`.
 
 ---
 
@@ -87,7 +87,7 @@ Mapeamento integral de todos os itens normativos das Seções 7.2 e 7.3 do Docum
 | **7.2.C** | Texto curto explicando localização (só no toque do check-in e check-out) | Seção de Presença em Meu Turno | `iOS/Sources/Apresentacao/Fluxos/Profissional/SecaoDePresenca.swift:68-73`<br>`iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDaPresenca.swift:14-20` | **Tela existente**.<br>Exibe aviso prévio explicativo: "Sua localização, só neste toque: O Frila lê sua localização só quando você toca no botão, para medir a distância até o endereço da vaga. Só a distância é enviada: sua posição não sai do aparelho e nada é lido em segundo plano." |
 | **7.2.D** | Texto curto explicando permissão de notificação (no momento em que é pedida) | Tela de Explicação do Push | `iOS/Sources/Apresentacao/Fluxos/Push/TelasDaPermissaoDePush.swift:9-55`<br>`iOS/Sources/Apresentacao/Fluxos/Push/TextosDoPush.swift:11-35` | **Tela existente**.<br>Apresentada antes do diálogo do iOS no momento contextual de ativação (após salvar funções e horários pelo profissional, ou publicar vaga pelo contratante). Explica que a notificação é o canal que traz a vaga. |
 | **7.2.E** | Política de privacidade e Termos de uso em linguagem direta | Tela de Ajuda do Perfil | `iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:399-430`<br>`iOS/Sources/Apresentacao/EnderecosOficiais.swift:20-21` | **Tela existente**.<br>Links acessíveis e autenticados para as URLs oficiais `https://frila.app/termos` e `https://frila.app/privacidade`. |
-| **7.2.F** | Canal de suporte por e-mail acionável a partir do turno (prazo 5 dias úteis, sem atendimento ao vivo) | Folha de Suporte do Turno | `iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift:1-301`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/SuporteTurnoViewModel.swift:1-318`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/TextosDoSuporte.swift:1-47`<br>`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeuTurno.swift:68-70, 90-103` | **Tela existente**.<br>Botão "Ajuda no turno" (RF23 / US22 / UC14). Registra protocolo via RPC `abrir_suporte`, exibe aviso "Respondemos o mais breve possível, com triagem em até 5 dias úteis." (`TextosDoSuporte.swift:7`) e prepara compositor para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`, `SuporteTurnoViewModel.swift:142`, `TextosDoSuporte.swift:36`) com assunto e corpo pré-preenchidos. |
+| **7.2.F** | Canal de suporte por e-mail acionável a partir do turno (prazo 5 dias úteis, sem atendimento ao vivo) | Folha de Suporte do Turno | `iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift:1-301`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/SuporteTurnoViewModel.swift:1-318`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/TextosDoSuporte.swift:1-47`<br>`iOS/Sources/Apresentacao/Fluxos/Profissional/TelaMeuTurno.swift:68-70, 90-103` | **Tela existente**.<br>Botão "Ajuda no turno" (RF23 / US22 / UC14). Registra protocolo via RPC `abrir_suporte`, exibe aviso "Respondemos o mais breve possível, com triagem em até 5 dias úteis." (`TextosDoSuporte.swift:7`) e prepara compositor para `suporte@frilabr.com` (`EnderecosOficiais.swift:22`, `SuporteTurnoViewModel.swift:142`, `TextosDoSuporte.swift:36`) com assunto e corpo pré-preenchidos. |
 | **7.2.G** | Em risco imediato, orientação de contato com autoridades (190 e 180) | Folha de Suporte do Turno | `iOS/Sources/Apresentacao/Fluxos/Suporte/FolhaSuporteTurno.swift:55-75`<br>`iOS/Sources/Apresentacao/Fluxos/Suporte/TextosDoSuporte.swift:17-21` | **Tela existente**.<br>Atalhos telefônicos diretos para ligar 190 (Polícia Militar) e 180 (Central de Atendimento à Mulher), sem aguardar resposta de rede da RPC. |
 
 ---
@@ -114,7 +114,7 @@ Redação proposta em conformidade estrita com o `iOS/Docs/GuiaDeVoz.md` (tom di
 
 ### 4.1 Diretrizes Normativas Aplicadas aos Textos
 1. **Identificação do suporte:** Canal oficial vigente da Equipe Frila.
-   - E-mail vigente no app (perfil e turno): `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`, `SuporteTurnoViewModel.swift:142`, `TextosDoSuporte.swift:36,41,42`).
+   - E-mail vigente no app (perfil e turno): `suporte@frilabr.com` (`EnderecosOficiais.swift:22`, `SuporteTurnoViewModel.swift:142`, `TextosDoSuporte.swift:36,41,42`).
    - Alternativa citada fora do código do app (`openapi.yaml:2954` e `ingestao-email-suporte-v1.1.md:13`): `suporte@frila.app` (decisão pendente).
 2. **Prazo de resposta institucional e SLA de moderação:**
    - Suporte geral no aplicativo: `"Respondemos o mais breve possível, com triagem em até 5 dias úteis."` (`TextosDoSuporte.swift:7` e `PerfisDaConta.swift:16`; Fonte: Visão 7.2 e RF23). O prazo de "5 dias úteis" sem menção à triagem ainda consta em `TextosPorQueReceboVagas.swift:29` e `TextosContaSuspensa.swift:10`.
@@ -137,9 +137,9 @@ Botão de fechar: Fechar (dica: Fecha a tela de ajuda)
 Título do grupo: SUPORTE
 Botão principal: Fale com a Equipe Frila
 Ícone: envelope
-Ação: Abre o aplicativo de e-mail com destinatário suportefrila@gmail.com
+Ação: Abre o aplicativo de e-mail com destinatário suporte@frilabr.com
 Dica de acessibilidade: Abre seu aplicativo de e-mail para falar com a Equipe Frila
-Texto do endereço: suportefrila@gmail.com (copiável com seleção de texto habilitada)
+Texto do endereço: suporte@frilabr.com (copiável com seleção de texto habilitada)
 Aviso informativo de prazo:
 "O mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
 (Fonte: Documento de Visão 7.2 e Requisito RF23)
@@ -183,9 +183,9 @@ Botão de fechar: Fechar (dica: Fecha a tela de ajuda)
 Título do grupo: SUPORTE
 Botão principal: Fale com a Equipe Frila
 Ícone: envelope
-Ação: Abre o aplicativo de e-mail com destinatário suportefrila@gmail.com
+Ação: Abre o aplicativo de e-mail com destinatário suporte@frilabr.com
 Dica de acessibilidade: Abre seu aplicativo de e-mail para falar com a Equipe Frila
-Texto do endereço: suportefrila@gmail.com (copiável com seleção de texto habilitada)
+Texto do endereço: suporte@frilabr.com (copiável com seleção de texto habilitada)
 Aviso informativo de prazo:
 "O mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Não há atendimento ao vivo."
 (Fonte: Documento de Visão 7.2 e Requisito RF23)
@@ -303,7 +303,7 @@ A Visão 7.2 cita as perguntas frequentes como parte do "conjunto mínimo de aju
 ### 5.3 Parecer Técnico e Recomendação do Loki
 **Recomendação Técnica: Adotar a Opção 1 para o MVP v1.0.**
 1. Manter a `TelaAjudaPerfil` na v1.0 com a sua estrutura atual:
-   - Canal direto para a Equipe Frila (`suportefrila@gmail.com`); novo compromisso documental: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. O texto do app ainda precisa ser alinhado.
+   - Canal direto para a Equipe Frila (`suporte@frilabr.com`); novo compromisso documental: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. O texto do app ainda precisa ser alinhado.
    - Links oficiais para Termos de Uso e Política de Privacidade.
    - Atalho contextual para a tela `Por que recebo vagas` (para dúvidas sobre despacho e filtros).
    - Licenças de código aberto.
