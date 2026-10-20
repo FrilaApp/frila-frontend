@@ -71,7 +71,7 @@ struct ComponentesLote1Tests {
 
     // MARK: - ProposalBar
 
-    @Test("ProposalBar e FrilaProposalBar realizam cálculos exatos de retenção de plataforma (5%)")
+    @Test("ProposalBar e FrilaProposalBar realizam cálculos com valor 100% integral e direto sem retenção de taxas (DP-01)")
     func proposalBarCalculosDeRetencao() {
         let barra = FrilaProposalBar(
             hourlyRate: 160,
@@ -81,19 +81,19 @@ struct ComponentesLote1Tests {
         #expect(barra.hourlyRate == 160)
         #expect(barra.totalEstimate == 25600)
 
-        // Valida diretamente a struct CalculoDeRetencao e propriedades do componente (sem placebo)
-        #expect(barra.calculoDeRetencao.taxaLiquidaHora == 152)
-        #expect(barra.calculoDeRetencao.totalLiquido == 24320)
-        #expect(barra.calculoDeRetencao.taxaPlataforma == 1280)
+        // Valida diretamente a struct CalculoDeRetencao e propriedades do componente (sem taxas de plataforma - DP-01)
+        #expect(barra.calculoDeRetencao.taxaLiquidaHora == 160)
+        #expect(barra.calculoDeRetencao.totalLiquido == 25600)
+        #expect(barra.calculoDeRetencao.taxaPlataforma == 0)
 
-        #expect(barra.netRate == 152)
-        #expect(barra.netTotal == 24320)
-        #expect(barra.platformFee == 1280)
+        #expect(barra.netRate == 160)
+        #expect(barra.netTotal == 25600)
+        #expect(barra.platformFee == 0)
 
         let calculoOutro = FrilaProposalBar.CalculoDeRetencao(valorHora: 200, totalEstimado: 10000)
-        #expect(calculoOutro.taxaLiquidaHora == 190)
-        #expect(calculoOutro.totalLiquido == 9500)
-        #expect(calculoOutro.taxaPlataforma == 500)
+        #expect(calculoOutro.taxaLiquidaHora == 200)
+        #expect(calculoOutro.totalLiquido == 10000)
+        #expect(calculoOutro.taxaPlataforma == 0)
     }
 
     @Test("ProposalBar dispara ação de envio onSubmit")

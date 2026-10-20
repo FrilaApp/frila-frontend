@@ -74,7 +74,7 @@ public struct FrilaEditorialTag: View {
         HStack(spacing: FrilaEspaco.pequeno) {
             FrilaEditorialTag("CONTRATO VERIFICADO")
             FrilaEditorialTag("STAFF")
-            FrilaEditorialTag("ESCROW 100%")
+            FrilaEditorialTag("CONFIRMADO")
         }
     }
     .padding(FrilaEspaco.medio)
@@ -85,7 +85,7 @@ public struct FrilaEditorialTag: View {
     VStack(spacing: FrilaEspaco.medio) {
         FrilaEditorialTag("CONTRATO VERIFICADO")
         FrilaEditorialTag("STAFF")
-        FrilaEditorialTag("ESCROW 100%")
+        FrilaEditorialTag("CONFIRMADO")
     }
     .padding(FrilaEspaco.medio)
     .background(FrilaCor.fundo)

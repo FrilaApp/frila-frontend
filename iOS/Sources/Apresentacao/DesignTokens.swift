@@ -290,6 +290,13 @@ public enum FrilaMoney {
     }
 }
 
+/// Materiais translúcidos nativos do SwiftUI para suporte seguro a vidro no iOS 17+ (DP-02).
+public enum FrilaMaterial {
+    public static let padrao: Material = .regularMaterial
+    public static let sutil: Material = .thinMaterial
+    public static let ultraSutil: Material = .ultraThinMaterial
+}
+
 public extension View {
     /// Cartão agrupado do MidFi: superfície branca, raio 20 contínuo e fio de 1 pt, sem sombra.
     func cartaoFrila() -> some View {
@@ -302,5 +309,11 @@ public extension View {
     /// Sem sombra nos cartões com fio de 1 pt; sombra calibrada para folhas e docas.
     func elevacaoFrila(_ elevacao: FrilaElevacao) -> some View {
         modifier(ModificadorElevacaoFrila(elevacao))
+    }
+
+    /// Aplica fundo com material translúcido nativo do SwiftUI para efeito de vidro seguro no iOS 17+ (DP-02).
+    func vidroFrila(_ material: Material = FrilaMaterial.padrao, raio: CGFloat = FrilaRaio.folha) -> some View {
+        background(material, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: raio, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
     }
 }

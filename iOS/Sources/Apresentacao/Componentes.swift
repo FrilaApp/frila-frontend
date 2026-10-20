@@ -290,7 +290,9 @@ public struct FiltroPill: View {
             .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
             .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
             .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-            .contentShape(Capsule())
+            // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.chipTatil)
         .accessibilityAddTraits(selecionado ? .isSelected : [])
