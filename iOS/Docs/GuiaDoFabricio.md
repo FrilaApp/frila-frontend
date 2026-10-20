@@ -25,7 +25,7 @@ Este documento foi elaborado para ser lido e executado de forma autônoma tanto 
 - **Testes de apresentação e catálogo:** Adicionar ou atualizar previews no `CatalogoDesignSystem.swift` e ajustar testes unitários visuais em `Tests/Unitarios/GuardaTokensDesignTests.swift` (apenas caso novos tokens semânticos sejam formalizados).
 
 ### 1.2 O que você NÃO PODE mexer
-- **Domínio (`iOS/Sources/Dominio/`):** Entidades puras (`Modelos.swift`), objetos de valor (`ObjetosDeValor.swift`), portas e protocolos (`Portas.swift`, `ApiCliente.swift`, `LeitorDeLocalizacao.swift`). Regras de negócio e modelos de domínio não mudam por decisões cosméticas.
+- **Domínio (`iOS/Sources/Dominio/`):** Entidades puras (`Modelos.swift`), objetos de valor (`ObjetosDeValor.swift`), portas e protocolos (`Portas.swift`, que declara `ApiCliente`, `LeitorDeLocalizacao` e `CacheLocal`). Regras de negócio e modelos de domínio não mudam por decisões cosméticas.
 - **Dados (`iOS/Sources/Dados/`):** Implementação de cliente Supabase, dublês de teste (`ApiClienteEmMemoria.swift`), fixtures do contrato, banco de dados local SwiftData (`CacheSwiftData.swift`) e fila offline (`SincronizadorAcoes.swift`). *(Atenção: o PR 417 do João Paulo está ativo nesta pasta; qualquer edição gerará conflito de merge).*
 - **Infraestrutura (`iOS/Sources/Infraestrutura/`):** Implementações de GPS CoreLocation, Firebase Crashlytics e mensageria push FCM.
 - **Ciclo de vida do App (`iOS/Sources/App/FrilaApp.swift`):** Composição de dependências na raiz da aplicação. *(Também protegido pelo PR 417).*
@@ -42,6 +42,7 @@ A organização `FrilaApp` é composta por repositórios modulares com responsab
 |---|:---:|---|---|
 | `FrilaApp/frila-frontend` | **CLONAR** | Código nativo do app iOS (`iOS/`), Android e Web. | **Seu local de trabalho.** Todo o trabalho visual é realizado dentro do diretório `iOS/`. |
 | `FrilaApp/frila-docs` | **CLONAR (só leitura)** | Especificação de requisitos, casos de uso, arquitetura e contrato canônico `frila-docs/api/openapi.yaml`. | Referência normativa para regras de negócio (RN), requisitos funcionais (RF) e escopo de MVP (`frila-docs/produto/05-ESCOPO-DO-MVP.md`). |
+| `fbtostadev/FrilaLowPhase` | **SEU, JÁ TEM** | Repositório do design do Fabrício, pacote SwiftPM `FrilaDesignSystem` (`Sources/FrilaDesignSystem/{Components,Primitives,Shifts}`) e app de exemplo. | **Origem do design.** Fora da organização `FrilaApp`: serve só de fonte; o código entra no app real adaptado, não copiado às cegas. Não é dependência do `frila-frontend`. |
 | `FrilaApp/frila-backend` | **NÃO CLONAR** | Banco Postgres, migrações Supabase, RPCs e Edge Functions. | **Desnecessário.** Conforme decisão arquitetural de 07/10/2026 (`iOS/Docs/Environments.md:37-43`), desenvolvedores do app utilizam o cliente em memória (`ApiClienteEmMemoria`) localmente e conectam-se ao servidor hospedado `frila-dev`, dispensando Docker e setup local de banco. |
 | `FrilaApp/Bancada` | **NÃO CLONAR** | Ferramental de engenharia interna de agentes e harnesses. | Não possui código de produto nem documentação consumível pela UI. |
 
@@ -87,7 +88,7 @@ Frila (App) -> FrilaInfraestrutura -> FrilaDominio
 - `iOS/Sources/Dados/`: Implementações de acesso a dados e rede.
   - `SupabaseApiCliente.swift`: Comunicação HTTP/RPC com o backend.
   - `ApiClienteEmMemoria.swift`: Dublê estático para desenvolvimento ágil e testes sem internet.
-  - `CacheSwiftData.swift`: Persistência local criptografada para suporte offline.
+  - `CacheSwiftData.swift`: Persistência local (SwiftData) para suporte offline.
 - `iOS/Sources/Infraestrutura/`: Serviços de plataforma iOS.
   - `LeitorDeLocalizacaoDoSistema.swift`: GPS pontual nativo (CoreLocation).
   - `AparelhoDePush.swift`: Integração com Firebase Cloud Messaging (FCM).
@@ -99,7 +100,7 @@ Frila (App) -> FrilaInfraestrutura -> FrilaDominio
   - `Componentes.swift`: Biblioteca canônica de componentes atômicos (`BotaoPrimario`, `BotaoSecundario`, `CampoFrila`, `CampoCodigo`, `FiltroPill`, `SeloReputacao`, `AvisoFrila`, `CartaoVaga`, `RespostaSimNao`, `FolhaFrila`).
   - `EstadosDeTela.swift`: Componentes de estado de visualização (`EstadoCarregando`, `EstadoVazio`, `EstadoErro`, `EstadoSemRede`).
   - `CatalogoDesignSystem.swift`: Catálogo interativo navegável e testável com previews no Xcode.
-  - `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/`: Novos componentes trazidos do FrilaLowPhase (`EditorialTag.swift`, `SearchCapsule.swift`, `ProposalBar.swift`).
+  - Componentes novos do FrilaLowPhase: **não existe pasta pronta**. Ao trazer cada um, crie `iOS/Sources/Apresentacao/DesignSystem/` (um arquivo por componente) e adapte-o aos tokens `Frila*` do `DesignTokens.swift`; a origem de cada componente está em `FrilaLowPhase/Sources/FrilaDesignSystem/Components/` (veja a tabela 5.2).
 
 ### 3.2 Estrutura de Telas e Fluxos (`iOS/Sources/Apresentacao/Fluxos/`)
 
@@ -175,15 +176,15 @@ O repositório `Frila/FrilaLowPhase` representa a exploração visual criada pel
 
 | Componente no FrilaLowPhase | Componente no App Real (`frila-frontend`) | Arquivo no Código Real | Status / Observações |
 |---|---|---|---|
-| `PrimaryPillButton` / `FrilaCTA` | `BotaoPrimario` | `iOS/Sources/Apresentacao/Componentes.swift:77` | Pronto. Suporta estado de carregamento nativo (`carregando: true`). |
-| `OutlinedButton` / Secondary CTA | `BotaoSecundario` | `iOS/Sources/Apresentacao/Componentes.swift:116` | Pronto. Contorno em `FrilaCor.borda` e texto em `FrilaCor.texto`. |
-| `FrilaShiftCard` / `OpportunityCard` | `CartaoVaga` & `.cartaoFrila()` | `iOS/Sources/Apresentacao/Componentes.swift:413` | Pronto. Adota padrão canônico: superfície elevada, raio 20, fio de 1 pt, zero sombra. |
-| `FrilaFilterChip` | `FiltroPill` | `iOS/Sources/Apresentacao/Componentes.swift:258` | Pronto. Suporta estados ativo/inativo, feedback tátil e alvo mínimo 44 pt. |
-| `FrilaSplitFieldLayout` | `CampoFrila` | `iOS/Sources/Apresentacao/Componentes.swift:162` | Pronto. Campo acessível com rótulo, foco automático e tratamento de erro inline. |
-| `SearchDiscoverySheet` | `FolhaFrila` | `iOS/Sources/Apresentacao/Componentes.swift:587` | Pronto. Modal nativo com puxador e layout adaptável a Dynamic Type. |
-| `FrilaEditorialTag` | `EditorialTag` | `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/EditorialTag.swift:10` | Pronto. Geometria Capsule para protocolos e selos técnicos. |
-| `FrilaSearchCapsule` | `SearchCapsule` | `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/SearchCapsule.swift:59` | Em adaptação. Barra de pesquisa por cápsula com suporte a filtros rápidos. |
-| `FrilaProposalBar` | `ProposalBar` | `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/ProposalBar.swift:8` | Em adaptação. Ver decisão pendente DP-01 abaixo. |
+| `FrilaButton` (`Components/FrilaButton.swift`, estilo `FrilaPillButtonStyle`, variantes em `FrilaButtonVariant`) | `BotaoPrimario` | `iOS/Sources/Apresentacao/Componentes.swift:77` | Existe no app. Suporta estado de carregamento (`carregando: true`). Conferir se a variante primária do design bate com o tamanho e a altura atuais.
+| `FrilaButton` na variante secundária (contorno) | `BotaoSecundario` | `iOS/Sources/Apresentacao/Componentes.swift:116` | Existe no app. Contorno em `FrilaCor.borda`, texto em `FrilaCor.texto`.
+| `FrilaOpportunityCard` e `Shifts/FrilaShiftCard` | `CartaoVaga` e `.cartaoFrila()` | `iOS/Sources/Apresentacao/Componentes.swift:413` | Existe no app: superfície elevada, raio 20, fio de 1 pt, sem sombra. Comparar com os dois cartões do design e escolher um.
+| `FrilaFilterChip` | `FiltroPill` | `iOS/Sources/Apresentacao/Componentes.swift:258` | Existe no app: ativo/inativo, feedback tátil, alvo mínimo 44 pt.
+| `FrilaSplitFieldLayout` | `CampoFrila` | `iOS/Sources/Apresentacao/Componentes.swift:162` | Existe no app: rótulo, foco e erro inline. O layout em duas partes do design é novo; decidir antes de trocar.
+| `FrilaSearchDiscoverySheet` (`Components/SearchDiscoverySheet.swift`) | `FolhaFrila` (contêiner) | `iOS/Sources/Apresentacao/Componentes.swift:587` | A folha do app é só o contêiner modal; a busca do design é novo componente. Não há tela de busca no MVP: ver DP-05.
+| `FrilaEditorialTag` (`Components/FrilaEditorialTag.swift`) | nenhum | a criar em `iOS/Sources/Apresentacao/DesignSystem/` | Novo. Selo em cápsula.
+| `FrilaSearchCapsule` (`Components/FrilaSearchCapsule.swift`) | nenhum | a criar | Novo. Só entra se a tela de busca estiver no escopo (DP-05).
+| `FrilaProposalBar` (`Components/FrilaProposalBar.swift`) | nenhum | a criar | Novo. Contém a taxa de 5% e o repasse líquido: ver DP-01 antes de importar.
 
 ### 5.3 Matriz de Decisões Pendentes (Conflitos entre Design e Produto)
 
@@ -193,7 +194,7 @@ Onde o protótipo do Fabrício divergiu de regras de negócio, acessibilidade ou
 |---|---|---|---|---|
 | **DP-01** | Taxa de Serviço e Comissão | `FrilaProposalBar` exibe "Taxa de Serviço da Plataforma (5%)" e "Repasse Líquido". | **RN01 & Guia de Voz:** O Frila NÃO cobra comissão do profissional, NÃO atua como intermediador financeiro e a palavra "comissão" é proibida na UI. | **Decisão Pendente:** Remover o disclosure de taxas da barra. O valor exibido na vaga é 100% integral e repassado diretamente pelo contratante ao profissional. |
 | **DP-02** | Shaders de Liquid Glass | Efeitos complexos de refração e especularidade baseados em Metal shaders para iOS 26+. | O projeto real possui **Deployment Target iOS 17.0** (`project.yml:5`). Shaders exclusivos do iOS 26 causam quebra ou falha silenciosa no iOS 17 e 18. | **Decisão Pendente:** Usar materiais nativos do SwiftUI (`.regularMaterial`, `.thinMaterial`) como fallback seguro para iOS 17+. |
-| **DP-03** | Múltiplos Paradigmas Tipográficos | Uso de New York (serifa editorial), SF Mono (arquival) e SF Pro em 4 ou 5 paradigmas alternados. | Decisão do time de 14/10/2026 (`memory/design-provisorio.md:15`): **Tema Neutro**. 100% da interface, números e dinheiro em SF Pro; Bricolage Grotesque exclusivamente no formulário de publicar vaga. Proibido itálico. | **Decisão Pendente:** Padronizar todas as telas em SF Pro nativo com Dynamic Type, mantendo Bricolage Grotesque apenas nas perguntas de publicação. |
+| **DP-03** | Múltiplos Paradigmas Tipográficos | Uso de New York (serifa editorial), SF Mono (arquival) e SF Pro em 4 ou 5 paradigmas alternados. | Decisão do time de 14/10/2026 (Nick Fury, a pedido do Cauê; não consta em outro documento do repositório): **Tema Neutro**. 100% da interface, números e dinheiro em SF Pro; Bricolage Grotesque exclusivamente no formulário de publicar vaga. Proibido itálico. | **Decisão Pendente:** Padronizar todas as telas em SF Pro nativo com Dynamic Type, mantendo Bricolage Grotesque apenas nas perguntas de publicação. |
 | **DP-04** | Vocabulário e Termos em Inglês | Termos como *gig*, *shift*, *marketplace*, *escrow*, *creator profile*, *budget*, *seniority*. | `GuiaDeVoz.md:23-30`: Proibição estrita de estrangeirismos desnecessários. Vocabulário oficial em pt-BR (*vaga*, *turno*, *posição*, *estabelecimento*). | **Decisão Pendente:** Adequar todos os componentes para o vocabulário oficial em português do Brasil aprovado no Guia de Voz. |
 | **DP-05** | Escopo de Telas além do MVP | Telas de portfólio de criadores (`CreatorProfileHero`), testes de estúdio (`StudioExperiment`) e histograma de orçamento. | `05-ESCOPO-DO-MVP.md:30-55`: A v1.0 cobre exclusivamente o ciclo de turnos avulsos presenciais em bares, restaurantes e eventos no DF. | **Decisão Pendente:** Telas de criadores e estúdios ficam fora do binário da v1.0 (não implementar nos fluxos de produção). |
 | **DP-06** | Custódia Financeira (Escrow) | Selo e badges de "Escrow Verified" sugerindo retenção de fundos pelo app. | O Frila v1.0 não processa pagamentos nem retém valores financeiros em custódia (RN09). | **Decisão Pendente:** Substituir qualquer alusão a custódia/escrow por confirmação de presença e reputação verificada pós-turno. |
@@ -316,7 +317,7 @@ Siga a sequência abaixo para implementar as alterações visuais de ponta a pon
 - **Como conferir:** Abra o arquivo `CatalogoDesignSystem.swift` no Canvas do Xcode (`Option + Cmd + Return`) e confira o preview interativo em modo claro e escuro.
 
 ### Passo 7: Incorporar componentes restantes do FrilaLowPhase
-- **Ação:** Revise os arquivos em `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/` (`EditorialTag.swift`, `SearchCapsule.swift`, `ProposalBar.swift`). Adequar textos e comportamento às regras do Guia de Voz e às decisões pendentes (DP-01 e DP-04).
+- **Ação:** Revise os arquivos em `iOS/Sources/Apresentacao/DesignSystem/` (pasta que você cria; um arquivo por componente novo: `FrilaEditorialTag`, `FrilaSearchCapsule`, `FrilaProposalBar`, com origem em `FrilaLowPhase/Sources/FrilaDesignSystem/Components/`). Adequar textos e comportamento às regras do Guia de Voz e às decisões pendentes (DP-01 e DP-04).
 - **Resultado Esperado:** Componentes integrados e consumíveis pelas telas principais.
 - **Como conferir:** Execute os testes unitários da camada de apresentação:
   ```sh
