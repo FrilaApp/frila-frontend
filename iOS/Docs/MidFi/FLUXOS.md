@@ -38,5 +38,11 @@ Perfil → Funções e horários → "Salvar e começar" → Permissão de aviso
 | Detalhe da vaga | Vaga | `Profissional/TelaDetalheVaga.swift` | `success` | disponível, enviando, confirmado, conflito, sem resposta |
 | Vaga preenchida | Preenchida | `Profissional/TelasDaCandidatura.swift` | `vaga-preenchida` | preenchida, encerrada |
 
-## 4. Fora do escopo desta rodada
+## 4. Exceções decididas (o app difere do quadro)
+- **Abas do profissional:** continuam "Vagas no DF", "Meus turnos" e "Candidaturas", com o perfil na barra superior (`abrir-meu-perfil`). O quadro pede "Vagas", "Meus turnos" e "Perfil", mas a aba Candidaturas sustenta o modo seleção e os testes de interface dependem dessa estrutura. As abas ganham o visual do DESIGN.md, sem mudar a navegação. Fica para revisão com o Fabrício depois do TestFlight.
+- **Vagas no DF:** o filtro de função mostra a função real escolhida (sem "Garçom +1" fictício). A contagem diz "N vagas carregadas" quando há mais páginas e "N vagas" quando não há.
+- **Dados do negócio:** sem ponto de referência (não há onde salvar), sem o e-mail da conta (a view não o recebe) e só com o estado de cadastro (não há modo de leitura ou edição nesta tela). Tipo, região administrativa e mapa são os reais.
+- **Cartão de vaga sem avaliações:** só "Ainda sem avaliações." (ver `specs/CartaoVaga.md`).
+
+## 5. Fora do escopo desta rodada
 Turnos (os dois lados), Meu turno, mapas, denúncia, avaliação, conta e perfil completos, ajuda, republicar, repetir, trocar local e mais opções. Quando uma tela do escopo leva até elas, o link continua levando para a tela atual do app.
