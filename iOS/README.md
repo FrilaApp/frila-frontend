@@ -352,6 +352,7 @@ O estado das funções no `frila-dev` está em [Dependências externas](Docs/Ext
 - [Ambientes e segredos](Docs/Environments.md)
 - [Integração contínua](Docs/CI.md)
 - [Design system e tokens](Docs/DesignSystem.md)
+- [Guia de implementação do design (Fabrício)](Docs/GuiaDoFabricio.md)
 - [Handoff e acessibilidade](Docs/AccessibilityHandoff.md)
 - [Relatório de falhas e privacidade](Docs/CrashReporting.md)
 - [Cadastros externos pendentes](Docs/ExternalSetup.md)
