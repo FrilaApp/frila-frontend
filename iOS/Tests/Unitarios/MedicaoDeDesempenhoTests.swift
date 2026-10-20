@@ -265,6 +265,33 @@ struct MedicaoDeDesempenhoTests {
         #expect(servidor.rotasRecebidas.filter { $0 == "/rest/v1/rpc/detalhe_vaga" }.count == 2)
     }
 
+    @Test("Leitura encerra com erro de rede após duas falhas transitórias consecutivas", .timeLimit(.minutes(1)))
+    func leituraEncerraAposDuasFalhasTransientes() async throws {
+        let detalhe = try FixturesDoContrato.dados("vaga")
+        let servidor = try ServidorHTTPDeMedicao(
+            respostas: ["/rest/v1/rpc/detalhe_vaga": detalhe],
+            falhasIniciais: ["/rest/v1/rpc/detalhe_vaga": 2]
+        )
+        defer { servidor.parar() }
+        let url = try await servidor.iniciar()
+
+        let cliente = SupabaseApiCliente(
+            url: url,
+            chavePublicavel: "sb_publishable_teste",
+            telemetria: TelemetryNula(),
+            sessaoHTTP: URLSession(configuration: .ephemeral),
+            armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria()
+        )
+
+        do {
+            _ = try await cliente.detalheDaVaga(id: UUID(uuidString: "40000000-0000-0000-0000-000000000001")!)
+            Issue.record("A leitura deveria encerrar após duas falhas, sem alcançar a resposta válida da terceira chamada")
+        } catch let erro as ErroDaApi {
+            #expect(erro.codigo == .semRede)
+        }
+        #expect(servidor.rotasRecebidas.filter { $0 == "/rest/v1/rpc/detalhe_vaga" }.count == 2)
+    }
+
     @Test("Mutação não retenta automaticamente após queda de conexão", .timeLimit(.minutes(1)))
     func mutacaoNaoRetentaAposQueda() async throws {
         let candidatura = try FixturesDoContrato.dados("candidatura-urgencia")
