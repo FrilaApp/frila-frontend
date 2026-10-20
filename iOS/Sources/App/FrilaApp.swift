@@ -272,8 +272,12 @@ private struct EntradaDoApp: View {
         _roteadorDoContratante = State(initialValue: navegacao.contratante)
         _roteadorDePush = State(initialValue: navegacao.push)
         #if DEBUG
-        // Reproduz a instalação anterior ao cache de sessão, somente com o dublê Local.
+        // Sem fila reproduz a indisponibilidade do armazenamento no fluxo real, somente no Local.
+        // Deve preceder os fallbacks de cache para que nenhum banco de teste reponha a fila.
         let armazenamento: ArmazenamentoSwiftData? = if api is ApiClienteEmMemoria,
+            ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_FILA_UI_TEST") {
+            nil
+        } else if api is ApiClienteEmMemoria,
             ProcessInfo.processInfo.arguments.contains("-FRILA_CACHE_VAZIO_UI_TEST") {
             Self.armazenamentoDeTeste
         } else if api is ApiClienteEmMemoria,
