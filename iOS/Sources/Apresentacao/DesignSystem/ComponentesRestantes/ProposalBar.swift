@@ -3,8 +3,9 @@ import SwiftUI
 public typealias ProposalBar = FrilaProposalBar
 
 /// Barra de proposta fixada na base da tela (FrilaProposalBar).
-/// Apresenta o valor da hora e do capital estimado, detalhamento progressivo
-/// de taxas e retenções (disclosure) e botão de ação primária com retorno tátil.
+/// Apresenta o valor da hora e o total estimado do turno (100% integral e repassado
+/// diretamente pelo contratante ao profissional, sem retenção de taxas ou comissões - DP-01)
+/// e botão de ação primária de candidatura com retorno tátil.
 public struct FrilaProposalBar: View {
     public let isDark: Bool
     public let hourlyRate: Int
@@ -12,20 +13,15 @@ public struct FrilaProposalBar: View {
     public let isSubmitting: Bool
     public let onSubmit: () -> Void
 
-    @State private var showingFeeDetails: Bool = false
     @Environment(\.accessibilityReduceMotion) private var envReduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private let rotuloValoracaoBruta = String(localized: "Valoração Bruta do Contrato:", bundle: bundleApresentacao)
-    private let rotuloTaxaPlataforma = String(localized: "Taxa de Serviço da Plataforma (5%):", bundle: bundleApresentacao)
-    private let rotuloRepasseLiquido = String(localized: "Repasse Líquido Estimado:", bundle: bundleApresentacao)
-    private let rotuloCapitalEst = String(localized: "CAPITAL EST.", bundle: bundleApresentacao)
-    private let rotuloEnviarProposta = String(localized: "Enviar Proposta", bundle: bundleApresentacao)
+    private let rotuloTotalEstimado = String(localized: "TOTAL ESTIMADO", bundle: bundleApresentacao)
+    private let rotuloCandidatar = String(localized: "Candidatar-me", bundle: bundleApresentacao)
     private let rotuloSufixoHora = String(localized: "/h", bundle: bundleApresentacao)
     private let rotuloEstimativaPrefixo = String(localized: "Est. ", bundle: bundleApresentacao)
-    private let estadoTaxasVisivel = String(localized: "Detalhamento de taxas visível", bundle: bundleApresentacao)
-    private let estadoTaxasOculto = String(localized: "Detalhamento de taxas oculto", bundle: bundleApresentacao)
-    private let hintExpandirTaxas = String(localized: "Toque para alternar o detalhamento de taxas da plataforma", bundle: bundleApresentacao)
+    private let rotuloSeloIntegral = String(localized: "100% integral", bundle: bundleApresentacao)
+    private let rotuloDicaIntegral = String(localized: "Valor 100% integral sem taxas", bundle: bundleApresentacao)
 
     public struct CalculoDeRetencao: Equatable, Sendable {
         public let taxaLiquidaHora: Int
@@ -33,11 +29,9 @@ public struct FrilaProposalBar: View {
         public let taxaPlataforma: Int
 
         public init(valorHora: Int, totalEstimado: Int) {
-            let liqHora = Int(Double(valorHora) * 0.95)
-            let liqTotal = Int(Double(totalEstimado) * 0.95)
-            self.taxaLiquidaHora = liqHora
-            self.totalLiquido = liqTotal
-            self.taxaPlataforma = totalEstimado - liqTotal
+            self.taxaLiquidaHora = valorHora
+            self.totalLiquido = totalEstimado
+            self.taxaPlataforma = 0
         }
     }
 
@@ -70,71 +64,15 @@ public struct FrilaProposalBar: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            if showingFeeDetails {
-                detalhamentoDeTaxas
-            }
-
-            if dynamicTypeSize.isAccessibilitySize {
-                dockAcessivel
-            } else {
-                ViewThatFits(in: .horizontal) {
-                    dockLargo
-                    dockPadrao
-                    dockCompacto
-                }
+        if dynamicTypeSize.isAccessibilitySize {
+            dockAcessivel
+        } else {
+            ViewThatFits(in: .horizontal) {
+                dockLargo
+                dockPadrao
+                dockCompacto
             }
         }
-    }
-
-    // MARK: - Detalhamento de Taxas (Progressive Disclosure)
-
-    private var detalhamentoDeTaxas: some View {
-        VStack(spacing: FrilaEspaco.pequeno) {
-            linhaDetalhamento(
-                rotulo: rotuloValoracaoBruta,
-                valor: formatarMoeda(totalEstimate),
-                corDoValor: FrilaCor.texto
-            )
-            linhaDetalhamento(
-                rotulo: rotuloTaxaPlataforma,
-                valor: "−\(formatarMoeda(platformFee))",
-                corDoValor: FrilaCor.alerta
-            )
-            Divider().background(FrilaCor.divisoria)
-            linhaDetalhamento(
-                rotulo: rotuloRepasseLiquido,
-                valor: "\(formatarMoeda(netTotal)) (\(formatarMoeda(netRate))/h)",
-                corDoValor: FrilaCor.sucesso,
-                destaque: true
-            )
-        }
-        .padding(FrilaEspaco.medio)
-        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-        .padding(.horizontal, FrilaEspaco.medio)
-        .padding(.bottom, FrilaEspaco.pequeno)
-        .transition(
-            envReduceMotion
-                ? .opacity
-                : .asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.98, anchor: .bottom)),
-                    removal: .opacity
-                )
-        )
-    }
-
-    private func linhaDetalhamento(rotulo: String, valor: String, corDoValor: Color, destaque: Bool = false) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: rotulo)
-                .font(destaque ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.nota)
-                .foregroundStyle(destaque ? FrilaCor.texto : FrilaCor.textoSecundario)
-            Spacer(minLength: FrilaEspaco.pequeno)
-            Text(verbatim: valor)
-                .font(FrilaTipo.meta.weight(.bold).monospacedDigit())
-                .foregroundStyle(corDoValor)
-                .lineLimit(1)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Variantes de Layout
@@ -151,7 +89,7 @@ public struct FrilaProposalBar: View {
         }
         .padding(.horizontal, FrilaEspaco.medio)
         .padding(.vertical, FrilaEspaco.compacto)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
+        .background(FrilaMaterial.sutil, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
@@ -167,7 +105,7 @@ public struct FrilaProposalBar: View {
         }
         .padding(.horizontal, FrilaEspaco.medio)
         .padding(.vertical, FrilaEspaco.compacto)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
+        .background(FrilaMaterial.sutil, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
@@ -185,7 +123,7 @@ public struct FrilaProposalBar: View {
         }
         .padding(.horizontal, FrilaEspaco.medio)
         .padding(.vertical, FrilaEspaco.compacto)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
+        .background(FrilaMaterial.sutil, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
@@ -200,7 +138,7 @@ public struct FrilaProposalBar: View {
             botaoEnviar(expandirLargura: true)
         }
         .padding(FrilaEspaco.medio)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
+        .background(FrilaMaterial.sutil, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
@@ -231,39 +169,28 @@ public struct FrilaProposalBar: View {
                 }
             }
 
-            // Alternador de taxa líquida (disclosure)
-            let textoTaxaLiquida = String(localized: "Líq. \(formatarMoeda(netRate))/h", bundle: bundleApresentacao)
-            let rotuloA11yLiquido = String(localized: "Líquido \(FrilaMoney.spoken(reais: netRate, por: "hora"))", bundle: bundleApresentacao)
-            Button(action: {
-                withAnimation(FrilaMovimento.animacao(.spring(response: 0.28, dampingFraction: 0.75), reduzir: envReduceMotion)) {
-                    showingFeeDetails.toggle()
-                }
-            }) {
-                HStack(spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: textoTaxaLiquida)
-                        .font(FrilaTipo.nota.weight(.bold))
-                    Image(systemName: "chevron.down")
-                        .font(FrilaTipo.microRotulo)
-                        .rotationEffect(.degrees(showingFeeDetails && !envReduceMotion ? 180 : 0))
-                }
-                .foregroundStyle(FrilaCor.sucesso)
-                .padding(.horizontal, FrilaEspaco.pequeno)
-                .padding(.vertical, FrilaEspaco.minimo)
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .background(FrilaCor.sucesso.opacity(0.12), in: Capsule())
-                .contentShape(Capsule())
+            // Selo de remuneração 100% integral (DP-01)
+            HStack(spacing: FrilaEspaco.minimo) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(FrilaTipo.microRotulo)
+                Text(verbatim: rotuloSeloIntegral)
+                    .font(FrilaTipo.nota.weight(.bold))
             }
-            .buttonStyle(.tatil)
-            .accessibilityLabel(Text(verbatim: rotuloA11yLiquido))
-            .accessibilityValue(Text(verbatim: showingFeeDetails ? estadoTaxasVisivel : estadoTaxasOculto))
-            .accessibilityHint(Text(verbatim: hintExpandirTaxas))
+            .foregroundStyle(FrilaCor.sucesso)
+            .padding(.horizontal, FrilaEspaco.pequeno)
+            .padding(.vertical, FrilaEspaco.minimo)
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .background(FrilaCor.sucesso.opacity(0.12), in: Capsule())
+            .contentShape(Capsule())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(verbatim: rotuloDicaIntegral))
         }
         .accessibilityElement(children: .contain)
     }
 
     private var pilarDeCapital: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: rotuloCapitalEst)
+            Text(verbatim: rotuloTotalEstimado)
                 .font(FrilaTipo.microRotulo)
                 .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
@@ -277,13 +204,14 @@ public struct FrilaProposalBar: View {
     }
 
     private func botaoEnviar(expandirLargura: Bool) -> some View {
-        let dicaEnvio = String(localized: "Envia proposta a \(FrilaMoney.spoken(reais: hourlyRate, por: "hora"))", bundle: bundleApresentacao)
+        let formatoDica = String(localized: "Candidatar-me ao turno no valor de %@", bundle: bundleApresentacao)
+        let dicaEnvio = String(format: formatoDica, formatarMoeda(totalEstimate))
         return Button(action: onSubmit) {
             HStack(spacing: FrilaEspaco.pequeno) {
                 if isSubmitting {
                     ProgressView().tint(FrilaCor.sobrePrimaria)
                 } else {
-                    Text(verbatim: rotuloEnviarProposta)
+                    Text(verbatim: rotuloCandidatar)
                         .font(FrilaTipo.botao)
                         .multilineTextAlignment(.center)
                     Image(systemName: "arrow.right")
@@ -299,7 +227,7 @@ public struct FrilaProposalBar: View {
         }
         .buttonStyle(.tatil)
         .disabled(isSubmitting)
-        .accessibilityLabel(Text(verbatim: rotuloEnviarProposta))
+        .accessibilityLabel(Text(verbatim: rotuloCandidatar))
         .accessibilityHint(Text(verbatim: dicaEnvio))
     }
 }

@@ -461,7 +461,7 @@ public struct FrilaSearchCapsule: View {
         .padding(FrilaEspaco.medio)
         .background {
             RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
-                .fill(isGlass ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(FrilaCor.superficie))
+                .fill(isGlass ? AnyShapeStyle(FrilaMaterial.sutil) : AnyShapeStyle(FrilaCor.superficie))
         }
         .overlay {
             RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
@@ -474,7 +474,7 @@ public struct FrilaSearchCapsule: View {
     private var capsuleBackground: some View {
         if isGlass {
             Capsule()
-                .fill(.ultraThinMaterial)
+                .fill(FrilaMaterial.sutil)
         } else {
             Capsule()
                 .fill(FrilaCor.superficie)

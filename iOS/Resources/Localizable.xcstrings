@@ -8476,6 +8476,56 @@
           }
         }
       }
+    },
+    "TOTAL ESTIMADO": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TOTAL ESTIMADO"
+          }
+        }
+      }
+    },
+    "Valor Total do Turno:": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor Total do Turno:"
+          }
+        }
+      }
+    },
+    "100% integral": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "100% integral"
+          }
+        }
+      }
+    },
+    "Valor 100% integral sem taxas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor 100% integral sem taxas"
+          }
+        }
+      }
+    },
+    "Candidatar-me ao turno no valor de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-me ao turno no valor de %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
