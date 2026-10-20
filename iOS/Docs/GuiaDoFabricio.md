@@ -100,7 +100,7 @@ Frila (App) -> FrilaInfraestrutura -> FrilaDominio
   - `Componentes.swift`: Biblioteca canônica de componentes atômicos (`BotaoPrimario`, `BotaoSecundario`, `CampoFrila`, `CampoCodigo`, `FiltroPill`, `SeloReputacao`, `AvisoFrila`, `CartaoVaga`, `RespostaSimNao`, `FolhaFrila`).
   - `EstadosDeTela.swift`: Componentes de estado de visualização (`EstadoCarregando`, `EstadoVazio`, `EstadoErro`, `EstadoSemRede`).
   - `CatalogoDesignSystem.swift`: Catálogo interativo navegável e testável com previews no Xcode.
-  - Componentes novos do FrilaLowPhase: **não existe pasta pronta**. Ao trazer cada um, crie `iOS/Sources/Apresentacao/DesignSystem/` (um arquivo por componente) e adapte-o aos tokens `Frila*` do `DesignTokens.swift`; a origem de cada componente está em `FrilaLowPhase/Sources/FrilaDesignSystem/Components/` (veja a tabela 5.2).
+  - Componentes do FrilaLowPhase já trazidos ao app: `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/` (`EditorialTag.swift`, `SearchCapsule.swift`, `ProposalBar.swift`). A origem deles está em `FrilaLowPhase/Sources/FrilaDesignSystem/Components/` (veja a tabela 5.2).
 
 ### 3.2 Estrutura de Telas e Fluxos (`iOS/Sources/Apresentacao/Fluxos/`)
 
@@ -182,9 +182,9 @@ O repositório `Frila/FrilaLowPhase` representa a exploração visual criada pel
 | `FrilaFilterChip` | `FiltroPill` | `iOS/Sources/Apresentacao/Componentes.swift:258` | Existe no app: ativo/inativo, feedback tátil, alvo mínimo 44 pt.
 | `FrilaSplitFieldLayout` | `CampoFrila` | `iOS/Sources/Apresentacao/Componentes.swift:162` | Existe no app: rótulo, foco e erro inline. O layout em duas partes do design é novo; decidir antes de trocar.
 | `FrilaSearchDiscoverySheet` (`Components/SearchDiscoverySheet.swift`) | `FolhaFrila` (contêiner) | `iOS/Sources/Apresentacao/Componentes.swift:587` | A folha do app é só o contêiner modal; a busca do design é novo componente. Não há tela de busca no MVP: ver DP-05.
-| `FrilaEditorialTag` (`Components/FrilaEditorialTag.swift`) | nenhum | a criar em `iOS/Sources/Apresentacao/DesignSystem/` | Novo. Selo em cápsula.
-| `FrilaSearchCapsule` (`Components/FrilaSearchCapsule.swift`) | nenhum | a criar | Novo. Só entra se a tela de busca estiver no escopo (DP-05).
-| `FrilaProposalBar` (`Components/FrilaProposalBar.swift`) | nenhum | a criar | Novo. Contém a taxa de 5% e o repasse líquido: ver DP-01 antes de importar.
+| `FrilaEditorialTag` (`Components/FrilaEditorialTag.swift`) | nenhum | `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/EditorialTag.swift` | Já trazido ao app. Selo em cápsula.
+| `FrilaSearchCapsule` (`Components/FrilaSearchCapsule.swift`) | nenhum | `.../ComponentesRestantes/SearchCapsule.swift` | Já trazido ao app. Só entra se a tela de busca estiver no escopo (DP-05).
+| `FrilaProposalBar` (`Components/FrilaProposalBar.swift`) | nenhum | `.../ComponentesRestantes/ProposalBar.swift` | Já trazido ao app. Contém a taxa de 5% e o repasse líquido: ver DP-01 antes de importar.
 
 ### 5.3 Matriz de Decisões Pendentes (Conflitos entre Design e Produto)
 
@@ -317,7 +317,7 @@ Siga a sequência abaixo para implementar as alterações visuais de ponta a pon
 - **Como conferir:** Abra o arquivo `CatalogoDesignSystem.swift` no Canvas do Xcode (`Option + Cmd + Return`) e confira o preview interativo em modo claro e escuro.
 
 ### Passo 7: Incorporar componentes restantes do FrilaLowPhase
-- **Ação:** Revise os arquivos em `iOS/Sources/Apresentacao/DesignSystem/` (pasta que você cria; um arquivo por componente novo: `FrilaEditorialTag`, `FrilaSearchCapsule`, `FrilaProposalBar`, com origem em `FrilaLowPhase/Sources/FrilaDesignSystem/Components/`). Adequar textos e comportamento às regras do Guia de Voz e às decisões pendentes (DP-01 e DP-04).
+- **Ação:** Revise os arquivos em `iOS/Sources/Apresentacao/DesignSystem/ComponentesRestantes/` (`EditorialTag.swift` com `FrilaEditorialTag`, `SearchCapsule.swift` com `FrilaSearchCapsule`, `ProposalBar.swift` com `FrilaProposalBar`). Adequar textos e comportamento às regras do Guia de Voz e às decisões pendentes (DP-01 e DP-04).
 - **Resultado Esperado:** Componentes integrados e consumíveis pelas telas principais.
 - **Como conferir:** Execute os testes unitários da camada de apresentação:
   ```sh
