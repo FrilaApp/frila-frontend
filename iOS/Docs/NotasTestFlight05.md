@@ -19,7 +19,7 @@ Rascunho das notas da versão ("O que testar") para o build 0.5 do Frila no Test
 
 - **Onde enviar:**
   - Pelo TestFlight: faça uma captura de tela no iPhone (botão lateral + volume para cima) e toque em "Compartilhar Feedback Beta".
-  - Por e-mail: envie para o canal oficial da Equipe Frila em `suportefrila@gmail.com` (sem uso de e-mail pessoal).
+  - Por e-mail: envie para o canal oficial da Equipe Frila em `suporte@frilabr.com` (sem uso de e-mail pessoal).
 - **O que anexar e informar:**
   - Captura de tela (print) ou gravação mostrando o comportamento encontrado ou a mensagem na tela.
   - Modelo do iPhone e versão do iOS (disponíveis em Ajustes > Geral > Sobre).
@@ -56,4 +56,4 @@ Rascunho das notas da versão ("O que testar") para o build 0.5 do Frila no Test
 | "Avaliação do turno: após o término do turno cumprido, toque em 'Avaliar turno' e responda 'Você trabalharia nesse local de novo?'." | `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift:47`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:168-169`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:183` | Título da tela "Avaliar turno", pergunta "Você trabalharia nesse local de novo?" e bloqueio antes do término/sem presença. |
 | "Envio da resposta: selecione 'Sim' ou 'Não' e toque em 'Enviar avaliação'." | `iOS/Sources/Apresentacao/Componentes.swift:343-344`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift:119`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:179` | Componente `RespostaSimNao` com botões "Sim" e "Não", e botão "Enviar avaliação". |
 | "Se estiver sem conexão, a resposta fica salva no aparelho até a internet voltar." | `iOS/Sources/Apresentacao/Fluxos/Profissional/AvaliacaoTurnoViewModel.swift:45`, `iOS/Sources/Apresentacao/Fluxos/Profissional/AvaliacaoTurnoViewModel.swift:148`, `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:181` | Resposta salva localmente via `salvar` e enfileirada no estado `enfileiradoOffline` com aviso textual. |
-| Canal de atendimento e reporte: `suportefrila@gmail.com` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:22`, `iOS/Docs/AjudaESuporte.md:27` | Canal oficial único do produto registrado em `EnderecosOficiais.padrao.emailSuporte`. |
+| Canal de atendimento e reporte: `suporte@frilabr.com` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:22`, `iOS/Docs/AjudaESuporte.md:27` | Canal oficial único do produto registrado em `EnderecosOficiais.padrao.emailSuporte`. |

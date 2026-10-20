@@ -20,7 +20,7 @@ O canal de suporte e as referências técnicas estão abaixo. As URLs públicas 
 
 | Parâmetro / Variável | Valor / Formato | Fonte Verificada | Observação de Governança |
 |---|---|---|---|
-| `{{email_suporte}}` | `suportefrila@gmail.com` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:22`<br>`iOS/Docs/AjudaESuporte.md:19` | E-mail oficial padrão do produto injetado na camada de apresentação (`EnderecosOficiais.padrao.emailSuporte`). |
+| `{{email_suporte}}` | `suporte@frilabr.com` | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:22`<br>`iOS/Docs/AjudaESuporte.md:19` | E-mail oficial padrão do produto injetado na camada de apresentação (`EnderecosOficiais.padrao.emailSuporte`). |
 | `{{destinatario_time}}` | `[A DEFINIR]` | Cartão Trello `oYSwLrIS` | Destinatário da lista operacional técnica. Não definido em código; mantido como variável a configurar na infraestrutura. |
 | `{{link_painel}}` | `[A DEFINIR]` | Cartão Trello `oYSwLrIS` | URL do painel de monitoramento do backend. Mantido como variável a configurar. |
 | `{{url_termos}}` | `[A DEFINIR: URL pública dos termos]` | Decisão do Cauê de 15/10/2026 | Confirmar domínio aprovado antes do envio; não usar os endereços atuais do app sem revisão. |
@@ -49,7 +49,7 @@ E-mail disparado durante o fluxo de entrada e cadastro (RF01, UC09, UC10). A pes
 - **Destinatário:** E-mail informado pelo usuário.
 - **Variáveis:**
   - `{{codigo}}` (código de 6 dígitos gerado pelo serviço de autenticação).
-  - `{{email_suporte}}` (e-mail oficial de suporte: `suportefrila@gmail.com`).
+  - `{{email_suporte}}` (e-mail oficial de suporte: `suporte@frilabr.com`).
 
 ### 2.1 Metadados do E-mail
 - **Assunto:** `{{codigo}} é seu código de entrada no Frila`
@@ -144,7 +144,7 @@ E-mail de confirmação enviado à pessoa que submeteu uma denúncia de conteúd
   - `{{protocolo_curto}}` (primeiros 8 caracteres alfanuméricos em maiúsculas).
   - `{{categoria}}` (motivo classificado: Assédio, Discriminação, Risco à segurança ou Outro).
   - `{{data_abertura}}` (data formatada no padrão DD/MM/AAAA).
-  - `{{email_suporte}}` (e-mail oficial de suporte: `suportefrila@gmail.com`).
+  - `{{email_suporte}}` (e-mail oficial de suporte: `suporte@frilabr.com`).
 
 ### 3.1 Metadados do E-mail
 - **Assunto:** `[Frila] Recebemos sua denúncia · Protocolo {{protocolo_curto}}`
@@ -261,7 +261,7 @@ E-mail de confirmação enviado quando o usuário registra uma contestação for
   - `{{tipo_contestacao}}` (Suspensão de conta ou Revisão de despacho).
   - `{{data_abertura}}` (data formatada no padrão DD/MM/AAAA).
   - `{{prazo_resposta}}` (data limite para resposta formal, em até 15 dias corridos; o cálculo atual do backend ainda precisa ser alinhado).
-  - `{{email_suporte}}` (e-mail oficial de suporte: `suportefrila@gmail.com`).
+  - `{{email_suporte}}` (e-mail oficial de suporte: `suporte@frilabr.com`).
 
 ### 4.1 Metadados do E-mail
 - **Assunto:** `[Frila] Recebemos sua contestação · Protocolo {{protocolo_curto}}`
@@ -474,13 +474,13 @@ Monitoramento Frila · Infraestrutura e Confiabilidade
 | **Prazos documentais atualizados** | Backend pendente | Seções 3 (denúncia) e 4 (contestação): o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). Textos e cálculo do prazo no backend dependem de cartão no Trello. |
 | **Telefones de emergência 190 e 180 no modelo de denúncia** | Concluído | Seção 3 (texto simples e HTML) com destaque para atendimento policial e mulher. |
 | **Alerta do time sem dados pessoais e com destinatário/link a definir** | Concluído | Seção 5 restrita a métricas operacionais, instante, `{{destinatario_time}} [A DEFINIR]` e `{{link_painel}} [A DEFINIR]`. |
-| **Canal oficial e URLs pendentes** | Parcial | Variável `{{email_suporte}}` definida como `suportefrila@gmail.com`. URLs públicas em variáveis, pendentes de domínio aprovado pelo Cauê. |
+| **Canal oficial e URLs pendentes** | Parcial | Variável `{{email_suporte}}` definida como `suporte@frilabr.com`. URLs públicas em variáveis, pendentes de domínio aprovado pelo Cauê. |
 | **Validade do código informada** | Concluído | O modelo diz *"Ele vale por 15 minutos e só pode ser usado uma vez"*, o mesmo valor do Auth do `frila-dev` (900 s) e do e-mail que já está no ar. |
 | **Terminologia do Guia de Voz e ausência da palavra "comissão"** | Concluído | Vocabulário auditado contra `GuiaDeVoz.md`, sem "comissão". |
 | **Conferência de scripts (`conferir-textos.sh`)** | Concluído | `iOS/Scripts/conferir-textos.sh` aprovado sem erros. |
 | **Definição de prazos de moderação e atendimento** | Concluído nos textos | Decisão do Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (incorporado aos modelos em texto simples e HTML). |
 | **Validação da entrega na caixa de entrada (Gmail e iCloud) com captura no Trello** | Concluído na prova; captura no cartão pendente | Prova de 16/10 registrada em `DiarioDeConfiguracao.md`: Gmail e iCloud na caixa de entrada em cerca de 1 s, SPF, DKIM e DMARC PASS; Outlook no spam (aceito pelo Cauê até haver domínio próprio). Não há captura da caixa de entrada anexada. |
-| **Aprovação dos textos pela Júlia** | Concluído por delegação | Revisão profunda de 16/10 feita por Nick Fury, **por delegação do Cauê** (a Júlia não precisa mais aprovar): quatro modelos conferidos contra o `GuiaDeVoz.md` (sem "comissão", sem promessa de rapidez, sem estrangeirismo, sem exclamação, "Vaga"/"Equipe Frila" nos termos do glossário), prazos 5 dias úteis e 15 dias corridos, suportefrila@gmail.com, 190 e 180 no modelo de denúncia, sem dado pessoal no alerta. Não é parecer jurídico. |
+| **Aprovação dos textos pela Júlia** | Concluído por delegação | Revisão profunda de 16/10 feita por Nick Fury, **por delegação do Cauê** (a Júlia não precisa mais aprovar): quatro modelos conferidos contra o `GuiaDeVoz.md` (sem "comissão", sem promessa de rapidez, sem estrangeirismo, sem exclamação, "Vaga"/"Equipe Frila" nos termos do glossário), prazos 5 dias úteis e 15 dias corridos, suporte@frilabr.com, 190 e 180 no modelo de denúncia, sem dado pessoal no alerta. Não é parecer jurídico. |
 | **Homologação formal do prazo de validade do código OTP** | Concluído | Decisão de 16/10 (Nick Fury, por delegação do Cauê): informar 15 minutos, o valor real do Auth do `frila-dev`. |
 
 ### 6.1 Decisões Pendentes (Cauê e João Paulo)

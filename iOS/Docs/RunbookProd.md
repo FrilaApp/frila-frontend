@@ -19,7 +19,7 @@ secrets do GitHub. Para a arquitetura dos ambientes, veja [Environments](Environ
 | Chave APNs `.p8` (ID `89CNDKBL96`) | Cofre KeePassXC do time + console FCM de frila-dev e frila-prod | Entrega de push pelo Firebase Messaging | configurado no FCM |
 | `GoogleService-Info.plist` (Prod) | Cofre KeePassXC; injetado pela CI com `inject-firebase-config.sh` | Crashlytics e FCM do projeto Firebase `frila-prod` | configurado |
 | `service_role` do frila-prod | Vault/segredo do Supabase, acessível pelo painel | Operações administrativas do backend, Edge Functions | **backend** |
-| Credenciais SMTP (Supabase Auth) | Painel do Supabase, frila-prod | Envio de código de entrada por e-mail | **pendente** (cartão SMTP) |
+| Credenciais SMTP (Supabase Auth) | Painel do Supabase, frila-prod | Envio de código de entrada por e-mail | **feito em 20/10** (Resend, remetente `verificacao@frilabr.com`) |
 | `pg_cron` / Agendador | Painel do Supabase, frila-prod | Despacho e tarefas recorrentes | **pendente** (cartão #76 / entrega contínua #207) |
 
 ### Rotação de segredos
@@ -57,7 +57,7 @@ Estado em 11/10/2026, conforme [ExternalSetup](ExternalSetup.md) item 9 e a tria
 |---|---|---|---|
 | Migrações do banco | #76 (ambiente de produção) | Backend / Cauê | As 29+ migrações do `frila-dev` precisam ser aplicadas no `frila-prod` |
 | Auth (Supabase) | #76 | Backend / Cauê | Configuração do Supabase Auth com templates de e-mail, redirect URLs |
-| SMTP próprio | Cartão SMTP | Cauê | SPF, DKIM e DMARC do domínio `frila.app`; configuração no painel do Supabase |
+| SMTP próprio | Cartão SMTP | Cauê | SPF, DKIM e DMARC do domínio `frilabr.com`; configuração no painel do Supabase |
 | FCM (Edge Function) | #76 | Backend | `service_role` e service account do FCM como segredo de Edge Function |
 | `pg_cron` | #76 / #207 | Backend | Agendador do despacho de turnos |
 | Esquema da tag → Prod | [CI](CI.md) | Cauê | No `testflight.yml`, trocar `ESQUEMA_DA_TAG: Frila-Beta` para `Frila-Prod` |

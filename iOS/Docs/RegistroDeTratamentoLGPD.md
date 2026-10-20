@@ -83,7 +83,7 @@ Documento técnico elaborado em conformidade com o Artigo 37 da Lei Geral de Pro
    - **Impacto:** A divergência documental de 24 horas foi removida. O alinhamento dos textos e do cálculo técnico de prazo permanece pendente; nenhum código do app ou backend foi alterado nesta missão.
 
 7. **E-mail de contato: resta `suporte@frila.app` em três lugares:**
-   - **Unificado:** o app e a Política usam `suportefrila@gmail.com` (`privacidade.md`, `EnderecosOficiais.swift:22`).
+   - **Unificado:** o app e a Política usam `privacidade@frilabr.com` (`privacidade.md`, `EnderecosOficiais.swift:22`).
    - **Ainda com `suporte@frila.app`:** `openapi.yaml:2954` (espelho do contrato, do backend), `AjudaESuporte.md:49` e `PlanoDoPiloto.md`.
    - **Impacto:** o canal do titular está unificado no app; falta atualizar esses documentos e o contrato, via cartão no backend.
 
@@ -93,7 +93,7 @@ Documento técnico elaborado em conformidade com o Artigo 37 da Lei Geral de Pro
 
 1. **Identificação da Pessoa Física Responsável e Canal do Titular:**
    - **Definido pelo Cauê em 15/10/2026:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes), sem razão social, CNPJ, sede nem DPO.
-   - **Canal definido:** `suportefrila@gmail.com` para solicitações do titular de dados e suporte.
+   - **Canal definido:** `privacidade@frilabr.com` para solicitações do titular de dados e suporte.
    - **Confirmado pelo Cauê:** Localidade Brasília/DF e foro da Comarca de Brasília, Distrito Federal, já refletidos nos textos públicos.
    - **Avaliação jurídica pendente:** Enquadramento das obrigações relativas ao encarregado. Os textos públicos não afirmam dispensa de encarregado.
 
@@ -113,7 +113,7 @@ Documento técnico elaborado em conformidade com o Artigo 37 da Lei Geral de Pro
    - Validação da base legal para tratamento de denúncias e bloqueios mútuos (Art. 7º, II e VI para proteção da comunidade e cumprimento de exigências de distribuição da Apple).
 
 5. **Unificação e Criação dos Canais Oficiais de Atendimento ao Titular:**
-   - Definição final entre `suportefrila@gmail.com`, `suporte@frila.app` ou criação de endereço dedicado `privacidade@frila.app` para atendimento às requisições do Art. 18 da LGPD.
+   - O endereço de privacidade ficou definido como `privacidade@frilabr.com`, em 20/10/2026, por decisão do Cauê.
 
 6. **[DONO] Exclusão de conta e ocorrências em que a conta é o alvo:**
    - **Fato (ver Seção 4):** a rotina de 15 dias só altera ocorrências em que a conta excluída é a **autora**. O texto de uma denúncia ou contestação feita **contra** a conta excluída (`usuario_id`) e o campo `resultado` permanecem.

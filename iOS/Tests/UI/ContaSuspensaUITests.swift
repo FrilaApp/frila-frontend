@@ -127,7 +127,7 @@ final class ContaSuspensaUITests: XCTestCase {
         XCTAssertTrue(mensagem.exists)
         XCTAssertTrue(mensagem.label.contains("A resposta da Equipe Frila é enviada por e-mail."))
         XCTAssertTrue(mensagem.label.contains("recurso adicional"))
-        XCTAssertTrue(mensagem.label.contains("suportefrila@gmail.com"))
+        XCTAssertTrue(mensagem.label.contains("suporte@frilabr.com"))
         XCTAssertFalse(mensagem.label.contains("em análise"))
         XCTAssertFalse(app.descendants(matching: .any)["status-em-analise"].exists)
         XCTAssertFalse(app.buttons["botao-contestar-suspensao"].exists)

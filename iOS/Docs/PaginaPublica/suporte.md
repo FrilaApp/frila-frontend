@@ -50,7 +50,7 @@ Sua integridade e tranquilidade são nossa prioridade máxima. Para garantir um 
 
 Se você tiver dúvidas, problemas com acesso, contestações de suspensão de conta ou solicitações sobre seus dados pessoais:
 
-- **E-mail oficial de suporte:** `suportefrila@gmail.com`
+- **E-mail oficial de suporte:** `suporte@frilabr.com`
 - **Prazo de atendimento:** o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 - **Pelo próprio aplicativo:** No menu **Perfil**, toque em **Ajuda** para abrir os canais diretos de suporte, consultar termos de uso e política de privacidade.
 - **Em turnos em andamento:** Durante a realização de um turno confirmado, utilize a opção **Ajuda no turno** para abrir um chamado operacional com registro do turno correspondente.
@@ -74,4 +74,4 @@ Imprevistos acontecem, mas compromisso é fundamental. Caso não possa comparece
 Após a conclusão do turno, ambas as partes podem avaliar mutuamente a experiência de forma simples (Sim ou Não). As avaliações ajudam a manter a comunidade qualificada e justa para todos.
 
 ### Como posso exportar ou apagar meus dados?
-Você pode solicitar a exportação de todos os seus dados cadastrais ou a exclusão completa da sua conta a qualquer momento diretamente no aplicativo (em **Perfil** → **Exportar meus dados** ou **Excluir conta**) ou enviando um e-mail para `suportefrila@gmail.com`.
+Você pode solicitar a exportação de todos os seus dados cadastrais ou a exclusão completa da sua conta a qualquer momento diretamente no aplicativo (em **Perfil** → **Exportar meus dados** ou **Excluir conta**) ou enviando um e-mail para `privacidade@frilabr.com`.

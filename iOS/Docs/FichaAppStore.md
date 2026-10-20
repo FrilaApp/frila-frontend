@@ -115,14 +115,14 @@ Enquanto não houver domínio próprio (ver `DiarioDeConfiguracao.md`, linha 4),
 
 | Campo no App Store Connect | URL Oficial | Arquivo Fonte no Repositório | Descrição do Conteúdo |
 |---|---|---|---|
-| **URL de Suporte (*Support URL*)** | `https://frila.netlify.app/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suportefrila@gmail.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
+| **URL de Suporte (*Support URL*)** | `https://frila.netlify.app/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suporte@frilabr.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
 | **URL de Marketing (*Marketing URL*)** | `https://frila.netlify.app` | Página inicial do site (sem arquivo próprio no repositório) | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
 | **URL de Privacidade (*Privacy Policy URL*)** | `https://frila.netlify.app/privacidade` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
 | **Termos de Uso (*Terms of Use / EULA*)** | `https://frila.netlify.app/termos` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
 
 > **Conferência com o código-fonte:** [`EnderecosOficiais.swift`](../Sources/Apresentacao/EnderecosOficiais.swift), linhas 19–23 (`termosDeUso`, `politicaDePrivacidade`, `emailSuporte` e propriedade computada `urlSuporte`).
 >
-> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. A URL web de suporte da loja é a página do Netlify; o canal de atendimento é `suportefrila@gmail.com`. Os endereços do app ainda precisam ser alinhados em missão própria.
+> **Nota sobre a URL de Suporte:** A propriedade computada `urlSuporte` (`EnderecosOficiais.swift:10`) gera um endereço `mailto:`, usado dentro do app. A URL web de suporte da loja é a página do Netlify; o canal de atendimento é `suporte@frilabr.com`. Os endereços do app ainda precisam ser alinhados em missão própria.
 
 ---
 
@@ -178,7 +178,7 @@ Dados obrigatórios inseridos no App Store Connect para permitir a validação c
 ### 5.1 Contato da Equipe de Revisão
 - **Nome:** `Cauê`
 - **Sobrenome:** `Carneiro Kilanovic`
-- **E-mail de contato:** `suportefrila@gmail.com`
+- **E-mail de contato:** `suporte@frilabr.com`
 - **Telefone:** `[A DEFINIR]`
 
 ### 5.2 Contas de Demonstração para Testes (*Demo Accounts*)
@@ -204,7 +204,7 @@ Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos v
 > 2. Perfis do App: Uma conta atua como Contratante (publica vagas) e a outra como Profissional (candidata-se e registra check-in).
 > 3. Geolocalização: O check-in do profissional requer proximidade física com o endereço do estabelecimento. Para testar o check-in no simulador, configure a localização simulada para as coordenadas do estabelecimento demo (Asa Sul, Brasília: Latitude -15.8080, Longitude -47.8890).
 > 4. Conteúdo Gerado por Usuários (Diretriz 1.2): O aplicativo inclui moderação ativa, botão nativo de denúncia de irregularidades e bloqueio mútuo definitivo de usuários acessível nos detalhes do turno e do perfil. A moderação de denúncias é realizada o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
-> 5. Para qualquer dúvida durante a revisão, estamos à disposição pelo e-mail suportefrila@gmail.com.
+> 5. Para qualquer dúvida durante a revisão, estamos à disposição pelo e-mail suporte@frilabr.com.
 
 ---
 
@@ -260,7 +260,7 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 | Data | Autor | Alteração |
 |---|---|---|
 | 2026-10-12 | Doutor Estranho | Elaboração da ficha completa da App Store: nome, subtítulo, palavras-chave com contagem exata, descrição auditada, What's New, URLs públicas, classificação 17+/18+, dados para revisão e checklist contra Diretrizes 2.3 e Guia de Voz (cartão PFWvegZa, T-0019). |
-| 2026-10-12 | Doutor Estranho | Ajustes de devolução (PR 223): e-mail oficial atualizado para `suportefrila@gmail.com` (`EnderecosOficiais.swift:22`), remoção do prazo de 24h na descrição em favor do prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`) e confirmação da página pública de suporte mesclada no PR 215. |
+| 2026-10-12 | Doutor Estranho | Ajustes de devolução (PR 223): e-mail oficial atualizado para `suporte@frilabr.com` (`EnderecosOficiais.swift:22`), remoção do prazo de 24h na descrição em favor do prazo oficial do app ("Respondemos em até 5 dias úteis.", `TextosPerfilConta.prazoSuporte`) e confirmação da página pública de suporte mesclada no PR 215. |
 | 2026-10-13 | Thor | Unificação da ficha da loja (T23): consolidação de fontes oficiais, notas técnicas e auditoria da Diretriz 2.3 migradas do documento preliminar de metadados (apagado) para `FichaAppStore.md`, conforme decisão do Cauê. |
 | 2026-10-15 | Homem-Aranha | Atualização da identificação para pessoa física e dos prazos por decisão do Cauê: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Substitui a decisão anterior de 12/10/2026 sobre moderação. Contas demo e URLs públicas seguem pendentes. |
 | 2026-10-15 | Nick Fury | Seção 4 refeita pelo parecer de maioridade: respostas do Age Rating atual (Age Assurance Sim; linguagem e álcool Nenhum), faixa 18+ por override (17+ não existe mais), A18 esperado no Brasil, aviso na tela de entrada e texto curto para a ficha. |
