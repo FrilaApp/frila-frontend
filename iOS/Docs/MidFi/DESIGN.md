@@ -14,7 +14,7 @@ Quando o quadro e este documento divergirem, vale este documento. Se faltar regr
 ## 1.1 Liquid Glass nativo (decisão do Fabrício, 2026-10-20)
 O app é compilado com o SDK do iOS 26, então os controles de sistema ganham Liquid Glass sozinhos no iOS 26 e caem para o visual clássico no 17 e no 18. A regra é **não atrapalhar o sistema**:
 - **Nativos, sem customização visual:** a barra de abas (`TabView` com `.tabItem`), os botões de barra de ferramentas (`ToolbarItem` com `Button` ou `Menu`, ícone SF Symbol), o botão voltar da navegação e as folhas (`.sheet`). Proibido nesses elementos: `.toolbarBackground(...)`, `UITabBarAppearance`, `UINavigationBarAppearance`, círculo branco desenhado à mão no lugar do voltar, ou fundo pintado na barra de abas.
-- **Podem ser customizados:** títulos e cabeçalhos de tela (título grande próprio, subtítulo), cartões, campos, chips e o CTA preto em pílula.
+- **Podem ser customizados:** títulos e cabeçalhos de tela (título grande próprio, subtítulo), cartões, campos, chips e o CTA preto em pílula. Mas, quando o título grande nativo (`.navigationTitle` com modo grande) já bate com o quadro, **prefira o nativo**: ele rola com o vidro e os testes de interface já o procuram como `navigationBars["…"]`.
 - **Barra inferior de ação:** no iOS 26, `.safeAreaBar(edge: .bottom)` (efeito de borda nativo, sem material pintado); no 17 e no 18, `safeAreaInset(edge: .bottom)` com `.regularMaterial`. Usar `if #available(iOS 26, *)`.
 - APIs de vidro (`.glassEffect`, `.buttonStyle(.glass)`) só dentro de `if #available(iOS 26, *)`, com alternativa para o 17 e o 18. Não usar shaders próprios (DP-02).
 - Capturas de revisão sempre no simulador **iOS 26.4** (o `captura.sh` já usa iPhone 17 com iOS 26.4).
