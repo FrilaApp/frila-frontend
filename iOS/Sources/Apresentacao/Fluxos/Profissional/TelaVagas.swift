@@ -16,6 +16,7 @@ public struct TelaVagas: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 AvisoDePermissaoDePush(perfil: .profissional)
+                cabecalho
                 filtros
                 conteudo
             }
@@ -42,6 +43,31 @@ public struct TelaVagas: View {
     private var listaNaTela: @MainActor @Sendable () -> Bool {
         let viewModel = viewModel
         return { if case .carregada = viewModel.estado { true } else { false } }
+    }
+
+    private var cabecalho: some View {
+        Group {
+            if !dynamicTypeSize.isAccessibilitySize {
+                FrilaSearchCapsule(
+                    activeCount: contagemDeVagas,
+                    craftQuery: nomeDaFuncao,
+                    termsQuery: Self.titulo(viewModel.data),
+                    budgetQuery: Self.titulo(viewModel.distancia)
+                ) { zona in
+                    if zona == 3 {
+                        Task { await viewModel.atualizar() }
+                    }
+                }
+                .accessibilityIdentifier("capsula-busca-vagas")
+            }
+        }
+    }
+
+    private var contagemDeVagas: Int {
+        if case let .carregada(vagas) = viewModel.estado {
+            return vagas.count
+        }
+        return 0
     }
 
     private var filtros: some View {
@@ -71,7 +97,7 @@ public struct TelaVagas: View {
                 Button { selecionar { await $0.selecionar(funcao: funcao.id) } } label: { Text(verbatim: funcao.nome) }
             }
         } label: {
-            PilulaDeFiltro(titulo: nomeDaFuncao, ativo: viewModel.funcaoID != nil)
+            FiltroPill(verbatim: nomeDaFuncao, selecionado: viewModel.funcaoID != nil) {}
         }
         .accessibilityIdentifier("filtro-funcao")
     }
@@ -82,7 +108,7 @@ public struct TelaVagas: View {
                 Button { selecionar { await $0.selecionar(data: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
             }
         } label: {
-            PilulaDeFiltro(titulo: Self.titulo(viewModel.data), ativo: viewModel.data != .qualquer)
+            FiltroPill(verbatim: Self.titulo(viewModel.data), selecionado: viewModel.data != .qualquer) {}
         }
         .accessibilityIdentifier("filtro-data")
     }
@@ -93,7 +119,7 @@ public struct TelaVagas: View {
                 Button { selecionar { await $0.selecionar(distancia: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
             }
         } label: {
-            PilulaDeFiltro(titulo: Self.titulo(viewModel.distancia), ativo: viewModel.distancia != .qualquer)
+            FiltroPill(verbatim: Self.titulo(viewModel.distancia), selecionado: viewModel.distancia != .qualquer) {}
         }
         .accessibilityIdentifier("filtro-distancia")
     }
@@ -164,33 +190,5 @@ public struct TelaVagas: View {
         case .qualquer: TextosDoProfissional.Lista.qualquerDistancia
         case let .ate(km): TextosDoProfissional.Lista.ateKm(km)
         }
-    }
-}
-
-/// Chip de filtro do MidFi que abre um menu: ativo escuro com texto claro, inativo claro com fio.
-/// O estado ativo não depende só de cor: ganha um ícone. O chip tem 32 pt visíveis num alvo de 44 pt.
-private struct PilulaDeFiltro: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let titulo: String
-    let ativo: Bool
-
-    var body: some View {
-        HStack(spacing: FrilaEspaco.minimo) {
-            if ativo { Image(systemName: "checkmark").accessibilityHidden(true) }
-            Text(verbatim: titulo)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-            Image(systemName: "chevron.down").font(.caption).accessibilityHidden(true)
-        }
-        .font(ativo ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
-        .padding(.horizontal, FrilaEspaco.faixa)
-        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : 0)
-        .frame(minHeight: FrilaMetrica.alturaDoChip)
-        .foregroundStyle(ativo ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-        .background(ativo ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
-        .overlay(Capsule().strokeBorder(ativo ? Color.clear : FrilaCor.borda, lineWidth: 1))
-        .frame(minHeight: FrilaMetrica.alvoMinimo)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(ativo ? String(localized: "filtro ativo", bundle: bundleApresentacao) : "")
     }
 }
