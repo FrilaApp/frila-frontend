@@ -192,8 +192,8 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(indisponivel.label.contains("A vaga foi preenchida, e a sua candidatura não foi escolhida."), indisponivel.label)
         XCTAssertFalse(app.buttons["candidatar"].exists)
         XCTAssertFalse(app.buttons["retirar-candidatura"].exists)
-        // O título do que aconteceu fica só no corpo: a barra diz "Vaga".
-        XCTAssertTrue(app.navigationBars["Vaga"].exists)
+        // O título do que aconteceu fica só no corpo: a barra diz "Detalhe da vaga".
+        XCTAssertTrue(app.navigationBars["Detalhe da vaga"].exists)
         XCTAssertFalse(app.navigationBars["O estabelecimento escolheu outra pessoa"].exists)
 
         // Pelo push, o voltar cai na lista de vagas.

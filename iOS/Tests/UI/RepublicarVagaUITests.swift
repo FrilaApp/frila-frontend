@@ -41,7 +41,7 @@ final class RepublicarVagaUITests: XCTestCase {
         // A lista de Minhas vagas permanece visível com a nova vaga ativa (seção Em alerta, Hoje ou Próximas)
         XCTAssertTrue(app.staticTexts["Minhas vagas"].waitForExistence(timeout: 10))
         XCTAssertTrue(
-            app.staticTexts["Em alerta"].waitForExistence(timeout: 5)
+            app.staticTexts["Precisa de atenção"].waitForExistence(timeout: 5)
             || app.staticTexts["Hoje"].waitForExistence(timeout: 5)
             || app.staticTexts["Próximas"].waitForExistence(timeout: 5)
         )
@@ -63,7 +63,7 @@ final class RepublicarVagaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["tela-republicar-vaga"].waitForNonExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-republicacao"].waitForExistence(timeout: Espera.aparecer))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.staticTexts["Em alerta"].waitForExistence(timeout: 5)
+        XCTAssertTrue(app.staticTexts["Precisa de atenção"].waitForExistence(timeout: 5)
                       || app.staticTexts["Hoje"].waitForExistence(timeout: 5)
                       || app.staticTexts["Próximas"].waitForExistence(timeout: 5))
     }

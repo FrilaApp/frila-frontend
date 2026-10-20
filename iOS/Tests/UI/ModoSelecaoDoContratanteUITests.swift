@@ -243,7 +243,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let continuar = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuar.waitForExistence(timeout: 15))
         continuar.tap()
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         // O formulário abre em urgência; o início padrão é daqui a 3 horas, então "Seleção" não aparece.
         let modo = app.segmentedControls["modo-vaga-picker"]
@@ -271,7 +271,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let continuar = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuar.waitForExistence(timeout: 15))
         continuar.tap()
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         let modo = app.segmentedControls["modo-vaga-picker"]
         rolarAte(modo, em: app)

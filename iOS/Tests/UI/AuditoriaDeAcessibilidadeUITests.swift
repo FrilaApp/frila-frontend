@@ -469,7 +469,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         auditar(app, tela: "cadastro-estabelecimento")
 
         tocar(app.buttons["continuar-cadastro"], em: app)
-        guard esperar(app.staticTexts["Publicar vaga"], "Publicar vaga deve abrir") else { return }
+        guard esperar(app.navigationBars["Nova vaga"], "Publicar vaga deve abrir") else { return }
         if ax5 {
             auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker, estrito: true)
         } else {

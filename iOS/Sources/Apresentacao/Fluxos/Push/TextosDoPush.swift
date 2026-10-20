@@ -9,25 +9,39 @@ enum TextosDoPush {
     /// A tela de explicação, antes do pedido do sistema.
     enum Explicacao {
         static let titulo = String(localized: "Ative as notificações", bundle: bundleApresentacao)
+        static let tituloProfissional = String(localized: "As vagas chegam por aviso", bundle: bundleApresentacao)
         static let ativar = String(localized: "Ativar notificações", bundle: bundleApresentacao)
         static let agoraNao = String(localized: "Agora não", bundle: bundleApresentacao)
         static let rodape = String(localized: "Você pode mudar isso quando quiser, nos Ajustes do iPhone.", bundle: bundleApresentacao)
 
+        static func titulo(_ perfil: PerfilConta) -> String {
+            switch perfil {
+            case .profissional:
+                tituloProfissional
+            case .contratante:
+                titulo
+            }
+        }
+
         static func mensagem(_ perfil: PerfilConta) -> String {
             switch perfil {
             case .profissional:
-                String(localized: "É pela notificação que você fica sabendo de uma vaga nova perto de você, na hora em que ela é publicada.", bundle: bundleApresentacao)
+                String(localized: "No modo urgência, quem aceitar primeiro fica com a vaga. O aviso é o que te coloca na frente.", bundle: bundleApresentacao)
             case .contratante:
                 String(localized: "É pela notificação que você fica sabendo quando alguém aceita a sua vaga e quando a pessoa chega para o turno.", bundle: bundleApresentacao)
             }
         }
 
+        static let amostraCargoHorario = String(localized: "Garçom hoje, 18h às 02h", bundle: bundleApresentacao)
+        static let amostraAgora = String(localized: "agora", bundle: bundleApresentacao)
+        static let amostraDetalhe = String(localized: "Bar da Quadra, Asa Norte, R$ 140, a 3,2 km de você.", bundle: bundleApresentacao)
+
         static func itens(_ perfil: PerfilConta) -> [String] {
             switch perfil {
             case .profissional: [
-                String(localized: "Vaga nova na sua função e na sua região", bundle: bundleApresentacao),
-                String(localized: "Confirmação e lembretes do seu turno", bundle: bundleApresentacao),
-                String(localized: "Aviso quando um turno seu é cancelado", bundle: bundleApresentacao),
+                String(localized: "Só vagas das suas funções, perto do seu ponto base, nos horários que você marcou.", bundle: bundleApresentacao),
+                String(localized: "No máximo um aviso a cada 30 minutos; vagas parecidas chegam juntas.", bundle: bundleApresentacao),
+                String(localized: "Lembretes do seu turno 24 h e 3 h antes.", bundle: bundleApresentacao),
             ]
             case .contratante: [
                 String(localized: "Confirmação de quem vai trabalhar", bundle: bundleApresentacao),

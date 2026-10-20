@@ -197,22 +197,31 @@ private struct DestinoDasVagasDoContratante: View {
     }
 
     var body: some View {
-        if publicando, let fila {
-            DestinoDePublicarVaga(
-                api: api, fila: fila, modelo: publicacao, sair: sair,
-                cancelar: { publicando = false },
-                aoPublicar: {
-                    // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
-                    // momento de explicar a notificação a quem contrata (#8).
-                    guard publicando else { return }
-                    publicando = false
-                    Task { await permissaoDePush?.oferecer() }
-                }
-            )
-        } else {
-            // Sem o banco local não há fila para a publicação: a entrada não aparece.
-            TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador,
-                            publicarVaga: fila == nil ? nil : { publicando = true })
+        Group {
+            if publicando, let fila {
+                DestinoDePublicarVaga(
+                    api: api, fila: fila, modelo: publicacao, sair: sair,
+                    cancelar: { publicando = false },
+                    aoPublicar: {
+                        // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
+                        // momento de explicar a notificação a quem contrata (#8).
+                        guard publicando else { return }
+                        publicando = false
+                        Task { await permissaoDePush?.oferecer() }
+                    }
+                )
+            } else {
+                // Sem o banco local não há fila para a publicação: a entrada não aparece.
+                TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador,
+                                publicarVaga: fila == nil ? nil : { publicando = true })
+            }
         }
+        #if DEBUG
+        .onAppear {
+            if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PUBLICAR"), fila != nil {
+                publicando = true
+            }
+        }
+        #endif
     }
 }

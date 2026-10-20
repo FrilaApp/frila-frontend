@@ -48,7 +48,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         // 2.4 Campo de Valor: altura >= 44 pt
         let campoValor = app.textFields["valor-vaga-campo"]
@@ -91,7 +91,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         let larguraTela = app.windows.firstMatch.frame.width
 
@@ -149,7 +149,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         // Toolbar: botão de Perfil do Estabelecimento deve abrir a folha do perfil
         let btnPerfil = app.buttons["Perfil do estabelecimento"]

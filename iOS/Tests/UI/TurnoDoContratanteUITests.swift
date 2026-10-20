@@ -93,7 +93,7 @@ final class TurnoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Posição aberta"].firstMatch.exists)
         // Voltar leva à lista, onde a mesma vaga está na seção Em alerta, com o tempo que falta.
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.staticTexts["Em alerta"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.staticTexts["Precisa de atenção"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["tempo-alerta-\(vagaID.uppercased())"].exists)
     }
 
