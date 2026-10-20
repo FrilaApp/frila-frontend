@@ -114,6 +114,18 @@ public protocol CacheLocal: Sendable {
     func salvar(funcoes: [Funcao]) async throws
     func funcoes() async throws -> [Funcao]
     func limpar() async throws
+    func possuiDadosLocais() async -> Bool
+}
+
+public extension CacheLocal {
+    func possuiDadosLocais() async -> Bool {
+        if let funcoes = try? await self.funcoes(), !funcoes.isEmpty { return true }
+        if let fila = self as? any FilaDeAcoes {
+            if let pendentes = try? await fila.pendentes(), !pendentes.isEmpty { return true }
+            if let recusadas = try? await fila.recusadas(), !recusadas.isEmpty { return true }
+        }
+        return false
+    }
 }
 
 public protocol FilaDeAcoes: Sendable {

@@ -559,8 +559,10 @@ private struct EntradaDoApp: View {
                 contaID = try await IdentidadeDaAvaliacao.obter(api: api, cache: armazenamento, permitirCache: false)
                 roteador.voltarParaLista()
                 aplicarDestinoIdentificado(destino)
+            } catch let erroApi as ErroDaApi {
+                erroAoAvaliar = MensagemDoErroAPI.texto(erroApi)
             } catch {
-                erroAoAvaliar = MensagemDoErroAPI.texto(error as? ErroDaApi ?? ErroDaApi(codigo: .semRede))
+                erroAoAvaliar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
             }
             carregandoDestino = false
         }

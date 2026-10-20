@@ -202,7 +202,7 @@ struct SincronizadorRecusasTests {
         #expect(try await fila.pendentes().first(where: { $0.id == legado.id })?.contaID == nil)
     }
 
-    @Test("Presença legada continua no caminho anterior sem assumir autor da sessão")
+    @Test("Presença legada sem autor não é enviada para evitar envio com token de outra conta")
     func legadoSemAutor() async throws {
         let api = ApiPresencaRecusada(erro: ErroDaApi(codigo: .foraDaJanela))
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
@@ -210,9 +210,7 @@ struct SincronizadorRecusasTests {
         try await fila.enfileirar(acao)
         try await fila.salvar(sessao: SessaoUsuario(usuarioID: UUID(), perfil: .profissional))
         await SincronizadorAcoes(fila: fila, api: api).sincronizar()
-        #expect(api.total == 1)
-        #expect(api.consultas == 1)
-        #expect(try await fila.recusadas().first?.contaID == nil)
+        #expect(api.total == 0, "Ação legada sem autor ou com sessão divergente não pode ser enviada")
     }
 
     @Test("Reenfileirar ação conhecida conserva autor, mesmo após mudança da sessão")
