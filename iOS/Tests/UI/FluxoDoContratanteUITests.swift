@@ -171,43 +171,43 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let perfil = app.buttons["cadastro-perfil-contratante"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
-        rolarAte(perfil, app: app)
+        trazerParaATela(perfil, em: app)
         perfil.tap()
         let nome = app.textFields["cadastro-nome"]
-        rolarAte(nome, app: app)
+        trazerParaATela(nome, em: app)
         nome.tap()
         nome.digitarEEsperar("Responsável do Café")
         fecharTecladoSeVisivel(app: app)
         let telefone = app.textFields["cadastro-telefone"]
-        rolarAte(telefone, app: app)
+        trazerParaATela(telefone, em: app)
         telefone.tap()
         telefone.digitarEEsperar("61988887777", esperado: "(61) 98888-7777")
         fecharTecladoSeVisivel(app: app)
 
         let nascimento = app.textFields["cadastro-nascimento"]
-        rolarAte(nascimento, app: app)
+        trazerParaATela(nascimento, em: app)
         nascimento.tap()
         nascimento.digitarEEsperar("15/05/1995", esperado: "15/05/1995")
         fecharTecladoSeVisivel(app: app)
 
         let termos = app.buttons["cadastro-termos"]
-        rolarAte(termos, app: app)
+        trazerParaATela(termos, em: app)
         termos.tap()
 
         let continuar = app.buttons["cadastro-continuar"]
-        rolarAte(continuar, app: app)
+        trazerParaATela(continuar, em: app)
         continuar.tap()
 
         let continuarCadastro = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuarCadastro.waitForExistence(timeout: 10))
         let responsavel = app.staticTexts["Responsável do Café"]
-        rolarAte(responsavel, app: app)
+        trazerParaATela(responsavel, em: app)
         XCTAssertTrue(responsavel.exists)
         XCTAssertTrue(app.staticTexts["+5561988887777"].exists)
         XCTAssertFalse(app.staticTexts["Algo deu errado"].exists)
         anexarCaptura(app, nome: "fila-nula-\(captura)-responsavel")
 
-        rolarAte(continuarCadastro, app: app)
+        trazerParaATela(continuarCadastro, em: app)
         XCTAssertTrue(continuarCadastro.isEnabled)
         anexarCaptura(app, nome: "fila-nula-\(captura)-salvar-estabelecimento")
         continuarCadastro.tap()
