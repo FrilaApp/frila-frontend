@@ -81,6 +81,8 @@ public enum FrilaMetrica {
 /// A Bricolage Grotesque é só a voz do formulário de publicar vaga; números e dinheiro ficam sempre em SF Pro.
 public enum FrilaTipo {
     public static let tituloGrande = Font.largeTitle.bold()
+    /// Cabeçalho de seção ("Abertas", "Seus dados").
+    public static let secao = Font.title2.bold()
     public static let subtituloDaTela = Font.title3
     public static let rotuloDoCampo = Font.headline
     public static let valorDoCampo = Font.body

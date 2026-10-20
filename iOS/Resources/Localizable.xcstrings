@@ -8526,6 +8526,316 @@
           }
         }
       }
+    },
+    "Dados do negócio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dados do negócio"
+          }
+        }
+      }
+    },
+    "Conta de contratante": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta de contratante"
+          }
+        }
+      }
+    },
+    "Tipo do estabelecimento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo do estabelecimento"
+          }
+        }
+      }
+    },
+    "CNPJ ou CPF": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CNPJ ou CPF"
+          }
+        }
+      }
+    },
+    "Só números": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só números"
+          }
+        }
+      }
+    },
+    "Selecionar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecionar"
+          }
+        }
+      }
+    },
+    "Ponto ainda não marcado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponto ainda não marcado"
+          }
+        }
+      }
+    },
+    "Salvar e publicar a primeira vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar e publicar a primeira vaga"
+          }
+        }
+      }
+    },
+    "CNPJ ou CPF: este documento já tem um estabelecimento no Frila. Se o negócio é seu, entre com o e-mail usado nesse cadastro.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CNPJ ou CPF: este documento já tem um estabelecimento no Frila. Se o negócio é seu, entre com o e-mail usado nesse cadastro."
+          }
+        }
+      }
+    },
+    "Revise o CNPJ ou CPF para seguir.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revise o CNPJ ou CPF para seguir."
+          }
+        }
+      }
+    },
+    "Receber código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receber código"
+          }
+        }
+      }
+    },
+    "nome@exemplo.com": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nome@exemplo.com"
+          }
+        }
+      }
+    },
+    "Digite seu e-mail para receber o código.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite seu e-mail para receber o código."
+          }
+        }
+      }
+    },
+    "Confira o e-mail. Use um endereço como nome@exemplo.com.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira o e-mail. Use um endereço como nome@exemplo.com."
+          }
+        }
+      }
+    },
+    "F": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        }
+      }
+    },
+    "1 vaga, pela distância do seu ponto base.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 vaga, pela distância do seu ponto base."
+          }
+        }
+      }
+    },
+    "%lld vagas, pela distância do seu ponto base.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld vagas, pela distância do seu ponto base."
+          }
+        }
+      }
+    },
+    "1 vaga carregada, pela distância do seu ponto base.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 vaga carregada, pela distância do seu ponto base."
+          }
+        }
+      }
+    },
+    "%lld vagas carregadas, pela distância do seu ponto base.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld vagas carregadas, pela distância do seu ponto base."
+          }
+        }
+      }
+    },
+    "Carregando as vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando as vagas."
+          }
+        }
+      }
+    },
+    "Nenhuma vaga aberta agora.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma vaga aberta agora."
+          }
+        }
+      }
+    },
+    "Volte mais tarde para ver novas vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volte mais tarde para ver novas vagas."
+          }
+        }
+      }
+    },
+    "Nenhuma vaga com esses filtros.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma vaga com esses filtros."
+          }
+        }
+      }
+    },
+    "Tente outros filtros para ver mais vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tente outros filtros para ver mais vagas."
+          }
+        }
+      }
+    },
+    "Limpar filtros": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpar filtros"
+          }
+        }
+      }
+    },
+    "Falta o seu ponto base": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta o seu ponto base"
+          }
+        }
+      }
+    },
+    "Sem ele, não dá para medir a distância até as vagas nem avisar você das que ficam perto.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem ele, não dá para medir a distância até as vagas nem avisar você das que ficam perto."
+          }
+        }
+      }
+    },
+    "Definir ponto base": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Definir ponto base"
+          }
+        }
+      }
+    },
+    "Sem conexão": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão"
+          }
+        }
+      }
+    },
+    "Conecte-se à internet para carregar as vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte-se à internet para carregar as vagas."
+          }
+        }
+      }
+    },
+    "Tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tente de novo."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -175,14 +175,14 @@ public struct CampoFrila: View {
     }
 
     public var body: some View {
-        TextField(text: $texto, prompt: titulo) { titulo }
+        TextField(text: $texto, prompt: titulo.foregroundStyle(FrilaCor.textoSecundario)) { titulo }
             .textFieldStyle(.plain)
             .font(FrilaTipo.valorDoCampo)
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityLabel(titulo)
             .modifier(ErroLidoComoValor(texto: texto, erro: erroDeCampo))
     }
@@ -196,9 +196,9 @@ public struct CaixaDoCampoFrila: ViewModifier {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous)
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
                     .strokeBorder(FrilaCor.borda, lineWidth: 1)
             )
     }
@@ -248,8 +248,8 @@ public struct CampoCodigo: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: 56)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
             .modifier(ErroLidoComoValor(texto: codigo, erro: erroDeCampo))
     }
