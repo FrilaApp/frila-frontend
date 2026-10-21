@@ -111,7 +111,8 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
 
 1. Confere a tag (no `main`, formato `vX.Y.Z`) ou as entradas do disparo manual, e calcula o número
    do build.
-2. Seleciona o Xcode 26.6 e restaura os pacotes SPM do cache da CI de PR, só para leitura.
+2. Seleciona o Xcode 26.6, importa a identidade Apple Distribution em keychain temporário e prova
+   a assinatura estrita antes do archive. Restaura os pacotes SPM do cache da CI de PR, só para leitura.
 3. Gera o `Secrets.xcconfig` e o `GoogleService-Info.plist` do ambiente: dev para o Beta, prod para o
    Prod.
 4. Grava a chave `.p8` num arquivo temporário com permissão 600.
@@ -120,17 +121,17 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
       projeto. Com `-allowProvisioningUpdates` e a chave, o xcodebuild cria o perfil e o certificado
       de desenvolvimento que faltarem na máquina da CI. A assinatura ad hoc não serve: o Xcode exige
       perfil para o app iOS (medido em 03/10).
-   2. **Export** para o App Store Connect com assinatura automática. O Xcode cria o perfil de
-      distribuição e usa um certificado gerenciado na nuvem pela Apple. O certificado de distribuição
-      e a chave privada dele não ficam no repositório nem nos segredos; o único segredo novo é a
-      chave da API.
+   2. **Export** para o App Store Connect com assinatura automática e a identidade Apple Distribution
+      importada. O Xcode obtém os perfis de distribuição compatíveis pela chave da API.
    3. **Conferência** do app assinado: o `conferir-release.sh` (criptografia, privacidade, ganchos de
-      Debug, `aps-environment` de produção) e `get-task-allow` falso.
+      Debug, `aps-environment` de produção) e `get-task-allow` falso. O diagnóstico verifica a assinatura
+      estrita do app, frameworks e extensão, o SHA-256 da identidade importada e os perfis correspondentes.
    4. **Símbolos**: o dSYM do app e o dos quatro frameworks vão ao Crashlytics do ambiente, com duas
       tentativas. Se não subirem, o build não vai ao TestFlight. A Apple também recebe os símbolos
       (`uploadSymbols`).
    5. **Envio**: um segundo export, com `destination: upload` e a mesma assinatura.
-6. Apaga a chave, os segredos, o archive, o `.ipa` e o DerivedData, mesmo quando uma etapa falha.
+6. Restaura a lista anterior de keychains e apaga a identidade temporária, a chave, os segredos,
+   o archive, o `.ipa` e o DerivedData, mesmo quando uma etapa falha.
    Nada vira artefato do Actions, porque o `.ipa` traz o plist do Firebase e a chave publicável do
    Supabase.
 
@@ -144,6 +145,14 @@ Regras do build:
   pelo `conferir-release.sh`. Por isso o build não pede a resposta manual sobre criptografia.
 
 ### O que o Cauê faz uma vez
+
+Além dos três segredos da API abaixo, a assinatura exige `APPLE_DISTRIBUTION_CERT_P12_BASE64`
+(identidade Apple Distribution com chave privada, em base64) e `APPLE_DISTRIBUTION_CERT_P12_PASSWORD`.
+Os valores ficam nos segredos do GitHub; nunca no repositório ou nos logs. O keychain temporário
+recebe permissão para o codesign e é removido no passo de limpeza `always()`.
+
+Regressão sem credenciais reais: `python3 iOS/Scripts/teste-assinatura-local-ci.py` e
+`python3 iOS/Scripts/teste-diagnosticar-assinatura.py`.
 
 1. **Chave da App Store Connect API.** Em App Store Connect > Users and Access > Integrations > App
    Store Connect API:
@@ -177,7 +186,7 @@ Regras do build:
    - `FRILA_SUPABASE_DEV_URL` e `FRILA_SUPABASE_DEV_PUBLISHABLE_KEY`;
    - `FRILA_SUPABASE_PROD_URL` e `FRILA_SUPABASE_PROD_PUBLISHABLE_KEY`;
    - `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64` e `FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64`.
-3. **TestFlight.** Depois dos três segredos, use o workflow **App Store Connect** descrito abaixo
+3. **TestFlight.** Com os segredos configurados, use o workflow **App Store Connect** descrito abaixo
    para preparar o grupo interno com os cinco, com acesso a todos os builds. As notas "O que testar"
    de cada build continuam sendo escritas no App Store Connect.
 
@@ -317,23 +326,24 @@ Sem as três variáveis `ASC_*`, o script usa a conta logada no Xcode da máquin
 ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio; com
 `FRILA_MEDICAO=1`, o build de medição.
 
-### O que a primeira execução real ainda prova
+### Validação e próximo envio
 
-Em 03/10 o caminho rodou numa máquina do time, com `--sem-envio` e a conta do Xcode no lugar da
-chave. Passaram o archive, o export, a conferência do app assinado e os símbolos no Crashlytics. A
-máquina já tinha certificado de distribuição, então quatro coisas só a primeira execução no Actions
-prova:
-- se a chave Admin cria o que falta e assina na nuvem. O runner começa sem certificado nenhum.
-  Inferência: o archive pode criar um certificado Apple Development a cada execução. Se eles se
-  acumularem em Certificates, Identifiers & Profiles, revogue os antigos; o xcodebuild cria outro
-  quando precisar;
-- se o App Store Connect aceita o envio e o número do build;
-- se o `upload-symbols` roda no runner. Ele caiu com Segmentation fault num build de simulador em
-  30/09, e por isso tem duas tentativas;
-- quanto tempo o job leva.
+A execução [38610555474](https://github.com/FrilaApp/frila-frontend/actions/runs/38610555474), de
+14/10/2026, enviou `Frila-Beta 0.4.0 (20261014.175413)` a partir da branch do PR #163, com identidade
+Apple Distribution local e cinco dSYMs enviados ao Crashlytics. A execução anterior da main,
+[37683822842](https://github.com/FrilaApp/frila-frontend/actions/runs/37683822842), falhou no envio
+com `Invalid Signature` no app, frameworks e extensão. A correção da assinatura vem daquele PR;
+os portões, o contrato e as configurações de release atuais da main são preservados.
 
-Um disparo manual com "Enviar ao TestFlight" desmarcado prova a assinatura na nuvem e os símbolos
-no runner, sem mandar nada ao TestFlight.
+O ensaio manual usa `Frila-Beta`, versão `0.5.0`, `ensaio_falha=false`, `medicao=false` e
+`enviar=false`. Ele prova archive, export, assinatura, conferência e símbolos no runner; a aceitação
+do próximo upload depende do envio real. Depois do merge do MVP, use `0.5.0` com um novo disparo:
+o build é calculado novamente em UTC, e o ensaio não ocupa esse número no App Store Connect.
+
+Inferência: um número gerado em 21/10 será maior que o último envio comprovado
+(`20261014.175413`). A consulta `conferir` do `app-store-connect.yml` lista grupos e classificação,
+sem listar builds; ela não confirma envios externos ao workflow. A referência de versão é o último
+envio acima e o cartão TestFlight 0.5.
 
 ### Custo
 
