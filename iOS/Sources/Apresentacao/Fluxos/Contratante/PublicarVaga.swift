@@ -574,7 +574,9 @@ public struct TelaPublicarVaga: View {
     private var formulario: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(verbatim: TextosPublicarVaga.titulo).font(FrilaTipo.tituloGrande).foregroundStyle(FrilaCor.texto)
+                Text(verbatim: TextosPublicarVaga.titulo)
+                    .font(FrilaTipo.pergunta)
+                    .foregroundStyle(FrilaCor.texto)
                 if model.restaurandoPublicacao {
                     AvisoFrila(verbatim: TextosPublicarVaga.verificandoPendente, tom: .informativo)
                 } else if model.camposBloqueados {
@@ -625,7 +627,9 @@ public struct TelaPublicarVaga: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosPublicarVaga.inclusos).font(FrilaTipo.rotuloDoCampo)
+                    Text(verbatim: TextosPublicarVaga.inclusos)
+                        .font(FrilaTipo.respostaEscolhida)
+                        .foregroundStyle(FrilaCor.texto)
                     seletorSimNao(TextosPublicarVaga.refeicao, valor: $model.refeicao).erroDeCampoFrila(model.erros[.inclusos])
                     seletorSimNao(TextosPublicarVaga.transporte, valor: $model.transporte).accessibilityHint(Text(verbatim: model.erros[.inclusos] ?? ""))
                     seletorSimNao(TextosPublicarVaga.material, valor: $model.materialProprio).accessibilityHint(Text(verbatim: model.erros[.inclusos] ?? ""))
@@ -650,7 +654,7 @@ public struct TelaPublicarVaga: View {
                     .accessibilityLabel(Text(verbatim: TextosPublicarVaga.modo))
                     .accessibilityIdentifier("modo-vaga-picker")
                     Text(verbatim: model.modo == .selecao ? TextosPublicarVaga.modoSelecaoExplicacao : TextosPublicarVaga.modoUrgenciaExplicacao)
-                        .font(FrilaTipo.nota)
+                        .font(FrilaTipo.contextoDaResposta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("modo-vaga-explicacao")
                     if !model.selecaoDisponivel {
@@ -673,7 +677,9 @@ public struct TelaPublicarVaga: View {
                 }
                 .onChange(of: model.inicio) { _, _ in model.ajustarModoAoInicio() }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosPublicarVaga.alerta).font(FrilaTipo.rotuloDoCampo)
+                    Text(verbatim: TextosPublicarVaga.alerta)
+                        .font(FrilaTipo.respostaEscolhida)
+                        .foregroundStyle(FrilaCor.texto)
                     if dynamicTypeSize.isAccessibilitySize {
                         Picker(TextosPublicarVaga.alerta, selection: $model.alertaAntecedenciaMinutos) {
                             Text(verbatim: TextosPublicarVaga.alertaTresHoras).tag(180)
@@ -704,7 +710,7 @@ public struct TelaPublicarVaga: View {
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.tatil)
                 .disabled(model.camposBloqueados)
                 .accessibilityIdentifier("mais-opcoes-botao")
                 if model.mostrandoMaisOpcoes {
@@ -893,7 +899,7 @@ public struct TelaPublicarVaga: View {
                 .overlay(Capsule().strokeBorder(valor.wrappedValue == escolha ? Color.clear : FrilaCor.borda, lineWidth: 1))
                 .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.chipTatil)
             .accessibilityAddTraits(valor.wrappedValue == escolha ? .isSelected : [])
         }
     }
