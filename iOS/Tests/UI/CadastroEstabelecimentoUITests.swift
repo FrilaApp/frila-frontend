@@ -206,7 +206,8 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertEqual(marcador.value as? String, pontoInicial)
     }
 
-    func testPublicarVagaEmAccessibilityXXXLControlesDentroDaTelaETocaveis() {
+    func testPublicarVagaEmAccessibilityXXXLControlesDentroDaTelaETocaveis() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
@@ -349,7 +350,8 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         salvarCaptura("03-tela-vizinha-publicar-vaga")
     }
 
-    func testCapturaCadastroEstabelecimentoXXXL() {
+    func testCapturaCadastroEstabelecimentoXXXL() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
