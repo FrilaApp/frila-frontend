@@ -102,6 +102,14 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(elemento("candidatura-enviada", em: app).waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["candidatar"].exists)
 
+        app.navigationBars.buttons["Candidaturas"].tap()
+        XCTAssertTrue(elemento("tela-minhas-candidaturas", em: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(aba.isSelected, "a vaga aberta pela aba Candidaturas fica nela")
+        XCTAssertTrue(pendente.waitForExistence(timeout: 10))
+
+        pendente.tap()
+        XCTAssertTrue(elemento("tela-detalhe-vaga", em: app).waitForExistence(timeout: 10))
+
         retirar(em: app, responder: "Retirar")
 
         // Retirada, a vaga volta a aceitar a candidatura da pessoa.
