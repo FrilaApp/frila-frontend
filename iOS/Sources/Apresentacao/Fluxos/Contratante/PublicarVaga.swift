@@ -659,9 +659,7 @@ public struct TelaPublicarVaga: View {
                         tentativaEnvio += 1
                     } else if modoCaptura == "meio" {
                         try? await Task.sleep(nanoseconds: 100_000_000)
-                        withAnimation(FrilaMovimento.animacao(nil, reduzir: reduzirMovimento)) {
-                            proxy.scrollTo("campo-local", anchor: .top)
-                        }
+                        proxy.scrollTo("campo-local", anchor: .top)
                     }
                 }
                 #endif
