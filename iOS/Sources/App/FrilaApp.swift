@@ -776,6 +776,9 @@ private struct EntradaDoApp: View {
                                     CacheDeLeituras.compartilhado.limpar()
                                 }).sair()
         roteador.voltarParaLista()
+        // A pilha do contratante também volta ao início: sem isso a próxima entrada reabria a vaga
+        // que estava aberta na hora de sair (E2E de 21/10).
+        roteadorDoContratante.voltarParaAsVagas()
         destinoAtual = nil
         await avaliarSessao()
     }
