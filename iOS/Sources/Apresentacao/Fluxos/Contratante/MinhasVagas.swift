@@ -730,7 +730,6 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
-                    .buttonStyle(.tatil)
                     .accessibilityIdentifier("perfil-publico-\(posicao.id)")
                 }
                 if let turnoID = posicao.turnoID {
@@ -751,15 +750,19 @@ private struct TelaDetalheVagaContratante: View {
                             Link(destination: telefoneURL) {
                                 Label { Text(verbatim: TextosMinhasVagas.ligar) } icon: { Image(systemName: "phone") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                    .contentShape(Rectangle())
                             }
-                            .buttonStyle(.tatil)
+                            .frame(minHeight: FrilaMetrica.alvoMinimo)
+                            .contentShape(Rectangle())
                         }
                         if let whatsappURL = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)?.url {
                             Link(destination: whatsappURL) {
                                 Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                    .contentShape(Rectangle())
                             }
-                            .buttonStyle(.tatil)
+                            .frame(minHeight: FrilaMetrica.alvoMinimo)
+                            .contentShape(Rectangle())
                             .simultaneousGesture(TapGesture().onEnded {
                                 let agora = Date()
                                 if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {
@@ -789,7 +792,6 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
-                    .buttonStyle(.tatil)
                     .disabled(carregandoContato.contains(posicao.id))
                     .accessibilityIdentifier("ver-contato-\(posicao.id)")
                 }
