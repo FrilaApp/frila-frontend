@@ -39,11 +39,13 @@ public struct TelaPerfilProfissional: View {
             .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 140 : FrilaEspaco.grande)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .scrollDismissesKeyboard(.interactively)
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
         .navigationBarTitleDisplayMode(.large)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             #if DEBUG
             if estadoCapturaDebug != nil {
