@@ -296,6 +296,7 @@ private enum IDScroll: Hashable {
 /// Cadastro do estabelecimento no primeiro acesso do contratante, no quadro "Estabelecimento" do MidFi do Fabrício:
 /// campos contornados, mapa com raio e o responsável da conta em cartão.
 public struct TelaCadastroEstabelecimento: View {
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
@@ -426,7 +427,7 @@ public struct TelaCadastroEstabelecimento: View {
     private func rolarParaErro(proxy: ScrollViewProxy) {
         guard let erro = model.erro else { return }
         let id = idDoErro(erro)
-        withAnimation(.easeInOut(duration: 0.3)) {
+        withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.3), reduzir: reduzirMovimento)) {
             proxy.scrollTo(id, anchor: .top)
         }
     }
