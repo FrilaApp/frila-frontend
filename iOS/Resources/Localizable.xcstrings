@@ -9856,6 +9856,16 @@
           }
         }
       }
+    },
+    "%@, %@ – %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %@ – %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

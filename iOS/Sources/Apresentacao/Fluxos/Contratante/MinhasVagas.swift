@@ -38,6 +38,7 @@ private enum TextosMinhasVagas {
     static let ligar = String(localized: "Ligar", bundle: bundleMinhasVagas)
     static let whatsApp = String(localized: "WhatsApp", bundle: bundleMinhasVagas)
     static let periodo = String(localized: "%@ – %@", bundle: bundleMinhasVagas)
+    static let periodoMesmoDia = String(localized: "%@, %@ – %@", bundle: bundleMinhasVagas)
     static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleMinhasVagas)
     static let republicar = String(localized: "Publicar de novo", bundle: bundleMinhasVagas)
     static let detalhesPublicados = String(localized: "DETALHES PUBLICADOS", bundle: bundleMinhasVagas)
@@ -56,12 +57,33 @@ private enum TextosMinhasVagas {
 }
 
 private func textoPeriodo(_ periodo: Periodo) -> String {
-    let formatador = DateFormatter()
-    formatador.locale = FormatadorFrila.locale
-    formatador.timeZone = FormatadorFrila.fuso
-    formatador.dateStyle = .medium
-    formatador.timeStyle = .short
-    return String(format: TextosMinhasVagas.periodo, formatador.string(from: periodo.inicio), formatador.string(from: periodo.fim))
+    var calendario = Calendar(identifier: .gregorian)
+    calendario.locale = FormatadorFrila.locale
+    calendario.timeZone = FormatadorFrila.fuso
+
+    if calendario.isDate(periodo.inicio, inSameDayAs: periodo.fim) {
+        let formatadorData = DateFormatter()
+        formatadorData.locale = FormatadorFrila.locale
+        formatadorData.timeZone = FormatadorFrila.fuso
+        formatadorData.dateFormat = "d 'de' MMM"
+
+        let formatadorHora = DateFormatter()
+        formatadorHora.locale = FormatadorFrila.locale
+        formatadorHora.timeZone = FormatadorFrila.fuso
+        formatadorHora.dateFormat = "HH:mm"
+
+        let data = formatadorData.string(from: periodo.inicio)
+        let inicio = formatadorHora.string(from: periodo.inicio)
+        let fim = formatadorHora.string(from: periodo.fim)
+        return String(format: TextosMinhasVagas.periodoMesmoDia, data, inicio, fim)
+    } else {
+        let formatador = DateFormatter()
+        formatador.locale = FormatadorFrila.locale
+        formatador.timeZone = FormatadorFrila.fuso
+        formatador.dateStyle = .medium
+        formatador.timeStyle = .short
+        return String(format: TextosMinhasVagas.periodo, formatador.string(from: periodo.inicio), formatador.string(from: periodo.fim))
+    }
 }
 
 public enum SecaoMinhasVagas: String, CaseIterable, Identifiable, Sendable {

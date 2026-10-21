@@ -60,6 +60,7 @@ public struct FluxoDoContratante: View {
     @State private var model: FluxoDoContratanteViewModel
     @State private var mostrandoPerfilEstabelecimento = false
     @State private var mostrandoExclusaoDeConta = false
+    @State private var publicando = ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PUBLICAR")
 
     /// O roteador é a entrada dos avisos da casa (`checkin_manual_pendente`, `atraso_15min` e
     /// `vaga_vazia`), que o push (#8) vai usar.
@@ -75,7 +76,7 @@ public struct FluxoDoContratante: View {
         VStack(spacing: 0) {
             if case .cadastro = model.estado {
                 // Toolbar nativo dentro de TelaCadastroEstabelecimento
-            } else {
+            } else if !publicando {
                 HStack {
                     Spacer()
                     if case .vagas = model.estado {
@@ -160,7 +161,7 @@ public struct FluxoDoContratante: View {
                                        excluirConta: { mostrandoExclusaoDeConta = true },
                                        aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
         case let .vagas(estabelecimento):
-            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, sair: sair)
+            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, publicando: $publicando, sair: sair)
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -184,14 +185,15 @@ private struct DestinoDasVagasDoContratante: View {
     private let sair: () -> Void
     @State private var model: MinhasVagasViewModel
     @State private var publicacao: PublicacaoDaCasaViewModel
-    @State private var publicando = false
+    @Binding private var publicando: Bool
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
-    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?, sair: @escaping () -> Void) {
+    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?, publicando: Binding<Bool>, sair: @escaping () -> Void) {
         self.api = api
         self.fila = fila
         self.roteador = roteador
         self.sair = sair
+        _publicando = publicando
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
         _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
     }

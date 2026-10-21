@@ -192,29 +192,73 @@ public struct TelaExplicacaoDoPush: View {
 public struct AvisoDePermissaoDePush: View {
     @Environment(PermissaoDePushModelo.self) private var modelo: PermissaoDePushModelo?
     private let perfil: PerfilConta
+    #if DEBUG
+    @State private var mostrarExplicacaoCaptura = false
+    #endif
 
     public init(perfil: PerfilConta) {
         self.perfil = perfil
     }
 
     public var body: some View {
-        if let modelo {
-            switch modelo.estado {
-            case .negada:
-                aviso(TextosDoPush.Aviso.negada(perfil), tom: .alerta, botao: TextosDoPush.Aviso.abrirAjustes, id: "abrir-ajustes-de-notificacao") {
-                    modelo.abrirAjustes()
+        VStack(spacing: 0) {
+            if let modelo {
+                switch modelo.estado {
+                case .negada:
+                    aviso(TextosDoPush.Aviso.negada(perfil), tom: .alerta, botao: TextosDoPush.Aviso.abrirAjustes, id: "abrir-ajustes-de-notificacao") {
+                        modelo.abrirAjustes()
+                    }
+                    .accessibilityIdentifier("aviso-push-negado")
+                case .naoPedida:
+                    aviso(TextosDoPush.Aviso.naoPedida(perfil), tom: .informativo, botao: TextosDoPush.Explicacao.ativar, id: "explicar-notificacoes") {
+                        Task { await modelo.reabrir() }
+                    }
+                    .accessibilityIdentifier("aviso-push-nao-pedido")
+                case .concedida, nil:
+                    EmptyView()
                 }
-                .accessibilityIdentifier("aviso-push-negado")
-            case .naoPedida:
-                aviso(TextosDoPush.Aviso.naoPedida(perfil), tom: .informativo, botao: TextosDoPush.Explicacao.ativar, id: "explicar-notificacoes") {
-                    Task { await modelo.reabrir() }
-                }
-                .accessibilityIdentifier("aviso-push-nao-pedido")
-            case .concedida, nil:
-                EmptyView()
+            }
+            #if DEBUG
+            if capturaPush != nil {
+                Color.clear.frame(width: 1, height: 1)
+            }
+            #endif
+        }
+        #if DEBUG
+        .onAppear {
+            if capturaPush != nil {
+                mostrarExplicacaoCaptura = true
             }
         }
+        .sheet(isPresented: $mostrarExplicacaoCaptura) {
+            if let modelo {
+                TelaExplicacaoDoPush(
+                    modelo: modelo,
+                    perfil: perfilCaptura
+                )
+            }
+        }
+        #endif
     }
+
+    #if DEBUG
+    private var capturaPush: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let idx = args.firstIndex(of: "-FRILA_CAPTURA"), idx + 1 < args.count else { return nil }
+        let arg = args[idx + 1]
+        if arg == "explicacao" || arg == "explicacao-contratante" {
+            return arg
+        }
+        return nil
+    }
+
+    private var perfilCaptura: PerfilConta {
+        if capturaPush == "explicacao-contratante" {
+            return .contratante
+        }
+        return .profissional
+    }
+    #endif
 
     private func aviso(_ texto: String, tom: AvisoFrila.Tom, botao: String, id: String, acao: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {

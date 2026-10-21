@@ -207,6 +207,7 @@ public struct TelaResultadoDaCandidatura: View {
             ToolbarItem(placement: .topBarLeading) {
                 Button(action: voltarParaLista) {
                     Image(systemName: "chevron.left")
+                        .foregroundStyle(FrilaCor.texto)
                 }
                 .accessibilityLabel(Text(verbatim: Textos.voltarParaLista))
                 .accessibilityIdentifier("voltar-para-lista-navegacao")
@@ -315,7 +316,7 @@ public struct TelaResultadoDaCandidatura: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                     Text(verbatim: vaga.funcao.nome)
-                        .font(FrilaTipo.rotuloDoCampo)
+                        .font(FrilaTipo.resumo)
                         .foregroundStyle(FrilaCor.texto)
                     Text(verbatim: vaga.estabelecimento.nome)
                         .font(FrilaTipo.meta)
@@ -418,7 +419,10 @@ private struct BarraInferiorDoResultado<Rodape: View>: ViewModifier {
             } else {
                 content.safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
-                        Divider().overlay(FrilaCor.divisoria)
+                        Rectangle()
+                            .fill(FrilaCor.divisoria)
+                            .frame(height: 1)
+                            .accessibilityHidden(true)
                         rodape()
                             .padding(.horizontal, FrilaEspaco.medio)
                             .padding(.vertical, FrilaEspaco.compacto)

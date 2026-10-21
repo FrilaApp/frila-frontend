@@ -21,24 +21,18 @@ public struct TelaPerfilProfissional: View {
     }
 
     private var temFormulario: Bool {
-        !viewModel.carregando && (viewModel.mensagemDeErro == nil || !viewModel.funcoesDisponiveis.isEmpty)
+        #if DEBUG
+        if let estado = estadoCapturaDebug {
+            return estado != "carga-erro"
+        }
+        #endif
+        return !viewModel.carregando && (viewModel.mensagemDeErro == nil || !viewModel.funcoesDisponiveis.isEmpty)
     }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-                if viewModel.carregando {
-                    EstadoCarregando()
-                        .padding(.top, FrilaEspaco.enorme)
-                } else if viewModel.mensagemDeErro != nil && viewModel.funcoesDisponiveis.isEmpty {
-                    estadoErroCarga(viewModel.mensagemDeErro ?? "")
-                } else {
-                    secaoCabecalho
-                    secaoFuncoes
-                    secaoPontoBase
-                    secaoHorarios
-                    secaoAviso
-                }
+                conteudoDoCorpo
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.pequeno)
@@ -50,7 +44,15 @@ public struct TelaPerfilProfissional: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
         .navigationBarTitleDisplayMode(.large)
-        .task { await viewModel.carregar() }
+        .task {
+            #if DEBUG
+            if estadoCapturaDebug != nil {
+                aplicarEstadoCapturaSeNecessario()
+                return
+            }
+            #endif
+            await viewModel.carregar()
+        }
         .onChange(of: viewModel.sucesso) { _, salvou in
             if salvou { Task { await permissaoDePush?.oferecer() } }
         }
@@ -70,6 +72,44 @@ public struct TelaPerfilProfissional: View {
             }
         }
         #endif
+    }
+
+    @ViewBuilder
+    private var conteudoDoCorpo: some View {
+        #if DEBUG
+        if let estado = estadoCapturaDebug {
+            if estado == "carga-erro" {
+                estadoErroCarga(TextosDoProfissional.Perfil.erroCarregarTela)
+            } else {
+                formularioViews
+            }
+        } else {
+            conteudoProducao
+        }
+        #else
+        conteudoProducao
+        #endif
+    }
+
+    @ViewBuilder
+    private var conteudoProducao: some View {
+        if viewModel.carregando {
+            EstadoCarregando()
+                .padding(.top, FrilaEspaco.enorme)
+        } else if viewModel.mensagemDeErro != nil && viewModel.funcoesDisponiveis.isEmpty {
+            estadoErroCarga(viewModel.mensagemDeErro ?? "")
+        } else {
+            formularioViews
+        }
+    }
+
+    @ViewBuilder
+    private var formularioViews: some View {
+        secaoCabecalho
+        secaoFuncoes
+        secaoPontoBase
+        secaoHorarios
+        secaoAviso
     }
 
     // MARK: - Estado de erro de carga
@@ -145,9 +185,27 @@ public struct TelaPerfilProfissional: View {
         }
     }
 
+    private var funcoesExibidas: [Funcao] {
+        #if DEBUG
+        if !viewModel.funcoesDisponiveis.isEmpty {
+            return viewModel.funcoesDisponiveis
+        }
+        if estadoCapturaDebug != nil {
+            return [
+                Funcao(id: UUID(uuidString: "10000000-0000-0000-0000-000000000001")!, nome: "Garçom", categoria: "Salão"),
+                Funcao(id: UUID(uuidString: "10000000-0000-0000-0000-000000000002")!, nome: "Bartender", categoria: "Bar"),
+                Funcao(id: UUID(uuidString: "10000000-0000-0000-0000-000000000003")!, nome: "Cozinheiro", categoria: "Cozinha"),
+                Funcao(id: UUID(uuidString: "10000000-0000-0000-0000-000000000004")!, nome: "Cumim", categoria: "Salão"),
+                Funcao(id: UUID(uuidString: "10000000-0000-0000-0000-000000000005")!, nome: "Recepcionista", categoria: "Salão")
+            ]
+        }
+        #endif
+        return viewModel.funcoesDisponiveis
+    }
+
     @ViewBuilder
     private var chipsDeFuncoes: some View {
-        ForEach(viewModel.funcoesDisponiveis) { funcao in
+        ForEach(funcoesExibidas) { funcao in
             FiltroPill(
                 verbatim: funcao.nome,
                 selecionado: viewModel.funcoesSelecionadas.contains(funcao.id)
@@ -446,9 +504,15 @@ public struct TelaPerfilProfissional: View {
 
     private var barraInferiorConteudo: some View {
         VStack(spacing: FrilaEspaco.compacto) {
+            #if DEBUG
+            if let erro = viewModel.mensagemDeErro, (!viewModel.funcoesDisponiveis.isEmpty || estadoCapturaDebug != nil) {
+                avisoErroValidacao(erro)
+            }
+            #else
             if let erro = viewModel.mensagemDeErro, !viewModel.funcoesDisponiveis.isEmpty {
                 avisoErroValidacao(erro)
             }
+            #endif
 
             if viewModel.sucesso {
                 AvisoFrila(verbatim: TextosDoProfissional.Perfil.perfilSalvoComSucesso, tom: .informativo)
@@ -517,21 +581,36 @@ public struct TelaPerfilProfissional: View {
     // MARK: - Ganchos DEBUG
 
     #if DEBUG
+    private var estadoCapturaDebug: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let indice = args.firstIndex(of: "-FRILA_CAPTURA"),
+              indice + 1 < args.count else { return nil }
+        return args[indice + 1]
+    }
+
     private func aplicarEstadoCapturaSeNecessario() {
-        guard let indice = ProcessInfo.processInfo.arguments.firstIndex(of: "-FRILA_CAPTURA"),
-              indice + 1 < ProcessInfo.processInfo.arguments.count else { return }
-        let estado = ProcessInfo.processInfo.arguments[indice + 1]
+        guard let estado = estadoCapturaDebug else { return }
         switch estado {
         case "normal", "vazio":
-            break
+            if let primeira = funcoesExibidas.first {
+                viewModel.funcoesSelecionadas = [primeira.id]
+            }
+            viewModel.mensagemDeErro = nil
         case "horarios":
+            if let primeira = funcoesExibidas.first {
+                viewModel.funcoesSelecionadas = [primeira.id]
+            }
+            if let coord = try? Coordenada(latitude: -15.8267, longitude: -47.9218) {
+                viewModel.definirPontoBase(coord, nome: "Guará II, Brasília - DF")
+            }
             if let inicio = try? HoraDoDia(hora: 18, minuto: 0),
                let fim = try? HoraDoDia(hora: 2, minuto: 0) {
                 viewModel.adicionarJanela(diaDaSemana: 5, inicio: inicio, fim: fim)
                 viewModel.adicionarJanela(diaDaSemana: 6, inicio: inicio, fim: fim)
             }
+            viewModel.mensagemDeErro = nil
         case "erro":
-            if let primeira = viewModel.funcoesDisponiveis.first {
+            if let primeira = funcoesExibidas.first {
                 viewModel.funcoesSelecionadas = [primeira.id]
             }
             viewModel.mensagemDeErro = TextosDoProfissional.Perfil.erroSemPontoBase

@@ -36,6 +36,7 @@ final class AvisosDoDetalhe {
 /// contato só aparece depois da confirmação (RN10). O aviso da RN10 vem no rodapé fixo antes de Aceitar turno / Candidatar-me.
 public struct TelaDetalheVaga<Acao: View>: View {
     @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
@@ -53,6 +54,33 @@ public struct TelaDetalheVaga<Acao: View>: View {
     }
 
     public var body: some View {
+        #if DEBUG
+        if let resultado = resultadoCapturaDebug {
+            switch viewModel.estado {
+            case let .carregado(vaga):
+                TelaResultadoDaCandidatura(
+                    vaga: vaga,
+                    resultado: resultado,
+                    api: viewModel.api,
+                    voltarParaLista: { dismiss() }
+                )
+            case .carregando:
+                EstadoCarregando()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(FrilaCor.fundo)
+                    .task { await viewModel.carregar() }
+            default:
+                corpoPrincipal
+            }
+        } else {
+            corpoPrincipal
+        }
+        #else
+        corpoPrincipal
+        #endif
+    }
+
+    private var corpoPrincipal: some View {
         ScrollViewReader { rolagem in
             corpo
                 // O aviso novo entra na rolagem, que pode estar em outro ponto: a tela vai até ele.
@@ -198,7 +226,10 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 }
             }
 
-            Divider().overlay(FrilaCor.divisoria)
+            Rectangle()
+                .fill(FrilaCor.divisoria)
+                .frame(height: 1)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: vaga.modoEfetivo(em: .now) == .urgencia
@@ -268,7 +299,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
     }
 
     private func blocoPosicoes(preenchidas: Int, total: Int) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
             Text(verbatim: TextosDoProfissional.Detalhe.posicoes)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
@@ -282,6 +313,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
                         .frame(height: 4)
                 }
             }
+            .padding(.top, FrilaEspaco.fio)
             .accessibilityHidden(true)
         }
         .accessibilityElement(children: .combine)
@@ -379,9 +411,11 @@ public struct TelaDetalheVaga<Acao: View>: View {
     }
 
     private var divisorDeLinha: some View {
-        Divider()
-            .overlay(FrilaCor.divisoria)
+        Rectangle()
+            .fill(FrilaCor.divisoria)
+            .frame(height: 1)
             .padding(.leading, FrilaEspaco.medio)
+            .accessibilityHidden(true)
     }
 
     private func cartaoReputacao(_ reputacao: Reputacao) -> some View {
@@ -506,6 +540,22 @@ public struct TelaDetalheVaga<Acao: View>: View {
             ? TextosDoProfissional.Detalhe.avisoRN10Selecao(vaga.estabelecimento.nome)
             : TextosDoProfissional.Detalhe.avisoRN10Urgencia(vaga.estabelecimento.nome)
     }
+
+    #if DEBUG
+    private var resultadoCapturaDebug: ResultadoDaCandidatura? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let idx = args.firstIndex(of: "-FRILA_CAPTURA"), idx + 1 < args.count else { return nil }
+        let estado = args[idx + 1]
+        switch estado {
+        case "preenchida":
+            return .vagaPreenchida
+        case "encerrada":
+            return .vagaEncerrada
+        default:
+            return nil
+        }
+    }
+    #endif
 }
 
 private struct BarraInferiorDoDetalhe<Rodape: View>: ViewModifier {
@@ -521,11 +571,17 @@ private struct BarraInferiorDoDetalhe<Rodape: View>: ViewModifier {
                         .padding(.vertical, FrilaEspaco.compacto)
                 }
             } else {
-                content.safeAreaInset(edge: .bottom) {
-                    rodape()
-                        .padding(.horizontal, FrilaEspaco.medio)
-                        .padding(.vertical, FrilaEspaco.compacto)
-                        .background(.regularMaterial)
+                content.safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        Rectangle()
+                            .fill(FrilaCor.divisoria)
+                            .frame(height: 1)
+                            .accessibilityHidden(true)
+                        rodape()
+                            .padding(.horizontal, FrilaEspaco.medio)
+                            .padding(.vertical, FrilaEspaco.compacto)
+                    }
+                    .background(.regularMaterial)
                 }
             }
         } else {

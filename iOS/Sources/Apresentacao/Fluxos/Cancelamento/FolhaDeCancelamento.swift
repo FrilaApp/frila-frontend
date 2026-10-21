@@ -179,7 +179,7 @@ public struct FolhaDeCancelamento: View {
     }
 }
 
-/// Botão de contorno vermelho (cápsula, como o botão de cancelar do quadro "CancelarTurno") que abre a folha de cancelamento, nos dois lados.
+/// Botão de contorno (pílula branca do MidFi) que abre a folha de cancelamento, nos dois lados.
 public struct BotaoDeCancelamento: View {
     private let titulo: String
     private let acao: () -> Void
@@ -191,7 +191,16 @@ public struct BotaoDeCancelamento: View {
 
     public var body: some View {
         Button(role: .destructive, action: acao) {
-            Text(verbatim: titulo).capsulaDestrutiva()
+            Text(verbatim: titulo)
+                .font(FrilaTipo.botao)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(FrilaCor.texto)
+                .padding(.horizontal, FrilaEspaco.grande)
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                .background(FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
