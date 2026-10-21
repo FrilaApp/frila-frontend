@@ -117,6 +117,7 @@ struct SecaoDePresenca: View {
                         .foregroundStyle(FrilaCor.texto)
                 }
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
                 .accessibilityIdentifier("abrir-ajustes")
             }
             BotaoSecundario(verbatim: Textos.agoraNao) { viewModel.cancelar() }
