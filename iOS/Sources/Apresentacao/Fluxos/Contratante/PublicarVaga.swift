@@ -621,7 +621,7 @@ public struct TelaPublicarVaga: View {
                 }
                 .padding(.horizontal, FrilaEspaco.medio)
                 .padding(.top, FrilaEspaco.medio)
-                .padding(.bottom, FrilaEspaco.enorme)
+                .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 140 : FrilaEspaco.enorme)
                 .containerRelativeFrame(.horizontal)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
@@ -779,6 +779,8 @@ public struct TelaPublicarVaga: View {
                 DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
                     .datePickerStyle(.wheel)
+                    .frame(height: 216)
+                    .clipped()
                     .tint(FrilaCor.texto)
                     .accessibilityIdentifier("datepicker-\(field.rawValue)")
             } else {
@@ -958,12 +960,19 @@ public struct TelaPublicarVaga: View {
     }
 
     private func linhaSimNao(_ titulo: String, valor: Binding<Bool>) -> some View {
-        HStack {
+        let empilhar = dynamicTypeSize.isAccessibilitySize || dynamicTypeSize >= .xxxLarge
+        let layout = empilhar
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.pequeno))
+            : AnyLayout(HStackLayout())
+
+        return layout {
             Text(verbatim: titulo)
                 .font(FrilaTipo.corpo)
                 .foregroundStyle(FrilaCor.texto)
 
-            Spacer()
+            if !empilhar {
+                Spacer()
+            }
 
             HStack(spacing: FrilaEspaco.minimo) {
                 ForEach([(true, TextosPublicarVaga.sim), (false, TextosPublicarVaga.nao)], id: \.0) { escolha, rotulo in
@@ -1621,20 +1630,23 @@ struct CampoPosicoesVaga: UIViewRepresentable {
 private extension View {
     @ViewBuilder
     func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
-        VStack(spacing: 0) {
-            self
-
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(FrilaCor.divisoria)
-                    .frame(height: 1)
-                    .accessibilityHidden(true)
-
+        if #available(iOS 26, *) {
+            safeAreaBar(edge: .bottom) {
                 conteudo()
             }
-            .background(FrilaCor.superficie.ignoresSafeArea(edges: .bottom))
+        } else {
+            safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(FrilaCor.divisoria)
+                        .frame(height: 1)
+                        .accessibilityHidden(true)
+
+                    conteudo()
+                }
+                .background(FrilaCor.superficie)
+            }
         }
-        .background(FrilaCor.fundo.ignoresSafeArea())
     }
 }
 
