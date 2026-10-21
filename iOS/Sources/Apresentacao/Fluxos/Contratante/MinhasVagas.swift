@@ -700,15 +700,15 @@ private struct BotaoPublicarDeNovo: View {
                 Text(verbatim: TextosMinhasVagas.republicar)
             }
             .font(FrilaTipo.meta.weight(.semibold))
+            .foregroundStyle(FrilaCor.sobrePrimaria)
             .multilineTextAlignment(.center)
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+            .background(FrilaCor.primaria, in: Capsule())
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(FrilaCor.sobrePrimaria)
-        .background(FrilaCor.primaria, in: Capsule())
+        .buttonStyle(.tatil)
     }
 }
 
@@ -822,7 +822,6 @@ private struct TelaDetalheVagaContratante: View {
                 }
 
                 CartaoEstadoVaga(vaga: vaga)
-
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: TextosMinhasVagas.detalhesPublicados)
                         .font(FrilaTipo.microRotulo)
@@ -949,6 +948,7 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
+                    .buttonStyle(.tatil)
                     .accessibilityIdentifier("perfil-publico-\(posicao.id)")
                 }
                 if let turnoID = posicao.turnoID {
@@ -970,12 +970,14 @@ private struct TelaDetalheVagaContratante: View {
                                 Label { Text(verbatim: TextosMinhasVagas.ligar) } icon: { Image(systemName: "phone") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .buttonStyle(.tatil)
                         }
                         if let whatsappURL = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)?.url {
                             Link(destination: whatsappURL) {
                                 Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .buttonStyle(.tatil)
                             .simultaneousGesture(TapGesture().onEnded {
                                 let agora = Date()
                                 if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {
@@ -1005,6 +1007,7 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
+                    .buttonStyle(.tatil)
                     .disabled(carregandoContato.contains(posicao.id))
                     .accessibilityIdentifier("ver-contato-\(posicao.id)")
                 }

@@ -502,10 +502,11 @@ struct SecaoDeCandidatos: View {
                         Image(systemName: "checkmark.seal.fill")
                     }
                     .font(FrilaTipo.nota.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .padding(.horizontal, FrilaEspaco.pequeno)
+                    .foregroundStyle(FrilaCor.marca)
+                    .padding(.horizontal, FrilaEspaco.compacto)
                     .padding(.vertical, FrilaEspaco.minimo)
-                    .background(FrilaCor.controle, in: Capsule())
+                    .background(FrilaCor.marca.opacity(0.12), in: Capsule())
+                    .overlay(Capsule().strokeBorder(FrilaCor.marca.opacity(0.3), lineWidth: 1))
                 }
                 if !perfil.funcoes.isEmpty {
                     Text(verbatim: String(format: TextosDosCandidatos.funcoes, perfil.funcoes.joined(separator: ", ")))
@@ -519,12 +520,20 @@ struct SecaoDeCandidatos: View {
             .accessibilityIdentifier("dados-do-candidato-\(candidato.id)")
 
             Button { abrirPerfil(perfil) } label: {
-                Text(verbatim: TextosDosCandidatos.verPerfil)
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
+                HStack {
+                    Text(verbatim: TextosDosCandidatos.verPerfil)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(FrilaTipo.microRotulo)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityHidden(true)
+                }
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.tatil)
             .accessibilityLabel(Text(verbatim: String(format: TextosDosCandidatos.verPerfilDe, perfil.nome)))
             .accessibilityIdentifier("perfil-do-candidato-\(candidato.id)")
 
