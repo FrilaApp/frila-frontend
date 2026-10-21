@@ -36,7 +36,7 @@ public struct TelaPerfilProfissional: View {
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.pequeno)
-            .padding(.bottom, FrilaEspaco.grande)
+            .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 140 : FrilaEspaco.grande)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -464,8 +464,9 @@ public struct TelaPerfilProfissional: View {
                     }
                     .datePickerStyle(.wheel)
                     .labelsHidden()
-                    .frame(minWidth: 0, maxWidth: .infinity)
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                     .frame(height: dynamicTypeSize.isAccessibilitySize ? 248 : 216)
+                    .clipped()
                     .clipShape(.rect)
                     .contentShape(Rectangle())
                     .accessibilityIdentifier("campo-hora-inicio")
@@ -480,8 +481,9 @@ public struct TelaPerfilProfissional: View {
                     }
                     .datePickerStyle(.wheel)
                     .labelsHidden()
-                    .frame(minWidth: 0, maxWidth: .infinity)
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .trailing)
                     .frame(height: dynamicTypeSize.isAccessibilitySize ? 248 : 216)
+                    .clipped()
                     .clipShape(.rect)
                     .contentShape(Rectangle())
                     .accessibilityIdentifier("campo-hora-fim")
