@@ -69,7 +69,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(cartao.waitForExistence(timeout: 15))
         XCTAssertTrue(cartao.label.contains("Modo seleção"), cartao.label)
         XCTAssertTrue(cartao.label.contains("4 candidatos aguardando sua escolha"), cartao.label)
-        XCTAssertTrue(cartao.label.contains("0 de 1 confirmadas"), cartao.label)
+        XCTAssertTrue(cartao.label.contains("0 de 1 confirmada"), cartao.label)
         abrirDetalhe(de: cartao, em: app)
 
         // Quatro candidatos, cada um com a reputação e o denominador; sem histórico diz que não há.
@@ -121,14 +121,14 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.buttons["escolher-candidato-\(bruno)"].exists)
         XCTAssertFalse(app.buttons["escolher-candidato-\(ana)"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["dados-do-candidato-\(carla)"].exists)
-        XCTAssertTrue(app.staticTexts["1 de 1 confirmadas"].exists)
+        XCTAssertTrue(app.staticTexts["Vaga preenchida"].exists)
         XCTAssertTrue(app.staticTexts["Bruno Tavares"].exists)
         XCTAssertTrue(app.buttons["Ver contato liberado"].exists)
 
         // De volta à lista, o cartão mostra o confirmado e que a seleção terminou.
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(cartao.waitForExistence(timeout: 5))
-        XCTAssertTrue(cartao.label.contains("1 de 1 confirmadas"), cartao.label)
+        XCTAssertTrue(cartao.label.contains("1 de 1 confirmada"), cartao.label)
         XCTAssertTrue(cartao.label.contains("Bruno Tavares"), cartao.label)
         XCTAssertTrue(cartao.label.contains("seleção concluída"), cartao.label)
     }
@@ -153,7 +153,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["resultado-da-escolha"].exists)
         XCTAssertFalse(app.buttons["escolher-candidato-\(ana)"].exists)
         XCTAssertFalse(app.buttons["escolher-candidato-\(carla)"].exists)
-        XCTAssertTrue(app.staticTexts["1 de 1 confirmadas"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Vaga preenchida"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Bruno Tavares"].exists)
         XCTAssertFalse(app.staticTexts["Ana Cunha"].exists)
     }
@@ -173,7 +173,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertEqual(fechada.label, "Alerta: A seleção fechou 24 horas antes do início sem nenhuma escolha. Os candidatos foram avisados e liberados.")
         XCTAssertFalse(app.buttons["escolher-candidato-\(ana)"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["dados-do-candidato-\(ana)"].exists)
-        XCTAssertTrue(app.staticTexts["0 de 1 confirmadas"].exists)
+        XCTAssertTrue(app.staticTexts["Encerrada, ninguém aceitou"].exists)
         XCTAssertTrue(app.staticTexts["Posição fechada sem escolha"].exists)
         // A vaga fechada pode ser publicada de novo, com outra data.
         XCTAssertTrue(app.buttons["republicar-detalhe-vaga-\(vagaID)"].exists)

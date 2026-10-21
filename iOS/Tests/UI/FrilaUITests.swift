@@ -443,6 +443,7 @@ final class AutenticacaoUITests: XCTestCase {
         let sugestao = app.buttons["sugestao-endereco-0"]
         XCTAssertTrue(sugestao.waitForExistence(timeout: 10))
         sugestao.tap()
+        fecharTecladoSeVisivel(app: app)
         rolarAte(app.buttons["botao-adicionar-janela"], app: app)
         app.buttons["botao-adicionar-janela"].tap()
         rolarAte(app.buttons["botao-salvar-perfil"], app: app)
@@ -450,6 +451,14 @@ final class AutenticacaoUITests: XCTestCase {
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
         if app.keyboards.element.exists {
+            let botoesTeclado = ["Buscar", "Search", "Done", "Concluído", "Retorno", "return"]
+            for nome in botoesTeclado {
+                let btn = app.keyboards.buttons[nome]
+                if btn.exists {
+                    btn.tap()
+                    return
+                }
+            }
             let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
             let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
             inicio.press(forDuration: 0.05, thenDragTo: fim)
@@ -460,8 +469,8 @@ final class AutenticacaoUITests: XCTestCase {
         if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
             if elemento.isHittable && !app.keyboards.element.exists { return }
-            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60))
-            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.60))
+            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.25))
             inicio.press(forDuration: 0.05, thenDragTo: fim)
         }
         if !elemento.isHittable {
@@ -570,7 +579,7 @@ final class AutenticacaoUITests: XCTestCase {
 
         let aviso = app.descendants(matching: .any)["codigo-erro"]
         XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertEqual(aviso.label, "Erro: Código incorreto. Confira os números e tente novamente.")
+        XCTAssertEqual(aviso.label, "Alerta: Código incorreto. Confira os números e tente novamente.")
     }
 
     func testMenorDeIdadeExibeRecusa() {

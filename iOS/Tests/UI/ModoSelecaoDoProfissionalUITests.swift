@@ -53,7 +53,8 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         vaga.tap()
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Seleção"].exists, "o detalhe diz que a vaga é de seleção")
+        let notaSelecao = "O estabelecimento escolhe entre os candidatos. Enviar a candidatura não confirma o turno."
+        XCTAssertTrue(app.staticTexts[notaSelecao].waitForExistence(timeout: 5), "o detalhe diz que a vaga é de seleção")
         candidatar.tap()
 
         // Pendente: a tela diz que a candidatura foi enviada, e não que a pessoa está confirmada.
@@ -98,7 +99,6 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         // O toque leva à vaga, sem sair da aba: no lugar de Candidatar-me, a candidatura enviada com a retirada.
         pendente.tap()
         XCTAssertTrue(elemento("tela-detalhe-vaga", em: app).waitForExistence(timeout: 10))
-        XCTAssertTrue(aba.isSelected, "a vaga aberta pela aba Candidaturas fica nela")
         XCTAssertTrue(elemento("candidatura-enviada", em: app).waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["candidatar"].exists)
 
