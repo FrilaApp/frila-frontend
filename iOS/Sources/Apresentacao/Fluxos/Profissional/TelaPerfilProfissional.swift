@@ -56,7 +56,6 @@ public struct TelaPerfilProfissional: View {
         .onChange(of: viewModel.sucesso) { _, salvou in
             if salvou { Task { await permissaoDePush?.oferecer() } }
         }
-        .accessibilityIdentifier("tela-perfil-profissional")
         .barraInferiorFixa(ativa: temFormulario) {
             barraInferiorConteudo
         }
@@ -130,6 +129,7 @@ public struct TelaPerfilProfissional: View {
                 .font(FrilaTipo.tituloDeEstado)
                 .foregroundStyle(FrilaCor.texto)
                 .multilineTextAlignment(.center)
+                .accessibilityIdentifier("tela-perfil-profissional")
 
             Text(verbatim: erro)
                 .font(FrilaTipo.meta)
@@ -152,6 +152,7 @@ public struct TelaPerfilProfissional: View {
         Text(verbatim: TextosDoProfissional.Perfil.cabecalho)
             .font(FrilaTipo.subtituloDaTela)
             .foregroundStyle(FrilaCor.textoSecundario)
+            .accessibilityIdentifier("tela-perfil-profissional")
     }
 
     private var secaoFuncoes: some View {
@@ -666,19 +667,21 @@ private struct FluxoDeChips: Layout {
 private extension View {
     @ViewBuilder
     func barraInferiorFixa<Content: View>(ativa: Bool, @ViewBuilder conteudo: () -> Content) -> some View {
-        if ativa {
-            if #available(iOS 26, *) {
-                safeAreaBar(edge: .bottom) {
+        if #available(iOS 26, *) {
+            safeAreaBar(edge: .bottom) {
+                if ativa {
                     conteudo()
                 }
-            } else {
+            }
+        } else {
+            if ativa {
                 safeAreaInset(edge: .bottom, spacing: 0) {
                     conteudo()
                         .background(.regularMaterial)
                 }
+            } else {
+                self
             }
-        } else {
-            self
         }
     }
 }
