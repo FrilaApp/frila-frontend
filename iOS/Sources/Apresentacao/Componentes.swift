@@ -23,6 +23,8 @@ public struct EstiloBotaoTatil: ButtonStyle {
                 FrilaMovimento.animacao(FrilaMovimento.molaTatil, reduzir: isReduceActive),
                 value: configuration.isPressed
             )
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(Rectangle())
             .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, isPressed in
                 isPressed
             }
