@@ -73,11 +73,12 @@ public struct AreaDeCandidatura: View {
                 .font(FrilaTipo.preco)
                 .monospacedDigit()
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityLabel(Text(verbatim: "\(formatador.dinheiro(viewModel.vaga.valor)) \(TextosDoProfissional.Detalhe.porPessoa)"))
             Text(verbatim: TextosDoProfissional.Detalhe.porPessoa)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityHidden(true)
         }
-        .accessibilityElement(children: .combine)
     }
 
     private var botaoView: some View {
