@@ -11,6 +11,7 @@
 #   ASC_KEY_PATH, ASC_KEY_ID, ASC_ISSUER_ID   chave da App Store Connect API (.p8, Key ID e Issuer
 #       ID). Sem as três, o xcodebuild usa a conta logada no Xcode da máquina; na CI elas são
 #       obrigatórias.
+#   FRILA_CERTIFICADO_DISTRIBUICAO_SHA256   na CI, certificado importado obrigatório no export.
 #   FRILA_NUMERO_DO_BUILD   número do build. Padrão: AAAAMMDD.HHMMSS em UTC, no início da execução.
 #   FRILA_ENSAIO_FALHA=1    build de ensaio: compila o botão "Forçar falha (ensaio)" e marca o build
 #       como só para teste interno (não vai a testador externo nem à App Store).
@@ -65,6 +66,9 @@ ENSAIO="${FRILA_ENSAIO_FALHA:-0}"
 [[ "$ENSAIO" == 0 || "$ENSAIO" == 1 ]] || falhar "FRILA_ENSAIO_FALHA deve ser 0 ou 1 (recebido: $ENSAIO)"
 MEDICAO="${FRILA_MEDICAO:-0}"
 [[ "$MEDICAO" == 0 || "$MEDICAO" == 1 ]] || falhar "FRILA_MEDICAO deve ser 0 ou 1 (recebido: $MEDICAO)"
+
+[[ -z "${CI:-}" || -n "${FRILA_CERTIFICADO_DISTRIBUICAO_SHA256:-}" ]] ||
+  falhar "na CI falta a identidade Apple Distribution local; importe o certificado antes do archive"
 
 EQUIPE="$(sed -n 's/^ *DEVELOPMENT_TEAM: *//p' "$RAIZ/project.yml" | head -1)"
 [[ -n "$EQUIPE" ]] || falhar "DEVELOPMENT_TEAM não encontrado no project.yml"
@@ -185,6 +189,16 @@ IPA="$(find "$EXPORTADO" -maxdepth 1 -name '*.ipa' -print -quit)"
 # produção vêm do conferir-release.sh; get-task-allow falso confirma a assinatura de distribuição.
 ditto -x -k "$IPA" "$IPA_ABERTO"
 APP_ASSINADO="$IPA_ABERTO/Payload/Frila.app"
+# Diagnóstico do 90035: somente metadados públicos, antes do envio.
+date -u
+security find-identity -v -p codesigning
+python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" "$APP_ARQUIVADO"
+certificado=()
+if [[ -n "${FRILA_CERTIFICADO_DISTRIBUICAO_SHA256:-}" ]]; then
+  certificado=(--certificado-esperado "$FRILA_CERTIFICADO_DISTRIBUICAO_SHA256" --equipe "$EQUIPE")
+fi
+python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" ${certificado[@]+"${certificado[@]}"} "$APP_ASSINADO"
+
 FRILA_ENSAIO_FALHA="$ENSAIO" FRILA_MEDICAO="$MEDICAO" "$RAIZ/Scripts/conferir-release.sh" "$APP_ASSINADO"
 assinatura="$(python3 - "$APP_ASSINADO" <<'PYASSINATURA'
 import plistlib, subprocess, sys
