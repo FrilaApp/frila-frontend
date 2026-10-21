@@ -17,6 +17,37 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
     }
 
+    /// Defeito do E2E de 21/10: depois de Sair com uma vaga aberta, a nova entrada caía direto no
+    /// detalhe da vaga, porque a pilha do contratante não era limpa na saída.
+    func testSairComVagaAbertaEEntrarDeNovoAbreMinhasVagas() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
+        AjudanteDeLancamentoUITests.preparar(app)
+        app.launch()
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
+        tocar(app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"])
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10))
+
+        tocar(app.buttons["sair-fluxo-contratante"])
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.digitarEEsperar("contratante@frila.app")
+        tocar(app.buttons["entrada-receber-codigo"])
+        let codigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
+        codigo.tap()
+        codigo.typeText("123456")
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            tocar(app.buttons["codigo-entrar"])
+        }
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10),
+                      "a nova entrada deve abrir Minhas vagas, não a vaga que estava aberta antes de sair")
+        XCTAssertFalse(app.descendants(matching: .any)["detalhe-vaga-contratante"].exists,
+                       "o detalhe da vaga anterior não pode voltar depois de sair e entrar de novo")
+    }
+
     func testPrimeiroAcessoDoContratanteAbreCadastroComResponsavelDaConta() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]

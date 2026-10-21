@@ -968,16 +968,18 @@ private struct TelaDetalheVagaContratante: View {
                         if let telefoneURL = URL(string: "tel:\(telefone)") {
                             Link(destination: telefoneURL) {
                                 Label { Text(verbatim: TextosMinhasVagas.ligar) } icon: { Image(systemName: "phone") }
-                                    .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
                             .buttonStyle(.tatil)
+                            .frame(minHeight: FrilaMetrica.alvoMinimo)
+                            .contentShape(Rectangle())
                         }
                         if let whatsappURL = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)?.url {
                             Link(destination: whatsappURL) {
                                 Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
-                                    .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
                             .buttonStyle(.tatil)
+                            .frame(minHeight: FrilaMetrica.alvoMinimo)
+                            .contentShape(Rectangle())
                             .simultaneousGesture(TapGesture().onEnded {
                                 let agora = Date()
                                 if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {

@@ -659,9 +659,7 @@ public struct TelaPublicarVaga: View {
                         tentativaEnvio += 1
                     } else if modoCaptura == "meio" {
                         try? await Task.sleep(nanoseconds: 100_000_000)
-                        withAnimation(FrilaMovimento.animacao(reduzir: true)) {
-                            proxy.scrollTo("campo-local", anchor: .top)
-                        }
+                        proxy.scrollTo("campo-local", anchor: .top)
                     }
                 }
                 #endif
@@ -1638,5 +1636,4 @@ private extension View {
         .background(FrilaCor.fundo.ignoresSafeArea())
     }
 }
-
 
