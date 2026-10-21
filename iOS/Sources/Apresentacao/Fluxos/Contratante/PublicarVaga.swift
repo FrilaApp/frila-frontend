@@ -503,6 +503,7 @@ private struct AvisoNeutroLocal: View {
 
 /// Formulário de publicar vaga, nos campos e cartões dos quadros "Publicar" e "PublicarCopia" do MidFi do Fabrício.
 public struct TelaPublicarVaga: View {
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: PublicarVagaViewModel
     @State private var regiaoMapa: MKCoordinateRegion
@@ -658,7 +659,7 @@ public struct TelaPublicarVaga: View {
                         tentativaEnvio += 1
                     } else if modoCaptura == "meio" {
                         try? await Task.sleep(nanoseconds: 100_000_000)
-                        withAnimation(nil) {
+                        withAnimation(FrilaMovimento.animacao(nil, reduzir: reduzirMovimento)) {
                             proxy.scrollTo("campo-local", anchor: .top)
                         }
                     }
@@ -1105,7 +1106,7 @@ public struct TelaPublicarVaga: View {
     private var secaoMaisOpcoes: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento)) {
                     model.mostrandoMaisOpcoes.toggle()
                 }
             } label: {
@@ -1496,7 +1497,7 @@ public struct TelaPublicarVaga: View {
 
     private func rolarParaPrimeiroErro(proxy: ScrollViewProxy) {
         guard let campoID = primeiroCampoComErro() else { return }
-        withAnimation(.easeInOut(duration: 0.3)) {
+        withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.3), reduzir: reduzirMovimento)) {
             proxy.scrollTo(campoID, anchor: .top)
         }
     }
@@ -1637,5 +1638,4 @@ private extension View {
         .background(FrilaCor.fundo.ignoresSafeArea())
     }
 }
-
 
