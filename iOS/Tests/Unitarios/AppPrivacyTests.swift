@@ -109,8 +109,8 @@ struct AppPrivacyTests {
         #expect(enderecos.politicaDePrivacidade.host == "frila.netlify.app")
         #expect(enderecos.politicaDePrivacidade.path == "/privacidade")
 
-        #expect(enderecos.emailSuporte == "suportefrila@gmail.com")
-        #expect(enderecos.urlSuporte?.absoluteString == "mailto:suportefrila@gmail.com")
+        #expect(enderecos.emailSuporte == "suporte@frilabr.com")
+        #expect(enderecos.urlSuporte?.absoluteString == "mailto:suporte@frilabr.com")
         #expect(enderecos.urlSuporte?.scheme == "mailto")
     }
 }

@@ -14,7 +14,7 @@ O controlador responsável pelas decisões sobre o tratamento dos seus dados pes
 
 - **Responsável:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
 - **Localidade:** Brasília/DF
-- **Canal do titular de dados e do suporte:** `suportefrila@gmail.com`
+- **Canal do titular de dados e do suporte:** `privacidade@frilabr.com`
 
 ---
 
@@ -116,7 +116,7 @@ Você é o titular soberano dos seus dados pessoais. A qualquer momento, você p
 ### Como solicitar pelo canal de atendimento
 Para exercer qualquer direito que não deseje realizar diretamente pelo aplicativo, basta enviar um e-mail para nosso canal oficial:
 
-- **Canal do titular de dados e do suporte:** `suportefrila@gmail.com`
+- **Canal do titular de dados e do suporte:** `privacidade@frilabr.com`
 - **Prazo de atendimento:** As solicitações do titular são atendidas por esse canal, o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. A resposta formal a pedidos de confirmação e acesso observa o Art. 19, inciso II, da LGPD.
 
 ---
@@ -151,5 +151,5 @@ Poderemos atualizar esta Política de Privacidade periodicamente para refletir m
 
 Caso você tenha qualquer dúvida sobre esta política, sobre como tratamos seus dados pessoais ou deseje encaminhar uma solicitação como titular de dados, entre em contato pelo e-mail:
 
-- **Canal de Privacidade:** `suportefrila@gmail.com`
+- **Canal de Privacidade:** `privacidade@frilabr.com`
 - Você também tem o direito de peticionar perante a **Autoridade Nacional de Proteção de Dados (ANPD)** por meio dos canais oficiais em `https://www.gov.br/anpd/`.

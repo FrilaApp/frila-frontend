@@ -20,7 +20,7 @@ Documento operacional do piloto do Frila no Distrito Federal, cobrindo o períod
 1. **Gratuidade total:** Durante o piloto, o aplicativo é 100% gratuito. Não há cobrança de taxa de adesão, comissão ou intermediação para estabelecimentos nem para profissionais.
 2. **Pagamento direto fora do app:** O pagamento do cachê/diária é acordado entre as partes e efetuado diretamente pelo contratante ao profissional no encerramento do expediente. O Frila não processa valores financeiros (`AjudaESuporte.md:72`).
 3. **Maioridade estrita (18+):** Elegibilidade restrita a maiores de 18 anos (`Classificacao18ECA.md`, Art. 7º, II da LGPD). Menores não são admitidos no piloto.
-4. **Sem plantão ao vivo:** O Frila não disponibiliza suporte em tempo real ou chat ao vivo (`Visão 1.2`). O canal de atendimento é assíncrono via e-mail oficial (`suportefrila@gmail.com`).
+4. **Sem plantão ao vivo:** O Frila não disponibiliza suporte em tempo real ou chat ao vivo (`Visão 1.2`). O canal de atendimento é assíncrono via e-mail oficial (`suporte@frilabr.com`).
 5. **Comunicação sem grupos expostos:** Para preservar a privacidade e não expor telefones e dados pessoais entre participantes (Art. 37 da LGPD, `LGPD.md:35`), toda comunicação institucional ocorre por e-mail ou lista individual de transmissão, vedada a criação de grupos coletivos de WhatsApp.
 
 ---
@@ -156,7 +156,7 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 > Para instalar a versão do piloto no seu iPhone, acesse o link oficial:
 > `[LINK DE INSTALAÇÃO DO PILOTO A CONFIRMAR PELO CAUÊ]`
 >
-> Em caso de dúvidas, nossa equipe atende pelo e-mail suportefrila@gmail.com.
+> Em caso de dúvidas, nossa equipe atende pelo e-mail suporte@frilabr.com.
 
 ### 8.2 Mensagem de Boas-Vindas e Primeiros Passos
 > **Assunto:** Boas-vindas ao piloto do Frila
@@ -172,7 +172,7 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 >
 > O Frila conecta estabelecimentos e profissionais; a combinação de trabalho e o acerto de valores ocorrem diretamente entre as partes.
 >
-> Nosso canal oficial de ajuda é suportefrila@gmail.com.
+> Nosso canal oficial de ajuda é suporte@frilabr.com.
 
 ### 8.3 Mensagem de Lembrete Operacional de Turno
 > **Assunto:** Lembrete do seu turno confirmado no Frila
@@ -198,7 +198,7 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 > Avisaremos em breve sobre a disponibilidade do Frila na App Store.
 >
 > Um abraço,
-> Equipe Frila (suportefrila@gmail.com)
+> Equipe Frila (suporte@frilabr.com)
 
 ### 8.5 Mensagem de Atualização
 > **Assunto:** Atualização do piloto do Frila
@@ -209,7 +209,7 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 >
 > Para continuar usando o app: [INCLUIR SOMENTE AS ORIENTAÇÕES VALIDADAS PARA A MUDANÇA].
 >
-> Em caso de dúvidas, escreva para suportefrila@gmail.com.
+> Em caso de dúvidas, escreva para suporte@frilabr.com.
 
 ### 8.6 Mensagem de Problema no Aplicativo
 > **Assunto:** Aviso sobre o funcionamento do Frila
@@ -222,7 +222,7 @@ Modelos redigidos em português simples, sem promessa de tempo, sem dados pessoa
 >
 > Orientação: [INCLUIR O PRÓXIMO PASSO VALIDADO PELA EQUIPE].
 >
-> Se precisar relatar uma dificuldade, escreva para suportefrila@gmail.com.
+> Se precisar relatar uma dificuldade, escreva para suporte@frilabr.com.
 
 Antes de enviar qualquer modelo, preencher os campos entre colchetes com informações confirmadas. O convite depende da confirmação do link de instalação pelo Cauê.
 
