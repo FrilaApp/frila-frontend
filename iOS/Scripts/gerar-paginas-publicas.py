@@ -88,7 +88,7 @@ h1{font-size:1.9rem;line-height:1.2}h2{font-size:1.25rem;margin-top:2em}h3{font-
 
 pages = [("privacidade", "Política de Privacidade"), ("termos", "Termos de Uso"), ("suporte", "Suporte")]
 nav = '<nav><a href="/" class="brand">Frila</a>' + ''.join('<a href="/%s">%s</a>' % (p, t) for p, t in pages) + '</nav>'
-footer = '<footer>Frila · <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos</a> · <a href="/suporte">Suporte</a> · <a href="mailto:suportefrila@gmail.com">suportefrila@gmail.com</a></footer>'
+footer = '<footer>Frila · <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos</a> · <a href="/suporte">Suporte</a> · <a href="mailto:suporte@frilabr.com">suporte@frilabr.com</a></footer>'
 
 os.makedirs(out, exist_ok=True)
 

@@ -33,7 +33,7 @@ Todos os fatos descritos nas três páginas públicas foram extraídos diretamen
 | 13 | **Denúncia de conteúdo (Diretriz 1.2)** | Canal acessível na tela de detalhe da vaga com motivos categorizados e protocolo rastreável de ocorrência. | `iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:62-150`, `iOS/Docs/SegurancaEPrivacidade.md:134` |
 | 14 | **Bloqueio mútuo (Diretriz 1.2)** | Ação de bloqueio imediato na tela de detalhe da vaga impedindo interações futuras entre as partes. | `iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:20-60`, `iOS/Docs/SegurancaEPrivacidade.md:135` |
 | 15 | **Moderação de denúncias** | Compromisso operacional: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. | Decisão do Cauê de 15/10/2026; `iOS/Docs/SegurancaEPrivacidade.md`; `iOS/Docs/AjudaESuporte.md` |
-| 16 | **Canal oficial de suporte** | E-mail `suportefrila@gmail.com` centralizado na infraestrutura de apresentação do app. | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:22`, `iOS/Docs/AjudaESuporte.md:19-21` |
+| 16 | **Canal oficial de suporte** | E-mail `suporte@frilabr.com` centralizado na infraestrutura de apresentação do app. | `iOS/Sources/Apresentacao/EnderecosOficiais.swift:22`, `iOS/Docs/AjudaESuporte.md:19-21` |
 | 17 | **Exportação e exclusão de dados** | Ações de autoatendimento no app em Perfil: "Exportar meus dados" (JSON via RPC) e "Excluir conta" (purga remota e local). | `iOS/Sources/Apresentacao/Fluxos/Perfil/ExportarDadosViewModel.swift`, `iOS/Sources/Apresentacao/Fluxos/Perfil/ExclusaoDeContaViewModel.swift`, `iOS/Sources/Dominio/SaidaDaConta.swift:74-91` |
 
 ---
@@ -43,7 +43,7 @@ Todos os fatos descritos nas três páginas públicas foram extraídos diretamen
 | Obrigação Legal | Dispositivo da LGPD | Tratamento na Política de Privacidade (`privacidade.md`) | Status |
 |---|---|---|:---:|
 | **Identificação do Controlador** | Art. 9º, I e Art. 37 | Seção 1 identifica Cauê Carneiro Kilanovic, pessoa física responsável pelo projeto Frila (projeto de estudantes), com localidade Brasília/DF. | Localidade confirmada pelo Cauê |
-| **Canal do Titular de Dados** | Art. 18 | Seções 1 e 8 indicam o canal do titular e do suporte (`suportefrila@gmail.com`), sem atribuir DPO ao projeto. | Canal definido; enquadramento jurídico a confirmar |
+| **Canal do Titular de Dados** | Art. 18 | Seções 1 e 8 indicam o canal do titular e do suporte (`privacidade@frilabr.com`), sem atribuir DPO ao projeto. | Canal definido; enquadramento jurídico a confirmar |
 | **Finalidades Específicas do Tratamento** | Art. 6º, I e Art. 9º, II | Seção 2 discrimina com clareza a finalidade de cada tipo de dado em tabela acessível. | ✅ Implementado |
 | **Indicação da Base Legal** | Art. 7º e Art. 9º, II | Seção 2 indica expressamente as bases legais (execução de contrato art. 7º V, obrigação legal art. 7º II, legítimo interesse art. 7º IX). | ✅ Implementado |
 | **Forma e Duração do Tratamento (Retenção)** | Art. 9º, III e Art. 15 | Seção 6 detalha prazos de guarda: contato da outra parte disponível por até 7 dias após o fim do turno (RN10), com descarte do cache offline em 24 h; eventos de uso do app apagados em 90 dias; relatórios técnicos anônimos em até 90 dias; purga na exclusão. | ✅ Implementado |
@@ -111,7 +111,7 @@ Decisão do Cauê de 15/10/2026: o Frila é um projeto de estudantes, sem razão
 |---|---|---|---|
 | `privacidade.md` e `termos.md` | Seção 1 (Identificação) | Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes) | Identificação definida pelo Cauê. |
 | `privacidade.md` e `termos.md` | Seção 1 (Identificação) | Localidade: Brasília/DF | Confirmada pelo Cauê. |
-| `privacidade.md` | Seções 1, 8 e 12 | Canal do titular de dados e do suporte: `suportefrila@gmail.com` | Canal definido; avaliação jurídica sobre encarregado pendente, sem afirmar dispensa. |
+| `privacidade.md` | Seções 1, 8 e 12 | Canal do titular de dados e do suporte: `privacidade@frilabr.com` | Canal definido; avaliação jurídica sobre encarregado pendente, sem afirmar dispensa. |
 | `termos.md` | Seção 14 (Foro) | Comarca de Brasília, Distrito Federal | Confirmado pelo Cauê. |
 
 > Localidade Brasília/DF e foro da Comarca de Brasília, Distrito Federal confirmados pelo Cauê. Permanecem pendentes a avaliação jurídica sobre encarregado e a definição das URLs públicas aprovadas antes da publicação. Este ajuste documental não republica o site nem altera os textos ou prazos calculados pelo app e pelo backend.

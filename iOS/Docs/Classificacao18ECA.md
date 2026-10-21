@@ -79,7 +79,7 @@ Em vigor desde 17/03/2026. A fiscalização é da ANPD.
 | Decreto, art. 12 §4º | Termos informam a classificação em português. | Termos, seção 3. |
 | Decreto, art. 24 §3º | Guardar só a idade ou a faixa; não reutilizar para outra finalidade. | O app recebe só a faixa. O registro no servidor depende do backend ([cartão #268](https://trello.com/c/LQlwDaYZ)). |
 | Decreto, art. 25 §4º | Na divergência com o sinal da loja, adotar a alternativa mais protetiva. | Seção 1, item 3. |
-| Decreto, art. 27 | Meio de contestar a idade aferida. | Termos, seção 3: `suportefrila@gmail.com`. |
+| Decreto, art. 27 | Meio de contestar a idade aferida. | Termos, seção 3: `suporte@frilabr.com`. |
 | Lei, art. 35 | Sanções: advertência; multa de até 10% do faturamento ou, sem faturamento, de R$ 10 a R$ 1.000 por usuário, limitada a R$ 50 milhões por infração. | — |
 
 "A cada acesso" (Lei, art. 9º §1º): conferir a idade em todo login é desproporcional, e a ANPD
