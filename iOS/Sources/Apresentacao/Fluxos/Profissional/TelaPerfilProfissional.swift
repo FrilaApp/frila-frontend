@@ -534,8 +534,8 @@ public struct TelaPerfilProfissional: View {
             }
             .accessibilityIdentifier("botao-salvar-perfil")
         }
-        .padding(.horizontal, FrilaEspaco.medio)
-        .padding(.vertical, FrilaEspaco.compacto)
+        .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : FrilaEspaco.medio)
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.minimo : FrilaEspaco.compacto)
         .frame(maxWidth: .infinity)
     }
 
