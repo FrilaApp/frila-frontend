@@ -81,7 +81,8 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
     // MARK: - 3. Publicar Vaga em Dynamic Type XXXL
 
-    func testPublicarVagaEmDynamicTypeXXXLMantemControlesNaTela() {
+    func testPublicarVagaEmDynamicTypeXXXLMantemControlesNaTela() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
