@@ -438,9 +438,16 @@ public struct TelaMinhasVagas: View {
                     .padding(.leading, larguraDoIcone + FrilaEspaco.pequeno)
             }
             RotuloDaSelecao(vaga: vaga)
-            Text(verbatim: TextosMinhasVagas.verDetalhes)
-                .font(FrilaTipo.nota.weight(.semibold))
-                .foregroundStyle(FrilaCor.textoSecundario)
+            HStack {
+                Text(verbatim: TextosMinhasVagas.verDetalhes)
+                    .font(FrilaTipo.nota.weight(.semibold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(FrilaTipo.microRotulo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -499,15 +506,15 @@ private struct BotaoPublicarDeNovo: View {
                 Text(verbatim: TextosMinhasVagas.republicar)
             }
             .font(FrilaTipo.meta.weight(.semibold))
+            .foregroundStyle(FrilaCor.sobrePrimaria)
             .multilineTextAlignment(.center)
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+            .background(FrilaCor.primaria, in: Capsule())
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(FrilaCor.sobrePrimaria)
-        .background(FrilaCor.primaria, in: Capsule())
+        .buttonStyle(.tatil)
     }
 }
 
@@ -607,6 +614,12 @@ private struct TelaDetalheVagaContratante: View {
                             .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
                         BotaoSecundario("Fechar") { Task { await acompanhamento.fecharAvisoDaFila(id: recusa.id) } }
                             .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                    }
+                }
+                if vaga.modo == .selecao {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        FrilaEditorialTag(TextosDosCandidatos.rotuloSelecao.uppercased())
+                        Spacer()
                     }
                 }
                 Text(verbatim: vaga.vaga.funcao)
@@ -717,6 +730,7 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
+                    .buttonStyle(.tatil)
                     .accessibilityIdentifier("perfil-publico-\(posicao.id)")
                 }
                 if let turnoID = posicao.turnoID {
@@ -738,12 +752,14 @@ private struct TelaDetalheVagaContratante: View {
                                 Label { Text(verbatim: TextosMinhasVagas.ligar) } icon: { Image(systemName: "phone") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .buttonStyle(.tatil)
                         }
                         if let whatsappURL = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)?.url {
                             Link(destination: whatsappURL) {
                                 Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
                                     .frame(minHeight: FrilaMetrica.alvoMinimo)
                             }
+                            .buttonStyle(.tatil)
                             .simultaneousGesture(TapGesture().onEnded {
                                 let agora = Date()
                                 if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {
@@ -773,6 +789,7 @@ private struct TelaDetalheVagaContratante: View {
                     }
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
+                    .buttonStyle(.tatil)
                     .disabled(carregandoContato.contains(posicao.id))
                     .accessibilityIdentifier("ver-contato-\(posicao.id)")
                 }
