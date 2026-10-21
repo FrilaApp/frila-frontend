@@ -167,7 +167,7 @@ struct SuporteTurnoTests {
     @Test("Cenário 6: URL mailto de fallback contém destinatário, assunto e corpo codificados")
     func urlMailtoFallback() {
         let contexto = criarContextoExemplo()
-        let vm = SuporteTurnoViewModel(dados: contexto, emailDestino: "suportefrila@gmail.com")
+        let vm = SuporteTurnoViewModel(dados: contexto, emailDestino: "suporte@frilabr.com")
 
         guard let url = vm.urlMailto else {
             Issue.record("A URL mailto deve ser gerada com sucesso")
@@ -176,7 +176,7 @@ struct SuporteTurnoTests {
 
         #expect(url.scheme == "mailto")
         let componentes = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        #expect(componentes?.path == "suportefrila@gmail.com" || url.absoluteString.hasPrefix("mailto:suportefrila@gmail.com"))
+        #expect(componentes?.path == "suporte@frilabr.com" || url.absoluteString.hasPrefix("mailto:suporte@frilabr.com"))
 
         let assuntoParam = componentes?.queryItems?.first(where: { $0.name == "subject" })?.value
         let corpoParam = componentes?.queryItems?.first(where: { $0.name == "body" })?.value

@@ -153,7 +153,7 @@ public enum PersistenciaFrila {
             try diretorioMutavel.setResourceValues(valores)
             try FileManager.default.setAttributes(
                 [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-                ofItemAtPath: diretorio.path
+                ofItemAtPath: diretorio.path(percentEncoded: false)
             )
             configuracao = ModelConfiguration("Frila", schema: esquema, url: diretorio.appending(path: "Frila.store"))
         }

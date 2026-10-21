@@ -6735,12 +6735,12 @@
         }
       }
     },
-    "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com": {
+    "Abre o compositor de e-mail com os dados pré-preenchidos para %@": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abre o compositor de e-mail com os dados pré-preenchidos para suportefrila@gmail.com"
+            "value": "Abre o compositor de e-mail com os dados pré-preenchidos para %@"
           }
         }
       }
@@ -7285,12 +7285,12 @@
         }
       }
     },
-    "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suportefrila@gmail.com.": {
+    "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para %@.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para suportefrila@gmail.com."
+            "value": "Limite de 5 chamados por dia atingido. Em caso de urgência, escreva diretamente para %@."
           }
         }
       }
@@ -7865,12 +7865,12 @@
         }
       }
     },
-    "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suportefrila@gmail.com.": {
+    "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para %@.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para suportefrila@gmail.com."
+            "value": "Sua conta está suspensa. Acesse a contestação ou envie um e-mail para %@."
           }
         }
       }
