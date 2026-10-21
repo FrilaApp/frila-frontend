@@ -754,6 +754,7 @@ private struct TelaDetalheVagaContratante: View {
                             }
                             .frame(minHeight: FrilaMetrica.alvoMinimo)
                             .contentShape(Rectangle())
+                            .accessibilityAddTraits(.isButton)
                         }
                         if let whatsappURL = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)?.url {
                             Link(destination: whatsappURL) {
@@ -763,6 +764,7 @@ private struct TelaDetalheVagaContratante: View {
                             }
                             .frame(minHeight: FrilaMetrica.alvoMinimo)
                             .contentShape(Rectangle())
+                            .accessibilityAddTraits(.isButton)
                             .simultaneousGesture(TapGesture().onEnded {
                                 let agora = Date()
                                 if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {

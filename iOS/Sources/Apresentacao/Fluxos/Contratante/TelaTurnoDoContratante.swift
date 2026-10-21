@@ -251,6 +251,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
+                                .foregroundStyle(FrilaCor.marca)
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                         }
@@ -270,6 +271,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
+                                .foregroundStyle(FrilaCor.marca)
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                         }
@@ -330,8 +332,12 @@ struct TelaTurnoDoContratante: View {
         switch viewModel.chegada(turno) {
         case .aguardando:
             Text(verbatim: TextosDoAcompanhamento.aguardando)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
         case let .aCaminho(desde):
             Text(verbatim: String(format: TextosDoAcompanhamento.aCaminho, formatador.hora(desde)))
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
         case .manualPendente:
             Text(verbatim: TextosDoAcompanhamento.manualPendente).font(FrilaTipo.resumo)
             Text(verbatim: TextosDoAcompanhamento.explicacaoDaConfirmacao)
@@ -357,8 +363,15 @@ struct TelaTurnoDoContratante: View {
                     .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
             }
         case .verificada:
-            Text(verbatim: TextosDoAcompanhamento.verificada).font(FrilaTipo.resumo)
-                .accessibilityIdentifier("presenca-verificada-\(turnoID)")
+            HStack(spacing: FrilaEspaco.minimo) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(FrilaCor.sucesso)
+                Text(verbatim: TextosDoAcompanhamento.verificada)
+            }
+            .font(FrilaTipo.resumo.weight(.semibold))
+            .foregroundStyle(FrilaCor.texto)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("presenca-verificada-\(turnoID)")
             if let checkinEm = turno.posicao.checkinEm {
                 Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo))
                     .font(FrilaTipo.meta)
@@ -373,6 +386,8 @@ struct TelaTurnoDoContratante: View {
             }
         case .naoVerificada:
             Text(verbatim: TextosDoAcompanhamento.naoVerificada)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
         case .cancelada:
             // O bloco inteiro usa o id do turno: `turno.id` é o da posição, outro valor.
             Text(verbatim: TextosDoAcompanhamento.cancelada).font(FrilaTipo.resumo)
