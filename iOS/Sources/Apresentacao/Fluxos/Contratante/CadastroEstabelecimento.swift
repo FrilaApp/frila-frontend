@@ -296,6 +296,7 @@ private enum IDScroll: Hashable {
 /// Cadastro do estabelecimento no primeiro acesso do contratante, no quadro "Estabelecimento" do MidFi do Fabrício:
 /// campos contornados, mapa com raio e o responsável da conta em cartão.
 public struct TelaCadastroEstabelecimento: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
     @State private var posicaoMarcador: CGPoint?
@@ -384,7 +385,7 @@ public struct TelaCadastroEstabelecimento: View {
                 }
                 .padding(.horizontal, FrilaEspaco.medio)
                 .padding(.top, FrilaEspaco.medio)
-                .padding(.bottom, FrilaEspaco.enorme)
+                .padding(.bottom, (dynamicTypeSize.isAccessibilitySize || dynamicTypeSize >= .xxxLarge) ? FrilaEspaco.medio : FrilaEspaco.enorme)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
@@ -767,7 +768,7 @@ public struct TelaCadastroEstabelecimento: View {
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
-        } else {
+        } else if !dynamicTypeSize.isAccessibilitySize && dynamicTypeSize < .xxxLarge {
             VStack(spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "map")
                     .font(.title2)
