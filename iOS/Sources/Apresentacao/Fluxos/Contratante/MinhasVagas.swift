@@ -279,6 +279,8 @@ public struct TelaMinhasVagas: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let publicarVaga: (() -> Void)?
+    private let sair: (() -> Void)?
+    private let abrirPerfil: (() -> Void)?
     private let formatador = FormatadorFrila()
 
     /// O roteador vem de fora quando um aviso do push precisa abrir a vaga ou o turno (#8).
@@ -288,7 +290,9 @@ public struct TelaMinhasVagas: View {
         api: any ApiCliente,
         fila: (any FilaDeAcoes)? = nil,
         roteador: RoteadorDoContratante? = nil,
-        publicarVaga: (() -> Void)? = nil
+        publicarVaga: (() -> Void)? = nil,
+        sair: (() -> Void)? = nil,
+        abrirPerfil: (() -> Void)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
         _acompanhamento = State(initialValue: AcompanhamentoViewModel(
@@ -298,6 +302,8 @@ public struct TelaMinhasVagas: View {
         self.api = api
         self.fila = fila
         self.publicarVaga = publicarVaga
+        self.sair = sair
+        self.abrirPerfil = abrirPerfil
     }
 
     public var body: some View {
@@ -380,8 +386,23 @@ public struct TelaMinhasVagas: View {
             .navigationTitle(Text(verbatim: TextosMinhasVagas.titulo))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                if let publicarVaga, !viewModel.vagas.isEmpty {
-                    ToolbarItem(placement: .topBarTrailing) {
+                if let sair {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: sair) {
+                            Text("Sair", bundle: bundleApresentacao)
+                        }
+                        .accessibilityIdentifier("sair-fluxo-contratante")
+                    }
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if let abrirPerfil {
+                        Button(action: abrirPerfil) {
+                            Label(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao), systemImage: "person.crop.circle")
+                        }
+                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                        .accessibilityIdentifier("abrir-perfil-estabelecimento")
+                    }
+                    if let publicarVaga, !viewModel.vagas.isEmpty {
                         Button(action: publicarVaga) {
                             Label(TextosMinhasVagas.publicarVaga, systemImage: "plus")
                         }
