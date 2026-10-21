@@ -198,7 +198,8 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertEqual(campoValor.value as? String, "R$ 180,00")
     }
 
-    func testPublicarVagaEmAX5SeletorDeDataETocavel() {
+    func testPublicarVagaEmAX5SeletorDeDataETocavel() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))

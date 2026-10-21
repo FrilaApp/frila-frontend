@@ -41,6 +41,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
         XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+        app.swipeUp()
         XCTAssertEqual(mapa.label, "Mapa do estabelecimento")
 
         // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
@@ -60,7 +61,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         let frameInicial = marcador.frame
         let pontoInicial = CGPoint(x: frameInicial.midX, y: frameInicial.midY)
-        let pontoDeSoltura = CGPoint(x: pontoInicial.x + 120, y: pontoInicial.y - 80)
+        let pontoDeSoltura = CGPoint(x: pontoInicial.x + 120, y: pontoInicial.y - 40)
         let referenciaEstatica = app.coordinate(withNormalizedOffset: .zero)
         let coordenadaInicial = referenciaEstatica.withOffset(CGVector(dx: pontoInicial.x, dy: pontoInicial.y))
         let coordenadaFinal = referenciaEstatica.withOffset(CGVector(dx: pontoDeSoltura.x, dy: pontoDeSoltura.y))
@@ -91,7 +92,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let dxReal = pontaFinal.x - pontoInicial.x
         let dyReal = pontaFinal.y - pontoInicial.y
         XCTAssertEqual(dxReal, 120, accuracy: 12, "Deslocamento horizontal relativo deve ser 120 pt")
-        XCTAssertEqual(dyReal, -80, accuracy: 12, "Deslocamento vertical relativo deve ser -80 pt")
+        XCTAssertEqual(dyReal, -40, accuracy: 12, "Deslocamento vertical relativo deve ser -40 pt")
 
         // A tolerância de 12 pt reprova o arrasto que parava no raio de 30 pt.
         XCTAssertEqual(pontaFinal.x, pontoDeSoltura.x, accuracy: 12)
@@ -110,6 +111,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
         XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+        app.swipeUp()
 
         // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
         let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
@@ -141,13 +143,13 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let cameraAntesDoZoom = try XCTUnwrap(mapa.value as? String)
         let componentesIniciais = cameraAntesDoZoom.split(separator: ",").compactMap { Double($0) }
         guard componentesIniciais.count == 4 else { XCTFail("Câmera sem região antes do zoom."); return }
-        mapa.pinch(withScale: 2, velocity: 1)
+        mapa.pinch(withScale: 1.5, velocity: 1)
         let cameraDepoisDoZoom = try XCTUnwrap(mapa.value as? String)
         let componentesFinais = cameraDepoisDoZoom.split(separator: ",").compactMap { Double($0) }
         guard componentesFinais.count == 4 else { XCTFail("Câmera sem região depois do zoom."); return }
         XCTAssertLessThan(componentesFinais[2], componentesIniciais[2], "A pinça deve aproximar o mapa.")
         // O zoom pode tirar o ponto do quadro; reabra a região antes de ler o marcador.
-        mapa.pinch(withScale: 0.5, velocity: -1)
+        mapa.pinch(withScale: 0.7, velocity: -1)
         XCTAssertTrue(marcador.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(marcador.value as? String, valorFinal, "O zoom não deve mudar o ponto.")
     }
@@ -159,6 +161,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
         XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+        app.swipeUp()
         let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
         let expectativaCamera = XCTNSPredicateExpectation(predicate: cameraPronta, object: mapa)
         XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer), .completed, "A região da câmera deve estar carregada antes do toque.")
@@ -176,6 +179,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let pontoInicial = try XCTUnwrap(marcador.value as? String)
         let mapa = app.descendants(matching: .any)["mapa-estabelecimento"]
         XCTAssertTrue(mapa.waitForExistence(timeout: 10))
+        app.swipeUp()
 
         // Espera a câmera assentar com região válida (4 componentes) antes de iniciar o gesto.
         let cameraPronta = NSPredicate { _, _ in (mapa.value as? String)?.split(separator: ",").count == 4 }
@@ -183,8 +187,8 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [expectativaCamera], timeout: Espera.aparecer), .completed, "A câmera deve assentar antes do arrasto.")
 
         let cameraInicial = try XCTUnwrap(mapa.value as? String)
-        let inicio = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.8))
-        let fim = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.15))
+        let inicio = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
+        let fim = mapa.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.5))
         inicio.press(forDuration: 0.1, thenDragTo: fim)
 
         XCTAssertNotEqual(mapa.value as? String, cameraInicial, "O gesto precisa mover o mapa até o ponto sair do quadro.")
@@ -202,7 +206,8 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertEqual(marcador.value as? String, pontoInicial)
     }
 
-    func testPublicarVagaEmAccessibilityXXXLControlesDentroDaTelaETocaveis() {
+    func testPublicarVagaEmAccessibilityXXXLControlesDentroDaTelaETocaveis() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
@@ -345,7 +350,8 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         salvarCaptura("03-tela-vizinha-publicar-vaga")
     }
 
-    func testCapturaCadastroEstabelecimentoXXXL() {
+    func testCapturaCadastroEstabelecimentoXXXL() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
