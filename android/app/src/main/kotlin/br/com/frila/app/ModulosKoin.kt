@@ -5,6 +5,7 @@ import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ProvedorDeToken
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoDispositivo
+import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -14,6 +15,7 @@ import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.turnos.MeusTurnosViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -42,6 +44,7 @@ val moduloRede = module {
     single { ServicoAutenticacao(get()) }
     single { ServicoVagas(get()) }
     single { ServicoDispositivo(get()) }
+    single { ServicoTurnos(get()) }
 }
 
 val moduloNotificacoes = module {
@@ -54,6 +57,7 @@ val moduloFeatures = module {
     viewModel { CadastroViewModel() }
     viewModel { FeedVagasViewModel(get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
+    viewModel { MeusTurnosViewModel(get()) }
 }
 
 val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloFeatures)

@@ -133,6 +133,40 @@ data class DispositivoDto(
     @SerialName("vinculo_id") val vinculoId: String? = null,
 )
 
+/** Checagem de presença de um turno (`feito_em`), com distância opcional do ponto esperado. */
+@Serializable
+data class CheckinDto(
+    @SerialName("feito_em") val feitoEm: String,
+    @SerialName("distancia_metros") val distanciaMetros: Double? = null,
+)
+
+/** Avaliação que o chamador já deu a este turno. */
+@Serializable
+data class AvaliacaoDto(
+    @SerialName("positiva") val positiva: Boolean,
+    @SerialName("criada_em") val criadaEm: String,
+)
+
+/**
+ * Resposta de `/rpc/meus_turnos` (schema `Turno`, MEDIDO em `iOS/Contrato/openapi.yaml:2454`).
+ * RN12: turno cancelado continua na lista, com `estado: cancelada` — o cancelamento não apaga
+ * o registro do que foi combinado.
+ */
+@Serializable
+data class TurnoDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("posicao_id") val posicaoId: String,
+    @SerialName("funcao") val funcao: FuncaoDto,
+    @SerialName("contraparte") val contraparte: PerfilPublicoDto,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("estado") val estado: String,
+    @SerialName("checkin") val checkin: CheckinDto? = null,
+    @SerialName("avaliacao") val avaliacao: AvaliacaoDto? = null,
+)
+
 /** Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela. */
 @Serializable
 data class ErroPostgrestDto(

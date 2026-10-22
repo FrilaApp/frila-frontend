@@ -59,6 +59,7 @@ dependencies {
     implementation(project(":core:notificacoes"))
     implementation(project(":feature:entrada"))
     implementation(project(":feature:vagas"))
+    implementation(project(":feature:turnos"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
