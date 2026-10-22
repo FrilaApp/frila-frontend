@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   testes-unitarios:
-    name: "core:dominio e core:rede — testes unitários"
+    name: "core:dominio, core:rede e core:seguranca — testes unitários"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -38,5 +38,5 @@ jobs:
       - name: Validar gradlew
         run: test -x ./gradlew
 
-      - name: ":core:dominio:test :core:rede:test"
-        run: ./gradlew :core:dominio:test :core:rede:test --no-daemon
+      - name: ":core:dominio:test :core:rede:test :core:seguranca:test"
+        run: ./gradlew :core:dominio:test :core:rede:test :core:seguranca:test --no-daemon

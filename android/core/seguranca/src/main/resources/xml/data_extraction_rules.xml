@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Regras de extração de dados (Android 12+ / API 31+), referenciadas no AndroidManifest do
+  módulo :app via android:dataExtractionRules="@xml/data_extraction_rules" (com
+  android:allowBackup="false" na raiz — ver docs/android/04-seguranca-e-sessao.md).
+
+  Bloqueia, por LGPD e RN15, a saída de dado de sessão por dois canais:
+    1. cloud-backup: backup em nuvem (Google Drive / Backup do Google).
+    2. device-transfer: migração física cabo/aparelho ("Copiar meus dados").
+
+  Keystore: as chaves do Android Keystore usadas para cifrar a sessão (AES-256-GCM) nunca saem
+  do hardware seguro e não existem como arquivo exportável — não há domínio de extração que as
+  represente, e por isso nenhuma exclusão específica de "keystore" é necessária ou possível
+  neste XML; a proteção delas é estrutural, não declarativa.
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapability="true">
+        <exclude domain="sharedpref" path="sessao_segura.xml"/>
+        <exclude domain="database"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="sessao_segura.xml"/>
+        <exclude domain="database"/>
+    </device-transfer>
+</data-extraction-rules>
