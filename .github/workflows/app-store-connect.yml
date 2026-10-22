@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       acao:
-        description: "Consultar, preparar grupo interno ou responder a classificação"
+        description: "Consultar grupos, revisão beta ou classificação"
         type: choice
-        options: [conferir, grupo-interno, classificacao]
+        options: [conferir, grupo-interno, classificacao, grupo-externo, revisao-beta]
         default: conferir
         required: true
       aplicar:
@@ -22,6 +22,14 @@ on:
         description: "Nome exato do grupo interno (reutiliza se já existir)"
         type: string
         default: Equipe Frila
+      versao:
+        description: "Versão iOS do build processado (grupo-externo e revisao-beta); confirmar origem Frila-Beta"
+        type: string
+        default: "0.5.1"
+      limite_testadores:
+        description: "Limite do link público de Testadores Frila (1 a 10000)"
+        type: string
+        default: "1000"
       verificacao_idade:
         description: "A versão inclui Declared Age Range do PR 95 (Age Assurance = Sim)"
         type: boolean
@@ -40,7 +48,7 @@ concurrency:
 
 jobs:
   metadados:
-    name: Grupo interno e classificação pela API
+    name: Grupos, revisão beta e classificação pela API
     runs-on: macos-26
     timeout-minutes: 15
     defaults:
@@ -69,6 +77,11 @@ jobs:
           ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          BETA_CONTATO_NOME: ${{ secrets.BETA_CONTATO_NOME }}
+          BETA_CONTATO_TELEFONE: ${{ secrets.BETA_CONTATO_TELEFONE }}
+          BETA_CONTATO_EMAIL: ${{ secrets.BETA_CONTATO_EMAIL }}
+          BETA_DEMO_USUARIO: ${{ secrets.BETA_DEMO_USUARIO }}
+          BETA_DEMO_SENHA: ${{ secrets.BETA_DEMO_SENHA }}
           # Entradas são lidas do GITHUB_EVENT_PATH pelo script, sem env que
           # o runner imprimiria antes de mascarar os e-mails.
         run: ruby Scripts/app-store-connect.rb
