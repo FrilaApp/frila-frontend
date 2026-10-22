@@ -332,10 +332,6 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
             } catch {
                 XCTFail("Falha ao exportar captura para \(destino.path): \(error)")
             }
-        } else if nome.contains("aviso") {
-            let destino = URL(fileURLWithPath: "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/thor/frila-frontend/evidencias/avisos-publicar-vaga/\(nome).png")
-            try? FileManager.default.createDirectory(at: destino.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try? captura.pngRepresentation.write(to: destino)
         }
     }
 
