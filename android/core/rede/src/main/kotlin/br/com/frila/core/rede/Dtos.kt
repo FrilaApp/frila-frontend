@@ -114,6 +114,25 @@ data class ResultadoCandidaturaDto(
     @SerialName("contato") val contato: ContatoDto? = null,
 )
 
+/** Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). */
+@Serializable
+data class RegistrarDispositivoDto(
+    @SerialName("token_fcm") val tokenFcm: String,
+    @SerialName("plataforma") val plataforma: String = "android",
+)
+
+/**
+ * Resposta de `/rpc/registrar_dispositivo` (schema `Dispositivo`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:3200`). `vinculoId` é nulo quando o backend ainda não o devolve
+ * (servidor anterior à 0.2.30) — ver `ValidadorIsolamentoConta` em `:core:seguranca`.
+ */
+@Serializable
+data class DispositivoDto(
+    @SerialName("plataforma") val plataforma: String,
+    @SerialName("atualizado_em") val atualizadoEm: String,
+    @SerialName("vinculo_id") val vinculoId: String? = null,
+)
+
 /** Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela. */
 @Serializable
 data class ErroPostgrestDto(
