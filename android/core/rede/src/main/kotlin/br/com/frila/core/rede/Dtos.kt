@@ -69,6 +69,13 @@ data class VerificarOtpDto(
     @SerialName("type") val tipo: String = "email",
 )
 
+/** Corpo de `POST /functions/v1/entrar-demonstracao`: modo demonstração da Google Play. */
+@Serializable
+data class EntrarDemonstracaoDto(
+    @SerialName("email") val email: String,
+    @SerialName("codigo") val codigo: String,
+)
+
 /** Resposta de sessão autenticada: `access_token`, `refresh_token`, `token_type`, `expires_in`. */
 @Serializable
 data class SessaoDto(
