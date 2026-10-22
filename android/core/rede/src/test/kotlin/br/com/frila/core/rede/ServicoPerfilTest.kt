@@ -1,5 +1,6 @@
 package br.com.frila.core.rede
 
+import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -87,5 +88,53 @@ class ServicoPerfilTest {
         assertNull(perfil.reputacao.taxaComparecimento)
         assertTrue(perfil.funcoes.isEmpty())
         assertNull(perfil.pontoBase)
+    }
+
+    @Test
+    fun `excluirConta chama POST functions v1 excluir-conta e decodifica a exclusao com 202`() = runTest {
+        var caminhoChamado: String? = null
+        var corpoChamado: String? = null
+        val engine = MockEngine { request ->
+            caminhoChamado = request.url.encodedPath
+            corpoChamado = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """
+                    {
+                      "perfil_removido_em": "2026-11-02T10:00:00Z",
+                      "dados_apagados_ate": "2026-11-17",
+                      "turnos_cancelados": 2
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.Accepted,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoPerfil(cliente)
+
+        val exclusao = servico.excluirConta()
+
+        assertEquals("/functions/v1/excluir-conta", caminhoChamado)
+        assertTrue(corpoChamado!!.contains("\"confirmar\":true"))
+        assertEquals("2026-11-17", exclusao.dadosApagadosAte)
+        assertEquals(2, exclusao.turnosCancelados)
+    }
+
+    @Test
+    fun `excluirConta com administrador_unico propaga o codigo de dominio`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"administrador_unico","message":"transfira a administracao antes"}""",
+                status = HttpStatusCode.Conflict,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoPerfil(cliente)
+
+        val excecao = runCatching { servico.excluirConta() }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.ADMINISTRADOR_UNICO, (excecao as ErroDaApi).codigo)
     }
 }

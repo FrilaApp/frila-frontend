@@ -48,10 +48,50 @@ class PerfilViewModel(
         armazenamentoDeSessao.limparSessao()
     }
 
+    /** Abre o diálogo de confirmação de exclusão de conta (RF25/UC16). */
+    fun abrirDialogoExclusao() {
+        _estado.update { it.copy(statusExclusao = StatusExclusao.DIALOGO_ABERTO, mensagemErroExclusao = null) }
+    }
+
+    fun cancelarExclusao() {
+        _estado.update { it.copy(statusExclusao = StatusExclusao.OCIOSO) }
+    }
+
+    /**
+     * Confirma a exclusão definitiva de conta (RF25/RN15/RNF08, UC16): anonimiza dados,
+     * cancela turnos futuros sem falta e apaga a credencial. Só limpa a sessão local em caso
+     * de sucesso — um erro (ex.: `409 administrador_unico`) mantém a sessão intacta, porque a
+     * conta continua existindo e o profissional precisa resolver o bloqueio primeiro.
+     */
+    fun confirmarExclusao(): Job {
+        _estado.update { it.copy(statusExclusao = StatusExclusao.EXCLUINDO, mensagemErroExclusao = null) }
+        return escopoDeTrabalho.launch {
+            try {
+                val resultado = servicoPerfil.excluirConta()
+                armazenamentoDeSessao.limparSessao()
+                _estado.update {
+                    it.copy(statusExclusao = StatusExclusao.SUCESSO, resultadoExclusao = resultado)
+                }
+            } catch (erro: ErroDaApi) {
+                _estado.update {
+                    it.copy(statusExclusao = StatusExclusao.ERRO, mensagemErroExclusao = mensagemDeErroExclusao(erro))
+                }
+            }
+        }
+    }
+
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
         CodigoErroAPI.NAO_AUTENTICADO -> "Sua sessão expirou. Entre de novo."
         CodigoErroAPI.NAO_ENCONTRADO -> "Não encontramos seu perfil."
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível carregar seu perfil. Tente de novo em instantes."
+    }
+
+    private fun mensagemDeErroExclusao(erro: ErroDaApi): String = when (erro.codigo) {
+        CodigoErroAPI.ADMINISTRADOR_UNICO ->
+            "Você é o único administrador do estabelecimento. Transfira a administração antes de excluir sua conta."
+        CodigoErroAPI.NAO_AUTENTICADO -> "Sua sessão expirou. Entre de novo."
+        CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
+        else -> "Não foi possível excluir sua conta. Tente de novo em instantes."
     }
 }

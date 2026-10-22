@@ -70,6 +70,13 @@ class ClienteSupabase(
     fun urlRpc(nome: String): String = urlCompleta("/rest/v1/rpc/$nome")
 
     /**
+     * Monta a URL de uma Edge Function do Supabase: `/functions/v1/<nome>`. Usada por operações
+     * que precisam de privilégio além do RLS do PostgREST — ex.: `excluir-conta` apaga a
+     * credencial em `auth.users`, o que só a Edge Function pode fazer (RF25/RN15/UC16).
+     */
+    fun urlFunction(nome: String): String = urlCompleta("/functions/v1/$nome")
+
+    /**
      * Decodifica a resposta em [T] se 2xx; se não, decodifica o envelope de erro PostgREST
      * e lança [ErroDaApi] com o `code` já mapeado para [CodigoErroAPI] (desconhecido vira
      * [CodigoErroAPI.DESCONHECIDO], nunca derruba o parse do envelope).
