@@ -217,3 +217,36 @@ data class ResultadoRegistroDto(
     @SerialName("registrado_em") val registradoEm: String,
     @SerialName("distancia_m") val distanciaM: Int? = null,
 )
+
+/** Coordenada geográfica de rede (schema `Coordenada`, MEDIDO em `iOS/Contrato/openapi.yaml:3825`). */
+@Serializable
+data class CoordenadaDto(
+    @SerialName("latitude") val latitude: Double,
+    @SerialName("longitude") val longitude: Double,
+)
+
+/**
+ * Janela semanal de disponibilidade (schema `JanelaDeDisponibilidade`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:4017`). `dia_semana`: 0 = domingo. As chaves no fio são
+ * `hora_inicio`/`hora_fim`, não `inicio`/`fim` — só o nome Kotlin da propriedade é curto.
+ */
+@Serializable
+data class JanelaDeDisponibilidadeDto(
+    @SerialName("dia_semana") val diaSemana: Int,
+    @SerialName("hora_inicio") val inicio: String,
+    @SerialName("hora_fim") val fim: String,
+)
+
+/**
+ * Perfil de profissional do chamador (schema `PerfilProfissional`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:4065`), resposta de `/rpc/meu_perfil_profissional` (RF03/RF16).
+ */
+@Serializable
+data class PerfilProfissionalDto(
+    @SerialName("id") val id: String,
+    @SerialName("usuario_id") val usuarioId: String,
+    @SerialName("funcoes") val funcoes: List<FuncaoDto> = emptyList(),
+    @SerialName("ponto_base") val pontoBase: CoordenadaDto? = null,
+    @SerialName("disponibilidades") val disponibilidades: List<JanelaDeDisponibilidadeDto> = emptyList(),
+    @SerialName("reputacao") val reputacao: ReputacaoDto,
+)

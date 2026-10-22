@@ -18,6 +18,8 @@ import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.TelaPerfil
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.TelaAvaliacao
@@ -35,6 +37,7 @@ object Rotas {
     const val DETALHE = "detalhe/{vagaId}"
     const val MEUS_TURNOS = "meus_turnos"
     const val AVALIACAO = "avaliacao/{turnoId}"
+    const val PERFIL = "perfil"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -97,6 +100,7 @@ fun AppNavegacao(
             TelaFeedVagas(
                 viewModel = viewModel,
                 aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
+                aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
             )
         }
 
@@ -135,6 +139,18 @@ fun AppNavegacao(
                 turnoId = turnoId,
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
+            )
+        }
+
+        composable(Rotas.PERFIL) {
+            val viewModel: PerfilViewModel = koinViewModel()
+            TelaPerfil(
+                viewModel = viewModel,
+                aoDeslogar = {
+                    navController.navigate(Rotas.ENTRADA) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
     }
