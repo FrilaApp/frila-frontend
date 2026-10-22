@@ -76,21 +76,11 @@ public struct FluxoDoContratante: View {
         VStack(spacing: 0) {
             if case .cadastro = model.estado {
                 // Toolbar nativo dentro de TelaCadastroEstabelecimento
-            } else if !publicando {
+            } else if case .vagas = model.estado {
+                // Toolbar nativo dentro de TelaMinhasVagas
+            } else {
                 HStack {
                     Spacer()
-                    if case .vagas = model.estado {
-                        Button {
-                            mostrandoPerfilEstabelecimento = true
-                        } label: {
-                            Image(systemName: "person.crop.circle")
-                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        }
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
-                        .accessibilityIdentifier("abrir-perfil-estabelecimento")
-                    }
                     Button(action: sair) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
                         .foregroundStyle(FrilaCor.texto)
                         .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
@@ -161,7 +151,15 @@ public struct FluxoDoContratante: View {
                                        excluirConta: { mostrandoExclusaoDeConta = true },
                                        aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
         case let .vagas(estabelecimento):
-            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, publicando: $publicando, sair: sair)
+            DestinoDasVagasDoContratante(
+                api: api,
+                fila: fila,
+                estabelecimento: estabelecimento,
+                roteador: roteador,
+                publicando: $publicando,
+                sair: sair,
+                abrirPerfil: { mostrandoPerfilEstabelecimento = true }
+            )
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -182,17 +180,27 @@ private struct DestinoDasVagasDoContratante: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let roteador: RoteadorDoContratante?
-    private let sair: () -> Void
+    private let sair: (() -> Void)?
+    private let abrirPerfil: (() -> Void)?
     @State private var model: MinhasVagasViewModel
     @State private var publicacao: PublicacaoDaCasaViewModel
     @Binding private var publicando: Bool
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
-    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?, publicando: Binding<Bool>, sair: @escaping () -> Void) {
+    init(
+        api: any ApiCliente,
+        fila: (any FilaDeAcoes)?,
+        estabelecimento: EstabelecimentoDaConta,
+        roteador: RoteadorDoContratante?,
+        publicando: Binding<Bool>,
+        sair: (() -> Void)? = nil,
+        abrirPerfil: (() -> Void)? = nil
+    ) {
         self.api = api
         self.fila = fila
         self.roteador = roteador
         self.sair = sair
+        self.abrirPerfil = abrirPerfil
         _publicando = publicando
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
         _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
@@ -202,7 +210,7 @@ private struct DestinoDasVagasDoContratante: View {
         Group {
             if publicando, let fila {
                 DestinoDePublicarVaga(
-                    api: api, fila: fila, modelo: publicacao, sair: sair,
+                    api: api, fila: fila, modelo: publicacao, sair: sair ?? {},
                     cancelar: { publicando = false },
                     aoPublicar: {
                         // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
@@ -214,8 +222,15 @@ private struct DestinoDasVagasDoContratante: View {
                 )
             } else {
                 // Sem o banco local não há fila para a publicação: a entrada não aparece.
-                TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador,
-                                publicarVaga: fila == nil ? nil : { publicando = true })
+                TelaMinhasVagas(
+                    viewModel: model,
+                    api: api,
+                    fila: fila,
+                    roteador: roteador,
+                    publicarVaga: fila == nil ? nil : { publicando = true },
+                    sair: sair,
+                    abrirPerfil: abrirPerfil
+                )
             }
         }
         #if DEBUG

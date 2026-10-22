@@ -65,6 +65,12 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         XCTAssertTrue(pickerAlerta.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(pickerAlerta.label, "Avisar se a vaga seguir vazia")
 
+        // 3.10 Picker de Função: rótulo acessível único (ex: "Função, Garçom", nunca "Função, Função")
+        let pickerFuncao = app.descendants(matching: .any)["funcao-vaga-picker"]
+        XCTAssertTrue(pickerFuncao.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertNotEqual(pickerFuncao.label, "Função, Função")
+        XCTAssertTrue(pickerFuncao.label.hasPrefix("Função"))
+
         // 2.3 Botão "Mais opções": altura >= 44 pt
         let maisOpcoes = app.buttons["mais-opcoes-botao"]
         XCTAssertTrue(maisOpcoes.waitForExistence(timeout: Espera.aparecer))

@@ -105,6 +105,7 @@ struct TelaTurnoDoContratante: View {
     let viewModel: AcompanhamentoViewModel
     let turnoID: UUID
     let api: (any ApiCliente)?
+    let sair: (() -> Void)?
     @State private var cancelamento: CancelamentoViewModel?
     @State private var suporteModel: SuporteTurnoViewModel?
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
@@ -112,10 +113,11 @@ struct TelaTurnoDoContratante: View {
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     private let formatador = FormatadorFrila()
 
-    init(viewModel: AcompanhamentoViewModel, turnoID: UUID, api: (any ApiCliente)? = nil) {
+    init(viewModel: AcompanhamentoViewModel, turnoID: UUID, api: (any ApiCliente)? = nil, sair: (() -> Void)? = nil) {
         self.viewModel = viewModel
         self.turnoID = turnoID
         self.api = api ?? viewModel.api
+        self.sair = sair
     }
 
     var body: some View {
@@ -140,6 +142,16 @@ struct TelaTurnoDoContratante: View {
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(TextosDoAcompanhamento.titulo)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let sair {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: sair) {
+                        Text("Sair", bundle: bundleApresentacao)
+                    }
+                    .accessibilityIdentifier("sair-fluxo-contratante")
+                }
+            }
+        }
         .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .refreshable { await viewModel.carregar() }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
