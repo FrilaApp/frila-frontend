@@ -32,6 +32,7 @@ public struct TelaCodigo: View {
                             Text("Digite o código", bundle: bundleApresentacao)
                                 .font(FrilaTipo.tituloGrande)
                                 .foregroundStyle(FrilaCor.texto)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
 
                             (Text("Enviamos um código para", bundle: bundleApresentacao).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
