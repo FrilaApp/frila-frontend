@@ -39,6 +39,7 @@ fun TelaMeusTurnos(
     viewModel: MeusTurnosViewModel,
     criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
     modifier: Modifier = Modifier,
+    aoAbrirAvaliacao: (turnoId: String) -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
@@ -64,14 +65,22 @@ fun TelaMeusTurnos(
                 StatusMeusTurnos.CARREGANDO -> Carregando()
                 StatusMeusTurnos.ERRO -> Erro(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
                 StatusMeusTurnos.VAZIO -> Vazio()
-                StatusMeusTurnos.SUCESSO -> ListaDeTurnos(itens = estado.itensDaAbaAtual, criarCheckinViewModel = criarCheckinViewModel)
+                StatusMeusTurnos.SUCESSO -> ListaDeTurnos(
+                    itens = estado.itensDaAbaAtual,
+                    criarCheckinViewModel = criarCheckinViewModel,
+                    aoAbrirAvaliacao = aoAbrirAvaliacao,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ListaDeTurnos(itens: List<ItemTurno>, criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel) {
+private fun ListaDeTurnos(
+    itens: List<ItemTurno>,
+    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
+    aoAbrirAvaliacao: (turnoId: String) -> Unit,
+) {
     if (itens.isEmpty()) {
         Vazio()
         return
@@ -96,8 +105,27 @@ private fun ListaDeTurnos(itens: List<ItemTurno>, criarCheckinViewModel: @Compos
                 if (turno.estado == ESTADO_CHECKIN_DISPONIVEL) {
                     SecaoDeCheckin(turnoId = turno.turnoId, criarCheckinViewModel = criarCheckinViewModel)
                 }
+                SecaoDeAvaliacao(turno = turno, aoAbrirAvaliacao = aoAbrirAvaliacao)
             }
         }
+    }
+}
+
+/** RF15/RN11: avaliação binária de turno cumprido. Um voto por lado, sem nota, sem repetição. */
+@Composable
+private fun SecaoDeAvaliacao(turno: ItemTurno, aoAbrirAvaliacao: (turnoId: String) -> Unit) {
+    val resposta = turno.avaliacaoResposta
+    when {
+        resposta != null -> Text(
+            text = if (resposta) "Você recomendou este local" else "Você não recomendou este local",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+        )
+        turno.podeAvaliar -> BotaoSecundario(
+            texto = "Avaliar turno",
+            aoClicar = { aoAbrirAvaliacao(turno.turnoId) },
+            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+        )
     }
 }
 

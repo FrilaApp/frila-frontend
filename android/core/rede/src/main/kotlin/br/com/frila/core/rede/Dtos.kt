@@ -140,11 +140,24 @@ data class CheckinDto(
     @SerialName("distancia_metros") val distanciaMetros: Double? = null,
 )
 
-/** Avaliação que o chamador já deu a este turno. */
+/**
+ * Avaliação que o chamador já deu a este turno (schema `Avaliacao`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:4749`). O contrato exige `turno_id` e `resposta`; aqui ficam
+ * defensivamente opcionais com default — mesmo padrão já usado em `TurnoDto.checkin`/`avaliacao`
+ * para servidor mais antigo que ainda não mande o campo.
+ */
 @Serializable
 data class AvaliacaoDto(
-    @SerialName("positiva") val positiva: Boolean,
+    @SerialName("turno_id") val turnoId: String? = null,
+    @SerialName("resposta") val resposta: Boolean = false,
     @SerialName("criada_em") val criadaEm: String,
+)
+
+/** Corpo de `/rpc/avaliar`: avaliação binária (RN07) — "Você trabalharia nesse local de novo?". */
+@Serializable
+data class AvaliarDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("resposta") val resposta: Boolean,
 )
 
 /**
@@ -165,6 +178,7 @@ data class TurnoDto(
     @SerialName("estado") val estado: String,
     @SerialName("checkin") val checkin: CheckinDto? = null,
     @SerialName("avaliacao") val avaliacao: AvaliacaoDto? = null,
+    @SerialName("pode_avaliar") val podeAvaliar: Boolean? = null,
 )
 
 /** Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela. */

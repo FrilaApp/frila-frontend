@@ -16,4 +16,6 @@ fun TurnoDto.paraItem(): ItemTurno = ItemTurno(
     dataHorarioFormatado = FORMATO_DATA_HORARIO.withZone(FUSO_BRASILIA).format(Instant.parse(inicioEm)),
     valorFormatado = Dinheiro(valorCentavos).formatado(),
     estado = estado,
+    podeAvaliar = podeAvaliar ?: false,
+    avaliacaoResposta = avaliacao?.resposta,
 )

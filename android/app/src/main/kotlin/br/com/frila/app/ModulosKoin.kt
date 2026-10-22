@@ -18,6 +18,7 @@ import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -68,6 +69,7 @@ val moduloFeatures = module {
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }
+    viewModel { AvaliacaoViewModel(get()) }
 }
 
 val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures)

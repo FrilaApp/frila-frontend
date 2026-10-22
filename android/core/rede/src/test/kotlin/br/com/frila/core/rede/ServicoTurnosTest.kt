@@ -190,4 +190,74 @@ class ServicoTurnosTest {
         assertTrue(excecao is ErroDaApi)
         assertEquals(CodigoErroAPI.FORA_DA_JANELA, (excecao as ErroDaApi).codigo)
     }
+
+    @Test
+    fun `avaliarTurno chama POST rpc avaliar com o corpo certo e decodifica a avaliacao`() = runTest {
+        var caminhoChamado: String? = null
+        var corpoChamado: String? = null
+        val engine = MockEngine { request ->
+            caminhoChamado = request.url.encodedPath
+            corpoChamado = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """
+                    {
+                      "turno_id": "11111111-1111-1111-1111-111111111111",
+                      "resposta": true,
+                      "criada_em": "2026-11-02T04:00:00Z"
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoTurnos(cliente)
+
+        val avaliacao = servico.avaliarTurno(turnoId = "11111111-1111-1111-1111-111111111111", resposta = true)
+
+        assertEquals("/rest/v1/rpc/avaliar", caminhoChamado)
+        assertTrue(corpoChamado!!.contains("\"resposta\":true"))
+        assertEquals("11111111-1111-1111-1111-111111111111", avaliacao.turnoId)
+        assertEquals(true, avaliacao.resposta)
+    }
+
+    @Test
+    fun `avaliarTurno com avaliacao_indisponivel propaga o codigo de dominio`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"avaliacao_indisponivel","message":"antes_do_fim"}""",
+                status = HttpStatusCode.UnprocessableEntity,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoTurnos(cliente)
+
+        val excecao = runCatching {
+            servico.avaliarTurno(turnoId = "11111111-1111-1111-1111-111111111111", resposta = true)
+        }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.AVALIACAO_INDISPONIVEL, (excecao as ErroDaApi).codigo)
+    }
+
+    @Test
+    fun `avaliarTurno com avaliacao_ja_registrada propaga o codigo de dominio`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"avaliacao_ja_registrada","message":"resposta diferente da ja gravada"}""",
+                status = HttpStatusCode.Conflict,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoTurnos(cliente)
+
+        val excecao = runCatching {
+            servico.avaliarTurno(turnoId = "11111111-1111-1111-1111-111111111111", resposta = false)
+        }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.AVALIACAO_JA_REGISTRADA, (excecao as ErroDaApi).codigo)
+    }
 }
