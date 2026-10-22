@@ -170,6 +170,70 @@ struct PublicarVagaTests {
         #expect(vm.erros[campo] != nil)
     }
 
+    @Test("Avisos de validação somem na hora ao corrigir o campo com valor válido")
+    func avisoDeValidacaoSomeAoCorrigirCampo() throws {
+        let vm = try modelo()
+        vm.valorTexto = "0"
+        vm.responsavelLocal = ""
+
+        #expect(!vm.validar())
+        #expect(vm.erros[.valor] != nil)
+        #expect(vm.erros[.responsavel] != nil)
+
+        // Valor ainda inválido mantém o aviso de valor e o outro aviso não muda
+        vm.valorTexto = "0"
+        #expect(vm.erros[.valor] != nil)
+        #expect(vm.erros[.responsavel] != nil)
+
+        // Valor corrigido para válido remove o aviso de valor imediatamente
+        vm.valorTexto = "15000"
+        #expect(vm.erros[.valor] == nil)
+        #expect(vm.erros[.responsavel] != nil, "o outro aviso não muda")
+
+        // Responsável com espaços mantém o aviso
+        vm.responsavelLocal = "   "
+        #expect(vm.erros[.responsavel] != nil)
+
+        // Responsável preenchido remove o aviso
+        vm.responsavelLocal = "Marina"
+        #expect(vm.erros[.responsavel] == nil)
+        #expect(vm.erros.isEmpty)
+
+        // Função vazia e depois corrigida
+        vm.funcaoID = nil
+        #expect(!vm.validar())
+        #expect(vm.erros[.funcao] != nil)
+        vm.funcaoID = funcao.id
+        #expect(vm.erros[.funcao] == nil)
+
+        // Posições inválidas e depois corrigidas
+        vm.posicoesTexto = "0"
+        #expect(!vm.validar())
+        #expect(vm.erros[.posicoes] != nil)
+        vm.posicoesTexto = "2"
+        #expect(vm.erros[.posicoes] == nil)
+
+        // Horários inválidos e depois corrigidos
+        vm.inicio = agora
+        #expect(!vm.validar())
+        #expect(vm.erros[.inicio] != nil)
+        vm.inicio = agora.addingTimeInterval(4 * 3_600)
+        #expect(vm.erros[.inicio] == nil)
+
+        vm.fim = vm.inicio.addingTimeInterval(-3_600)
+        #expect(!vm.validar())
+        #expect(vm.erros[.fim] != nil)
+        vm.fim = vm.inicio.addingTimeInterval(3 * 3_600)
+        #expect(vm.erros[.fim] == nil)
+
+        // Local vazio e depois preenchido
+        vm.local = ""
+        #expect(!vm.validar())
+        #expect(vm.erros[.local] != nil)
+        vm.local = "Novo endereço"
+        #expect(vm.erros[.local] == nil)
+    }
+
     @Test("Publicar não chama a rede se RN02 encontrar campo faltando")
     func semChamadaAntesDaValidacao() async throws {
         let api = ApiClienteEmMemoria()
