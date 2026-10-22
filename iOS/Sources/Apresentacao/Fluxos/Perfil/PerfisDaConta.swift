@@ -112,6 +112,7 @@ struct RotuloDeLinha: View {
                 .font(FrilaTipo.corpo)
                 .foregroundStyle(FrilaCor.texto)
                 .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: FrilaEspaco.pequeno)
             Image(systemName: "chevron.right")
                 .font(FrilaTipo.meta.weight(.semibold))
@@ -188,7 +189,11 @@ public struct TelaMeuPerfilProfissional: View {
                 else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let conta = model.conta, let perfil = model.perfil {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text(verbatim: conta.nome).font(Font.title2.bold()).foregroundStyle(FrilaCor.texto).accessibilityAddTraits(.isHeader)
+                        Text(verbatim: conta.nome)
+                            .font(FrilaTipo.secao)
+                            .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
                         linha(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", contato: true)
                         linha(TextosPerfilConta.email, conta.email, id: "perfil-email", contato: true)
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
@@ -332,7 +337,11 @@ public struct TelaPerfilEstabelecimento: View {
                 else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let estabelecimento = model.estabelecimento {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text(verbatim: estabelecimento.nome).font(Font.title2.bold()).foregroundStyle(FrilaCor.texto).accessibilityAddTraits(.isHeader)
+                        Text(verbatim: estabelecimento.nome)
+                            .font(FrilaTipo.secao)
+                            .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
                         if let tipo = estabelecimento.tipo {
                             LabeledContent {
                                 Text(verbatim: tipo.descricaoPerfil)
@@ -430,7 +439,9 @@ struct TelaAjudaPerfil: View {
                             Link(destination: url) {
                                 HStack {
                                     Text(verbatim: TextosPerfilConta.suporte)
+                                        .font(FrilaTipo.corpo)
                                         .foregroundStyle(FrilaCor.texto)
+                                        .fixedSize(horizontal: false, vertical: true)
                                     Spacer()
                                     Image(systemName: "envelope")
                                         .font(FrilaTipo.nota)
@@ -445,6 +456,9 @@ struct TelaAjudaPerfil: View {
                             .accessibilityIdentifier("perfil-suporte")
                         } else {
                             Text(verbatim: TextosPerfilConta.suporte)
+                                .font(FrilaTipo.corpo)
+                                .foregroundStyle(FrilaCor.texto)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                                 .accessibilityIdentifier("perfil-suporte")
                         }
@@ -452,6 +466,7 @@ struct TelaAjudaPerfil: View {
                         Text(verbatim: enderecos.emailSuporte)
                             .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                             .contentShape(Rectangle())
                             .textSelection(.enabled)
@@ -461,13 +476,16 @@ struct TelaAjudaPerfil: View {
                         Text(verbatim: TextosPerfilConta.prazoSuporte)
                             .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
                 Link(destination: enderecos.termosDeUso) {
                     HStack {
                         Text(verbatim: TextosPerfilConta.termos)
+                            .font(FrilaTipo.corpo)
                             .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
                         Spacer()
                         Image(systemName: "arrow.up.right")
                             .font(FrilaTipo.nota)
@@ -484,7 +502,9 @@ struct TelaAjudaPerfil: View {
                 Link(destination: enderecos.politicaDePrivacidade) {
                     HStack {
                         Text(verbatim: TextosPerfilConta.privacidade)
+                            .font(FrilaTipo.corpo)
                             .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
                         Spacer()
                         Image(systemName: "arrow.up.right")
                             .font(FrilaTipo.nota)
@@ -504,6 +524,7 @@ struct TelaAjudaPerfil: View {
                     Text(verbatim: TextosPerfilConta.licencas)
                         .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                         .contentShape(Rectangle())
                 }

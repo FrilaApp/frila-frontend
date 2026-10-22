@@ -73,6 +73,7 @@ public struct TelaHistoricoDeTurnos: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosHistoricoDeTurnos.periodo)
                 .font(FrilaTipo.resumo)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             // Os três numa linha; no iPhone SE, dois e um; no maior texto, um por linha.
             ViewThatFits(in: .horizontal) {
@@ -91,6 +92,7 @@ public struct TelaHistoricoDeTurnos: View {
                 Text(verbatim: TextosHistoricoDeTurnos.resumo(de: Self.texto(periodo.de), ate: Self.texto(periodo.ate)))
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("historico-resumo-periodo")
             } else {
                 AvisoFrila(verbatim: model.excedeLimite ? TextosHistoricoDeTurnos.intervaloMaximoExcedido : TextosHistoricoDeTurnos.periodoInvalido, tom: .alerta)
@@ -149,6 +151,7 @@ public struct TelaHistoricoDeTurnos: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosHistoricoDeTurnos.formato)
                 .font(FrilaTipo.resumo)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             if dynamicTypeSize.isAccessibilitySize {
                 // O controle segmentado do sistema não acompanha o Dynamic Type: nos tamanhos de
