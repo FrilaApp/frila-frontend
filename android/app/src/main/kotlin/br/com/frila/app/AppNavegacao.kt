@@ -18,6 +18,8 @@ import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.TelaMeusTurnos
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -29,6 +31,7 @@ object Rotas {
     const val CADASTRO = "cadastro"
     const val FEED = "feed"
     const val DETALHE = "detalhe/{vagaId}"
+    const val MEUS_TURNOS = "meus_turnos"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -104,6 +107,11 @@ fun AppNavegacao(
                 val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(vaga) })
                 TelaDetalheVaga(viewModel = viewModel)
             }
+        }
+
+        composable(Rotas.MEUS_TURNOS) {
+            val viewModel: MeusTurnosViewModel = koinViewModel()
+            TelaMeusTurnos(viewModel = viewModel)
         }
     }
 }

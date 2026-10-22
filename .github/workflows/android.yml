@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   testes-unitarios:
-    name: "core:dominio, core:rede, core:seguranca, core:designsystem, core:notificacoes, feature:entrada, feature:vagas e app — testes unitários e build"
+    name: "core:dominio, core:rede, core:seguranca, core:designsystem, core:notificacoes, feature:entrada, feature:vagas, feature:turnos e app — testes unitários e build"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -43,8 +43,8 @@ jobs:
       - name: Validar gradlew
         run: test -x ./gradlew
 
-      - name: ":core:dominio:test :core:rede:test :core:seguranca:test :core:designsystem:testDebugUnitTest :feature:entrada:testDebugUnitTest :feature:vagas:testDebugUnitTest :core:notificacoes:testDebugUnitTest :app:testDebugUnitTest"
-        run: ./gradlew :core:dominio:test :core:rede:test :core:seguranca:test :core:designsystem:testDebugUnitTest :feature:entrada:testDebugUnitTest :feature:vagas:testDebugUnitTest :core:notificacoes:testDebugUnitTest :app:testDebugUnitTest --no-daemon
+      - name: ":core:dominio:test :core:rede:test :core:seguranca:test :core:designsystem:testDebugUnitTest :feature:entrada:testDebugUnitTest :feature:vagas:testDebugUnitTest :core:notificacoes:testDebugUnitTest :feature:turnos:testDebugUnitTest :app:testDebugUnitTest"
+        run: ./gradlew :core:dominio:test :core:rede:test :core:seguranca:test :core:designsystem:testDebugUnitTest :feature:entrada:testDebugUnitTest :feature:vagas:testDebugUnitTest :core:notificacoes:testDebugUnitTest :feature:turnos:testDebugUnitTest :app:testDebugUnitTest --no-daemon
 
       - name: ":app:assembleDebug"
         run: ./gradlew :app:assembleDebug --no-daemon
