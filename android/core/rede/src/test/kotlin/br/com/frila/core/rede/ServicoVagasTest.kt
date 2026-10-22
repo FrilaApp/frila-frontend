@@ -88,4 +88,97 @@ class ServicoVagasTest {
 
         assertTrue(vagas.isEmpty())
     }
+
+    @Test
+    fun `candidatar chama POST rpc candidatar com vaga_id no corpo`() = runTest {
+        var caminhoChamado: String? = null
+        var metodoChamado: io.ktor.http.HttpMethod? = null
+        val engine = MockEngine { request ->
+            caminhoChamado = request.url.encodedPath
+            metodoChamado = request.method
+            respond(
+                content = """{"estado":"pendente","candidatura_id":"6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88","posicao_id":null,"turno_id":null,"contato":null}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        val resultado = servico.candidatar("11111111-1111-1111-1111-111111111111")
+
+        assertEquals("/rest/v1/rpc/candidatar", caminhoChamado)
+        assertEquals(io.ktor.http.HttpMethod.Post, metodoChamado)
+        assertEquals("pendente", resultado.estado)
+        assertEquals("6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88", resultado.candidaturaId)
+    }
+
+    @Test
+    fun `candidatar no modo urgencia decodifica turno e contato`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """
+                    {
+                      "estado": "confirmada",
+                      "candidatura_id": "6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88",
+                      "posicao_id": "0b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+                      "turno_id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f0b8a7c6d",
+                      "contato": {
+                        "nome": "Bar do Zé",
+                        "telefone": "+5561999990000",
+                        "whatsapp_url": "https://wa.me/5561999990000",
+                        "visivel_ate": "2026-09-27T06:00:00Z"
+                      }
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        val resultado = servico.candidatar("11111111-1111-1111-1111-111111111111")
+
+        assertEquals("confirmada", resultado.estado)
+        assertEquals("9a8b7c6d-5e4f-4a3b-8c2d-1e0f0b8a7c6d", resultado.turnoId)
+        assertEquals("Bar do Zé", resultado.contato?.nome)
+        assertEquals("+5561999990000", resultado.contato?.telefone)
+    }
+
+    @Test
+    fun `candidatar com posicao_ja_preenchida propaga o codigo de dominio`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"posicao_ja_preenchida","message":"alguém chegou antes"}""",
+                status = HttpStatusCode.Conflict,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        val excecao = runCatching { servico.candidatar("11111111-1111-1111-1111-111111111111") }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.POSICAO_JA_PREENCHIDA, (excecao as ErroDaApi).codigo)
+    }
+
+    @Test
+    fun `candidatar com inelegivel propaga o codigo de dominio`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"inelegivel","message":"turno_sobreposto"}""",
+                status = HttpStatusCode.UnprocessableEntity,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        val excecao = runCatching { servico.candidatar("11111111-1111-1111-1111-111111111111") }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.INELEGIVEL, (excecao as ErroDaApi).codigo)
+    }
 }
