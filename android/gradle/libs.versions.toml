@@ -1,11 +1,13 @@
 [versions]
 kotlin = "2.0.20"
+agp = "8.5.2"
 kotlinx-serialization = "1.7.1"
 kotlinx-coroutines = "1.8.1"
 ktor = "2.3.12"
 koin = "3.5.6"
 junit5 = "5.10.2"
 mockk = "1.13.10"
+composeBom = "2024.09.00"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
@@ -29,6 +31,15 @@ junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", vers
 
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+android-library = { id = "com.android.library", version.ref = "agp" }

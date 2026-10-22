@@ -20,3 +20,4 @@ rootProject.name = "frila-android"
 include(":core:dominio")
 include(":core:rede")
 include(":core:seguranca")
+include(":core:designsystem")
