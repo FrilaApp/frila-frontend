@@ -19,7 +19,7 @@ e do código-fonte em `iOS/Sources/`.
 
 | Campo | Valor |
 |---|---|
-| **Responsável (controlador)** | Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes), Brasília/DF |
+| **Responsável (controlador)** | Cauê Carneiro Crillanovick, pessoa física, responsável pelo projeto Frila (projeto de estudantes), Brasília/DF |
 | **CNPJ, sede e encarregado** | Não há. O projeto não tem empresa constituída; a indicação de encarregado depende da avaliação jurídica listada nas pendências |
 | **Canal do Titular** | `privacidade@frilabr.com` — referência: `EnderecosOficiais.swift:22` |
 | **Política de Privacidade** | `https://frila.netlify.app/privacidade` — referência: `EnderecosOficiais.swift:20-21` (o domínio `frila.app` ainda não está em uso) |
@@ -123,7 +123,7 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 
 | Papel | Responsável | Contato |
 |---|---|---|
-| **Responsável (coordena o incidente)** | Cauê Carneiro Kilanovic | `suportefrila@gmail.com` |
+| **Responsável (coordena o incidente)** | Cauê Carneiro Crillanovick | `suportefrila@gmail.com` |
 | **Equipe Técnica** | Responsável pela infraestrutura (Supabase, Firebase, CI/CD) | — |
 | **Comunicação** | Responsável por notificar titulares e ANPD | — |
 
@@ -176,7 +176,7 @@ Data da comunicação: ____/____/________
 Data da ciência do incidente: ____/____/________
 
 1. IDENTIFICAÇÃO DO CONTROLADOR
-   Responsável (pessoa física): Cauê Carneiro Kilanovic
+   Responsável (pessoa física): Cauê Carneiro Crillanovick
    CPF: ________________
    E-mail: privacidade@frilabr.com
    Telefone: ________________
@@ -293,7 +293,7 @@ acesso de administrador à produção.
 ### 3.8 Aprovação do Plano
 
 Aprovado em 16/10/2026 por Nick Fury, agente de IA que coordena o time técnico do Frila, **por delegação
-expressa do Responsável, Cauê Carneiro Kilanovic**, que decidiu que o plano seria estudado e aprovado dessa forma.
+expressa do Responsável, Cauê Carneiro Crillanovick**, que decidiu que o plano seria estudado e aprovado dessa forma.
 Esta aprovação **não é parecer jurídico** e não substitui a avaliação sobre o encarregado (Pendências, no início
 do documento). O Responsável pode revogá-la ou pedir a revisão dos demais sócios a qualquer momento.
 

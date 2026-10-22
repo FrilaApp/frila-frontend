@@ -92,7 +92,7 @@ Documento técnico elaborado em conformidade com o Artigo 37 da Lei Geral de Pro
 ## 3. FALTA (Decisões em aberto)
 
 1. **Identificação da Pessoa Física Responsável e Canal do Titular:**
-   - **Definido pelo Cauê em 15/10/2026:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes), sem razão social, CNPJ, sede nem DPO.
+   - **Definido pelo Cauê em 15/10/2026:** Cauê Carneiro Crillanovick, pessoa física, responsável pelo projeto Frila (projeto de estudantes), sem razão social, CNPJ, sede nem DPO.
    - **Canal definido:** `privacidade@frilabr.com` para solicitações do titular de dados e suporte.
    - **Confirmado pelo Cauê:** Localidade Brasília/DF e foro da Comarca de Brasília, Distrito Federal, já refletidos nos textos públicos.
    - **Avaliação jurídica pendente:** Enquadramento das obrigações relativas ao encarregado. Os textos públicos não afirmam dispensa de encarregado.

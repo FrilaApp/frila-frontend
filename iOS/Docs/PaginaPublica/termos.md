@@ -10,7 +10,7 @@ Estes termos regem o relacionamento entre o responsável pelo projeto Frila e os
 
 A plataforma Frila é desenvolvida e operada por:
 
-- **Responsável:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
+- **Responsável:** Cauê Carneiro Crillanovick, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
 - **Localidade:** Brasília/DF
 - **Canal do titular de dados e do suporte:** `suporte@frilabr.com`
 
