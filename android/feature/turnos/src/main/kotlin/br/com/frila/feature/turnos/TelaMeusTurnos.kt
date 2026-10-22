@@ -30,10 +30,14 @@ import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 
+/** Estados do turno em que o check-in ainda pode ser feito (RF13). */
+private const val ESTADO_CHECKIN_DISPONIVEL = "confirmada"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaMeusTurnos(
     viewModel: MeusTurnosViewModel,
+    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
     modifier: Modifier = Modifier,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -60,14 +64,14 @@ fun TelaMeusTurnos(
                 StatusMeusTurnos.CARREGANDO -> Carregando()
                 StatusMeusTurnos.ERRO -> Erro(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
                 StatusMeusTurnos.VAZIO -> Vazio()
-                StatusMeusTurnos.SUCESSO -> ListaDeTurnos(itens = estado.itensDaAbaAtual)
+                StatusMeusTurnos.SUCESSO -> ListaDeTurnos(itens = estado.itensDaAbaAtual, criarCheckinViewModel = criarCheckinViewModel)
             }
         }
     }
 }
 
 @Composable
-private fun ListaDeTurnos(itens: List<ItemTurno>) {
+private fun ListaDeTurnos(itens: List<ItemTurno>, criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel) {
     if (itens.isEmpty()) {
         Vazio()
         return
@@ -89,6 +93,37 @@ private fun ListaDeTurnos(itens: List<ItemTurno>) {
                     Text(text = turno.valorFormatado, style = MaterialTheme.typography.bodySmall)
                     BadgeDeStatus(estado = turno.estado)
                 }
+                if (turno.estado == ESTADO_CHECKIN_DISPONIVEL) {
+                    SecaoDeCheckin(turnoId = turno.turnoId, criarCheckinViewModel = criarCheckinViewModel)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SecaoDeCheckin(turnoId: String, criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel) {
+    val viewModel = criarCheckinViewModel(turnoId)
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
+
+    Column(
+        modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+    ) {
+        when (estado.status) {
+            StatusCheckin.OCIOSO -> BotaoSecundario(texto = "Fazer check-in", aoClicar = { viewModel.fazerCheckin() })
+            StatusCheckin.REGISTRANDO -> Text("Registrando check-in…", style = MaterialTheme.typography.bodySmall)
+            StatusCheckin.VERIFICADO -> Text("Check-in verificado", style = MaterialTheme.typography.bodySmall)
+            StatusCheckin.MANUAL_PENDENTE -> Text(
+                "Check-in manual, aguardando confirmação do contratante",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            StatusCheckin.ERRO -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
+                Text(
+                    text = estado.mensagemErro ?: "Não foi possível registrar o check-in.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                BotaoSecundario(texto = "Tentar novamente", aoClicar = { viewModel.fazerCheckin() })
             }
         }
     }

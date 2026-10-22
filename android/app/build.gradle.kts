@@ -57,6 +57,7 @@ dependencies {
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:notificacoes"))
+    implementation(project(":core:localizacao"))
     implementation(project(":feature:entrada"))
     implementation(project(":feature:vagas"))
     implementation(project(":feature:turnos"))
@@ -79,6 +80,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.ktor.client.core)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.play.services.location)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
