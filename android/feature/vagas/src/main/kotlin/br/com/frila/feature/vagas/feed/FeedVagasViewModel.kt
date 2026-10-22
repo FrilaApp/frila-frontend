@@ -46,6 +46,12 @@ class FeedVagasViewModel(
     /** Mesma operação de [carregar]; nome próprio só para deixar a intenção explícita na tela de erro. */
     fun tentarNovamente(): Job = carregar()
 
+    /**
+     * Vaga já carregada pelo feed, pelo id — usado pela navegação para abrir o detalhe sem
+     * refazer a chamada de `/rpc/vagas_abertas` só para reler o mesmo objeto.
+     */
+    fun encontrarVagaPorId(id: String): VagaAbertaDto? = vagasCarregadas.firstOrNull { it.id == id }
+
     fun aoSelecionarFiltroDistancia(filtro: FiltroDistancia) {
         _estado.update { it.copy(filtroDistancia = filtro) }
         aplicarFiltros()
