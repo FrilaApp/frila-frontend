@@ -106,9 +106,22 @@ public enum CampoPublicacaoVaga: String, CaseIterable, Sendable {
 
 @MainActor @Observable
 public final class PublicarVagaViewModel {
-    public var estabelecimento: Estabelecimento?
-    public var funcoes: [Funcao]
-    public var funcaoID: UUID?
+    public var estabelecimento: Estabelecimento? {
+        didSet {
+            limparErroSeValido(.estabelecimento)
+            limparErroSeValido(.ponto)
+        }
+    }
+    public var funcoes: [Funcao] {
+        didSet {
+            limparErroSeValido(.funcao)
+        }
+    }
+    public var funcaoID: UUID? {
+        didSet {
+            limparErroSeValido(.funcao)
+        }
+    }
     public var inicio: Date {
         didSet {
             let duracao = fim.timeIntervalSince(oldValue)
@@ -116,22 +129,73 @@ public final class PublicarVagaViewModel {
                 fim = inicio.addingTimeInterval(duracao)
             }
             ajustarModoAoInicio()
+            limparErroSeValido(.inicio)
+            limparErroSeValido(.fim)
         }
     }
-    public var fim: Date
-    public var local: String
-    public var valorTexto = ""
-    public var posicoesTexto = "1"
-    public var refeicao = false
-    public var transporte = false
-    public var materialProprio = false
-    public var responsavelLocal = ""
+    public var fim: Date {
+        didSet {
+            limparErroSeValido(.fim)
+        }
+    }
+    public var local: String {
+        didSet {
+            limparErroSeValido(.local)
+        }
+    }
+    public var valorTexto = "" {
+        didSet {
+            limparErroSeValido(.valor)
+        }
+    }
+    public var posicoesTexto = "1" {
+        didSet {
+            limparErroSeValido(.posicoes)
+        }
+    }
+    public var refeicao = false {
+        didSet {
+            limparErroSeValido(.inclusos)
+        }
+    }
+    public var transporte = false {
+        didSet {
+            limparErroSeValido(.inclusos)
+        }
+    }
+    public var materialProprio = false {
+        didSet {
+            limparErroSeValido(.inclusos)
+        }
+    }
+    public var responsavelLocal = "" {
+        didSet {
+            limparErroSeValido(.responsavel)
+        }
+    }
     public var alertaAntecedenciaMinutos = 180
     /// Urgência confirma o primeiro que aceitar; seleção deixa a casa escolher entre os candidatos (RN24).
-    public var modo = ModoPreenchimento.urgencia
-    public var traje = ""
-    public var participaRateio: Bool? = false
-    public var observacoes = ""
+    public var modo = ModoPreenchimento.urgencia {
+        didSet {
+            limparErroSeValido(.modo)
+            limparErroSeValido(.inicio)
+        }
+    }
+    public var traje = "" {
+        didSet {
+            limparErroSeValido(.traje)
+        }
+    }
+    public var participaRateio: Bool? = false {
+        didSet {
+            limparErroSeValido(.rateio)
+        }
+    }
+    public var observacoes = "" {
+        didSet {
+            limparErroSeValido(.observacoes)
+        }
+    }
     public var mostrandoMaisOpcoes = false
     public private(set) var carregandoFuncoes = false
     public private(set) var enviando = false
@@ -331,6 +395,42 @@ public final class PublicarVagaViewModel {
         else if Int(posicoesTexto) == nil { erros[.posicoes] = TextosPublicarVaga.posicoesCampo }
         if responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { erros[.responsavel] = TextosPublicarVaga.responsavelCampo }
         return erros.isEmpty
+    }
+
+    private func campoValido(_ campo: CampoPublicacaoVaga) -> Bool {
+        switch campo {
+        case .estabelecimento:
+            return estabelecimento != nil
+        case .funcao:
+            return funcoes.contains(where: { $0.id == funcaoID })
+        case .inicio:
+            if inicio <= agora() { return false }
+            if modo == .selecao, inicio <= agora().addingTimeInterval(Self.antecedenciaDaSelecao) { return false }
+            return true
+        case .fim:
+            return fim > inicio
+        case .local:
+            return !local.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .ponto:
+            guard let ponto = estabelecimento?.ponto else { return false }
+            return ponto.latitude.isFinite && ponto.longitude.isFinite
+        case .valor:
+            return valorCentavos >= 1
+        case .posicoes:
+            guard let posicoes = Int(posicoesTexto) else { return false }
+            return (1...200).contains(posicoes)
+        case .responsavel:
+            return !responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .inclusos, .traje, .rateio, .observacoes, .modo:
+            return true
+        }
+    }
+
+    private func limparErroSeValido(_ campo: CampoPublicacaoVaga) {
+        guard erros[campo] != nil else { return }
+        if campoValido(campo) {
+            erros.removeValue(forKey: campo)
+        }
     }
 
     public func publicar() async {

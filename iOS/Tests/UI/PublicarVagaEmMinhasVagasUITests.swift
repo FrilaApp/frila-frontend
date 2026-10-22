@@ -285,6 +285,38 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         salvarCaptura("02-publicar-vaga-padrao")
     }
 
+    func testAvisosDeValidacaoSomemAoCorrigirCampo() {
+        let app = abrir()
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        tocar(app.buttons["publicar-vaga-entrada"])
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+
+        // Toca em Publicar com campos vazios para disparar validação
+        let botaoPublicar = app.buttons["publicar-vaga-botao"]
+        rolarAte(botaoPublicar, em: app)
+        tocar(botaoPublicar)
+
+        // Rola até o campo de valor para ver o aviso de validação
+        let campoValor = app.textFields["valor-vaga-campo"]
+        rolarAte(campoValor, em: app)
+        let erroValor = app.descendants(matching: .any)["erro-publicacao-valor"]
+        XCTAssertTrue(erroValor.waitForExistence(timeout: 5), "Aviso de validação de valor deve aparecer")
+
+        salvarCaptura("01-aviso-na-tela")
+
+        // Preenche o campo de valor com valor válido (> 0)
+        campoValor.tap()
+        esperarFocoDoTeclado(campoValor)
+        campoValor.digitarEEsperar("15000", esperado: "150,00")
+
+        // O aviso de valor deve sumir na hora, sem tocar em Publicar
+        XCTAssertFalse(erroValor.exists, "Aviso de valor deve sumir imediatamente ao preencher valor válido")
+
+        salvarCaptura("02-aviso-sumido-apos-corrigir-campo")
+    }
+
     private func salvarCaptura(_ nome: String) {
         let captura = XCUIScreen.main.screenshot()
         let anexo = XCTAttachment(screenshot: captura)
