@@ -99,6 +99,8 @@ public struct TelaMeuTurno: View {
             )
         } label: {
             Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .contentShape(Rectangle())
         }
@@ -184,6 +186,7 @@ public struct TelaMeuTurno: View {
                         .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("atalho-mapas")
+                .accessibilityAddTraits(.isButton)
                 .accessibilityLabel(Text(verbatim: TextosDoProfissional.Turnos.verNoMapas))
                 .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
             }
@@ -220,7 +223,8 @@ public struct TelaMeuTurno: View {
     private var cartaoACaminhoSemPresenca: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoProfissional.Presenca.titulo.uppercased())
-                .font(.caption.weight(.bold))
+                .font(FrilaTipo.microRotulo)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
@@ -230,7 +234,7 @@ public struct TelaMeuTurno: View {
                 } icon: {
                     Image(systemName: "figure.walk")
                 }
-                .font(.subheadline)
+                .font(FrilaTipo.meta.weight(.semibold))
                 .foregroundStyle(FrilaCor.texto)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .combine)
@@ -280,8 +284,9 @@ public struct TelaMeuTurno: View {
                 if let urlWhatsApp = viewModel.urlWhatsApp {
                     // O alvo de 44 pt fica no rótulo, dentro do link: fora dele, só o texto recebia o toque.
                     Link(destination: urlWhatsApp) {
-                        HStack {
+                        HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "message.fill")
+                                .foregroundStyle(FrilaCor.marca)
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
                         }
@@ -294,6 +299,7 @@ public struct TelaMeuTurno: View {
                         Task { await viewModel.registrarContatoAberto() }
                     })
                     .accessibilityIdentifier("botao-whatsapp")
+                    .accessibilityAddTraits(.isButton)
                     .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
                     #if DEBUG
                     .modifier(CapturaDeAberturaDeURLParaTeste())
