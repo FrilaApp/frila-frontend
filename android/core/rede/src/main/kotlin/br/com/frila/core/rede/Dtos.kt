@@ -175,3 +175,31 @@ data class ErroPostgrestDto(
     @SerialName("details") val details: String? = null,
     @SerialName("hint") val hint: String? = null,
 )
+
+/**
+ * Corpo de `/rpc/fazer_checkin` (schema `RegistroDePresenca`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:4573`). `distanciaM` nulo quando o aparelho não tem localização no
+ * momento do toque (sem sinal, permissão negada, GPS impreciso) — RN22: o app nunca manda a
+ * coordenada, só a distância já calculada no aparelho.
+ */
+@Serializable
+data class RegistroDePresencaDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("distancia_m") val distanciaM: Int?,
+    @SerialName("registrado_em") val registradoEm: String,
+)
+
+/**
+ * Resposta de `/rpc/fazer_checkin` (schema `ResultadoRegistro`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:4587`). `tipo`: `geolocalizado` ou `manual`. `verificacao`:
+ * `pendente`, `verificado` ou `nao_verificado` — só `verificado` conta a favor da taxa de
+ * comparecimento (RN06/RN22).
+ */
+@Serializable
+data class ResultadoRegistroDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("verificacao") val verificacao: String,
+    @SerialName("registrado_em") val registradoEm: String,
+    @SerialName("distancia_m") val distanciaM: Int? = null,
+)

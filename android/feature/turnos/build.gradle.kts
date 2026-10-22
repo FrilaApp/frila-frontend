@@ -37,6 +37,7 @@ dependencies {
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:localizacao"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

@@ -1,5 +1,8 @@
 package br.com.frila.app
 
+import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.localizacao.ProvedorDeLocalizacao
+import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ProvedorDeToken
@@ -15,6 +18,7 @@ import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -51,6 +55,11 @@ val moduloNotificacoes = module {
     single { ProcessadorDePush(get()) }
 }
 
+/** Leitura de localização sob demanda para o check-in presencial (RF13/RN06/RN22). */
+val moduloLocalizacao = module {
+    single<ProvedorDeLocalizacao> { ProvedorDeLocalizacaoFused(get()) }
+}
+
 val moduloFeatures = module {
     viewModel { EntradaViewModel(get()) }
     viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
@@ -58,6 +67,7 @@ val moduloFeatures = module {
     viewModel { FeedVagasViewModel(get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     viewModel { MeusTurnosViewModel(get()) }
+    viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }
 }
 
-val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloFeatures)
+val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures)

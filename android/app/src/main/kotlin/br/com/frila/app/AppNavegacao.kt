@@ -111,7 +111,16 @@ fun AppNavegacao(
 
         composable(Rotas.MEUS_TURNOS) {
             val viewModel: MeusTurnosViewModel = koinViewModel()
-            TelaMeusTurnos(viewModel = viewModel)
+            TelaMeusTurnos(
+                viewModel = viewModel,
+                criarCheckinViewModel = { turnoId ->
+                    // Contrato de `/rpc/meus_turnos` ainda não traz a coordenada da vaga
+                    // (schema `VagaResumo`), só `local`/`regiao_administrativa` em texto — por
+                    // ora o check-in sempre degrada para o caminho "sem localização" (manual
+                    // pendente, RN06), até o backend expor a coordenada aqui.
+                    koinViewModel(parameters = { parametersOf(turnoId, null) })
+                },
+            )
         }
     }
 }
