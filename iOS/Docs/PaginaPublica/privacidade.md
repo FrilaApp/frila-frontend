@@ -12,7 +12,7 @@ Esta política foi elaborada em estrita conformidade com a **Lei Geral de Prote�
 
 O controlador responsável pelas decisões sobre o tratamento dos seus dados pessoais no âmbito do aplicativo Frila é:
 
-- **Responsável:** Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
+- **Responsável:** Cauê Carneiro Crillanovick, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
 - **Localidade:** Brasília/DF
 - **Canal do titular de dados e do suporte:** `privacidade@frilabr.com`
 

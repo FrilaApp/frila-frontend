@@ -16,7 +16,7 @@ Documento normativo e rascunho completo dos metadados do Frila para publicação
 | **Preço** | Grátis (*Free*) | — | O download do app e o uso na versão 1.0 são gratuitos. |
 | **Compras no App (IAP)** | Nenhuma | — | Sem compras internas ou assinaturas no app. |
 | **Territórios / Disponibilidade** | Apenas Brasil | — | Distribuição restrita à loja brasileira da App Store. |
-| **Copyright** | `© 2026 Cauê Carneiro Kilanovic` | Até 4.000 caracteres | Titular pessoa física e responsável pelo projeto de estudantes, conforme decisão do Cauê em 15/10/2026. |
+| **Copyright** | `© 2026 Cauê Carneiro Crillanovick` | Até 4.000 caracteres | Titular pessoa física e responsável pelo projeto de estudantes, conforme decisão do Cauê em 15/10/2026. |
 
 > **Fonte dos limites de identificação:** Apple App Store Review Guidelines, Diretriz 2.3.7 — "App names must be limited to 30 characters"; subtítulo segue o mesmo limite de 30 caracteres ([App Store Connect Help — App information](https://developer.apple.com/help/app-store-connect/reference/app-information)).
 >
@@ -177,7 +177,7 @@ Dados obrigatórios inseridos no App Store Connect para permitir a validação c
 
 ### 5.1 Contato da Equipe de Revisão
 - **Nome:** `Cauê`
-- **Sobrenome:** `Carneiro Kilanovic`
+- **Sobrenome:** `Carneiro Crillanovick`
 - **E-mail de contato:** `suporte@frilabr.com`
 - **Telefone:** `[A DEFINIR]`
 
