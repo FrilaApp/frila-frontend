@@ -45,8 +45,9 @@ public struct TelaCadastro: View {
                     }
 
                     Text("Como você quer usar o Frila?", bundle: bundleApresentacao)
-                        .font(Font.title.bold())
+                        .font(FrilaTipo.secao)
                         .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
 
                     // Escolha de perfil
@@ -173,7 +174,7 @@ public struct TelaCadastro: View {
                             .contentShape(Rectangle())
                             .accessibilityLabel(Text("Li e aceito os Termos de uso e a Política de privacidade", bundle: bundleApresentacao))
                             .accessibilityValue(Text(viewModel.aceitouTermos ? "Selecionado" : "Não selecionado", bundle: bundleApresentacao))
-                            .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected] : [])
+                            .accessibilityAddTraits(viewModel.aceitouTermos ? [.isSelected, .isButton] : [.isButton])
                             .accessibilityAction(named: Text("Termos de uso", bundle: bundleApresentacao)) {
                                 openURL(EnderecosOficiais.padrao.termosDeUso)
                             }
@@ -263,7 +264,14 @@ public struct TelaCadastro: View {
         Button {
             viewModel.perfil = perfil
         } label: {
-            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+            HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
+                Image(systemName: perfil == .profissional ? "person.fill" : "building.2.fill")
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(width: 40, height: 40)
+                    .background(FrilaCor.controle, in: Circle())
+                    .accessibilityHidden(true)
+
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: titulo)
                         .font(FrilaTipo.resumo)
@@ -272,14 +280,13 @@ public struct TelaCadastro: View {
                     Text(verbatim: descricao)
                         .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: FrilaEspaco.minimo)
-                if selecionado {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(FrilaTipo.subtituloDaTela)
-                        .foregroundStyle(FrilaCor.primaria)
-                        .accessibilityHidden(true)
-                }
+                Image(systemName: selecionado ? "checkmark.circle.fill" : "circle")
+                    .font(FrilaTipo.subtituloDaTela)
+                    .foregroundStyle(selecionado ? FrilaCor.primaria : FrilaCor.borda)
+                    .accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(FrilaEspaco.medio)
@@ -288,6 +295,7 @@ public struct TelaCadastro: View {
                 RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
                     .strokeBorder(selecionado ? FrilaCor.primaria : FrilaCor.divisoria, lineWidth: selecionado ? 2 : 1)
             )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
