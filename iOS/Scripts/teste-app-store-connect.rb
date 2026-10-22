@@ -295,3 +295,247 @@ class AppStoreConnectTest < Minitest::Test
     assert_equal ['tester-1'], @api.dados['membros']['grupo-1']
   end
 end
+
+# Cenários beta isolados: nenhuma credencial ou resposta real é usada.
+class APIBetaDeExemplo < APIDeExemplo
+  attr_accessor :builds, :release, :detail, :app_locales, :build_locales, :submission, :submission_status
+  attr_reader :build_query
+
+  def initialize
+    super
+    @builds = [
+      {'type'=>'builds', 'id'=>'build-antigo', 'attributes'=>{'version'=>'101', 'uploadedDate'=>'2026-10-20T00:00:00Z', 'processingState'=>'VALID', 'expired'=>false, 'buildAudienceType'=>'APP_STORE_ELIGIBLE'}},
+      {'type'=>'builds', 'id'=>'build-novo', 'attributes'=>{'version'=>'102', 'uploadedDate'=>'2026-10-22T00:00:00Z', 'processingState'=>'VALID', 'expired'=>false, 'buildAudienceType'=>'APP_STORE_ELIGIBLE'}},
+      {'type'=>'builds', 'id'=>'build-processando', 'attributes'=>{'version'=>'103', 'uploadedDate'=>'2026-10-23T00:00:00Z', 'processingState'=>'PROCESSING', 'expired'=>false, 'buildAudienceType'=>'APP_STORE_ELIGIBLE'}}]
+    @release = {'id'=>'release-1', 'attributes'=>{'version'=>'0.5.1', 'platform'=>'IOS'}}
+    @detail = {'type'=>'betaAppReviewDetails', 'id'=>'review-1', 'attributes'=>{}}
+    @app_locales, @build_locales, @associados = [], [], {}
+  end
+
+  def call(req)
+    path, method = req.uri.path, req.method
+    body = req.body ? JSON.parse(req.body) : nil
+    if method == 'GET' && path.end_with?('/betaAppReviewSubmission') && submission_status
+      return Struct.new(:code, :body).new(submission_status.to_s, '{}')
+    end
+    @build_query = URI.decode_www_form(req.uri.query || '').to_h if path == '/v1/builds'
+    handled = true
+    result = if method == 'GET'
+      case path
+      when '/v1/builds' then builds
+      when %r{\A/v1/builds/[^/]+/preReleaseVersion\z} then release
+      when '/v1/apps/app-1/betaAppReviewDetail' then detail
+      when '/v1/apps/app-1/betaAppLocalizations' then app_locales
+      when %r{\A/v1/builds/[^/]+/betaBuildLocalizations\z} then build_locales
+      when %r{\A/v1/builds/[^/]+/betaAppReviewSubmission\z} then submission
+      when %r{\A/v1/betaGroups/([^/]+)/builds\z} then (@associados[$1] || []).map { |b| {'id'=>b, 'type'=>'builds'} }
+      when %r{\A/v1/betaGroups/([^/]+)\z} then dados['betaGroups'].find { |g| g['id'] == $1 }
+      else handled = false
+      end
+    elsif method == 'POST' && path.end_with?('/relationships/builds')
+      group = path.split('/')[3]
+      (@associados[group] ||= []).concat(body['data'].map { |b| b['id'] }).uniq!
+      nil
+    elsif method == 'PATCH' && path == '/v1/betaAppReviewDetails/review-1'
+      detail['attributes'].merge!(body['data']['attributes'])
+      detail
+    elsif method == 'POST' && %w[/v1/betaAppLocalizations /v1/betaBuildLocalizations].include?(path)
+      collection = path == '/v1/betaAppLocalizations' ? app_locales : build_locales
+      result = body['data'].merge('id'=>"locale-#{collection.size}")
+      collection << result
+      result
+    elsif method == 'PATCH' && path.match?(%r{\A/v1/beta(?:App|Build)Localizations/})
+      collection = path.include?('betaAppLocalizations') ? app_locales : build_locales
+      result = collection.find { |r| r['id'] == body['data']['id'] }
+      result['attributes'].merge!(body['data']['attributes'])
+      result
+    elsif method == 'POST' && path == '/v1/betaAppReviewSubmissions'
+      self.submission = body['data'].merge('id'=>'submission-1', 'attributes'=>{'betaReviewState'=>'WAITING_FOR_REVIEW'})
+    else
+      handled = false
+    end
+    return super unless handled
+    chamadas << [method, path, body]
+    Struct.new(:code, :body).new('200', JSON.generate({'data'=>result}))
+  end
+end
+
+class BetaAppStoreConnectTest < Minitest::Test
+  def setup
+    @api = APIBetaDeExemplo.new
+    @out = StringIO.new
+    @log = AppStoreConnect::Log.new(@out, github: false)
+    @secrets = {'BETA_CONTATO_NOME'=>'Pessoa Ficticia', 'BETA_CONTATO_TELEFONE'=>'+5500000000000',
+      'BETA_CONTATO_EMAIL'=>'contato@example.invalid', 'BETA_DEMO_USUARIO'=>'revisao-profissional@frila.app', 'BETA_DEMO_SENHA'=>'123456'}
+  end
+
+  def run_beta(action, apply: false, secrets: @secrets, version: '0.5.1', limit: '1000')
+    client = AppStoreConnect::Client.new(token: -> { 'jwt-falso' }, aplicar: apply, transport: @api.method(:call))
+    AppStoreConnect::Job.new(client: client, log: @log, acao: action, aplicar: apply, emails: '', grupo: 'IGNORADO',
+      sem_referencias_alcool: false, verificacao_idade: true, versao: version, limite: limit, beta_segredos: secrets).run
+  end
+
+  def make_external
+    @api.dados['betaGroups'] << {'id'=>'externo-1', 'type'=>'betaGroups', 'attributes'=>{
+      'name'=>'Testadores Frila', 'isInternalGroup'=>false, 'publicLink'=>'https://testflight.apple.com/join/Exemplo12'}}
+  end
+
+  def test_plano_externo_nao_escreve_e_seleciona_mais_recente_processado
+    run_beta('grupo-externo')
+    assert_empty @api.escritas
+    assert_includes @out.string, 'Plano: criar grupo externo Testadores Frila'
+    assert_includes @out.string, 'publicLinkLimit=1000'
+    assert_includes @out.string, 'id=build-novo'
+    refute_includes @out.string, 'id=build-processando'
+    assert_equal '0.5.1', @api.build_query['filter[preReleaseVersion.version]']
+    assert_equal 'IOS', @api.build_query['filter[preReleaseVersion.platform]']
+    assert_equal 'VALID', @api.build_query['filter[processingState]']
+    assert_equal 'false', @api.build_query['filter[expired]']
+    assert_equal 'APP_STORE_ELIGIBLE', @api.build_query['filter[buildAudienceType]']
+    assert_equal '-uploadedDate', @api.build_query['sort']
+  end
+
+  def test_grupo_externo_cria_associa_e_reutiliza_sem_duplicacao
+    run_beta('grupo-externo', apply: true)
+    flunk 'Fixture sem publicLink deve exigir confirmação'
+  rescue AppStoreConnect::Erro => e
+    assert_includes e.message, 'publicLink'
+    group = @api.dados['betaGroups'].last
+    assert_equal false, group['attributes']['isInternalGroup']
+    assert_equal 'Testadores Frila', group['attributes']['name']
+    assert_equal 1000, group['attributes']['publicLinkLimit']
+    group['attributes']['publicLink'] = 'https://testflight.apple.com/join/Exemplo12'
+    before = @api.escritas.size
+    run_beta('grupo-externo', apply: true)
+    run_beta('grupo-externo', apply: true)
+    assert_equal before, @api.escritas.size
+    assert_includes @out.string, 'publicLink: https://testflight.apple.com/join/Exemplo12'
+    assert_equal ['build-novo'], @api.escritas.find { |_, path, _| path.end_with?('/relationships/builds') }[2]['data'].map { |b| b['id'] }
+  end
+
+  def test_grupo_existente_atualiza_limite_feedback_e_link_sem_recriar
+    make_external
+    run_beta('grupo-externo', apply: true, limit: '2000')
+    assert_equal ['PATCH', 'POST'], @api.escritas.map(&:first)
+    assert_equal 2000, @api.dados['betaGroups'].last['attributes']['publicLinkLimit']
+    before = @api.escritas.size
+    run_beta('grupo-externo', apply: true, limit: '2000')
+    assert_equal before, @api.escritas.size
+  end
+
+  def test_recusa_interno_homonimo_e_grupo_duplicado_sem_escrita
+    make_external
+    @api.dados['betaGroups'].last['attributes']['isInternalGroup'] = true
+    [false, true].each do |apply|
+      e = assert_raises(AppStoreConnect::Erro) { run_beta('grupo-externo', apply: apply) }
+      assert_includes e.message, 'interno'
+    end
+    @api.dados['betaGroups'].last['attributes']['isInternalGroup'] = false
+    make_external
+    assert_raises(AppStoreConnect::Erro) { run_beta('grupo-externo', apply: true) }
+    assert_empty @api.escritas
+  end
+
+  def test_falta_build_ou_diverge_versao_nao_escreve
+    @api.builds.each { |b| b['attributes']['processingState'] = 'PROCESSING' }
+    run_beta('grupo-externo')
+    assert_includes @out.string, 'FALTA: build iOS 0.5.1'
+    assert_raises(AppStoreConnect::Erro) { run_beta('grupo-externo', apply: true) }
+    run_beta('revisao-beta', secrets: {})
+    assert_includes @out.string, 'betaBuildLocalizations.pt-BR.whatsNew'
+    assert_empty @api.escritas
+    setup
+    @api.release['attributes']['version'] = '0.5.0'
+    assert_raises(AppStoreConnect::Erro) { run_beta('grupo-externo', apply: true) }
+    assert_empty @api.escritas
+  end
+
+  def test_limite_versao_e_link_invalidos
+    %w[0 10001 -1 1.5 abc].each { |limit| assert_raises(AppStoreConnect::Erro) { run_beta('grupo-externo', apply: true, limit: limit) } }
+    assert_raises(AppStoreConnect::Erro) { run_beta('grupo-externo', version: 'incorreta') }
+    make_external
+    @api.dados['betaGroups'].last['attributes']['publicLink'] = 'https://outro.invalid/privado'
+    assert_raises(AppStoreConnect::Erro) { run_beta('grupo-externo') }
+    refute_includes @out.string, 'outro.invalid'
+    assert_empty @api.escritas
+  end
+
+  def test_revisao_plano_lista_campo_a_campo_sem_dado_pessoal
+    @api.detail['attributes'] = {'contactFirstName'=>'Nome Privado', 'contactLastName'=>'Sobrenome Privado',
+      'notes'=>'Notas privadas com telefone e credencial', 'contactPhone'=>'+5511111111111', 'contactEmail'=>'pessoa@example.invalid'}
+    run_beta('revisao-beta', secrets: {})
+    assert_empty @api.escritas
+    %w[BETA_CONTATO_NOME BETA_CONTATO_TELEFONE BETA_CONTATO_EMAIL BETA_DEMO_USUARIO BETA_DEMO_SENHA].each { |name| assert_includes @out.string, "FALTA: segredo GitHub #{name}" }
+    %w[pt-BR en-US].each do |locale|
+      %w[description feedbackEmail].each { |field| assert_includes @out.string, "FALTA: betaAppLocalizations.#{locale}.#{field}" }
+      assert_includes @out.string, "FALTA: betaBuildLocalizations.#{locale}.whatsNew"
+    end
+    @api.detail['attributes'].values.each { |value| refute_includes @out.string, value }
+    refute_match(/\S+@\S+/, @out.string)
+  end
+
+  def test_revisao_preenche_e_submete_uma_vez_sem_vazar_segredos
+    run_beta('revisao-beta', apply: true)
+    attrs = @api.detail['attributes']
+    assert_equal 'Pessoa', attrs['contactFirstName']
+    assert_equal 'Ficticia', attrs['contactLastName']
+    assert_equal true, attrs['demoAccountRequired']
+    assert_equal '123456', attrs['demoAccountPassword']
+    assert_equal %w[en-US pt-BR], @api.app_locales.map { |r| r['attributes']['locale'] }.sort
+    assert @api.app_locales.all? { |r| r['attributes']['feedbackEmail'] == 'suportefrila@gmail.com' }
+    assert_equal 2, @api.build_locales.size
+    submission = @api.escritas.last
+    assert_equal '/v1/betaAppReviewSubmissions', submission[1]
+    assert_equal 'build-novo', submission[2]['data']['relationships']['build']['data']['id']
+    before = @api.escritas.size
+    run_beta('revisao-beta', apply: true)
+    assert_equal before, @api.escritas.size
+    @secrets.values.each { |value| refute_includes @out.string, value }
+    refute_includes @out.string, 'Ficticia'
+    refute_match(/\S+@\S+/, @out.string)
+  end
+
+  def test_revisao_sem_segredos_ou_com_credencial_incompativel_nao_escreve
+    [{}, @secrets.merge('BETA_CONTATO_NOME'=>'Pessoa'), @secrets.merge('BETA_DEMO_SENHA'=>'senha'),
+      @secrets.merge('BETA_DEMO_USUARIO'=>'outro@example.invalid')].each do |secrets|
+      assert_raises(AppStoreConnect::Erro) { run_beta('revisao-beta', apply: true, secrets: secrets) }
+    end
+    assert_empty @api.escritas
+  end
+
+  def test_revisao_existente_nao_duplica_e_preserva_textos
+    @api.submission = {'id'=>'review-existing', 'attributes'=>{'betaReviewState'=>'APPROVED'}}
+    @api.app_locales = [{'id'=>'locale-existing', 'attributes'=>{'locale'=>'pt-BR', 'description'=>'Descrição existente', 'feedbackEmail'=>'antigo@example.invalid'}}]
+    @api.detail['attributes']['notes'] = 'Instruções existentes'
+    run_beta('revisao-beta', apply: true)
+    refute @api.escritas.any? { |_, path, _| path == '/v1/betaAppReviewSubmissions' }
+    assert_equal 'Descrição existente', @api.app_locales.first['attributes']['description']
+    assert_equal 'Instruções existentes', @api.detail['attributes']['notes']
+    assert_equal 'suportefrila@gmail.com', @api.app_locales.first['attributes']['feedbackEmail']
+    @api.submission['attributes']['betaReviewState'] = 'REJECTED'
+    before = @api.escritas.size
+    assert_raises(AppStoreConnect::Erro) { run_beta('revisao-beta', apply: true) }
+    assert_equal before, @api.escritas.size
+  end
+
+  def test_submissao_ausente_404_e_falha_de_permissao_nao_confundidas
+    @api.submission_status = 404
+    run_beta('revisao-beta')
+    assert_includes @out.string, 'Revisão beta: sem submissão'
+    assert_empty @api.escritas
+    @api.submission_status = 403
+    assert_raises(AppStoreConnect::ErroAPI) { run_beta('revisao-beta', apply: true) }
+    assert_empty @api.escritas
+  end
+
+  def test_evento_somente_entradas_publicas_e_segredos_fora_dos_inputs
+    json = JSON.generate({'inputs'=>{'acao'=>'grupo-externo', 'versao'=>'0.5.1', 'limite_testadores'=>'500', 'BETA_DEMO_SENHA'=>'ignorado'}})
+    env = AppStoreConnect.entradas({'GITHUB_ACTIONS'=>'true','GITHUB_EVENT_PATH'=>'evento-ficticio'}, event_reader: ->(_) { json })
+    assert_equal '500', env['ASC_LIMITE_TESTADORES']
+    assert_equal '0.5.1', env['ASC_VERSAO']
+    refute env.key?('BETA_DEMO_SENHA')
+    workflow = File.read(File.join(__dir__, '../../.github/workflows/app-store-connect.yml'))
+    inputs = workflow.split('permissions:').first
+    AppStoreConnect::Job::SEGREDOS_BETA.values.uniq.each { |name| refute_includes inputs, name }
+  end
+end
