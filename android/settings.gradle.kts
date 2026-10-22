@@ -18,3 +18,4 @@ pluginManagement {
 rootProject.name = "frila-android"
 
 include(":core:dominio")
+include(":core:rede")
