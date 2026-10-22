@@ -85,6 +85,35 @@ data class SessaoDto(
     @SerialName("expires_in") val expiresIn: Long,
 )
 
+/** Corpo de `POST /rest/v1/rpc/candidatar`. */
+@Serializable
+data class CandidatarDto(
+    @SerialName("vaga_id") val vagaId: String,
+)
+
+/** Contato da outra parte, devolvido só no modo urgência (confirmada) por `/rpc/candidatar` (RN10). */
+@Serializable
+data class ContatoDto(
+    @SerialName("nome") val nome: String,
+    @SerialName("telefone") val telefone: String,
+    @SerialName("whatsapp_url") val whatsappUrl: String? = null,
+    @SerialName("visivel_ate") val visivelAte: String? = null,
+)
+
+/**
+ * Resposta de `/rpc/candidatar` (schema `ResultadoCandidatura`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:2199`): `confirmada` no modo urgência (RN19, já com turno e
+ * contato), `pendente` no modo seleção (`posicao_id`/`turno_id`/`contato` nulos até a escolha).
+ */
+@Serializable
+data class ResultadoCandidaturaDto(
+    @SerialName("estado") val estado: String,
+    @SerialName("candidatura_id") val candidaturaId: String,
+    @SerialName("posicao_id") val posicaoId: String? = null,
+    @SerialName("turno_id") val turnoId: String? = null,
+    @SerialName("contato") val contato: ContatoDto? = null,
+)
+
 /** Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela. */
 @Serializable
 data class ErroPostgrestDto(
