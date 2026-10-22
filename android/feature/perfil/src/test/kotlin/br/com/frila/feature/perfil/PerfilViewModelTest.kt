@@ -89,4 +89,62 @@ class PerfilViewModelTest {
 
         assertEquals(StatusPerfil.CARREGANDO, viewModel.estado.value.status)
     }
+
+    @Test
+    fun `confirmarExclusao com sucesso chama a API, limpa a sessao e vai para SUCESSO`() = runBlocking {
+        val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+        val engine = MockEngine {
+            respond(
+                content = """
+                    {
+                      "perfil_removido_em": "2026-11-02T10:00:00Z",
+                      "dados_apagados_ate": "2026-11-17",
+                      "turnos_cancelados": 1
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.Accepted,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val viewModel = viewModelComEngine(engine, armazenamento)
+
+        viewModel.abrirDialogoExclusao()
+        viewModel.confirmarExclusao().join()
+
+        assertEquals(StatusExclusao.SUCESSO, viewModel.estado.value.statusExclusao)
+        assertEquals(1, viewModel.estado.value.resultadoExclusao?.turnosCancelados)
+        verify(exactly = 1) { armazenamento.limparSessao() }
+    }
+
+    @Test
+    fun `cancelarExclusao volta o statusExclusao para OCIOSO sem chamar a API`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) })
+
+        viewModel.abrirDialogoExclusao()
+        assertEquals(StatusExclusao.DIALOGO_ABERTO, viewModel.estado.value.statusExclusao)
+
+        viewModel.cancelarExclusao()
+
+        assertEquals(StatusExclusao.OCIOSO, viewModel.estado.value.statusExclusao)
+    }
+
+    @Test
+    fun `confirmarExclusao com administrador_unico mantem a sessao e define mensagem de erro`() = runBlocking {
+        val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"administrador_unico","message":"transfira a administracao antes"}""",
+                status = HttpStatusCode.Conflict,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val viewModel = viewModelComEngine(engine, armazenamento)
+
+        viewModel.abrirDialogoExclusao()
+        viewModel.confirmarExclusao().join()
+
+        assertEquals(StatusExclusao.ERRO, viewModel.estado.value.statusExclusao)
+        assertNotNull(viewModel.estado.value.mensagemErroExclusao)
+        verify(exactly = 0) { armazenamento.limparSessao() }
+    }
 }

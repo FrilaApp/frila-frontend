@@ -250,3 +250,24 @@ data class PerfilProfissionalDto(
     @SerialName("disponibilidades") val disponibilidades: List<JanelaDeDisponibilidadeDto> = emptyList(),
     @SerialName("reputacao") val reputacao: ReputacaoDto,
 )
+
+/**
+ * Corpo de `POST /functions/v1/excluir-conta`. `confirmar: true` é a única confirmação
+ * aceita — o contrato declara `enum: [true]` (RF25).
+ */
+@Serializable
+data class ConfirmarExclusaoDto(
+    @SerialName("confirmar") val confirmar: Boolean = true,
+)
+
+/**
+ * Resposta de `/functions/v1/excluir-conta` (schema `ExclusaoDeConta`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:5296`). `dadosApagadosAte`: até 15 dias depois do pedido (RF25),
+ * limite para purga de backups/retenção LGPD.
+ */
+@Serializable
+data class ExclusaoDeContaDto(
+    @SerialName("perfil_removido_em") val perfilRemovidoEm: String,
+    @SerialName("dados_apagados_ate") val dadosApagadosAte: String,
+    @SerialName("turnos_cancelados") val turnosCancelados: Int,
+)
