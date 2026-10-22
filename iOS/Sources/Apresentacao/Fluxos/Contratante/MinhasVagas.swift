@@ -413,9 +413,9 @@ public struct TelaMinhasVagas: View {
             .navigationDestination(for: RotaDoContratante.self) { rota in
                 switch rota {
                 case let .vaga(vagaID):
-                    DestinoDaVagaDoContratante(viewModel: viewModel, acompanhamento: acompanhamento, vagaID: vagaID, api: api, fila: fila)
+                    DestinoDaVagaDoContratante(viewModel: viewModel, acompanhamento: acompanhamento, vagaID: vagaID, api: api, fila: fila, sair: sair)
                 case let .turno(turnoID):
-                    TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID, api: api)
+                    TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID, api: api, sair: sair)
                 }
             }
         }
@@ -742,6 +742,7 @@ private struct DestinoDaVagaDoContratante: View {
     let vagaID: UUID
     let api: any ApiCliente
     let fila: (any FilaDeAcoes)?
+    var sair: (() -> Void)? = nil
 
     var body: some View {
         if let vaga = acompanhamento.vaga(id: vagaID) ?? viewModel.vagas.first(where: { $0.vaga.id == vagaID }) {
@@ -761,7 +762,8 @@ private struct DestinoDaVagaDoContratante: View {
                     await acompanhamento.carregar()
                     return acompanhamento.falhouAoCarregar ? nil : acompanhamento.vaga(id: vagaID)
                 },
-                roteador: roteador
+                roteador: roteador,
+                sair: sair
             )
         } else if acompanhamento.falhouAoCarregar {
             // Sem leitura que tenha dado certo, não dá para dizer que a vaga não existe.
@@ -802,6 +804,7 @@ private struct TelaDetalheVagaContratante: View {
     /// Relê o painel depois de uma escolha e devolve a vaga como ficou; `nil` se a leitura falhou (#10).
     var relerVaga: @MainActor () async -> VagaNoPainel? = { nil }
     var roteador: RoteadorDoContratante? = nil
+    var sair: (() -> Void)? = nil
     private var roteadorEfetivo: RoteadorDoContratante? {
         roteador ?? roteadorDoAmbiente
     }
@@ -941,6 +944,16 @@ private struct TelaDetalheVagaContratante: View {
         }
         .navigationTitle(Text(verbatim: TextosMinhasVagas.detalheTitulo))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let sair {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: sair) {
+                        Text("Sair", bundle: bundleApresentacao)
+                    }
+                    .accessibilityIdentifier("sair-fluxo-contratante")
+                }
+            }
+        }
         .navigationDestination(item: $perfilSelecionado) { perfil in
             TelaPerfilPublico(perfil: perfil, api: api, bloqueios: bloqueios)
         }

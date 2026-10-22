@@ -1,0 +1,25 @@
+# Árvore de acessibilidade do seletor de Função (funcao-vaga-picker)
+
+Antes da correção (commit f2b7881 / E2E 21/10):
+- Elemento: Button
+- Identifier: funcao-vaga-picker
+- Label: "Função, Função" (duplicado)
+- StaticText filho: "Garçom"
+
+Após a correção (remoção do accessibilityLabel duplicado no Picker com pickerStyle(.menu)):
+- Elemento: Button
+- Identifier: funcao-vaga-picker
+- Label: "Função, Garçom" (um único rótulo acessível: título do campo "Função" + valor selecionado "Garçom")
+- StaticText filho: "Garçom"
+
+Hierarquia extraída via XCTest / accessibility snapshot:
+Attributes: Button, {{16.0, 158.0}, {370.0, 52.0}}, identifier: 'funcao-vaga-picker', label: 'Função, Garçom'
+Element subtree:
+ →Button, {{16.0, 158.0}, {370.0, 52.0}}, identifier: 'funcao-vaga-picker', label: 'Função, Garçom'
+    StaticText, {{43.7, 173.7}, {60.3, 20.3}}, label: 'Garçom'
+Path to element:
+ →Application, label: 'Frila'
+  ↳Window (Main), {{0.0, 0.0}, {402.0, 874.0}}
+   ↳Other
+    ↳Other
+     ↳Other

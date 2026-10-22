@@ -718,7 +718,6 @@ public struct TelaPublicarVaga: View {
                 RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
                     .strokeBorder(model.erros[.funcao] != nil ? FrilaCor.texto : FrilaCor.borda, lineWidth: model.erros[.funcao] != nil ? 2 : 1)
             )
-            .accessibilityLabel(Text(verbatim: TextosPublicarVaga.funcao))
             .accessibilityIdentifier("funcao-vaga-picker")
             .disabled(model.camposBloqueados)
 
