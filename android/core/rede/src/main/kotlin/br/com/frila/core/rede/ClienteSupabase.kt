@@ -94,6 +94,13 @@ class ClienteSupabase(
         val jsonFrila: Json = Json {
             ignoreUnknownKeys = true
             isLenient = true
+            // MEDIDO: kotlinx.serialization omite por padrão um campo cujo valor bate com o
+            // default da data class (`encodeDefaults = false`). Vários DTOs de corpo de
+            // requisição têm default só por conveniência no client (ex.: `plataforma =
+            // "android"`, `tipo = "email"`), mas o contrato exige o campo presente
+            // (`required: [token_fcm, plataforma]` em `/rpc/registrar_dispositivo`). Sem isto,
+            // o corpo saía faltando um campo obrigatório sempre que o chamador usava o default.
+            encodeDefaults = true
         }
 
         /**
