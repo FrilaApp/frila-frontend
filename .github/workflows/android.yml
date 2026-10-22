@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  testes-dominio:
-    name: "core:dominio — testes unitários"
+  testes-unitarios:
+    name: "core:dominio e core:rede — testes unitários"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -38,5 +38,5 @@ jobs:
       - name: Validar gradlew
         run: test -x ./gradlew
 
-      - name: ":core:dominio:test"
-        run: ./gradlew :core:dominio:test --no-daemon
+      - name: ":core:dominio:test :core:rede:test"
+        run: ./gradlew :core:dominio:test :core:rede:test --no-daemon
