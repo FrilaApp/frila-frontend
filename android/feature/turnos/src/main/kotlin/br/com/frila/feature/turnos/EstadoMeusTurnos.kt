@@ -14,6 +14,10 @@ data class ItemTurno(
     val dataHorarioFormatado: String,
     val valorFormatado: String,
     val estado: String,
+    /** RF15/RN11: verdadeiro só depois do fim previsto, com presença verificada e sem avaliação deste lado. */
+    val podeAvaliar: Boolean = false,
+    /** Resposta já registrada (RN07); `null` enquanto não avaliado. */
+    val avaliacaoResposta: Boolean? = null,
 )
 
 /** Estado da tela de meus turnos: listas já separadas por aba, prontas para a `LazyColumn`. */

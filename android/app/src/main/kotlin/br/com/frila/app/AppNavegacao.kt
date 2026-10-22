@@ -18,7 +18,9 @@ import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -32,9 +34,11 @@ object Rotas {
     const val FEED = "feed"
     const val DETALHE = "detalhe/{vagaId}"
     const val MEUS_TURNOS = "meus_turnos"
+    const val AVALIACAO = "avaliacao/{turnoId}"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
+    fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
 }
 
 /**
@@ -120,6 +124,17 @@ fun AppNavegacao(
                     // pendente, RN06), até o backend expor a coordenada aqui.
                     koinViewModel(parameters = { parametersOf(turnoId, null) })
                 },
+                aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
+            )
+        }
+
+        composable(Rotas.AVALIACAO) { entrada ->
+            val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+            val viewModel: AvaliacaoViewModel = koinViewModel()
+            TelaAvaliacao(
+                turnoId = turnoId,
+                viewModel = viewModel,
+                aoVoltar = { navController.popBackStack() },
             )
         }
     }

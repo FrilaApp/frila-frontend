@@ -6,7 +6,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-/** Turnos do chamador como profissional (RF13/RF14/RF15/RN06/RN12/RN22/RNF06, UC05/UC13). */
+/** Turnos do chamador como profissional (RF13/RF14/RF15/RN06/RN07/RN08/RN11/RN12/RN22/RNF06, UC05/UC06/UC13). */
 class ServicoTurnos(private val cliente: ClienteSupabase) {
 
     /**
@@ -32,5 +32,20 @@ class ServicoTurnos(private val cliente: ClienteSupabase) {
             setBody(RegistroDePresencaDto(turnoId = turnoId, distanciaM = distanciaMetros, registradoEm = registradoEm))
         }
         return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/avaliar`. Avaliação binária ("Você trabalharia nesse local de novo?",
+     * RN07) — nunca nota de 1 a 5. Reenviar a mesma resposta devolve a avaliação já gravada;
+     * resposta diferente é conflito. Erros esperados: `422 avaliacao_indisponivel`
+     * (`antes_do_fim`, `sem_presenca_verificada`), `409 avaliacao_ja_registrada`,
+     * `403 sem_permissao`.
+     */
+    suspend fun avaliarTurno(turnoId: String, resposta: Boolean): AvaliacaoDto {
+        val respostaHttp = cliente.http.post(cliente.urlRpc("avaliar")) {
+            contentType(ContentType.Application.Json)
+            setBody(AvaliarDto(turnoId = turnoId, resposta = resposta))
+        }
+        return cliente.corpoOuErro(respostaHttp)
     }
 }
