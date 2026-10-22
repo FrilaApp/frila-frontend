@@ -19,6 +19,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,12 +37,22 @@ fun TelaFeedVagas(
     viewModel: FeedVagasViewModel,
     aoAbrirDetalhe: (String) -> Unit,
     modifier: Modifier = Modifier,
+    aoAbrirPerfil: () -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
-        topBar = { CenterAlignedTopAppBar(title = { Text("Vagas abertas") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Vagas abertas") },
+                actions = {
+                    TextButton(onClick = aoAbrirPerfil) {
+                        Text("Perfil")
+                    }
+                },
+            )
+        },
     ) { paddingInterno ->
         Column(
             modifier = Modifier

@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":feature:entrada"))
     implementation(project(":feature:vagas"))
     implementation(project(":feature:turnos"))
+    implementation(project(":feature:perfil"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

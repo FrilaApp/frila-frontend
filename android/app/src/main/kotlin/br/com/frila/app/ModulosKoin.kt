@@ -8,6 +8,7 @@ import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ProvedorDeToken
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoDispositivo
+import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
@@ -18,6 +19,7 @@ import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
@@ -50,6 +52,7 @@ val moduloRede = module {
     single { ServicoVagas(get()) }
     single { ServicoDispositivo(get()) }
     single { ServicoTurnos(get()) }
+    single { ServicoPerfil(get()) }
 }
 
 val moduloNotificacoes = module {
@@ -70,6 +73,7 @@ val moduloFeatures = module {
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }
     viewModel { AvaliacaoViewModel(get()) }
+    viewModel { PerfilViewModel(get(), get()) }
 }
 
 val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures)
