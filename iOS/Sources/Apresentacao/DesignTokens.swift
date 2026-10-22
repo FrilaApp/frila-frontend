@@ -81,6 +81,8 @@ public enum FrilaMetrica {
 /// A Bricolage Grotesque é só a voz do formulário de publicar vaga; números e dinheiro ficam sempre em SF Pro.
 public enum FrilaTipo {
     public static let tituloGrande = Font.largeTitle.bold()
+    /// Cabeçalho de seção ("Abertas", "Seus dados").
+    public static let secao = Font.title2.bold()
     public static let subtituloDaTela = Font.title3
     public static let rotuloDoCampo = Font.headline
     public static let valorDoCampo = Font.body
@@ -102,7 +104,7 @@ public enum FrilaTipo {
     /// Contexto da resposta: Bricolage Regular 17, acompanha `.body`.
     public static var contextoDaResposta: Font { bricolage("BricolageGrotesque-Regular", tamanho: 17, relativoA: .body) }
     /// Microrrótulo em caixa alta (use com `.textCase(.uppercase)` e `.tracking(0.8)`).
-    public static let microRotulo = Font.caption2.weight(.semibold)
+    public static let microRotulo = Font.footnote.weight(.semibold)
 
     private static func bricolage(_ nome: String, tamanho: CGFloat, relativoA estilo: Font.TextStyle) -> Font {
         _ = FontesFrila.registradas
@@ -312,8 +314,13 @@ public extension View {
     }
 
     /// Aplica fundo com material translúcido nativo do SwiftUI para efeito de vidro seguro no iOS 17+ (DP-02).
+    @ViewBuilder
     func vidroFrila(_ material: Material = FrilaMaterial.padrao, raio: CGFloat = FrilaRaio.folha) -> some View {
-        background(material, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: raio, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        if #available(iOS 26, *) {
+            glassEffect(.regular, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
+        } else {
+            background(material, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: raio, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        }
     }
 }

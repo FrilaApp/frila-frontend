@@ -23,6 +23,8 @@ public struct EstiloBotaoTatil: ButtonStyle {
                 FrilaMovimento.animacao(FrilaMovimento.molaTatil, reduzir: isReduceActive),
                 value: configuration.isPressed
             )
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(Rectangle())
             .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, isPressed in
                 isPressed
             }
@@ -175,14 +177,14 @@ public struct CampoFrila: View {
     }
 
     public var body: some View {
-        TextField(text: $texto, prompt: titulo) { titulo }
+        TextField(text: $texto, prompt: titulo.foregroundStyle(FrilaCor.textoSecundario)) { titulo }
             .textFieldStyle(.plain)
             .font(FrilaTipo.valorDoCampo)
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityLabel(titulo)
             .modifier(ErroLidoComoValor(texto: texto, erro: erroDeCampo))
     }
@@ -196,9 +198,9 @@ public struct CaixaDoCampoFrila: ViewModifier {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous)
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
                     .strokeBorder(FrilaCor.borda, lineWidth: 1)
             )
     }
@@ -248,8 +250,8 @@ public struct CampoCodigo: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: 56)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
             .modifier(ErroLidoComoValor(texto: codigo, erro: erroDeCampo))
     }
@@ -406,22 +408,21 @@ public struct AvisoFrila: View {
     private var textoResolvido: AttributedString { conteudo.resolver(locale: locale) }
     private var textoView: Text { conteudo.texto(locale: locale) }
 
-    private var cor: Color { switch tom { case .informativo: FrilaCor.texto; case .alerta: FrilaCor.alerta; case .erro: FrilaCor.perigo } }
-    private var fundo: Color { tom == .informativo ? FrilaCor.controle : cor.opacity(0.12) }
+    private var cor: Color { FrilaCor.texto }
+    private var fundo: Color { FrilaCor.controle }
     private var icone: String { switch tom { case .informativo: "info.circle.fill"; case .alerta: "exclamationmark.triangle.fill"; case .erro: "xmark.octagon.fill" } }
 }
 
 
 public struct CartaoVaga: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var larguraDoIcone: CGFloat = 24
     private let vaga: VagaNaLista
     private let formatador = FormatadorFrila()
     public init(_ vaga: VagaNaLista) { self.vaga = vaga }
 
     public var body: some View {
         // Cartão de turno do MidFi (`FrilaShiftCard`): cabeçalho, linhas com ícone, fio e reputação.
-        VStack(alignment: .leading, spacing: FrilaEspaco.faixa) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { cabecalho; valor }
             } else {
@@ -434,15 +435,12 @@ public struct CartaoVaga: View {
             }
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 linha("clock") { Text(verbatim: formatador.intervalo(vaga.periodo)) }
-                // O contrato traz o local como texto; o app mostra como vem, sem tentar extrair bairro.
-                linha("mappin.and.ellipse") { Text(verbatim: "\(distancia), \(vaga.local)") }
-                if !inclusos.isEmpty {
-                    linha("checkmark.circle") { Text(verbatim: inclusos) }
-                }
-                linha("person.2") { Text("\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao) }
+                linha("mappin") { Text(verbatim: localizacao) }
+                linha("checkmark") { Text(verbatim: textoBeneficios) }
+                linha("person") { Text(verbatim: posicoesTexto) }
             }
             Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
-            SeloReputacao(vaga.estabelecimento.reputacao)
+            reputacaoEstabelecimento
         }
         .font(FrilaTipo.meta)
         .foregroundStyle(FrilaCor.texto)
@@ -465,53 +463,118 @@ public struct CartaoVaga: View {
     private var valor: some View {
         VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: FrilaEspaco.fio) {
             Text(verbatim: formatador.dinheiro(vaga.valor)).font(FrilaTipo.preco).monospacedDigit()
-            Text("por turno", bundle: bundleApresentacao).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
+            Text("por pessoa", bundle: bundleApresentacao).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rotuloAcessibilidadeValor)
     }
 
     public var rotuloAcessibilidadeValor: String {
-        FrilaMoney.spoken(cents: vaga.valor.centavos, por: "turno")
+        FrilaMoney.spoken(cents: vaga.valor.centavos, por: "pessoa")
     }
 
     private func linha(_ icone: String, @ViewBuilder texto: () -> Text) -> some View {
-        Label {
-            texto().fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            // Coluna de largura fixa: o texto das linhas começa no mesmo ponto, qualquer que seja o ícone.
-            Image(systemName: icone).foregroundStyle(FrilaCor.textoSecundario)
-                .frame(width: larguraDoIcone)
+        HStack(spacing: FrilaEspaco.pequeno) {
+            Image(systemName: icone)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+
+            texto()
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var localizacao: String {
+        let regiaoLimpa = vaga.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
+        let regiaoOuLocal = regiaoLimpa.isEmpty ? vaga.local : regiaoLimpa
+        return "\(distancia), \(regiaoOuLocal)"
+    }
+
+    private var textoBeneficios: String {
+        switch (vaga.inclusos.refeicao, vaga.inclusos.transporte) {
+        case (true, true):
+            return String(localized: "Refeição e transporte inclusos", bundle: bundleApresentacao)
+        case (true, false):
+            return String(localized: "Refeição inclusa, sem transporte", bundle: bundleApresentacao)
+        case (false, true):
+            return String(localized: "Sem refeição, transporte incluso", bundle: bundleApresentacao)
+        case (false, false):
+            return String(localized: "Sem refeição nem transporte", bundle: bundleApresentacao)
+        }
+    }
+
+    private var posicoesTexto: String {
+        if vaga.posicoesAbertas == 1 {
+            return String(localized: "1 posição aberta", bundle: bundleApresentacao)
+        } else {
+            return String(localized: "\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao)
+        }
+    }
+
+    @ViewBuilder
+    private var reputacaoEstabelecimento: some View {
+        let reputacao = vaga.estabelecimento.reputacao
+        if reputacao.semHistorico {
+            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "person.badge.shield.checkmark")
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
+
+                Text("Ainda sem avaliações.", bundle: bundleApresentacao)
+                    .font(FrilaTipo.nota.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "person.badge.shield.checkmark")
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
+
+                (Text("\(reputacao.positivas) de \(reputacao.total)", bundle: bundleApresentacao)
+                    .font(FrilaTipo.nota.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
+                + Text(" avaliações indicam que trabalhariam lá de novo", bundle: bundleApresentacao)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario))
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var reputacaoTexto: String {
+        let reputacao = vaga.estabelecimento.reputacao
+        if reputacao.semHistorico {
+            return String(localized: "Ainda sem avaliações.", bundle: bundleApresentacao)
+        } else {
+            return String(localized: "\(reputacao.positivas) de \(reputacao.total) avaliações indicam que trabalhariam lá de novo", bundle: bundleApresentacao)
         }
     }
 
     public var rotuloDeAcessibilidade: String {
-        var partes = [
+        let partes = [
             String(localized: "Vaga de \(vaga.funcao.nome)", bundle: bundleApresentacao),
             vaga.estabelecimento.nome,
             formatador.intervalo(vaga.periodo),
             rotuloAcessibilidadeValor,
-            "a \(distancia)",
-            vaga.local
+            "a \(localizacao)",
+            textoBeneficios,
+            posicoesTexto,
+            reputacaoTexto
         ]
-        if !inclusos.isEmpty {
-            partes.append(inclusos)
-        }
-        partes.append(SeloReputacao.descricao(vaga.estabelecimento.reputacao))
-        if let comparecimento = SeloReputacao.descricaoComparecimento(vaga.estabelecimento.reputacao) { partes.append(comparecimento) }
-        partes.append(String(localized: "\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao))
         return partes.joined(separator: ", ")
     }
 
     private var distancia: String {
         formatador.distancia(vaga.distanciaKm)
-    }
-
-    private var inclusos: String {
-        var itens: [String] = []
-        if vaga.inclusos.refeicao { itens.append(String(localized: "Refeição", bundle: bundleApresentacao)) }
-        if vaga.inclusos.transporte { itens.append(String(localized: "Transporte", bundle: bundleApresentacao)) }
-        return itens.joined(separator: " · ")
     }
 }
 

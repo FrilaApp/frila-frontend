@@ -14,60 +14,33 @@ public struct TelaVagas: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                AvisoDePermissaoDePush(perfil: .profissional)
-                cabecalho
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 filtros
+                AvisoDePermissaoDePush(perfil: .profissional)
+                    .padding(.horizontal, FrilaEspaco.medio)
                 conteudo
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.top, FrilaEspaco.pequeno)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Lista.titulo))
+        .navigationBarTitleDisplayMode(.large)
         .refreshable { await medirAbertura(.listaDeVagas, carregar: viewModel.atualizar, pronto: listaNaTela) }
         .task { if viewModel.estado == .ociosa { await medirAbertura(.listaDeVagas, carregar: viewModel.carregar, pronto: listaNaTela) } }
         .accessibilityIdentifier("tela-vagas")
-        // Nos tamanhos de acessibilidade o aviso de sem conexão empurrava o Tentar novamente para baixo
-        // da barra de abas flutuante: o botão fica preso ao rodapé, acima dela, e o aviso rola. Fica
-        // depois do identificador da tela, que senão passaria para o botão.
-        .safeAreaInset(edge: .bottom) {
-            if dynamicTypeSize.isAccessibilitySize, viewModel.estado == .falha(.semConexao) {
+        .modifier(BarraInferiorDeAcessibilidade(
+            ativo: dynamicTypeSize.isAccessibilitySize && viewModel.estado == .falha(.semConexao),
+            rodape: {
                 tentarDeNovo
                     .padding(FrilaEspaco.medio)
-                    .background(FrilaCor.fundo)
             }
-        }
+        ))
     }
 
     /// Fim da medição de abertura (#73): a lista da API publicada.
     private var listaNaTela: @MainActor @Sendable () -> Bool {
         let viewModel = viewModel
         return { if case .carregada = viewModel.estado { true } else { false } }
-    }
-
-    private var cabecalho: some View {
-        Group {
-            if !dynamicTypeSize.isAccessibilitySize {
-                FrilaSearchCapsule(
-                    activeCount: contagemDeVagas,
-                    craftQuery: nomeDaFuncao,
-                    termsQuery: Self.titulo(viewModel.data),
-                    budgetQuery: Self.titulo(viewModel.distancia)
-                ) { zona in
-                    if zona == 3 {
-                        Task { await viewModel.atualizar() }
-                    }
-                }
-                .accessibilityIdentifier("capsula-busca-vagas")
-            }
-        }
-    }
-
-    private var contagemDeVagas: Int {
-        if case let .carregada(vagas) = viewModel.estado {
-            return vagas.count
-        }
-        return 0
     }
 
     private var filtros: some View {
@@ -78,6 +51,7 @@ public struct TelaVagas: View {
                     filtroData
                     filtroDistancia
                 }
+                .padding(.horizontal, FrilaEspaco.medio)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: FrilaEspaco.pequeno) {
@@ -85,6 +59,7 @@ public struct TelaVagas: View {
                         filtroData
                         filtroDistancia
                     }
+                    .padding(.horizontal, FrilaEspaco.medio)
                 }
             }
         }
@@ -92,12 +67,16 @@ public struct TelaVagas: View {
 
     private var filtroFuncao: some View {
         Menu {
-            Button { selecionar { await $0.selecionar(funcao: nil) } } label: { Text(verbatim: TextosDoProfissional.Lista.qualquerFuncao) }
+            Button { selecionar { await $0.selecionar(funcao: nil) } } label: {
+                Text(verbatim: TextosDoProfissional.Lista.qualquerFuncao)
+            }
             ForEach(viewModel.funcoes) { funcao in
-                Button { selecionar { await $0.selecionar(funcao: funcao.id) } } label: { Text(verbatim: funcao.nome) }
+                Button { selecionar { await $0.selecionar(funcao: funcao.id) } } label: {
+                    Text(verbatim: funcao.nome)
+                }
             }
         } label: {
-            FiltroPill(verbatim: nomeDaFuncao, selecionado: viewModel.funcaoID != nil) {}
+            PilulaDeFiltro(titulo: rotuloFuncao, ativo: viewModel.funcaoID != nil)
         }
         .accessibilityIdentifier("filtro-funcao")
     }
@@ -105,10 +84,12 @@ public struct TelaVagas: View {
     private var filtroData: some View {
         Menu {
             ForEach(FiltroDeData.allCases, id: \.self) { opcao in
-                Button { selecionar { await $0.selecionar(data: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
+                Button { selecionar { await $0.selecionar(data: opcao) } } label: {
+                    Text(verbatim: Self.tituloMenu(opcao))
+                }
             }
         } label: {
-            FiltroPill(verbatim: Self.titulo(viewModel.data), selecionado: viewModel.data != .qualquer) {}
+            PilulaDeFiltro(titulo: rotuloData, ativo: viewModel.data != .qualquer)
         }
         .accessibilityIdentifier("filtro-data")
     }
@@ -116,10 +97,12 @@ public struct TelaVagas: View {
     private var filtroDistancia: some View {
         Menu {
             ForEach(FiltroDeDistancia.opcoes, id: \.self) { opcao in
-                Button { selecionar { await $0.selecionar(distancia: opcao) } } label: { Text(verbatim: Self.titulo(opcao)) }
+                Button { selecionar { await $0.selecionar(distancia: opcao) } } label: {
+                    Text(verbatim: Self.tituloMenu(opcao))
+                }
             }
         } label: {
-            FiltroPill(verbatim: Self.titulo(viewModel.distancia), selecionado: viewModel.distancia != .qualquer) {}
+            PilulaDeFiltro(titulo: rotuloDistancia, ativo: viewModel.distancia != .qualquer)
         }
         .accessibilityIdentifier("filtro-distancia")
     }
@@ -128,48 +111,218 @@ public struct TelaVagas: View {
     private var conteudo: some View {
         switch viewModel.estado {
         case .ociosa, .carregando:
-            EstadoCarregando()
+            estadoCarregando
         case let .carregada(vagas) where vagas.isEmpty:
-            EstadoVazio(verbatim: TextosDoProfissional.Lista.vazioTitulo,
-                        mensagem: TextosDoProfissional.Lista.vazioMensagem)
-                .accessibilityIdentifier("vagas-vazio")
+            estadoVazio
         case let .carregada(vagas):
-            LazyVStack(spacing: FrilaEspaco.compacto) {
-                ForEach(vagas) { vaga in
-                    Button { abrir(vaga.id) } label: { CartaoVaga(vaga) }
-                        .buttonStyle(.plain)
-                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                        .accessibilityIdentifier("vaga-\(vaga.id.uuidString)")
-                        .accessibilityHint(Text("Abre o detalhe da vaga", bundle: bundleApresentacao))
-                        .task { await viewModel.registrarVagaVista(id: vaga.id) }
-                        .task { if vaga.id == vagas.last?.id { await viewModel.carregarMais() } }
+            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                Text(verbatim: TextosDoProfissional.Lista.contagem(total: vagas.count, haMais: viewModel.haMaisPaginas))
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .padding(.horizontal, FrilaEspaco.medio)
+
+                LazyVStack(spacing: FrilaEspaco.compacto) {
+                    ForEach(vagas) { vaga in
+                        Button { abrir(vaga.id) } label: { CartaoVaga(vaga) }
+                            .buttonStyle(.plain)
+                            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                            .accessibilityIdentifier("vaga-\(vaga.id.uuidString)")
+                            .accessibilityHint(Text("Abre o detalhe da vaga", bundle: bundleApresentacao))
+                            .task { await viewModel.registrarVagaVista(id: vaga.id) }
+                            .task { if vaga.id == vagas.last?.id { await viewModel.carregarMais() } }
+                    }
                 }
+                .padding(.horizontal, FrilaEspaco.medio)
             }
         case .falha(.semConexao):
-            VStack(spacing: FrilaEspaco.medio) {
-                AvisoFrila(verbatim: TextosDoProfissional.Lista.semConexaoMensagem, tom: .alerta)
-                if !dynamicTypeSize.isAccessibilitySize { tentarDeNovo }
-            }
-            .accessibilityIdentifier("vagas-sem-conexao")
+            estadoSemConexao
         case .falha(.semPontoDeReferencia):
-            EstadoErro(verbatim: TextosDoProfissional.Lista.semPontoDeReferencia) { Task { await viewModel.carregar() } }
-                .accessibilityIdentifier("vagas-sem-referencia")
+            estadoSemPontoDeReferencia
         case .falha(.perfilIncompativel):
-            AvisoFrila(verbatim: TextosDoProfissional.Lista.perfilIncompativel, tom: .alerta)
-                .accessibilityIdentifier("vagas-perfil-incompativel")
+            estadoPerfilIncompativel
         case .falha(.erro):
-            EstadoErro(verbatim: TextosDoProfissional.Lista.erroMensagem) { Task { await viewModel.carregar() } }
-                .accessibilityIdentifier("vagas-erro")
+            estadoErro
         }
     }
 
-    private var tentarDeNovo: some View {
-        BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
-            .accessibilityIdentifier("vagas-tentar-de-novo")
+    private var estadoCarregando: some View {
+        VStack(spacing: FrilaEspaco.medio) {
+            ProgressView()
+                .controlSize(.regular)
+                .tint(FrilaCor.texto)
+            Text(verbatim: TextosDoProfissional.Lista.carregando)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.enorme)
+        .padding(.horizontal, FrilaEspaco.grande)
     }
 
-    private var nomeDaFuncao: String {
-        viewModel.funcoes.first { $0.id == viewModel.funcaoID }?.nome ?? TextosDoProfissional.Lista.qualquerFuncao
+    private var estadoVazio: some View {
+        VStack(spacing: FrilaEspaco.medio) {
+            Circle()
+                .fill(FrilaCor.controle)
+                .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                .overlay {
+                    Image(systemName: "magnifyingglass")
+                        .font(.title2)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+            VStack(spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosTitulo : TextosDoProfissional.Lista.vazioSemFiltrosTitulo)
+                    .font(FrilaTipo.tituloDeEstado)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.center)
+                Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosMensagem : TextosDoProfissional.Lista.vazioSemFiltrosMensagem)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
+            }
+            if temFiltroAtivo {
+                BotaoSecundario(verbatim: TextosDoProfissional.Lista.limparFiltros) {
+                    selecionar {
+                        await $0.selecionar(funcao: nil)
+                        await $0.selecionar(data: .qualquer)
+                        await $0.selecionar(distancia: .qualquer)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.enorme)
+        .padding(.horizontal, FrilaEspaco.grande)
+        .accessibilityIdentifier("vagas-vazio")
+    }
+
+    private var estadoSemPontoDeReferencia: some View {
+        VStack(spacing: FrilaEspaco.medio) {
+            Image(systemName: "mappin.slash")
+                .font(.title)
+                .foregroundStyle(FrilaCor.texto)
+            VStack(spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: TextosDoProfissional.Lista.semPontoDeReferenciaTitulo)
+                    .font(FrilaTipo.tituloDeEstado)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.center)
+                Text(verbatim: TextosDoProfissional.Lista.semPontoDeReferenciaMensagem)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
+            }
+            NavigationLink(value: RotaDoProfissional.meuPerfil) {
+                Text(verbatim: TextosDoProfissional.Lista.definirPontoBase)
+                    .font(FrilaTipo.botao)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, FrilaEspaco.grande)
+                    .padding(.vertical, FrilaEspaco.pequeno)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                    .foregroundStyle(FrilaCor.sobrePrimaria)
+                    .background(FrilaCor.primaria, in: Capsule())
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.enorme)
+        .padding(.horizontal, FrilaEspaco.grande)
+        .accessibilityIdentifier("vagas-sem-referencia")
+    }
+
+    private var estadoSemConexao: some View {
+        VStack(spacing: FrilaEspaco.medio) {
+            Image(systemName: "wifi.slash")
+                .font(.title)
+                .foregroundStyle(FrilaCor.texto)
+            VStack(spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: TextosDoProfissional.Lista.semConexaoTitulo)
+                    .font(FrilaTipo.tituloDeEstado)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("vagas-sem-conexao")
+                Text(verbatim: TextosDoProfissional.Lista.semConexaoMensagem)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
+            }
+            if !dynamicTypeSize.isAccessibilitySize {
+                tentarDeNovo
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.enorme)
+        .padding(.horizontal, FrilaEspaco.grande)
+    }
+
+    private var estadoErro: some View {
+        VStack(spacing: FrilaEspaco.medio) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.title)
+                .foregroundStyle(FrilaCor.texto)
+            VStack(spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: TextosDoProfissional.Lista.erroMensagem)
+                    .font(FrilaTipo.tituloDeEstado)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("vagas-erro")
+                Text(verbatim: TextosDoProfissional.Lista.erroApoio)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
+            }
+            tentarDeNovo
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.enorme)
+        .padding(.horizontal, FrilaEspaco.grande)
+    }
+
+    private var estadoPerfilIncompativel: some View {
+        HStack(alignment: .top, spacing: FrilaEspaco.medio) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(FrilaCor.texto)
+            Text(verbatim: TextosDoProfissional.Lista.perfilIncompativel)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.texto)
+        }
+        .padding(FrilaEspaco.medio)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso))
+        .padding(.horizontal, FrilaEspaco.medio)
+        .accessibilityIdentifier("vagas-perfil-incompativel")
+    }
+
+    private var tentarDeNovo: some View {
+        BotaoSecundario(verbatim: TextosDoProfissional.Lista.tentarDeNovo) {
+            Task { await viewModel.carregar() }
+        }
+        .accessibilityIdentifier("vagas-tentar-de-novo")
+    }
+
+    private var temFiltroAtivo: Bool {
+        viewModel.funcaoID != nil || viewModel.data != .qualquer || viewModel.distancia != .qualquer
+    }
+
+    private var rotuloFuncao: String {
+        if let funcaoID = viewModel.funcaoID,
+           let funcao = viewModel.funcoes.first(where: { $0.id == funcaoID }) {
+            return funcao.nome
+        }
+        return TextosDoProfissional.Lista.filtroFuncao
+    }
+
+    private var rotuloData: String {
+        Self.tituloMenu(viewModel.data)
+    }
+
+    private var rotuloDistancia: String {
+        switch viewModel.distancia {
+        case .qualquer:
+            return TextosDoProfissional.Lista.filtroDistancia
+        case let .ate(km):
+            return TextosDoProfissional.Lista.ateKm(km)
+        }
     }
 
     private func selecionar(_ acao: @escaping @MainActor (FeedVagasViewModel) async -> Void) {
@@ -177,7 +330,7 @@ public struct TelaVagas: View {
         Task { await acao(viewModel) }
     }
 
-    static func titulo(_ data: FiltroDeData) -> String {
+    static func tituloMenu(_ data: FiltroDeData) -> String {
         switch data {
         case .qualquer: TextosDoProfissional.Lista.qualquerData
         case .hoje: TextosDoProfissional.Lista.hoje
@@ -185,10 +338,67 @@ public struct TelaVagas: View {
         }
     }
 
-    static func titulo(_ distancia: FiltroDeDistancia) -> String {
+    static func tituloMenu(_ distancia: FiltroDeDistancia) -> String {
         switch distancia {
         case .qualquer: TextosDoProfissional.Lista.qualquerDistancia
         case let .ate(km): TextosDoProfissional.Lista.ateKm(km)
+        }
+    }
+}
+
+/// Chip de filtro do MidFi que abre um menu: ativo escuro com texto claro, inativo claro com fio.
+/// O estado ativo não depende só de cor: ganha um ícone. Altura visual 36 pt num alvo de 44 pt.
+private struct PilulaDeFiltro: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let titulo: String
+    let ativo: Bool
+
+    private static let alturaVisual: CGFloat = FrilaEspaco.enorme + FrilaEspaco.minimo
+
+    var body: some View {
+        HStack(spacing: FrilaEspaco.minimo) {
+            if ativo {
+                Image(systemName: "checkmark")
+                    .accessibilityHidden(true)
+            }
+            Text(verbatim: titulo)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+            Image(systemName: "chevron.down")
+                .font(.caption)
+                .accessibilityHidden(true)
+        }
+        .font(ativo ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
+        .padding(.horizontal, FrilaEspaco.compacto)
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : 0)
+        .frame(minHeight: Self.alturaVisual)
+        .foregroundStyle(ativo ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+        .background(ativo ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+        .overlay(Capsule().strokeBorder(ativo ? Color.clear : FrilaCor.borda, lineWidth: 1))
+        .frame(minHeight: FrilaMetrica.alvoMinimo)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(ativo ? String(localized: "filtro ativo", bundle: bundleApresentacao) : "")
+    }
+}
+
+private struct BarraInferiorDeAcessibilidade<Rodape: View>: ViewModifier {
+    let ativo: Bool
+    @ViewBuilder let rodape: () -> Rodape
+
+    func body(content: Content) -> some View {
+        if ativo {
+            if #available(iOS 26, *) {
+                content.safeAreaBar(edge: .bottom) {
+                    rodape()
+                }
+            } else {
+                content.safeAreaInset(edge: .bottom) {
+                    rodape()
+                        .background(.regularMaterial)
+                }
+            }
+        } else {
+            content
         }
     }
 }

@@ -39,23 +39,103 @@ public struct AreaDeCandidatura: View {
             } else {
                 // A retirada vem antes do botão, e a falha depois dele, como já era.
                 if quadro == nil, let aviso, aviso.id == Self.idDaRetirada {
-                    AvisoFrila(verbatim: aviso.texto, tom: aviso.tom).accessibilityIdentifier(aviso.id)
+                    avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
-                BotaoPrimario(verbatim: TextosDoProfissional.Detalhe.candidatar, carregando: viewModel.enviando) {
-                    Task { await candidatar(viewModel) }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: FrilaEspaco.medio) {
+                        precoView
+                        Spacer(minLength: FrilaEspaco.medio)
+                        botaoView
+                            .frame(minWidth: 160)
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        precoView
+                        botaoView
+                            .frame(maxWidth: .infinity)
+                    }
                 }
-                .disabled(viewModel.enviando || viewModel.conferindo)
-                .accessibilityIdentifier("candidatar")
-                .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
 
                 if quadro == nil, let aviso, aviso.id != Self.idDaRetirada {
-                    AvisoFrila(verbatim: aviso.texto, tom: aviso.tom).accessibilityIdentifier(aviso.id)
+                    avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
             }
         }
         .task { await viewModel.conferirCandidatura() }
         .onChange(of: aviso, initial: true) { _, novo in quadro?.publicar(novo, de: Self.donoDosAvisos) }
         .onDisappear { quadro?.publicar(nil, de: Self.donoDosAvisos) }
+    }
+
+    private var precoView: some View {
+        let formatador = FormatadorFrila()
+        return VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+            Text(verbatim: formatador.dinheiro(viewModel.vaga.valor))
+                .font(FrilaTipo.preco)
+                .monospacedDigit()
+                .foregroundStyle(FrilaCor.texto)
+            Text(verbatim: TextosDoProfissional.Detalhe.porPessoa)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var botaoView: some View {
+        let desabilitado = viewModel.enviando || viewModel.conferindo
+        return Button {
+            Task { await candidatar(viewModel) }
+        } label: {
+            HStack(spacing: FrilaEspaco.pequeno) {
+                if desabilitado {
+                    ProgressView()
+                        .tint(FrilaCor.textoSecundario)
+                }
+                Text(verbatim: tituloDoBotao)
+                    .font(FrilaTipo.botao)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, FrilaEspaco.grande)
+            .frame(minHeight: FrilaMetrica.alturaDoCampo)
+            .foregroundStyle(desabilitado ? FrilaCor.textoSecundario : FrilaCor.sobrePrimaria)
+            .background(desabilitado ? FrilaCor.controle : FrilaCor.primaria, in: Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.tatil)
+        .disabled(desabilitado)
+        .accessibilityIdentifier("candidatar")
+        .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
+    }
+
+    private var tituloDoBotao: String {
+        if viewModel.enviando {
+            return viewModel.vaga.modoEfetivo(em: .now) == .urgencia
+                ? TextosDoProfissional.Detalhe.confirmando
+                : Textos.enviando
+        }
+        if viewModel.conferindo {
+            return Textos.verificandoCandidatura
+        }
+        return viewModel.vaga.modoEfetivo(em: .now) == .urgencia
+            ? TextosDoProfissional.Detalhe.aceitarTurno
+            : TextosDoProfissional.Detalhe.candidatar
+    }
+
+    private func avisoLocal(_ aviso: AvisosDoDetalhe.Aviso) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityHidden(true)
+            Text(verbatim: aviso.texto)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+        }
+        .padding(FrilaEspaco.medio)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                .strokeBorder(aviso.tom == .erro ? FrilaCor.texto : Color.clear, lineWidth: 2)
+        )
     }
 
     private static let idDaRetirada = "candidatura-retirada"
@@ -114,35 +194,43 @@ public struct TelaResultadoDaCandidatura: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) { conteudo }
-                .padding(FrilaEspaco.medio)
+            VStack(alignment: .leading, spacing: FrilaEspaco.grande) { conteudo }
+                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.vertical, FrilaEspaco.grande)
         }
         .background(FrilaCor.fundo)
+        .toolbar(.hidden, for: .tabBar)
+        .navigationTitle(Text(verbatim: titulo))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden()
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(action: voltarParaLista) {
-                    Label {
-                        Text(verbatim: Textos.voltarParaLista)
-                    } icon: {
-                        Image(systemName: "chevron.left")
-                    }
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
+                    Image(systemName: "chevron.left")
+                        .foregroundStyle(FrilaCor.texto)
                 }
-                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                .accessibilityShowsLargeContentViewer {
-                    Text(verbatim: Textos.voltarParaLista)
-                }
+                .accessibilityLabel(Text(verbatim: Textos.voltarParaLista))
                 .accessibilityIdentifier("voltar-para-lista-navegacao")
             }
         }
+        .modifier(BarraInferiorDoResultado(ativo: temRodapeFixo) {
+            BotaoPrimario(verbatim: Textos.voltarParaLista, acao: voltarParaLista)
+                .accessibilityIdentifier("voltar-para-lista")
+        })
         .onAppear { AccessibilityNotification.Announcement(titulo).post() }
         .sheet(item: $contestacaoModel) { contestacaoModel in
             if let api {
                 TelaContaSuspensa(viewModel: contestacaoModel, api: api)
             }
+        }
+    }
+
+    private var temRodapeFixo: Bool {
+        switch resultado {
+        case .vagaPreenchida, .vagaEncerrada:
+            return true
+        default:
+            return false
         }
     }
 
@@ -161,16 +249,19 @@ public struct TelaResultadoDaCandidatura: View {
             }
             voltar
         case .vagaPreenchida:
-            // O texto da urgência ("quem aceita primeiro") não vale para a vaga em que a casa escolhe.
             mensagem(
-                Textos.preenchidaTitulo,
-                vaga.modoEfetivo(em: .now) == .selecao ? TextosDaCandidaturaEmSelecao.preenchidaEmSelecao : Textos.preenchidaMensagem,
+                Textos.estaVagaJaFoiPreenchida,
+                vaga.modoEfetivo(em: .now) == .selecao ? TextosDaCandidaturaEmSelecao.preenchidaEmSelecao : Textos.preenchidaUrgenciaMensagem,
                 id: "resultado-vaga-preenchida"
             )
-            voltar
+            vagaOriginal
         case .vagaEncerrada:
-            mensagem(Textos.encerradaTitulo, Textos.encerradaMensagem, id: "resultado-vaga-encerrada")
-            voltar
+            mensagem(
+                Textos.estaVagaFoiEncerrada,
+                Textos.encerradaMensagem,
+                id: "resultado-vaga-encerrada"
+            )
+            vagaOriginal
         case .inelegivel(.turnoSobreposto):
             // Só o que o backend confirmou: há conflito de horário. Sem apontar um turno específico.
             mensagem(Textos.sobrepostoTitulo, Textos.sobrepostoMensagem, id: "resultado-turno-sobreposto")
@@ -212,6 +303,60 @@ public struct TelaResultadoDaCandidatura: View {
             .accessibilityIdentifier("voltar-para-lista")
     }
 
+    private var vagaOriginal: some View {
+        let formatador = FormatadorFrila()
+        return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: Textos.vagaOriginal)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: vaga.funcao.nome)
+                        .font(FrilaTipo.resumo)
+                        .foregroundStyle(FrilaCor.texto)
+                    Text(verbatim: vaga.estabelecimento.nome)
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+
+                HStack(spacing: FrilaEspaco.minimo) {
+                    Image(systemName: "clock")
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityHidden(true)
+                    Text(verbatim: formatador.intervalo(vaga.periodo))
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+
+                HStack(spacing: FrilaEspaco.minimo) {
+                    Image(systemName: "mappin")
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityHidden(true)
+                    Text(verbatim: vaga.local)
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+
+                HStack(spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: formatador.dinheiro(vaga.valor))
+                        .monospacedDigit()
+                    Text(verbatim: TextosDoProfissional.Detalhe.porPessoa)
+                }
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cartaoFrila()
+            .accessibilityElement(children: .combine)
+        }
+    }
+
     /// A vaga a que a candidatura pendente se refere. Sem contato: ele só existe depois da escolha (RN10).
     private var resumoDaVaga: some View {
         let formatador = FormatadorFrila()
@@ -238,7 +383,6 @@ public struct TelaResultadoDaCandidatura: View {
             Text(verbatim: texto).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, FrilaEspaco.minimo)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(id)
     }
@@ -256,6 +400,38 @@ public struct TelaResultadoDaCandidatura: View {
         case .naoEncontrada: Textos.naoEncontrada
         case .falha: Textos.falha
         case .outraEmAndamento: Textos.outraEmAndamento
+        }
+    }
+}
+
+private struct BarraInferiorDoResultado<Rodape: View>: ViewModifier {
+    let ativo: Bool
+    @ViewBuilder let rodape: () -> Rodape
+
+    func body(content: Content) -> some View {
+        if ativo {
+            if #available(iOS 26, *) {
+                content.safeAreaBar(edge: .bottom) {
+                    rodape()
+                        .padding(.horizontal, FrilaEspaco.medio)
+                        .padding(.vertical, FrilaEspaco.compacto)
+                }
+            } else {
+                content.safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        Rectangle()
+                            .fill(FrilaCor.divisoria)
+                            .frame(height: 1)
+                            .accessibilityHidden(true)
+                        rodape()
+                            .padding(.horizontal, FrilaEspaco.medio)
+                            .padding(.vertical, FrilaEspaco.compacto)
+                    }
+                    .background(.regularMaterial)
+                }
+            }
+        } else {
+            content
         }
     }
 }

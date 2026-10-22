@@ -8,67 +8,83 @@ private final class MarcadorPublicarVaga: NSObject {}
 private let bundlePublicarVaga = Bundle(for: MarcadorPublicarVaga.self)
 
 private enum TextosPublicarVaga {
-    static let titulo = String(localized: "Publicar vaga", bundle: bundlePublicarVaga)
-    static let funcao = String(localized: "Função", bundle: bundlePublicarVaga)
-    static let selecioneFuncao = String(localized: "Selecione uma função", bundle: bundlePublicarVaga)
-    static let dataInicio = String(localized: "Início", bundle: bundlePublicarVaga)
-    static let dataFim = String(localized: "Fim", bundle: bundlePublicarVaga)
-    static let endereco = String(localized: "Endereço do turno", bundle: bundlePublicarVaga)
-    static let enderecoAjuda = String(localized: "Vem do cadastro do estabelecimento; você pode ajustar o texto.", bundle: bundlePublicarVaga)
-    static let valor = String(localized: "Valor por posição", bundle: bundlePublicarVaga)
-    static let valorExemplo = String(localized: "R$ 0,00", bundle: bundlePublicarVaga)
-    static let formatoValor = String(localized: "R$ %d,%02d", bundle: bundlePublicarVaga)
-    static let valorAjuda = String(localized: "O profissional recebe o valor integral", bundle: bundlePublicarVaga)
-    static let posicoes = String(localized: "Posições", bundle: bundlePublicarVaga)
-    static let ajustarPosicoes = String(localized: "Ajustar posições", bundle: bundlePublicarVaga)
-    static let posicoesExemplo = String(localized: "1", bundle: bundlePublicarVaga)
-    static let totalDaVaga = String(localized: "Total da vaga: %@", bundle: bundlePublicarVaga)
-    static let inclusos = String(localized: "O que está incluso", bundle: bundlePublicarVaga)
-    static let refeicao = String(localized: "Refeição", bundle: bundlePublicarVaga)
-    static let transporte = String(localized: "Transporte", bundle: bundlePublicarVaga)
-    static let material = String(localized: "Material próprio", bundle: bundlePublicarVaga)
-    static let sim = String(localized: "Sim", bundle: bundlePublicarVaga)
-    static let nao = String(localized: "Não", bundle: bundlePublicarVaga)
-    static let responsavel = String(localized: "Quem recebe no local", bundle: bundlePublicarVaga)
-    static let alerta = String(localized: "Avisar se a vaga seguir vazia", bundle: bundlePublicarVaga)
-    static let alertaTresHoras = String(localized: "3 horas antes", bundle: bundlePublicarVaga)
-    static let alertaDuasHoras = String(localized: "2 horas antes", bundle: bundlePublicarVaga)
-    static let alertaSeisHoras = String(localized: "6 horas antes", bundle: bundlePublicarVaga)
-    static let maisOpcoes = String(localized: "Mais opções: traje, rateio e observações", bundle: bundlePublicarVaga)
-    static let traje = String(localized: "Traje", bundle: bundlePublicarVaga)
-    static let rateio = String(localized: "Participa do rateio dos 10%", bundle: bundlePublicarVaga)
-    static let observacoes = String(localized: "Observações", bundle: bundlePublicarVaga)
-    static let publicar = String(localized: "Publicar vaga", bundle: bundlePublicarVaga)
-    static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundlePublicarVaga)
-    static let avisoRN10 = String(localized: "Após a confirmação, o telefone do responsável será mostrado ao profissional para combinar o turno.", bundle: bundlePublicarVaga)
-    static let campoObrigatorio = String(localized: "Preencha este campo.", bundle: bundlePublicarVaga)
-    static let campoInvalido = String(localized: "Confira o valor informado.", bundle: bundlePublicarVaga)
-    static let erroPublicar = String(localized: "Não foi possível publicar a vaga. Tente novamente.", bundle: bundlePublicarVaga)
-    static let semFuncoes = String(localized: "Não foi possível carregar as funções.", bundle: bundlePublicarVaga)
-    static let funcaoCampo = String(localized: "Escolha uma função.", bundle: bundlePublicarVaga)
-    static let localCampo = String(localized: "Informe o endereço.", bundle: bundlePublicarVaga)
-    static let valorCampo = String(localized: "Informe um valor maior que zero.", bundle: bundlePublicarVaga)
-    static let posicoesCampo = String(localized: "Informe de 1 a 200 posições.", bundle: bundlePublicarVaga)
-    static let horarioCampo = String(localized: "O fim precisa ser depois do início, e o início deve estar no futuro.", bundle: bundlePublicarVaga)
-    static let estabelecimentoCampo = String(localized: "Não encontramos o estabelecimento cadastrado.", bundle: bundlePublicarVaga)
-    static let responsavelCampo = String(localized: "Informe quem recebe o profissional no local.", bundle: bundlePublicarVaga)
-    static let falhaFila = String(localized: "Não foi possível guardar a publicação neste aparelho.", bundle: bundlePublicarVaga)
-    static let verificandoPendente = String(localized: "Verificando publicação pendente…", bundle: bundlePublicarVaga)
-    static let pendenteDescricao = String(localized: "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga.", bundle: bundlePublicarVaga)
-    static let modo = String(localized: "Como preencher a vaga", bundle: bundlePublicarVaga)
-    static let modoUrgencia = String(localized: "Urgência", bundle: bundlePublicarVaga)
-    static let modoSelecao = String(localized: "Seleção", bundle: bundlePublicarVaga)
-    static let modoUrgenciaExplicacao = String(localized: "O primeiro profissional que aceitar é confirmado na hora.", bundle: bundlePublicarVaga)
-    static let modoSelecaoExplicacao = String(localized: "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.", bundle: bundlePublicarVaga)
-    static let modoIndisponivel = String(localized: "O modo seleção ainda não está disponível. Publique no modo urgência.", bundle: bundlePublicarVaga)
+    static let titulo = String(localized: "Nova vaga", bundle: bundleApresentacao)
+    static let funcao = String(localized: "Função", bundle: bundleApresentacao)
+    static let selecioneFuncao = String(localized: "Selecione uma função", bundle: bundleApresentacao)
+    static let dataInicio = String(localized: "Início", bundle: bundleApresentacao)
+    static let dataFim = String(localized: "Fim", bundle: bundleApresentacao)
+    static let quando = String(localized: "Quando", bundle: bundleApresentacao)
+    static let hoje = String(localized: "Hoje", bundle: bundleApresentacao)
+    static let amanha = String(localized: "Amanhã", bundle: bundleApresentacao)
+    static let terminaNoMesmoDia = String(localized: "Termina no mesmo dia: %@, às %@.", bundle: bundleApresentacao)
+    static let terminaNoDiaSeguinte = String(localized: "Termina no dia seguinte: %@, às %@.", bundle: bundleApresentacao)
+    static let terminaEm = String(localized: "Termina em %@, às %@.", bundle: bundleApresentacao)
+    static let local = String(localized: "Local", bundle: bundleApresentacao)
+    static let endereco = String(localized: "Endereço do turno", bundle: bundleApresentacao)
+    static let enderecoAjuda = String(localized: "Ponto confirmado no mapa no cadastro. O check-in dos profissionais usa este ponto.", bundle: bundleApresentacao)
+    static let valor = String(localized: "Valor por pessoa", bundle: bundleApresentacao)
+    static let valorExemplo = String(localized: "R$ 0,00", bundle: bundleApresentacao)
+    static let formatoValor = String(localized: "R$ %d,%02d", bundle: bundleApresentacao)
+    static let valorAjuda = String(localized: "O profissional recebe o valor integral", bundle: bundleApresentacao)
+    static let posicoes = String(localized: "Posições", bundle: bundleApresentacao)
+    static let ajustarPosicoes = String(localized: "Ajustar posições", bundle: bundleApresentacao)
+    static let posicoesExemplo = String(localized: "1", bundle: bundleApresentacao)
+    static let totalDaVaga = String(localized: "Total da vaga: %@", bundle: bundleApresentacao)
+    static let inclusos = String(localized: "Inclusos e o que levar", bundle: bundleApresentacao)
+    static let refeicao = String(localized: "Refeição inclusa", bundle: bundleApresentacao)
+    static let transporte = String(localized: "Transporte incluso", bundle: bundleApresentacao)
+    static let material = String(localized: "Precisa levar material", bundle: bundleApresentacao)
+    static let sim = String(localized: "Sim", bundle: bundleApresentacao)
+    static let nao = String(localized: "Não", bundle: bundleApresentacao)
+    static let responsavel = String(localized: "Quem recebe o profissional no local", bundle: bundleApresentacao)
+    static let alerta = String(localized: "Avisar se a vaga seguir vazia", bundle: bundleApresentacao)
+    static let alertaTresHoras = String(localized: "3 horas antes", bundle: bundleApresentacao)
+    static let alertaDuasHoras = String(localized: "2 horas antes", bundle: bundleApresentacao)
+    static let alertaSeisHoras = String(localized: "6 horas antes", bundle: bundleApresentacao)
+    static let maisOpcoes = String(localized: "Mais opções", bundle: bundleApresentacao)
+    static let maisOpcoesAjuda = String(localized: "Traje, rateio dos 10% e observações", bundle: bundleApresentacao)
+    static let traje = String(localized: "Traje", bundle: bundleApresentacao)
+    static let rateio = String(localized: "Participa do rateio dos 10%", bundle: bundleApresentacao)
+    static let observacoes = String(localized: "Observações", bundle: bundleApresentacao)
+    static let telefoneResponsavel = String(localized: "Telefone do responsável", bundle: bundleApresentacao)
+    static let publicar = String(localized: "Publicar vaga", bundle: bundleApresentacao)
+    static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundleApresentacao)
+    static let avisoRN10 = String(localized: "Após a confirmação, o telefone do responsável será mostrado ao profissional para combinar o turno.", bundle: bundleApresentacao)
+    static let campoObrigatorio = String(localized: "Preencha este campo.", bundle: bundleApresentacao)
+    static let campoInvalido = String(localized: "Confira o valor informado.", bundle: bundleApresentacao)
+    static let erroPublicar = String(localized: "Não foi possível publicar a vaga. Tente novamente.", bundle: bundleApresentacao)
+    static let semFuncoes = String(localized: "Não foi possível carregar as funções.", bundle: bundleApresentacao)
+    static let funcaoCampo = String(localized: "Escolha uma função.", bundle: bundleApresentacao)
+    static let localCampo = String(localized: "Informe o endereço.", bundle: bundleApresentacao)
+    static let valorCampo = String(localized: "Informe um valor maior que zero.", bundle: bundleApresentacao)
+    static let posicoesCampo = String(localized: "Informe de 1 a 200 posições.", bundle: bundleApresentacao)
+    static let horarioCampo = String(localized: "O fim precisa ser depois do início, e o início deve estar no futuro.", bundle: bundleApresentacao)
+    static let estabelecimentoCampo = String(localized: "Não encontramos o estabelecimento cadastrado.", bundle: bundleApresentacao)
+    static let responsavelCampo = String(localized: "Informe quem recebe o profissional no local.", bundle: bundleApresentacao)
+    static let falhaFila = String(localized: "Não foi possível guardar a publicação neste aparelho.", bundle: bundleApresentacao)
+    static let verificandoPendente = String(localized: "Verificando publicação pendente…", bundle: bundleApresentacao)
+    static let pendenteDescricao = String(localized: "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga.", bundle: bundleApresentacao)
+    static let modo = String(localized: "Como preencher a vaga", bundle: bundleApresentacao)
+    static let modoUrgencia = String(localized: "Urgência", bundle: bundleApresentacao)
+    static let modoSelecao = String(localized: "Seleção", bundle: bundleApresentacao)
+    static let modoUrgenciaExplicacao = String(localized: "O primeiro profissional que aceitar é confirmado na hora.", bundle: bundleApresentacao)
+    static let modoSelecaoExplicacao = String(localized: "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.", bundle: bundleApresentacao)
+    static let modoIndisponivel = String(localized: "O modo seleção ainda não está disponível. Publique no modo urgência.", bundle: bundleApresentacao)
     /// MS-RF01: a opção Seleção só aparece com o início a mais de 24 horas (RN24).
-    static let modoSelecaoSoComAntecedencia = String(localized: "A seleção fica disponível para vagas que começam em mais de 24 horas.", bundle: bundlePublicarVaga)
+    static let modoSelecaoSoComAntecedencia = String(localized: "A seleção fica disponível para vagas que começam em mais de 24 horas.", bundle: bundleApresentacao)
     /// D2 (0.2.38): o prazo exato de escolha, mostrado na publicação.
-    static let modoSelecaoPrazo = String(localized: "Você terá até %@ para escolher. Depois disso a vaga fecha sozinha.", bundle: bundlePublicarVaga)
-    static let modoSelecaoPrazoCurto = String(localized: "Prazo curto: você terá menos de 12 horas para escolher antes de a vaga fechar.", bundle: bundlePublicarVaga)
+    static let modoSelecaoPrazo = String(localized: "Você terá até %@ para escolher. Depois disso a vaga fecha sozinha.", bundle: bundleApresentacao)
+    static let modoSelecaoPrazoCurto = String(localized: "Prazo curto: você terá menos de 12 horas para escolher antes de a vaga fechar.", bundle: bundleApresentacao)
     static let voltar = String(localized: "Voltar", bundle: bundleApresentacao)
     static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
     static let publicacaoContinua = String(localized: "A publicação continua e será concluída quando a conexão voltar.", bundle: bundleApresentacao)
+    static let menosTresHorasTitulo = String(localized: "Começa em menos de 3 horas.", bundle: bundleApresentacao)
+    static let menosTresHorasCorpo = String(localized: "Não haverá o aviso de 3 h antes: enquanto seguir vazia, a vaga fica em Precisa de atenção, em Minhas vagas.", bundle: bundleApresentacao)
+    static let resumoSingular = String(localized: "%d posição · %@ · %@, %@ às %@", bundle: bundleApresentacao)
+    static let resumoPlural = String(localized: "%d posições · %@ · %@, %@ às %@", bundle: bundleApresentacao)
+    static let escolhaFuncao = String(localized: "Escolha a função", bundle: bundleApresentacao)
+    static let resumoTotalSingular = String(localized: "Valor de 1 pessoa, pago direto a ela", bundle: bundleApresentacao)
+    static let resumoTotalPlural = String(localized: "Soma de %d pessoas, pago direto a cada uma", bundle: bundleApresentacao)
 }
 
 public enum CampoPublicacaoVaga: String, CaseIterable, Sendable {
@@ -465,22 +481,29 @@ private extension String {
     var nilSeVazio: String? { isEmpty ? nil : self }
 }
 
-/// Caixa de campo do MidFi (quadros "Publicar" e "PublicarCopia"): 52 pt de altura, raio 12 contínuo e fio de borda.
-private struct CaixaDoCampoDePublicacao: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, FrilaEspaco.medio)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous)
-                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
-            )
+private struct AvisoNeutroLocal: View {
+    let icone: String
+    let texto: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
+            Image(systemName: icone)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityHidden(true)
+            Text(verbatim: texto)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.texto)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(FrilaEspaco.medio)
+        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
     }
 }
 
 /// Formulário de publicar vaga, nos campos e cartões dos quadros "Publicar" e "PublicarCopia" do MidFi do Fabrício.
 public struct TelaPublicarVaga: View {
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: PublicarVagaViewModel
     @State private var regiaoMapa: MKCoordinateRegion
@@ -490,6 +513,7 @@ public struct TelaPublicarVaga: View {
     private let aoPublicar: () -> Void
     private let aoCancelar: (() -> Void)?
     @State private var mostrandoPerfilEstabelecimento = false
+    @State private var tentativaEnvio = 0
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     public init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, telefoneResponsavel: String, sair: @escaping () -> Void = {}, aoPublicar: @escaping () -> Void = {}, aoCancelar: (() -> Void)? = nil) {
@@ -505,9 +529,6 @@ public struct TelaPublicarVaga: View {
     public var body: some View {
         NavigationStack {
             formulario
-                // O texto já rolado não deve continuar legível por trás da barra.
-                .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
                 .toolbar {
                     // Quem veio de Minhas vagas tem para onde voltar; no primeiro acesso, não.
                     if let aoCancelar {
@@ -560,10 +581,6 @@ public struct TelaPublicarVaga: View {
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
             Task { await model.carregarRecusaDaFila() }
         }
-        .task {
-            await model.restaurarPublicacaoPendente()
-            await model.carregarFuncoes()
-        }
         .onChange(of: model.resultado != nil) { _, publicado in
             if publicado {
                 aoPublicar()
@@ -572,222 +589,291 @@ public struct TelaPublicarVaga: View {
     }
 
     private var formulario: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(verbatim: TextosPublicarVaga.titulo)
-                    .font(FrilaTipo.pergunta)
-                    .foregroundStyle(FrilaCor.texto)
-                if model.restaurandoPublicacao {
-                    AvisoFrila(verbatim: TextosPublicarVaga.verificandoPendente, tom: .informativo)
-                } else if model.camposBloqueados {
-                    AvisoFrila(verbatim: TextosPublicarVaga.pendenteDescricao, tom: .informativo)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                    avisosDeTopo
+
+                    secaoFuncao
+                        .id("campo-funcao")
+
+                    secaoQuando
+                        .id("campo-quando")
+
+                    secaoLocal
+                        .id("campo-local")
+
+                    secaoPosicoesEValor
+
+                    secaoInclusos
+                        .id("campo-inclusos")
+
+                    secaoResponsavel
+                        .id("campo-responsavel")
+
+                    secaoModo
+                        .id("campo-modo")
+
+                    secaoAlerta
+
+                    secaoMaisOpcoes
+
+                    secaoContato
                 }
-                if let erro = model.erros[.estabelecimento] { AvisoFrila(verbatim: erro, tom: .erro) }
-                campo(.funcao, titulo: TextosPublicarVaga.funcao) {
-                    Picker(TextosPublicarVaga.funcao, selection: $model.funcaoID) {
-                        Text(verbatim: TextosPublicarVaga.selecioneFuncao).tag(UUID?.none)
-                        ForEach(model.funcoes) { funcao in Text(verbatim: funcao.nome).tag(Optional(funcao.id)) }
+                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.top, FrilaEspaco.medio)
+                .padding(.bottom, FrilaEspaco.enorme)
+                .containerRelativeFrame(.horizontal)
+            }
+            .background(FrilaCor.fundo.ignoresSafeArea())
+            .navigationTitle(Text(verbatim: TextosPublicarVaga.titulo))
+            .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(model.enviando || model.restaurandoPublicacao)
+            .accessibilityIdentifier("publicar-vaga-formulario")
+            .barraInferiorFixa {
+                barraInferiorConteudo
+            }
+            .onChange(of: tentativaEnvio) { _, _ in
+                rolarParaPrimeiroErro(proxy: proxy)
+            }
+            .task {
+                await model.restaurarPublicacaoPendente()
+                await model.carregarFuncoes()
+                #if DEBUG
+                let args = ProcessInfo.processInfo.arguments
+                let modoCaptura: String? = {
+                    if let idx = args.firstIndex(of: "-FRILA_CAPTURA"), idx + 1 < args.count {
+                        return args[idx + 1]
                     }
-                    .pickerStyle(.menu)
-                    .tint(FrilaCor.texto)
-                    .modifier(CaixaDoCampoDePublicacao())
-                }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    datePicker(TextosPublicarVaga.dataInicio, date: $model.inicio, field: .inicio)
-                    datePicker(TextosPublicarVaga.dataFim, date: $model.fim, field: .fim)
-                }
-                campo(.local, titulo: TextosPublicarVaga.endereco) {
-                    CampoFrila(verbatim: TextosPublicarVaga.endereco, texto: $model.local)
-                    Text(verbatim: TextosPublicarVaga.enderecoAjuda).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
-                    Map(initialPosition: .region(regiaoMapa)) {
-                        Marker(model.estabelecimento?.nome ?? "", coordinate: CLLocationCoordinate2D(latitude: regiaoMapa.center.latitude, longitude: regiaoMapa.center.longitude))
+                    for arg in args where arg.hasPrefix("-FRILA_CAPTURA=") {
+                        return String(arg.dropFirst("-FRILA_CAPTURA=".count))
                     }
-                    .frame(height: 150)
-                    .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
-                            .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-                    )
-                    .allowsHitTesting(false)
-                    if let erro = model.erros[.ponto] { Text(verbatim: erro).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo) }
-                }
-                if dynamicTypeSize >= .xxxLarge {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        campoValor
-                        campoPosicoes
-                        campoTotalCalculado
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                            campoValor
-                            campoPosicoes
-                        }
-                        campoTotalCalculado
+                    return nil
+                }()
+                if let modoCaptura {
+                    if modoCaptura == "menos3h" {
+                        model.inicio = Date().addingTimeInterval(2 * 60 * 60)
+                    } else if modoCaptura == "erro-funcao" {
+                        model.funcaoID = nil
+                        _ = model.validar()
+                        tentativaEnvio += 1
+                    } else if modoCaptura == "meio" {
+                        try? await Task.sleep(nanoseconds: 100_000_000)
+                        proxy.scrollTo("campo-local", anchor: .top)
                     }
                 }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosPublicarVaga.inclusos)
-                        .font(FrilaTipo.respostaEscolhida)
-                        .foregroundStyle(FrilaCor.texto)
-                    seletorSimNao(TextosPublicarVaga.refeicao, valor: $model.refeicao).erroDeCampoFrila(model.erros[.inclusos])
-                    seletorSimNao(TextosPublicarVaga.transporte, valor: $model.transporte).accessibilityHint(Text(verbatim: model.erros[.inclusos] ?? ""))
-                    seletorSimNao(TextosPublicarVaga.material, valor: $model.materialProprio).accessibilityHint(Text(verbatim: model.erros[.inclusos] ?? ""))
-                    if let erro = model.erros[.inclusos] { Text(verbatim: erro).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo) }
+                #endif
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var avisosDeTopo: some View {
+        if model.restaurandoPublicacao {
+            AvisoNeutroLocal(icone: "arrow.triangle.2.circlepath", texto: TextosPublicarVaga.verificandoPendente)
+        } else if model.camposBloqueados {
+            AvisoNeutroLocal(icone: "info.circle", texto: TextosPublicarVaga.pendenteDescricao)
+        }
+        if let erro = model.erros[.estabelecimento] {
+            AvisoNeutroLocal(icone: "exclamationmark.triangle", texto: erro)
+        }
+        if let recusa = model.recusaDaFila {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                AvisoNeutroLocal(icone: "exclamationmark.triangle", texto: TextosDaFila.texto(recusa.tipo))
+                    .accessibilityIdentifier("aviso-publicacao-recusada")
+                BotaoSecundario(verbatim: String(localized: "Fechar", bundle: bundleApresentacao)) { Task { await model.fecharAvisoDaFila() } }
+                    .accessibilityIdentifier("fechar-aviso-publicacao-recusada")
+            }
+        }
+        if let erro = model.mensagemErro {
+            AvisoNeutroLocal(icone: "exclamationmark.triangle", texto: erro)
+                .accessibilityIdentifier("aviso-erro-publicacao")
+        }
+        if model.mostraAvisoPublicacaoContinua {
+            AvisoNeutroLocal(icone: "wifi.slash", texto: TextosPublicarVaga.publicacaoContinua)
+                .accessibilityIdentifier("aviso-publicacao-continua")
+        }
+    }
+
+    @ViewBuilder
+    private var secaoFuncao: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.funcao)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            Picker(TextosPublicarVaga.funcao, selection: $model.funcaoID) {
+                Text(verbatim: TextosPublicarVaga.selecioneFuncao).tag(UUID?.none)
+                ForEach(model.funcoes) { funcao in
+                    Text(verbatim: funcao.nome).tag(Optional(funcao.id))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .cartaoFrila()
-                .disabled(model.camposBloqueados)
-                campo(.responsavel, titulo: TextosPublicarVaga.responsavel) {
-                    CampoFrila(verbatim: TextosPublicarVaga.responsavel, texto: $model.responsavelLocal)
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .tint(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                    .strokeBorder(model.erros[.funcao] != nil ? FrilaCor.texto : FrilaCor.borda, lineWidth: model.erros[.funcao] != nil ? 2 : 1)
+            )
+            .accessibilityLabel(Text(verbatim: TextosPublicarVaga.funcao))
+            .accessibilityIdentifier("funcao-vaga-picker")
+            .disabled(model.camposBloqueados)
+
+            mensagemDeErroAbaixo(model.erros[.funcao], identifier: "erro-publicacao-funcao")
+        }
+    }
+
+    @ViewBuilder
+    private var secaoQuando: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.quando)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            HStack(spacing: FrilaEspaco.pequeno) {
+                chipData(rotulo: TextosPublicarVaga.hoje, selecionado: isHoje) {
+                    selecionarDiaHoje()
                 }
-                campo(.modo, titulo: TextosPublicarVaga.modo) {
-                    // MS-RF01: "Seleção" só com o início a mais de 24 horas; abaixo disso a opção
-                    // não aparece, e o modo volta a urgência se a data mudou depois da escolha.
-                    Picker(TextosPublicarVaga.modo, selection: $model.modo) {
-                        Text(verbatim: TextosPublicarVaga.modoUrgencia).tag(ModoPreenchimento.urgencia)
-                        if model.selecaoDisponivel {
-                            Text(verbatim: TextosPublicarVaga.modoSelecao).tag(ModoPreenchimento.selecao)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.modo))
-                    .accessibilityIdentifier("modo-vaga-picker")
-                    Text(verbatim: model.modo == .selecao ? TextosPublicarVaga.modoSelecaoExplicacao : TextosPublicarVaga.modoUrgenciaExplicacao)
-                        .font(FrilaTipo.contextoDaResposta)
+                chipData(rotulo: TextosPublicarVaga.amanha, selecionado: isAmanha) {
+                    selecionarDiaAmanha()
+                }
+            }
+            .disabled(model.camposBloqueados)
+
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                datePicker(TextosPublicarVaga.dataInicio, date: $model.inicio, field: .inicio)
+                datePicker(TextosPublicarVaga.dataFim, date: $model.fim, field: .fim)
+            }
+            .onChange(of: model.inicio) { _, _ in
+                model.ajustarModoAoInicio()
+            }
+
+            if let ajuda = ajudaTermino {
+                HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
+                    Image(systemName: ajuda.icone)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
-                        .accessibilityIdentifier("modo-vaga-explicacao")
-                    if !model.selecaoDisponivel {
-                        Text(verbatim: TextosPublicarVaga.modoSelecaoSoComAntecedencia)
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .accessibilityIdentifier("modo-selecao-indisponivel")
-                    }
-                    // D2: o prazo exato de escolha, e o aviso quando ele é curto.
-                    if let prazo = model.prazoDeEscolha {
-                        Text(verbatim: String(format: TextosPublicarVaga.modoSelecaoPrazo, FormatadorFrila().dataEHora(prazo)))
-                            .font(FrilaTipo.nota.weight(.semibold))
-                            .foregroundStyle(FrilaCor.texto)
-                            .accessibilityIdentifier("prazo-de-escolha-publicacao")
-                        if model.janelaDeEscolhaCurta {
-                            AvisoFrila(verbatim: TextosPublicarVaga.modoSelecaoPrazoCurto, tom: .alerta)
-                                .accessibilityIdentifier("prazo-de-escolha-curto")
-                        }
-                    }
+                        .accessibilityHidden(true)
+                    Text(verbatim: ajuda.texto)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
                 }
-                .onChange(of: model.inicio) { _, _ in model.ajustarModoAoInicio() }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosPublicarVaga.alerta)
-                        .font(FrilaTipo.respostaEscolhida)
+            }
+
+            mensagemDeErroAbaixo(model.erros[.inicio], identifier: "erro-publicacao-inicio")
+            mensagemDeErroAbaixo(model.erros[.fim], identifier: "erro-publicacao-fim")
+        }
+    }
+
+    private func datePicker(_ titulo: String, date: Binding<Date>, field: CampoPublicacaoVaga) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            if dynamicTypeSize.isAccessibilitySize {
+                DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
+                    .labelsHidden()
+                    .datePickerStyle(.wheel)
+                    .tint(FrilaCor.texto)
+                    .accessibilityIdentifier("datepicker-\(field.rawValue)")
+            } else {
+                DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .tint(FrilaCor.texto)
+                    .accessibilityIdentifier("datepicker-\(field.rawValue)")
+            }
+        }
+        .disabled(model.camposBloqueados)
+    }
+
+    @ViewBuilder
+    private var secaoLocal: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.local)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            HStack(alignment: .top, spacing: FrilaEspaco.medio) {
+                Image(systemName: "mappin")
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: 20, alignment: .center)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: model.estabelecimento?.nome ?? "")
+                        .font(FrilaTipo.corpo.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
-                    if dynamicTypeSize.isAccessibilitySize {
-                        Picker(TextosPublicarVaga.alerta, selection: $model.alertaAntecedenciaMinutos) {
-                            Text(verbatim: TextosPublicarVaga.alertaTresHoras).tag(180)
-                            Text(verbatim: TextosPublicarVaga.alertaDuasHoras).tag(120)
-                            Text(verbatim: TextosPublicarVaga.alertaSeisHoras).tag(360)
-                        }
-                        .pickerStyle(.menu)
-                        .accessibilityLabel(Text(verbatim: TextosPublicarVaga.alerta))
-                        .accessibilityIdentifier("alerta-vaga-picker")
-                        .tint(FrilaCor.texto)
-                        .modifier(CaixaDoCampoDePublicacao())
-                    } else {
-                        Picker(TextosPublicarVaga.alerta, selection: $model.alertaAntecedenciaMinutos) {
-                            Text(verbatim: TextosPublicarVaga.alertaTresHoras).tag(180)
-                            Text(verbatim: TextosPublicarVaga.alertaDuasHoras).tag(120)
-                            Text(verbatim: TextosPublicarVaga.alertaSeisHoras).tag(360)
-                        }
-                        .pickerStyle(.segmented)
-                        .accessibilityLabel(Text(verbatim: TextosPublicarVaga.alerta))
-                        .accessibilityIdentifier("alerta-vaga-picker")
-                    }
-                }.disabled(model.camposBloqueados)
-                Button { model.mostrandoMaisOpcoes.toggle() } label: {
-                    Text(verbatim: TextosPublicarVaga.maisOpcoes)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
-                        .underline()
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                        .contentShape(Rectangle())
+
+                    TextField(
+                        TextosPublicarVaga.endereco,
+                        text: $model.local
+                    )
+                    .textFieldStyle(.plain)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.endereco))
                 }
-                .buttonStyle(.tatil)
-                .disabled(model.camposBloqueados)
-                .accessibilityIdentifier("mais-opcoes-botao")
-                if model.mostrandoMaisOpcoes {
-                    campoOpcional(.traje, titulo: TextosPublicarVaga.traje) { CampoFrila(verbatim: TextosPublicarVaga.traje, texto: $model.traje) }
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        seletorSimNao(TextosPublicarVaga.rateio, valor: Binding(get: { model.participaRateio ?? false }, set: { model.participaRateio = $0 })).erroDeCampoFrila(model.erros[.rateio])
-                        if let erro = model.erros[.rateio] { Text(verbatim: erro).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo) }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .cartaoFrila()
-                    .disabled(model.camposBloqueados)
-                    campoOpcional(.observacoes, titulo: TextosPublicarVaga.observacoes) {
-                        TextField(TextosPublicarVaga.observacoes, text: $model.observacoes, axis: .vertical)
-                            .lineLimit(3...5)
-                            .textFieldStyle(.plain)
-                            .font(FrilaTipo.valorDoCampo)
-                            .padding(FrilaEspaco.medio)
-                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .topLeading)
-                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous)
-                                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
-                            )
-                            .accessibilityIdentifier("observacoes-vaga-campo")
-                    }
-                }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    AvisoFrila(verbatim: TextosPublicarVaga.avisoRN10, tom: .informativo)
-                    Text(verbatim: telefoneResponsavel).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
-                }
-                if let recusa = model.recusaDaFila {
-                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
-                        .accessibilityIdentifier("aviso-publicacao-recusada")
-                    BotaoSecundario("Fechar") { Task { await model.fecharAvisoDaFila() } }
-                        .accessibilityIdentifier("fechar-aviso-publicacao-recusada")
-                }
-                if let erro = model.mensagemErro {
-                    AvisoFrila(verbatim: erro, tom: .erro)
-                        .accessibilityIdentifier("aviso-erro-publicacao")
-                }
-                if model.mostraAvisoPublicacaoContinua {
-                    AvisoFrila(verbatim: TextosPublicarVaga.publicacaoContinua, tom: .informativo)
-                        .accessibilityIdentifier("aviso-publicacao-continua")
-                }
-                BotaoPrimario(verbatim: model.camposBloqueados ? TextosPublicarVaga.tentarNovamente : TextosPublicarVaga.publicar, carregando: model.enviando) {
-                    Task {
-                        await model.publicar()
-                        if model.resultado != nil {
-                            aoPublicar()
-                        }
-                    }
-                }
-                .disabled(model.enviando || model.restaurandoPublicacao)
-                .accessibilityIdentifier("publicar-vaga-botao")
             }
             .padding(FrilaEspaco.medio)
-            .containerRelativeFrame(.horizontal)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+                    .strokeBorder((model.erros[.local] != nil) ? FrilaCor.texto : FrilaCor.divisoria, lineWidth: (model.erros[.local] != nil) ? 2 : 1)
+            )
+
+            Map(initialPosition: .region(regiaoMapa)) {
+                Marker(model.estabelecimento?.nome ?? "", coordinate: CLLocationCoordinate2D(latitude: regiaoMapa.center.latitude, longitude: regiaoMapa.center.longitude))
+            }
+            .frame(height: 140)
+            .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
+            )
+            .allowsHitTesting(false)
+
+            Text(verbatim: TextosPublicarVaga.enderecoAjuda)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+
+            mensagemDeErroAbaixo(model.erros[.local], identifier: "erro-publicacao-local")
+            mensagemDeErroAbaixo(model.erros[.ponto], identifier: "erro-publicacao-ponto")
         }
-        .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle(Text(verbatim: TextosPublicarVaga.titulo))
-        .navigationBarTitleDisplayMode(.inline)
-        .interactiveDismissDisabled(model.enviando || model.restaurandoPublicacao)
-        .accessibilityIdentifier("publicar-vaga-formulario")
     }
 
-    private var campoValor: some View {
-        campo(.valor, titulo: TextosPublicarVaga.valor) {
-            CampoValorVaga(texto: $model.valorTexto)
-                .modifier(CaixaDoCampoDePublicacao())
-                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.valor))
-                .accessibilityIdentifier("valor-vaga-campo")
-            Text(verbatim: TextosPublicarVaga.valorAjuda).font(FrilaTipo.nota).foregroundStyle(FrilaCor.sucesso)
+    @ViewBuilder
+    private var secaoPosicoesEValor: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                blocoPosicoes
+                    .id("campo-posicoes")
+                blocoValor
+                    .id("campo-valor")
+            }
+        } else {
+            HStack(alignment: .top, spacing: FrilaEspaco.medio) {
+                blocoPosicoes
+                    .id("campo-posicoes")
+                blocoValor
+                    .id("campo-valor")
+            }
         }
     }
 
-    private var campoPosicoes: some View {
-        campo(.posicoes, titulo: TextosPublicarVaga.posicoes) {
+    private var blocoPosicoes: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.posicoes)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
             HStack(spacing: FrilaEspaco.minimo) {
                 CampoPosicoesVaga(texto: $model.posicoesTexto)
                     .frame(minHeight: FrilaMetrica.alturaDoCampo)
@@ -803,107 +889,616 @@ public struct TelaPublicarVaga: View {
                 .accessibilityValue(Text(verbatim: model.posicoesTexto))
                 .accessibilityIdentifier("posicoes-vaga-stepper")
             }
-            .modifier(CaixaDoCampoDePublicacao())
-        }
-    }
-
-    private var campoTotalCalculado: some View {
-        HStack {
-            Text(verbatim: String(format: TextosPublicarVaga.totalDaVaga, FormatadorFrila().dinheiro(Dinheiro(centavos: model.valorTotalCentavos))))
-                .font(FrilaTipo.rotuloDoCampo)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityIdentifier("total-vaga-calculado")
-            Spacer()
-        }
-    }
-
-    private func erroDoCampo(_ campo: CampoPublicacaoVaga) -> String? {
-        let erros = [model.erros[campo], campo == .local ? model.erros[.ponto] : nil].compactMap { $0 }
-        return erros.isEmpty ? nil : erros.joined(separator: ". ")
-    }
-
-    @ViewBuilder private func campo<Conteudo: View>(_ campo: CampoPublicacaoVaga, titulo: String, @ViewBuilder conteudo: () -> Conteudo) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo).font(FrilaTipo.rotuloDoCampo)
-            conteudo().erroDeCampoFrila(erroDoCampo(campo))
-            if let erro = model.erros[campo] { Text(verbatim: erro).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-publicacao-\(campo.rawValue)") }
-        }
-        .disabled(model.camposBloqueados)
-    }
-
-    private func campoOpcional<Conteudo: View>(_ campo: CampoPublicacaoVaga, titulo: String, @ViewBuilder conteudo: () -> Conteudo) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo).font(FrilaTipo.rotuloDoCampo)
-            conteudo().erroDeCampoFrila(erroDoCampo(campo))
-            if let erro = model.erros[campo] { Text(verbatim: erro).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo) }
-        }
+            .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                    .strokeBorder(model.erros[.posicoes] != nil ? FrilaCor.texto : FrilaCor.borda, lineWidth: model.erros[.posicoes] != nil ? 2 : 1)
+            )
             .disabled(model.camposBloqueados)
+
+            mensagemDeErroAbaixo(model.erros[.posicoes], identifier: "erro-publicacao-posicoes")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func datePicker(_ titulo: String, date: Binding<Date>, field: CampoPublicacaoVaga) -> some View {
-        campo(field, titulo: titulo) {
-            // Do AX1 em diante o seletor vira roda, que acompanha a fonte sem limite;
-            // abaixo disso o compacto já escala sozinho, sem teto nem encolhimento do texto.
-            if dynamicTypeSize.isAccessibilitySize {
-                DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden()
-                    .datePickerStyle(.wheel)
-                    .tint(FrilaCor.texto)
-                    .accessibilityIdentifier("datepicker-\(field.rawValue)")
-            } else {
-                DatePicker(titulo, selection: date, displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .tint(FrilaCor.texto)
-                    .accessibilityIdentifier("datepicker-\(field.rawValue)")
-            }
+    private var blocoValor: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.valor)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            CampoValorVaga(texto: $model.valorTexto)
+                .padding(.horizontal, FrilaEspaco.medio)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                        .strokeBorder(model.erros[.valor] != nil ? FrilaCor.texto : FrilaCor.borda, lineWidth: model.erros[.valor] != nil ? 2 : 1)
+                )
+                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.valor))
+                .accessibilityIdentifier("valor-vaga-campo")
+                .disabled(model.camposBloqueados)
+
+            Text(verbatim: TextosPublicarVaga.valorAjuda)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+
+            mensagemDeErroAbaixo(model.erros[.valor], identifier: "erro-publicacao-valor")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
-    private func seletorSimNao(_ titulo: String, valor: Binding<Bool>) -> some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: titulo).font(FrilaTipo.meta).foregroundStyle(FrilaCor.texto)
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        botoesSimNao(valor: valor)
+    private var secaoInclusos: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.inclusos)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            VStack(spacing: 0) {
+                linhaSimNao(TextosPublicarVaga.refeicao, valor: $model.refeicao)
+                Divider().background(FrilaCor.divisoria)
+                linhaSimNao(TextosPublicarVaga.transporte, valor: $model.transporte)
+                Divider().background(FrilaCor.divisoria)
+                linhaSimNao(TextosPublicarVaga.material, valor: $model.materialProprio)
+            }
+            .padding(.horizontal, FrilaEspaco.medio)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+                    .strokeBorder(model.erros[.inclusos] != nil ? FrilaCor.texto : FrilaCor.divisoria, lineWidth: model.erros[.inclusos] != nil ? 2 : 1)
+            )
+            .disabled(model.camposBloqueados)
+
+            mensagemDeErroAbaixo(model.erros[.inclusos], identifier: "erro-publicacao-inclusos")
+        }
+    }
+
+    private func linhaSimNao(_ titulo: String, valor: Binding<Bool>) -> some View {
+        HStack {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+
+            Spacer()
+
+            HStack(spacing: FrilaEspaco.minimo) {
+                ForEach([(true, TextosPublicarVaga.sim), (false, TextosPublicarVaga.nao)], id: \.0) { escolha, rotulo in
+                    Button {
+                        valor.wrappedValue = escolha
+                    } label: {
+                        HStack(spacing: FrilaEspaco.minimo) {
+                            if valor.wrappedValue == escolha {
+                                Image(systemName: "checkmark")
+                                    .accessibilityIdentifier(escolha ? "icone-checkmark-sim" : "icone-checkmark-nao")
+                            }
+                            Text(verbatim: rotulo)
+                                .font(FrilaTipo.chip)
+                        }
+                        .padding(.horizontal, FrilaEspaco.compacto)
+                        .frame(minWidth: 56, minHeight: 32)
+                        .background(valor.wrappedValue == escolha ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+                        .foregroundStyle(valor.wrappedValue == escolha ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+                        .overlay(Capsule().strokeBorder(valor.wrappedValue == escolha ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                        .frame(minHeight: FrilaMetrica.alvoMinimo)
+                        .contentShape(Rectangle())
                     }
-                }
-            } else {
-                HStack {
-                    Text(verbatim: titulo).font(FrilaTipo.meta).foregroundStyle(FrilaCor.texto)
-                    Spacer()
-                    botoesSimNao(valor: valor)
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(valor.wrappedValue == escolha ? .isSelected : [])
                 }
             }
         }
+        .padding(.vertical, FrilaEspaco.compacto)
+        .frame(minHeight: FrilaMetrica.alturaDoCampo)
         .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
-    private func botoesSimNao(valor: Binding<Bool>) -> some View {
-        ForEach([(true, TextosPublicarVaga.sim), (false, TextosPublicarVaga.nao)], id: \.0) { escolha, rotulo in
-            Button { valor.wrappedValue = escolha } label: {
-                HStack(spacing: FrilaEspaco.minimo) {
-                    if valor.wrappedValue == escolha {
-                        Image(systemName: "checkmark")
-                            .accessibilityIdentifier(escolha ? "icone-checkmark-sim" : "icone-checkmark-nao")
-                    }
-                    Text(verbatim: rotulo).font(FrilaTipo.chip)
-                }
-                .padding(.horizontal, FrilaEspaco.compacto)
-                .frame(minWidth: 56, minHeight: FrilaMetrica.alvoMinimo)
-                .background(valor.wrappedValue == escolha ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
-                .foregroundStyle(valor.wrappedValue == escolha ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-                .overlay(Capsule().strokeBorder(valor.wrappedValue == escolha ? Color.clear : FrilaCor.borda, lineWidth: 1))
-                .contentShape(Capsule())
-            }
-            .buttonStyle(.chipTatil)
-            .accessibilityAddTraits(valor.wrappedValue == escolha ? .isSelected : [])
+    private var secaoResponsavel: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.responsavel)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            TextField(
+                TextosPublicarVaga.responsavel,
+                text: $model.responsavelLocal
+            )
+            .textFieldStyle(.plain)
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                    .strokeBorder(model.erros[.responsavel] != nil ? FrilaCor.texto : FrilaCor.borda, lineWidth: model.erros[.responsavel] != nil ? 2 : 1)
+            )
+            .accessibilityLabel(Text(verbatim: TextosPublicarVaga.responsavel))
+            .accessibilityIdentifier("responsavel-local-campo")
+            .disabled(model.camposBloqueados)
+
+            mensagemDeErroAbaixo(model.erros[.responsavel], identifier: "erro-publicacao-responsavel")
         }
     }
 
+    @ViewBuilder
+    private var secaoModo: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.modo)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            Picker(TextosPublicarVaga.modo, selection: $model.modo) {
+                Text(verbatim: TextosPublicarVaga.modoUrgencia).tag(ModoPreenchimento.urgencia)
+                if model.selecaoDisponivel {
+                    Text(verbatim: TextosPublicarVaga.modoSelecao).tag(ModoPreenchimento.selecao)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel(Text(verbatim: TextosPublicarVaga.modo))
+            .accessibilityIdentifier("modo-vaga-picker")
+            .disabled(model.camposBloqueados)
+
+            if !model.selecaoDisponivel {
+                Text(verbatim: TextosPublicarVaga.modoSelecaoSoComAntecedencia)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("modo-selecao-indisponivel")
+            }
+
+            if let prazo = model.prazoDeEscolha {
+                Text(verbatim: String(format: TextosPublicarVaga.modoSelecaoPrazo, FormatadorFrila().dataEHora(prazo)))
+                    .font(FrilaTipo.nota.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityIdentifier("prazo-de-escolha-publicacao")
+
+                if model.janelaDeEscolhaCurta {
+                    AvisoNeutroLocal(icone: "exclamationmark.triangle", texto: TextosPublicarVaga.modoSelecaoPrazoCurto)
+                        .accessibilityIdentifier("prazo-de-escolha-curto")
+                }
+            }
+
+            mensagemDeErroAbaixo(model.erros[.modo], identifier: "erro-publicacao-modo")
+        }
+    }
+
+    @ViewBuilder
+    private var secaoAlerta: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.alerta)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            if dynamicTypeSize.isAccessibilitySize {
+                Picker(TextosPublicarVaga.alerta, selection: $model.alertaAntecedenciaMinutos) {
+                    Text(verbatim: TextosPublicarVaga.alertaTresHoras).tag(180)
+                    Text(verbatim: TextosPublicarVaga.alertaDuasHoras).tag(120)
+                    Text(verbatim: TextosPublicarVaga.alertaSeisHoras).tag(360)
+                }
+                .pickerStyle(.menu)
+                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.alerta))
+                .accessibilityIdentifier("alerta-vaga-picker")
+                .tint(FrilaCor.texto)
+                .padding(.horizontal, FrilaEspaco.medio)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            } else {
+                Picker(TextosPublicarVaga.alerta, selection: $model.alertaAntecedenciaMinutos) {
+                    Text(verbatim: TextosPublicarVaga.alertaTresHoras).tag(180)
+                    Text(verbatim: TextosPublicarVaga.alertaDuasHoras).tag(120)
+                    Text(verbatim: TextosPublicarVaga.alertaSeisHoras).tag(360)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityLabel(Text(verbatim: TextosPublicarVaga.alerta))
+                .accessibilityIdentifier("alerta-vaga-picker")
+            }
+        }
+        .disabled(model.camposBloqueados)
+    }
+
+    @ViewBuilder
+    private var secaoMaisOpcoes: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Button {
+                withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento)) {
+                    model.mostrandoMaisOpcoes.toggle()
+                }
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(verbatim: TextosPublicarVaga.maisOpcoes)
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                        Text(verbatim: TextosPublicarVaga.maisOpcoesAjuda)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    Spacer()
+                    Image(systemName: model.mostrandoMaisOpcoes ? "chevron.up" : "chevron.down")
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.vertical, FrilaEspaco.compacto)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                        .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(model.camposBloqueados)
+            .accessibilityIdentifier("mais-opcoes-botao")
+
+            if model.mostrandoMaisOpcoes {
+                VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        Text(verbatim: TextosPublicarVaga.traje)
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                        CampoFrila(verbatim: TextosPublicarVaga.traje, texto: $model.traje)
+                            .id("campo-traje")
+                        mensagemDeErroAbaixo(model.erros[.traje], identifier: "erro-publicacao-traje")
+                    }
+
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        linhaSimNao(TextosPublicarVaga.rateio, valor: Binding(
+                            get: { model.participaRateio ?? false },
+                            set: { model.participaRateio = $0 }
+                        ))
+                        .padding(.horizontal, FrilaEspaco.medio)
+                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                        .id("campo-rateio")
+                        mensagemDeErroAbaixo(model.erros[.rateio], identifier: "erro-publicacao-rateio")
+                    }
+
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        Text(verbatim: TextosPublicarVaga.observacoes)
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                        TextField(TextosPublicarVaga.observacoes, text: $model.observacoes, axis: .vertical)
+                            .lineLimit(3...5)
+                            .textFieldStyle(.plain)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .padding(FrilaEspaco.medio)
+                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .topLeading)
+                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                                    .strokeBorder(model.erros[.observacoes] != nil ? FrilaCor.texto : FrilaCor.borda, lineWidth: model.erros[.observacoes] != nil ? 2 : 1)
+                            )
+                            .accessibilityIdentifier("observacoes-vaga-campo")
+                            .id("campo-observacoes")
+                        mensagemDeErroAbaixo(model.erros[.observacoes], identifier: "erro-publicacao-observacoes")
+                    }
+                }
+                .disabled(model.camposBloqueados)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var secaoContato: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPublicarVaga.telefoneResponsavel)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            HStack {
+                Text(verbatim: formatarTelefoneResponsavel(telefoneResponsavel))
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                Spacer()
+            }
+            .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
+            )
+
+            Text(verbatim: TextosPublicarVaga.avisoRN10)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        }
+    }
+
+    private var barraInferiorConteudo: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: resumoTexto)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(2)
+
+            blocoPrecoECta
+
+            if inicioEmMenosDe3Horas {
+                HStack(alignment: .top, spacing: FrilaEspaco.minimo) {
+                    Image(systemName: "clock")
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.texto)
+                        .accessibilityHidden(true)
+                    (Text(verbatim: TextosPublicarVaga.menosTresHorasTitulo + " ")
+                        .font(FrilaTipo.nota.weight(.semibold)) +
+                     Text(verbatim: TextosPublicarVaga.menosTresHorasCorpo)
+                        .font(FrilaTipo.nota))
+                        .foregroundStyle(FrilaCor.texto)
+                }
+            }
+
+            Text(verbatim: model.modo == .selecao ? TextosPublicarVaga.modoSelecaoExplicacao : TextosPublicarVaga.modoUrgenciaExplicacao)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityIdentifier("modo-vaga-explicacao")
+        }
+        .padding(.horizontal, FrilaEspaco.medio)
+        .padding(.vertical, FrilaEspaco.compacto)
+    }
+
+    @ViewBuilder
+    private var blocoPrecoECta: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                blocoTotalPreco
+                botaoPublicarCta
+            }
+        } else {
+            HStack(alignment: .center, spacing: FrilaEspaco.medio) {
+                blocoTotalPreco
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                botaoPublicarCta
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+        }
+    }
+
+    private var blocoTotalPreco: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: FormatadorFrila().dinheiro(Dinheiro(centavos: model.valorTotalCentavos)))
+                .font(FrilaTipo.preco)
+                .monospacedDigit()
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityIdentifier("total-vaga-calculado")
+
+            Text(verbatim: resumoTotalTexto)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        }
+    }
+
+    private var botaoPublicarCta: some View {
+        BotaoPrimario(
+            verbatim: model.camposBloqueados ? TextosPublicarVaga.tentarNovamente : TextosPublicarVaga.publicar,
+            carregando: model.enviando
+        ) {
+            Task {
+                await model.publicar()
+                tentativaEnvio += 1
+                if model.resultado != nil {
+                    aoPublicar()
+                }
+            }
+        }
+        .lineLimit(1)
+        .disabled(model.enviando || model.restaurandoPublicacao)
+        .accessibilityIdentifier("publicar-vaga-botao")
+    }
+
+    private var resumoTexto: String {
+        let posicoes = Int(model.posicoesTexto) ?? 1
+        let funcaoNome = model.funcoes.first(where: { $0.id == model.funcaoID })?.nome ?? TextosPublicarVaga.escolhaFuncao
+        let dataStr = formatarDataResumo(model.inicio)
+        let horaIni = formatarHoraResumo(model.inicio)
+        let horaFim = formatarHoraResumo(model.fim)
+        if posicoes == 1 {
+            return String(format: TextosPublicarVaga.resumoSingular, posicoes, funcaoNome, dataStr, horaIni, horaFim)
+        } else {
+            return String(format: TextosPublicarVaga.resumoPlural, posicoes, funcaoNome, dataStr, horaIni, horaFim)
+        }
+    }
+
+    private var resumoTotalTexto: String {
+        let posicoes = Int(model.posicoesTexto) ?? 1
+        if posicoes == 1 {
+            return TextosPublicarVaga.resumoTotalSingular
+        } else {
+            return String(format: TextosPublicarVaga.resumoTotalPlural, posicoes)
+        }
+    }
+
+    private var inicioEmMenosDe3Horas: Bool {
+        let agora = Date()
+        return model.inicio > agora && model.inicio.timeIntervalSince(agora) < 3 * 60 * 60
+    }
+
+    private var calendarioSp: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        if let tz = TimeZone(identifier: "America/Sao_Paulo") {
+            cal.timeZone = tz
+        }
+        return cal
+    }
+
+    private var isHoje: Bool {
+        calendarioSp.isDateInToday(model.inicio)
+    }
+
+    private var isAmanha: Bool {
+        calendarioSp.isDateInTomorrow(model.inicio)
+    }
+
+    private func selecionarDiaHoje() {
+        ajustarDataInicio(para: Date())
+    }
+
+    private func selecionarDiaAmanha() {
+        if let amanha = calendarioSp.date(byAdding: .day, value: 1, to: Date()) {
+            ajustarDataInicio(para: amanha)
+        }
+    }
+
+    private func ajustarDataInicio(para dataAlvo: Date) {
+        let cal = calendarioSp
+        let compsAlvo = cal.dateComponents([.year, .month, .day], from: dataAlvo)
+        var compsInicio = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: model.inicio)
+        compsInicio.year = compsAlvo.year
+        compsInicio.month = compsAlvo.month
+        compsInicio.day = compsAlvo.day
+        if let novaData = cal.date(from: compsInicio) {
+            model.inicio = novaData
+        }
+    }
+
+    private func chipData(rotulo: String, selecionado: Bool, acao: @escaping () -> Void) -> some View {
+        Button(action: acao) {
+            HStack(spacing: FrilaEspaco.minimo) {
+                if selecionado {
+                    Image(systemName: "checkmark")
+                        .font(FrilaTipo.chip)
+                        .foregroundStyle(FrilaCor.sobrePrimaria)
+                }
+                Text(verbatim: rotulo)
+                    .font(FrilaTipo.chip)
+                    .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+            }
+            .padding(.horizontal, FrilaEspaco.compacto)
+            .frame(minHeight: 36)
+            .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1)
+            )
+            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selecionado ? .isSelected : [])
+    }
+
+    private var ajudaTermino: (icone: String, texto: String)? {
+        guard model.fim > model.inicio else { return nil }
+        let cal = calendarioSp
+        let dfData = DateFormatter()
+        dfData.calendar = cal
+        dfData.timeZone = cal.timeZone
+        dfData.locale = Locale(identifier: "pt_BR")
+        dfData.dateFormat = "EEE, dd/MM"
+        let strData = dfData.string(from: model.fim).replacingOccurrences(of: ".", with: "")
+
+        let dfHora = DateFormatter()
+        dfHora.calendar = cal
+        dfHora.timeZone = cal.timeZone
+        dfHora.locale = Locale(identifier: "pt_BR")
+        dfHora.dateFormat = "HH:mm"
+        let strHora = dfHora.string(from: model.fim)
+
+        let diaInicio = cal.startOfDay(for: model.inicio)
+        let diaFim = cal.startOfDay(for: model.fim)
+        let diffDias = cal.dateComponents([.day], from: diaInicio, to: diaFim).day ?? 0
+
+        if diffDias == 0 {
+            return ("clock", String(format: TextosPublicarVaga.terminaNoMesmoDia, strData, strHora))
+        } else if diffDias == 1 {
+            return ("moon", String(format: TextosPublicarVaga.terminaNoDiaSeguinte, strData, strHora))
+        } else {
+            return ("moon", String(format: TextosPublicarVaga.terminaEm, strData, strHora))
+        }
+    }
+
+    private func formatarDataResumo(_ data: Date) -> String {
+        let cal = calendarioSp
+        let df = DateFormatter()
+        df.calendar = cal
+        df.timeZone = cal.timeZone
+        df.locale = Locale(identifier: "pt_BR")
+        df.dateFormat = "EEE, dd/MM"
+        let formatada = df.string(from: data).replacingOccurrences(of: ".", with: "")
+        if cal.isDateInToday(data) {
+            return "hoje, \(formatada)"
+        } else if cal.isDateInTomorrow(data) {
+            return "amanhã, \(formatada)"
+        } else {
+            return formatada
+        }
+    }
+
+    private func formatarHoraResumo(_ data: Date) -> String {
+        let df = DateFormatter()
+        df.calendar = calendarioSp
+        df.timeZone = calendarioSp.timeZone
+        df.locale = Locale(identifier: "pt_BR")
+        df.dateFormat = "HH:mm"
+        return df.string(from: data)
+    }
+
+    private func formatarTelefoneResponsavel(_ texto: String) -> String {
+        let digitos = Array(texto.filter(\.isNumber))
+        var corpo = digitos
+        if (corpo.count == 12 || corpo.count == 13), corpo.prefix(2) == ["5", "5"] {
+            corpo = Array(corpo.dropFirst(2))
+        }
+        if corpo.count == 11 {
+            let ddd = String(corpo[0..<2])
+            let parte1 = String(corpo[2..<7])
+            let parte2 = String(corpo[7..<11])
+            return "(\(ddd)) \(parte1)-\(parte2)"
+        }
+        if corpo.count == 10 {
+            let ddd = String(corpo[0..<2])
+            let parte1 = String(corpo[2..<6])
+            let parte2 = String(corpo[6..<10])
+            return "(\(ddd)) \(parte1)-\(parte2)"
+        }
+        return texto
+    }
+
+    @ViewBuilder
+    private func mensagemDeErroAbaixo(_ erro: String?, identifier: String? = nil) -> some View {
+        if let erro {
+            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityHidden(true)
+                Text(verbatim: erro)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+            }
+            .accessibilityIdentifier(identifier ?? "")
+        }
+    }
+
+    private func primeiroCampoComErro() -> String? {
+        if model.erros[.funcao] != nil { return "campo-funcao" }
+        if model.erros[.inicio] != nil || model.erros[.fim] != nil { return "campo-quando" }
+        if model.erros[.local] != nil || model.erros[.ponto] != nil || model.erros[.estabelecimento] != nil { return "campo-local" }
+        if model.erros[.posicoes] != nil { return "campo-posicoes" }
+        if model.erros[.valor] != nil { return "campo-valor" }
+        if model.erros[.inclusos] != nil { return "campo-inclusos" }
+        if model.erros[.responsavel] != nil { return "campo-responsavel" }
+        if model.erros[.modo] != nil { return "campo-modo" }
+        if model.erros[.traje] != nil { return "campo-traje" }
+        if model.erros[.rateio] != nil { return "campo-rateio" }
+        if model.erros[.observacoes] != nil { return "campo-observacoes" }
+        return nil
+    }
+
+    private func rolarParaPrimeiroErro(proxy: ScrollViewProxy) {
+        guard let campoID = primeiroCampoComErro() else { return }
+        withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.3), reduzir: reduzirMovimento)) {
+            proxy.scrollTo(campoID, anchor: .top)
+        }
+    }
 }
 
 /// Máscara usada no formulário de publicar, inclusive ao abrir por Minhas vagas.
@@ -1019,6 +1614,26 @@ struct CampoPosicoesVaga: UIViewRepresentable {
         @objc func editar(_ campo: UITextField) {
             texto.wrappedValue = campo.text ?? ""
         }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
+        VStack(spacing: 0) {
+            self
+
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(FrilaCor.divisoria)
+                    .frame(height: 1)
+                    .accessibilityHidden(true)
+
+                conteudo()
+            }
+            .background(FrilaCor.superficie.ignoresSafeArea(edges: .bottom))
+        }
+        .background(FrilaCor.fundo.ignoresSafeArea())
     }
 }
 

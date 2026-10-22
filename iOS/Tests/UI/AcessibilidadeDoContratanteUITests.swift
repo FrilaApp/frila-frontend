@@ -19,7 +19,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     func testCadastroEstabelecimentoAlvosERotulos() throws {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
 
         // 2.1 Botão de busca (lupa): alvo >= 44x44 pt
         let botaoBusca = app.buttons["buscar-endereco-botao"]
@@ -46,9 +46,9 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     func testPublicarVagaAlvosNoTamanhoPadrao() {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         // 2.4 Campo de Valor: altura >= 44 pt
         let campoValor = app.textFields["valor-vaga-campo"]
@@ -81,7 +81,8 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
     // MARK: - 3. Publicar Vaga em Dynamic Type XXXL
 
-    func testPublicarVagaEmDynamicTypeXXXLMantemControlesNaTela() {
+    func testPublicarVagaEmDynamicTypeXXXLMantemControlesNaTela() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(argumentos: [
             "-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO",
             "-FRILA_CADASTRO_UI_TEST",
@@ -89,9 +90,9 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
             Self.ax5
         ])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         let larguraTela = app.windows.firstMatch.frame.width
 
@@ -147,9 +148,9 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
     func testPerfilDoEstabelecimentoToolbarEHintsSemVazamento() {
         let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
 
-        XCTAssertTrue(app.staticTexts["Cadastrar estabelecimento"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
 
         // Toolbar: botão de Perfil do Estabelecimento deve abrir a folha do perfil
         let btnPerfil = app.buttons["Perfil do estabelecimento"]

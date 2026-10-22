@@ -54,9 +54,7 @@ public struct TelaHistoricoDeTurnos: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosHistoricoDeTurnos.titulo))
         .navigationBarTitleDisplayMode(.inline)
-        // Sem fundo, a barra inline deixava o texto da rolagem passar por trás do Voltar e do título.
-        .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+
         .sheet(isPresented: Bindable(model).mostrarFolhaCompartilhamento, onDismiss: {
             model.folhaCompartilhamentoFechada()
         }) {

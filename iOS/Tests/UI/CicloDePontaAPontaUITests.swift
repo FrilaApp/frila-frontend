@@ -77,7 +77,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         continuarCadastro.tap()
 
         // 4. Publicar Vaga (modo urgência pré-selecionado por padrão)
-        XCTAssertTrue(app.staticTexts["Publicar vaga"].waitForExistence(timeout: 10), "Tela Publicar vaga deve abrir")
+        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10), "Tela Publicar vaga deve abrir")
         let botaoPublicar = app.buttons["publicar-vaga-botao"]
         XCTAssertTrue(botaoPublicar.waitForExistence(timeout: 10), "Botão publicar vaga deve existir")
         trazerParaATela(botaoPublicar, em: app)

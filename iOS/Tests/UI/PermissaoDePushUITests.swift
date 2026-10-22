@@ -44,8 +44,8 @@ final class PermissaoDePushUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["explicacao-do-push"].exists, "a explicação não aparece sozinha na abertura")
         explicar.tap()
 
-        XCTAssertTrue(app.staticTexts["Ative as notificações"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Vaga nova na sua função e na sua região"].exists)
+        XCTAssertTrue(app.staticTexts["As vagas chegam por aviso"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Só vagas das suas funções, perto do seu ponto base, nos horários que você marcou."].exists)
         app.buttons["ativar-notificacoes"].tap()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 5))
@@ -98,7 +98,7 @@ final class PermissaoDePushUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["explicacao-do-push"].exists)
         salvar.tap()
 
-        XCTAssertTrue(app.staticTexts["Ative as notificações"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["As vagas chegam por aviso"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["ativar-notificacoes"].exists)
     }
 

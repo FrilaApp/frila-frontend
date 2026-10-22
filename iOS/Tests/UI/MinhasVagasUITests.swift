@@ -9,8 +9,8 @@ final class MinhasVagasUITests: XCTestCase {
 
         let estadoVazio = app.descendants(matching: .any)["estado-vazio-minhas-vagas"]
         XCTAssertTrue(estadoVazio.waitForExistence(timeout: 10))
-        XCTAssertTrue(estadoVazio.label.contains("Suas vagas aparecem aqui"))
-        XCTAssertTrue(estadoVazio.label.contains("Publique sua primeira vaga"))
+        XCTAssertTrue(app.staticTexts["Nenhuma vaga aberta"].exists)
+        XCTAssertTrue(app.staticTexts["Publique uma vaga e avisamos os profissionais da função perto do local."].exists)
     }
 
     func testVagaConfirmadaAbrePerfilPublicoEContatoLiberado() {

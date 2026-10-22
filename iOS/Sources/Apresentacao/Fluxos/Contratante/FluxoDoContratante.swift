@@ -60,6 +60,7 @@ public struct FluxoDoContratante: View {
     @State private var model: FluxoDoContratanteViewModel
     @State private var mostrandoPerfilEstabelecimento = false
     @State private var mostrandoExclusaoDeConta = false
+    @State private var publicando = ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PUBLICAR")
 
     /// O roteador é a entrada dos avisos da casa (`checkin_manual_pendente`, `atraso_15min` e
     /// `vaga_vazia`), que o push (#8) vai usar.
@@ -73,37 +74,30 @@ public struct FluxoDoContratante: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                if case .vagas = model.estado {
-                    Button {
-                        mostrandoPerfilEstabelecimento = true
-                    } label: {
-                        Image(systemName: "person.crop.circle")
-                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+            if case .cadastro = model.estado {
+                // Toolbar nativo dentro de TelaCadastroEstabelecimento
+            } else if !publicando {
+                HStack {
+                    Spacer()
+                    if case .vagas = model.estado {
+                        Button {
+                            mostrandoPerfilEstabelecimento = true
+                        } label: {
+                            Image(systemName: "person.crop.circle")
+                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        }
+                        .foregroundStyle(FrilaCor.texto)
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                        .accessibilityIdentifier("abrir-perfil-estabelecimento")
                     }
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
-                    .accessibilityIdentifier("abrir-perfil-estabelecimento")
+                    Button(action: sair) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
+                        .foregroundStyle(FrilaCor.texto)
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .accessibilityIdentifier("sair-fluxo-contratante")
                 }
-                if case .cadastro = model.estado {
-                    Button(role: .destructive) {
-                        mostrandoExclusaoDeConta = true
-                    } label: {
-                        Text("Excluir conta", bundle: bundleApresentacao)
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.perigo)
-                    }
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityIdentifier("contratante-sem-estabelecimento-excluir-conta")
-                }
-                Button(action: sair) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityIdentifier("sair-fluxo-contratante")
+                .padding(.horizontal, FrilaEspaco.medio)
             }
-            .padding(.horizontal, FrilaEspaco.medio)
             conteudo.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
@@ -164,9 +158,10 @@ public struct FluxoDoContratante: View {
         case let .cadastro(conta):
             TelaCadastroEstabelecimento(api: api, fila: fila, responsavelNome: conta.nome,
                                        responsavelTelefone: conta.telefone, sair: sair,
+                                       excluirConta: { mostrandoExclusaoDeConta = true },
                                        aoPublicarPrimeiraVaga: { Task { await model.carregar() } })
         case let .vagas(estabelecimento):
-            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, sair: sair)
+            DestinoDasVagasDoContratante(api: api, fila: fila, estabelecimento: estabelecimento, roteador: roteador, publicando: $publicando, sair: sair)
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -190,35 +185,45 @@ private struct DestinoDasVagasDoContratante: View {
     private let sair: () -> Void
     @State private var model: MinhasVagasViewModel
     @State private var publicacao: PublicacaoDaCasaViewModel
-    @State private var publicando = false
+    @Binding private var publicando: Bool
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
-    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?, sair: @escaping () -> Void) {
+    init(api: any ApiCliente, fila: (any FilaDeAcoes)?, estabelecimento: EstabelecimentoDaConta, roteador: RoteadorDoContratante?, publicando: Binding<Bool>, sair: @escaping () -> Void) {
         self.api = api
         self.fila = fila
         self.roteador = roteador
         self.sair = sair
+        _publicando = publicando
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
         _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
     }
 
     var body: some View {
-        if publicando, let fila {
-            DestinoDePublicarVaga(
-                api: api, fila: fila, modelo: publicacao, sair: sair,
-                cancelar: { publicando = false },
-                aoPublicar: {
-                    // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
-                    // momento de explicar a notificação a quem contrata (#8).
-                    guard publicando else { return }
-                    publicando = false
-                    Task { await permissaoDePush?.oferecer() }
-                }
-            )
-        } else {
-            // Sem o banco local não há fila para a publicação: a entrada não aparece.
-            TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador,
-                            publicarVaga: fila == nil ? nil : { publicando = true })
+        Group {
+            if publicando, let fila {
+                DestinoDePublicarVaga(
+                    api: api, fila: fila, modelo: publicacao, sair: sair,
+                    cancelar: { publicando = false },
+                    aoPublicar: {
+                        // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
+                        // momento de explicar a notificação a quem contrata (#8).
+                        guard publicando else { return }
+                        publicando = false
+                        Task { await permissaoDePush?.oferecer() }
+                    }
+                )
+            } else {
+                // Sem o banco local não há fila para a publicação: a entrada não aparece.
+                TelaMinhasVagas(viewModel: model, api: api, fila: fila, roteador: roteador,
+                                publicarVaga: fila == nil ? nil : { publicando = true })
+            }
         }
+        #if DEBUG
+        .onAppear {
+            if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PUBLICAR"), fila != nil {
+                publicando = true
+            }
+        }
+        #endif
     }
 }

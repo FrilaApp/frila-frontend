@@ -4,27 +4,35 @@ import Observation
 import SwiftUI
 
 private enum TextosCadastro {
-    static let titulo = String(localized: "Cadastrar estabelecimento", bundle: bundleApresentacao)
+    static let titulo = String(localized: "Dados do negócio", bundle: bundleApresentacao)
+    static let subtitulo = String(localized: "Conta de contratante", bundle: bundleApresentacao)
     static let nome = String(localized: "Nome", bundle: bundleApresentacao)
     static let nomeCampo = String(localized: "Nome do estabelecimento", bundle: bundleApresentacao)
     static let documento = String(localized: "Documento", bundle: bundleApresentacao)
-    static let documentoCampo = String(localized: "CPF ou CNPJ", bundle: bundleApresentacao)
+    static let documentoCampo = String(localized: "CNPJ ou CPF", bundle: bundleApresentacao)
+    static let soNumeros = String(localized: "Só números", bundle: bundleApresentacao)
     static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
+    static let tipoCampo = String(localized: "Tipo do estabelecimento", bundle: bundleApresentacao)
     static let endereco = String(localized: "Endereço", bundle: bundleApresentacao)
     static let buscarEndereco = String(localized: "Buscar endereço", bundle: bundleApresentacao)
     static let buscarEnderecoAjuda = String(localized: "Pesquisa o endereço digitado e atualiza o mapa", bundle: bundleApresentacao)
     static let selecionarEnderecoAjuda = String(localized: "Seleciona este endereço e ajusta o marcador no mapa", bundle: bundleApresentacao)
     static let regiaoAdministrativa = String(localized: "Região Administrativa", bundle: bundleApresentacao)
     static let selecioneRegiaoAdministrativa = String(localized: "Selecione a Região Administrativa", bundle: bundleApresentacao)
+    static let selecionar = String(localized: "Selecionar", bundle: bundleApresentacao)
     static let regiaoAdministrativaAjuda = String(localized: "A Região Administrativa do DF onde o estabelecimento fica. Ex.: Plano Piloto, Águas Claras, Taguatinga.", bundle: bundleApresentacao)
     static let ponto = String(localized: "Ponto do estabelecimento", bundle: bundleApresentacao)
+    static let pontoNaoMarcado = String(localized: "Ponto ainda não marcado", bundle: bundleApresentacao)
     static let mapa = String(localized: "Mapa do estabelecimento", bundle: bundleApresentacao)
     static let dicaMapa = String(localized: "Ajuste o ponto movendo o marcador no mapa.", bundle: bundleApresentacao)
     static let dicaMarcador = String(localized: "Arraste para ajustar o ponto do estabelecimento no mapa", bundle: bundleApresentacao)
     static let responsavel = String(localized: "Responsável", bundle: bundleApresentacao)
+    static let salvarEPublicar = String(localized: "Salvar e publicar a primeira vaga", bundle: bundleApresentacao)
     static let continuar = String(localized: "Continuar", bundle: bundleApresentacao)
     static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleApresentacao)
     static let documentoDuplicado = String(localized: "Este documento já está cadastrado.", bundle: bundleApresentacao)
+    static let documentoDuplicadoMensagem = String(localized: "CNPJ ou CPF: este documento já tem um estabelecimento no Frila. Se o negócio é seu, entre com o e-mail usado nesse cadastro.", bundle: bundleApresentacao)
+    static let ajudaSobCta = String(localized: "Revise o CNPJ ou CPF para seguir.", bundle: bundleApresentacao)
     static let falha = String(localized: "Não foi possível cadastrar o estabelecimento. Tente novamente.", bundle: bundleApresentacao)
     static let confiraCampo = String(localized: "Confira o campo indicado.", bundle: bundleApresentacao)
     static let campoObrigatorio = String(localized: "Preencha este campo.", bundle: bundleApresentacao)
@@ -275,12 +283,24 @@ public enum ErroDeCadastroEstabelecimento: Equatable {
 }
 public enum RegraCampoCadastro: Equatable { case obrigatorio, invalido }
 
+private enum IDScroll: Hashable {
+    case avisoGlobal
+    case nome
+    case documento
+    case tipo
+    case endereco
+    case regiaoAdministrativa
+    case responsavel
+}
+
 /// Cadastro do estabelecimento no primeiro acesso do contratante, no quadro "Estabelecimento" do MidFi do Fabrício:
 /// campos contornados, mapa com raio e o responsável da conta em cartão.
 public struct TelaCadastroEstabelecimento: View {
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
     @State private var posicaoMarcador: CGPoint?
+    @State private var tentativaDeEnvio = 0
     #if DEBUG
     @State private var regiaoMapa: MKCoordinateRegion?
     #endif
@@ -289,9 +309,10 @@ public struct TelaCadastroEstabelecimento: View {
     private let responsavelTelefone: String
     private let fila: (any FilaDeAcoes)?
     private let sair: () -> Void
+    private let excluirConta: (() -> Void)?
     private let aoPublicarPrimeiraVaga: () -> Void
 
-    public init(api: any ApiCliente, fila: (any FilaDeAcoes)? = nil, responsavelNome: String, responsavelTelefone: String, sair: @escaping () -> Void = {}, aoPublicarPrimeiraVaga: @escaping () -> Void = {}) {
+    public init(api: any ApiCliente, fila: (any FilaDeAcoes)? = nil, responsavelNome: String, responsavelTelefone: String, sair: @escaping () -> Void = {}, excluirConta: (() -> Void)? = nil, aoPublicarPrimeiraVaga: @escaping () -> Void = {}) {
         let model = CadastroEstabelecimentoViewModel(api: api)
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-FRILA_CADASTRO_UI_TEST") {
@@ -308,6 +329,7 @@ public struct TelaCadastroEstabelecimento: View {
         self.responsavelTelefone = responsavelTelefone
         self.fila = fila
         self.sair = sair
+        self.excluirConta = excluirConta
         self.aoPublicarPrimeiraVaga = aoPublicarPrimeiraVaga
     }
 
@@ -319,145 +341,281 @@ public struct TelaCadastroEstabelecimento: View {
                 Color.clear.task { aoPublicarPrimeiraVaga() }
             }
         } else {
-            NavigationStack { formulario }
+            NavigationStack {
+                formulario
+                    .toolbar {
+                        if let excluirConta {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button(role: .destructive, action: excluirConta) {
+                                    Text("Excluir conta", bundle: bundleApresentacao)
+                                }
+                                .accessibilityIdentifier("contratante-sem-estabelecimento-excluir-conta")
+                            }
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(action: sair) {
+                                Text("Sair", bundle: bundleApresentacao)
+                            }
+                            .accessibilityIdentifier("sair-fluxo-contratante")
+                        }
+                    }
+            }
         }
     }
 
     private var formulario: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                Text(verbatim: TextosCadastro.titulo).font(FrilaTipo.tituloGrande)
-                    .accessibilityAddTraits(.isHeader)
-                campo(TextosCadastro.nome, campo: .nome) { CampoFrila(verbatim: TextosCadastro.nomeCampo, texto: $model.nome) }
-                campo(TextosCadastro.documento, campo: .documento) {
-                    CampoMascara(
-                        texto: $model.documentoFormatado,
-                        placeholder: TextosCadastro.documentoCampo,
-                        rotuloAcessibilidade: TextosCadastro.documentoCampo,
-                        formatar: { texto, _ in CadastroEstabelecimentoViewModel.formatarDocumento(texto) }
-                    )
-                    .caixaDoCampoFrila()
-                    .modifier(ErroLidoComoValor(texto: model.documentoFormatado, erro: mensagemDoCampo(.documento)))
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                    cabecalho
+                    bannerDeErroGlobal
+                    secaoNome
+                        .id(IDScroll.nome)
+                    secaoTipo
+                        .id(IDScroll.tipo)
+                    secaoDocumento
+                        .id(IDScroll.documento)
+                    secaoEndereco
+                        .id(IDScroll.endereco)
+                    secaoRegiaoAdministrativa
+                        .id(IDScroll.regiaoAdministrativa)
+                    secaoDoMapa
+                    secaoResponsavel
+                        .id(IDScroll.responsavel)
                 }
-                Menu {
-                    ForEach(TipoEstabelecimento.allCases, id: \.self) { tipo in
-                        Button {
-                            model.tipo = tipo
-                        } label: {
-                            if model.tipo == tipo {
-                                Label(tipoNome(tipo), systemImage: "checkmark")
-                            } else {
-                                Text(verbatim: tipoNome(tipo))
-                            }
-                        }
+                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.top, FrilaEspaco.medio)
+                .padding(.bottom, FrilaEspaco.enorme)
+            }
+            .background(FrilaCor.fundo.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .barraInferiorFixa {
+                barraInferiorCta
+            }
+            .onChange(of: tentativaDeEnvio) { _, _ in
+                rolarParaErro(proxy: proxy)
+            }
+            #if DEBUG
+            .task {
+                let args = ProcessInfo.processInfo.arguments
+                let modoCaptura: String? = {
+                    if let idx = args.firstIndex(of: "-FRILA_CAPTURA"), idx + 1 < args.count {
+                        return args[idx + 1]
                     }
-                } label: {
-                    HStack {
-                        Text(verbatim: tipoNome(model.tipo))
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.textoSecundario)
+                    for arg in args where arg.hasPrefix("-FRILA_CAPTURA=") {
+                        return String(arg.dropFirst("-FRILA_CAPTURA=".count))
                     }
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .padding(.vertical, FrilaEspaco.pequeno)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    return nil
+                }()
+                guard let modoCaptura else { return }
+                if modoCaptura == "rodape" {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                    proxy.scrollTo(IDScroll.responsavel, anchor: .bottom)
+                } else if modoCaptura == "erro-nome" {
+                    model.nome = ""
+                    await model.salvar()
+                    tentativaDeEnvio += 1
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                    proxy.scrollTo(IDScroll.nome, anchor: .top)
                 }
-                .accessibilityLabel(Text(verbatim: TextosCadastro.tipo))
-                .accessibilityValue(Text(verbatim: tipoNome(model.tipo)))
-                .accessibilityIdentifier("tipo-estabelecimento")
-                secaoEndereco
-                secaoSugestoes
-                if let point = model.ponto {
-                    secaoMapa(ponto: point)
-                }
-                campo(TextosCadastro.regiaoAdministrativa, campo: .regiaoAdministrativa) {
-                    Menu {
-                        Button {
-                            model.regiaoAdministrativa = ""
-                        } label: {
-                            if model.regiaoAdministrativa.isEmpty {
-                                Label(TextosCadastro.selecioneRegiaoAdministrativa, systemImage: "checkmark")
-                            } else {
-                                Text(verbatim: TextosCadastro.selecioneRegiaoAdministrativa)
-                            }
-                        }
-                        ForEach(CadastroEstabelecimentoViewModel.regioesAdministrativas, id: \.self) { regiao in
-                            Button {
-                                model.regiaoAdministrativa = regiao
-                            } label: {
-                                if model.regiaoAdministrativa == regiao {
-                                    Label(regiao, systemImage: "checkmark")
-                                } else {
-                                    Text(verbatim: regiao)
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecioneRegiaoAdministrativa : model.regiaoAdministrativa)
-                                .font(FrilaTipo.corpo)
-                                .foregroundStyle(model.regiaoAdministrativa.isEmpty ? FrilaCor.textoSecundario : FrilaCor.texto)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Spacer()
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-                        }
-                        .padding(.horizontal, FrilaEspaco.medio)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
-                    }
-                    .accessibilityLabel(Text(verbatim: TextosCadastro.regiaoAdministrativa))
-                    .accessibilityValue(Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecioneRegiaoAdministrativa : model.regiaoAdministrativa))
-                    .accessibilityIdentifier("regiao-administrativa")
-                    Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
-                }
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: TextosCadastro.responsavel)
-                        .font(FrilaTipo.rotuloDoCampo)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(verbatim: responsavelNome).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto)
-                    Text(verbatim: responsavelTelefone).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .cartaoFrila()
-                .accessibilityIdentifier("responsavel-conta")
-                if let erro = model.erro { AvisoFrila(verbatim: mensagem(erro), tom: .erro).accessibilityIdentifier("erro-cadastro") }
-                BotaoPrimario(verbatim: TextosCadastro.continuar, carregando: model.enviando) { Task { await model.salvar() } }
-                    .accessibilityIdentifier("continuar-cadastro")
-            }.padding(FrilaEspaco.medio)
+            }
+            #endif
         }
-        .background(FrilaCor.fundo.ignoresSafeArea())
-        // Sem título na barra: "Cadastrar estabelecimento" no conteúdo já é o título da tela.
-        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func rolarParaErro(proxy: ScrollViewProxy) {
+        guard let erro = model.erro else { return }
+        let id = idDoErro(erro)
+        withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.3), reduzir: reduzirMovimento)) {
+            proxy.scrollTo(id, anchor: .top)
+        }
+    }
+
+    private func idDoErro(_ erro: ErroDeCadastroEstabelecimento) -> IDScroll {
+        switch erro {
+        case .campo(let campo, _):
+            switch campo {
+            case .nome: return .nome
+            case .documento: return .documento
+            case .tipo: return .tipo
+            case .endereco: return .endereco
+            case .regiaoAdministrativa: return .regiaoAdministrativa
+            }
+        case .documentoDuplicado:
+            return .documento
+        case .falha, .semRede:
+            return .avisoGlobal
+        }
+    }
+
+    private var cabecalho: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: TextosCadastro.titulo)
+                .font(FrilaTipo.tituloGrande)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+            Text(verbatim: TextosCadastro.subtitulo)
+                .font(FrilaTipo.subtituloDaTela)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        }
+    }
+
+    private var barraInferiorCta: some View {
+        VStack(spacing: FrilaEspaco.pequeno) {
+            BotaoPrimario(verbatim: TextosCadastro.salvarEPublicar, carregando: model.enviando) {
+                Task {
+                    await model.salvar()
+                    tentativaDeEnvio += 1
+                }
+            }
+            .accessibilityIdentifier("continuar-cadastro")
+
+            if model.erro == .documentoDuplicado {
+                Text(verbatim: TextosCadastro.ajudaSobCta)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, FrilaEspaco.medio)
+        .padding(.vertical, FrilaEspaco.compacto)
+    }
+
+    @ViewBuilder
+    private var secaoNome: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosCadastro.nomeCampo)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            TextField(
+                text: $model.nome,
+                prompt: Text(verbatim: TextosCadastro.nomeCampo).foregroundStyle(FrilaCor.textoSecundario)
+            ) {
+                Text(verbatim: TextosCadastro.nomeCampo)
+            }
+            .textFieldStyle(.plain)
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(bordaDoCampo(.nome))
+            .accessibilityLabel(Text(verbatim: TextosCadastro.nomeCampo))
+
+            mensagemDeErroAbaixo(do: .nome)
+        }
+    }
+
+    @ViewBuilder
+    private var secaoTipo: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosCadastro.tipoCampo)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            Menu {
+                ForEach(TipoEstabelecimento.allCases, id: \.self) { tipo in
+                    Button {
+                        model.tipo = tipo
+                    } label: {
+                        if model.tipo == tipo {
+                            Label(tipoNome(tipo), systemImage: "checkmark")
+                        } else {
+                            Text(verbatim: tipoNome(tipo))
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(verbatim: tipoNome(model.tipo))
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.texto)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .overlay(bordaDoCampo(.tipo))
+            }
+            .accessibilityLabel(Text(verbatim: TextosCadastro.tipo))
+            .accessibilityValue(Text(verbatim: tipoNome(model.tipo)))
+            .accessibilityIdentifier("tipo-estabelecimento")
+
+            mensagemDeErroAbaixo(do: .tipo)
+        }
+    }
+
+    @ViewBuilder
+    private var secaoDocumento: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosCadastro.documentoCampo)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            CampoMascara(
+                texto: $model.documentoFormatado,
+                placeholder: TextosCadastro.soNumeros,
+                rotuloAcessibilidade: TextosCadastro.documentoCampo,
+                formatar: { texto, _ in CadastroEstabelecimentoViewModel.formatarDocumento(texto) }
+            )
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(bordaDoCampo(.documento))
+
+            mensagemDeErroAbaixo(do: .documento)
+        }
     }
 
     @ViewBuilder
     private var secaoEndereco: some View {
-        campo(TextosCadastro.endereco, campo: .endereco) {
-            HStack {
-                CampoFrila(verbatim: TextosCadastro.endereco, texto: $model.endereco)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        Task { await model.buscarEndereco() }
-                    }
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosCadastro.endereco)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            HStack(spacing: FrilaEspaco.compacto) {
+                Image(systemName: "mappin")
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
+
+                TextField(
+                    text: $model.endereco,
+                    prompt: Text(verbatim: TextosCadastro.endereco).foregroundStyle(FrilaCor.textoSecundario)
+                ) {
+                    Text(verbatim: TextosCadastro.endereco)
+                }
+                .textFieldStyle(.plain)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .submitLabel(.search)
+                .onSubmit {
+                    Task { await model.buscarEndereco() }
+                }
+
                 Button {
                     Task { await model.buscarEndereco() }
                 } label: {
-                    Image(systemName: "magnifyingglass")
-                        .accessibilityHidden(true)
-                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        .contentShape(Rectangle())
+                    if model.carregandoBusca {
+                        ProgressView()
+                            .tint(FrilaCor.textoSecundario)
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                    } else {
+                        Image(systemName: "magnifyingglass")
+                            .accessibilityHidden(true)
+                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            .contentShape(Rectangle())
+                    }
                 }
                 .foregroundStyle(FrilaCor.texto)
                 .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
@@ -465,86 +623,175 @@ public struct TelaCadastroEstabelecimento: View {
                 .accessibilityHint(Text(verbatim: TextosCadastro.buscarEnderecoAjuda))
                 .accessibilityIdentifier("buscar-endereco-botao")
             }
+            .padding(.leading, FrilaEspaco.medio)
+            .padding(.trailing, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(bordaDoCampo(.endereco))
+
+            mensagemDeErroAbaixo(do: .endereco)
+
+            secaoSugestoes
         }
     }
 
     @ViewBuilder
     private var secaoSugestoes: some View {
-        ForEach(Array(model.sugestoes.enumerated()), id: \.offset) { _, item in
-            Button {
-                model.selecionar(item)
-            } label: {
-                Text(verbatim: item.placemark.title ?? item.name ?? "")
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.leading)
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .padding(.vertical, FrilaEspaco.pequeno)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
-                    .contentShape(Rectangle())
+        if !model.sugestoes.isEmpty {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                ForEach(Array(model.sugestoes.enumerated()), id: \.offset) { _, item in
+                    Button {
+                        model.selecionar(item)
+                    } label: {
+                        Text(verbatim: item.placemark.title ?? item.name ?? "")
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .multilineTextAlignment(.leading)
+                            .padding(.horizontal, FrilaEspaco.medio)
+                            .padding(.vertical, FrilaEspaco.pequeno)
+                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                            .contentShape(Rectangle())
+                    }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityHint(Text(verbatim: TextosCadastro.selecionarEnderecoAjuda))
+                }
             }
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .accessibilityHint(Text(verbatim: TextosCadastro.selecionarEnderecoAjuda))
         }
     }
 
     @ViewBuilder
-    private func secaoMapa(ponto: CLLocationCoordinate2D) -> some View {
-        MapReader { proxy in
-            Map(position: $posicaoMapa) {}
-            .accessibilityIdentifier("mapa-estabelecimento")
-            .accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
-            #if DEBUG
-            // Expõe a câmera aos testes para distinguir mover o ponto de mover o mapa.
-            .accessibilityValue(Text(verbatim: regiaoMapa.map {
-                String(format: "%.6f,%.6f,%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), $0.center.latitude, $0.center.longitude, $0.span.latitudeDelta, $0.span.longitudeDelta)
-            } ?? ""))
-            #endif
-            .onMapCameraChange(frequency: .continuous) { contexto in
-                posicaoMarcador = proxy.convert(ponto, to: .named("mapa"))
-                #if DEBUG
-                regiaoMapa = contexto.region
-                #endif
-            }
-            .overlay(alignment: .topLeading) {
-                GeometryReader { geometria in
-                    if let posicaoMarcador,
-                       CGRect(origin: .zero, size: geometria.size).contains(posicaoMarcador) {
-                        marcadorMapa(proxy: proxy, ponto: ponto, posicao: posicaoMarcador)
+    private var secaoRegiaoAdministrativa: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosCadastro.regiaoAdministrativa)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+
+            Menu {
+                Button {
+                    model.regiaoAdministrativa = ""
+                } label: {
+                    if model.regiaoAdministrativa.isEmpty {
+                        Label(TextosCadastro.selecionar, systemImage: "checkmark")
+                    } else {
+                        Text(verbatim: TextosCadastro.selecionar)
                     }
                 }
+                ForEach(CadastroEstabelecimentoViewModel.regioesAdministrativas, id: \.self) { regiao in
+                    Button {
+                        model.regiaoAdministrativa = regiao
+                    } label: {
+                        if model.regiaoAdministrativa == regiao {
+                            Label(regiao, systemImage: "checkmark")
+                        } else {
+                            Text(verbatim: regiao)
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecionar : model.regiaoAdministrativa)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(model.regiaoAdministrativa.isEmpty ? FrilaCor.textoSecundario : FrilaCor.texto)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .overlay(bordaDoCampo(.regiaoAdministrativa))
             }
-            // O recorte limita o desenho, e a forma limita os toques ao quadro do mapa.
-            .clipped()
-            .contentShape(Rectangle())
-            .coordinateSpace(.named("mapa"))
-            .onChange(of: model.ponto?.latitude) { _, _ in
-                posicaoMarcador = proxy.convert(ponto, to: .named("mapa"))
-            }
-            .onChange(of: model.ponto?.longitude) { _, _ in
-                posicaoMarcador = proxy.convert(ponto, to: .named("mapa"))
-            }
-            .onAppear { centralizarMapa(em: ponto) }
-            .onChange(of: model.alvoDaCamera?.latitude) { _, _ in
-                if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
-            }
-            .onChange(of: model.alvoDaCamera?.longitude) { _, _ in
-                if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
-            }
+            .accessibilityLabel(Text(verbatim: TextosCadastro.regiaoAdministrativa))
+            .accessibilityValue(Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecionar : model.regiaoAdministrativa))
+            .accessibilityHint(Text(verbatim: TextosCadastro.regiaoAdministrativaAjuda))
+            .accessibilityIdentifier("regiao-administrativa")
+
+            mensagemDeErroAbaixo(do: .regiaoAdministrativa)
         }
-        .frame(height: 220)
-        .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
-        Text(verbatim: TextosCadastro.dicaMapa).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
+    }
+
+    @ViewBuilder
+    private var secaoDoMapa: some View {
+        if let ponto = model.ponto {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                MapReader { proxy in
+                    Map(position: $posicaoMapa) {}
+                        .accessibilityIdentifier("mapa-estabelecimento")
+                        .accessibilityLabel(Text(verbatim: TextosCadastro.mapa))
+                        #if DEBUG
+                        .accessibilityValue(Text(verbatim: regiaoMapa.map {
+                            String(format: "%.6f,%.6f,%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), $0.center.latitude, $0.center.longitude, $0.span.latitudeDelta, $0.span.longitudeDelta)
+                        } ?? ""))
+                        #endif
+                        .onMapCameraChange(frequency: .continuous) { contexto in
+                            posicaoMarcador = proxy.convert(ponto, to: .named("mapa"))
+                            #if DEBUG
+                            regiaoMapa = contexto.region
+                            #endif
+                        }
+                        .overlay(alignment: .topLeading) {
+                            GeometryReader { geometria in
+                                if let posicaoMarcador,
+                                   CGRect(origin: .zero, size: geometria.size).contains(posicaoMarcador) {
+                                    marcadorMapa(proxy: proxy, ponto: ponto, posicao: posicaoMarcador)
+                                }
+                            }
+                        }
+                        .clipped()
+                        .contentShape(Rectangle())
+                        .coordinateSpace(.named("mapa"))
+                        .onChange(of: model.ponto?.latitude) { _, _ in
+                            posicaoMarcador = proxy.convert(ponto, to: .named("mapa"))
+                        }
+                        .onChange(of: model.ponto?.longitude) { _, _ in
+                            posicaoMarcador = proxy.convert(ponto, to: .named("mapa"))
+                        }
+                        .onAppear { centralizarMapa(em: ponto) }
+                        .onChange(of: model.alvoDaCamera?.latitude) { _, _ in
+                            if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
+                        }
+                        .onChange(of: model.alvoDaCamera?.longitude) { _, _ in
+                            if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
+                        }
+                }
+                .frame(height: 140)
+                .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+
+                Text(verbatim: TextosCadastro.dicaMapa)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+            }
+        } else {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "map")
+                    .font(.title2)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
+                Text(verbatim: TextosCadastro.pontoNaoMarcado)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 140)
+            .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .accessibilityIdentifier("mapa-estabelecimento")
+            .accessibilityLabel(Text(verbatim: TextosCadastro.pontoNaoMarcado))
+        }
     }
 
     @ViewBuilder
     private func marcadorMapa(proxy: MapProxy, ponto: CLLocationCoordinate2D, posicao: CGPoint) -> some View {
-        Image(systemName: "mappin.and.ellipse")
+        Image(systemName: "mappin.circle.fill")
             .font(.title)
-            .foregroundStyle(FrilaCor.marca)
+            .foregroundStyle(FrilaCor.texto, FrilaCor.superficie)
             .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
             .contentShape(Rectangle())
             .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
@@ -553,7 +800,6 @@ public struct TelaCadastroEstabelecimento: View {
             .accessibilityAddTraits(.allowsDirectInteraction)
             .accessibilityValue(Text(verbatim: String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), ponto.latitude, ponto.longitude)))
             .position(x: posicao.x, y: posicao.y - 15)
-            // Só a alça recebe este gesto; o mapa mantém pan e zoom fora dela.
             .highPriorityGesture(
                 DragGesture(minimumDistance: 10, coordinateSpace: .named("mapa"))
                     .onChanged { valor in
@@ -571,28 +817,174 @@ public struct TelaCadastroEstabelecimento: View {
             )
     }
 
-    @ViewBuilder private func campo<Conteudo: View>(_ titulo: String, campo: CampoCadastro, @ViewBuilder conteudo: () -> Conteudo) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: titulo).font(FrilaTipo.rotuloDoCampo)
-            conteudo().erroDeCampoFrila(mensagemDoCampo(campo))
-            if case let .campo(campoErro, regra)? = model.erro, campoErro == campo { Text(verbatim: erroCampo(regra)).font(FrilaTipo.nota).foregroundStyle(FrilaCor.perigo).accessibilityIdentifier("erro-campo-\(titulo.lowercased())") }
+    @ViewBuilder
+    private var secaoResponsavel: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosCadastro.responsavel)
+                .font(FrilaTipo.meta.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+
+            HStack {
+                Text(verbatim: responsavelNome)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                Spacer()
+            }
+            .padding(.horizontal, FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+
+            Text(verbatim: formatarTelefoneResponsavel(responsavelTelefone))
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("responsavel-conta")
+    }
+
+    private func formatarTelefoneResponsavel(_ texto: String) -> String {
+        let digitos = Array(texto.filter(\.isNumber))
+        var corpo = digitos
+        if (corpo.count == 12 || corpo.count == 13), corpo.prefix(2) == ["5", "5"] {
+            corpo = Array(corpo.dropFirst(2))
+        }
+        if corpo.count == 11 {
+            let ddd = String(corpo[0..<2])
+            let parte1 = String(corpo[2..<7])
+            let parte2 = String(corpo[7..<11])
+            return "(\(ddd)) \(parte1)-\(parte2)"
+        }
+        if corpo.count == 10 {
+            let ddd = String(corpo[0..<2])
+            let parte1 = String(corpo[2..<6])
+            let parte2 = String(corpo[6..<10])
+            return "(\(ddd)) \(parte1)-\(parte2)"
+        }
+        return texto
+    }
+
+    @ViewBuilder
+    private var bannerDeErroGlobal: some View {
+        if let erro = model.erro, erro == .falha || erro == .semRede {
+            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
+                Image(systemName: erro == .semRede ? "wifi.slash" : "exclamationmark.triangle")
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityHidden(true)
+                Text(verbatim: mensagem(erro))
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("erro-cadastro")
+            .id(IDScroll.avisoGlobal)
         }
     }
 
-    private func mensagemDoCampo(_ campo: CampoCadastro) -> String? {
-        guard case let .campo(campoErro, regra)? = model.erro, campoErro == campo else { return nil }
-        return erroCampo(regra)
+    private func temErroNoCampo(_ campo: CampoCadastro) -> Bool {
+        if case let .campo(campoErro, _)? = model.erro, campoErro == campo {
+            return true
+        }
+        if campo == .documento, model.erro == .documentoDuplicado {
+            return true
+        }
+        return false
+    }
+
+    private func bordaDoCampo(_ campo: CampoCadastro) -> some View {
+        let temErro = temErroNoCampo(campo)
+        return RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+            .strokeBorder(temErro ? FrilaCor.texto : FrilaCor.borda, lineWidth: temErro ? 2 : 1)
+    }
+
+    @ViewBuilder
+    private func mensagemDeErroAbaixo(do campo: CampoCadastro) -> some View {
+        if campo == .documento, model.erro == .documentoDuplicado {
+            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityHidden(true)
+                Text(verbatim: TextosCadastro.documentoDuplicadoMensagem)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("erro-campo-documento")
+        } else if case let .campo(campoErro, regra)? = model.erro, campoErro == campo {
+            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityHidden(true)
+                Text(verbatim: erroCampo(regra))
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.texto)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(identificadorDeErro(campo))
+        }
+    }
+
+    private func identificadorDeErro(_ campo: CampoCadastro) -> String {
+        switch campo {
+        case .nome: "erro-campo-nome"
+        case .documento: "erro-campo-documento"
+        case .tipo: "erro-campo-tipo"
+        case .endereco: "erro-campo-endereco"
+        case .regiaoAdministrativa: "erro-campo-regiao-administrativa"
+        }
     }
 
     private func mensagem(_ erro: ErroDeCadastroEstabelecimento) -> String {
         model.mensagem(erro)
     }
-    private func erroCampo(_ regra: RegraCampoCadastro) -> String { regra == .obrigatorio ? TextosCadastro.campoObrigatorio : TextosCadastro.campoInvalido }
+
+    private func erroCampo(_ regra: RegraCampoCadastro) -> String {
+        regra == .obrigatorio ? TextosCadastro.campoObrigatorio : TextosCadastro.campoInvalido
+    }
+
     private func tipoNome(_ tipo: TipoEstabelecimento) -> String {
-        switch tipo { case .foodService: TextosCadastro.alimentacao; case .evento: TextosCadastro.evento; case .varejo: TextosCadastro.varejo; case .logistica: TextosCadastro.logistica; case .servicoDomestico: TextosCadastro.servicoDomestico; case .outro: TextosCadastro.outro }
+        switch tipo {
+        case .foodService: TextosCadastro.alimentacao
+        case .evento: TextosCadastro.evento
+        case .varejo: TextosCadastro.varejo
+        case .logistica: TextosCadastro.logistica
+        case .servicoDomestico: TextosCadastro.servicoDomestico
+        case .outro: TextosCadastro.outro
+        }
     }
 
     private func centralizarMapa(em coordenada: CLLocationCoordinate2D) {
         posicaoMapa = .region(MKCoordinateRegion(center: coordenada, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)))
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
+        if #available(iOS 26, *) {
+            safeAreaBar(edge: .bottom) {
+                conteudo()
+            }
+        } else {
+            safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(FrilaCor.divisoria)
+                        .frame(height: 1)
+                        .accessibilityHidden(true)
+
+                    conteudo()
+                }
+                .background(.regularMaterial)
+            }
+        }
     }
 }

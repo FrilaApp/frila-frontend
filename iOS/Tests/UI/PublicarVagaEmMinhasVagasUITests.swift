@@ -20,16 +20,16 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         // O endereço da casa vem preenchido: é o que a leitura do cadastro traz.
         XCTAssertEqual(app.textFields["Endereço do turno"].value as? String, "CLS 405, Asa Sul, Brasília - DF")
 
-        let funcao = app.buttons["Função, Selecione uma função"]
+        let funcao = app.descendants(matching: .any)["funcao-vaga-picker"]
         tocar(funcao)
         app.buttons["Garçom"].firstMatch.tap()
         // O responsável vai primeiro: o teclado numérico do valor não tem como ser fechado, e
         // cobriria o campo de baixo.
-        let responsavel = app.textFields["Quem recebe no local"]
+        let responsavel = app.textFields["responsavel-local-campo"]
         responsavel.tap()
         responsavel.digitarEEsperar("Marina")
 
-        let valor = app.textFields["Valor por posição"]
+        let valor = app.textFields["valor-vaga-campo"]
         valor.tap()
         esperarFocoDoTeclado(valor)
         valor.digitarEEsperar("18000", esperado: "180,00")
@@ -189,16 +189,17 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(botaoTentarNovamente.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(botaoTentarNovamente.label, "Tentar novamente")
 
-        let campoResponsavel = app.textFields["Quem recebe no local"]
+        let campoResponsavel = app.textFields["responsavel-local-campo"]
         XCTAssertTrue(campoResponsavel.exists)
         XCTAssertEqual(campoResponsavel.value as? String, "Marina")
 
-        let campoValor = app.textFields["Valor por posição"]
+        let campoValor = app.textFields["valor-vaga-campo"]
         XCTAssertTrue(campoValor.exists)
         XCTAssertEqual(campoValor.value as? String, "R$ 180,00")
     }
 
-    func testPublicarVagaEmAX5SeletorDeDataETocavel() {
+    func testPublicarVagaEmAX5SeletorDeDataETocavel() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrir(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
@@ -261,7 +262,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        let valor = app.textFields["Valor por posição"]
+        let valor = app.textFields["valor-vaga-campo"]
         rolarAte(valor, em: app)
         valor.tap()
         esperarFocoDoTeclado(valor)

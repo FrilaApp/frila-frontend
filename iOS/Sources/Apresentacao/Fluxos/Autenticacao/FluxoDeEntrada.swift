@@ -29,7 +29,17 @@ public struct FluxoDeEntrada: View {
         self.relogio = relogio
         self.verificadorDeIdade = verificadorDeIdade
         self.aoConcluir = aoConcluir
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CODIGO") {
+            let emailTeste = "teste@frila.app"
+            _rotaAtual = State(initialValue: .codigo(email: emailTeste))
+            _codigoVM = State(initialValue: CodigoViewModel(api: api, email: emailTeste))
+        } else {
+            _rotaAtual = State(initialValue: rotaInicial)
+        }
+        #else
         _rotaAtual = State(initialValue: rotaInicial)
+        #endif
         _entradaVM = State(initialValue: EntradaViewModel(api: api))
     }
 

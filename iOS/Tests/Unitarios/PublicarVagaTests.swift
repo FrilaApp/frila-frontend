@@ -589,7 +589,7 @@ struct PublicarVagaTests {
 
         let itemInline = items.first { $0.largeTitleDisplayMode == .never }
         #expect(itemInline != nil, "A barra de navegação deve ter largeTitleDisplayMode configurado como .never (.inline) para evitar dois títulos grandes empilhados")
-        if let itemComTitulo = items.first(where: { $0.title == "Publicar vaga" }) {
+        if let itemComTitulo = items.first(where: { $0.title == "Nova vaga" }) {
             #expect(itemComTitulo.largeTitleDisplayMode == .never)
         }
     }
