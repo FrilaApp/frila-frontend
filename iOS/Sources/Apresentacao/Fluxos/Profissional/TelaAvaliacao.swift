@@ -46,8 +46,10 @@ public struct TelaAvaliacao: View {
             }
             .padding(FrilaEspaco.medio)
             .padding(.bottom, FrilaEspaco.enorme)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .background(FrilaCor.fundo)
+        .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
@@ -61,21 +63,23 @@ public struct TelaAvaliacao: View {
         Text(verbatim: viewModel.pergunta)
             .font(FrilaTipo.tituloGrande)
             .foregroundStyle(FrilaCor.texto)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, FrilaEspaco.minimo)
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("pergunta-avaliacao")
     }
 
     private var cartaoExplicacao: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Label {
-                Text(verbatim: viewModel.explicacao)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            } icon: {
-                Image(systemName: "hand.thumbsup.fill")
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            }
+        HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
+            Image(systemName: "hand.thumbsup.fill")
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.marca)
+                .accessibilityHidden(true)
+
+            Text(verbatim: viewModel.explicacao)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
