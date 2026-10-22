@@ -42,7 +42,7 @@ Todos os fatos descritos nas três páginas públicas foram extraídos diretamen
 
 | Obrigação Legal | Dispositivo da LGPD | Tratamento na Política de Privacidade (`privacidade.md`) | Status |
 |---|---|---|:---:|
-| **Identificação do Controlador** | Art. 9º, I e Art. 37 | Seção 1 identifica Cauê Carneiro Kilanovic, pessoa física responsável pelo projeto Frila (projeto de estudantes), com localidade Brasília/DF. | Localidade confirmada pelo Cauê |
+| **Identificação do Controlador** | Art. 9º, I e Art. 37 | Seção 1 identifica Cauê Carneiro Crillanovick, pessoa física responsável pelo projeto Frila (projeto de estudantes), com localidade Brasília/DF. | Localidade confirmada pelo Cauê |
 | **Canal do Titular de Dados** | Art. 18 | Seções 1 e 8 indicam o canal do titular e do suporte (`privacidade@frilabr.com`), sem atribuir DPO ao projeto. | Canal definido; enquadramento jurídico a confirmar |
 | **Finalidades Específicas do Tratamento** | Art. 6º, I e Art. 9º, II | Seção 2 discrimina com clareza a finalidade de cada tipo de dado em tabela acessível. | ✅ Implementado |
 | **Indicação da Base Legal** | Art. 7º e Art. 9º, II | Seção 2 indica expressamente as bases legais (execução de contrato art. 7º V, obrigação legal art. 7º II, legítimo interesse art. 7º IX). | ✅ Implementado |
@@ -109,7 +109,7 @@ Decisão do Cauê de 15/10/2026: o Frila é um projeto de estudantes, sem razão
 
 | Documento | Localização / Cláusula | Informação | Confirmação Necessária |
 |---|---|---|---|
-| `privacidade.md` e `termos.md` | Seção 1 (Identificação) | Cauê Carneiro Kilanovic, pessoa física, responsável pelo projeto Frila (projeto de estudantes) | Identificação definida pelo Cauê. |
+| `privacidade.md` e `termos.md` | Seção 1 (Identificação) | Cauê Carneiro Crillanovick, pessoa física, responsável pelo projeto Frila (projeto de estudantes) | Identificação definida pelo Cauê. |
 | `privacidade.md` e `termos.md` | Seção 1 (Identificação) | Localidade: Brasília/DF | Confirmada pelo Cauê. |
 | `privacidade.md` | Seções 1, 8 e 12 | Canal do titular de dados e do suporte: `privacidade@frilabr.com` | Canal definido; avaliação jurídica sobre encarregado pendente, sem afirmar dispensa. |
 | `termos.md` | Seção 14 (Foro) | Comarca de Brasília, Distrito Federal | Confirmado pelo Cauê. |
