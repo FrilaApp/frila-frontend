@@ -154,6 +154,7 @@ public struct TelaVagas: View {
                 .font(FrilaTipo.tituloDeEstado)
                 .foregroundStyle(FrilaCor.texto)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, FrilaEspaco.enorme)
@@ -167,7 +168,7 @@ public struct TelaVagas: View {
                 .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                 .overlay {
                     Image(systemName: "magnifyingglass")
-                        .font(.title2)
+                        .font(FrilaTipo.secao)
                         .foregroundStyle(FrilaCor.textoSecundario)
                 }
             VStack(spacing: FrilaEspaco.pequeno) {
@@ -175,10 +176,12 @@ public struct TelaVagas: View {
                     .font(FrilaTipo.tituloDeEstado)
                     .foregroundStyle(FrilaCor.texto)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosMensagem : TextosDoProfissional.Lista.vazioSemFiltrosMensagem)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if temFiltroAtivo {
                 BotaoSecundario(verbatim: TextosDoProfissional.Lista.limparFiltros) {
@@ -199,22 +202,25 @@ public struct TelaVagas: View {
     private var estadoSemPontoDeReferencia: some View {
         VStack(spacing: FrilaEspaco.medio) {
             Image(systemName: "mappin.slash")
-                .font(.title)
+                .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
             VStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Lista.semPontoDeReferenciaTitulo)
                     .font(FrilaTipo.tituloDeEstado)
                     .foregroundStyle(FrilaCor.texto)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: TextosDoProfissional.Lista.semPontoDeReferenciaMensagem)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             NavigationLink(value: RotaDoProfissional.meuPerfil) {
                 Text(verbatim: TextosDoProfissional.Lista.definirPontoBase)
                     .font(FrilaTipo.botao)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, FrilaEspaco.grande)
                     .padding(.vertical, FrilaEspaco.pequeno)
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
@@ -233,18 +239,20 @@ public struct TelaVagas: View {
     private var estadoSemConexao: some View {
         VStack(spacing: FrilaEspaco.medio) {
             Image(systemName: "wifi.slash")
-                .font(.title)
+                .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
             VStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Lista.semConexaoTitulo)
                     .font(FrilaTipo.tituloDeEstado)
                     .foregroundStyle(FrilaCor.texto)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("vagas-sem-conexao")
                 Text(verbatim: TextosDoProfissional.Lista.semConexaoMensagem)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if !dynamicTypeSize.isAccessibilitySize {
                 tentarDeNovo
@@ -258,18 +266,20 @@ public struct TelaVagas: View {
     private var estadoErro: some View {
         VStack(spacing: FrilaEspaco.medio) {
             Image(systemName: "exclamationmark.circle")
-                .font(.title)
+                .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
             VStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Lista.erroMensagem)
                     .font(FrilaTipo.tituloDeEstado)
                     .foregroundStyle(FrilaCor.texto)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("vagas-erro")
                 Text(verbatim: TextosDoProfissional.Lista.erroApoio)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             tentarDeNovo
         }
@@ -285,6 +295,7 @@ public struct TelaVagas: View {
             Text(verbatim: TextosDoProfissional.Lista.perfilIncompativel)
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(FrilaEspaco.medio)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -364,7 +375,7 @@ private struct PilulaDeFiltro: View {
             Text(verbatim: titulo)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
             Image(systemName: "chevron.down")
-                .font(.caption)
+                .font(FrilaTipo.nota)
                 .accessibilityHidden(true)
         }
         .font(ativo ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
