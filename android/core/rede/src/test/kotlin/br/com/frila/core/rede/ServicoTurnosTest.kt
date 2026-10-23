@@ -260,4 +260,107 @@ class ServicoTurnosTest {
         assertTrue(excecao is ErroDaApi)
         assertEquals(CodigoErroAPI.AVALIACAO_JA_REGISTRADA, (excecao as ErroDaApi).codigo)
     }
+
+    @Test
+    fun `cancelarPosicao envia posicao e motivo e decodifica falta verdadeira`() = runTest {
+        var caminhoChamado: String? = null
+        var corpoChamado: String? = null
+        val engine = MockEngine { request ->
+            caminhoChamado = request.url.encodedPath
+            corpoChamado = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """
+                    {
+                      "posicao_id": "33333333-3333-3333-3333-333333333333",
+                      "falta": true,
+                      "reaberta": true,
+                      "nova_posicao_id": "44444444-4444-4444-4444-444444444444"
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val resultado = servico.cancelarPosicao(
+            posicaoId = "33333333-3333-3333-3333-333333333333",
+            motivo = "Problema de saúde",
+        )
+
+        assertEquals("/rest/v1/rpc/cancelar_posicao", caminhoChamado)
+        assertTrue(corpoChamado!!.contains("\"posicao_id\":\"33333333-3333-3333-3333-333333333333\""))
+        assertTrue(corpoChamado!!.contains("\"motivo\":\"Problema de saúde\""))
+        assertTrue(resultado.falta)
+        assertTrue(resultado.reaberta)
+        assertEquals("44444444-4444-4444-4444-444444444444", resultado.novaPosicaoId)
+    }
+
+    @Test
+    fun `cancelarPosicao decodifica cancelamento sem falta`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """
+                    {
+                      "posicao_id": "33333333-3333-3333-3333-333333333333",
+                      "falta": false,
+                      "reaberta": false,
+                      "nova_posicao_id": null
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val resultado = servico.cancelarPosicao("33333333-3333-3333-3333-333333333333", "Imprevisto pessoal")
+
+        assertEquals(false, resultado.falta)
+        assertEquals(false, resultado.reaberta)
+        assertNull(resultado.novaPosicaoId)
+    }
+
+    @Test
+    fun `cancelarPosicao 409 propaga posicao nao cancelavel`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"posicao_nao_cancelavel","message":"turno em andamento"}""",
+                status = HttpStatusCode.Conflict,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val excecao = runCatching { servico.cancelarPosicao("p1", "Problema de saúde") }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.POSICAO_NAO_CANCELAVEL, (excecao as ErroDaApi).codigo)
+    }
+
+    @Test
+    fun `cancelarPosicao 422 propaga campo invalido`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"campo_invalido","message":"motivo recusado","details":"motivo"}""",
+                status = HttpStatusCode.UnprocessableEntity,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val excecao = runCatching { servico.cancelarPosicao("p1", "motivo bloqueado") }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.CAMPO_INVALIDO, (excecao as ErroDaApi).codigo)
+        assertEquals("motivo", excecao.detalhes)
+    }
 }

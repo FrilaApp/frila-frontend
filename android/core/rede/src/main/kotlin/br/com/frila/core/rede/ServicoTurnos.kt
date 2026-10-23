@@ -1,5 +1,6 @@
 package br.com.frila.core.rede
 
+import br.com.frila.core.dominio.modelo.ResultadoCancelamento
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -47,5 +48,18 @@ class ServicoTurnos(private val cliente: ClienteSupabase) {
             setBody(AvaliarDto(turnoId = turnoId, resposta = resposta))
         }
         return cliente.corpoOuErro(respostaHttp)
+    }
+
+    /**
+     * Cancela uma posição confirmada com motivo (RN12). O backend é a fonte de verdade para
+     * `falta` e reabertura; `409 posicao_nao_cancelavel` e recusas `422` preservam seus códigos
+     * em [ErroDaApi].
+     */
+    suspend fun cancelarPosicao(posicaoId: String, motivo: String): ResultadoCancelamento {
+        val resposta = cliente.http.post(cliente.urlRpc("cancelar_posicao")) {
+            contentType(ContentType.Application.Json)
+            setBody(CancelarPosicaoDto(posicaoId = posicaoId, motivo = motivo))
+        }
+        return cliente.corpoOuErro(resposta)
     }
 }
