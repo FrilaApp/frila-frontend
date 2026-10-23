@@ -1,5 +1,6 @@
 package br.com.frila.feature.perfil
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,9 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -20,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,7 +29,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
@@ -62,7 +68,11 @@ fun TelaPerfil(
 
     Scaffold(
         modifier = modifier,
-        topBar = { CenterAlignedTopAppBar(title = { Text("Meu Perfil") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Meu Perfil", modifier = Modifier.semantics { heading() }) },
+            )
+        },
     ) { paddingInterno ->
         when (estado.status) {
             StatusPerfil.CARREGANDO -> Carregando(paddingInterno)
@@ -120,7 +130,11 @@ private fun ConteudoDoPerfil(
 @Composable
 private fun BlocoDeReputacao(reputacao: ReputacaoDto?) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Reputação", style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = "Reputação",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
         Column(
             modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
@@ -152,7 +166,11 @@ private fun formatarTaxa(taxa: Double?): String =
 @Composable
 private fun BlocoDeFuncoes(funcoes: List<FuncaoDto>) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Funções cadastradas", style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = "Funções cadastradas",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
         if (funcoes.isEmpty()) {
             Text(
                 text = "Nenhuma função cadastrada ainda.",
@@ -166,7 +184,20 @@ private fun BlocoDeFuncoes(funcoes: List<FuncaoDto>) {
                 verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
             ) {
                 funcoes.forEach { funcao ->
-                    AssistChip(onClick = {}, label = { Text(funcao.nome) })
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    ) {
+                        Text(
+                            text = funcao.nome,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(
+                                horizontal = FrilaEspacamento.pequeno,
+                                vertical = FrilaEspacamento.minimo,
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -176,7 +207,11 @@ private fun BlocoDeFuncoes(funcoes: List<FuncaoDto>) {
 @Composable
 private fun BlocoDeConta(aoDeslogar: () -> Unit, aoAbrirExclusao: () -> Unit) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Conta", style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = "Conta",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
         BotaoSecundario(
             texto = "Sair da conta",
             aoClicar = aoDeslogar,
@@ -200,6 +235,10 @@ private fun BotaoDestrutivo(texto: String, aoClicar: () -> Unit, modifier: Modif
     Button(
         onClick = aoClicar,
         modifier = modifier
+            .sizeIn(
+                minWidth = FrilaMetricas.alvoMinimo,
+                minHeight = FrilaMetricas.alvoMinimo,
+            )
             .heightIn(min = FrilaMetricas.alturaBotao)
             .widthIn(min = FrilaMetricas.alvoMinimo),
         colors = ButtonDefaults.buttonColors(
@@ -216,7 +255,12 @@ private fun BotaoDestrutivo(texto: String, aoClicar: () -> Unit, modifier: Modif
 private fun DialogoConfirmarExclusao(aoConfirmar: () -> Unit, aoCancelar: () -> Unit) {
     AlertDialog(
         onDismissRequest = aoCancelar,
-        title = { Text("Excluir conta definitivamente?") },
+        title = {
+            Text(
+                "Excluir conta definitivamente?",
+                modifier = Modifier.semantics { heading() },
+            )
+        },
         text = {
             Text(
                 "Esta ação não pode ser desfeita. Seus turnos futuros serão cancelados sem " +
@@ -225,12 +269,24 @@ private fun DialogoConfirmarExclusao(aoConfirmar: () -> Unit, aoCancelar: () -> 
             )
         },
         confirmButton = {
-            TextButton(onClick = aoConfirmar) {
+            TextButton(
+                onClick = aoConfirmar,
+                modifier = Modifier.sizeIn(
+                    minWidth = FrilaMetricas.alvoMinimo,
+                    minHeight = FrilaMetricas.alvoMinimo,
+                ),
+            ) {
                 Text("Sim, excluir minha conta", color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {
-            TextButton(onClick = aoCancelar) { Text("Cancelar") }
+            TextButton(
+                onClick = aoCancelar,
+                modifier = Modifier.sizeIn(
+                    minWidth = FrilaMetricas.alvoMinimo,
+                    minHeight = FrilaMetricas.alvoMinimo,
+                ),
+            ) { Text("Cancelar") }
         },
     )
 }
@@ -239,7 +295,7 @@ private fun DialogoConfirmarExclusao(aoConfirmar: () -> Unit, aoCancelar: () -> 
 private fun DialogoExcluindo() {
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Excluindo conta…") },
+        title = { Text("Excluindo conta…", modifier = Modifier.semantics { heading() }) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator()
@@ -253,10 +309,24 @@ private fun DialogoExcluindo() {
 private fun DialogoErroExclusao(mensagem: String?, aoFechar: () -> Unit) {
     AlertDialog(
         onDismissRequest = aoFechar,
-        title = { Text("Não foi possível excluir a conta") },
-        text = { Text(mensagem ?: "Tente de novo em instantes.") },
+        title = {
+            Text(
+                "Não foi possível excluir a conta",
+                modifier = Modifier.semantics { heading() },
+            )
+        },
+        text = {
+            val textoErro = mensagem ?: "Tente de novo em instantes."
+            Text(textoErro, modifier = Modifier.semantics { error(textoErro) })
+        },
         confirmButton = {
-            TextButton(onClick = aoFechar) { Text("Entendi") }
+            TextButton(
+                onClick = aoFechar,
+                modifier = Modifier.sizeIn(
+                    minWidth = FrilaMetricas.alvoMinimo,
+                    minHeight = FrilaMetricas.alvoMinimo,
+                ),
+            ) { Text("Entendi") }
         },
     )
 }
@@ -286,6 +356,7 @@ private fun Erro(
             text = mensagem ?: "Não foi possível carregar seu perfil.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { error(mensagem ?: "Não foi possível carregar seu perfil.") },
         )
         BotaoSecundario(texto = "Tentar novamente", aoClicar = aoTentarNovamente)
     }

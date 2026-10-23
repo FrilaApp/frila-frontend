@@ -10,6 +10,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
@@ -36,7 +41,11 @@ fun TelaDetalheVaga(
             .padding(FrilaEspacamento.grande),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
-        Text(text = vaga.funcao.nome, style = MaterialTheme.typography.titleLarge)
+        Text(
+            text = vaga.funcao.nome,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
         Text(text = vaga.estabelecimento.nome, style = MaterialTheme.typography.titleSmall)
         Text(
             text = if (estado.ehModoUrgencia) "Modo urgência: confirmação na hora" else "Modo seleção: contratante escolhe depois",
@@ -54,7 +63,11 @@ fun TelaDetalheVaga(
         }
 
         CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Inclui", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "Inclui",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
             LinhaBeneficio("Refeição", vaga.inclusos.incluiRefeicao)
             LinhaBeneficio("Transporte", vaga.inclusos.incluiTransporte)
             LinhaBeneficio("Material próprio exigido", vaga.inclusos.exigeMaterialProprio)
@@ -62,7 +75,11 @@ fun TelaDetalheVaga(
 
         estado.contato?.let { contato ->
             CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Contato confirmado", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = "Contato confirmado",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.semantics { heading() },
+                )
                 LinhaDetalhe(rotulo = "Nome", valor = contato.nome)
                 LinhaDetalhe(rotulo = "Telefone", valor = contato.telefone)
             }
@@ -75,6 +92,11 @@ fun TelaDetalheVaga(
                 color = when (estado.statusCandidatura) {
                     StatusCandidatura.ERRO -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier.semantics {
+                    if (estado.statusCandidatura == StatusCandidatura.ERRO) {
+                        error(mensagem)
+                    }
                 },
             )
         }
@@ -103,8 +125,12 @@ private fun LinhaDetalhe(rotulo: String, valor: String) {
 
 @Composable
 private fun LinhaBeneficio(rotulo: String, incluido: Boolean) {
+    val estado = if (incluido) "incluído" else "não incluído"
     Text(
         text = "${if (incluido) "✓" else "—"} $rotulo",
         style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.clearAndSetSemantics {
+            contentDescription = "$rotulo: $estado"
+        },
     )
 }

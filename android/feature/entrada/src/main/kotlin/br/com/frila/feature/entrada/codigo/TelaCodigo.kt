@@ -15,6 +15,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
@@ -46,6 +51,7 @@ fun TelaCodigo(
         Text(
             text = "Confirme seu código",
             style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = "Enviamos um código de 6 dígitos para ${estado.email}.",
@@ -60,7 +66,11 @@ fun TelaCodigo(
             singleLine = true,
             isError = estado.erro != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    estado.erro?.let { error(it) }
+                },
         )
 
         if (estado.reenviado) {
@@ -68,6 +78,7 @@ fun TelaCodigo(
                 text = "Código reenviado.",
                 color = MaterialTheme.colorScheme.tertiary,
                 style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
 
@@ -76,6 +87,7 @@ fun TelaCodigo(
                 text = mensagem,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
 

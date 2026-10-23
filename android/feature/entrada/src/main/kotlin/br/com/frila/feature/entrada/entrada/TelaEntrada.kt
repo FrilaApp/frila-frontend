@@ -16,6 +16,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +59,7 @@ fun TelaEntrada(
         Text(
             text = "Bem-vindo ao Frila",
             style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = "Entre com seu e-mail para receber o código de acesso.",
@@ -66,7 +73,11 @@ fun TelaEntrada(
             label = { Text("E-mail") },
             singleLine = true,
             isError = estado.erro != null,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    estado.erro?.let { error(it) }
+                },
         )
 
         estado.erro?.let { mensagem ->
@@ -74,6 +85,7 @@ fun TelaEntrada(
                 text = mensagem,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
 
@@ -100,6 +112,7 @@ private fun LogoFrila() {
     Column(
         modifier = Modifier
             .size(64.dp)
+            .clearAndSetSemantics { }
             .background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(FrilaRaios.grande)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

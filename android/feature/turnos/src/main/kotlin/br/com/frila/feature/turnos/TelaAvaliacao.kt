@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
@@ -39,7 +42,11 @@ fun TelaAvaliacao(
 
     Scaffold(
         modifier = modifier,
-        topBar = { CenterAlignedTopAppBar(title = { Text("Avaliar turno") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Avaliar turno", modifier = Modifier.semantics { heading() }) },
+            )
+        },
     ) { paddingInterno ->
         Box(
             modifier = Modifier.fillMaxSize().padding(paddingInterno).padding(FrilaEspacamento.grande),
@@ -70,6 +77,7 @@ private fun PerguntaDeAvaliacao(aoResponder: (Boolean) -> Unit) {
             text = "Você trabalharia nesse local de novo?",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = "A avaliação é só sim ou não, e é anônima para o estabelecimento.",
@@ -99,6 +107,7 @@ private fun ConfirmacaoDeAvaliacao(resposta: Boolean?, aoVoltar: () -> Unit) {
             text = "Avaliação registrada",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = if (resposta == true) "Você recomendou este local." else "Você não recomendou este local.",
@@ -119,11 +128,15 @@ private fun ErroDeAvaliacao(mensagem: String?, aoTentarNovamente: (Boolean) -> U
             text = mensagem ?: "Não foi possível registrar sua avaliação.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics {
+                error(mensagem ?: "Não foi possível registrar sua avaliação.")
+            },
         )
         Text(
             text = "Você trabalharia nesse local de novo?",
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
         )
         BotaoPrimario(
             texto = "Sim, trabalharia",

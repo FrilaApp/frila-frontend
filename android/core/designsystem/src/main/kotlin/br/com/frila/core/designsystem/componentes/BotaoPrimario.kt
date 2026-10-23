@@ -1,6 +1,7 @@
 package br.com.frila.core.designsystem.componentes
 
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,6 +27,10 @@ fun BotaoPrimario(
         onClick = aoClicar,
         enabled = habilitado,
         modifier = modifier
+            .sizeIn(
+                minWidth = FrilaMetricas.alvoMinimo,
+                minHeight = FrilaMetricas.alvoMinimo,
+            )
             .heightIn(min = FrilaMetricas.alturaBotao)
             .widthIn(min = FrilaMetricas.alvoMinimo),
         colors = ButtonDefaults.buttonColors(
