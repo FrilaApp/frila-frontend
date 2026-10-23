@@ -1,22 +1,33 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import br.com.frila.core.seguranca.Sessao
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.RefreshTokensParams
+import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.CancellationException
 
 /** Erro de API com o código fechado de domínio e os dados crus da resposta. */
 class ErroDaApi(
@@ -40,6 +51,7 @@ class ClienteSupabase(
     val baseUrl: String,
     private val apiKey: String,
     private val provedorDeToken: ProvedorDeToken = ProvedorDeToken { null },
+    private val armazenamentoDeSessao: ArmazenamentoDeSessao? = null,
     engine: HttpClientEngine? = null,
     json: Json = jsonFrila,
 ) {
@@ -51,6 +63,17 @@ class ClienteSupabase(
 
     private fun HttpClientConfig<*>.configurar(json: Json) {
         install(ContentNegotiation) { json(json) }
+        install(Auth) {
+            bearer {
+                loadTokens {
+                    armazenamentoDeSessao?.obterSessao()?.paraBearerTokens()
+                        ?: provedorDeToken.tokenDeAcesso()?.let { BearerTokens(it, "") }
+                }
+                refreshTokens {
+                    renovarTokens(this)
+                }
+            }
+        }
         install(Logging) { level = LogLevel.INFO }
         install(HttpTimeout) {
             requestTimeoutMillis = TIMEOUT_REQUISICAO_MS
@@ -58,9 +81,39 @@ class ClienteSupabase(
         }
         defaultRequest {
             header("apikey", apiKey)
-            provedorDeToken.tokenDeAcesso()?.let { token ->
+            tokenDeAcessoAtual()?.let { token ->
                 header("Authorization", "Bearer $token")
             }
+        }
+    }
+
+    private fun tokenDeAcessoAtual(): String? =
+        armazenamentoDeSessao?.obterSessao()?.accessToken ?: provedorDeToken.tokenDeAcesso()
+
+    private suspend fun renovarTokens(parametros: RefreshTokensParams): BearerTokens? {
+        val armazenamento = armazenamentoDeSessao ?: return null
+        val sessaoAtual = armazenamento.obterSessao() ?: return null
+
+        return try {
+            val resposta = parametros.client.post(urlCompleta(CAMINHO_RENOVACAO)) {
+                with(parametros) { markAsRefreshTokenRequest() }
+                contentType(ContentType.Application.Json)
+                setBody(RenovarTokenDto(refreshToken = sessaoAtual.refreshToken))
+            }
+            if (!resposta.status.isSuccess()) {
+                armazenamento.limparSessao()
+                return null
+            }
+
+            val renovada = resposta.body<SessaoDto>()
+            val sessaoPersistida = renovada.paraSessao(vinculoId = sessaoAtual.vinculoId)
+            armazenamento.salvarSessao(sessaoPersistida)
+            sessaoPersistida.paraBearerTokens()
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            armazenamento.limparSessao()
+            null
         }
     }
 
@@ -97,6 +150,7 @@ class ClienteSupabase(
     companion object {
         const val TIMEOUT_REQUISICAO_MS = 15_000L
         const val TIMEOUT_SOCKET_MS = 60_000L
+        private const val CAMINHO_RENOVACAO = "/auth/v1/token?grant_type=refresh_token"
 
         val jsonFrila: Json = Json {
             ignoreUnknownKeys = true
@@ -129,3 +183,16 @@ class ClienteSupabase(
         }
     }
 }
+
+private fun Sessao.paraBearerTokens(): BearerTokens = BearerTokens(
+    accessToken = accessToken,
+    refreshToken = refreshToken,
+)
+
+private fun SessaoDto.paraSessao(vinculoId: String?): Sessao = Sessao(
+    accessToken = accessToken,
+    refreshToken = refreshToken,
+    tokenType = tokenType,
+    expiresIn = expiresIn,
+    vinculoId = vinculoId,
+)
