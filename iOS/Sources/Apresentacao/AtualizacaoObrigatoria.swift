@@ -100,7 +100,7 @@ public struct PortaoDeAtualizacao<Conteudo: View>: View {
                 ScrollView {
                     VStack(spacing: FrilaEspaco.grande) {
                         Image(systemName: "arrow.down.app.fill")
-                            .font(.title)
+                            .font(FrilaTipo.secao)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                             .background(FrilaCor.controle, in: Circle())
@@ -110,11 +110,13 @@ public struct PortaoDeAtualizacao<Conteudo: View>: View {
                                 .font(FrilaTipo.tituloGrande)
                                 .foregroundStyle(FrilaCor.texto)
                                 .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
                             Text(verbatim: mensagem)
                                 .font(FrilaTipo.corpo)
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         BotaoPrimario("Atualizar agora") { abrirURL(url) }
                     }
