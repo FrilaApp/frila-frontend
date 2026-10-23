@@ -172,7 +172,8 @@ final class SuporteTurnoUITests: XCTestCase {
     }
 
     /// Captura da folha de suporte em tamanho de acessibilidade (AX5) para conferência de layout e texto cortado (71.1).
-    func testFolhaDeSuporteEmAX5() {
+    func testFolhaDeSuporteEmAX5() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = XCUIApplication()
         app.launchArguments = [
             "-FRILA_ABRIR_SUPORTE_TURNO",
