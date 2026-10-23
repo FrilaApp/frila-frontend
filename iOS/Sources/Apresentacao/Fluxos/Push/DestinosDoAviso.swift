@@ -133,7 +133,7 @@ struct TelaVagaIndisponivel: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 VStack(spacing: FrilaEspaco.compacto) {
                     Image(systemName: "lock")
-                        .font(.title)
+                        .font(FrilaTipo.secao)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                         .background(FrilaCor.controle, in: Circle())
@@ -143,11 +143,13 @@ struct TelaVagaIndisponivel: View {
                             .font(FrilaTipo.tituloDeEstado)
                             .foregroundStyle(FrilaCor.texto)
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
                         Text(verbatim: mensagem)
                             .font(FrilaTipo.meta)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .padding(.vertical, FrilaEspaco.grande)
@@ -260,7 +262,7 @@ struct DestinoDoTurnoDoAviso<Conteudo: View>: View {
         case .naoEncontrado:
             VStack(spacing: FrilaEspaco.compacto) {
                 Image(systemName: "calendar.badge.exclamationmark")
-                    .font(.title)
+                    .font(FrilaTipo.secao)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                     .background(FrilaCor.controle, in: Circle())
@@ -270,11 +272,13 @@ struct DestinoDoTurnoDoAviso<Conteudo: View>: View {
                         .font(FrilaTipo.tituloDeEstado)
                         .foregroundStyle(FrilaCor.texto)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                     Text(verbatim: TextosDoPush.Turno.naoEncontradoMensagem)
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.vertical, FrilaEspaco.grande)
