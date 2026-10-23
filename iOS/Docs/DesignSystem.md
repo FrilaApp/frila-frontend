@@ -4,10 +4,16 @@ O módulo `FrilaApresentacao` concentra os tokens e componentes SwiftUI. Cores v
 
 ## Tokens
 
-- Espaçamento: 4, 8, 16, 24 e 32 pt (`FrilaEspaco`).
-- Raios: 8, 12 e 20 pt (`FrilaRaio`).
+- Espaçamento: 2, 4, 8, 12, 14, 16, 24 e 32 pt (`FrilaEspaco`).
+- Raios: 8, 12, 16, 20 e 28 pt (`FrilaRaio`).
 - Alvo interativo mínimo: 44 × 44 pt (`FrilaMetrica.alvoMinimo`).
 - Cores (`FrilaCor`): primária, conteúdo sobre primária, fundo agrupado, superfície elevada, texto primário, texto secundário, sucesso, alerta, perigo, marca (terracota de acento), preenchimento de controle, divisória, borda de controle e puxador.
+- Tipografia (`FrilaTipo`): estilos semânticos do sistema com Dynamic Type, além da fonte Bricolage Grotesque exclusiva para as perguntas de publicação de vaga.
+- Movimento (`FrilaMovimento`): compressão tátil e molas com respeito estrito a Reduzir Movimento.
+- Elevação e Sombras (`FrilaElevacao`): três camadas coordenadas (rim, key, ambient) e estilo zero-shadow nos cartões com fio de 1 pt.
+- Moeda acessível (`FrilaMoney`): tradução fonética integral para VoiceOver.
+
+> A especificação exaustiva de cada token, valores, tipos e regras de uso geradas de `DesignTokens.swift` (atendimento ao cartão Trello `iUIipiiN`) está catalogada em [GuiaDoFabricio.md (Seção 5.1.1)](GuiaDoFabricio.md#511-tabela-canônica-de-todos-os-tokens-do-app-designtokensswift--cartão-iuiipiin).
 
 ## Componentes iniciais
 

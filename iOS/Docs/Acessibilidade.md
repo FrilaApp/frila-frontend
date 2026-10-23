@@ -121,7 +121,8 @@ acompanhamento do turno.
 
 Checklist sistemático das 46 telas e fluxos da v1.0 da camada de Apresentação do Frila (critério de handoff do cartão #168 e critério 71.1), avaliando as 9 colunas de requisitos de acessibilidade. Cada linha indica nome da View, rota/fluxo no app, cobertura por auditoria automática (`AuditoriaDeAcessibilidadeUITests`), validação de Dynamic Type em AX5, requisitos de VoiceOver (rótulos/dicas e cabeçalhos), alvos de toque mínimos (44 × 44 pt), contraste, comportamento sob Reduzir Movimento, comunicação não cromática de estado e testes com VoiceOver em aparelho.
 Cada célula contém **ok** + prova (`arquivo:linha` ou teste), **falta** + o que falta, ou **não se aplica** + justificativa.
-A coluna "VoiceOver em aparelho" registra **falta: pessoa com VoiceOver** em todas as telas (nenhum teste em aparelho físico realizado com usuário de tecnologia assistiva).
+A coluna "No AX5" registra o histórico das rodadas automatizadas no simulador, ressalvando que por **decisão do Cauê em 21/10/2026 (PR #441 / commit `891c297c`)**, a acessibilidade em **AX5 foi formalmente definida como fora de escopo para a v1.0** (testes com `XCTSkip`).
+A coluna "VoiceOver em aparelho" registra **não testado (falta: pessoa com VoiceOver)** em todas as telas (nenhum teste em aparelho físico realizado com usuário de tecnologia assistiva; regra do projeto: não afirmar o que não foi testado).
 
 | Tela | View | Rota / Fluxo | Auditoria automática no padrão | No AX5 | Rótulos e dicas do VoiceOver no código | Títulos com traço de cabeçalho | Alvos de toque de 44 pt | Contraste | Reduzir Movimento | Estado não comunicado só por cor | VoiceOver em aparelho |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -482,4 +483,24 @@ Quadro consolidado dos requisitos de acessibilidade (RNF10) baseados nos testes 
 | **Comunicação de estado não-cromática** | **ok** | Seleções e validações contam com indicadores visuais e traços acessíveis adicionais (ícones `checkmark`, rótulos `.isSelected`, contadores textuais e avisos de texto explícitos). | Nenhuma dependência exclusiva de cor detectada. |
 | **Contraste de cores (Design System)** | **a verificar** (8 telas com apontamentos de design) | Token `Warning` (`#B57005` sobre `#FAF9F7`, ratio 3,78:1 no modo claro) falha no padrão AA para texto normal. Testes passam por `classeIgnorada` na suíte. | Depende de revisão e validação visual das telas pelo designer (Fabrício) contra os frames do Figma. |
 | **VoiceOver em aparelho físico (teste humano)** | **falta** (0 de 46 telas concluídas) | 100% das telas da v1.0 permanecem sem teste em aparelho real realizado por pessoa com deficiência visual ou usuária nativa de VoiceOver (critério 2 do cartão wiLKWHYl). | Depende de roteiro assistivo e teste com pessoas externas que não desenvolveram o app. |
+
+---
+
+## Atualização 23/10/2026 — Decisão de Escopo AX5 e Matriz Consolidada S1 e S2 (NoKH0SN8, SIPQtYWH, wiLKWHYl)
+
+Consolidação técnica oficial para atendimento dos critérios de acessibilidade do design dos cartões [NoKH0SN8](https://trello.com/c/NoKH0SN8) (Sprint 1), [SIPQtYWH](https://trello.com/c/SIPQtYWH) (Sprint 2) e [wiLKWHYl](https://trello.com/c/wiLKWHYl) (Sprint 3 / v1.0):
+
+### 1. Delimitação de Escopo AX5 (Decisão de Produto)
+Conforme decisão formal do Cauê em 21/10/2026 (PR #441 / commit `891c297c`), os requisitos de adaptação ao tamanho máximo de acessibilidade Dynamic Type XXXL (**AX5**) foram retirados do escopo obrigatório da v1.0 do Frila iOS. Os testes correspondentes na suíte `AuditoriaDeAcessibilidadeUITests` e testes de UI foram marcados com `XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")`. Qualquer tela sob este critério é formalmente classificada como **fora de escopo AX5**. A regra do projeto estabelece que não se mexe em AX5.
+
+### 2. Estado Real Aferido por Tela (Sprint 1 e Sprint 2)
+A matriz completa tela a tela com prova de código e situação real encontra-se espelhada em [MatrizCicloERevisaoAcessibilidadeS1S2.md](MatrizCicloERevisaoAcessibilidadeS1S2.md) (Seções 2.6, 3.4 e 4.4):
+- **Telas do Sprint 1 (18 telas/estados):**
+  - **Cumpre:** VoiceOver com rótulos e traços semânticos (`.isHeader`, `children: .combine`), alvos de toque mínimos de 44 pt (`FrilaMetrica.alvoMinimo`), contraste WCAG AA conforme paleta de tokens em `DesignSystem.xcassets`, transições respeitando `accessibilityReduceMotion` e comunicação não-cromática de estados.
+  - **Fora de escopo AX5:** Todas as 18 telas do Sprint 1 têm o critério AX5 classificado como **fora de escopo AX5** (adiado pelo Cauê em 21/10).
+  - **Não testado:** VoiceOver em aparelho físico real por pessoa usuária de tecnologia assistiva e confronto visual de 100% dos frames contra o Figma (dependente de ação humana com Fabrício/Júlia).
+- **Telas do Sprint 2 (19 telas/folhas/estados):**
+  - **Cumpre:** Instrumentação completa de acessibilidade nas telas de presença (GPS e manual), acompanhamento do turno, avaliação mútua, denúncia, cancelamento com motivo, suporte no turno, exclusão de conta e telas de perfil.
+  - **Fora de escopo AX5:** Todas as 19 telas do Sprint 2 têm o critério AX5 classificado como **fora de escopo AX5**.
+  - **Não testado:** Disparo físico de pushes APNs na tela bloqueada e teste prático com usuário assistivo em aparelho físico.
 
