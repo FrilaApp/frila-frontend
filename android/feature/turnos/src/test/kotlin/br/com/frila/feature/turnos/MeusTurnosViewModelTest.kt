@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
 import io.ktor.client.engine.mock.MockEngine
@@ -7,6 +8,9 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -39,9 +43,16 @@ class MeusTurnosViewModelTest {
         }
     """.trimIndent()
 
-    private fun viewModelComEngine(engine: MockEngine): MeusTurnosViewModel {
+    private fun viewModelComEngine(
+        engine: MockEngine,
+        relogio: Clock = Clock.systemUTC(),
+    ): MeusTurnosViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
-        return MeusTurnosViewModel(ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return MeusTurnosViewModel(
+            ServicoTurnos(cliente),
+            relogio = relogio,
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
     }
 
     @Test
@@ -153,5 +164,107 @@ class MeusTurnosViewModelTest {
         val viewModel = viewModelComEngine(MockEngine { respond(content = "[]", status = HttpStatusCode.OK) })
 
         assertEquals(StatusMeusTurnos.CARREGANDO, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `abrir cancelamento dentro de 24 horas avisa que conta como falta`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            engine = MockEngine {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")} ]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            relogio = Clock.fixed(Instant.parse("2026-10-31T22:00:00Z"), ZoneOffset.UTC),
+        )
+        viewModel.carregar().join()
+
+        viewModel.abrirCancelamento(viewModel.estado.value.agendados.first())
+
+        assertTrue(viewModel.estado.value.cancelamento!!.contaComoFalta)
+    }
+
+    @Test
+    fun `abrir cancelamento com 24 horas ou mais nao conta como falta`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            engine = MockEngine {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")} ]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            relogio = Clock.fixed(Instant.parse("2026-10-31T21:00:00Z"), ZoneOffset.UTC),
+        )
+        viewModel.carregar().join()
+
+        viewModel.abrirCancelamento(viewModel.estado.value.agendados.first())
+
+        assertEquals(false, viewModel.estado.value.cancelamento!!.contaComoFalta)
+    }
+
+    @Test
+    fun `confirmar outro motivo envia detalhes e move turno cancelado para historico`() = runBlocking {
+        var corpoCancelamento: String? = null
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("meus_turnos")) {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")} ]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            } else {
+                corpoCancelamento = (request.body as io.ktor.http.content.TextContent).text
+                respond(
+                    content = """{"posicao_id":"posicao-a","falta":true,"reaberta":true,"nova_posicao_id":"nova-a"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+        }
+        val viewModel = viewModelComEngine(engine)
+        viewModel.carregar().join()
+        viewModel.abrirCancelamento(viewModel.estado.value.agendados.first())
+        viewModel.selecionarMotivo(MotivoCancelamento.OUTRO)
+        viewModel.atualizarDetalhes("Preciso acompanhar um familiar")
+
+        viewModel.confirmarCancelamento()!!.join()
+
+        assertTrue(corpoCancelamento!!.contains("\"posicao_id\":\"posicao-a\""))
+        assertTrue(corpoCancelamento!!.contains("\"motivo\":\"Preciso acompanhar um familiar\""))
+        assertTrue(viewModel.estado.value.agendados.isEmpty())
+        assertEquals("cancelada", viewModel.estado.value.historico.first().estado)
+        assertEquals("Turno cancelado e registrado como falta.", viewModel.estado.value.mensagemFeedback)
+        assertEquals(null, viewModel.estado.value.cancelamento)
+    }
+
+    @Test
+    fun `falha posicao nao cancelavel mantem dialogo aberto com mensagem`() = runBlocking {
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("meus_turnos")) {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")} ]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            } else {
+                respond(
+                    content = """{"code":"posicao_nao_cancelavel","message":"turno em andamento"}""",
+                    status = HttpStatusCode.Conflict,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+        }
+        val viewModel = viewModelComEngine(engine)
+        viewModel.carregar().join()
+        viewModel.abrirCancelamento(viewModel.estado.value.agendados.first())
+        viewModel.selecionarMotivo(MotivoCancelamento.SAUDE)
+
+        viewModel.confirmarCancelamento()!!.join()
+
+        assertEquals(false, viewModel.estado.value.cancelamento!!.enviando)
+        assertTrue(viewModel.estado.value.cancelamento!!.mensagemErro!!.contains("não pode mais ser cancelado"))
+        assertEquals(1, viewModel.estado.value.agendados.size)
     }
 }

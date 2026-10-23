@@ -166,6 +166,13 @@ data class AvaliarDto(
     @SerialName("resposta") val resposta: Boolean,
 )
 
+/** Corpo de `/rpc/cancelar_posicao` (RN12). */
+@Serializable
+data class CancelarPosicaoDto(
+    @SerialName("posicao_id") val posicaoId: String,
+    @SerialName("motivo") val motivo: String,
+)
+
 /**
  * Resposta de `/rpc/meus_turnos` (schema `Turno`, MEDIDO em `iOS/Contrato/openapi.yaml:2454`).
  * RN12: turno cancelado continua na lista, com `estado: cancelada` — o cancelamento não apaga
