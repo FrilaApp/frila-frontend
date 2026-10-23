@@ -398,14 +398,17 @@ struct SecaoDeCandidatos: View {
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             Text(verbatim: TextosDosCandidatos.titulo).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             avisos
             switch situacao {
             case .aberta:
                 Text(verbatim: TextosDosCandidatos.explicacao).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: TextosDosCandidatos.prazoDeEscolha(inicio: vaga.vaga.periodo.inicio))
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("prazo-de-escolha")
                 lista(podeEscolher: true)
             case .oculta:
@@ -493,11 +496,13 @@ struct SecaoDeCandidatos: View {
         return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: perfil.nome).font(FrilaTipo.resumo)
+                    .fixedSize(horizontal: false, vertical: true)
                 if candidato.daEquipe {
                     // O selo tem texto e ícone: não é só cor (D7). Fica junto dos dados, para o
                     // leitor de tela dizê-lo com o nome. Não muda a ordem da lista (RN06).
                     Label {
                         Text(verbatim: TextosDosCandidatos.daEquipe)
+                            .fixedSize(horizontal: false, vertical: true)
                     } icon: {
                         Image(systemName: "checkmark.seal.fill")
                     }
@@ -512,6 +517,7 @@ struct SecaoDeCandidatos: View {
                     Text(verbatim: String(format: TextosDosCandidatos.funcoes, perfil.funcoes.joined(separator: ", ")))
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 // Reputação sempre com o denominador (RN08); sem histórico, diz que não há.
                 SeloReputacao(perfil.reputacao)
