@@ -90,6 +90,8 @@ public enum FrilaTipo {
     public static let tituloDoCartao = Font.title3.weight(.semibold)
     public static let corpo = Font.body
     public static let meta = Font.subheadline
+    /// Aviso neutro ou contextual (DESIGN.md: 15 pt regular).
+    public static let aviso = Font.subheadline
     public static let nota = Font.footnote
     public static let resumo = Font.headline
     public static let preco = Font.title3.bold()

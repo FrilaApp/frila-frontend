@@ -97,7 +97,12 @@ public struct BotaoPrimario: View {
         Button(action: acao) {
             Group {
                 if carregando { ProgressView().tint(FrilaCor.sobrePrimaria) }
-                else { titulo.font(FrilaTipo.botao).multilineTextAlignment(.center) }
+                else {
+                    titulo
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(.horizontal, FrilaEspaco.grande)
             .padding(.vertical, FrilaEspaco.pequeno)
@@ -131,7 +136,10 @@ public struct BotaoSecundario: View {
 
     public var body: some View {
         Button(action: acao) {
-            titulo.font(FrilaTipo.botao).multilineTextAlignment(.center)
+            titulo
+                .font(FrilaTipo.botao)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, FrilaEspaco.grande)
                 .padding(.vertical, FrilaEspaco.pequeno)
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
@@ -246,10 +254,10 @@ public struct CampoCodigo: View {
         }
             .keyboardType(.numberPad)
             .textContentType(.oneTimeCode)
-            .font(.title2.monospacedDigit())
+            .font(FrilaTipo.secao.monospacedDigit())
             .multilineTextAlignment(.center)
             .padding(.horizontal, FrilaEspaco.medio)
-            .frame(minHeight: 56)
+            .frame(minHeight: FrilaMetrica.alturaDoCampo)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
@@ -322,7 +330,10 @@ public struct SeloReputacao: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Label {
-                Text(verbatim: Self.descricao(reputacao)).font(FrilaTipo.nota.weight(.semibold)).foregroundStyle(FrilaCor.texto)
+                Text(verbatim: Self.descricao(reputacao))
+                    .font(FrilaTipo.nota.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: reputacao.semHistorico ? "person.crop.circle.badge.questionmark" : "person.badge.shield.checkmark")
                     .foregroundStyle(FrilaCor.textoSecundario)
@@ -330,9 +341,12 @@ public struct SeloReputacao: View {
             if reputacao.semHistorico {
                 Text(String(localized: "Ainda não há turnos considerados.", bundle: bundleApresentacao))
                     .font(FrilaTipo.nota)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 if let comparecimento = Self.descricaoComparecimento(reputacao) {
-                    Text(verbatim: comparecimento).font(FrilaTipo.nota)
+                    Text(verbatim: comparecimento)
+                        .font(FrilaTipo.nota)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -382,7 +396,7 @@ public struct AvisoFrila: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: Self.rotuloAcessibilidade(texto: String(textoResolvido.characters), tom: tom)))
         .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(textoResolvido.characters), tom: tom)))
-        .font(.callout)
+        .font(FrilaTipo.aviso)
         .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
@@ -658,7 +672,10 @@ public struct FolhaFrila<Conteudo: View>: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             Capsule().fill(FrilaCor.puxador).frame(width: 36, height: 5).frame(maxWidth: .infinity).accessibilityHidden(true)
-            titulo.font(FrilaTipo.tituloDaFolha).accessibilityAddTraits(.isHeader)
+            titulo
+                .font(FrilaTipo.tituloDaFolha)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
             conteudo()
         }
         .padding(FrilaEspaco.grande)
