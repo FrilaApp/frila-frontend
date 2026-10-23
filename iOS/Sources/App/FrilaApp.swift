@@ -679,6 +679,9 @@ private struct EntradaDoApp: View {
             payload["vaga_id"] = argumentos[id + 1]
             payload["turno_id"] = argumentos[id + 1]
         }
+        if let pos = argumentos.firstIndex(of: "-FRILA_PUSH_POSICAO_ID"), argumentos.indices.contains(pos + 1) {
+            payload["posicao_id"] = argumentos[pos + 1]
+        }
         if let espera = argumentos.firstIndex(of: "-FRILA_PUSH_NOTIFICACAO_EM"), argumentos.indices.contains(espera + 1),
            let segundos = TimeInterval(argumentos[espera + 1]), segundos > 0 {
             // Sem a permissão o sistema recusa a notificação: espera a pessoa conceder.
