@@ -70,6 +70,7 @@ struct AcoesDeSeguranca: View {
                 .font(FrilaTipo.corpo)
                 .foregroundStyle(corDoTexto)
                 .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
@@ -93,7 +94,7 @@ private struct FolhaDeDenuncia: View {
                     Section {
                         VStack(spacing: FrilaEspaco.compacto) {
                             Image(systemName: "checkmark")
-                                .font(.title)
+                                .font(FrilaTipo.secao)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                                 .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                                 .background(FrilaCor.controle, in: Circle())
@@ -101,6 +102,7 @@ private struct FolhaDeDenuncia: View {
                             Text(verbatim: TextosDaSeguranca.enviada)
                                 .font(FrilaTipo.tituloDeEstado)
                                 .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
                                 .accessibilityFocused($protocoloEmFoco)
                         }
@@ -113,9 +115,11 @@ private struct FolhaDeDenuncia: View {
                             Text(verbatim: TextosDaSeguranca.protocolo)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
                             Text(verbatim: protocolo.ocorrenciaID.uuidString)
                                 .font(FrilaTipo.corpo)
                                 .foregroundStyle(FrilaCor.texto)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("protocolo-denuncia")
@@ -123,10 +127,12 @@ private struct FolhaDeDenuncia: View {
                             Text(verbatim: TextosDaSeguranca.prazo)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
                             Text(verbatim: String(format: "%02d/%02d/%04d", protocolo.prazoRespostaAte.dia,
                                                  protocolo.prazoRespostaAte.mes, protocolo.prazoRespostaAte.ano))
                                 .font(FrilaTipo.corpo.monospacedDigit())
                                 .foregroundStyle(FrilaCor.texto)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("prazo-denuncia")
@@ -259,6 +265,7 @@ private struct FolhaDeDenuncia: View {
                     .font(FrilaTipo.rotuloDoCampo)
                     .foregroundStyle(FrilaCor.texto)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
@@ -293,11 +300,15 @@ struct TelaPerfilPublico: View {
                     case let .falha(erro):
                         EstadoErro(verbatim: erro) { Task { await model.carregar() } }
                     case let .carregado(perfil):
-                        Text(verbatim: perfil.nome).font(FrilaTipo.tituloGrande).accessibilityAddTraits(.isHeader)
+                        Text(verbatim: perfil.nome)
+                            .font(FrilaTipo.tituloGrande)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
                         if !perfil.funcoes.isEmpty {
                             Text(verbatim: perfil.funcoes.joined(separator: ", "))
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         SeloReputacao(perfil.reputacao)
                         AcoesDeSeguranca(perfil: perfil, api: api, bloqueios: bloqueios)
