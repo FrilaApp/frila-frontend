@@ -76,4 +76,19 @@ struct AcessibilidadeEstadoECorTests {
         #expect(FrilaAcessibilidade.valorSelecao(selecionado: true) == "Selecionado")
         #expect(FrilaAcessibilidade.valorSelecao(selecionado: false) == "Não selecionado")
     }
+
+    @Test("Checklist de acessibilidade cobre 100% das telas da v1.0 com balanceamento formal (#wiLKWHYl / #71)")
+    func checklistAcessibilidade100PorCentoTelas() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // Unitarios
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // iOS
+        let caminhoDoc = raiz.appending(path: "Docs/Acessibilidade.md")
+        let conteudo = try String(contentsOf: caminhoDoc, encoding: .utf8)
+
+        #expect(conteudo.contains("46 telas e fluxos da v1.0"), "Checklist deve inventariar as 46 telas da v1.0")
+        #expect(conteudo.contains("414 células"), "Soma total de células avaliadas deve ser 414")
+        #expect(conteudo.contains("276 (ok) + 54 (falta) + 84 (não se aplica) = 414 células"), "Deve conter o balanceamento formal aprovado")
+        #expect(conteudo.contains("AuditoriaDeAcessibilidadeUITests.swift"), "Checklist deve amarrar evidências à suíte automatizada de acessibilidade")
+    }
 }
