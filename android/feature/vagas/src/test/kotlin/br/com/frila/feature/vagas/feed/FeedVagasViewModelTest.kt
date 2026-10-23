@@ -25,6 +25,7 @@ class FeedVagasViewModelTest {
     private fun vagaJson(
         id: String = "11111111-1111-1111-1111-111111111111",
         funcao: String = "garçom",
+        estabelecimento: String = "Bar do Zé",
         distanciaKm: Double = 4.2,
         inicioEm: String = "2026-11-01T21:00:00Z",
         valorCentavos: Long = 16_000L,
@@ -35,7 +36,7 @@ class FeedVagasViewModelTest {
           "estabelecimento": {
             "id": "33333333-3333-3333-3333-333333333333",
             "tipo": "estabelecimento",
-            "nome": "Bar do Zé",
+            "nome": "$estabelecimento",
             "reputacao": {"positivas": 7, "total": 7, "taxa_comparecimento": 1.0, "turnos_considerados": 7, "turnos_realizados": 7}
           },
           "inicio_em": "$inicioEm",
@@ -317,5 +318,109 @@ class FeedVagasViewModelTest {
         assertEquals(3, viewModel.estado.value.vagas.size)
         assertEquals(FiltroRemuneracao.QUALQUER, viewModel.estado.value.filtroRemuneracao)
         assertEquals(FiltroPeriodo.QUALQUER, viewModel.estado.value.filtroPeriodo)
+    }
+
+    @Test
+    fun `busca por funcao mostra somente vagas correspondentes`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", funcao = "garçom")}, ${vagaJson(id = "b", funcao = "cozinheiro")}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoAlterarTextoBusca("cozinheiro")
+
+        assertEquals(listOf("b"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `busca por estabelecimento mostra somente vagas correspondentes`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", estabelecimento = "Bar do Zé")}, ${vagaJson(id = "b", estabelecimento = "Bistrô Central")}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoAlterarTextoBusca("Bistrô Central")
+
+        assertEquals(listOf("b"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `busca ignora maiusculas minusculas e espacos externos`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", funcao = "Garçom")}, ${vagaJson(id = "b", funcao = "cozinheiro")}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoAlterarTextoBusca("  GARÇOM  ")
+
+        assertEquals(listOf("a"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `busca combina com remuneracao periodo funcao e distancia`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[" + listOf(
+                        vagaJson(id = "alvo", funcao = "cozinheiro", estabelecimento = "Cozinha Central", distanciaKm = 4.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 15_000),
+                        vagaJson(id = "busca", funcao = "cozinheiro", estabelecimento = "Outro Local", distanciaKm = 4.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 15_000),
+                        vagaJson(id = "salario", funcao = "cozinheiro", estabelecimento = "Cozinha Central", distanciaKm = 4.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 14_999),
+                        vagaJson(id = "periodo", funcao = "cozinheiro", estabelecimento = "Cozinha Central", distanciaKm = 4.0, inicioEm = "2026-11-01T09:00:00Z", valorCentavos = 20_000),
+                        vagaJson(id = "funcao", funcao = "garçom", estabelecimento = "Cozinha Central", distanciaKm = 4.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 20_000),
+                        vagaJson(id = "distancia", funcao = "cozinheiro", estabelecimento = "Cozinha Central", distanciaKm = 6.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 20_000),
+                    ).joinToString(",") + "]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoAlterarTextoBusca("central")
+        viewModel.aoSelecionarFiltroRemuneracao(FiltroRemuneracao.CENTO_E_CINQUENTA)
+        viewModel.aoSelecionarFiltroPeriodo(FiltroPeriodo.TARDE)
+        viewModel.aoSelecionarFiltroFuncao("cozinheiro")
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.CINCO_KM)
+
+        assertEquals(listOf("alvo"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `limpar busca restaura vagas sem alterar outros filtros`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", funcao = "garçom")}, ${vagaJson(id = "b", funcao = "cozinheiro")}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+        viewModel.aoAlterarTextoBusca("cozinheiro")
+        assertEquals(1, viewModel.estado.value.vagas.size)
+
+        viewModel.aoLimparBusca()
+
+        assertEquals("", viewModel.estado.value.textoBusca)
+        assertEquals(listOf("a", "b"), viewModel.estado.value.vagas.map { it.id })
     }
 }
