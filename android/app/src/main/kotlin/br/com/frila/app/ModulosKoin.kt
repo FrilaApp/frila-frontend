@@ -1,5 +1,7 @@
 package br.com.frila.app
 
+import android.content.Context
+import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
@@ -30,14 +32,13 @@ import org.koin.dsl.module
 private const val SUPABASE_URL = "https://frila.supabase.co"
 private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
 
-/**
- * `:core:seguranca` ainda não tem a implementação de produção (Android Keystore +
- * `EncryptedSharedPreferences`, ver `docs/android/04-seguranca-e-sessao.md`) — só o
- * `ArmazenamentoDeSessaoEmMemoria` usado nos testes. Esta vinculação é o único lugar que
- * precisa trocar quando esse módulo chegar; o resto do grafo já depende só da interface.
- */
+/** Usa Android Keystore em produção e mantém o grafo utilizável em testes JVM sem [Context]. */
 val moduloSeguranca = module {
-    single<ArmazenamentoDeSessao> { ArmazenamentoDeSessaoEmMemoria() }
+    single<ArmazenamentoDeSessao> {
+        getOrNull<Context>()
+            ?.let(::ArmazenamentoDeSessaoKeystore)
+            ?: ArmazenamentoDeSessaoEmMemoria()
+    }
 }
 
 val moduloRede = module {
