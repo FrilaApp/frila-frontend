@@ -325,18 +325,30 @@ valores de `Resources/DesignSystem.xcassets` (modo claro).
    estar pegando borda, sobreposição em AX5 ou o fundo errado. Não encontrado o ratio medido: o
    XCTest não devolve o número, só "failed" ou "nearly passed".
 
-Os pares de tokens (claro / escuro), para a revisão do design:
+Os pares de tokens canônicos do MidFi (claro / escuro) auditados e testados por `ContrasteDesignTokensTests.swift` (detalhes em [DesignSystem.md](DesignSystem.md)):
 
-| Par | Claro | Escuro |
-|---|---|---|
-| `TextPrimary` sobre `Surface` | 17,75:1 | 17,15:1 |
-| `TextSecondary` sobre `Surface` | 7,55:1 | 9,00:1 |
-| `TextSecondary` sobre `SurfaceElevated` | 7,95:1 | 8,03:1 |
-| `BrandOnPrimary` sobre `BrandPrimary` | 12,25:1 | 9,64:1 |
-| `BrandPrimary` sobre `Surface` | 11,65:1 | 9,89:1 |
-| `Success` sobre `Surface` | 6,28:1 | 9,84:1 |
-| `Warning` sobre `Surface` | **3,78:1** | 10,81:1 |
-| `Danger` sobre `Surface` | 6,22:1 | 6,18:1 |
+| Par Semântico | Uso no Frila | Requisito WCAG | Claro | Escuro | Situação |
+|---|---|---|:---:|:---:|:---:|
+| `TextPrimary` sobre `Surface` | Títulos sobre fundo agrupado | Texto normal (≥ 4,5:1) | 16,84:1 | 17,90:1 | **Aprovado** |
+| `TextPrimary` sobre `SurfaceElevated` | Títulos em cartões, campos e folhas | Texto normal (≥ 4,5:1) | 18,88:1 | 15,50:1 | **Aprovado** |
+| `TextPrimary` sobre `ControlFill` | Mensagens textuais em `AvisoFrila` | Texto normal (≥ 4,5:1) | 15,26:1 | 12,85:1 | **Aprovado** |
+| `TextSecondary` sobre `Surface` | Subtítulos e notas sobre o fundo | Texto normal (≥ 4,5:1) | 6,06:1 | 7,69:1 | **Aprovado** |
+| `TextSecondary` sobre `SurfaceElevated` | Metadados, notas e placeholders | Texto normal (≥ 4,5:1) | 6,79:1 | 6,66:1 | **Aprovado** |
+| `TextSecondary` sobre `ControlFill` | Tags e controles neutros | Texto normal (≥ 4,5:1) | 5,49:1 | 5,52:1 | **Aprovado** |
+| `BrandOnPrimary` sobre `BrandPrimary` | Rótulo de botão principal e chip ativo | Texto normal (≥ 4,5:1) | 18,88:1 | 17,16:1 | **Aprovado** |
+| `BrandOnPrimary` sobre `Danger` | Confirmação de exclusão de conta | Texto normal (≥ 4,5:1) | 5,39:1 | 6,70:1 | **Aprovado** |
+| `BrandPrimary` sobre `Surface` | Ações e contornos sobre o fundo | Texto normal (≥ 4,5:1) | 16,84:1 | 17,90:1 | **Aprovado** |
+| `BrandPrimary` sobre `SurfaceElevated` | Botões de contorno e links em cartões | Texto normal (≥ 4,5:1) | 18,88:1 | 15,50:1 | **Aprovado** |
+| `Success` sobre `Surface` | Confirmações e status sobre o fundo | Texto / Ícone (≥ 4,5:1) | 4,90:1 | 11,31:1 | **Aprovado** |
+| `Success` sobre `SurfaceElevated` | Selos em cartões e presença | Texto / Ícone (≥ 4,5:1) | 5,49:1 | 9,80:1 | **Aprovado** |
+| `Warning` sobre `Surface` | Advertências sobre o fundo | Texto / Ícone (≥ 4,5:1) | 4,70:1 | 11,79:1 | **Aprovado** |
+| `Warning` sobre `SurfaceElevated` | Avisos de fila offline em cartões | Texto / Ícone (≥ 4,5:1) | 5,26:1 | 10,22:1 | **Aprovado** |
+| `Danger` sobre `Surface` | Erros e alertas sobre o fundo | Texto / Ícone (≥ 4,5:1) | 4,80:1 | 6,98:1 | **Aprovado** |
+| `Danger` sobre `SurfaceElevated` | Botão destrutivo e erros em campos | Texto normal / Comp. (≥ 4,5:1) | 5,39:1 | 6,05:1 | **Aprovado** |
+| `BrandAccent` sobre `Surface` | Ícone e marca terracota (#EA5A36) | Ícone / Comp. (≥ 3,0:1) | 3,11:1 | 6,34:1 | **Aprovado (3:1)** / Reprovado para texto normal |
+| `BrandAccent` sobre `SurfaceElevated` | Destaque gráfico em cartões | Ícone / Comp. (≥ 3,0:1) | 3,49:1 | 5,49:1 | **Aprovado (3:1)** / Reprovado para texto normal |
+| `BrandOnPrimary` sobre `BrandAccent` | Ícone claro em pílula de marca | Ícone / Comp. (≥ 3,0:1) | 3,49:1 | 6,08:1 | **Aprovado (3:1)** / Reprovado para texto normal |
+| `SheetGrabber` sobre `SurfaceElevated` | Puxador visual de folhas modais | Decorativo (isento WCAG 1.4.11) | 1,54:1 | 1,89:1 | **Isento** (`.accessibilityHidden(true)`) |
 
 **Estado só por cor** (item do #71, por leitura de código): a seleção das pílulas de filtro ganha
 ícone de check (`TelaVagas.swift:164`), os cartões de perfil do cadastro ganham ícone de check
