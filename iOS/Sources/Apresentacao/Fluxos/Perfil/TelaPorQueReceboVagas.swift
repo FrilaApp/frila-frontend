@@ -24,6 +24,7 @@ public struct TelaPorQueReceboVagas: View {
                 Text(verbatim: TextosPerfilConta.explicacaoVagas)
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("perfil-explicacao-vagas")
                     .frame(maxWidth: .infinity, alignment: .leading)
                 criterios
@@ -94,6 +95,7 @@ public struct TelaPorQueReceboVagas: View {
             Text(verbatim: titulo)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             conteudo()
         }
@@ -107,6 +109,7 @@ public struct TelaPorQueReceboVagas: View {
         Text(verbatim: texto)
             .font(FrilaTipo.corpo)
             .foregroundStyle(FrilaCor.texto)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -114,6 +117,7 @@ public struct TelaPorQueReceboVagas: View {
         Text(verbatim: texto)
             .font(FrilaTipo.nota)
             .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -124,6 +128,7 @@ public struct TelaPorQueReceboVagas: View {
             Text(verbatim: TextosPorQueReceboVagas.secaoContestar)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
             if let protocolo = viewModel.protocolo {
@@ -154,6 +159,7 @@ public struct TelaPorQueReceboVagas: View {
             Text(verbatim: TextosPorQueReceboVagas.labelRelato)
                 .font(FrilaTipo.meta.weight(.medium))
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
 
             TextField(
                 text: $viewModel.relato,
@@ -213,6 +219,7 @@ public struct TelaPorQueReceboVagas: View {
             Label {
                 Text(verbatim: TextosPorQueReceboVagas.pedidoEnviado)
                     .font(FrilaTipo.meta.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "checkmark.circle")
             }
@@ -223,9 +230,11 @@ public struct TelaPorQueReceboVagas: View {
                 Text(verbatim: TextosPorQueReceboVagas.protocoloNumero)
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: protocolo.ocorrenciaID.uuidString)
                     .font(FrilaTipo.meta.monospaced())
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("protocolo-revisao-despacho")
             }
 
@@ -233,18 +242,22 @@ public struct TelaPorQueReceboVagas: View {
                 Text(verbatim: TextosPorQueReceboVagas.protocoloData)
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: Self.formatarData(protocolo.criadaEm))
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: TextosPorQueReceboVagas.prazoRespostaTitulo)
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: Self.formatarDataCivil(protocolo.prazoRespostaAte))
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("prazo-resposta-revisao")
             }
 

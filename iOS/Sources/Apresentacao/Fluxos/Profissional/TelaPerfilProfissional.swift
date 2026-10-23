@@ -120,7 +120,7 @@ public struct TelaPerfilProfissional: View {
                     .fill(FrilaCor.controle)
                     .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.title)
+                    .font(FrilaTipo.secao)
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityHidden(true)
             }
@@ -129,12 +129,14 @@ public struct TelaPerfilProfissional: View {
                 .font(FrilaTipo.tituloDeEstado)
                 .foregroundStyle(FrilaCor.texto)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("tela-perfil-profissional")
 
             Text(verbatim: erro)
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("aviso-erro-perfil")
 
             BotaoPrimario(verbatim: TextosDoProfissional.Perfil.tentarDeNovo) {
@@ -152,6 +154,7 @@ public struct TelaPerfilProfissional: View {
         Text(verbatim: TextosDoProfissional.Perfil.cabecalho)
             .font(FrilaTipo.subtituloDaTela)
             .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("tela-perfil-profissional")
     }
 
@@ -222,6 +225,7 @@ public struct TelaPerfilProfissional: View {
             Text(verbatim: TextosDoProfissional.Perfil.pontoBase)
                 .font(FrilaTipo.meta.weight(.semibold))
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: FrilaEspaco.compacto) {
                 Image(systemName: "mappin")
@@ -326,6 +330,7 @@ public struct TelaPerfilProfissional: View {
             Text(verbatim: TextosDoProfissional.Perfil.dicaPontoBase)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, FrilaEspaco.medio)
         }
     }
@@ -336,6 +341,7 @@ public struct TelaPerfilProfissional: View {
                 .font(FrilaTipo.microRotulo)
                 .textCase(.uppercase)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityAddTraits(.isHeader)
 
@@ -423,6 +429,7 @@ public struct TelaPerfilProfissional: View {
                 Text(verbatim: TextosDoProfissional.Perfil.diaSemana)
                     .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Menu {
                     Picker(selection: $viewModel.diaNovo) {
@@ -459,6 +466,7 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.inicio)
                         .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
                     DatePicker(selection: $viewModel.inicioNovo, displayedComponents: .hourAndMinute) {
                         Text(verbatim: TextosDoProfissional.Perfil.inicio)
                     }
@@ -475,6 +483,7 @@ public struct TelaPerfilProfissional: View {
                     Text(verbatim: TextosDoProfissional.Perfil.fim)
                         .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
                     DatePicker(selection: $viewModel.fimNovo, displayedComponents: .hourAndMinute) {
                         Text(verbatim: TextosDoProfissional.Perfil.fim)
                     }
@@ -545,6 +554,7 @@ public struct TelaPerfilProfissional: View {
             Text(verbatim: erro)
                 .font(FrilaTipo.meta.weight(.semibold))
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)

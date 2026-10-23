@@ -45,6 +45,7 @@ public struct ItemExportarDados: View {
                         .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.texto)
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: FrilaEspaco.pequeno)
                     if viewModel.estaCarregando {
                         ProgressView()
