@@ -1,5 +1,8 @@
 package br.com.frila.core.notificacoes
 
+import android.app.PendingIntent
+import android.content.Intent
+import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import br.com.frila.core.rede.ErroDaApi
@@ -57,6 +60,17 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setPriority(prioridadeParaCanal(notificacao.canal))
             .setAutoCancel(true)
+
+        ResolvedorDeDeepLinkPush.resolver(notificacao)?.let { deepLink ->
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).setPackage(packageName)
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                deepLink.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.setContentIntent(pendingIntent)
+        }
 
         NotificationManagerCompat.from(this).notify(notificacao.hashCode(), builder.build())
     }

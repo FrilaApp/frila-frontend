@@ -3,6 +3,7 @@ package br.com.frila.app
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
+import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -42,6 +43,11 @@ object Rotas {
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
+}
+
+object DeepLinks {
+    const val DETALHE_VAGA = "frila://vagas/{vagaId}"
+    const val MEUS_TURNOS = "frila://meus_turnos"
 }
 
 /**
@@ -104,7 +110,10 @@ fun AppNavegacao(
             )
         }
 
-        composable(Rotas.DETALHE) { entrada ->
+        composable(
+            route = Rotas.DETALHE,
+            deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.DETALHE_VAGA }),
+        ) { entrada ->
             val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
             val feedAnterior = navController.previousBackStackEntry?.let {
                 koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
@@ -117,7 +126,10 @@ fun AppNavegacao(
             }
         }
 
-        composable(Rotas.MEUS_TURNOS) {
+        composable(
+            route = Rotas.MEUS_TURNOS,
+            deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.MEUS_TURNOS }),
+        ) {
             val viewModel: MeusTurnosViewModel = koinViewModel()
             TelaMeusTurnos(
                 viewModel = viewModel,
