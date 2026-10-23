@@ -6,7 +6,8 @@ import Testing
 /// (`FrilaCor` e estilos dinâmicos de texto do sistema).
 ///
 /// Falha se aparecer `Color(red:`, `Color(white:`, `Color(uiColor:`, `Color("`,
-/// `UIColor(`, `.system(size:`, `Font.system(size:` ou `Font.custom` fora de `DesignTokens.swift`.
+/// `UIColor(`, `.system(size:`, `Font.system(size:` ou `Font.custom` fora de `DesignTokens.swift`
+/// e dos `*DesignTokens.swift` de enxerto (mesma regra do `Scripts/conferir-textos.sh`).
 ///
 /// Arquivos ocupados por PRs abertos estão catalogados na lista de exceções explícitas,
 /// que o Nick Fury esvazia conforme cada PR correspondente é mergeado.
@@ -25,7 +26,7 @@ struct GuardaTokensDesignTests {
         let apresentacao = raiz.appending(path: "Sources").appending(path: "Apresentacao")
         let enumerador = try #require(FileManager.default.enumerator(at: apresentacao, includingPropertiesForKeys: nil))
         return try enumerador.compactMap { $0 as? URL }
-            .filter { $0.pathExtension == "swift" && $0.lastPathComponent != "DesignTokens.swift" }
+            .filter { $0.pathExtension == "swift" && !$0.lastPathComponent.hasSuffix("DesignTokens.swift") }
             .map { url in
                 let nome = url.lastPathComponent
                 let conteudo = try String(contentsOf: url, encoding: .utf8)

@@ -56,6 +56,12 @@ a mesma validação e a mesma fila. Não há campo, regra nem endpoint novo.
 10. Conhecido: três avisos de concorrência do Swift 6 no código copiado
     (`FrilaLPKeyboardDismissModifier`, `FrilaLPOutsideTapModifier`, `FrilaLPTimeField`). São avisos,
     não erros.
+11. Dos modelos de turno da origem (`ShiftModels.swift`), só ficou o que a tela usa: relógio, janela,
+    calendário e a escolha de dia. Função, local, histórico de recontratação, perfil e textos do feed
+    saíram, porque são de outras telas e a menção a reputação quebraria o `ReputacaoSemMediaTests`.
+12. Os tokens de cor e de fonte da origem ficam em `FrilaLPColorDesignTokens.swift` e
+    `FrilaLPTypographyDesignTokens.swift`. O `GuardaTokensDesignTests` passou a aceitar qualquer
+    `*DesignTokens.swift`, como o `conferir-textos.sh` já fazia.
 
 ## Como ligar
 
