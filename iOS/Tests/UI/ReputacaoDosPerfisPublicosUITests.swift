@@ -7,7 +7,8 @@ final class ReputacaoDosPerfisPublicosUITests: XCTestCase {
         conferirPerfis(tamanho: "padrao", argumentos: [])
     }
 
-    func testPerfisComESemHistoricoEmAX5() {
+    func testPerfisComESemHistoricoEmAX5() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         conferirPerfis(tamanho: "ax5", argumentos: [
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
         ])

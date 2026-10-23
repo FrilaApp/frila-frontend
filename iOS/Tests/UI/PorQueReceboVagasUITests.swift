@@ -121,7 +121,8 @@ final class PorQueReceboVagasUITests: XCTestCase {
 
     /// Em AX5 nada corta nem some: as seções existem, Fechar fica tocável e os dois botões do
     /// formulário empilham com a largura do cartão (QA do #105 na conta suspensa).
-    func testEmAX5SecoesExistemEBotoesDaRevisaoEmpilham() {
+    func testEmAX5SecoesExistemEBotoesDaRevisaoEmpilham() throws {
+        throw XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")
         let app = abrirFolha(argumentos: ["-UIPreferredContentSizeCategoryName", Self.ax5])
 
         XCTAssertTrue(app.descendants(matching: .any)["criterios-funcoes"].waitForExistence(timeout: 5))
