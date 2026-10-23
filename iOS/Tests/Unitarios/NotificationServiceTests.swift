@@ -105,6 +105,21 @@ struct NotificationServiceTests {
         armazenamento.guardar(nil)
         #expect(armazenamento.ler() == nil)
     }
+
+    @Test("Roteiro de teste em aparelho acrescentado ao iOS/Docs/Push.md (#h6RoObK6)")
+    func roteiroDeTesteEmAparelhoNoPushMd() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // Unitarios
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // iOS
+        let caminhoDoc = raiz.appending(path: "Docs/Push.md")
+        let conteudo = try String(contentsOf: caminhoDoc, encoding: .utf8)
+
+        #expect(conteudo.contains("## Roteiro de teste no aparelho"), "Push.md deve conter a seção '## Roteiro de teste no aparelho'")
+        #expect(conteudo.contains("Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6)"), "Push.md deve documentar o teste de duas contas no mesmo iPhone para h6RoObK6")
+        #expect(conteudo.contains("Frila — Nova notificação disponível"), "Push.md deve especificar o texto neutro exibido na tela bloqueada")
+        #expect(conteudo.contains("com.frila.org.app.notificationservice"), "Push.md deve citar o subsistema de log da extensão no Console.app")
+    }
 }
 
 // MARK: - Suíte XCTest (cartão h6RoObK6 / #253)
@@ -193,5 +208,19 @@ final class NotificationServiceXCTestCase: XCTestCase {
 
         armazenamento.guardar(nil)
         XCTAssertNil(armazenamento.ler())
+    }
+
+    func testRoteiroDeTesteEmAparelhoNoPushMd() throws {
+        let raiz = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let caminhoDoc = raiz.appending(path: "Docs/Push.md")
+        let conteudo = try String(contentsOf: caminhoDoc, encoding: .utf8)
+
+        XCTAssertTrue(conteudo.contains("## Roteiro de teste no aparelho"))
+        XCTAssertTrue(conteudo.contains("Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6)"))
+        XCTAssertTrue(conteudo.contains("Frila — Nova notificação disponível"))
+        XCTAssertTrue(conteudo.contains("com.frila.org.app.notificationservice"))
     }
 }

@@ -82,4 +82,25 @@ struct ConformidadeReleaseTests {
         let permissoes = (atributos[.posixPermissions] as? NSNumber)?.intValue ?? 0
         #expect((permissoes & 0o111) != 0, "conferir-release.sh deve ser executável")
     }
+
+    @Test("App e project.yml declaram isenção de criptografia ITSAppUsesNonExemptEncryption = false (#AkupeSBi, #Jg8qMYKj)")
+    func declaracaoIsencaoDeCriptografia() throws {
+        let caminhoPlist = Self.raiz.appending(path: "Sources/App/Info.plist")
+        let dados = try Data(contentsOf: caminhoPlist)
+        let plist = try #require(try PropertyListSerialization.propertyList(from: dados, format: nil) as? [String: Any])
+
+        let isencao = try #require(plist["ITSAppUsesNonExemptEncryption"] as? Bool)
+        #expect(isencao == false, "ITSAppUsesNonExemptEncryption deve ser o booleano false no Info.plist para evitar avisos na App Store")
+
+        let projectYml = try String(contentsOf: Self.raiz.appending(path: "project.yml"), encoding: .utf8)
+        #expect(projectYml.contains("INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO"), "project.yml deve configurar INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO")
+    }
+
+    @Test("Target configurado exclusivamente para iPhone TARGETED_DEVICE_FAMILY = 1 (#Jg8qMYKj)")
+    func targetApenasIPhone() throws {
+        let projectYml = try String(contentsOf: Self.raiz.appending(path: "project.yml"), encoding: .utf8)
+        #expect(projectYml.contains("TARGETED_DEVICE_FAMILY: \"1\""), "project.yml deve fixar TARGETED_DEVICE_FAMILY em 1 (iPhone)")
+        #expect(!projectYml.contains("TARGETED_DEVICE_FAMILY: \"1,2\""), "Não pode incluir iPad (família 2)")
+        #expect(!projectYml.contains("TARGETED_DEVICE_FAMILY: \"2\""), "Não pode ser target exclusivo de iPad")
+    }
 }

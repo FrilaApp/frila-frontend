@@ -287,5 +287,22 @@ struct TextosDeNotificacaoTests {
         let tiposNoCodigo = Set(TipoDeAviso.allCases.map(\.rawValue))
         #expect(Set(tiposSecao3) == tiposNoCodigo, "Tipos da seção 3 devem ser idênticos a TipoDeAviso.allCases")
     }
+
+    @Test("Planilha segue as decisões do Backlog v1.2.1 sobre US10, US14 e RF12 com link de decisão (#VyY2SGsX)")
+    func decisoesBacklogV121() throws {
+        let conteudo = try String(contentsOf: Self.caminhoDoDoc, encoding: .utf8)
+
+        #expect(conteudo.contains("## 2. Resolução dos Três Conflitos do Cartão (Sprint 0 / Backlog v1.2.1)"), "Doc deve conter a seção de resolução dos conflitos do Backlog v1.2.1")
+        #expect(conteudo.contains("Conflito 1: Ação interativa \"Aceitar Turno\" na notificação (US10) vs. Aviso da RN10"), "Deve registrar a resolução de US10")
+        #expect(conteudo.contains("Conflito 2: Telefone de contato no lembrete (RF12) vs. Janela de 7 dias e persistência na Central (RN10 / RN15)"), "Deve registrar a resolução de RF12")
+        #expect(conteudo.contains("Conflito 3: Funcionalidade e notificação \"Estou a caminho\" (US14)"), "Deve registrar a resolução de US14")
+        #expect(conteudo.contains("8zLfn0mt"), "Deve citar o link do cartão de decisão 8zLfn0mt")
+
+        // Valida que nenhum push traz ação de aceitar direto no banner (US10)
+        let tabela = try Self.carregarTabela()
+        for linha in tabela {
+            #expect(!linha.corpoBruto.localizedCaseInsensitiveContains("Aceitar Turno"), "Nenhum push pode sugerir ação interativa 'Aceitar Turno' no banner")
+        }
+    }
 }
 

@@ -113,4 +113,39 @@ struct AppPrivacyTests {
         #expect(enderecos.urlSuporte?.absoluteString == "mailto:suporte@frilabr.com")
         #expect(enderecos.urlSuporte?.scheme == "mailto")
     }
+
+    @Test("Estrutura do PrivacyInfo.xcprivacy pronta para o gerador de relatório do Xcode (Generate Privacy Report) (#AkupeSBi, #Jg8qMYKj)")
+    func integridadeParaGeradorDeRelatorioDePrivacidade() throws {
+        let caminhoManifesto = Self.raiz.appending(path: "Resources/PrivacyInfo.xcprivacy")
+        let dados = try Data(contentsOf: caminhoManifesto)
+        let plist = try #require(try PropertyListSerialization.propertyList(from: dados, format: nil) as? [String: Any])
+
+        let chavesObrigatorias = [
+            "NSPrivacyTracking",
+            "NSPrivacyTrackingDomains",
+            "NSPrivacyCollectedDataTypes",
+            "NSPrivacyAccessedAPITypes"
+        ]
+        for chave in chavesObrigatorias {
+            #expect(plist[chave] != nil, "Manifesto deve conter a chave de topo '\(chave)' para exportação no Organizer")
+        }
+
+        let dadosColetados = try #require(plist["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
+        for item in dadosColetados {
+            let tipo = try #require(item["NSPrivacyCollectedDataType"] as? String)
+            #expect(!tipo.isEmpty, "Tipo de dado coletado não pode ter identificador vazio")
+            #expect(item["NSPrivacyCollectedDataTypeLinked"] is Bool, "Item '\(tipo)' deve declarar booleano NSPrivacyCollectedDataTypeLinked")
+            #expect(item["NSPrivacyCollectedDataTypeTracking"] is Bool, "Item '\(tipo)' deve declarar booleano NSPrivacyCollectedDataTypeTracking")
+            let finalidades = try #require(item["NSPrivacyCollectedDataTypePurposes"] as? [String])
+            #expect(!finalidades.isEmpty, "Item '\(tipo)' deve ter array de finalidades preenchido para o relatório")
+        }
+
+        let apis = try #require(plist["NSPrivacyAccessedAPITypes"] as? [[String: Any]])
+        for api in apis {
+            let categoria = try #require(api["NSPrivacyAccessedAPIType"] as? String)
+            #expect(!categoria.isEmpty, "Categoria de API acessada não pode ser vazia")
+            let razoes = try #require(api["NSPrivacyAccessedAPITypeReasons"] as? [String])
+            #expect(!razoes.isEmpty, "Categoria '\(categoria)' deve ter array de razões preenchido para o relatório")
+        }
+    }
 }
