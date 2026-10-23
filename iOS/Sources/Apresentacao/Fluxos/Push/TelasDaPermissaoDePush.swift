@@ -44,21 +44,23 @@ public struct TelaExplicacaoDoPush: View {
     private var cabecalho: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             Image(systemName: "bell.badge.fill")
-                .font(.title)
+                .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
                 .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                 .background(FrilaCor.controle, in: Circle())
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoPush.Explicacao.titulo(perfil))
                     .font(FrilaTipo.tituloGrande)
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
 
                 Text(verbatim: TextosDoPush.Explicacao.mensagem(perfil))
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -78,10 +80,12 @@ public struct TelaExplicacaoDoPush: View {
                     Text(verbatim: TextosDoPush.Explicacao.amostraCargoHorario)
                         .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: FrilaEspaco.minimo)
                     Text(verbatim: TextosDoPush.Explicacao.amostraAgora)
                         .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Text(verbatim: TextosDoPush.Explicacao.amostraDetalhe)
@@ -103,13 +107,13 @@ public struct TelaExplicacaoDoPush: View {
     // MARK: - Benefícios Profissionais
 
     private var beneficiosProfissional: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             ForEach(TextosDoPush.Explicacao.itens(.profissional), id: \.self) { item in
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
                     ZStack {
                         Circle()
                             .fill(FrilaCor.controle)
-                            .frame(width: 24, height: 24)
+                            .frame(width: diametroDoVisto, height: diametroDoVisto)
                         Image(systemName: "checkmark")
                             .font(FrilaTipo.microRotulo)
                             .foregroundStyle(FrilaCor.textoSecundario)
@@ -178,6 +182,7 @@ public struct TelaExplicacaoDoPush: View {
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, FrilaEspaco.medio)
         .padding(.vertical, FrilaEspaco.compacto)
