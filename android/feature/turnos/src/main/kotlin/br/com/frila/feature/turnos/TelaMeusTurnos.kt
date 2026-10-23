@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -15,7 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -23,7 +25,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
@@ -45,7 +53,11 @@ fun TelaMeusTurnos(
 
     Scaffold(
         modifier = modifier,
-        topBar = { CenterAlignedTopAppBar(title = { Text("Meus Turnos") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Meus Turnos", modifier = Modifier.semantics { heading() }) },
+            )
+        },
     ) { paddingInterno ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingInterno)) {
             TabRow(selectedTabIndex = estado.abaSelecionada.ordinal) {
@@ -53,11 +65,35 @@ fun TelaMeusTurnos(
                     selected = estado.abaSelecionada == AbaDeTurnos.AGENDADOS,
                     onClick = { viewModel.aoSelecionarAba(AbaDeTurnos.AGENDADOS) },
                     text = { Text("Agendados") },
+                    modifier = Modifier
+                        .sizeIn(
+                            minWidth = FrilaMetricas.alvoMinimo,
+                            minHeight = FrilaMetricas.alvoMinimo,
+                        )
+                        .semantics {
+                            stateDescription = if (estado.abaSelecionada == AbaDeTurnos.AGENDADOS) {
+                                "selecionado"
+                            } else {
+                                "não selecionado"
+                            }
+                        },
                 )
                 Tab(
                     selected = estado.abaSelecionada == AbaDeTurnos.HISTORICO,
                     onClick = { viewModel.aoSelecionarAba(AbaDeTurnos.HISTORICO) },
                     text = { Text("Histórico") },
+                    modifier = Modifier
+                        .sizeIn(
+                            minWidth = FrilaMetricas.alvoMinimo,
+                            minHeight = FrilaMetricas.alvoMinimo,
+                        )
+                        .semantics {
+                            stateDescription = if (estado.abaSelecionada == AbaDeTurnos.HISTORICO) {
+                                "selecionado"
+                            } else {
+                                "não selecionado"
+                            }
+                        },
                 )
             }
 
@@ -92,7 +128,11 @@ private fun ListaDeTurnos(
     ) {
         items(itens, key = { it.turnoId }) { turno ->
             CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-                Text(text = turno.funcaoNome, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = turno.funcaoNome,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.semantics { heading() },
+                )
                 Text(text = turno.estabelecimentoNome, style = MaterialTheme.typography.bodyMedium)
                 Text(text = turno.dataHorarioFormatado, style = MaterialTheme.typography.bodySmall)
                 Column(
@@ -150,6 +190,9 @@ private fun SecaoDeCheckin(turnoId: String, criarCheckinViewModel: @Composable (
                 Text(
                     text = estado.mensagemErro ?: "Não foi possível registrar o check-in.",
                     style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics {
+                        error(estado.mensagemErro ?: "Não foi possível registrar o check-in.")
+                    },
                 )
                 BotaoSecundario(texto = "Tentar novamente", aoClicar = { viewModel.fazerCheckin() })
             }
@@ -159,10 +202,24 @@ private fun SecaoDeCheckin(turnoId: String, criarCheckinViewModel: @Composable (
 
 @Composable
 private fun BadgeDeStatus(estado: String) {
-    SuggestionChip(
-        onClick = {},
-        label = { Text(rotuloDeEstado(estado), style = MaterialTheme.typography.bodySmall) },
-    )
+    val rotulo = rotuloDeEstado(estado)
+    Surface(
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = "Status: $rotulo"
+        },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Text(
+            text = rotulo,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(
+                horizontal = FrilaEspacamento.pequeno,
+                vertical = FrilaEspacamento.minimo,
+            ),
+        )
+    }
 }
 
 private fun rotuloDeEstado(estado: String): String = when (estado) {
@@ -207,6 +264,7 @@ private fun Erro(mensagem: String?, aoTentarNovamente: () -> Unit) {
             text = mensagem ?: "Não foi possível carregar seus turnos.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { error(mensagem ?: "Não foi possível carregar seus turnos.") },
         )
         BotaoSecundario(texto = "Tentar novamente", aoClicar = aoTentarNovamente)
     }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,9 +21,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.dominio.modelo.DataCivil
 
 @Composable
@@ -31,6 +42,12 @@ fun TelaCadastro(
     modifier: Modifier = Modifier,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val erroNome = estado.erro?.takeIf { it == "Informe seu nome." }
+    val erroTelefone = estado.erro?.takeIf { it == "Informe seu telefone." }
+    val erroNascimento = estado.erro?.takeIf {
+        it == "Informe sua data de nascimento." || it == MENSAGEM_MENOR_DE_IDADE
+    }
+    val erroTermos = estado.erro?.takeIf { it == "Você precisa aceitar os termos para continuar." }
 
     LaunchedEffect(estado.concluido) {
         if (estado.concluido) {
@@ -45,14 +62,21 @@ fun TelaCadastro(
             .padding(FrilaEspacamento.grande),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
-        Text(text = "Complete seu cadastro", style = MaterialTheme.typography.titleLarge)
+        Text(
+            text = "Complete seu cadastro",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
 
         OutlinedTextField(
             value = estado.nome,
             onValueChange = viewModel::aoMudarNome,
             label = { Text("Nome completo") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = erroNome != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { erroNome?.let { error(it) } },
         )
 
         OutlinedTextField(
@@ -60,12 +84,16 @@ fun TelaCadastro(
             onValueChange = viewModel::aoMudarTelefone,
             label = { Text("Telefone") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = erroTelefone != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { erroTelefone?.let { error(it) } },
         )
 
         CampoDeNascimento(
             nascimento = estado.nascimento,
             aoMudar = viewModel::aoMudarNascimento,
+            mensagemErro = erroNascimento,
         )
 
         if (estado.nascimento != null && !estado.nascimentoValido) {
@@ -73,22 +101,42 @@ fun TelaCadastro(
                 text = MENSAGEM_MENOR_DE_IDADE,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .sizeIn(
+                    minWidth = FrilaMetricas.alvoMinimo,
+                    minHeight = FrilaMetricas.alvoMinimo,
+                )
+                .toggleable(
+                    value = estado.aceitouTermos,
+                    role = Role.Checkbox,
+                    onValueChange = viewModel::aoMudarAceiteDeTermos,
+                )
+                .semantics {
+                    stateDescription = if (estado.aceitouTermos) "selecionado" else "não selecionado"
+                    erroTermos?.let { error(it) }
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Checkbox(
                 checked = estado.aceitouTermos,
-                onCheckedChange = viewModel::aoMudarAceiteDeTermos,
+                onCheckedChange = null,
+                modifier = Modifier.clearAndSetSemantics { },
             )
             Text(text = "Li e aceito os termos de uso e a política de privacidade.")
         }
 
-        estado.erro?.let { mensagem ->
+        estado.erro?.takeUnless { it == MENSAGEM_MENOR_DE_IDADE }?.let { mensagem ->
             Text(
                 text = mensagem,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
 
@@ -106,6 +154,7 @@ fun TelaCadastro(
 private fun CampoDeNascimento(
     nascimento: DataCivil?,
     aoMudar: (DataCivil) -> Unit,
+    mensagemErro: String?,
 ) {
     var texto by remember {
         mutableStateOf(
@@ -121,7 +170,10 @@ private fun CampoDeNascimento(
         },
         label = { Text("Data de nascimento (dd/mm/aaaa)") },
         singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        isError = mensagemErro != null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { mensagemErro?.let { error(it) } },
     )
 }
 

@@ -2,6 +2,7 @@ package br.com.frila.core.designsystem.componentes
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,10 @@ fun BotaoSecundario(
         onClick = aoClicar,
         enabled = habilitado,
         modifier = modifier
+            .sizeIn(
+                minWidth = FrilaMetricas.alvoMinimo,
+                minHeight = FrilaMetricas.alvoMinimo,
+            )
             .heightIn(min = FrilaMetricas.alturaBotao)
             .widthIn(min = FrilaMetricas.alvoMinimo),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
