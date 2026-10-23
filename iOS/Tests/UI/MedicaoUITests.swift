@@ -44,6 +44,62 @@ final class MedicaoUITests: XCTestCase {
         XCTAssertTrue(linha(app, "listaDeVagas").contains("sem medições"), linha(app, "listaDeVagas"))
     }
 
+    /// Exercita o roteiro e a leitura do relatório. `success` tem uma única vaga e não usa HTTP:
+    /// o orçamento de rede com bytes não nulos é coberto por
+    /// `MedicaoDeDesempenhoTests.bytesDaSessaoComHTTPReal`, sem alterar o dublê do app.
+    func testSessaoDeConsultaECandidaturaConsomeMenosDeUmMegabyte() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "success", "-FRILA_LOCALIZACAO", "perto",
+            "-FRILA_MEDICAO", "-FRILA_CACHE_VAZIO_UI_TEST"
+        ]
+        app.launch()
+        XCTAssertTrue(primeiraVaga(app).waitForExistence(timeout: 10))
+
+        // O registro persiste entre execuções. Zera antes de relançar, para incluir a lista
+        // inicial na sessão medida; não zera depois que o roteiro começou.
+        abrirRelatorio(app)
+        app.buttons["medicoes-zerar"].tap()
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(primeiraVaga(app).waitForExistence(timeout: 10))
+
+        for _ in 0..<3 {
+            primeiraVaga(app).tap()
+            XCTAssertTrue(app.buttons["candidatar"].waitForExistence(timeout: 10))
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            XCTAssertTrue(primeiraVaga(app).waitForExistence(timeout: 10))
+        }
+
+        primeiraVaga(app).tap()
+        let candidatar = app.buttons["candidatar"]
+        XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
+        candidatar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
+        abrirRelatorio(app)
+
+        for (tela, minimo) in [("listaDeVagas", 1), ("detalheDaVaga", 4)] {
+            let texto = linha(app, tela)
+            let quantidade = try XCTUnwrap(texto.range(of: #"n=([0-9]+)"#, options: .regularExpression), texto)
+            let n = try XCTUnwrap(Int(texto[quantidade].dropFirst(2)), texto)
+            XCTAssertGreaterThanOrEqual(n, minimo, texto)
+            print("MEDICOES \(tela): \(texto)")
+        }
+
+        let rede = app.descendants(matching: .any)["medicoes-bytes"]
+        XCTAssertTrue(rede.waitForExistence(timeout: 5))
+        let texto = rede.label
+        let campos = texto.components(separatedBy: " · ")
+        XCTAssertEqual(campos.count, 2, texto)
+        let campoBytes = try XCTUnwrap(campos.last, texto)
+        XCTAssertTrue(campoBytes.hasSuffix(" B"), texto)
+        let totalBytes = try XCTUnwrap(Int64(campoBytes.dropLast(2)), texto)
+        XCTAssertGreaterThanOrEqual(totalBytes, 0, texto)
+        // O app e Docs/Desempenho.md definem 1 MB decimal; mantém o limite mais restritivo.
+        XCTAssertLessThan(totalBytes, 1_000_000, "Sessão excedeu o limite de 1 MB da RNF05")
+        print("MEDICOES rede: \(totalBytes) bytes (dublê em memória; não comprova tráfego HTTP)")
+    }
+
     /// Coleta no simulador, fora da suíte: 20 aberturas de cada tela com o dublê, e o relatório no
     /// registro do teste (linhas "MEDICOES"). Liga com `TEST_RUNNER_FRILA_COLETAR_MEDICOES=1` no
     /// `xcodebuild`; o roteiro está em `Docs/Desempenho.md`.
