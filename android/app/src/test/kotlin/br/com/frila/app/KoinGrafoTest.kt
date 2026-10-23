@@ -11,6 +11,7 @@ import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
@@ -18,6 +19,7 @@ import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -60,7 +62,7 @@ class KoinGrafoTest : KoinTest {
     fun `grafo resolve todas as dependencias de rede, seguranca, notificacoes e features`() {
         startKoin { modules(todosOsModulos) }
 
-        assertNotNull(get<ArmazenamentoDeSessao>())
+        assertInstanceOf(ArmazenamentoDeSessaoEmMemoria::class.java, get<ArmazenamentoDeSessao>())
         assertNotNull(get<ClienteSupabase>())
         assertNotNull(get<ServicoAutenticacao>())
         assertNotNull(get<ServicoVagas>())
