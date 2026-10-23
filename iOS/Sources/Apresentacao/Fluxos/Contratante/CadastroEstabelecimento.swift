@@ -454,10 +454,12 @@ public struct TelaCadastroEstabelecimento: View {
             Text(verbatim: TextosCadastro.titulo)
                 .font(FrilaTipo.tituloGrande)
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: TextosCadastro.subtitulo)
                 .font(FrilaTipo.subtituloDaTela)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -476,6 +478,7 @@ public struct TelaCadastroEstabelecimento: View {
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, FrilaEspaco.medio)
@@ -761,26 +764,30 @@ public struct TelaCadastroEstabelecimento: View {
                             if let alvo = model.alvoDaCamera { centralizarMapa(em: alvo) }
                         }
                 }
-                .frame(height: 140)
+                .frame(minHeight: 140)
                 .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
 
                 Text(verbatim: TextosCadastro.dicaMapa)
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         } else {
             VStack(spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "map")
-                    .font(.title2)
+                    .font(FrilaTipo.secao)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityHidden(true)
                 Text(verbatim: TextosCadastro.pontoNaoMarcado)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 140)
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: 140)
             .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
             .accessibilityIdentifier("mapa-estabelecimento")
@@ -791,7 +798,7 @@ public struct TelaCadastroEstabelecimento: View {
     @ViewBuilder
     private func marcadorMapa(proxy: MapProxy, ponto: CLLocationCoordinate2D, posicao: CGPoint) -> some View {
         Image(systemName: "mappin.circle.fill")
-            .font(.title)
+            .font(FrilaTipo.secao)
             .foregroundStyle(FrilaCor.texto, FrilaCor.superficie)
             .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
             .contentShape(Rectangle())
