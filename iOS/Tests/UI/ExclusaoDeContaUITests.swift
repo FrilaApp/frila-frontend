@@ -29,7 +29,12 @@ final class ExclusaoDeContaUITests: XCTestCase {
         capturaExclusao.lifetime = .keepAlways
         add(capturaExclusao)
 
-        // 4. Marca a confirmação explícita das consequências
+        // 4. Valida que o botão de exclusão definitiva permanece desabilitado antes do consentimento
+        let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
+        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(botaoExcluir.isEnabled, "Botão de exclusão definitiva deve permanecer desabilitado antes de confirmar as consequências")
+
+        // 5. Marca a confirmação explícita das consequências
         let toggle = app.switches["toggle-confirmar-consequencias"]
         if toggle.waitForExistence(timeout: 5) {
             toggle.tap()
@@ -37,9 +42,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
             app.descendants(matching: .any)["toggle-confirmar-consequencias"].firstMatch.tap()
         }
 
-        // 5. Aciona o botão de exclusão definitiva
-        let botaoExcluir = app.buttons["botao-excluir-conta-definitivo"]
-        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: Espera.aparecer))
+        // 6. Aciona o botão de exclusão definitiva após habilitado
         let botaoHabilitado = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "isEnabled == true"),
             object: botaoExcluir
@@ -53,10 +56,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         }
         botaoExcluir.tap()
 
-        // 6. Confirma no diálogo de segurança
+        // 7. Confirma no diálogo de segurança
         confirmarExclusaoNoDialogo(no: app)
 
-        // 7. A exclusão é concluída e o app volta para a tela de entrada
+        // 8. A exclusão é concluída e o app volta para a tela de entrada
         let campoEmail = app.textFields["entrada-email"]
         XCTAssertTrue(campoEmail.waitForExistence(timeout: 15))
 
@@ -84,6 +87,110 @@ final class ExclusaoDeContaUITests: XCTestCase {
         // 3. Chega à tela de exclusão de conta
         let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
         XCTAssertTrue(telaExclusao.waitForExistence(timeout: Espera.aparecer), "Deve chegar à tela de exclusão de conta")
+    }
+
+    /// Cartão ABN4rvmT (Missão 6): Contratante com estabelecimento e sem turnos futuros
+    /// acessa a exclusão no menu principal (sem submenu) e conclui a exclusão após consentimento.
+    func testContratanteComEstabelecimentoExcluiContaEVoltaParaEntrada() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
+        app.launch()
+
+        // 1. Acesso direto ao perfil do estabelecimento a partir do fluxo principal
+        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Contratante existente deve ver o botão de perfil")
+        botaoPerfil.tap()
+
+        // 2. Botão de exclusão visível no menu principal (sem aninhamento em submenus)
+        let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
+        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: Espera.aparecer), "Botão de excluir conta do estabelecimento deve estar no menu principal")
+        botaoExcluir.tap()
+
+        // 3. Tela de exclusão exibida com consequências e indicação de ausência de turnos futuros
+        let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
+        XCTAssertTrue(telaExclusao.waitForExistence(timeout: Espera.aparecer), "Deve apresentar a tela de exclusão de conta")
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-consequencias-exclusao"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.staticTexts["texto-sem-turnos-futuros"].waitForExistence(timeout: Espera.aparecer))
+
+        // 4. Botão de exclusão definitiva permanece desabilitado antes do consentimento
+        let botaoConfirmarDefinitivo = app.buttons["botao-excluir-conta-definitivo"]
+        XCTAssertTrue(botaoConfirmarDefinitivo.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(botaoConfirmarDefinitivo.isEnabled, "Botão definitivo deve estar desabilitado antes de alternar o toggle de consequências")
+
+        // 5. Aciona o interruptor de consentimento das consequências
+        let toggle = app.switches["toggle-confirmar-consequencias"]
+        if toggle.waitForExistence(timeout: 5) {
+            toggle.tap()
+        } else {
+            app.descendants(matching: .any)["toggle-confirmar-consequencias"].firstMatch.tap()
+        }
+
+        // 6. Botão é habilitado e acionado
+        let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: botaoConfirmarDefinitivo)
+        XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: Espera.aparecer), .completed)
+        if !botaoConfirmarDefinitivo.isHittable {
+            app.swipeUp()
+        }
+        botaoConfirmarDefinitivo.tap()
+
+        // 7. Confirmação no diálogo destrutivo nativo/segurança
+        confirmarExclusaoNoDialogo(no: app)
+
+        // 8. Sessão limpa e app redirecionado para a tela de entrada
+        let campoEmail = app.textFields["entrada-email"]
+        XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão do contratante")
+    }
+
+    /// Cartão ABN4rvmT (Missão 6): Contratante com turnos ativos vinculados visualiza as consequências,
+    /// a listagem de turnos, e ao confirmar a exclusão tem a sessão limpa e volta para a entrada.
+    func testContratanteComTurnosFuturosExcluiContaEVoltaParaEntrada() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "painel-contratante"]
+        app.launch()
+
+        // 1. Acesso direto a partir do painel
+        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
+        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Contratante existente deve ver o botão de perfil")
+        botaoPerfil.tap()
+
+        // 2. Botão de exclusão no menu principal
+        let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
+        XCTAssertTrue(botaoExcluir.waitForExistence(timeout: Espera.aparecer))
+        botaoExcluir.tap()
+
+        // 3. Tela de exclusão com vínculos de turnos futuros listados
+        let telaExclusao = app.descendants(matching: .any)["tela-exclusao-de-conta"]
+        XCTAssertTrue(telaExclusao.waitForExistence(timeout: Espera.aparecer))
+        let itemTurno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(itemTurno.waitForExistence(timeout: Espera.aparecer), "Turno futuro vinculado à conta deve ser exibido")
+
+        // 4. Botão definitivo permanece desabilitado antes do consentimento
+        let botaoConfirmarDefinitivo = app.buttons["botao-excluir-conta-definitivo"]
+        XCTAssertTrue(botaoConfirmarDefinitivo.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(botaoConfirmarDefinitivo.isEnabled, "Botão definitivo deve estar desabilitado antes de alternar o toggle de consequências")
+
+        // 5. Aciona o toggle de confirmação de consequências
+        let toggle = app.switches["toggle-confirmar-consequencias"]
+        if toggle.waitForExistence(timeout: 5) {
+            toggle.tap()
+        } else {
+            app.descendants(matching: .any)["toggle-confirmar-consequencias"].firstMatch.tap()
+        }
+
+        // 6. Botão de exclusão definitivo habilitado
+        let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: botaoConfirmarDefinitivo)
+        XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: Espera.aparecer), .completed)
+        if !botaoConfirmarDefinitivo.isHittable {
+            app.swipeUp()
+        }
+        botaoConfirmarDefinitivo.tap()
+
+        // 7. Confirmação no diálogo
+        confirmarExclusaoNoDialogo(no: app)
+
+        // 8. Retorno à tela de entrada
+        let campoEmail = app.textFields["entrada-email"]
+        XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão do contratante com turnos")
     }
 
     func testContratanteComTurnosFuturosVisualizaVinculosEListaIncompletaNaExclusao() {
