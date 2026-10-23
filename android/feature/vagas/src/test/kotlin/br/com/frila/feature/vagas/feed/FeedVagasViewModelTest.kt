@@ -26,6 +26,8 @@ class FeedVagasViewModelTest {
         id: String = "11111111-1111-1111-1111-111111111111",
         funcao: String = "garçom",
         distanciaKm: Double = 4.2,
+        inicioEm: String = "2026-11-01T21:00:00Z",
+        valorCentavos: Long = 16_000L,
     ) = """
         {
           "id": "$id",
@@ -36,12 +38,12 @@ class FeedVagasViewModelTest {
             "nome": "Bar do Zé",
             "reputacao": {"positivas": 7, "total": 7, "taxa_comparecimento": 1.0, "turnos_considerados": 7, "turnos_realizados": 7}
           },
-          "inicio_em": "2026-11-01T21:00:00Z",
+          "inicio_em": "$inicioEm",
           "fim_em": "2026-11-02T03:00:00Z",
           "local": "SQN 108",
           "regiao_administrativa": "Asa Norte",
           "distancia_km": $distanciaKm,
-          "valor_centavos": 16000,
+          "valor_centavos": $valorCentavos,
           "posicoes_abertas": 2,
           "inclusos": {"inclui_refeicao": true, "inclui_transporte": false, "exige_material_proprio": false},
           "modo": "selecao"
@@ -219,5 +221,101 @@ class FeedVagasViewModelTest {
         val viewModel = viewModelComEngine(MockEngine { respond(content = "[]", status = HttpStatusCode.OK) })
 
         assertEquals(StatusFeed.CARREGANDO, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `filtro de remuneracao minima exclui valores abaixo do piso`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", valorCentavos = 9_999)}, ${vagaJson(id = "b", valorCentavos = 10_000)}, ${vagaJson(id = "c", valorCentavos = 20_000)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoSelecionarFiltroRemuneracao(FiltroRemuneracao.CEM)
+
+        assertEquals(listOf("b", "c"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `filtro de periodo usa horario de Brasilia para manha tarde e noite`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[" + listOf(
+                        vagaJson(id = "manha", inicioEm = "2026-11-01T09:00:00Z"),
+                        vagaJson(id = "tarde", inicioEm = "2026-11-01T15:00:00Z"),
+                        vagaJson(id = "noite", inicioEm = "2026-11-01T21:00:00Z"),
+                        vagaJson(id = "madrugada", inicioEm = "2026-11-01T08:59:00Z"),
+                    ).joinToString(",") + "]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoSelecionarFiltroPeriodo(FiltroPeriodo.MANHA)
+        assertEquals(listOf("manha"), viewModel.estado.value.vagas.map { it.id })
+
+        viewModel.aoSelecionarFiltroPeriodo(FiltroPeriodo.TARDE)
+        assertEquals(listOf("tarde"), viewModel.estado.value.vagas.map { it.id })
+
+        viewModel.aoSelecionarFiltroPeriodo(FiltroPeriodo.NOITE)
+        assertEquals(listOf("noite", "madrugada"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `remuneracao periodo funcao e distancia combinam por intersecao`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[" + listOf(
+                        vagaJson(id = "alvo", funcao = "cozinheiro", distanciaKm = 4.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 15_000),
+                        vagaJson(id = "salario", funcao = "cozinheiro", distanciaKm = 4.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 14_999),
+                        vagaJson(id = "periodo", funcao = "cozinheiro", distanciaKm = 4.0, inicioEm = "2026-11-01T09:00:00Z", valorCentavos = 20_000),
+                        vagaJson(id = "funcao", funcao = "garçom", distanciaKm = 4.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 20_000),
+                        vagaJson(id = "distancia", funcao = "cozinheiro", distanciaKm = 6.0, inicioEm = "2026-11-01T15:00:00Z", valorCentavos = 20_000),
+                    ).joinToString(",") + "]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoSelecionarFiltroRemuneracao(FiltroRemuneracao.CENTO_E_CINQUENTA)
+        viewModel.aoSelecionarFiltroPeriodo(FiltroPeriodo.TARDE)
+        viewModel.aoSelecionarFiltroFuncao("cozinheiro")
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.CINCO_KM)
+
+        assertEquals(listOf("alvo"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `limpar filtros avancados restaura todas as vagas`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", valorCentavos = 9_000)}, ${vagaJson(id = "b", inicioEm = "2026-11-01T09:00:00Z", valorCentavos = 20_000)}, ${vagaJson(id = "c", valorCentavos = 20_000)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+        viewModel.aoSelecionarFiltroRemuneracao(FiltroRemuneracao.DUZENTOS)
+        viewModel.aoSelecionarFiltroPeriodo(FiltroPeriodo.NOITE)
+        assertEquals(1, viewModel.estado.value.vagas.size)
+
+        viewModel.aoLimparFiltrosAvancados()
+
+        assertEquals(3, viewModel.estado.value.vagas.size)
+        assertEquals(FiltroRemuneracao.QUALQUER, viewModel.estado.value.filtroRemuneracao)
+        assertEquals(FiltroPeriodo.QUALQUER, viewModel.estado.value.filtroPeriodo)
     }
 }
