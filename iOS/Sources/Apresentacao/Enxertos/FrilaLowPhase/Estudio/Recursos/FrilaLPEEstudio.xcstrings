@@ -1,0 +1,1020 @@
+{
+  "sourceLanguage": "pt-BR",
+  "strings": {
+    "%@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@"
+          }
+        }
+      }
+    },
+    "%@ %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %@"
+          }
+        }
+      }
+    },
+    "%@ de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ de %@"
+          }
+        }
+      }
+    },
+    "%@ já existe no catálogo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ já existe no catálogo."
+          }
+        }
+      }
+    },
+    "%@ vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ vagas"
+          }
+        }
+      }
+    },
+    "%@, %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %@"
+          }
+        }
+      }
+    },
+    "%@, %@, %@, %@. Toque para ver detalhes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %@, %@, %@. Toque para ver detalhes."
+          }
+        }
+      }
+    },
+    "%@, etapa final": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, etapa final"
+          }
+        }
+      }
+    },
+    "%@, próxima etapa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, próxima etapa"
+          }
+        }
+      }
+    },
+    "%@:": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@:"
+          }
+        }
+      }
+    },
+    ",": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ","
+          }
+        }
+      }
+    },
+    "Adicionar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar"
+          }
+        }
+      }
+    },
+    "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno."
+          }
+        }
+      }
+    },
+    "Autonomous Agent Orchestrator for Distributed Compilers": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autonomous Agent Orchestrator for Distributed Compilers"
+          }
+        }
+      }
+    },
+    "Bar da Quadra": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bar da Quadra"
+          }
+        }
+      }
+    },
+    "Bloquear": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear"
+          }
+        }
+      }
+    },
+    "CLN 408, Bloco B, Asa Norte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLN 408, Bloco B, Asa Norte"
+          }
+        }
+      }
+    },
+    "COMPETÊNCIAS VERIFICADAS": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "COMPETÊNCIAS VERIFICADAS"
+          }
+        }
+      }
+    },
+    "Camisa preta, calça escura": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camisa preta, calça escura"
+          }
+        }
+      }
+    },
+    "Cancelar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "Candidatar-me": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-me"
+          }
+        }
+      }
+    },
+    "Candidatar-me para a vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-me para a vaga"
+          }
+        }
+      }
+    },
+    "Candidatar-me para a vaga de %@ no %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-me para a vaga de %@ no %@"
+          }
+        }
+      }
+    },
+    "Candidatar-me à vaga de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-me à vaga de %@"
+          }
+        }
+      }
+    },
+    "Candidatar-se": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-se"
+          }
+        }
+      }
+    },
+    "Candidatar-se à oportunidade de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidatar-se à oportunidade de %@"
+          }
+        }
+      }
+    },
+    "Carregando: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando: %@"
+          }
+        }
+      }
+    },
+    "Categoria %@, função %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Categoria %@, função %@"
+          }
+        }
+      }
+    },
+    "Concluir": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluir"
+          }
+        }
+      }
+    },
+    "Confirmado. Toque para revisar a escolha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmado. Toque para revisar a escolha."
+          }
+        }
+      }
+    },
+    "Contrato curado de alta complexidade técnica e design institucional. Requer proficiência sênior em sistemas escaláveis, conformidade estrita com tokens tipográficos e renderização de alta fidelidade.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contrato curado de alta complexidade técnica e design institucional. Requer proficiência sênior em sistemas escaláveis, conformidade estrita com tokens tipográficos e renderização de alta fidelidade."
+          }
+        }
+      }
+    },
+    "DETALHES E ATIVIDADES": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DETALHES E ATIVIDADES"
+          }
+        }
+      }
+    },
+    "Denunciar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denunciar"
+          }
+        }
+      }
+    },
+    "ESPECIFICAÇÃO DO CONTRATO // REGISTRO DE ARQUIVO": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ESPECIFICAÇÃO DO CONTRATO // REGISTRO DE ARQUIVO"
+          }
+        }
+      }
+    },
+    "ETAPAS DA OPORTUNIDADE": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ETAPAS DA OPORTUNIDADE"
+          }
+        }
+      }
+    },
+    "Enviar Proposta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar Proposta"
+          }
+        }
+      }
+    },
+    "Escolha a data e os horários do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a data e os horários do turno."
+          }
+        }
+      }
+    },
+    "Escolha o início e o fim": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha o início e o fim"
+          }
+        }
+      }
+    },
+    "Escolha um valor": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um valor"
+          }
+        }
+      }
+    },
+    "Escolher %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher %@"
+          }
+        }
+      }
+    },
+    "Etapas do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapas do turno"
+          }
+        }
+      }
+    },
+    "Experiência desejada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experiência desejada"
+          }
+        }
+      }
+    },
+    "Experiência desejada: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experiência desejada: %@"
+          }
+        }
+      }
+    },
+    "F": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        }
+      }
+    },
+    "Falta preencher %@. Toque duas vezes para ir até a seção.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta preencher %@. Toque duas vezes para ir até a seção."
+          }
+        }
+      }
+    },
+    "Fechar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
+          }
+        }
+      }
+    },
+    "Fechar detalhes do placard": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar detalhes do placard"
+          }
+        }
+      }
+    },
+    "Fechar estúdio de criação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar estúdio de criação"
+          }
+        }
+      }
+    },
+    "Fechar notificação": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar notificação"
+          }
+        }
+      }
+    },
+    "Função criada pelo contratante": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Função criada pelo contratante"
+          }
+        }
+      }
+    },
+    "Horas contratadas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horas contratadas"
+          }
+        }
+      }
+    },
+    "Horas contratadas: %@%@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horas contratadas: %@%@"
+          }
+        }
+      }
+    },
+    "Horas contratadas: escolha o início e o fim": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horas contratadas: escolha o início e o fim"
+          }
+        }
+      }
+    },
+    "Horário": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horário"
+          }
+        }
+      }
+    },
+    "Imagem de apresentação da oportunidade para %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagem de apresentação da oportunidade para %@"
+          }
+        }
+      }
+    },
+    "Limpar texto": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpar texto"
+          }
+        }
+      }
+    },
+    "Local a definir": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local a definir"
+          }
+        }
+      }
+    },
+    "NOTIFICAÇÃO ENVIADA AOS PROFISSIONAIS": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NOTIFICAÇÃO ENVIADA AOS PROFISSIONAIS"
+          }
+        }
+      }
+    },
+    "Não deu para publicar": {},
+    "Não deu para publicar a vaga. Tente de novo.": {},
+    "Não selecionado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não selecionado"
+          }
+        }
+      }
+    },
+    "O QUE ESTÁ INCLUSO": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O QUE ESTÁ INCLUSO"
+          }
+        }
+      }
+    },
+    "O app publica o valor por turno. Troque Por hora por Por turno.": {},
+    "O que está incluso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que está incluso"
+          }
+        }
+      }
+    },
+    "O valor é integral: o Frila não desconta taxa do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O valor é integral: o Frila não desconta taxa do turno."
+          }
+        }
+      }
+    },
+    "OK": {},
+    "Oportunidade": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oportunidade"
+          }
+        }
+      }
+    },
+    "Posições": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições"
+          }
+        }
+      }
+    },
+    "Profissionais necessários para o turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profissionais necessários para o turno"
+          }
+        }
+      }
+    },
+    "Progresso: etapa %@ de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progresso: etapa %@ de %@"
+          }
+        }
+      }
+    },
+    "Prévia": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prévia"
+          }
+        }
+      }
+    },
+    "Publicar vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar vaga"
+          }
+        }
+      }
+    },
+    "Publicar vaga de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar vaga de %@"
+          }
+        }
+      }
+    },
+    "Publicar vaga, etapa %@ de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar vaga, etapa %@ de %@"
+          }
+        }
+      }
+    },
+    "Quando": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando"
+          }
+        }
+      }
+    },
+    "Recolhe a lista e libera espaço": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolhe a lista e libera espaço"
+          }
+        }
+      }
+    },
+    "Recolher %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolher %@"
+          }
+        }
+      }
+    },
+    "Recolher seleção": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolher seleção"
+          }
+        }
+      }
+    },
+    "Remover dos salvos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover dos salvos"
+          }
+        }
+      }
+    },
+    "Renata, no balcão": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renata, no balcão"
+          }
+        }
+      }
+    },
+    "Salva este contrato no catálogo pessoal": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva este contrato no catálogo pessoal"
+          }
+        }
+      }
+    },
+    "Salvar oportunidade": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar oportunidade"
+          }
+        }
+      }
+    },
+    "Selecionado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecionado"
+          }
+        }
+      }
+    },
+    "Sem taxa: o profissional recebe o valor integral.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem taxa: o profissional recebe o valor integral."
+          }
+        }
+      }
+    },
+    "Sua vaga já está visível para profissionais perto de você no Frila.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua vaga já está visível para profissionais perto de você no Frila."
+          }
+        }
+      }
+    },
+    "TAGS E REQUISITOS": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAGS E REQUISITOS"
+          }
+        }
+      }
+    },
+    "Termina no dia seguinte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina no dia seguinte"
+          }
+        }
+      }
+    },
+    "Toque duas vezes para selecionar o passo %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque duas vezes para selecionar o passo %@"
+          }
+        }
+      }
+    },
+    "Toque para editar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para editar"
+          }
+        }
+      }
+    },
+    "Toque para escolher": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para escolher"
+          }
+        }
+      }
+    },
+    "Toque para ver os níveis": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para ver os níveis"
+          }
+        }
+      }
+    },
+    "Urgência": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urgência"
+          }
+        }
+      }
+    },
+    "Usar %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar %@"
+          }
+        }
+      }
+    },
+    "VAGA DISPONÍVEL // FRILA BRASIL": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VAGA DISPONÍVEL // FRILA BRASIL"
+          }
+        }
+      }
+    },
+    "Vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga"
+          }
+        }
+      }
+    },
+    "Vaga Publicada!": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga Publicada!"
+          }
+        }
+      }
+    },
+    "Vagas abertas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vagas abertas"
+          }
+        }
+      }
+    },
+    "Valor": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor"
+          }
+        }
+      }
+    },
+    "Valor por hora": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor por hora"
+          }
+        }
+      }
+    },
+    "Valor por turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor por turno"
+          }
+        }
+      }
+    },
+    "Valor total das vagas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor total das vagas"
+          }
+        }
+      }
+    },
+    "Ver Detalhes da Vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver Detalhes da Vaga"
+          }
+        }
+      }
+    },
+    "Voltar para etapa anterior": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voltar para etapa anterior"
+          }
+        }
+      }
+    },
+    "não definido": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "não definido"
+          }
+        }
+      }
+    },
+    "obrigatório, não definido": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "obrigatório, não definido"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
