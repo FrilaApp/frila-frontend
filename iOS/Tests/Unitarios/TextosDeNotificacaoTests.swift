@@ -157,6 +157,7 @@ struct TextosDeNotificacaoTests {
                 "Linha \(linha.numero) (\(linha.tipo)): título '\(linha.titulo)' excede 40 caracteres (\(linha.titulo.count) car.)"
             )
             #expect(!linha.titulo.isEmpty, "Linha \(linha.numero) (\(linha.tipo)) possui título vazio")
+            #expect(!linha.titulo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "Linha \(linha.numero) (\(linha.tipo)) possui título composto apenas por espaços")
         }
     }
 
@@ -178,6 +179,7 @@ struct TextosDeNotificacaoTests {
                     "Linha \(linha.numero) (\(linha.tipo)) [\(variante.rotulo)]: corpo '\(textoAferido)' excede 110 caracteres (\(textoAferido.count) car.)"
                 )
                 #expect(!textoAferido.isEmpty, "Linha \(linha.numero) (\(linha.tipo)) possui corpo vazio")
+                #expect(!textoAferido.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "Linha \(linha.numero) (\(linha.tipo)) [\(variante.rotulo)] possui corpo composto apenas por espaços")
             }
         }
     }
@@ -207,9 +209,10 @@ struct TextosDeNotificacaoTests {
         #expect(!tabela.isEmpty, "Tabela de notificações não pode estar vazia")
 
         let padraoEmail = try Regex(#"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#)
-        let padraoTelefone = try Regex(#"(?:\+?55\s*)?(?:\(?\d{2}\)?\s*)?(?:9\s*)?\d{4,5}[-\s]?\d{4}"#)
+        let padraoTelefone = try Regex(#"(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?(?:9\s*)?\d{4,5}[-\s]?\d{4}"#)
         let padraoMotivoSuspensao = try Regex(#"(?:motivo|justificativa|razão|razao)\s*(?:d[aeo]\s*)?suspens[ãa]o|suspenso\s*por"#).ignoresCase()
         let padraoRelatoDenuncia = try Regex(#"(?:relato|motivo|justificativa|razão|razao)\s*(?:d[aeo]\s*)?denúncia|denuncia|denunciad[oa]\s*por"#).ignoresCase()
+        let padraoTermosProibidos = try Regex(#"(?:suspens[ãa]o|den[uú]ncia|fraude|bloquead[oa])"#).ignoresCase()
 
         for linha in tabela {
             let textosParaValidar = [linha.titulo] + linha.variantesDeCorpo.map(\.texto)
@@ -219,7 +222,18 @@ struct TextosDeNotificacaoTests {
                 #expect(!texto.contains(padraoTelefone), "Linha \(linha.numero) (\(linha.tipo)): contém número de telefone: '\(texto)'")
                 #expect(!texto.contains(padraoMotivoSuspensao), "Linha \(linha.numero) (\(linha.tipo)): contém motivo de suspensão: '\(texto)'")
                 #expect(!texto.contains(padraoRelatoDenuncia), "Linha \(linha.numero) (\(linha.tipo)): contém relato de denúncia: '\(texto)'")
+                #expect(!texto.contains(padraoTermosProibidos), "Linha \(linha.numero) (\(linha.tipo)): contém termo proibido: '\(texto)'")
             }
+        }
+    }
+
+    @Test("Payload de AvisoDePush não contém dados sensíveis nem chaves além dos identificadores (RN10, RN15)")
+    func payloadAvisoDePushSemCamposSensiveis() {
+        let chavesPermitidas: Set<String> = ["tipo", "vaga_id", "turno_id", "posicao_id"]
+        for tipo in TipoDeAviso.allCases {
+            let aviso = AvisoDePush(tipo: tipo, vagaID: UUID(), turnoID: UUID(), posicaoID: UUID())
+            let chavesDoPayload = Set(aviso.payload.keys)
+            #expect(chavesDoPayload.isSubset(of: chavesPermitidas), "Payload de \(tipo) traz chaves além das permitidas: \(chavesDoPayload)")
         }
     }
 
