@@ -31,9 +31,15 @@ public struct EstadoVazio: View {
 public struct EstadoCarregando: View {
     public init() {}
     public var body: some View {
-        VStack(spacing: FrilaEspaco.medio) { ProgressView(); Text("Carregando…", bundle: bundleApresentacao).foregroundStyle(FrilaCor.textoSecundario) }
-            .frame(maxWidth: .infinity, minHeight: 160)
-            .accessibilityElement(children: .combine)
+        VStack(spacing: FrilaEspaco.medio) {
+            ProgressView()
+            Text("Carregando…", bundle: bundleApresentacao)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, minHeight: 160)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -85,14 +91,21 @@ private struct MensagemDeEstado: View {
         // Estado do MidFi: círculo de 72 pt com o ícone, título e texto de apoio centralizados.
         VStack(spacing: FrilaEspaco.compacto) {
             Image(systemName: icone)
-                .font(.title)
+                .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
                 .background(FrilaCor.controle, in: Circle())
                 .accessibilityHidden(true)
             VStack(spacing: FrilaEspaco.minimo) {
-                titulo.font(FrilaTipo.tituloDeEstado).multilineTextAlignment(.center)
-                mensagem.font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario).multilineTextAlignment(.center)
+                titulo
+                    .font(FrilaTipo.tituloDeEstado)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                mensagem
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .foregroundStyle(FrilaCor.texto)
