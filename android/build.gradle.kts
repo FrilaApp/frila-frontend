@@ -12,3 +12,18 @@ plugins {
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
 }
+
+subprojects {
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        tasks.register("testDebugUnitTest") {
+            group = "verification"
+            description = "Alias para execução de testes unitários na CI"
+            dependsOn("test")
+        }
+        tasks.register("assembleDebug") {
+            group = "build"
+            description = "Alias para compilação em módulos Kotlin JVM puros na CI"
+            dependsOn("assemble")
+        }
+    }
+}
