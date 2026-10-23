@@ -300,19 +300,29 @@ A Visão 7.2 cita as perguntas frequentes como parte do "conjunto mínimo de aju
 | **Redundância com telas existentes** | **Zero redundância**: as 5 dúvidas já são tratadas de forma contextual onde a pessoa precisa (despacho na tela "Por que recebo vagas", pagamento no detalhe da vaga, faltas na folha de cancelamento). | Duplica regras de negócio em textos estáticos na tela de ajuda, criando risco de divergência quando regras de despacho ou tolerância mudarem. |
 | **Risco para o prazo do TestFlight/Loja** | **Risco zero**: escopo já fechado e estável. | Risco de retrabalho de layout e atraso na aprovação de design com o Fabrício. |
 
-### 5.3 Parecer Técnico e Recomendação do Loki
-**Recomendação Técnica: Adotar a Opção 1 para o MVP v1.0.**
-1. Manter a `TelaAjudaPerfil` na v1.0 com a sua estrutura atual:
-   - Canal direto para a Equipe Frila (`suporte@frilabr.com`); novo compromisso documental: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. O texto do app ainda precisa ser alinhado.
+### 5.3 Parecer Técnico e Recomendação Escrita da Equipe
+
+**Recomendação Técnica Formal: As perguntas frequentes NÃO entram embutidas na v1.0 do aplicativo iOS (Adotar a Opção 1).**
+
+1. **Justificativa técnica:**
+   - A `TelaAjudaPerfil` já está implementada (`PerfisDaConta.swift:348-450`), estável, testada por testes unitários e de UI, e atende plenamente à Diretriz 1.2 da App Store.
+   - Manter a tela enxuta na v1.0 evita código novo de acordeão/expansão às vésperas da submissão da release, elimina risco de regressão de layout e previne duplicação estática de regras de negócio (despacho, cancelamento, pagamento) que já são tratadas de forma contextual nas telas próprias do app.
+2. **Estrutura mantida na v1.0:**
+   - Canal direto para a Equipe Frila (`suporte@frilabr.com`), com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
    - Links oficiais para Termos de Uso e Política de Privacidade.
-   - Atalho contextual para a tela `Por que recebo vagas` (para dúvidas sobre despacho e filtros).
+   - Atalho contextual para a tela `Por que recebo vagas` (para dúvidas sobre despacho e elegibilidade).
    - Licenças de código aberto.
-2. Manter os 5 textos de FAQ rascunhados e aprovados neste documento técnico (`iOS/Docs/AjudaESuporte.md`), disponibilizando-os para consulta institucional em `https://frila.netlify.app/suporte` ou integrando-os como módulo de ajuda expandido na v1.1 do app iOS (dezembro/2026).
+3. **Destino dos textos redigidos:**
+   - Os 5 textos de FAQ rascunhados e conferidos na Seção 4.4 ficam prontos e homologados para a página institucional pública na web (`https://frila.netlify.app/suporte`) e como base para eventual módulo expandido na v1.1 do app iOS (dezembro/2026).
+
+### 5.4 Decisão Submetida à Aprovação Exclusiva do Cauê (Cartão MNm4dGWq)
 
 > [!IMPORTANT]
-> **Decisões a registrar pelo Lead Nick Fury (por delegação do Cauê em 16/10/2026) no Cartão Trello MNm4dGWq:**
-> 1. **Decisão sobre FAQ:** Homologar a Opção 1 (manter tela de ajuda enxuta na v1.0 sem FAQ expansível, mantendo o canal de suporte direto e a tela "Por que recebo vagas") OU aprovar a inserção dos 5 textos da Seção 4.4 na tela de Ajuda.
-> 2. **Aprovação dos textos:** Se o FAQ for incluído na interface, homologar os 5 textos da Seção 4.4 e os rascunhos das telas por perfil (Seções 4.2 e 4.3).
+> **Submissão para Decisão do Cauê:**  
+> Conforme diretriz do projeto, a equipe técnica não decide pelo product owner/diretor. A recomendação técnica escrita está submetida para que o **Cauê aprove formalmente no cartão Trello MNm4dGWq**:
+> 
+> - [ ] **(Recomendado pela equipe técnica)** **NÃO incluir as perguntas frequentes na v1.0 do app:** Manter a `TelaAjudaPerfil` enxuta com canal direto de suporte, termos, privacidade e atalho para "Por que recebo vagas". Os 5 textos da Seção 4.4 ficam na documentação técnica e na página web.
+> - [ ] **(Opção alternativa)** **INCLUIR as perguntas frequentes na v1.0 do app:** Autorizar a implementação de componente expansível em SwiftUI na `TelaAjudaPerfil` utilizando os 5 textos redigidos na Seção 4.4, com abertura de tarefa de implementação e testes de UI correspondentes.
 
 ---
 
@@ -321,7 +331,7 @@ A Visão 7.2 cita as perguntas frequentes como parte do "conjunto mínimo de aju
 | Critério de Aceite do Cartão | Responsável | Status | Evidência / Onde está |
 |---|:---:|:---:|---|
 | **1. Frame da tela Ajuda nos dois perfis, com o e-mail e o prazo** | Fabrício | `Pendente` | Depende da entrega dos frames de alta fidelidade no Figma pelo designer Fabrício. Registrado em FALTA no relatório. |
-| **2. Decisão sobre as perguntas frequentes registrada no cartão; se entrarem, os cinco textos aprovados por delegação** | Nick Fury | `Pendente de registro` | Textos e recomendação técnica formulados nas Seções 4 e 5 deste documento (`iOS/Docs/AjudaESuporte.md`). Conduzido por Nick Fury por delegação do Cauê em 16/10/2026 (substitui a aprovação da Júlia). Aguarda registro formal no Trello. |
+| **2. Decisão sobre as perguntas frequentes registrada no cartão; se entrarem, os cinco textos aprovados** | Cauê | `Aguardando aprovação do Cauê` | Recomendação técnica escrita (NÃO entram na v1.0) e textos da Seção 4.4 submetidos para aprovação formal do Cauê nas Seções 5.3 e 5.4. Não decidido pelo agente. |
 | **3. Tabela ligando cada item da Visão 7.3 (e 7.2) a uma tela existente, sem item sem tela ou sem decisão** | Loki | **Concluído** | Mapeamento integral finalizado na Seção 3 deste documento (`iOS/Docs/AjudaESuporte.md`), com arquivo:linha de cada tela ou marcação explícita de "sem tela: decisão por delegação". |
 | **4. Links dos frames colados no cartão de iOS do perfil, onde a Ajuda entra, cada frame com o nome do cartão de iOS** | Fabrício / Nick Fury | `Pendente` | Depende dos links dos frames gerados pelo Fabrício no Figma para colagem nos cartões de iOS. Registrado em FALTA no relatório. |
 

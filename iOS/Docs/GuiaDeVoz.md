@@ -359,3 +359,38 @@ Trechos de texto com redação normativa aprovada por requisitos e decisões de 
 | **Nenhuma promessa de tempo** | Concluído | Eliminados termos como "em instantes", "rápido" ou "em poucos minutos". |
 | **Nada de "comissão"** | Concluído | Termo estritamente proibido; uso de "valor integral sem desconto". |
 | **Aprovação da redação e aplicação nos frames** | Parcial | Redação aprovada pelo Nick Fury por delegação do Cauê em 16/10 ([registro no cartão](https://trello.com/c/gNlXnAYP#comment-6ad240a62aea955ad05a7fb7)). Falta Fabrício conferir a aplicação do guia nos frames de alta fidelidade; o critério composto continua aberto. |
+
+---
+
+## 7. Mudanças do Redesenho e Decisões de Usabilidade (Cartão XtfJBWxa)
+
+Documentação das mudanças textuais decorrentes do redesenho de interface do Frila (Sprint 3 · Cartão Trello `XtfJBWxa`), discriminando estritamente o que já está decidido e homologado no código e o que permanece pendente de conclusão dos testes de usabilidade com usuários externos (T-0018 / Cartão `Q4ZZwnMR`).
+
+### 7.1 Mudanças Já Decididas e Incorporadas no Aplicativo
+
+1. **Vocabulário Oficial em pt-BR versus Protótipo de Design (DP-04):**
+   - Eliminação de qualquer estrangeirismo presente nas explorações visuais (*gig*, *shift*, *marketplace*, *escrow*, *creator profile*, *budget*, *seniority*).
+   - Termos consolidados no catálogo: **Turno** (nunca plantão ou diária), **Vaga** (nunca bico ou anúncio), **Estabelecimento** (nunca comércio ou cliente), **Profissional** (nunca freelancer) e **Presença** (check-in / check-out).
+2. **Eliminação Absoluta de Menções a "Comissão" e "Taxas de Serviço" (DP-01 / RN01):**
+   - Removido do componente de proposta (`ProposalBar`) e de qualquer superfície do app o texto "Taxa de Serviço da Plataforma (5%)" e "Repasse Líquido".
+   - Regra normativa: O Frila não desconta do valor pago pelo turno e não processa pagamentos. O valor anunciado na vaga é 100% integral e repassado diretamente pelo contratante ao profissional no local do trabalho.
+3. **Descarte Definitivo de "Oportunidades" em Prol de "Vagas" (Seção 2.3):**
+   - Padronização no catálogo de strings (`Localizable.xcstrings`) e componentes de estado: uso exclusivo de "Vagas", "Vagas no DF" e "Volte para a lista e escolha outra vaga".
+4. **Regra de Pagamento no Local e Denúncia sem Bloqueio Imediato (Decisão do Cauê de 15/10/2026):**
+   - Textos de ajuda, termos e suporte esclarecem que o pagamento é feito diretamente no local entre as partes.
+   - Denúncias de pagamento não geram suspensão automática na primeira ocorrência: a Equipe Frila faz a triagem em até 5 dias úteis e a apuração com as partes.
+5. **Canais Oficiais de Suporte e Prazos Institucionais:**
+   - Centralização no e-mail `suporte@frilabr.com`, com compromisso documental de resposta o mais breve possível (triagem em até 5 dias úteis e resposta formal em até 15 dias corridos).
+6. **Diretrizes Tipográficas do Tema Neutro:**
+   - Proibição absoluta de itálico (`.italic()`) na redação de interface.
+   - Textos, valores e números em SF Pro nativo; fonte Bricolage Grotesque mantida exclusivamente nas perguntas editoriais de publicação de vaga.
+
+### 7.2 Lista de Itens Pendentes do Redesenho (Cartão XtfJBWxa)
+
+Conforme cronograma oficial do projeto, os testes de usabilidade com usuários externos no TestFlight (T-0018 / Cartão `Q4ZZwnMR`) ocorrem entre 23/10 e 29/10. O redesenho dos problemas identificados no cartão `XtfJBWxa` será executado pelo designer Fabrício entre 03/11 e 04/11. Permanecem como **pendentes** de redação e validação no guia de voz:
+
+- [ ] **Pendente:** Redação de ajustes nas tarefas de primeira viagem do profissional (candidatura em urgência e filtros de vaga) caso os testes com usuários não habituados a apps profissionais apontem fricção de entendimento (RNF09).
+- [ ] **Pendente:** Ajuste nas instruções de publicação de vaga pelo contratante caso as sessões moderadas indiquem dúvida na distinção entre modo urgência e modo seleção.
+- [ ] **Pendente:** Textos explicativos e rótulos de contingência para check-in/check-out manual caso ocorram dúvidas sobre geolocalização e raio de 250 metros.
+- [ ] **Pendente:** Mensagem de orientação pós-confirmação bilateral sobre comunicação via WhatsApp e responsabilidade mútua de contato.
+- [ ] **Pendente:** Textos de remediação para eventuais defeitos bloqueantes ou graves catalogados até 29/10 para os frames de redesenho da Sprint 3.

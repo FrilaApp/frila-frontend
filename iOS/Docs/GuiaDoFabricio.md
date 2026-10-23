@@ -172,6 +172,131 @@ O repositório `Frila/FrilaLowPhase` representa a exploração visual criada pel
 | Beautiful Shadows (3 camadas) | `FrilaElevacao` | `.nenhuma` (cartões zero-shadow), `.sutil`, `.folha` | `DesignTokens.swift:157-200`; Coordenadas de rim, key e ambient. |
 | Bricolage Grotesque Display | `FrilaTipo.pergunta`, `.respostaEscolhida` | Bricolage registrada via CoreText no bundle | `DesignTokens.swift:98-111`; Exclusiva para fluxo de publicar vaga. |
 
+### 5.1.1 Tabela Canônica e Exaustiva de Todos os Tokens do App (`DesignTokens.swift` — Cartão iUIipiiN)
+
+Tabela canônica completa gerada a partir da fonte única da verdade do código (`iOS/Sources/Apresentacao/DesignTokens.swift:1-328`), catalogando 100% dos tokens do sistema de design do Frila para atendimento formal do critério do Cartão Trello `iUIipiiN` ("Tabela de nomes com todos os tokens").
+
+#### A. Cores Semânticas (`FrilaCor`)
+*Todas as cores derivam do catálogo de ativos `DesignSystem.xcassets` através do `bundleApresentacao`.*
+
+| Token | Símbolo Swift | Recurso / Ativo Vinculado | Papel Semântico e Contexto de Uso | Regra de Uso e Acessibilidade |
+|---|---|---|---|---|
+| **Primária** | `FrilaCor.primaria` | `Color("BrandPrimary")` | Seleção ativa e botão principal (`selectionFill`). Quase preto no tema claro (`#111110`), quase branco no escuro (`#F5F4F0`). | Atende a ≥ 4,5:1 sobre `Surface` (16,84:1 claro / 17,90:1 escuro). |
+| **Sobre Primária** | `FrilaCor.sobrePrimaria` | `Color("BrandOnPrimary")` | Conteúdo sobre seleção ativa ou botão primário (texto, glifos e ícones). Branco puro ou quase preto. | Atende a 18,88:1 sobre `BrandPrimary`. |
+| **Fundo** | `FrilaCor.fundo` | `Color("Surface")` | Fundo agrupado das telas (`groupedBackground`). Cinza claro suave no claro (`#F2F2F0`), quase preto no escuro (`#0B0B0A`). | Base padrão para todas as telas do app. |
+| **Fundo UIKit** | `FrilaCor.fundoUIKit` | `UIColor(named: "Surface")` | Fundo da cortina UIKit de privacidade e transições de ciclo de vida. | Garante paridade cromática na cortina sem flash de cor. |
+| **Superfície** | `FrilaCor.superficie` | `Color("SurfaceElevated")` | Cartões, campos de entrada, linhas e folhas modais (`groupedSurface`). Branco puro no claro (`#FFFFFF`), cinza escuro elevado no escuro (`#1C1C1A`). | Base de cartões com fio de 1 pt (`divisoria`). |
+| **Texto** | `FrilaCor.texto` | `Color("TextPrimary")` | Títulos, valores de campos e texto corrido principal (`TextPrimary`). | Atende a 16,84:1 sobre `Surface` e 18,88:1 sobre `SurfaceElevated`. |
+| **Texto UIKit** | `FrilaCor.textoUIKit` | `UIColor(named: "TextPrimary")` | Tipografia em componentes híbridos ou bridged UIKit. | Segue o modo claro e escuro automaticamente. |
+| **Texto Secundário** | `FrilaCor.textoSecundario` | `Color("TextSecondary")` | Subtítulos, metadados, notas e placeholders de apoio (`TextSecondary`). | Atende a ≥ 4,5:1 (6,06:1 claro / 7,69:1 escuro sobre Surface). |
+| **Sucesso** | `FrilaCor.sucesso` | `Color("Success")` | Confirmação de presença, turno confirmado e status positivo (`#007A33` claro / `#4ADE80` escuro). | Atende a ≥ 4,5:1 (4,90:1 claro / 11,31:1 escuro). Acompanhado de SF Symbol. |
+| **Alerta** | `FrilaCor.alerta` | `Color("Warning")` | Prazos de tolerância, turnos aguardando e advertências (`#9E5C00` claro / `#FBBF24` escuro). | Atende a ≥ 4,5:1 (4,70:1 claro / 11,79:1 escuro). Acompanhado de texto. |
+| **Perigo** | `FrilaCor.perigo` | `Color("Danger")` | Mensagens de erro, botão de cancelamento e exclusão (`#D70015` claro / `#FF6961` escuro). | Atende a ≥ 4,5:1 (4,80:1 claro / 6,98:1 escuro). |
+| **Marca** | `FrilaCor.marca` | `Color("BrandAccent")` | Terracota institucional Frila (`#EA5A36`). | **Exclusivo para acento pontual:** ícones e marca. Proibido em fundo ou texto normal (< 4,5:1). |
+| **Controle** | `FrilaCor.controle` | `Color("ControlFill")` | Preenchimento neutro de controle, chips inativos e aviso neutro (`#E8E7E3` claro / `#2C2B28` escuro). | Fundo de badges neutras. |
+| **Divisória** | `FrilaCor.divisoria` | `Color("Hairline")` | Fio divisório de 1 pt de cartões agrupados e separadores de linha. | Linha sutil de delimitação estrutural. |
+| **Borda** | `FrilaCor.borda` | `Color("ControlBorder")` | Contorno de chip inativo, botão secundário e caixas de input (`#D0CFCA` claro). | Borda de 1 pt para alvos de toque. |
+| **Puxador** | `FrilaCor.puxador` | `Color("SheetGrabber")` | Puxador visual central de folhas modais (bottom sheets). | Puramente decorativo; possui `.accessibilityHidden(true)`. |
+
+#### B. Espaçamento (`FrilaEspaco`)
+
+| Token | Símbolo Swift | Valor em Pontos (pt) | Finalidade no Layout |
+|---|---|:---:|---|
+| **Fio** | `FrilaEspaco.fio` | 2 pt | Entre título e subtítulo de um mesmo bloco de texto. |
+| **Mínimo** | `FrilaEspaco.minimo` | 4 pt | Espaço mínimo entre ícone indicador e rótulo textual adjacente. |
+| **Pequeno** | `FrilaEspaco.pequeno` | 8 pt | Espaçamento interno compacto em pílulas, chips e separação entre badges. |
+| **Compacto** | `FrilaEspaco.compacto` | 12 pt | Entre cartões adjacentes em listas verticais e dentro de grupos de controle. |
+| **Faixa** | `FrilaEspaco.faixa` | 14 pt | Entre as faixas de um cartão (cabeçalho, linhas de metadados e divisória). |
+| **Médio** | `FrilaEspaco.medio` | 16 pt | Padding interno padrão de cartões (`.cartaoFrila()`) e margens laterais de tela. |
+| **Grande** | `FrilaEspaco.grande` | 24 pt | Separação vertical entre seções funcionais de formulários e blocos de conteúdo. |
+| **Enorme** | `FrilaEspaco.enorme` | 32 pt | Separação entre blocos de cabeçalho herói e botões de ação fixos no rodapé. |
+
+#### C. Raios de Arredondamento (`FrilaRaio`)
+
+| Token | Símbolo Swift | Raio em Pontos (pt) | Elementos de Aplicação |
+|---|---|:---:|---|
+| **Pequeno** | `FrilaRaio.pequeno` | 8 pt | Badges de status, pílulas compactas e pequenos indicadores visuais. |
+| **Médio** | `FrilaRaio.medio` | 12 pt | Caixas de entrada de texto (`CampoFrila`) e botões secundários. |
+| **Aviso** | `FrilaRaio.aviso` | 16 pt | Caixas de aviso contextual (`AvisoFrila`) e blocos de informação destacados. |
+| **Grande** | `FrilaRaio.grande` | 20 pt | Cartões agrupados do MidFi (`.cartaoFrila()`), com canto contínuo nativo. |
+| **Folha** | `FrilaRaio.folha` | 28 pt | Cantos superiores de folhas modais e contêineres de bottom sheet (`FolhaFrila`). |
+
+#### D. Métricas Estruturais e Alvos HIG (`FrilaMetrica`)
+
+| Token | Símbolo Swift | Dimensão (pt) | Regra de Conformidade Apple HIG |
+|---|---|:---:|---|
+| **Alvo Mínimo** | `FrilaMetrica.alvoMinimo` | 44 pt | Área mínima de toque interativo (largura e altura). Obrigatório em todos os botões e chips. |
+| **Largura Máxima de Leitura** | `FrilaMetrica.larguraMaximaDeLeitura` | 680 pt | Largura máxima para contêineres de texto e formulários em telas largas (iPad/Mac). |
+| **Altura do Campo** | `FrilaMetrica.alturaDoCampo` | 52 pt | Altura padrão ergonômica de campos de entrada e botões de ação principais. |
+| **Altura do Chip** | `FrilaMetrica.alturaDoChip` | 32 pt | Altura visual compacta de chips de filtro (a área de toque permanece com 44 pt). |
+| **Círculo de Estado** | `FrilaMetrica.circuloDeEstado` | 72 pt | Diâmetro padrão do círculo de fundo dos ícones em estados vazios e de erro. |
+
+#### E. Tipografia Dinâmica (`FrilaTipo`)
+*Todos os estilos acompanham Dynamic Type automaticamente via estilos do sistema ou fontes relativas.*
+
+| Token | Símbolo Swift | Definição Tipográfica | Uso Normativo na Interface |
+|---|---|---|---|
+| **Título Grande** | `FrilaTipo.tituloGrande` | `Font.largeTitle.bold()` | Título de boas-vindas e telas principais de entrada. |
+| **Seção** | `FrilaTipo.secao` | `Font.title2.bold()` | Cabeçalhos de seção ("Abertas", "Minhas vagas", "Seus dados"). |
+| **Subtítulo da Tela** | `FrilaTipo.subtituloDaTela` | `Font.title3` | Explicações abaixo do cabeçalho de telas informativas. |
+| **Rótulo do Campo** | `FrilaTipo.rotuloDoCampo` | `Font.headline` | Rótulo acima de caixas de entrada de texto e seletores. |
+| **Valor do Campo** | `FrilaTipo.valorDoCampo` | `Font.body` | Texto digitado ou valor selecionado em inputs. |
+| **Chip** | `FrilaTipo.chip` | `Font.body.weight(.semibold)` | Texto interno de pílulas de filtro e seletores de tag. |
+| **Título do Cartão** | `FrilaTipo.tituloDoCartao` | `Font.title3.weight(.semibold)` | Título de cartões de vaga, função e nome do estabelecimento. |
+| **Corpo** | `FrilaTipo.corpo` | `Font.body` | Texto corrido geral, descrições e instruções operacionais. |
+| **Meta** | `FrilaTipo.meta` | `Font.subheadline` | Metadados de turnos, datas, horários e distâncias em quilômetros. |
+| **Aviso** | `FrilaTipo.aviso` | `Font.subheadline` | Mensagens de orientação em caixas de aviso neutro e alertas. |
+| **Nota** | `FrilaTipo.nota` | `Font.footnote` | Notas de rodapé, restrições e orientações contextuais discretas. |
+| **Resumo** | `FrilaTipo.resumo` | `Font.headline` | Linhas de resumo financeiro e totais destacados. |
+| **Preço** | `FrilaTipo.preco` | `Font.title3.bold()` | Valor monetário líquido em reais (`R$ 180,00`). |
+| **Título de Estado** | `FrilaTipo.tituloDeEstado` | `Font.title3.weight(.semibold)` | Cabeçalho de telas e componentes de estado vazio, erro e offline. |
+| **Título da Folha** | `FrilaTipo.tituloDaFolha` | `Font.title3.weight(.semibold)` | Cabeçalho modal superior em bottom sheets. |
+| **Botão** | `FrilaTipo.botao` | `Font.headline` | Rótulo de botões primários e secundários de ação. |
+| **Pergunta (Formulário)** | `FrilaTipo.pergunta` | `BricolageGrotesque-Bold 26pt` (relativo a `.title`) | Pergunta editorial no formulário de publicar vaga da casa. |
+| **Resposta Escolhida** | `FrilaTipo.respostaEscolhida` | `BricolageGrotesque-Bold 17pt` (relativo a `.body`) | Resposta de destaque no fluxo de publicação de vaga. |
+| **Contexto da Resposta** | `FrilaTipo.contextoDaResposta` | `BricolageGrotesque-Regular 17pt` (relativo a `.body`) | Contexto editorial de suporte no fluxo de publicação. |
+| **Microrrótulo** | `FrilaTipo.microRotulo` | `Font.footnote.weight(.semibold)` | Microrrótulos em caixa alta com `.tracking(0.8)`. |
+
+#### F. Movimento Tátil e Acessibilidade (`FrilaMovimento`)
+
+| Token | Símbolo Swift | Valor Técnico | Comportamento |
+|---|---|---|---|
+| **Press Scale Botão** | `FrilaMovimento.pressScaleBotao` | `0.96` (CGFloat) | Compressão visual suave no toque de botões primários e secundários. |
+| **Press Scale Chip** | `FrilaMovimento.pressScaleChip` | `0.94` (CGFloat) | Compressão refinada e responsiva no toque de chips e pílulas. |
+| **Mola Tátil** | `FrilaMovimento.molaTatil` | `interpolatingSpring(stiffness: 350, damping: 25)` | Mola tátil geral para amortecimento físico de botões. |
+| **Mola Tátil Chip** | `FrilaMovimento.molaTatilChip` | `interpolatingSpring(stiffness: 380, damping: 24)` | Mola ultrarrápida para retorno elástico de chips. |
+| **Gate de Movimento** | `FrilaMovimento.animacao(_:reduzir:)` | Retorna `nil` se `reduzir == true` | **Respeito a Reduzir Movimento (#71.4):** Transições imediatas sem deslocamento quando a preferência de acessibilidade está ativa. |
+
+#### G. Elevação e Sombras em Três Camadas (`FrilaElevacao` / `CamadaDeSombra`)
+
+| Nível | Símbolo Swift | Camadas de Sombra (Rim / Key / Ambient) | Contexto de Aplicação |
+|---|---|---|---|
+| **Nenhuma** | `FrilaElevacao.nenhuma` | `[]` (zero sombras) | **Padrão MidFi dos cartões:** cartões agrupados com superfície branca e fio de 1 pt, sem sombra. |
+| **Sutil** | `FrilaElevacao.sutil` | 3 camadas (rim: 1,5 pt, key: 5 pt, ambient: 14 pt) | Elevação discreta para cabeçalhos flutuantes e docas leves. |
+| **Folha** | `FrilaElevacao.folha` | 3 camadas (rim: 2 pt, key: 12 pt, ambient: 28 pt) | Elevação pronunciada para folhas modais (bottom sheets) e docas fixas. |
+
+#### H. Formatação Fonética de Moeda para VoiceOver (`FrilaMoney`)
+
+| Método | Assinatura Swift | Exemplo de Entrada | Saída Fonética Falada no VoiceOver |
+|---|---|---|---|
+| `spoken(cents:por:)` | `spoken(cents: Int, por: String?) -> String` | `cents: 16000, por: "hora"` | `"160 reais por hora"` |
+| `spoken(cents:)` | `spoken(cents: Int) -> String` | `cents: 150` | `"1 real e 50 centavos"` |
+| `spoken(cents:)` | `spoken(cents: Int) -> String` | `cents: 0` | `"0 reais"` |
+| `spoken(reais:centavos:por:)` | `spoken(reais: Int, centavos: Int, por: String?) -> String` | `reais: 1250, centavos: 0` | `"1.250 reais"` (com proteção contra overflow aritmético) |
+
+#### I. Materiais Translúcidos Nativos (`FrilaMaterial`) e Modificadores de View
+
+| Modificador / Token | Assinatura Swift | Aplicação |
+|---|---|---|
+| `FrilaMaterial.padrao` | `Material.regularMaterial` | Efeito translúcido padrão do sistema em barras de navegação. |
+| `FrilaMaterial.sutil` | `Material.thinMaterial` | Desfoque sutil em cartões flutuantes. |
+| `FrilaMaterial.ultraSutil` | `Material.ultraThinMaterial` | Transluscência leve com preservação de contraste. |
+| `.cartaoFrila()` | `View.cartaoFrila() -> some View` | Aplica o padrão MidFi: `padding(FrilaEspaco.medio)`, fundo `FrilaCor.superficie`, `cornerRadius(FrilaRaio.grande)` contínuo e contorno de 1 pt em `FrilaCor.divisoria`. |
+| `.elevacaoFrila(_:)` | `View.elevacaoFrila(FrilaElevacao) -> some View` | Aplica as 3 camadas coordenadas de sombra (Beautiful Shadows) do nível selecionado. |
+| `.vidroFrila(_:raio:)` | `View.vidroFrila(Material, raio: CGFloat) -> some View` | Aplica material translúcido seguro compatível com iOS 17+ (DP-02). |
+
+---
+
 ### 5.2 Tabela de Correspondência de Componentes
 
 | Componente no FrilaLowPhase | Componente no App Real (`frila-frontend`) | Arquivo no Código Real | Status / Observações |

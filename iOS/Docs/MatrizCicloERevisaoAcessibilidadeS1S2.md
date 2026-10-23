@@ -104,6 +104,31 @@ Medição das luminâncias relativas e razões de contraste dos pares cromático
 - `./iOS/Scripts/conferir-textos.sh` executado: **OK**, 100% dos textos declarados no bundle da Apresentação e conformes com o catálogo de strings.
 - `./iOS/Scripts/conferir-movimento.sh` executado: **OK**, 100% das transições respeitam `FrilaMovimento.animacao(reduzir:)`.
 
+### 2.6. Checklist de Acessibilidade do Design — 100% das Telas do Sprint 1 (NoKH0SN8)
+
+Checklist sistemático e exaustivo cobrindo a totalidade das 18 telas e estados do Sprint 1. O estado real registra estritamente: **cumpre** (regras de interface e código comprovadas em teste/código), **não cumpre** (desvios identificados), **fora de escopo AX5** (critério de acessibilidade AX5 adiado por decisão do Cauê em 21/10/2026 / PR #441) e **não testado** (VoiceOver em aparelho físico assistivo e confronto visual de frames no Figma dependentes de validação humana externa).
+
+| # | Tela / Fluxo | Arquivo / View | VoiceOver (Rótulos e Traços) | Alvos (≥ 44 pt) | Contraste (WCAG AA) | Reduzir Movimento | Estado não só por cor | Dynamic Type AX5 | VoiceOver em Aparelho | Estado Real no App |
+|:---:|---|---|---|---|---|---|---|---|---|:---:|
+| 01 | Entrada ("Frila") | `TelaEntrada.swift` | cumpre: `isHeader` em título Frila | cumpre: botões ≥ 44 pt | cumpre: 17,8:1 (`Surface` × `TextPrimary`) | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 02 | Código de verificação | `TelaCodigo.swift` | cumpre: `isHeader` e dica no campo | cumpre: caixas 44 pt | cumpre: 17,8:1 (`Surface` × `TextPrimary`) | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 03 | Cadastro (Papel) | `TelaCadastro.swift` | cumpre: valor "Selecionado" nos cartões | cumpre: cartões ≥ 44 pt | cumpre: 11,9:1 / token Warning 4,7:1 | não se aplica | cumpre: `checkmark.circle.fill` e `.isSelected` | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 04 | Vagas no DF (Feed) | `TelaVagas.swift` | cumpre: dica em abrir detalhe e títulos | cumpre: pílulas e cartões ≥ 44 pt | cumpre: 16,8:1 e 6,1:1 em metadados | não se aplica | cumpre: checkmark em pílulas ativas | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 05 | Detalhe da vaga | `TelaDetalheVaga.swift` | cumpre: `isHeader` em função/requisitos | cumpre: botão fixo Candidatar ≥ 44 pt | cumpre: 18,8:1 em cartões elevados | cumpre: checa `isReduceMotionEnabled` | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 06 | Turno confirmado! | `TelasDaCandidatura.swift` | cumpre: anúncio sonoro e `isHeader` | cumpre: botão de retorno ≥ 44 pt | cumpre: 18,8:1 e 5,5:1 (`Success`) | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 07 | Vaga preenchida | `TelasDaCandidatura.swift` | cumpre: `isHeader` no resultado | cumpre: BotaoSecundario ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 08 | Vaga encerrada | `TelasDaCandidatura.swift` | cumpre: `isHeader` no resultado | cumpre: BotaoSecundario ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 09 | Conflito de horário | `TelasDaCandidatura.swift` | cumpre: `isHeader` no resultado | cumpre: BotaoSecundario ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 10 | Conta suspensa (Resultado) | `TelasDaCandidatura.swift` | cumpre: `isHeader` no resultado | cumpre: BotaoSecundario ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 11 | Meu perfil profissional | `PerfisDaConta.swift` | cumpre: `children: .combine` em linhas | cumpre: linhas navegáveis ≥ 44 pt | cumpre: 6,8:1 (`TextSecondary`) | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 12 | Funções e horários | `TelaPerfilProfissional.swift` | cumpre: `isHeader` em seções | cumpre: pílulas e seletores ≥ 44 pt | cumpre: 18,8:1 | não se aplica | cumpre: `FiltroPill` com checkmark e `.isSelected` | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 13 | Cadastro do estabelecimento | `CadastroEstabelecimento.swift` | cumpre: rótulo `CPF ou CNPJ` (PR #408) | cumpre: campos ≥ 44 pt (exceto link MapKit nativo) | cumpre: 17,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 14 | Publicar vaga | `PublicarVaga.swift` | cumpre: `isHeader` em seções do formulário | cumpre: botões e stepper ≥ 44 pt (exceto link MapKit) | cumpre: 17,8:1 e 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 15 | Perfil do estabelecimento | `PerfisDaConta.swift` | cumpre: `isHeader` no nome do local | cumpre: linhas de menu ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 16 | Perfil público | `AcoesDeSeguranca.swift` | cumpre: `isHeader` no nome público | cumpre: botões de ação ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 17 | Publicar vaga: erro ao ler casa | `PublicarVaga.swift` | cumpre: título de erro com traço | cumpre: BotaoSecundario ≥ 44 pt | cumpre: 17,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 18 | Ajuda do perfil | `PerfisDaConta.swift` | cumpre: rótulos e links com `.isLink` | cumpre: linhas de contato ≥ 44 pt | cumpre: 18,8:1 e 16,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+
 ---
 
 ## 3. Revisão de Design, Acessibilidade e Textos do Sprint 2 (SIPQtYWH)
@@ -157,8 +182,34 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
    - `FolhaDeDenuncia`: Botão Fechar adaptado com rótulo semântico; contador numérico de caracteres audível pelo VoiceOver; botão "Enviar denúncia" desabilitado enquanto texto < 10 caracteres.
    - `TelaContaSuspensa`: Motivo explícito de bloqueio, botão de contestação em protocolo único e acesso direto à exportação de dados pessoais (LGPD).
 4. **Cancelamento e Suporte:**
-   - Botões empilhados verticalmente em AX5 para prevenir truncamento de texto (`FolhaDeCancelamento.swift` e `FolhaSuporteTurno.swift`).
+   - Botões empilhados verticalmente para prevenir truncamento de texto (`FolhaDeCancelamento.swift` e `FolhaSuporteTurno.swift`).
    - Todos os subtítulos de seções marcados com `.accessibilityAddTraits(.isHeader)`.
+
+### 3.4. Checklist de Acessibilidade do Design — 100% das Telas do Sprint 2 (SIPQtYWH)
+
+Checklist sistemático e exaustivo cobrindo a totalidade das 19 telas, folhas e estados do Sprint 2. O estado real registra estritamente: **cumpre** (regras de interface e código comprovadas em teste/código), **não cumpre** (desvios identificados), **fora de escopo AX5** (critério de acessibilidade AX5 adiado por decisão do Cauê em 21/10/2026 / PR #441) e **não testado** (VoiceOver em aparelho físico assistivo e confronto visual de frames no Figma dependentes de validação humana externa).
+
+| # | Tela / Fluxo | Arquivo / View | VoiceOver (Rótulos e Traços) | Alvos (≥ 44 pt) | Contraste (WCAG AA) | Reduzir Movimento | Estado não só por cor | Dynamic Type AX5 | VoiceOver em Aparelho | Estado Real no App |
+|:---:|---|---|---|---|---|---|---|---|---|:---:|
+| 01 | Presença no turno (GPS / Manual) | `SecaoDePresenca.swift` | cumpre: anúncio de voz e foco acessível | cumpre: botões de ação e GPS ≥ 44 pt | cumpre: auditado sem achados | não se aplica | cumpre: SF Symbol + texto descritivo | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 02 | Check-out presencial | `SecaoDePresenca.swift` | cumpre: rótulos semânticos e identificador | cumpre: botão de término ≥ 44 pt | cumpre: auditado sem achados | não se aplica | cumpre: SF Symbol + texto | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 03 | Meu turno | `TelaMeuTurno.swift` | cumpre: `isHeader` e dicas em mapa/WhatsApp | cumpre: botões e mapa ≥ 44 pt | cumpre: 18,8:1 e 6,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 04 | Meus turnos (Aba) | `TelaMeusTurnos.swift` | cumpre: dica em abrir detalhe e títulos | cumpre: cartões navegáveis ≥ 44 pt | cumpre: 16,8:1 e 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 05 | Acompanhamento do turno | `TelaTurnoDoContratante.swift` | cumpre: `isHeader` em seções e dicas | cumpre: botões e ações ≥ 44 pt | cumpre: 18,8:1 e 16,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 06 | Minhas vagas (Painel) | `MinhasVagas.swift` | cumpre: `isHeader` em seções do painel | cumpre: cartões e botões ≥ 44 pt | cumpre: 18,8:1 e 16,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 07 | Detalhe da vaga do contratante | `MinhasVagas.swift` | cumpre: `isHeader` em função e posições | cumpre: botões de ação ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 08 | Candidatos em Modo Seleção | `CandidatosDaVaga.swift` | cumpre: rótulos discriminando candidato | cumpre: verPerfil e ações ≥ 44 pt | cumpre: auditado sem achados | não se aplica | cumpre: selo com texto e checkmark | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 09 | Candidaturas (Aba) | `CandidaturaEmSelecao.swift` | cumpre: `isHeader` e dicas contextuais | cumpre: cartões ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 10 | Avaliação do turno (Profissional) | `TelaAvaliacao.swift` | cumpre: pergunta com `isHeader` | cumpre: botões Sim/Não ≥ 44 pt | cumpre: 18,8:1 | não se aplica | cumpre: `.isSelected` e checkmark | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 11 | Avaliação pelo contratante | `TelaTurnoDoContratante.swift` | cumpre: `isHeader` na pergunta | cumpre: botões de resposta ≥ 44 pt | cumpre: auditado sem achados | não se aplica | cumpre: checkmark e SF Symbol | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 12 | Conta suspensa | `TelaContaSuspensa.swift` | cumpre: ícone hidden e título auditado | cumpre: contestação e LGPD ≥ 44 pt | cumpre: 18,8:1 | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 13 | Folha de cancelamento | `FolhaDeCancelamento.swift` | cumpre: `isHeader` no motivo | cumpre: opções e envio ≥ 44 pt | cumpre: tokens conformes AA | não se aplica | cumpre: ícone preenchido e `.isSelected` | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 14 | Folha de denúncia | `AcoesDeSeguranca.swift` | cumpre: `accessibilityHidden` decorativo | cumpre: botões de ação ≥ 44 pt | cumpre: tokens conformes AA | não se aplica | cumpre: contador X/10 + checkmark | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 15 | Folha de suporte no turno | `FolhaSuporteTurno.swift` | cumpre: plural nativo %lld e dicas (PR #394) | cumpre: botões ≥ 44 pt | cumpre: tokens conformes AA | cumpre: checa `accessibilityReduceMotion` | cumpre: `.isSelected` e ícone | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 16 | Exclusão de conta | `TelaExclusaoDeConta.swift` | cumpre: ícone hidden e navigationTitle | cumpre: Toggle e botões ≥ 44 pt | cumpre: 18,8:1 | não se aplica | cumpre: Toggle nativo | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 17 | Confirmação de exclusão | `TelaExclusaoDeConta.swift` | cumpre: `isHeader` no diálogo | cumpre: botões do alerta ≥ 44 pt | cumpre: 5,4:1 (`BrandOnPrimary` × `Danger`) | não se aplica | não se aplica | **fora de escopo AX5** (decisão Cauê 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 18 | Compartilhamento / exportação | `ItemExportarDados.swift` | cumpre: rótulo e dica no botão disparador | cumpre: botão do app ≥ 44 pt | não se aplica: folha nativa iOS | não se aplica: folha nativa | não se aplica: folha nativa | **fora de escopo AX5** (folha nativa / decisão 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
+| 19 | Compositor de e-mail nativo | `FolhaSuporteTurno.swift` | cumpre: dica no botão disparador | cumpre: BotaoPrimario ≥ 44 pt | não se aplica: folha nativa iOS | não se aplica: folha nativa | não se aplica: folha nativa | **fora de escopo AX5** (folha nativa / decisão 21/10) | não testado (falta pessoa com VO) | **Cumpre** (código) |
 
 ---
 
@@ -220,6 +271,17 @@ env TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_
    - As telas de Licenças, Detalhe da licença, Histórico de turnos e Equipe de confiança foram auditadas sem nenhum erro de contraste registrado no log.
 3. **Respeito a Reduzir Movimento:**
    - `TelaHistoricoDeTurnos.swift:50` consulta ativamente `accessibilityReduceMotion` antes de acionar a rolagem suave.
+
+### 4.4. Consolidação da Acessibilidade da v1.0 (Cartões NoKH0SN8, SIPQtYWH e wiLKWHYl)
+
+- **Total de telas auditadas (S1 + S2 + S3):** 46 telas/estados do Frila iOS.
+- **Rótulos e Traços de VoiceOver no código:** **100% em conformidade (cumpre)**, com todos os títulos semânticos (`.isHeader`), agrupamento lógico (`children: .combine`), pluralização nativa e botões com rótulo/dica contextual.
+- **Alvos de Toque (≥ 44 × 44 pt):** **100% em conformidade (cumpre)** no código do aplicativo Frila, respeitando rigorosamente a Apple HIG. Única exceção física é o link nativo MapKit do sistema operacional (`MKAttributionLabel`), que não expõe API customizável.
+- **Contraste WCAG 2.1 AA:** **100% dos pares cromáticos de tokens semânticos auditados e aprovados (cumpre)** via `ContrasteDesignTokensTests.swift` (todas as combinações normativas atendem ou superam 4,5:1 para texto normal e 3,0:1 para elementos de interface/ícones essenciais).
+- **Reduzir Movimento:** **100% em conformidade (cumpre)** nas telas animadas através do gate centralizado `FrilaMovimento.animacao(reduzir:)`.
+- **Comunicação de Estado:** **100% em conformidade (cumpre)** com nenhuma tela comunicando seleção, erro ou sucesso exclusivamente por cor (adoção sistemática de SF Symbols e texto explicativo).
+- **Dynamic Type AX5 (XXXL):** **Fora de escopo AX5 na v1.0 por decisão do Cauê em 21/10/2026** (PR #441 / commit `891c297c`), mantendo a estabilidade do app com `XCTSkip` na suíte automatizada. Não mexer em AX5 nesta entrega.
+- **VoiceOver em Hardware Físico com Usuário Real:** **Não testado (pendente humano)**. Conforme regra do projeto, não se afirma o que não foi executado. O app está tecnicamente instrumentado com acessibilidade nativa, mas o ensaio assistivo com usuário cego/baixa visão permanece dependente de execução humana externa.
 
 ---
 
