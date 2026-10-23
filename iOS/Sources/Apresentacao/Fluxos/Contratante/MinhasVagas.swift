@@ -315,6 +315,7 @@ public struct TelaMinhasVagas: View {
                     Text(verbatim: viewModel.nomeEstabelecimento)
                         .font(FrilaTipo.resumo)
                         .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     if republicacaoConcluida {
                         AvisoFrila(verbatim: TextosRepublicarVaga.sucesso, tom: .informativo)
@@ -335,6 +336,7 @@ public struct TelaMinhasVagas: View {
                                 Text(verbatim: erro)
                                     .font(FrilaTipo.meta)
                                     .foregroundStyle(FrilaCor.texto)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(FrilaEspaco.medio)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -356,9 +358,11 @@ public struct TelaMinhasVagas: View {
                                 Text(verbatim: TextosMinhasVagas.vaziaTitulo)
                                     .font(FrilaTipo.tituloDoCartao)
                                     .foregroundStyle(FrilaCor.texto)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Text(verbatim: TextosMinhasVagas.vaziaMensagem)
                                     .font(FrilaTipo.meta)
                                     .foregroundStyle(FrilaCor.textoSecundario)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             if let publicarVaga {
                                 BotaoPrimario(verbatim: TextosMinhasVagas.publicarVaga, acao: publicarVaga)
@@ -468,6 +472,7 @@ public struct TelaMinhasVagas: View {
             Text(verbatim: secao.titulo)
                 .font(FrilaTipo.tituloDoCartao)
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
             // Lazy apenas nas encerradas: o painel traz as vagas de um ano (±365 dias).
@@ -521,6 +526,7 @@ public struct TelaMinhasVagas: View {
             layoutAlerta {
                 Text(verbatim: vaga.vaga.funcao).font(FrilaTipo.resumo)
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                 if secao != .emAlerta {
                     Spacer(minLength: FrilaEspaco.pequeno)
                 }
@@ -529,7 +535,7 @@ public struct TelaMinhasVagas: View {
                         Spacer(minLength: FrilaEspaco.pequeno)
                     }
                     let tempo = String(format: TextosMinhasVagas.alertaComeca, viewModel.tempoAteInicio(vaga))
-                    Label { Text(verbatim: tempo) } icon: { Image(systemName: "exclamationmark.triangle") }
+                    Label { Text(verbatim: tempo).fixedSize(horizontal: false, vertical: true) } icon: { Image(systemName: "exclamationmark.triangle") }
                         .font(FrilaTipo.meta.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityIdentifier("tempo-alerta-\(vaga.vaga.id)")
@@ -542,6 +548,7 @@ public struct TelaMinhasVagas: View {
             Text(verbatim: textoConfirmadas(confirmadas: confirmadas, total: total))
                 .font(FrilaTipo.meta.weight(.semibold))
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
             if confirmadas > 0 {
                 let nomes = nomesConfirmados(vaga)
                 if !nomes.isEmpty {
@@ -549,6 +556,7 @@ public struct TelaMinhasVagas: View {
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .padding(.leading, larguraDoIcone + FrilaEspaco.pequeno)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             RotuloDaSelecao(vaga: vaga)
@@ -602,6 +610,7 @@ private struct LinhaDeVaga: View {
             Text(verbatim: texto)
                 .font(fonte)
                 .foregroundStyle(destaque ? FrilaCor.texto : FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -644,6 +653,7 @@ private struct LinhaDetalhePublicado: View {
                 Text(verbatim: rotulo)
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                 if !dynamicTypeSize.isAccessibilitySize {
                     Spacer(minLength: FrilaEspaco.pequeno)
                 }
@@ -651,6 +661,7 @@ private struct LinhaDetalhePublicado: View {
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
             .padding(.trailing, FrilaEspaco.medio)
@@ -675,10 +686,12 @@ private struct CartaoEstadoVaga: View {
                 Text(verbatim: titulo)
                     .font(FrilaTipo.resumo)
                     .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let corpo {
                     Text(verbatim: corpo)
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -719,6 +732,7 @@ private struct BotaoPublicarDeNovo: View {
                 Image(systemName: "arrow.clockwise")
                     .accessibilityHidden(true)
                 Text(verbatim: TextosMinhasVagas.republicar)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .font(FrilaTipo.meta.weight(.semibold))
             .foregroundStyle(FrilaCor.sobrePrimaria)
@@ -838,11 +852,13 @@ private struct TelaDetalheVagaContratante: View {
                     Text(verbatim: vaga.vaga.funcao)
                         .font(FrilaTipo.tituloGrande)
                         .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityIdentifier("funcao-vaga-detalhe-\(vaga.vaga.id)")
                     Text(verbatim: periodo(vaga.vaga.periodo))
                         .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 CartaoEstadoVaga(vaga: vaga)
@@ -852,6 +868,7 @@ private struct TelaDetalheVagaContratante: View {
                         .textCase(.uppercase)
                         .tracking(0.8)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, FrilaEspaco.medio)
 
                     VStack(spacing: 0) {
@@ -908,6 +925,7 @@ private struct TelaDetalheVagaContratante: View {
                 }
 
                 Text(verbatim: TextosMinhasVagas.posicoes).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 ForEach(vaga.posicoes) { posicao in
                     let bloqueado = posicao.profissional.map { bloqueios.contem($0) } ?? false
@@ -970,11 +988,13 @@ private struct TelaDetalheVagaContratante: View {
                 Text(verbatim: TextosDaSeguranca.voceBloqueouProfissional)
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("etiqueta-bloqueio-\(posicao.id)")
             }
             if posicao.estado == .confirmada || posicao.estado == .cumprida {
                 Text(verbatim: posicao.profissional?.nome ?? TextosMinhasVagas.profissionaisConfirmados)
                     .font(FrilaTipo.resumo)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let perfil = posicao.profissional, !bloqueado {
                     Button { perfilSelecionado = perfil } label: {
                         Text(verbatim: TextosMinhasVagas.perfil)
@@ -998,6 +1018,7 @@ private struct TelaDetalheVagaContratante: View {
                     VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                         Text(verbatim: "\(contato.nome) · \(contato.telefone)")
                             .font(FrilaTipo.meta)
+                            .fixedSize(horizontal: false, vertical: true)
                         let telefone = contato.telefone.filter { $0.isNumber || $0 == "+" }
                         if let telefoneURL = URL(string: "tel:\(telefone)") {
                             Link(destination: telefoneURL) {
@@ -1055,11 +1076,18 @@ private struct TelaDetalheVagaContratante: View {
                         .accessibilityIdentifier("cancelar-posicao-\(posicao.id)")
                 }
             } else if posicao.estado == .aberta {
-                Text(verbatim: TextosMinhasVagas.posicaoAberta).font(FrilaTipo.resumo)
+                Text(verbatim: TextosMinhasVagas.posicaoAberta)
+                    .font(FrilaTipo.resumo)
+                    .fixedSize(horizontal: false, vertical: true)
             } else if posicao.estado == .cancelada, let nome = posicao.profissional?.nome {
                 // Cancelada ou reaberta por atraso: a posição guarda de quem era (RN12).
-                Text(verbatim: nome).font(FrilaTipo.resumo)
-                Text(verbatim: TextosDoAcompanhamento.cancelada).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: nome)
+                    .font(FrilaTipo.resumo)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: TextosDoAcompanhamento.cancelada)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let turnoID = posicao.turnoID {
                     NavigationLink(value: RotaDoContratante.turno(turnoID: turnoID)) {
                         Text(verbatim: TextosDoAcompanhamento.acompanharTurno)
@@ -1072,9 +1100,13 @@ private struct TelaDetalheVagaContratante: View {
             } else if posicao.estado == .cancelada, vaga.modo == .selecao {
                 // A seleção fechou 24 h antes do início com esta posição ainda aberta (RN24), ou a
                 // casa cancelou a vaga: o texto diz qual das duas.
-                Text(verbatim: TextosDosCandidatos.posicaoCancelada(vaga: vaga.estado)).font(FrilaTipo.resumo)
+                Text(verbatim: TextosDosCandidatos.posicaoCancelada(vaga: vaga.estado))
+                    .font(FrilaTipo.resumo)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text(verbatim: TextosMinhasVagas.encerradas).font(FrilaTipo.resumo)
+                Text(verbatim: TextosMinhasVagas.encerradas)
+                    .font(FrilaTipo.resumo)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
