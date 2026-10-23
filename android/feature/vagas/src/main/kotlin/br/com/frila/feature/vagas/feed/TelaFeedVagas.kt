@@ -11,12 +11,18 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,12 +79,17 @@ fun TelaFeedVagas(
                 .fillMaxSize()
                 .padding(paddingInterno),
         ) {
+            CampoBuscaVagas(
+                texto = estado.textoBusca,
+                aoAlterarTexto = viewModel::aoAlterarTextoBusca,
+                aoLimpar = viewModel::aoLimparBusca,
+            )
             LinhaDeFiltros(estado = estado, viewModel = viewModel)
 
             when (estado.status) {
                 StatusFeed.CARREGANDO -> CarregandoFeed()
                 StatusFeed.ERRO -> ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
-                StatusFeed.VAZIO -> VazioFeed()
+                StatusFeed.VAZIO -> VazioFeed(textoBusca = estado.textoBusca)
                 StatusFeed.SUCESSO -> ListaDeVagas(vagas = estado.vagas, aoAbrirDetalhe = aoAbrirDetalhe)
             }
         }
@@ -95,6 +106,56 @@ fun TelaFeedVagas(
             aoFechar = viewModel::aoFecharFiltrosAvancados,
         )
     }
+}
+
+@Composable
+private fun CampoBuscaVagas(
+    texto: String,
+    aoAlterarTexto: (String) -> Unit,
+    aoLimpar: () -> Unit,
+) {
+    OutlinedTextField(
+        value = texto,
+        onValueChange = aoAlterarTexto,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = FrilaEspacamento.medio,
+                end = FrilaEspacamento.medio,
+                top = FrilaEspacamento.pequeno,
+            )
+            .semantics {
+                contentDescription = "Buscar vagas por função ou estabelecimento"
+            },
+        placeholder = { Text("Buscar função ou estabelecimento") },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+            )
+        },
+        trailingIcon = if (texto.isNotEmpty()) {
+            {
+                IconButton(
+                    onClick = aoLimpar,
+                    modifier = Modifier
+                        .sizeIn(
+                            minWidth = FrilaMetricas.alvoMinimo,
+                            minHeight = FrilaMetricas.alvoMinimo,
+                        )
+                        .semantics { contentDescription = "Limpar busca" },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = null,
+                    )
+                }
+            }
+        } else {
+            null
+        },
+        singleLine = true,
+    )
 }
 
 @Composable
@@ -262,13 +323,17 @@ private fun CarregandoFeed() {
 }
 
 @Composable
-private fun VazioFeed() {
+private fun VazioFeed(textoBusca: String) {
     Box(
         modifier = Modifier.fillMaxSize().padding(FrilaEspacamento.grande),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "Nenhuma vaga encontrada com esses filtros.",
+            text = if (textoBusca.isNotBlank()) {
+                "Nenhuma vaga encontrada para \"${textoBusca.trim()}\"."
+            } else {
+                "Nenhuma vaga encontrada com esses filtros."
+            },
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )

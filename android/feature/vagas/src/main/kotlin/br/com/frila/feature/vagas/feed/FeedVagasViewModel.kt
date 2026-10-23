@@ -60,6 +60,16 @@ class FeedVagasViewModel(
      */
     fun encontrarVagaPorId(id: String): VagaAbertaDto? = vagasCarregadas.firstOrNull { it.id == id }
 
+    fun aoAlterarTextoBusca(texto: String) {
+        _estado.update { it.copy(textoBusca = texto) }
+        aplicarFiltros()
+    }
+
+    fun aoLimparBusca() {
+        _estado.update { it.copy(textoBusca = "") }
+        aplicarFiltros()
+    }
+
     fun aoSelecionarFiltroDistancia(filtro: FiltroDistancia) {
         _estado.update { it.copy(filtroDistancia = filtro) }
         aplicarFiltros()
@@ -101,8 +111,14 @@ class FeedVagasViewModel(
 
     private fun aplicarFiltros() {
         val filtroAtual = _estado.value
+        val termoBusca = filtroAtual.textoBusca.trim()
 
         val filtradas = vagasCarregadas
+            .filter { vaga ->
+                termoBusca.isBlank() ||
+                    vaga.funcao.nome.contains(termoBusca, ignoreCase = true) ||
+                    vaga.estabelecimento.nome.contains(termoBusca, ignoreCase = true)
+            }
             .filter { vaga ->
                 val limite = filtroAtual.filtroDistancia.limiteKm
                 limite == null || vaga.distanciaKm <= limite

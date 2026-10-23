@@ -43,6 +43,7 @@ data class EstadoFeed(
     val status: StatusFeed = StatusFeed.CARREGANDO,
     val vagas: List<ItemVaga> = emptyList(),
     val funcoesDisponiveis: List<String> = emptyList(),
+    val textoBusca: String = "",
     val filtroDistancia: FiltroDistancia = FiltroDistancia.QUALQUER,
     val filtroFuncao: String? = null,
     val filtroRemuneracao: FiltroRemuneracao = FiltroRemuneracao.QUALQUER,
