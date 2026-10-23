@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +15,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private val FUSO_BRASILIA: ZoneId = ZoneId.of("America/Sao_Paulo")
+private val INICIO_MANHA: LocalTime = LocalTime.of(6, 0)
+private val INICIO_TARDE: LocalTime = LocalTime.of(12, 0)
+private val INICIO_NOITE: LocalTime = LocalTime.of(18, 0)
 
 /**
  * Feed de vagas abertas (RF07). `escopo` é nulo em produção (usa `viewModelScope`); testes
@@ -63,6 +71,34 @@ class FeedVagasViewModel(
         aplicarFiltros()
     }
 
+    fun aoAbrirFiltrosAvancados() {
+        _estado.update { it.copy(exibindoFiltrosAvancados = true) }
+    }
+
+    fun aoFecharFiltrosAvancados() {
+        _estado.update { it.copy(exibindoFiltrosAvancados = false) }
+    }
+
+    fun aoSelecionarFiltroRemuneracao(filtro: FiltroRemuneracao) {
+        _estado.update { it.copy(filtroRemuneracao = filtro) }
+        aplicarFiltros()
+    }
+
+    fun aoSelecionarFiltroPeriodo(filtro: FiltroPeriodo) {
+        _estado.update { it.copy(filtroPeriodo = filtro) }
+        aplicarFiltros()
+    }
+
+    fun aoLimparFiltrosAvancados() {
+        _estado.update {
+            it.copy(
+                filtroRemuneracao = FiltroRemuneracao.QUALQUER,
+                filtroPeriodo = FiltroPeriodo.QUALQUER,
+            )
+        }
+        aplicarFiltros()
+    }
+
     private fun aplicarFiltros() {
         val filtroAtual = _estado.value
 
@@ -74,6 +110,11 @@ class FeedVagasViewModel(
             .filter { vaga ->
                 filtroAtual.filtroFuncao == null || vaga.funcao.nome == filtroAtual.filtroFuncao
             }
+            .filter { vaga ->
+                val minimo = filtroAtual.filtroRemuneracao.minimoCentavos
+                minimo == null || vaga.valorCentavos >= minimo
+            }
+            .filter { vaga -> filtroAtual.filtroPeriodo.aceita(vaga.inicioEm) }
             .sortedBy { it.distanciaKm }
             .map { it.paraItem() }
 
@@ -91,5 +132,17 @@ class FeedVagasViewModel(
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível carregar as vagas. Tente de novo em instantes."
+    }
+}
+
+private fun FiltroPeriodo.aceita(inicioEm: String): Boolean {
+    if (this == FiltroPeriodo.QUALQUER) return true
+
+    val horario = Instant.parse(inicioEm).atZone(FUSO_BRASILIA).toLocalTime()
+    return when (this) {
+        FiltroPeriodo.QUALQUER -> true
+        FiltroPeriodo.MANHA -> horario >= INICIO_MANHA && horario < INICIO_TARDE
+        FiltroPeriodo.TARDE -> horario >= INICIO_TARDE && horario < INICIO_NOITE
+        FiltroPeriodo.NOITE -> horario >= INICIO_NOITE || horario < INICIO_MANHA
     }
 }
