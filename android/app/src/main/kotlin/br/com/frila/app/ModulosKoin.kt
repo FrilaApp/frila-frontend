@@ -7,7 +7,6 @@ import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
-import br.com.frila.core.rede.ProvedorDeToken
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
@@ -46,7 +45,7 @@ val moduloRede = module {
         ClienteSupabase(
             baseUrl = SUPABASE_URL,
             apiKey = SUPABASE_ANON_KEY,
-            provedorDeToken = ProvedorDeToken { get<ArmazenamentoDeSessao>().obterSessao()?.accessToken },
+            armazenamentoDeSessao = get(),
         )
     }
     single { ServicoAutenticacao(get()) }

@@ -85,6 +85,12 @@ data class SessaoDto(
     @SerialName("expires_in") val expiresIn: Long,
 )
 
+/** Corpo de `POST /auth/v1/token?grant_type=refresh_token`. */
+@Serializable
+data class RenovarTokenDto(
+    @SerialName("refresh_token") val refreshToken: String,
+)
+
 /** Corpo de `POST /rest/v1/rpc/candidatar`. */
 @Serializable
 data class CandidatarDto(

@@ -13,7 +13,6 @@ kotlin {
 
 dependencies {
     implementation(project(":core:dominio"))
-    implementation(project(":core:rede"))
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
