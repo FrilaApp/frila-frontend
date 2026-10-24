@@ -435,7 +435,8 @@ public struct CartaoVaga: View {
     public init(_ vaga: VagaNaLista) { self.vaga = vaga }
 
     public var body: some View {
-        // Cartão de turno do MidFi (`FrilaShiftCard`): cabeçalho, linhas com ícone, fio e reputação.
+        // Placa de museu da origem (`FrilaOpportunityCard`): entidade em caixa alta, título, grade de
+        // dados entre dois fios, valor em métrica compacta; reputação fecha o cartão.
         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) { cabecalho; valor }
@@ -453,7 +454,9 @@ public struct CartaoVaga: View {
                 linha("checkmark") { Text(verbatim: textoBeneficios) }
                 linha("person") { Text(verbatim: posicoesTexto) }
             }
-            Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .overlay(alignment: .top) { fio }
+            .overlay(alignment: .bottom) { fio }
             reputacaoEstabelecimento
         }
         .font(FrilaTipo.meta)
@@ -464,12 +467,18 @@ public struct CartaoVaga: View {
         .accessibilityLabel(rotuloDeAcessibilidade)
     }
 
+    private var fio: some View {
+        Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
+    }
+
     private var cabecalho: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: vaga.funcao.nome).font(FrilaTipo.resumo)
             Text(verbatim: vaga.estabelecimento.nome)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
+                .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: vaga.funcao.nome)
+                .font(FrilaTipo.tituloDoCartao)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
