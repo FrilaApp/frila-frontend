@@ -163,7 +163,9 @@ public struct TelaPerfilProfissional: View {
             Text(verbatim: TextosDoProfissional.Perfil.secaoFuncoes)
                 .font(FrilaTipo.microRotulo)
                 .textCase(.uppercase)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.secaoFuncoes))
                 .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityAddTraits(.isHeader)
 
@@ -181,9 +183,9 @@ public struct TelaPerfilProfissional: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.compacto)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
                     .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
             )
         }
@@ -223,9 +225,13 @@ public struct TelaPerfilProfissional: View {
     private var secaoPontoBase: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoProfissional.Perfil.pontoBase)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
-                .fixedSize(horizontal: false, vertical: true)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.pontoBase))
+                .padding(.horizontal, FrilaEspaco.medio)
+                .accessibilityAddTraits(.isHeader)
 
             HStack(spacing: FrilaEspaco.compacto) {
                 Image(systemName: "mappin")
@@ -270,10 +276,10 @@ public struct TelaPerfilProfissional: View {
             .padding(.leading, FrilaEspaco.medio)
             .padding(.trailing, FrilaEspaco.minimo)
             .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
-                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                    .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
             )
 
             if !viewModel.sugestoes.isEmpty {
@@ -306,10 +312,10 @@ public struct TelaPerfilProfissional: View {
                         }
                     }
                 }
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
-                        .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                        .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
                 )
             }
 
@@ -340,7 +346,9 @@ public struct TelaPerfilProfissional: View {
             Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios)
                 .font(FrilaTipo.microRotulo)
                 .textCase(.uppercase)
+                .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios))
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityAddTraits(.isHeader)
@@ -366,9 +374,9 @@ public struct TelaPerfilProfissional: View {
             }
         }
         .padding(.leading, FrilaEspaco.medio)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
         )
     }
