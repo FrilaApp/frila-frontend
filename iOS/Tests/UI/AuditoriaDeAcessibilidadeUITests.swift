@@ -469,15 +469,13 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         auditar(app, tela: "cadastro-estabelecimento")
 
         tocar(app.buttons["continuar-cadastro"], em: app)
-        guard esperar(app.navigationBars["Nova vaga"], "Publicar vaga deve abrir") else { return }
+        guard esperar(elemento("publicar-vaga-formulario", em: app), "Publicar vaga deve abrir") else { return }
         if ax5 {
             auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker, estrito: true)
         } else {
             auditar(app, tela: "publicar-vaga")
         }
 
-        tocar(app.buttons["mais-opcoes-botao"], em: app)
-        guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
         let botaoPublicar = app.buttons["publicar-vaga-botao"]
         for _ in 0..<8 where !botaoPublicar.isHittable {
             app.swipeUp(velocity: .fast)

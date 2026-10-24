@@ -48,41 +48,34 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
-        // 2.4 Campo de Valor: altura >= 44 pt
-        let campoValor = app.textFields["valor-vaga-campo"]
-        XCTAssertTrue(campoValor.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertAlvoMinimo(campoValor.frame.height, "Campo Valor deve ter altura >= 44 pt")
-
-        // 2.5 Campo de Posições: altura >= 44 pt
-        let campoPosicoes = app.textFields["posicoes-vaga-campo"]
-        XCTAssertTrue(campoPosicoes.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertAlvoMinimo(campoPosicoes.frame.height, "Campo Posições deve ter altura >= 44 pt")
-
-        // 3.9 Picker de Alerta: deve ter accessibilityLabel "Avisar se a vaga seguir vazia"
-        let pickerAlerta = app.descendants(matching: .any)["alerta-vaga-picker"]
-        XCTAssertTrue(pickerAlerta.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertEqual(pickerAlerta.label, "Avisar se a vaga seguir vazia")
-
-        // 3.10 Picker de Função: rótulo acessível único (ex: "Função, Garçom", nunca "Função, Função")
+        // 3.10 Roleta de Função: rótulo acessível diz a categoria e a função (nunca "Função, Função")
         let pickerFuncao = app.descendants(matching: .any)["funcao-vaga-picker"]
         XCTAssertTrue(pickerFuncao.waitForExistence(timeout: Espera.aparecer))
         XCTAssertNotEqual(pickerFuncao.label, "Função, Função")
-        XCTAssertTrue(pickerFuncao.label.hasPrefix("Função"))
+        XCTAssertTrue(pickerFuncao.label.lowercased().contains("função"), pickerFuncao.label)
 
-        // 2.3 Botão "Mais opções": altura >= 44 pt
-        let maisOpcoes = app.buttons["mais-opcoes-botao"]
-        XCTAssertTrue(maisOpcoes.waitForExistence(timeout: Espera.aparecer))
-        trazerParaATela(maisOpcoes, em: app)
-        XCTAssertAlvoMinimo(maisOpcoes.frame.height, "Botão Mais opções deve ter altura >= 44 pt")
-        maisOpcoes.tap()
+        // 2.4 Régua de valor: tocável
+        let regua = app.sliders["valor-vaga-campo"]
+        XCTAssertTrue(regua.waitForExistence(timeout: Espera.aparecer))
+        trazerParaATela(regua, em: app)
+        XCTAssertTrue(regua.isHittable, "Régua de valor deve ser tocável")
 
-        // 2.6 Campo de Observações: altura >= 44 pt mesmo vazio
-        let campoObs = app.descendants(matching: .any)["observacoes-vaga-campo"]
-        XCTAssertTrue(campoObs.waitForExistence(timeout: Espera.aparecer))
-        trazerParaATela(campoObs, em: app)
-        XCTAssertAlvoMinimo(campoObs.frame.height, "Campo Observações deve ter altura >= 44 pt")
+        // 2.5 Botões do contador de vagas: alvo >= 44 pt (hitbox mínimo da origem)
+        let mais = app.buttons["posicoes-vaga-mais"]
+        XCTAssertTrue(mais.waitForExistence(timeout: Espera.aparecer))
+        trazerParaATela(mais, em: app)
+        XCTAssertAlvoMinimo(mais.frame.height, "Botão de adicionar vaga deve ter altura >= 44 pt")
+        XCTAssertAlvoMinimo(mais.frame.width, "Botão de adicionar vaga deve ter largura >= 44 pt")
+
+        // 2.3 Botões da barra fixa (Prévia e Publicar): altura >= 44 pt
+        let previa = app.buttons["previa-vaga-botao"]
+        XCTAssertTrue(previa.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertAlvoMinimo(previa.frame.height, "Botão Prévia deve ter altura >= 44 pt")
+        let publicar = app.buttons["publicar-vaga-botao"]
+        XCTAssertAlvoMinimo(publicar.frame.height, "Botão Publicar deve ter altura >= 44 pt")
+        // O Estúdio não tem alerta de vaga vazia, "Mais opções" nem observações (relatório da Fase 1 do Hi-Fi).
     }
 
     // MARK: - 3. Publicar Vaga em Dynamic Type XXXL
@@ -98,7 +91,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
         let larguraTela = app.windows.firstMatch.frame.width
 
@@ -127,21 +120,21 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.images["icone-checkmark-nao"].exists)
 
         // 1.1 e 1.2 Campos contidos na tela
-        let campoValor = app.textFields["valor-vaga-campo"]
+        let campoValor = app.sliders["valor-vaga-campo"]
         if campoValor.exists {
             trazerParaATela(campoValor, em: app)
             XCTAssertLessThanOrEqual(campoValor.frame.maxX, larguraTela)
         }
 
         // Seletores de data Início e Fim tocáveis e contidos na tela em AX5
-        let dpInicio = app.datePickers["datepicker-inicio"]
+        let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
         XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "DatePicker Início deve existir")
         trazerParaATela(dpInicio, em: app)
         XCTAssertLessThanOrEqual(dpInicio.frame.maxX, larguraTela, "DatePicker Início extrapolou a largura")
         XCTAssertGreaterThanOrEqual(dpInicio.frame.minX, 0, "DatePicker Início fora à esquerda")
         XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
 
-        let dpFim = app.datePickers["datepicker-fim"]
+        let dpFim = app.descendants(matching: .any)["datepicker-fim"]
         XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "DatePicker Fim deve existir")
         trazerParaATela(dpFim, em: app)
         XCTAssertLessThanOrEqual(dpFim.frame.maxX, larguraTela, "DatePicker Fim extrapolou a largura")
@@ -156,7 +149,7 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
         // Toolbar: botão de Perfil do Estabelecimento deve abrir a folha do perfil
         let btnPerfil = app.buttons["Perfil do estabelecimento"]

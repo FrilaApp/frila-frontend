@@ -1,29 +1,40 @@
 import FrilaDominio
 import SwiftUI
 
-/// Entrada do enxerto do estúdio (só DEBUG, `-FRILA_ENXERTO_LOWPHASE_ESTUDIO`): carrega as funções
-/// do servidor e abre o `FrilaLPEJobCreationStudioView` com a publicação do app.
+/// O "Publicar vaga" do contratante: o Estúdio de Criação do FrilaLowPhase com a publicação do app.
+/// Carrega as funções do servidor, restaura publicação pendente e abre o `FrilaLPEJobCreationStudioView`
+/// com os ganchos do app (avisos, modo da vaga, campos travados, rótulos do fechar e do publicar).
+///
+/// `aoCancelar` nulo é o primeiro acesso (logo depois do cadastro da casa): não há para onde voltar, o X
+/// não aparece e a barra ganha o botão do perfil do estabelecimento, como no formulário antigo.
 struct TelaEstudioFrilaLPE: View {
     @State private var formulario: FormularioEstudioFrilaLPE
     @State private var catalogoPronto = false
+    @State private var mostrandoPerfilEstabelecimento = false
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
+    private let api: any ApiCliente
+    private let sair: () -> Void
     private let aoPublicar: () -> Void
-    private let aoCancelar: () -> Void
+    private let aoCancelar: (() -> Void)?
 
-    init(api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento, aoPublicar: @escaping () -> Void, aoCancelar: @escaping () -> Void) {
+    init(
+        api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento,
+        sair: @escaping () -> Void = {}, aoPublicar: @escaping () -> Void, aoCancelar: (() -> Void)? = nil
+    ) {
         _formulario = State(initialValue: FormularioEstudioFrilaLPE(vaga: PublicarVagaViewModel(api: api, fila: fila, estabelecimento: estabelecimento)))
+        self.api = api
+        self.sair = sair
         self.aoPublicar = aoPublicar
         self.aoCancelar = aoCancelar
     }
 
+    private var isDark: Bool { colorScheme == .dark }
+
     var body: some View {
         Group {
             if catalogoPronto {
-                FrilaLPEJobCreationStudioView(
-                    initialDraft: formulario.rascunhoInicial,
-                    onPublish: { _ in aoPublicar() },
-                    onDismiss: aoCancelar,
-                    publicar: { await formulario.publicar($0) }
-                )
+                estudio
             } else if let erro = formulario.vaga.mensagemErro {
                 EstadoErro(verbatim: erro) { Task { await carregar() } }
             } else {
@@ -31,6 +42,66 @@ struct TelaEstudioFrilaLPE: View {
             }
         }
         .task { await carregar() }
+        // A fila avisa quando uma publicação guardada foi recusada pelo servidor.
+        .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
+            Task { await formulario.vaga.carregarRecusaDaFila() }
+        }
+        .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
+            NavigationStack {
+                TelaPerfilEstabelecimento(api: api, sair: sair)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button {
+                                mostrandoPerfilEstabelecimento = false
+                            } label: {
+                                Text("Fechar", bundle: bundleApresentacao)
+                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            }
+                            .accessibilityShowsLargeContentViewer()
+                        }
+                    }
+            }
+        }
+    }
+
+    private var estudio: some View {
+        let vaga = formulario.vaga
+        return FrilaLPEJobCreationStudioView(
+            isDark: isDark,
+            initialDraft: formulario.rascunhoInicial,
+            onPublish: { _ in
+                // A vaga publicada é o momento de explicar a notificação a quem contrata (#8).
+                Task { await permissaoDePush?.oferecer() }
+                aoPublicar()
+            },
+            onDismiss: { aoCancelar?() },
+            publicar: { await formulario.publicar($0) },
+            hooks: FrilaLPEStudioHostHooks(
+                banner: {
+                    let avisos = AvisosDoEstudioFrilaLPE(vaga: vaga, isDark: isDark)
+                    return avisos.temConteudo ? AnyView(avisos) : nil
+                },
+                sectionFooter: { secao in
+                    secao == .turno ? AnyView(ModoDaVagaEstudioFrilaLPE(vaga: vaga, isDark: isDark)) : nil
+                },
+                fieldsLocked: { vaga.camposBloqueados },
+                publishLabel: { vaga.publicacaoPendente != nil ? TextosPublicarVaga.tentarNovamente : nil },
+                closeLabel: { vaga.textoAoFechar },
+                showsClose: aoCancelar != nil,
+                trailingToolbar: aoCancelar != nil ? nil : {
+                    AnyView(
+                        Button { mostrandoPerfilEstabelecimento = true } label: {
+                            Image(systemName: "building.2.crop.circle")
+                                .foregroundStyle(FrilaLPEColor.dynamicTextPrimary(isDark: isDark))
+                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        }
+                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
+                        .accessibilityShowsLargeContentViewer()
+                    )
+                },
+                onDraftChange: { formulario.sincronizar($0) }
+            )
+        )
     }
 
     private func carregar() async {

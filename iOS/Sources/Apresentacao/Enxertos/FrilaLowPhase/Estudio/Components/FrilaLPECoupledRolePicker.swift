@@ -770,6 +770,8 @@ public struct FrilaLPECoupledRolePicker: View {
                 if !isExpanded { toggleAllWheels() }
             }
             .accessibilityElement(children: isExpanded ? .contain : .ignore)
+            // Enxerto: identificador do formulário antigo do app, para os testes de UI
+            .accessibilityIdentifier(isExpanded ? "" : "funcao-vaga-picker")
             .accessibilityLabel(isExpanded ? "" : String(localized: "Categoria \(selectedCategory?.name ?? "não escolhida"), função \(selectedRole.isEmpty ? "não escolhida" : selectedRole)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
             .accessibilityHint(isExpanded ? "" : String(localized: "Toque para escolher", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
             .accessibilityAddTraits(isExpanded ? [] : .isButton)

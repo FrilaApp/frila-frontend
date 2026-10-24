@@ -243,10 +243,10 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let continuar = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuar.waitForExistence(timeout: 15))
         continuar.tap()
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
         // O formulário abre em urgência; o início padrão é daqui a 3 horas, então "Seleção" não aparece.
-        let modo = app.segmentedControls["modo-vaga-picker"]
+        let modo = app.descendants(matching: .any)["modo-vaga-picker"]
         rolarAte(modo, em: app)
         XCTAssertTrue(modo.exists)
         XCTAssertTrue(modo.buttons["Urgência"].isSelected)
@@ -262,6 +262,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let publicar = app.buttons["publicar-vaga-botao"]
         rolarAte(publicar, em: app)
         publicar.tap()
+        concluirCelebracao(app)
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
     }
 
@@ -271,9 +272,9 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let continuar = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuar.waitForExistence(timeout: 15))
         continuar.tap()
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
-        let modo = app.segmentedControls["modo-vaga-picker"]
+        let modo = app.descendants(matching: .any)["modo-vaga-picker"]
         rolarAte(modo, em: app)
         XCTAssertTrue(modo.buttons["Seleção"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["modo-selecao-indisponivel"].exists)
@@ -290,6 +291,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let publicar = app.buttons["publicar-vaga-botao"]
         rolarAte(publicar, em: app)
         publicar.tap()
+        concluirCelebracao(app)
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
         let cartao = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Modo seleção")).firstMatch
         XCTAssertTrue(cartao.waitForExistence(timeout: 10))

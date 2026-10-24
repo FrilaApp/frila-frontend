@@ -15,30 +15,32 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-contratante-'"))
     }
 
+    /// Preenche o Estúdio e publica. A função vem do roteiro de teste (`-FRILA_CADASTRO_UI_TEST`,
+    /// a primeira do catálogo: Garçom): a roleta acoplada da origem não é um `UIPickerView`, e o
+    /// XCUITest não a gira. O responsável e o valor são trocados aqui, para provar o que o usuário
+    /// digita e o que a fila restaura.
     private func preencherEPublicar(_ app: XCUIApplication) {
-        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
         // O endereço da casa vem preenchido: é o que a leitura do cadastro traz.
-        XCTAssertEqual(app.textFields["Endereço do turno"].value as? String, "CLS 405, Asa Sul, Brasília - DF")
+        XCTAssertEqual(app.textFields["endereco-vaga-campo"].value as? String, "CLS 405, Asa Sul, Brasília - DF")
 
         let funcao = app.descendants(matching: .any)["funcao-vaga-picker"]
-        tocar(funcao)
-        app.buttons["Garçom"].firstMatch.tap()
-        // O responsável vai primeiro: o teclado numérico do valor não tem como ser fechado, e
-        // cobriria o campo de baixo.
-        let responsavel = app.textFields["responsavel-local-campo"]
-        responsavel.tap()
-        responsavel.digitarEEsperar("Marina")
+        XCTAssertTrue(funcao.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(funcao.label.contains("Garçom"), funcao.label)
 
-        let valor = app.textFields["valor-vaga-campo"]
-        valor.tap()
-        esperarFocoDoTeclado(valor)
-        valor.digitarEEsperar("18000", esperado: "180,00")
-        app.swipeUp()
-        tocar(app.buttons["publicar-vaga-botao"])
+        let responsavel = app.textFields["responsavel-local-campo"]
+        rolarAte(responsavel, em: app)
+        substituirTexto(responsavel, por: "Marina")
+        app.swipeUp(velocity: .slow)
+
+        ajustarValorPorTurno(app, para: 180)
+        let publicar = app.buttons["publicar-vaga-botao"]
+        rolarAte(publicar, em: app)
+        tocar(publicar)
     }
 
     func testContratanteComEstabelecimentoPublicaASegundaVagaEElaApareceNaLista() {
-        let app = abrir()
+        let app = abrir(["-FRILA_CADASTRO_UI_TEST"])
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
@@ -48,6 +50,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         tocar(entrada)
 
         preencherEPublicar(app)
+        concluirCelebracao(app)
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
         let depois = NSPredicate(format: "count == %d", antes + 1)
@@ -71,13 +74,14 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
     }
 
     func testPublicarPorMinhasVagasMostraAExplicacaoDaNotificacao() {
-        let app = abrir(["-FRILA_PERMISSAO_PUSH", "nao-pedida"])
+        let app = abrir(["-FRILA_CADASTRO_UI_TEST", "-FRILA_PERMISSAO_PUSH", "nao-pedida"])
 
         XCTAssertTrue(app.buttons["publicar-vaga-entrada"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.descendants(matching: .any)["explicacao-do-push"].exists)
         tocar(app.buttons["publicar-vaga-entrada"])
 
         preencherEPublicar(app)
+        concluirCelebracao(app)
 
         XCTAssertTrue(app.staticTexts["Ative as notificações"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Confirmação de quem vai trabalhar"].exists)
@@ -92,7 +96,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         app.buttons["publicar-vaga-entrada"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        let modo = app.segmentedControls["modo-vaga-picker"]
+        let modo = app.descendants(matching: .any)["modo-vaga-picker"]
         rolarAte(modo, em: app)
         XCTAssertTrue(modo.exists, "o formulário de publicação por Minhas vagas oferece o seletor de modo")
         XCTAssertTrue(modo.buttons["Urgência"].isSelected)
@@ -114,7 +118,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         app.buttons["publicar-vaga-entrada"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        let modo = app.segmentedControls["modo-vaga-picker"]
+        let modo = app.descendants(matching: .any)["modo-vaga-picker"]
         rolarAte(modo, em: app)
         XCTAssertTrue(modo.exists, "o seletor de modo continua na tela")
         XCTAssertTrue(modo.buttons["Urgência"].isSelected)
@@ -145,7 +149,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
     }
 
     func testPublicarSemRedeMostraAvisoVoltarEVagaContinuaPendente() {
-        let app = abrir(cenario: "publicar-sem-rede")
+        let app = abrir(["-FRILA_CADASTRO_UI_TEST"], cenario: "publicar-sem-rede")
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
@@ -193,9 +197,9 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(campoResponsavel.exists)
         XCTAssertEqual(campoResponsavel.value as? String, "Marina")
 
-        let campoValor = app.textFields["valor-vaga-campo"]
-        XCTAssertTrue(campoValor.exists)
-        XCTAssertEqual(campoValor.value as? String, "R$ 180,00")
+        // A régua do Estúdio mostra o valor restaurado da fila.
+        XCTAssertTrue(app.sliders["valor-vaga-campo"].exists)
+        XCTAssertTrue(app.staticTexts["R$ 180"].exists)
     }
 
     func testPublicarVagaEmAX5SeletorDeDataETocavel() throws {
@@ -209,24 +213,22 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        let campoValor = app.textFields["valor-vaga-campo"]
-        let campoPosicoes = app.textFields["posicoes-vaga-campo"]
+        let campoValor = app.sliders["valor-vaga-campo"]
+        let campoPosicoes = app.descendants(matching: .any)["posicoes-vaga-stepper"]
         rolarAte(campoValor, em: app)
         XCTAssertTrue(campoValor.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(campoPosicoes.waitForExistence(timeout: Espera.aparecer))
         XCTAssertGreaterThan(campoPosicoes.frame.width, 150, "Campo de posições deve ter largura útil em coluna no tamanho XXXL")
 
-        let dpInicio = app.datePickers["datepicker-inicio"]
+        let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
         rolarAte(dpInicio, em: app)
-        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "DatePicker Início deve existir")
-        XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
-        XCTAssertGreaterThan(dpInicio.pickerWheels.count, 0, "DatePicker Início deve conter rodas de seleção")
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "Campo Início deve existir")
+        XCTAssertTrue(dpInicio.isHittable, "Campo Início deve ser tocável em AX5")
 
-        let dpFim = app.datePickers["datepicker-fim"]
+        let dpFim = app.descendants(matching: .any)["datepicker-fim"]
         rolarAte(dpFim, em: app)
-        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "DatePicker Fim deve existir")
-        XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
-        XCTAssertGreaterThan(dpFim.pickerWheels.count, 0, "DatePicker Fim deve conter rodas de seleção")
+        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "Campo Fim deve existir")
+        XCTAssertTrue(dpFim.isHittable, "Campo Fim deve ser tocável em AX5")
 
         rolarAte(campoValor, em: app)
         salvarCaptura("03-publicar-vaga-xxxl")
@@ -241,8 +243,8 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        let dpInicio = app.datePickers["datepicker-inicio"]
-        let dpFim = app.datePickers["datepicker-fim"]
+        let dpInicio = app.descendants(matching: .any)["datepicker-inicio"]
+        let dpFim = app.descendants(matching: .any)["datepicker-fim"]
         rolarAte(dpInicio, em: app)
         XCTAssertTrue(dpInicio.waitForExistence(timeout: 5))
         XCTAssertTrue(dpFim.waitForExistence(timeout: 5))
@@ -262,59 +264,52 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
-        let valor = app.textFields["valor-vaga-campo"]
+        let valor = app.sliders["valor-vaga-campo"]
         rolarAte(valor, em: app)
-        valor.tap()
-        esperarFocoDoTeclado(valor)
-        valor.digitarEEsperar("15000", esperado: "150,00")
+        ajustarValorPorTurno(app, para: 150)
 
-        let stepper = app.steppers["posicoes-vaga-stepper"]
-        rolarAte(stepper, em: app)
-        XCTAssertTrue(stepper.waitForExistence(timeout: 5))
-        XCTAssertEqual(stepper.label, "Ajustar posições")
-        XCTAssertEqual(stepper.value as? String, "1")
-        // Incrementa posições de 1 para 2 via stepper
-        stepper.buttons.element(boundBy: 1).tap()
-        XCTAssertEqual(stepper.value as? String, "2")
+        // O contador de vagas do Estúdio: botões de menos e mais em volta do número.
+        let mais = app.buttons["posicoes-vaga-mais"]
+        rolarAte(mais, em: app)
+        XCTAssertTrue(mais.waitForExistence(timeout: 5))
+        XCTAssertEqual(mais.label, "Adicionar uma vaga")
+        let contador = app.descendants(matching: .any)["posicoes-vaga-campo"]
+        XCTAssertTrue(contador.label.hasPrefix("1"), contador.label)
+        tocar(mais)
+        XCTAssertTrue(contador.label.hasPrefix("2"), contador.label)
 
         let totalCalculado = app.staticTexts["total-vaga-calculado"]
         rolarAte(totalCalculado, em: app)
         XCTAssertTrue(totalCalculado.waitForExistence(timeout: 5))
-        XCTAssertTrue(totalCalculado.label.contains("300,00"))
+        XCTAssertTrue(totalCalculado.label.contains("300"), totalCalculado.label)
 
         salvarCaptura("02-publicar-vaga-padrao")
     }
 
-    func testAvisosDeValidacaoSomemAoCorrigirCampo() {
+    /// O Estúdio não escreve avisos de validação por campo: com obrigatório faltando, Publicar
+    /// não publica e leva à primeira etapa incompleta (aqui a função, que o cenário não preenche).
+    func testPublicarComObrigatorioFaltandoNaoPublicaEVoltaAEtapaIncompleta() {
         let app = abrir()
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
         XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        let antes = vagas(app).count
         tocar(app.buttons["publicar-vaga-entrada"])
-        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
-        // Toca em Publicar com campos vazios para disparar validação
         let botaoPublicar = app.buttons["publicar-vaga-botao"]
         rolarAte(botaoPublicar, em: app)
         tocar(botaoPublicar)
 
-        // Rola até o campo de valor para ver o aviso de validação
-        let campoValor = app.textFields["valor-vaga-campo"]
-        rolarAte(campoValor, em: app)
-        let erroValor = app.descendants(matching: .any)["erro-publicacao-valor"]
-        XCTAssertTrue(erroValor.waitForExistence(timeout: 5), "Aviso de validação de valor deve aparecer")
+        XCTAssertFalse(app.buttons["celebracao-concluir"].waitForExistence(timeout: 3), "sem função a vaga não é publicada")
+        XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
+        let etapa = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Publicar vaga, etapa 1 de 3")).firstMatch
+        XCTAssertTrue(etapa.waitForExistence(timeout: 5), "a barra volta à etapa da vaga, a primeira incompleta")
+        salvarCaptura("01-etapa-incompleta")
 
-        salvarCaptura("01-aviso-na-tela")
-
-        // Preenche o campo de valor com valor válido (> 0)
-        campoValor.tap()
-        esperarFocoDoTeclado(campoValor)
-        campoValor.digitarEEsperar("15000", esperado: "150,00")
-
-        // O aviso de valor deve sumir na hora, sem tocar em Publicar
-        XCTAssertFalse(erroValor.exists, "Aviso de valor deve sumir imediatamente ao preencher valor válido")
-
-        salvarCaptura("02-aviso-sumido-apos-corrigir-campo")
+        tocar(app.buttons["cancelar-publicacao"])
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(vagas(app).count, antes)
     }
 
     private func salvarCaptura(_ nome: String) {

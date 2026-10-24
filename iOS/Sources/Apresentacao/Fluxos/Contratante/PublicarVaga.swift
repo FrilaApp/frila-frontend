@@ -7,7 +7,7 @@ import UIKit
 private final class MarcadorPublicarVaga: NSObject {}
 private let bundlePublicarVaga = Bundle(for: MarcadorPublicarVaga.self)
 
-private enum TextosPublicarVaga {
+enum TextosPublicarVaga {
     static let titulo = String(localized: "Nova vaga", bundle: bundleApresentacao)
     static let funcao = String(localized: "Função", bundle: bundleApresentacao)
     static let selecioneFuncao = String(localized: "Selecione uma função", bundle: bundleApresentacao)

@@ -60,17 +60,32 @@ validação, mesma fila. Não há campo, regra nem endpoint novo.
     `GuardaTokensDesignTests` recebe a mesma mudança do #493 (aceitar `*DesignTokens.swift`). A
     diluição resolve.
 
-## Como ligar
+11. Hi-Fi, Fase 1 (24/10): o estúdio é o "Publicar vaga" do app, sem flag. O app entra por ganchos
+    (`FrilaLPEStudioHostHooks`, em `FrilaLPEJobCreationStudioView.swift`) sem mexer no desenho da
+    origem: avisos da fila, da pendência e de erro no topo do formulário; o modo da vaga
+    (urgência/seleção, MS-RF01) no fim da etapa Turno, construído do zero no idioma da origem porque
+    o FrilaLowPhase não tem seletor de modo (`ComplementosDoAppEstudioFrilaLPE.swift`); campos
+    travados com publicação pendente; "Tentar novamente" e "Voltar" nos rótulos; botão do perfil do
+    estabelecimento no primeiro acesso (sem X). Sem rede, Publicar devolve `.queued`: o estúdio não
+    celebra e o aviso "A publicação continua" aparece. O rascunho inicial traz data e horários dos
+    padrões do app (agora + 3 h, arredondado ao passo de 30 min da roleta), não em branco como na
+    origem. Identificadores dos testes de UI (`publicar-vaga-botao`, `funcao-vaga-picker`,
+    `valor-vaga-campo`, `datepicker-*`, `modo-vaga-picker`, `celebracao-concluir`…) nos controles
+    equivalentes; a roleta de função não é dirigível pelo XCUITest, então os testes usam a função do
+    roteiro (`-FRILA_CADASTRO_UI_TEST`).
 
-Só em DEBUG. Lance o app com o argumento `-FRILA_ENXERTO_LOWPHASE_ESTUDIO` e abra "Publicar vaga":
-o `DestinoDePublicarVaga` (`Fluxos/Contratante/PublicarVagaDaCasa.swift`) mostra o estúdio no lugar
-da `TelaPublicarVaga`. Sem o argumento, e em Release, o fluxo atual fica igual.
+## Como entra no app
+
+`DestinoDePublicarVaga` (`Fluxos/Contratante/PublicarVagaDaCasa.swift`) e o fim do cadastro da casa
+(`CadastroEstabelecimento.swift`) abrem `TelaEstudioFrilaLPE`. A `TelaPublicarVaga` antiga segue no
+código até a fatia Contratante da Fase 3 do Hi-Fi; o enxerto #493 (`-FRILA_ENXERTO_LOWPHASE`) segue
+só em DEBUG até a Fase 2.
 
 ## Como remover
 
 1. Apague `Sources/Apresentacao/Enxertos/FrilaLowPhase/Estudio/`, esta pasta e
    `Tests/Unitarios/EstudioFrilaLPETests.swift`.
-2. Em `PublicarVagaDaCasa.swift`, tire o ramo `else if` do `-FRILA_ENXERTO_LOWPHASE_ESTUDIO`.
+2. Em `PublicarVagaDaCasa.swift` e `CadastroEstabelecimento.swift`, volte a abrir a `TelaPublicarVaga`.
 3. Rode `Scripts/gerar-projeto.sh`.
 
 ## Licença da fonte

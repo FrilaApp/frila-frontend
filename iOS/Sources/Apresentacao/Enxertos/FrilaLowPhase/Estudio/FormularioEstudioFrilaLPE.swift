@@ -14,13 +14,39 @@ final class FormularioEstudioFrilaLPE {
         self.agora = agora
     }
 
-    /// Rascunho vazio da origem, com o que o app já sabe: a casa, o endereço dela e o valor por turno.
+    /// Rascunho da origem com o que o app já sabe: a casa, o endereço dela, o valor por turno e o que o
+    /// `PublicarVagaViewModel` já guarda (publicação pendente restaurada, pré-preenchimento de teste, o
+    /// horário padrão do app). Função só entra quando existe no catálogo do servidor.
     var rascunhoInicial: FrilaLPEJobCreationDraft {
         var rascunho = FrilaLPEJobCreationDraft.blank
         rascunho.client = vaga.estabelecimento?.nome ?? ""
         rascunho.address = vaga.local
         rascunho.paymentMode = .perShift
+        if let funcao = vaga.funcoes.first(where: { $0.id == vaga.funcaoID }) {
+            rascunho.role = funcao.nome
+            rascunho.roleOrigin = .catalog
+        }
+        let calendario = FrilaLPEShiftCalendar.brasilia
+        rascunho.shiftDate = FrilaLPEJobShiftFormat.dateLabel(vaga.inicio, calendar: calendario)
+        rascunho.startTime = Self.relogio(de: vaga.inicio, calendario: calendario).fieldLabel
+        rascunho.endTime = Self.relogio(de: vaga.fim, calendario: calendario).fieldLabel
+        if vaga.valorCentavos > 0 { rascunho.payPerPosition = vaga.valorCentavos / 100 }
+        if let posicoes = Int(vaga.posicoesTexto), posicoes > 0 { rascunho.positionsCount = posicoes }
+        rascunho.mealIncluded = vaga.refeicao
+        rascunho.transportIncluded = vaga.transporte
+        rascunho.bringOwnMaterial = vaga.materialProprio
+        rascunho.contactPerson = vaga.responsavelLocal
+        rascunho.dressCode = vaga.traje
+        rascunho.recalculateTotalBudget()
         return rascunho
+    }
+
+    /// Hora do dia no passo da roleta da origem (30 min), arredondada para a opção mais próxima.
+    static func relogio(de data: Date, calendario: Calendar = FrilaLPEShiftCalendar.brasilia, passo: Int = 30) -> FrilaLPEShiftClock {
+        let componentes = calendario.dateComponents([.hour, .minute], from: data)
+        let minutos = (componentes.hour ?? 0) * 60 + (componentes.minute ?? 0)
+        let arredondado = Int((Double(minutos) / Double(passo)).rounded()) * passo
+        return FrilaLPEShiftClock(hour: 0, minute: arredondado)
     }
 
     /// As roletas de função passam a mostrar as funções do servidor, agrupadas pela categoria.
@@ -55,6 +81,13 @@ final class FormularioEstudioFrilaLPE {
         vaga.traje = rascunho.dressCode.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// A cada toque no rascunho o view model acompanha: é ele quem diz se a seleção ainda cabe no
+    /// início escolhido (MS-RF01) e qual é o prazo de escolha (D2).
+    func sincronizar(_ rascunho: FrilaLPEJobCreationDraft) {
+        aplicar(rascunho)
+        vaga.ajustarModoAoInicio()
+    }
+
     /// Data e horários do estúdio no fuso de Brasília; fim igual ou antes do início vira o dia seguinte.
     func periodo(de rascunho: FrilaLPEJobCreationDraft) -> (inicio: Date, fim: Date)? {
         let calendario = FrilaLPEShiftCalendar.brasilia
@@ -76,14 +109,16 @@ final class FormularioEstudioFrilaLPE {
         return ordem.lazy.compactMap { self.vaga.erros[$0] }.first ?? vaga.mensagemErro
     }
 
-    /// Nil quando a vaga foi publicada; senão, a mensagem para o contratante.
-    func publicar(_ rascunho: FrilaLPEJobCreationDraft) async -> String? {
-        guard rascunho.paymentMode == .perShift else { return Self.semValorPorHora }
+    /// Publica pelo caminho do app. `.queued` é a publicação sem rede: ficou na fila do aparelho e o
+    /// aviso do formulário explica; não é erro.
+    func publicar(_ rascunho: FrilaLPEJobCreationDraft) async -> FrilaLPEPublishOutcome {
+        guard rascunho.paymentMode == .perShift else { return .failed(Self.semValorPorHora) }
         aplicar(rascunho)
-        guard vaga.validar() else { return erroDaPublicacao ?? Self.naoPublicou }
+        guard vaga.validar() else { return .failed(erroDaPublicacao ?? Self.naoPublicou) }
         await vaga.publicar()
-        if vaga.resultado != nil { return nil }
-        return erroDaPublicacao ?? Self.naoPublicou
+        if vaga.resultado != nil { return .published }
+        if vaga.publicacaoPendente != nil, vaga.mensagemErro == nil, vaga.erros.isEmpty { return .queued }
+        return .failed(erroDaPublicacao ?? Self.naoPublicou)
     }
 
     static let semValorPorHora = String(localized: "O app publica o valor por turno. Troque Por hora por Por turno.", table: "FrilaLPEEstudio", bundle: bundleApresentacao)

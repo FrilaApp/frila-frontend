@@ -553,6 +553,7 @@ struct FrilaLPEJobFormVagaSection: View {
 
             FrilaLPEJobFormLabeledField(label: "Estabelecimento", isDark: isDark) {
                 TextField(String(localized: "Bar da Quadra", table: "FrilaLPEEstudio", bundle: bundleApresentacao), text: $draft.client)
+                    .accessibilityIdentifier("estabelecimento-vaga-campo")
                     .focused($focusedField, equals: .client)
                     .jobFormInputChrome(isDark: isDark)
                     .frilaLPEFormField(id: "job_form_client", isFocused: focusedField == .client, onDismiss: { focusedField = nil })
@@ -567,6 +568,7 @@ struct FrilaLPEJobFormVagaSection: View {
                     : "Vem do cadastro do estabelecimento; dá para trocar."
             ) {
                 TextField(String(localized: "CLN 408, Bloco B, Asa Norte", table: "FrilaLPEEstudio", bundle: bundleApresentacao), text: $draft.address)
+                    .accessibilityIdentifier("endereco-vaga-campo")
                     .focused($focusedField, equals: .address)
                     .jobFormInputChrome(isDark: isDark)
                     .frilaLPEFormField(id: "job_form_address", isFocused: focusedField == .address, onDismiss: { focusedField = nil })
@@ -605,6 +607,7 @@ struct FrilaLPEJobFormTurnoSection: View {
 
             FrilaLPEJobFormLabeledField(label: "Quem recebe o profissional no local", isDark: isDark) {
                 TextField(String(localized: "Renata, no balcão", table: "FrilaLPEEstudio", bundle: bundleApresentacao), text: $draft.contactPerson)
+                    .accessibilityIdentifier("responsavel-local-campo")
                     .focused($focusedField, equals: .contactPerson)
                     .jobFormInputChrome(isDark: isDark)
                     .frilaLPEFormField(id: "job_form_contact_person", isFocused: focusedField == .contactPerson, onDismiss: { focusedField = nil })
@@ -612,6 +615,7 @@ struct FrilaLPEJobFormTurnoSection: View {
 
             FrilaLPEJobFormLabeledField(label: "Traje ou uniforme", isDark: isDark) {
                 TextField(String(localized: "Camisa preta, calça escura", table: "FrilaLPEEstudio", bundle: bundleApresentacao), text: $draft.dressCode)
+                    .accessibilityIdentifier("traje-vaga-campo")
                     .focused($focusedField, equals: .dressCode)
                     .jobFormInputChrome(isDark: isDark)
                     .frilaLPEFormField(id: "job_form_dress_code", isFocused: focusedField == .dressCode, onDismiss: { focusedField = nil })
@@ -823,6 +827,7 @@ struct FrilaLPEJobFormValorSection: View {
             step: isPerShift ? 10 : 5
         )
         .tint(FrilaLPEColor.dynamicBrandAccent(isDark: isDark))
+        .accessibilityIdentifier("valor-vaga-campo")
         .accessibilityLabel(isPerShift ? String(localized: "Valor por turno", table: "FrilaLPEEstudio", bundle: bundleApresentacao) : String(localized: "Valor por hora", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
     }
 
@@ -849,9 +854,12 @@ struct FrilaLPEJobFormValorSection: View {
                     .contentTransition(.numericText())
                     .frame(minWidth: 24)
                     .accessibilityLabel(String(localized: "\(draft.positionsCount) vagas", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
+                    .accessibilityIdentifier("posicoes-vaga-campo")
 
                 stepButton(systemImage: "plus", label: "Adicionar uma vaga", delta: 1)
+                    .accessibilityIdentifier("posicoes-vaga-mais")
             }
+            .accessibilityIdentifier("posicoes-vaga-stepper")
         }
     }
 
@@ -886,6 +894,7 @@ struct FrilaLPEJobFormValorSection: View {
                     .font(FrilaLPETypography.metricTabular(size: 22, weight: .bold))
                     .foregroundColor(FrilaLPEColor.dynamicTextPrimary(isDark: isDark))
                     .contentTransition(.numericText())
+                    .accessibilityIdentifier("total-vaga-calculado")
                 if let breakdown = totalBreakdown {
                     Text(verbatim: breakdown)
                         .frilaLPEType(FrilaLPEFormType.detail, dynamic: true)
