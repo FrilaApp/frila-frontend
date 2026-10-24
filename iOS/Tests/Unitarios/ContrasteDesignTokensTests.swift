@@ -3,6 +3,11 @@ import Testing
 
 /// Teste automatizado de contraste WCAG 2.1 AA dos tokens de design (Design System).
 ///
+/// Hi-Fi, Fase 2 (24/10/2026): os valores dos tokens passaram a ser os do `FrilaColor` do FrilaLowPhase
+/// (`ParidadeDeCoresDesignTests` prova a igualdade) e entraram `BrandSelection`, `BrandOnSelection`,
+/// `FieldSurface` e `FieldBorder`. Os pares abaixo cresceram de propósito, para cobrir os tokens novos;
+/// nenhum limite foi afrouxado.
+///
 /// Avalia matematicamente todas as combinações semânticas de cor de `Resources/DesignSystem.xcassets`
 /// em modo claro e escuro pela fórmula canônica do W3C (WCAG 2.1 Critério 1.4.3 para texto e
 /// Critério 1.4.11 para componentes de interface e ícones).
@@ -182,6 +187,27 @@ struct ContrasteDesignTokensTests {
             tokenFundo: "SurfaceElevated",
             tipo: .textoNormal,
             justificativa: "Rótulo de capsulaDestrutiva e mensagens de erro de formulário."
+        ),
+        ParSemantico(
+            nome: "Texto principal sobre superfície de campo",
+            tokenFrente: "TextPrimary",
+            tokenFundo: "FieldSurface",
+            tipo: .textoNormal,
+            justificativa: "Valor digitado em CampoFrila, CampoCodigo e campos do Estúdio."
+        ),
+        ParSemantico(
+            nome: "Texto secundário sobre superfície de campo",
+            tokenFrente: "TextSecondary",
+            tokenFundo: "FieldSurface",
+            tipo: .textoNormal,
+            justificativa: "Placeholder e apoio dentro dos campos."
+        ),
+        ParSemantico(
+            nome: "Texto claro sobre seleção da marca",
+            tokenFrente: "BrandOnSelection",
+            tokenFundo: "BrandSelection",
+            tipo: .textoNormal,
+            justificativa: "FiltroPill ativa e RespostaSimNao escolhida (terracota de seleção da origem, #C9470F)."
         )
     ]
 
@@ -207,6 +233,41 @@ struct ContrasteDesignTokensTests {
             tokenFundo: "BrandAccent",
             tipo: .componenteOuIcone,
             justificativa: "Ícone ou glifo sobre pílula com fundo terracota em SearchCapsule."
+        ),
+        ParSemantico(
+            nome: "Contorno de campo sobre fundo agrupado",
+            tokenFrente: "FieldBorder",
+            tokenFundo: "Surface",
+            tipo: .componenteOuIcone,
+            justificativa: "Fio de 1 pt dos campos (`dynamicFormFieldBorder`) diretamente sobre a tela."
+        ),
+        ParSemantico(
+            nome: "Contorno de campo sobre cartão elevado",
+            tokenFrente: "FieldBorder",
+            tokenFundo: "SurfaceElevated",
+            tipo: .componenteOuIcone,
+            justificativa: "Fio dos campos dentro de cartões e folhas."
+        ),
+        ParSemantico(
+            nome: "Contorno de campo sobre a própria superfície do campo",
+            tokenFrente: "FieldBorder",
+            tokenFundo: "FieldSurface",
+            tipo: .componenteOuIcone,
+            justificativa: "O fio precisa se distinguir do preenchimento do campo."
+        ),
+        ParSemantico(
+            nome: "Seleção da marca sobre fundo agrupado",
+            tokenFrente: "BrandSelection",
+            tokenFundo: "Surface",
+            tipo: .componenteOuIcone,
+            justificativa: "Pílula ativa e contorno de escolha sobre a tela."
+        ),
+        ParSemantico(
+            nome: "Seleção da marca sobre cartão elevado",
+            tokenFrente: "BrandSelection",
+            tokenFundo: "SurfaceElevated",
+            tipo: .componenteOuIcone,
+            justificativa: "Pílula ativa dentro de cartões."
         )
     ]
 
@@ -273,18 +334,18 @@ struct ContrasteDesignTokensTests {
 
     // MARK: - Testes Unitários de Regressão
 
-    @Test("Encontra e carrega todos os 14 tokens de cor em DesignSystem.xcassets")
+    @Test("Encontra e carrega todos os 18 tokens de cor em DesignSystem.xcassets")
     func carregaTokensDoDesignSystem() throws {
         let tokens = try Self.carregarTokensDoCatalogo()
         let esperados = [
-            "BrandAccent", "BrandOnPrimary", "BrandPrimary", "ControlBorder",
-            "ControlFill", "Danger", "Hairline", "SheetGrabber", "Success",
-            "Surface", "SurfaceElevated", "TextPrimary", "TextSecondary", "Warning"
+            "BrandAccent", "BrandOnPrimary", "BrandOnSelection", "BrandPrimary", "BrandSelection",
+            "ControlBorder", "ControlFill", "Danger", "FieldBorder", "FieldSurface", "Hairline",
+            "SheetGrabber", "Success", "Surface", "SurfaceElevated", "TextPrimary", "TextSecondary", "Warning"
         ]
         for esperado in esperados {
             #expect(tokens[esperado] != nil, "Token \(esperado) ausente em DesignSystem.xcassets")
         }
-        #expect(tokens.count >= 14)
+        #expect(tokens.count == 18, "Token novo? Registre-o aqui e nos pares, com a razão no PR.")
     }
 
     @Test("Todos os pares normativos de texto atendem ao mínimo de 4,5:1 (WCAG AA) em claro e escuro")

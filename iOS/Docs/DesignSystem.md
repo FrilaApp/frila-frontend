@@ -1,93 +1,120 @@
 # Design system iOS
 
-O módulo `FrilaApresentacao` concentra os tokens e componentes SwiftUI. Cores vivem em `DesignSystem.xcassets`, com variantes clara/escura; tipografia usa estilos semânticos do sistema para responder ao Dynamic Type.
+O módulo `FrilaApresentacao` concentra tokens e componentes SwiftUI em `Sources/Apresentacao/DesignSystem/`.
+Desde o Hi-Fi (Fase 2, 24/10/2026) o design system do app é o do FrilaLowPhase, numa camada só e sem prefixo:
+os tipos da origem mantêm os nomes canônicos (`FrilaColor`, `FrilaTypography`, `FrilaGeometry`, `FrilaMotion`,
+`FrilaShadow`, `FrilaButton`, `FrilaFilterChip`…) e os tokens antigos do app (`FrilaCor`, `FrilaTipo`,
+`FrilaRaio`, `FrilaMovimento`) mantêm os nomes com os valores da origem. Os documentos de design do Fabrício
+ficam em `Docs/Enxertos/FrilaLowPhase/` (`DESIGN.md`, `REGRAS-DE-DESIGN.md`, `design-system/`).
+
+## Onde mora
+
+- `DesignSystem/DesignTokens.swift`: `FrilaCor` (xcassets), `FrilaEspaco`, `FrilaRaio`, `FrilaMetrica`, `FrilaTipo`,
+  `FontesFrila`, `FrilaMovimento`, `FrilaElevacao`, `FrilaMoney.spoken`, `cartaoFrila()`, `elevacaoFrila`, `vidroFrila`.
+- `DesignSystem/Primitivas/`: a origem. `FrilaColor` (escala OKLCH da marca e funções `dynamic…(isDark:)`),
+  `FrilaTypography` e `FrilaFormType` (papéis, `FrilaTypeSpec`, escala 11/13/15/18/22/26/32), `FrilaGeometry`
+  (raios, alturas 32/44/52, espaços), `FrilaMotion` (molas), `FrilaShadow`, vidro, desfoque, esqueleto e a
+  formatação de dinheiro (`FrilaMoney.total/rate/estimate`).
+- `DesignSystem/Componentes/`: componentes da origem (`FrilaButton`, `FrilaFilterChip`, `FrilaStatusChip`,
+  roletas, seções de formulário, prévia, toast…) e os do app em `Componentes.swift` (`BotaoPrimario`,
+  `BotaoSecundario`, `CampoFrila`, `CampoCodigo`, `FiltroPill`, `SeloReputacao`, `AvisoFrila`, `CartaoVaga`,
+  `RespostaSimNao`, `FolhaFrila`). `EstadosDeTela.swift` cobre carregando, vazio, erro, offline e pendente
+  ([PadroesDeEstado.md](PadroesDeEstado.md)).
+- `DesignSystem/Turnos/`: modelos e tokens de turno. `DesignSystem/Recursos/Estudio.xcstrings`: textos do Estúdio.
+- `Resources/DesignSystem.xcassets`: 18 cores com variante clara/escura. `Resources/Fonts`: Bricolage Grotesque
+  Regular, Medium, Bold e ExtraBold (OFL 1.1; `Docs/LicencasDeTerceiros.md` 4.1).
+- `CatalogoDesignSystem` (Debug): paleta, tipografia, botões e chips do Estúdio, componentes do app, estados,
+  folha e licenças.
 
 ## Tokens
 
-- Espaçamento: 2, 4, 8, 12, 14, 16, 24 e 32 pt (`FrilaEspaco`).
-- Raios: 8, 12, 16, 20 e 28 pt (`FrilaRaio`).
-- Alvo interativo mínimo: 44 × 44 pt (`FrilaMetrica.alvoMinimo`).
-- Cores (`FrilaCor`): primária, conteúdo sobre primária, fundo agrupado, superfície elevada, texto primário, texto secundário, sucesso, alerta, perigo, marca (terracota de acento), preenchimento de controle, divisória, borda de controle e puxador.
-- Tipografia (`FrilaTipo`): estilos semânticos do sistema com Dynamic Type, além da fonte Bricolage Grotesque exclusiva para as perguntas de publicação de vaga.
-- Movimento (`FrilaMovimento`): compressão tátil e molas com respeito estrito a Reduzir Movimento.
-- Elevação e Sombras (`FrilaElevacao`): três camadas coordenadas (rim, key, ambient) e estilo zero-shadow nos cartões com fio de 1 pt.
-- Moeda acessível (`FrilaMoney`): tradução fonética integral para VoiceOver.
+- Cor (`FrilaCor` ↔ `FrilaColor`): cada token do xcassets é o mesmo RGB de uma função da origem;
+  `ParidadeDeCoresDesignTests` prova a igualdade. `fundo` = `dynamicCanvas` (#FFFFFF / #111111);
+  `superficie` = `dynamicFormCardSurface` (#FAFAFA / #171717); `superficieDoCampo` = `dynamicFormFieldSurface`;
+  `controle` = `dynamicInputBg`; `texto` = `dynamicTextPrimary` (#1B1A18 / #F5F4F0);
+  `textoSecundario` = `dynamicFormTextMuted` (#6B6B6B / #A3A3A3); `primaria` = `dynamicTextInk`
+  (#090908 / #FFFFFF) com `sobrePrimaria` = `dynamicCanvas`; `selecao` = `primarySelection` (#C9470F) com
+  `sobreSelecao` branco; `marca` = `dynamicBrandAccent` (#EA5A36 / #F26643); `sucesso` = `dynamicVerified`;
+  `alerta` = `dynamicWarningText`; `perigo` = `dynamicError`; `divisoria` = `dynamicHairline`;
+  `borda` = `dynamicBorder`; `bordaDoCampo` = `dynamicFormFieldBorder`; `puxador` decorativo.
+- Espaçamento (`FrilaEspaco`): 2, 4, 8, 12, 14, 16, 24 e 32 pt (`FrilaGeometry.space…`).
+- Raios (`FrilaRaio` ↔ `FrilaGeometry`): 8 aninhado, 14 campo (`entrada`), 16 cartão e aviso (`cartao`),
+  24 folha. Botões, chips e pílulas são sempre `Capsule` (G6), com 32/44/52 pt de altura.
+- Alvo interativo mínimo: 44 × 44 pt (`FrilaMetrica.alvoMinimo`, `FrilaGeometry.hitboxMinimum`).
+- Tipografia (`FrilaTipo` ↔ `FrilaTypography`/`FrilaFormType`): SF Pro pelos estilos semânticos, com Dynamic Type.
+  Bricolage Grotesque só nas perguntas e respostas dos formulários (`pergunta`, `respostaEscolhida`,
+  `contextoDaResposta`); números e dinheiro sempre em SF Pro (`FrilaTypography.metric`). Rótulo do botão
+  grande: SF Pro Bold 18 (`botao`); padrão e chips: Semibold 15 (`botaoPadrao`).
+- Movimento (`FrilaMovimento` ↔ `FrilaMotion`): compressão 0,96 (botão) e 0,94 (chip), molas 350/25 e 380/24;
+  tudo passa por `FrilaMovimento.animacao(_:reduzir:)` (Reduzir Movimento).
+- Elevação (`FrilaElevacao`): zero-shadow nos cartões com fio de 1 pt; três camadas (rim, key, ambient) em
+  folhas e docas.
+- Moeda: `FrilaMoney.spoken` para VoiceOver; `FrilaMoney.total/rate/estimate` para o visual (pt-BR fixo).
 
-> A especificação exaustiva de cada token, valores, tipos e regras de uso geradas de `DesignTokens.swift` (atendimento ao cartão Trello `iUIipiiN`) está catalogada em [GuiaDoFabricio.md (Seção 5.1.1)](GuiaDoFabricio.md#511-tabela-canônica-de-todos-os-tokens-do-app-designtokensswift--cartão-iuiipiin).
+## Regras herdadas da origem
 
-## Componentes iniciais
+`Docs/Enxertos/FrilaLowPhase/REGRAS-DE-DESIGN.md`: zero emojis na UI (G3), pílulas 100% redondas (G6), alvo
+mínimo 44 pt (G8), nenhum texto solto como botão (M1), controle expandido fecha com toque fora (M20).
 
-Botões primário/secundário, campo comum, código de acesso, pill de filtro, cartão de vaga, selo de reputação, aviso, folha e avaliação sim/não. Estados reutilizáveis cobrem carregando, vazio, erro com retry, offline e envio pendente (detalhados em [PadroesDeEstado.md](PadroesDeEstado.md)).
+## Decisões da Fase 2
 
-`CatalogoDesignSystem` é a referência executável em Debug e inclui preview com Dynamic Type de acessibilidade.
+- Botão principal e pílula neutra ativa continuam na tinta (`.ink` da origem), não na terracota viva: o rótulo
+  em 15 pt sobre #EA5A36 fica em 3,5:1, abaixo do AA para texto normal. A terracota viva é acento e botão de
+  destaque do Estúdio (texto grande, 18 pt bold). Filtro ativo e escolha confirmada usam a terracota de seleção
+  (#C9470F, 4,8:1 com branco).
+- `TextSecondary` é o `dynamicFormTextMuted` (#6B6B6B), não o `dynamicTextMuted` (#767571, 4,4:1 sobre o cartão).
 
----
-
-## Tabela Canônica de Contraste WCAG 2.1 AA
-
-Em conformidade com as diretrizes de acessibilidade **WCAG 2.1 (Critério 1.4.3 para contraste de texto e 1.4.11 para contraste de elementos de interface e componentes gráficos)**, todas as combinações semânticas de cor do tema MidFi (claro e escuro) de `Resources/DesignSystem.xcassets` são matematicamente auditadas e protegidas por testes unitários de regressão (`ContrasteDesignTokensTests.swift`).
-
-### Regras de Corte WCAG AA
-- **Texto Normal** (< 18 pt regular ou < 14 pt negrito): razão mínima de **4,5:1**.
-- **Texto Grande** (≥ 18 pt regular ou ≥ 14 pt negrito), **Componente de UI ou Ícone Essencial**: razão mínima de **3,0:1**.
-- **Elementos Decorativos e Controles Desabilitados**: isentos pela norma WCAG 1.4.3 e 1.4.11.
-
-### Fórmula Canônica W3C
-Para cada canal $C \in \{R, G, B\}$ em sRGB normalizado $[0, 1]$:
-$$C_{\text{linear}} = \begin{cases} \frac{C}{12.92}, & \text{se } C \le 0.04045 \\ \left(\frac{C + 0.055}{1.055}\right)^{2.4}, & \text{se } C > 0.04045 \end{cases}$$
-Luminância relativa:
-$$L = 0.2126 \times R_{\text{linear}} + 0.7152 \times G_{\text{linear}} + 0.0722 \times B_{\text{linear}}$$
-Razão de contraste entre duas cores com luminâncias $L_1$ e $L_2$ ($L_1 \ge L_2$):
-$$\text{Razão} = \frac{L_1 + 0.05}{L_2 + 0.05} : 1$$
-
----
-
-### Tabela Formal de Combinações Semânticas
-
-| Par de Tokens (Frente / Fundo) | Uso / Contexto no Frila | Requisito WCAG | Modo Claro (Razão) | Situação Claro | Modo Escuro (Razão) | Situação Escuro | Observações e Diretrizes de Design |
-|---|---|---|:---:|:---:|:---:|:---:|---|
-| `TextPrimary` sobre `Surface` | Títulos e cabeçalhos sobre fundo agrupado | Texto normal (≥ 4,5:1) | 16,84:1 | **Aprovado** | 17,90:1 | **Aprovado** | Fundo da tela (`#F2F2F0` claro / `#0B0B0A` escuro) |
-| `TextPrimary` sobre `SurfaceElevated` | Títulos de cartões, campos e folhas modais | Texto normal (≥ 4,5:1) | 18,88:1 | **Aprovado** | 15,50:1 | **Aprovado** | Cartões elevados (`#FFFFFF` claro / `#1C1C1A` escuro) |
-| `TextPrimary` sobre `ControlFill` | Mensagens textuais em `AvisoFrila` e chips | Texto normal (≥ 4,5:1) | 15,26:1 | **Aprovado** | 12,85:1 | **Aprovado** | Preenchimento neutro (`#E8E7E3` claro / `#2C2B28` escuro) |
-| `TextSecondary` sobre `Surface` | Subtítulos e metadados sobre o fundo | Texto normal (≥ 4,5:1) | 6,06:1 | **Aprovado** | 7,69:1 | **Aprovado** | Texto de apoio (`#5C5B57` claro / `#A3A29C` escuro) |
-| `TextSecondary` sobre `SurfaceElevated` | Metadados de cartão, notas e placeholders | Texto normal (≥ 4,5:1) | 6,79:1 | **Aprovado** | 6,66:1 | **Aprovado** | Em cartões, listas e campos de formulário |
-| `TextSecondary` sobre `ControlFill` | Metadados em tags e controles neutros | Texto normal (≥ 4,5:1) | 5,49:1 | **Aprovado** | 5,52:1 | **Aprovado** | Chips inativos e badges |
-| `BrandOnPrimary` sobre `BrandPrimary` | Rótulo do `BotaoPrimario` e seleção ativa | Texto normal (≥ 4,5:1) | 18,88:1 | **Aprovado** | 17,16:1 | **Aprovado** | Botão principal (`#111110` claro / `#F5F4F0` escuro) |
-| `BrandOnPrimary` sobre `Danger` | Rótulo de exclusão definitiva de conta | Texto normal (≥ 4,5:1) | 5,39:1 | **Aprovado** | 6,70:1 | **Aprovado** | Ação destrutiva confirmada em `TelaExclusaoDeConta` |
-| `BrandPrimary` sobre `Surface` | Ações de texto e contornos sobre o fundo | Texto normal (≥ 4,5:1) | 16,84:1 | **Aprovado** | 17,90:1 | **Aprovado** | Links e botões de contorno |
-| `BrandPrimary` sobre `SurfaceElevated` | Botões secundários de contorno em cartões | Texto normal (≥ 4,5:1) | 18,88:1 | **Aprovado** | 15,50:1 | **Aprovado** | Ações dentro de cartões e folhas |
-| `Success` sobre `Surface` | Status e confirmações sobre o fundo | Texto normal / Ícone (≥ 4,5:1) | 4,90:1 | **Aprovado** | 11,31:1 | **Aprovado** | `#007A33` claro / `#4ADE80` escuro |
-| `Success` sobre `SurfaceElevated` | Selos de reputação e presença confirmada | Texto normal / Ícone (≥ 4,5:1) | 5,49:1 | **Aprovado** | 9,80:1 | **Aprovado** | Selos em cartões de vaga e turno |
-| `Warning` sobre `Surface` | Advertências e turno aguardando sobre fundo | Texto normal / Ícone (≥ 4,5:1) | 4,70:1 | **Aprovado** | 11,79:1 | **Aprovado** | `#9E5C00` claro / `#FBBF24` escuro (ajustado no MidFi) |
-| `Warning` sobre `SurfaceElevated` | Avisos de fila offline ou prazos em cartões | Texto normal / Ícone (≥ 4,5:1) | 5,26:1 | **Aprovado** | 10,22:1 | **Aprovado** | Avisos em cartões de turno |
-| `Danger` sobre `Surface` | Mensagens de erro e cancelamento sobre fundo | Texto normal / Ícone (≥ 4,5:1) | 4,80:1 | **Aprovado** | 6,98:1 | **Aprovado** | `#D70015` claro / `#FF6961` escuro |
-| `Danger` sobre `SurfaceElevated` | Rótulo e contorno do botão destrutivo | Texto normal / Comp. (≥ 4,5:1) | 5,39:1 | **Aprovado** | 6,05:1 | **Aprovado** | `capsulaDestrutiva` e erros em campos |
-| `BrandAccent` sobre `Surface` | Ícone e marca terracota pontual (#EA5A36) | Ícone / Componente (≥ 3,0:1) | 3,11:1 | **Aprovado (3:1)** | 6,34:1 | **Aprovado** | Acento de marca. Reprovado se usado como texto normal (< 4,5:1). |
-| `BrandAccent` sobre `SurfaceElevated` | Destaque gráfico e ícone de marca em cartão | Ícone / Componente (≥ 3,0:1) | 3,49:1 | **Aprovado (3:1)** | 5,49:1 | **Aprovado** | Acento de marca. Reprovado se usado como texto normal (< 4,5:1). |
-| `BrandOnPrimary` sobre `BrandAccent` | Glifo/ícone claro sobre pílula terracota | Ícone / Componente (≥ 3,0:1) | 3,49:1 | **Aprovado (3:1)** | 6,08:1 | **Aprovado** | Em `SearchCapsule`. Reprovado se usado como texto normal (< 4,5:1). |
-| `SheetGrabber` sobre `SurfaceElevated` | Puxador visual central de folhas modais | Decorativo (isento WCAG 1.4.11) | 1,54:1 | **Isento** | 1,89:1 | **Isento** | Possui `.accessibilityHidden(true)`; fechamento nativo por toque/botão. |
+> A especificação exaustiva de cada token gerada de `DesignTokens.swift` (cartão Trello `iUIipiiN`) está em
+> [GuiaDoFabricio.md (Seção 5.1.1)](GuiaDoFabricio.md#511-tabela-canônica-de-todos-os-tokens-do-app-designtokensswift--cartão-iuiipiin).
 
 ---
 
-### Exceções, Restrições e Pares Reprovados para Texto Corrido
+## Tabela canônica de contraste WCAG 2.1 AA
 
-1. **Terracota da Marca (`BrandAccent` / `FrilaCor.marca` - `#EA5A36`):**
-   - **Comportamento matemático:** No tema claro, apresenta contraste de **3,11:1** sobre `Surface` e **3,49:1** sobre `SurfaceElevated`.
-   - **Conformidade:** **Aprovado** para componentes gráficos, ícones e texto grande (WCAG 1.4.11 / 1.4.3 ≥ 3,0:1). **Reprovado** se utilizado para texto corrido normal (< 4,5:1).
-   - **Diretriz normativa (`DesignTokens.swift`):** "A terracota da marca (`marca`) fica só como acento, nunca como fundo de tela ou de cartão." É proibido o uso de `FrilaCor.marca` como cor de corpo de texto no tema claro. Em `FrilaEditorialTag`, qualquer customização deve utilizar texto grande ou alto contraste.
+Valores calculados pela fórmula do W3C (1.4.3 texto, 1.4.11 componentes) a partir de `DesignSystem.xcassets`,
+na Fase 2 do Hi-Fi (24/10/2026). `ContrasteDesignTokensTests` recalcula a cada execução.
 
-2. **Puxador de Folha Modal (`SheetGrabber` / `FrilaCor.puxador`):**
-   - **Comportamento matemático:** 1,54:1 no claro e 1,89:1 no escuro sobre `SurfaceElevated`.
-   - **Conformidade:** **Isento** conforme WCAG 1.4.11 (elementos puramente decorativos). O componente SwiftUI (`Componentes.swift:660`) aplica expressamente `.accessibilityHidden(true)` e as folhas contam com gesto de arrasto nativo e botão "Fechar" com alvo de toque de 44 pt e foco acessível.
+| Par (frente sobre fundo) | Uso | Requisito | Claro | Situação | Escuro | Situação |
+|---|---|---|:---:|:---:|:---:|:---:|
+| `TextPrimary` sobre `Surface` | Títulos e textos sobre a tela | Texto normal (≥ 4,5:1) | 17,39:1 | Aprovado | 17,16:1 | Aprovado |
+| `TextPrimary` sobre `SurfaceElevated` | Títulos de cartões e folhas | Texto normal (≥ 4,5:1) | 16,66:1 | Aprovado | 16,29:1 | Aprovado |
+| `TextPrimary` sobre `ControlFill` | Texto em `AvisoFrila` e pílulas neutras | Texto normal (≥ 4,5:1) | 15,51:1 | Aprovado | 14,45:1 | Aprovado |
+| `TextPrimary` sobre `FieldSurface` | Valor digitado nos campos | Texto normal (≥ 4,5:1) | 15,95:1 | Aprovado | 15,48:1 | Aprovado |
+| `TextSecondary` sobre `Surface` | Apoio e metadados sobre a tela | Texto normal (≥ 4,5:1) | 5,33:1 | Aprovado | 7,49:1 | Aprovado |
+| `TextSecondary` sobre `SurfaceElevated` | Apoio em cartões, placeholders | Texto normal (≥ 4,5:1) | 5,11:1 | Aprovado | 7,11:1 | Aprovado |
+| `TextSecondary` sobre `ControlFill` | Metadados em chips neutros | Texto normal (≥ 4,5:1) | 4,75:1 | Aprovado | 6,31:1 | Aprovado |
+| `TextSecondary` sobre `FieldSurface` | Placeholder e apoio nos campos | Texto normal (≥ 4,5:1) | 4,89:1 | Aprovado | 6,76:1 | Aprovado |
+| `BrandOnPrimary` sobre `BrandPrimary` | Rótulo do `BotaoPrimario` | Texto normal (≥ 4,5:1) | 19,92:1 | Aprovado | 18,88:1 | Aprovado |
+| `BrandOnPrimary` sobre `Danger` | Exclusão definitiva de conta | Texto normal (≥ 4,5:1) | 5,06:1 | Aprovado | 6,83:1 | Aprovado |
+| `BrandPrimary` sobre `Surface` | Ações de texto sobre a tela | Texto normal (≥ 4,5:1) | 19,92:1 | Aprovado | 18,88:1 | Aprovado |
+| `BrandPrimary` sobre `SurfaceElevated` | Ações dentro de cartões | Texto normal (≥ 4,5:1) | 19,09:1 | Aprovado | 17,93:1 | Aprovado |
+| `BrandOnSelection` sobre `BrandSelection` | `FiltroPill` ativa, `RespostaSimNao` escolhida | Texto normal (≥ 4,5:1) | 4,78:1 | Aprovado | 4,78:1 | Aprovado |
+| `Success` sobre `Surface` | Confirmações sobre a tela | Texto normal (≥ 4,5:1) | 5,48:1 | Aprovado | 10,84:1 | Aprovado |
+| `Success` sobre `SurfaceElevated` | Selos de reputação em cartões | Texto normal (≥ 4,5:1) | 5,25:1 | Aprovado | 10,29:1 | Aprovado |
+| `Warning` sobre `Surface` | Pendências sobre a tela | Texto normal (≥ 4,5:1) | 5,27:1 | Aprovado | 11,31:1 | Aprovado |
+| `Warning` sobre `SurfaceElevated` | Avisos em cartões | Texto normal (≥ 4,5:1) | 5,05:1 | Aprovado | 10,74:1 | Aprovado |
+| `Danger` sobre `Surface` | Erros sobre a tela | Texto normal (≥ 4,5:1) | 5,06:1 | Aprovado | 6,83:1 | Aprovado |
+| `Danger` sobre `SurfaceElevated` | `capsulaDestrutiva`, erros de campo | Texto normal (≥ 4,5:1) | 4,85:1 | Aprovado | 6,48:1 | Aprovado |
+| `BrandAccent` sobre `Surface` | Ícone e marca terracota | Componente / ícone (≥ 3,0:1) | 3,49:1 | Aprovado | 6,08:1 | Aprovado |
+| `BrandAccent` sobre `SurfaceElevated` | Acento em cartões | Componente / ícone (≥ 3,0:1) | 3,35:1 | Aprovado | 5,77:1 | Aprovado |
+| `BrandOnPrimary` sobre `BrandAccent` | Glifo sobre pílula terracota (`SearchCapsule`, botão `.primary` do Estúdio) | Componente / ícone (≥ 3,0:1) | 3,49:1 | Aprovado | 6,08:1 | Aprovado |
+| `FieldBorder` sobre `Surface` | Fio do campo sobre a tela | Componente / ícone (≥ 3,0:1) | 3,36:1 | Aprovado | 3,49:1 | Aprovado |
+| `FieldBorder` sobre `SurfaceElevated` | Fio do campo em cartões | Componente / ícone (≥ 3,0:1) | 3,22:1 | Aprovado | 3,31:1 | Aprovado |
+| `FieldBorder` sobre `FieldSurface` | Fio contra o preenchimento do campo | Componente / ícone (≥ 3,0:1) | 3,08:1 | Aprovado | 3,15:1 | Aprovado |
+| `BrandSelection` sobre `Surface` | Pílula ativa sobre a tela | Componente / ícone (≥ 3,0:1) | 4,78:1 | Aprovado | 3,95:1 | Aprovado |
+| `BrandSelection` sobre `SurfaceElevated` | Pílula ativa em cartões | Componente / ícone (≥ 3,0:1) | 4,58:1 | Aprovado | 3,75:1 | Aprovado |
+| `SheetGrabber` sobre `SurfaceElevated` | Puxador das folhas | Decorativo (isento, 1.4.11) | 1,48:1 | Isento | 1,99:1 | Isento |
 
-3. **Evolução do Token `Warning` (`FrilaCor.alerta`):**
-   - No Sprint 1 (paleta preliminar anterior ao MidFi), `Warning` possuía valor `#B57005` (3,78:1 sobre Surface, falhando para texto normal).
-   - Com a aplicação da identidade MidFi do Fabrício (`commit fd06f002`), o token foi redefinido para `#9E5C00` (sRGB `0.620, 0.361, 0.000` no claro), atingindo **4,70:1** sobre `Surface` e **5,26:1** sobre `SurfaceElevated`, passando com folga o critério AA (≥ 4,5:1) sem necessidade de alterações manuais adicionais.
+### Exceções e restrições
 
----
+1. **`BrandAccent` (`FrilaCor.marca`, #EA5A36)**: 3,49:1 sobre `Surface` no claro. Aprovado para ícone, componente
+   e texto grande; reprovado para texto corrido. O teste `guardaDeExcecoesERestricoesDeDesign` registra os dois lados.
+2. **`SheetGrabber` (`FrilaCor.puxador`)**: decorativo, `.accessibilityHidden(true)` em `FolhaFrila`; isento (1.4.11).
+3. **`ControlBorder` e `Hairline`**: fios de 1 pt de cartões e chips inativos, sem exigência de 3:1 porque não
+   delimitam sozinhos um controle (o campo usa `FieldBorder`, que passa).
 
-### Cobertura por Teste Automatizado de Regressão
-A suíte unitária `ContrasteDesignTokensTests.swift` (`iOS/Tests/Unitarios/ContrasteDesignTokensTests.swift`) carrega dinamicamente os valores de `DesignSystem.xcassets`, calcula a luminância e garante que:
-- Nenhum par normativo de texto regrida abaixo de 4,5:1.
-- Nenhum componente ou ícone essencial regrida abaixo de 3,0:1.
-- As restrições de uso do `BrandAccent` permaneçam estritamente documentadas e testadas.
+### Cobertura por teste
+
+- `ContrasteDesignTokensTests`: 18 tokens, pares de texto ≥ 4,5:1, componentes ≥ 3,0:1, exceções documentadas.
+- `ParidadeDeCoresDesignTests`: cada token do xcassets igual à função correspondente do `FrilaColor`.
+- `GuardaTokensDesignTests`: literal de cor ou fonte só em arquivos `*DesignTokens.swift`.
