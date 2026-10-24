@@ -10157,6 +10157,46 @@
         }
       }
     },
+    "Carregando a vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando a vaga."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar a vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar a vaga."
+          }
+        }
+      }
+    },
+    "Não há uma cópia da vaga neste aparelho. Conecte-se à internet para carregar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não há uma cópia da vaga neste aparelho. Conecte-se à internet para carregar."
+          }
+        }
+      }
+    },
+    "por pessoa, %@ %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "por pessoa, %@ %@"
+          }
+        }
+      }
+    },
     "Rateio dos 10%, observações e aviso se a vaga seguir vazia": {
       "localizations": {
         "pt-BR": {
