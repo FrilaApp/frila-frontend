@@ -1,7 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Conta suspensa (#105), no estilo dos quadros "ContaContratante" e "ExcluirConta" do MidFi do Fabrício: aviso neutro, cartões agrupados e ações em linhas com chevron.
+/// Conta suspensa (#105): estado e formulário com os tokens Hi-Fi; ações em lista com divisórias.
 public struct TelaContaSuspensa: View {
     @Bindable private var viewModel: ContaSuspensaViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -17,7 +17,7 @@ public struct TelaContaSuspensa: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                     avisoCabecalho
                     secaoMotivoESuspensao
                     secaoContestacao
@@ -27,7 +27,8 @@ public struct TelaContaSuspensa: View {
             }
             .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosContaSuspensa.titulo))
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .task { await viewModel.carregar() }
             .accessibilityIdentifier("tela-conta-suspensa")
         }
@@ -43,6 +44,7 @@ public struct TelaContaSuspensa: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosContaSuspensa.secaoMotivo)
                 .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -88,6 +90,7 @@ public struct TelaContaSuspensa: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosContaSuspensa.secaoContestacao)
                 .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -189,8 +192,8 @@ public struct TelaContaSuspensa: View {
             .textFieldStyle(.plain)
             .padding(FrilaEspaco.medio)
             .font(FrilaTipo.valorDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-contestacao")
 
             HStack {
@@ -240,6 +243,7 @@ public struct TelaContaSuspensa: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosContaSuspensa.secaoAcoes)
                 .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -273,7 +277,7 @@ public struct TelaContaSuspensa: View {
         .cartaoFrila()
     }
 
-    /// Linha de lista do MidFi: texto à esquerda, chevron em `textoSecundario` à direita, 52 pt de altura mínima.
+    /// Linha de lista Hi-Fi: texto à esquerda, chevron em `textoSecundario` à direita, 52 pt de altura mínima.
     private func linhaDeAcao(_ titulo: String, cor: Color) -> some View {
         HStack(spacing: FrilaEspaco.pequeno) {
             Text(verbatim: titulo)

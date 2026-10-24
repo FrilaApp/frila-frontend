@@ -1,7 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Exclusão de conta (#25), nos quadros "ExcluirConta" e "ExcluirContaContratante" do MidFi do Fabrício: consequências em cartão, confirmação e botão de cápsula.
+/// Exclusão de conta (#25): consequências em cartões Hi-Fi e confirmação destrutiva em cápsula.
 public struct TelaExclusaoDeConta: View {
     @State private var viewModel: ExclusaoDeContaViewModel
     @State private var mostrarDialogoConfirmacao = false
@@ -34,6 +34,8 @@ public struct TelaExclusaoDeConta: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosExclusaoDeConta.titulo))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
 
         .task { await viewModel.carregar() }
         .sheet(isPresented: $mostrarDialogoConfirmacao) { confirmacaoFinal }
@@ -47,7 +49,7 @@ public struct TelaExclusaoDeConta: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 Text(verbatim: TextosExclusaoDeConta.dialogoTitulo)
-                    .font(FrilaTipo.tituloDaFolha)
+                    .font(FrilaTipo.tituloDeEstado)
                     .foregroundStyle(FrilaCor.texto)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -91,6 +93,8 @@ public struct TelaExclusaoDeConta: View {
         }
         .background(FrilaCor.fundo)
         .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
     }
 
     private var avisoPrincipal: some View {
@@ -102,6 +106,7 @@ public struct TelaExclusaoDeConta: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosExclusaoDeConta.secaoOQueAcontece)
                 .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -140,13 +145,14 @@ public struct TelaExclusaoDeConta: View {
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.texto)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, FrilaEspaco.minimo)
     }
 
     private var secaoTurnosFuturos: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosExclusaoDeConta.tituloTurnosFuturos)
                 .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -209,6 +215,7 @@ public struct TelaExclusaoDeConta: View {
                     .foregroundStyle(FrilaCor.texto)
             }
             .toggleStyle(.switch)
+            .tint(FrilaCor.selecao)
             .accessibilityIdentifier("toggle-confirmar-consequencias")
         }
         .cartaoFrila()
