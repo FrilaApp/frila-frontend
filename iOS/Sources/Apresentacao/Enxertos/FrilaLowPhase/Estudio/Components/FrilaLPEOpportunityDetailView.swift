@@ -9,6 +9,8 @@ public struct FrilaLPEOpportunityDetailView: View {
     public let item: FrilaLPEOpportunityItem
     public let isDark: Bool
     public let showsNavigationTitle: Bool
+    /// Enxerto: na prévia de quem publica, o botão principal diz "Publicar vaga" em vez de "Candidatar-me".
+    public let isPublisherPreview: Bool
     public let onApply: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
@@ -19,11 +21,13 @@ public struct FrilaLPEOpportunityDetailView: View {
         item: FrilaLPEOpportunityItem,
         isDark: Bool = false,
         showsNavigationTitle: Bool = true,
+        isPublisherPreview: Bool = false,
         onApply: (() -> Void)? = nil
     ) {
         self.item = item
         self.isDark = isDark
         self.showsNavigationTitle = showsNavigationTitle
+        self.isPublisherPreview = isPublisherPreview
         self.onApply = onApply
     }
 
@@ -182,13 +186,13 @@ public struct FrilaLPEOpportunityDetailView: View {
                     dismiss()
                 }
             }) {
-                Text("Candidatar-me", tableName: "FrilaLPEEstudio", bundle: bundleApresentacao)
+                Text(verbatim: applyTitle)
                     .font(FrilaLPETypography.button)
                     .frame(maxWidth: .infinity)
                     .frame(height: FrilaLPEGeometry.buttonHeightProminent)
             }
             .buttonStyle(FrilaLPEPillButtonStyle(variant: .primary, isDark: isDark))
-            .accessibilityLabel(item.client.isEmpty ? String(localized: "Candidatar-me para a vaga", table: "FrilaLPEEstudio", bundle: bundleApresentacao) : String(localized: "Candidatar-me para a vaga de \(item.role) no \(item.client)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
+            .accessibilityLabel(isPublisherPreview ? publishAccessibilityLabel : item.client.isEmpty ? String(localized: "Candidatar-me para a vaga", table: "FrilaLPEEstudio", bundle: bundleApresentacao) : String(localized: "Candidatar-me para a vaga de \(item.role) no \(item.client)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
 
             // Ações Secundárias no Rodapé
             HStack(spacing: 24) {
@@ -506,15 +510,25 @@ public struct FrilaLPEOpportunityDetailView: View {
                 }
             }) {
                 HStack(spacing: 8) {
-                    Text("Candidatar-me", tableName: "FrilaLPEEstudio", bundle: bundleApresentacao)
+                    Text(verbatim: applyTitle)
                         .font(FrilaLPETypography.button)
                     Image(systemName: "arrow.up.right")
                         .font(FrilaLPEFonteDoSistema.fonte(size: 13, weight: .bold))
                 }
             }
             .buttonStyle(FrilaLPEPillButtonStyle(variant: .primary, isDark: isDark))
-            .accessibilityLabel(String(localized: "Candidatar-me à vaga de \(item.client)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
+            .accessibilityLabel(isPublisherPreview ? publishAccessibilityLabel : String(localized: "Candidatar-me à vaga de \(item.client)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
         }
         .padding(.top, 10)
+    }
+
+    private var applyTitle: String {
+        isPublisherPreview
+            ? String(localized: "Publicar vaga", table: "FrilaLPEEstudio", bundle: bundleApresentacao)
+            : String(localized: "Candidatar-me", table: "FrilaLPEEstudio", bundle: bundleApresentacao)
+    }
+
+    private var publishAccessibilityLabel: String {
+        String(localized: "Publicar vaga de \(item.role)", table: "FrilaLPEEstudio", bundle: bundleApresentacao)
     }
 }

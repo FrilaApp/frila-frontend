@@ -46,15 +46,19 @@ validação, mesma fila. Não há campo, regra nem endpoint novo.
    posição vira centavos (`valorTexto`).
 4. Data e horários: lidos no fuso de Brasília. Fim igual ou antes do início vira o dia seguinte.
 5. Cliente: fixo no nome do estabelecimento. Endereço inicial: o local da casa.
-6. Prévia: sem reputação nem urgência fictícias. Celebração: sem a notificação de tela de bloqueio
-   (fora do escopo) e sem dados de exemplo.
-7. Erro do servidor ou da validação: alerta "Não deu para publicar", com a mensagem do app. O botão
+6. Prévia: sem reputação nem urgência fictícias, e o botão principal diz "Publicar vaga" (na origem,
+   "Candidatar-me"). Celebração: sem a notificação de tela de bloqueio (fora do escopo) e sem dados
+   de exemplo; tocar no aviso enviado faz o mesmo que "Ver Detalhes da Vaga".
+7. Etapa Turno: "Quem recebe o profissional no local" também é obrigatório, como o
+   `responsavel_local` na validação do app. A distância do local fica em
+   `Shifts/FrilaLPEShiftDistance.swift`, fora do arquivo de modelos, por causa do guarda do US18.
+8. Erro do servidor ou da validação: alerta "Não deu para publicar", com a mensagem do app. O botão
    fica desligado enquanto envia.
-8. Código: `#Preview` removidos; animações passam por `FrilaMovimento.animacao` (Reduzir Movimento);
+9. Código: `#Preview` removidos; animações passam por `FrilaMovimento.animacao` (Reduzir Movimento);
    textos com `bundle:`; ajustes de Swift 6 (`nonisolated`, `@MainActor`, catálogo sob trava).
-9. Duplicação aceita: tokens, fontes e botões também existem no #493 (prefixo `FrilaLP`). O
-   `GuardaTokensDesignTests` recebe a mesma mudança do #493 (aceitar `*DesignTokens.swift`). A
-   diluição resolve.
+10. Duplicação aceita: tokens, fontes e botões também existem no #493 (prefixo `FrilaLP`). O
+    `GuardaTokensDesignTests` recebe a mesma mudança do #493 (aceitar `*DesignTokens.swift`). A
+    diluição resolve.
 
 ## Como ligar
 

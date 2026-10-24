@@ -214,16 +214,6 @@ public struct FrilaLPEShiftVenue: Identifiable, Hashable, Sendable {
         self.distanceKm = distanceKm
         self.rehire = rehire
     }
-
-    /// "3,2 km", "14 km".
-    public var distanceLabel: String {
-        distanceKm.formatted(.number.locale(Locale(identifier: "pt_BR")).precision(.fractionLength(0...1))) + " km"
-    }
-
-    /// "3,2 quilômetros".
-    public var spokenDistance: String {
-        distanceKm.formatted(.number.locale(Locale(identifier: "pt_BR")).precision(.fractionLength(0...1))) + " quilômetros"
-    }
 }
 
 // MARK: - Vaga publicada

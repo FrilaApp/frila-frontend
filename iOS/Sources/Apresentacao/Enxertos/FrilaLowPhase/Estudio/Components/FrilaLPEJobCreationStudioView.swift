@@ -469,6 +469,7 @@ public struct FrilaLPEJobCreationStudioView: View {
                     item: draft.toOpportunityItem(),
                     isDark: isDark,
                     showsNavigationTitle: true,
+                    isPublisherPreview: true,
                     onApply: {
                         showingPreviewSheet = false
                         publishOpportunity()
@@ -816,8 +817,10 @@ public struct FrilaLPEJobCelebrationSheet: View {
                         title: "\(item.role.isEmpty ? item.title : item.role), \(item.shiftDate), \(item.shiftHours)",
                         subtitle: "\(item.client), \(item.location), \(FrilaLPEMoney.total(item.payPerPosition))",
                         isDark: isDark,
-                        forceLockScreenTheme: false
-                    ) {}
+                        forceLockScreenTheme: false,
+                        // Enxerto: a origem passava ação vazia; o toque faz o mesmo que "Ver Detalhes da Vaga"
+                        action: onViewDetail
+                    )
                 }
                 .padding(.horizontal, FrilaLPEGeometry.space16)
 

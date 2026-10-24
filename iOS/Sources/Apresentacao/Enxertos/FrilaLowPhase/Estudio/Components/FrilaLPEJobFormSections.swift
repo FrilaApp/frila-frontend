@@ -139,7 +139,8 @@ enum FrilaLPEJobFormSection: Int, CaseIterable, Identifiable, Sendable {
             // O fim só conta quando forma um turno válido com o início
             let validEnd = draft.endTime.isFilled
                 && FrilaLPEJobShiftFormat.blockingIssue(start: draft.startTime, end: draft.endTime) == nil
-            return [draft.shiftDate.isFilled, draft.startTime.isFilled, validEnd]
+            // Enxerto: quem recebe vira `responsavel_local`, obrigatório na validação do app
+            return [draft.shiftDate.isFilled, draft.startTime.isFilled, validEnd, draft.contactPerson.isFilled]
         case .valor:
             // O contador de vagas nunca fica abaixo de 1, então só o valor conta como preenchimento
             let value = draft.paymentMode == .perShift ? draft.payPerPosition : draft.rateHourly

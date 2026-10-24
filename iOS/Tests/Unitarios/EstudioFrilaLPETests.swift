@@ -65,6 +65,16 @@ struct EstudioFrilaLPETests {
         #expect(rascunho.role.isEmpty)
     }
 
+    @Test("Sem quem recebe o profissional, o turno fica incompleto e Publicar leva até ele")
+    func turnoExigeQuemRecebe() throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        var rascunho = rascunhoCompleto(formulario)
+        #expect(FrilaLPEJobFormSection.firstIncomplete(in: rascunho) == nil)
+        rascunho.contactPerson = "  "
+        #expect(!FrilaLPEJobFormSection.turno.isComplete(rascunho))
+        #expect(FrilaLPEJobFormSection.firstIncomplete(in: rascunho) == .turno)
+    }
+
     @Test("Rascunho vira os campos do contrato, com o turno que passa da meia-noite")
     func aplicarRascunho() throws {
         let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }

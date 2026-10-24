@@ -112,6 +112,3 @@ public struct FrilaLPEShiftNotificationBanner: View {
         .accessibilityAddTraits(.isButton)
     }
 }
-
-/// Tela de Bloqueio iOS completa (Screenshot 2).
-/// Demonstra a notificação no contexto de lock screen com relógio e data em português.
