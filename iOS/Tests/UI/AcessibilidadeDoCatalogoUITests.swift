@@ -233,7 +233,8 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     func testCapturasDoCatalogoEmAX5() {
         let app = abrirCatalogo(tamanho: Self.ax5)
         let fim = app.buttons["abrir-licencas"]
-        for indice in 0..<12 {
+        // 20 passos: o catálogo ganhou Paleta, Tipografia, Botões e Chips do Estúdio na Fase 2 do Hi-Fi
+        for indice in 0..<20 {
             if !Self.naCI {
                 let opcoes = XCTExpectedFailure.Options()
                 opcoes.isStrict = false

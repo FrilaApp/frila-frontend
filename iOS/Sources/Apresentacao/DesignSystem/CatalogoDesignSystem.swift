@@ -245,7 +245,7 @@ public struct CatalogoDesignSystem: View {
     private var chipsDoEstudio: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             HStack(spacing: FrilaEspaco.pequeno) {
-                FrilaFilterChip("Perto de mim", isSelected: chipDoEstudio, systemImage: "location.fill", isDark: escuro) { chipDoEstudio.toggle() }
+                FrilaFilterChip("Até 5 km", isSelected: chipDoEstudio, systemImage: "location.fill", isDark: escuro) { chipDoEstudio.toggle() }
                 FrilaFilterChip("Hoje", isSelected: !chipDoEstudio, isDark: escuro) { chipDoEstudio.toggle() }
             }
             HStack(spacing: FrilaEspaco.pequeno) {

@@ -331,8 +331,8 @@ public struct FrilaButton: View {
             .foregroundColor(buttonForeground)
             .clipShape(Capsule())
             .overlay(buttonBorder)
-            .contentShape(Rectangle())
             .frame(minHeight: FrilaGeometry.hitboxMinimum)
+            .contentShape(Rectangle())
         }
         .buttonStyle(FrilaHapticBounceButtonStyle(reduceMotion: reduceMotion))
         .disabled(isLoading)
