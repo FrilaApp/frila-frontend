@@ -85,6 +85,9 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
+            #if DEBUG
+            .preferredColorScheme(Self.esquemaDeCorDosArgumentos)
+            #endif
             // Tema neutro do MidFi: seleção (aba ativa, links, controles) no preenchimento escuro, não no azul do sistema.
             .tint(FrilaCor.primaria)
             // Ao desativar a cena, uma janela opaca acima das folhas e telas modais cobre
@@ -103,6 +106,18 @@ struct FrilaApp: App {
             #endif
         }
     }
+
+    #if DEBUG
+    private static var esquemaDeCorDosArgumentos: ColorScheme? {
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-FRILA_MODO_ESCURO") {
+            return .dark
+        } else if args.contains("-FRILA_MODO_CLARO") {
+            return .light
+        }
+        return nil
+    }
+    #endif
 
     private static func cliente(para ambiente: ConfiguracaoAmbiente) throws(ErroDeConfiguracao) -> any ApiCliente {
         switch ambiente.selecao {

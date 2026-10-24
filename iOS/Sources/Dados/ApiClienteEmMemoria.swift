@@ -619,9 +619,33 @@ public actor ApiClienteEmMemoria: ApiCliente {
         // sessão leva à entrada), sem o atalho de `-FRILA_ENTRADA`.
         let semSessaoArgumento = argumentos.contains("-FRILA_ABRIR_CATALOGO") || argumentos.contains("-FRILA_ENTRADA")
             || argumentos.contains("-FRILA_SEM_SESSAO")
+
+        var vagasPersonalizadas: [Vaga]? = nil
+        if let indiceHorario = argumentos.firstIndex(of: "-FRILA_HORARIO_VAGA"), argumentos.indices.contains(indiceHorario + 1) {
+            let tipo = argumentos[indiceHorario + 1]
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "America/Sao_Paulo") ?? .current
+            let agora = Date()
+            if let vagaBase = try? FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio() {
+                let inicio: Date?
+                if tipo == "amanha-23h30" {
+                    let amanha = cal.date(byAdding: .day, value: 1, to: agora) ?? agora
+                    inicio = cal.date(bySettingHour: 23, minute: 30, second: 0, of: amanha)
+                } else if tipo == "hoje-18h" {
+                    inicio = cal.date(bySettingHour: 18, minute: 0, second: 0, of: agora)
+                } else {
+                    inicio = nil
+                }
+                if let inicio, let periodo = try? Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * 3600)) {
+                    vagasPersonalizadas = [copia(vagaBase, periodo: periodo, publicadoEm: agora)]
+                }
+            }
+        }
+
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
               let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
             return ApiClienteEmMemoria(
+                vagas: vagasPersonalizadas,
                 sessaoAtivaInicial: !semSessaoArgumento,
                 erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
                 simularFalhaTransitoriaRepublicar: falhaTransitoria
@@ -636,6 +660,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         return ApiClienteEmMemoria(
             cenario: cenario,
+            vagas: vagasPersonalizadas,
             sessaoAtivaInicial: sessaoAtiva,
             erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
             simularFalhaTransitoriaRepublicar: falhaTransitoria

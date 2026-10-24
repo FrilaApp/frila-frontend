@@ -13,6 +13,7 @@ public struct AreaDeCandidatura: View {
     @State private var retirouAgora = false
     /// Presente quando a área está presa ao rodapé do detalhe: o aviso vai para a rolagem.
     @Environment(AvisosDoDetalhe.self) private var quadro: AvisosDoDetalhe?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let api: (any ApiCliente)?
     private let candidatar: (CandidaturaViewModel) async -> Void
 
@@ -42,17 +43,20 @@ public struct AreaDeCandidatura: View {
                     avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: FrilaEspaco.medio) {
-                        precoView
-                        Spacer(minLength: FrilaEspaco.medio)
-                        botaoView
-                            .frame(minWidth: 160)
-                    }
+                if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         precoView
                         botaoView
                             .frame(maxWidth: .infinity)
+                    }
+                } else {
+                    HStack(alignment: .center, spacing: FrilaEspaco.medio) {
+                        precoView
+                            .layoutPriority(0)
+                        Spacer(minLength: FrilaEspaco.pequeno)
+                        botaoView
+                            .frame(minWidth: 160)
+                            .layoutPriority(1)
                     }
                 }
 
@@ -73,9 +77,15 @@ public struct AreaDeCandidatura: View {
                 .font(FrilaTipo.preco)
                 .monospacedDigit()
                 .foregroundStyle(FrilaCor.texto)
+                .lineLimit(1)
+                .layoutPriority(1)
             Text(verbatim: apoioPreco)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.8)
+                .layoutPriority(0)
         }
         .accessibilityElement(children: .combine)
     }
