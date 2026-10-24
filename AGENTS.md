@@ -74,7 +74,7 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 
 ### 2.7 Demo pós-iteração
 
-- Depois do gate verde e antes do marco "pronto para integrar", o Codex do Log pede ao mesmo AGY: compilar a branch do Log (`Frila-Local`) no simulador do gate, instalar e abrir o app **na tela alvo** só por argumentos de lançamento e cenários que já existem (sem clicar, sem mudar código), e deixar o app aberto sem rodar mais testes nesse simulador.
+- Depois do gate verde e antes do marco "pronto para integrar", o Codex do Log pede ao mesmo AGY: compilar a branch do Log (`Frila-Local`) no simulador **Frila Demo** (UDID `907B7EAE-82FB-439F-8054-B0CB496A222D`), instalar e abrir o app **na tela alvo** só por argumentos de lançamento e cenários que já existem (sem clicar, sem mudar código), e deixar o app aberto sem rodar mais testes nesse simulador.
 - O marco "pronto para integrar" passa a trazer também `demo: <UDID> | <argumentos> | <tela alcançada ou o toque que falta>` e um contexto de até 4 linhas para o usuário: o que mudou, o que conferir e as ressalvas.
 - O Claude abre a demo com `~/dev/frila-orquestra/demo.sh`: um único portal de simulador e uma única nota ("Demo atual") no canvas; a demo anterior fecha sozinha.
-- O simulador da demo fica reservado até o usuário liberar ou até a próxima demo. Gate de outro Log que precise dele espera e avisa o Claude como bloqueio.
+- **Dois simuladores, papéis fixos:** "Frila Demo" só para demos (nunca para testes) e "iPhone 18 Pro" (UDID `2AF3E1DE-44A3-433F-B09B-CDC8E0BD8737`) só para gates. Assim um gate não espera a demo. Ninguém cria outro simulador.
