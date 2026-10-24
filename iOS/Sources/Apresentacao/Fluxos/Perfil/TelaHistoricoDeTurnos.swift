@@ -24,6 +24,7 @@ public struct TelaHistoricoDeTurnos: View {
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     secaoPeriodo
                     secaoFormato
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -38,6 +39,7 @@ public struct TelaHistoricoDeTurnos: View {
                             .padding(.bottom, FrilaEspaco.medio)
                             .id(Self.idDoResultado)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(FrilaEspaco.medio)
                 .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
@@ -77,6 +79,7 @@ public struct TelaHistoricoDeTurnos: View {
                 .tracking(0.8)
                 .accessibilityLabel(Text(verbatim: TextosHistoricoDeTurnos.periodo))
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.isHeader)
             // Os três numa linha; no iPhone SE, dois e um; no maior texto, um por linha.
             ViewThatFits(in: .horizontal) {
@@ -87,21 +90,27 @@ public struct TelaHistoricoDeTurnos: View {
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { esteMes; mesPassado; intervalo }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             if model.atalho == .intervalo {
                 seletorDeData(TextosHistoricoDeTurnos.de, selecao: inicio, faixa: model.faixaDe, identificador: "historico-de")
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 seletorDeData(TextosHistoricoDeTurnos.ate, selecao: fim, faixa: model.faixaAte, identificador: "historico-ate")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             if let periodo = model.periodo {
                 Text(verbatim: TextosHistoricoDeTurnos.resumo(de: Self.texto(periodo.de), ate: Self.texto(periodo.ate)))
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("historico-resumo-periodo")
             } else {
                 AvisoFrila(verbatim: model.excedeLimite ? TextosHistoricoDeTurnos.intervaloMaximoExcedido : TextosHistoricoDeTurnos.periodoInvalido, tom: .alerta)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("historico-periodo-invalido")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, FrilaEspaco.medio)
         .overlay(alignment: .top) { DivisoriaDeLinha() }
         .overlay(alignment: .bottom) { DivisoriaDeLinha() }
@@ -162,6 +171,7 @@ public struct TelaHistoricoDeTurnos: View {
                 .tracking(0.8)
                 .accessibilityLabel(Text(verbatim: TextosHistoricoDeTurnos.formato))
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.isHeader)
             if dynamicTypeSize.isAccessibilitySize {
                 // O controle segmentado do sistema não acompanha o Dynamic Type: nos tamanhos de
@@ -174,6 +184,7 @@ public struct TelaHistoricoDeTurnos: View {
                         .accessibilityIdentifier("historico-formato-\(formato.rawValue)")
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Picker(selection: Binding(get: { model.formato }, set: { model.escolher(formato: $0) })) {
                     ForEach(FormatoExportacao.allCases, id: \.self) { formato in
@@ -184,9 +195,11 @@ public struct TelaHistoricoDeTurnos: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("historico-formato")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, FrilaEspaco.medio)
         .overlay(alignment: .bottom) { DivisoriaDeLinha() }
         .disabled(model.estaCarregando)
