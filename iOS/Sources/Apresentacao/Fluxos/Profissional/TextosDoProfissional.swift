@@ -121,6 +121,15 @@ enum TextosDoProfissional {
         static let semAvaliacoes = String(localized: "Ainda sem avaliações.", bundle: bundleApresentacao)
         static let denunciar = String(localized: "Denunciar", bundle: bundleApresentacao)
         static let bloquear = String(localized: "Bloquear", bundle: bundleApresentacao)
+        static let carregando = String(localized: "Carregando a vaga.", bundle: bundleApresentacao)
+        static let erroTitulo = String(localized: "Não foi possível carregar a vaga.", bundle: bundleApresentacao)
+        static let erroApoio = String(localized: "Tente de novo.", bundle: bundleApresentacao)
+        static let semConexaoTitulo = String(localized: "Sem conexão", bundle: bundleApresentacao)
+        static let semConexaoMensagem = String(localized: "Não há uma cópia da vaga neste aparelho. Conecte-se à internet para carregar.", bundle: bundleApresentacao)
+        static let tentarDeNovo = String(localized: "Tentar de novo", bundle: bundleApresentacao)
+        static func apoioPreco(dia: String, hora: String) -> String {
+            String(localized: "por pessoa, \(dia) \(hora)", bundle: bundleApresentacao)
+        }
         static let erroMensagem = String(localized: "Não foi possível abrir esta vaga.", bundle: bundleApresentacao)
         static let naoEncontrada = String(localized: "Esta vaga não está mais disponível.", bundle: bundleApresentacao)
     }

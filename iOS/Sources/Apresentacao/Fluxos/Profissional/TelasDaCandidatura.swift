@@ -73,11 +73,48 @@ public struct AreaDeCandidatura: View {
                 .font(FrilaTipo.preco)
                 .monospacedDigit()
                 .foregroundStyle(FrilaCor.texto)
-            Text(verbatim: TextosDoProfissional.Detalhe.porPessoa)
+            Text(verbatim: apoioPreco)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var calendarioSp: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "America/Sao_Paulo") ?? .current
+        cal.locale = Locale(identifier: "pt_BR")
+        return cal
+    }
+
+    private var apoioPreco: String {
+        let inicio = viewModel.vaga.periodo.inicio
+        let cal = calendarioSp
+        let dia: String
+        if cal.isDateInToday(inicio) {
+            dia = TextosDoProfissional.Lista.hoje.lowercased()
+        } else if cal.isDateInTomorrow(inicio) {
+            dia = TextosDoProfissional.Lista.amanha.lowercased()
+        } else {
+            let df = DateFormatter()
+            df.calendar = cal
+            df.timeZone = cal.timeZone
+            df.locale = Locale(identifier: "pt_BR")
+            df.dateFormat = "EEE dd/MM"
+            dia = df.string(from: inicio).replacingOccurrences(of: ".", with: "").lowercased()
+        }
+        let minutos = cal.component(.minute, from: inicio)
+        let dfHora = DateFormatter()
+        dfHora.calendar = cal
+        dfHora.timeZone = cal.timeZone
+        dfHora.locale = Locale(identifier: "pt_BR")
+        if minutos == 0 {
+            dfHora.dateFormat = "HH'h'"
+        } else {
+            dfHora.dateFormat = "HH'h'mm"
+        }
+        let hora = dfHora.string(from: inicio)
+        return TextosDoProfissional.Detalhe.apoioPreco(dia: dia, hora: hora)
     }
 
     private var botaoView: some View {
