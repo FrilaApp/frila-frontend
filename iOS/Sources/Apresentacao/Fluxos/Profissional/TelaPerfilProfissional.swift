@@ -373,6 +373,7 @@ public struct TelaPerfilProfissional: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, FrilaEspaco.medio)
         .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
         .overlay(

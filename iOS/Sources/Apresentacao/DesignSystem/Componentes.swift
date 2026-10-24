@@ -454,6 +454,7 @@ public struct CartaoVaga: View {
                 linha("checkmark") { Text(verbatim: textoBeneficios) }
                 linha("person") { Text(verbatim: posicoesTexto) }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, FrilaEspaco.pequeno)
             .overlay(alignment: .top) { fio }
             .overlay(alignment: .bottom) { fio }

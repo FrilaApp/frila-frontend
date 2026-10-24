@@ -42,6 +42,7 @@ public struct CartaoMeuTurno: View {
                 LinhaDoTurnoComIcone(icone: "clock", texto: formatador.intervalo(turno.vaga.periodo))
                 LinhaDoTurnoComIcone(icone: "mappin", texto: turno.vaga.local)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, FrilaEspaco.pequeno)
             .overlay(alignment: .top) { fio }
             .overlay(alignment: .bottom) { fio }
