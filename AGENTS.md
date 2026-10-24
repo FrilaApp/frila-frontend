@@ -22,7 +22,9 @@ Instruções para agentes de IA neste repositório. A seção 1 vale para todos.
 
 ### 2.2 Escopo de edição
 
-Só `iOS/Sources/Apresentacao/`. Nunca `Dominio/`, `Dados/`, `Infraestrutura/`, `App/`, `Contrato/`, `NotificationService/`, `project.yml`, `Configurations/`, `.github/`, `android/`. Se a tarefa exigir mexer fora (inclusive asserções de teste em `iOS/Tests`), o AGY para e devolve `bloqueado: fora do escopo`; o Claude leva ao usuário.
+Só `iOS/Sources/Apresentacao/`. Nunca `Dominio/`, `Dados/`, `Infraestrutura/`, `App/`, `Contrato/`, `NotificationService/`, `project.yml`, `Configurations/`, `.github/`, `android/`. Se a tarefa exigir mexer fora, o AGY para e devolve `bloqueado: fora do escopo`; o Claude leva ao usuário.
+
+**Exceção estreita: testes que procuram texto.** Quando a tela troca um texto, título, rótulo ou placeholder que um teste em `iOS/Tests` procura, o AGY atualiza a asserção **na mesma entrega**, trocando só o texto e o localizador, sem mudar a lógica do teste (fluxo, esperas, condições, quantidade de asserções). O Codex acha as dependências com `grep -rn '"<texto antigo>"' iOS/Tests` (só dentro de `iOS/Tests`) e lista os arquivos no despacho. Prefira localizar por `accessibilityIdentifier`, que não muda. Qualquer outra mudança em teste segue a regra acima.
 
 ### 2.3 Consumo por camada
 
