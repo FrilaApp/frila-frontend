@@ -61,7 +61,7 @@ public struct TelaAvaliacao: View {
 
     private var cabecalho: some View {
         Text(verbatim: viewModel.pergunta)
-            .font(FrilaTipo.tituloGrande)
+            .font(FrilaTipo.pergunta)
             .foregroundStyle(FrilaCor.texto)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, FrilaEspaco.minimo)
