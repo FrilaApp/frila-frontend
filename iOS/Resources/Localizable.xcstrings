@@ -851,6 +851,16 @@
         }
       }
     },
+    "Atualizando as vagas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizando as vagas."
+          }
+        }
+      }
+    },
     "Atualizar agora": {
       "localizations": {
         "pt-BR": {
@@ -3397,6 +3407,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tenho 18 anos ou mais"
+          }
+        }
+      }
+    },
+    "Tentando de novo...": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentando de novo..."
           }
         }
       }
