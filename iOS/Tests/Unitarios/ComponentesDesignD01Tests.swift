@@ -1,4 +1,4 @@
-import FrilaApresentacao
+@testable import FrilaApresentacao
 import FrilaDominio
 import SwiftUI
 import Testing
@@ -8,6 +8,18 @@ import Testing
 struct ComponentesDesignD01Tests {
 
     // MARK: - Lacuna 11: Leitura de Dinheiro para VoiceOver
+
+    @Test("FrilaPriceTag expõe spokenLabel fonético sem prefixo R$")
+    func frilaPriceTagSpokenLabel() {
+        let tagComHora = FrilaPriceTag(amount: 140, unit: .hour, estimate: 33600)
+        #expect(tagComHora.spokenLabel == "140 reais por hora, estimado 33.600 reais")
+
+        let tagSemUnidade = FrilaPriceTag(amount: 200, unit: nil)
+        #expect(tagSemUnidade.spokenLabel == "200 reais")
+
+        let tagPorDia = FrilaPriceTag(amount: 160, unit: .day)
+        #expect(tagPorDia.spokenLabel == "160 reais por dia")
+    }
 
     @Test("Leitura de dinheiro para zero")
     func leituraDinheiroZero() {

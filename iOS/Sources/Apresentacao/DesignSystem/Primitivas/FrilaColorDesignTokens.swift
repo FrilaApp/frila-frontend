@@ -391,7 +391,7 @@ public enum FrilaColor {
     public static func dynamicPastelSelectedBg(theme: FunctionalPastelTheme, isDark: Bool) -> Color {
         switch theme {
         case .terracotta:
-            return dynamicBrandAccent(isDark: isDark)
+            return primarySelection
         case .sage:
             return isDark ? Color(red: 22/255, green: 101/255, blue: 52/255) : Color(red: 20/255, green: 83/255, blue: 45/255)
         case .slate:
@@ -401,7 +401,7 @@ public enum FrilaColor {
 
     /// Selected / active text for functional pastel category chips
     public static func dynamicPastelSelectedText(theme: FunctionalPastelTheme, isDark: Bool) -> Color {
-        Color.white
+        dynamicBrandSolidText(isDark: isDark)
     }
 }
 

@@ -121,12 +121,12 @@ public struct FrilaFilterChip: View {
             .frame(height: FrilaGeometry.buttonHeightCompact)
             .background(
                 isSelected
-                    ? FrilaColor.dynamicBrandAccent(isDark: isDark)
+                    ? FrilaColor.primarySelection
                     : FrilaColor.dynamicSurfaceSubtle(isDark: isDark)
             )
             .foregroundStyle(
                 isSelected
-                    ? Color.white
+                    ? FrilaColor.dynamicBrandSolidText(isDark: isDark)
                     : FrilaColor.dynamicTextPrimary(isDark: isDark)
             )
             .clipShape(Capsule())

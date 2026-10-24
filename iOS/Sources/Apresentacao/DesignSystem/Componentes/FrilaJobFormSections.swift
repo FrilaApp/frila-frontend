@@ -790,15 +790,16 @@ struct FrilaJobFormValorSection: View {
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: FrilaGeometry.space8) {
                 ForEach(presets, id: \.self) { value in
+                    let spoken = FrilaMoney.spoken(reais: value, por: isPerShift ? "turno" : "hora")
                     Button(action: { setValue(value) }) {
                         Text(verbatim: isPerShift ? FrilaMoney.total(value) : FrilaMoney.rate(value))
                             .font(FrilaTypography.captionMedium)
                             .lineLimit(1)
-                            .foregroundColor(current == value ? .white : FrilaColor.dynamicTextPrimary(isDark: isDark))
+                            .foregroundColor(current == value ? FrilaColor.dynamicBrandSolidText(isDark: isDark) : FrilaColor.dynamicTextPrimary(isDark: isDark))
                             .padding(.horizontal, FrilaGeometry.space12)
                             .frame(height: FrilaGeometry.buttonHeightCompact)
                             .background(
-                                current == value ? FrilaColor.dynamicBrandAccent(isDark: isDark) : FrilaColor.dynamicFormCardSurface(isDark: isDark),
+                                current == value ? FrilaColor.primarySelection : FrilaColor.dynamicFormCardSurface(isDark: isDark),
                                 in: Capsule()
                             )
                             .overlay {
@@ -811,6 +812,8 @@ struct FrilaJobFormValorSection: View {
                     }
                     .buttonStyle(FrilaHapticBounceButtonStyle(reduceMotion: reduceMotion, scale: 0.96))
                     .frilaHitbox()
+                    .accessibilityIdentifier("preset-valor-\(value)")
+                    .accessibilityLabel(spoken)
                     .accessibilityAddTraits(current == value ? [.isSelected] : [])
                 }
             }

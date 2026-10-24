@@ -78,7 +78,7 @@ public struct FrilaSegmentedControl<Selection: Hashable & Sendable>: View {
                 // Hardware-accelerated sliding cell glider capsule (single persistent layer)
                 if segmentWidth > 0 && innerHeight > 0 {
                     Capsule()
-                        .fill(isDark ? Color.white : FrilaColor.dynamicTextInk(isDark: isDark))
+                        .fill(FrilaColor.dynamicTextInk(isDark: isDark))
                         .frame(width: segmentWidth, height: innerHeight)
                         .shadow(color: isDark ? Color.black.opacity(0.25) : Color.black.opacity(0.08), radius: 2, y: 1)
                         .offset(x: gliderOffset, y: padding)
@@ -103,7 +103,7 @@ public struct FrilaSegmentedControl<Selection: Hashable & Sendable>: View {
                             }
                             .foregroundColor(
                                 isSelected
-                                    ? (isDark ? Color.black : Color.white)
+                                    ? FrilaColor.dynamicCanvas(isDark: isDark)
                                     : FrilaColor.dynamicTextMuted(isDark: isDark)
                             )
                             .animation(FrilaMovimento.animacao(.easeInOut(duration: 0.18), reduzir: FrilaMovimentoReduzido.ativo), value: selectedIndex)
@@ -114,11 +114,6 @@ public struct FrilaSegmentedControl<Selection: Hashable & Sendable>: View {
                         .buttonStyle(.plain)
                         .frame(maxHeight: .infinity)
                         .contentShape(Rectangle())
-                        .simultaneousGesture(
-                            TapGesture().onEnded {
-                                selection = item.tag
-                            }
-                        )
                         .accessibilityLabel(item.title)
                         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [.isButton])
                     }

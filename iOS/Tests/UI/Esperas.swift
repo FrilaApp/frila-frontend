@@ -83,9 +83,16 @@ func trazerParaAJanela(_ elemento: XCUIElement, em app: XCUIApplication, tentati
     }
 }
 
-/// "R$ 180" como o `pt_BR` escreve (com espaço inseparável) ou com espaço comum.
+/// "R$ 180" como o `pt_BR` escreve (com espaço inseparável) ou com espaço comum,
+/// além do rótulo fonético do VoiceOver ("180 reais por turno/hora") e do identificador do preset.
 func textoDeDinheiro(_ valor: Int) -> NSPredicate {
-    NSPredicate(format: "label == %@ OR label == %@", "R$\u{00A0}\(valor)", "R$ \(valor)")
+    NSPredicate(
+        format: "label == %@ OR label == %@ OR label BEGINSWITH %@ OR identifier == %@",
+        "R$\u{00A0}\(valor)",
+        "R$ \(valor)",
+        "\(valor) reais",
+        "preset-valor-\(valor)"
+    )
 }
 
 /// Verdadeiro se há um texto na tela com o valor em reais.

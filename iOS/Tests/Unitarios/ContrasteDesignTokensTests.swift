@@ -207,7 +207,7 @@ struct ContrasteDesignTokensTests {
             tokenFrente: "BrandOnSelection",
             tokenFundo: "BrandSelection",
             tipo: .textoNormal,
-            justificativa: "FiltroPill ativa e RespostaSimNao escolhida (terracota de seleção da origem, #C9470F)."
+            justificativa: "FiltroPill ativa, FrilaFilterChip selecionado, presets de valor do Estúdio, chips de categoria pastel (.terracotta) e RespostaSimNao escolhida (terracota de seleção da origem, #C9470F)."
         )
     ]
 
