@@ -38,8 +38,8 @@ enum TextosDeLicencas {
     static let dicaAbrir = String(localized: "Abre o texto da licença", bundle: bundleApresentacao)
 }
 
-/// Lista das dependências do build com a licença de cada uma, em linhas sobre cartão branco e fundo
-/// agrupado, como as demais listas do MidFi do Fabrício. Precisa estar dentro de um `NavigationStack`,
+/// Lista das dependências do build com a licença de cada uma, em linhas sobre o canvas com hairlines,
+/// seguindo o padrão Hi-Fi do Fabrício. Precisa estar dentro de um `NavigationStack`,
 /// que é quem abre o detalhe.
 public struct TelaLicencas: View {
     private enum Estado {
@@ -60,7 +60,7 @@ public struct TelaLicencas: View {
             case let .carregada(licencas):
                 List(licencas) { licenca in
                     NavigationLink { TelaDetalheDaLicenca(licenca) } label: { linha(licenca) }
-                        .listRowBackground(FrilaCor.superficie)
+                        .listRowBackground(FrilaCor.fundo)
                         .accessibilityIdentifier("licenca-\(licenca.id)")
                         .accessibilityHint(TextosDeLicencas.dicaAbrir)
                 }
@@ -85,7 +85,7 @@ public struct TelaLicencas: View {
 
     private func linha(_ licenca: LicencaDePacote) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: licenca.nome).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
+            Text(verbatim: licenca.nome).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
             Text(verbatim: "\(licenca.versao) · \(licenca.tipo)").font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(minHeight: FrilaMetrica.alvoMinimo)

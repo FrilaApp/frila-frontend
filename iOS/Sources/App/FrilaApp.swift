@@ -838,10 +838,16 @@ private struct CriacaoDoPerfilProfissional: View {
 
 private struct TelaInicialDaFundacao: View {
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "briefcase.fill").font(.largeTitle)
-            Text("Frila").font(.title.bold())
+        VStack(spacing: FrilaEspaco.compacto) {
+            Image(systemName: "briefcase.fill")
+                .font(FrilaTipo.tituloGrande)
+                .foregroundStyle(FrilaCor.primaria)
+            Text("Frila")
+                .font(FrilaTipo.tituloGrande)
+                .foregroundStyle(FrilaCor.texto)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(FrilaCor.fundo.ignoresSafeArea())
         .accessibilityElement(children: .combine)
     }
 }
@@ -856,6 +862,7 @@ private struct TelaDeConfiguracaoInvalida: View {
         } description: {
             Text(verbatim: erro.description)
         }
+        .background(FrilaCor.fundo.ignoresSafeArea())
         .accessibilityIdentifier("configuracao-invalida")
     }
 }

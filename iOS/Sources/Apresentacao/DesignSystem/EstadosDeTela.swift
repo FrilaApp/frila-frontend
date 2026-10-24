@@ -29,17 +29,23 @@ public struct EstadoVazio: View {
 }
 
 public struct EstadoCarregando: View {
+    @Environment(\.colorScheme) private var colorScheme
+    private var isDark: Bool { colorScheme == .dark }
+
     public init() {}
+
     public var body: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            ProgressView()
-            Text("Carregando…", bundle: bundleApresentacao)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            FrilaSkeletonBone.concentric(outerRadius: FrilaRaio.cartao, padding: 0, height: 120, isDark: isDark)
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                FrilaSkeletonBone.pill(width: 160, height: 16, isDark: isDark)
+                FrilaSkeletonBone.pill(width: 240, height: 12, isDark: isDark)
+            }
         }
+        .padding(FrilaEspaco.medio)
         .frame(maxWidth: .infinity, minHeight: 160)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Carregando…", bundle: bundleApresentacao))
     }
 }
 
@@ -88,17 +94,16 @@ private struct MensagemDeEstado: View {
     let mensagem: Text
 
     var body: some View {
-        // Estado do MidFi: círculo de 72 pt com o ícone, título e texto de apoio centralizados.
+        // Estado Hi-Fi: ícone limpo sem círculo, título em placard e apoio em meta centralizados.
         VStack(spacing: FrilaEspaco.compacto) {
             Image(systemName: icone)
-                .font(FrilaTipo.secao)
+                .font(FrilaTipo.tituloGrande)
                 .foregroundStyle(FrilaCor.textoSecundario)
-                .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                .background(FrilaCor.controle, in: Circle())
                 .accessibilityHidden(true)
             VStack(spacing: FrilaEspaco.minimo) {
                 titulo
-                    .font(FrilaTipo.tituloDeEstado)
+                    .font(FrilaTipo.tituloDoCartao)
+                    .foregroundStyle(FrilaCor.texto)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                 mensagem
@@ -108,7 +113,6 @@ private struct MensagemDeEstado: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .foregroundStyle(FrilaCor.texto)
         .padding(.vertical, FrilaEspaco.grande)
         .frame(maxWidth: .infinity, minHeight: 160)
         .accessibilityElement(children: .combine)
