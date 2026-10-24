@@ -76,7 +76,9 @@ validação, mesma fila. Não há campo, regra nem endpoint novo.
 12. Campos do app sem lugar no estúdio: observações, rateio e alerta de vaga vazia
     (`observacoes`, `participaRateio`, `alertaAntecedenciaMinutos` do `PublicarVagaViewModel`). A
     origem não tem campo para eles; ficam no padrão do view model (vazio, `false`, 180 min) e não
-    aparecem. Modo da vaga e responsável no local entram pelos ganchos (itens 7 e 11).
+    aparecem. O telefone do responsável (RN10), que o formulário antigo mostrava só para leitura
+    com o número da conta, também não aparece: a prévia mantém o aviso da origem sobre telefone e
+    WhatsApp. Modo da vaga e responsável no local entram pelos ganchos (itens 7 e 11).
 
 ## Como entra no app
 
