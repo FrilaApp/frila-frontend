@@ -1,0 +1,649 @@
+/**
+ * Frila Design System — Core Primitives & Typography Tokens
+ * Product: Frila (Gallery-Marketplace for Freelancers)
+ * Brand Anchor: #EA5A36 (Governed by OKLCH: oklch(0.6510 0.1856 35.10deg))
+ * Foundations: Artsy Achromatic White Wall x Airbnb Conversion Engine x iOS 26+ Liquid Glass
+ *
+ * LEGACY REFERENCE ONLY. Frila is 100% native Swift; the source of truth is
+ * Sources/FrilaDesignSystem/Primitives/FrilaTypography.swift (default paradigm: Swiss).
+ * Rules mirrored here: no italic/oblique anywhere; prices use proportional digits;
+ * tabular digits only for values that animate or align in a column.
+ */
+
+:root {
+  /* ==========================================================================
+     1. OKLCH BRAND COLOR TOKENS (Anchor: #EA5A36)
+     ========================================================================== */
+  --frila-brand-h: 35.1deg;
+  --frila-brand-c: 0.1856;
+
+  /* Primary Brand Scale (OKLCH with sRGB fallback) */
+  --frila-color-primary-50:  oklch(0.970 0.020 var(--frila-brand-h)); /* #FFF1EC: Subtle chip tint */
+  --frila-color-primary-100: oklch(0.930 0.050 var(--frila-brand-h)); /* #FFDDD2: Hover surface */
+  --frila-color-primary-200: oklch(0.850 0.100 var(--frila-brand-h)); /* #FFB6A1: Soft outline glow */
+  --frila-color-primary-300: oklch(0.760 0.150 var(--frila-brand-h)); /* #FF8B6D: Graphic detail */
+  --frila-color-primary-400: oklch(0.680 0.180 var(--frila-brand-h)); /* #F26643: Button hover */
+  --frila-color-primary-500: oklch(0.651 var(--frila-brand-c) var(--frila-brand-h)); /* #EA5A36: Brand Anchor (CTA & Active Pills) */
+  --frila-color-primary-600: oklch(0.540 0.180 var(--frila-brand-h)); /* #C03710: Active press; WCAG AA text (5.53:1) */
+  --frila-color-primary-700: oklch(0.460 0.160 var(--frila-brand-h)); /* #9D2701: High-contrast text links (7.71:1) */
+  --frila-color-primary-800: oklch(0.380 0.130 var(--frila-brand-h)); /* #781D03: Deep brand glyph (10.6:1) */
+  --frila-color-primary-900: oklch(0.290 0.090 var(--frila-brand-h)); /* #4F1506: Dark mode surface */
+  --frila-color-primary-950: oklch(0.200 0.060 var(--frila-brand-h)); /* #2C0903: Deepest baseline */
+
+  /* ==========================================================================
+     2. ACHROMATIC GALLERY WALL PALETTE (Artsy Museum Wall Discipline)
+     ========================================================================== */
+  --frila-color-canvas:         #FFFFFF; /* Pure White Gallery Drywall */
+  --frila-color-surface-subtle: #FBFBFA; /* Whisper Card Surface */
+  --frila-color-input-bg:       #F2F2F0; /* Non-intrusive Input/Chip Fill */
+  --frila-color-divider:        #E5E5E3; /* 1px Architectural Hairline */
+  --frila-color-border:         #CECECB; /* Interactive Control Border */
+  --frila-color-text-muted:     #767571; /* Secondary Metadata (WCAG AA: 4.61:1) */
+  --frila-color-text-primary:   #1B1A18; /* Primary Charcoal Ink (WCAG AAA: 17.39:1) */
+  --frila-color-text-ink:       #090908; /* Stark Pitch Black Pill (WCAG AAA: 19.92:1) */
+
+  /* ==========================================================================
+     3. SEMANTIC TRUST & ESCROW ACCENTS (WCAG AA Compliant)
+     ========================================================================== */
+  --frila-color-escrow:         oklch(0.605 0.160 145.0deg); /* #008639: 100% Escrow Badge (4.70:1) */
+  --frila-color-escrow-bg:      oklch(0.965 0.030 145.0deg); /* #EBF7EE: Escrow chip fill */
+  --frila-color-warning:        oklch(0.650 0.150 75.0deg);  /* #C97A00: Warning Graphic */
+  --frila-color-warning-text:   oklch(0.550 0.160 70.0deg);  /* #9E5C00: Warning Text Label (5.27:1) */
+  --frila-color-warning-bg:     oklch(0.970 0.035 75.0deg);  /* #FFF6E6: Warning chip fill */
+  --frila-color-error:          oklch(0.580 0.210 25.0deg);  /* #D82020: Error / Deadline passed (5.06:1) */
+  --frila-color-error-bg:        oklch(0.970 0.030 25.0deg);  /* #FEECEC: Error chip fill */
+
+  /* ==========================================================================
+     4. GEOMETRY, RADII & TOUCH TARGETS (Genie Benchmark)
+     ========================================================================== */
+  --frila-radius-none:   0px;
+  --frila-radius-nested: 8px;    /* Inner child elements */
+  --frila-radius-input:  14px;   /* Genie text inputs */
+  --frila-radius-card:   16px;   /* Media preview containers & cards */
+  --frila-radius-sheet:  24px;   /* Modal bottom drawers */
+  --frila-radius-pill:   9999px; /* Floating search capsule, CTA pills */
+
+  /* Spacing Grid (4pt / 8pt Fluid System) */
+  --frila-space-2:   2px;
+  --frila-space-4:   4px;
+  --frila-space-8:   8px;
+  --frila-space-12:  12px;
+  --frila-space-14:  14px;
+  --frila-space-16:  16px;
+  --frila-space-20:  20px;
+  --frila-space-24:  24px;
+  --frila-space-32:  32px;
+  --frila-space-48:  48px;
+
+  /* Touch & Hitbox Human Interface Standards */
+  --frila-target-min: 44px;
+
+  /* ==========================================================================
+     5. ELEVATION & "0-SHADOW" GALLERY DISCIPLINE
+     ========================================================================== */
+  --frila-shadow-card: none; /* Zero drop shadow on portfolio & opportunity cards */
+  --frila-shadow-search-pill: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --frila-shadow-bottom-bar: 0 -1px 0 var(--frila-color-divider), 0 -4px 16px rgba(0, 0, 0, 0.03);
+  --frila-shadow-glow-brand: 0 4px 20px rgba(234, 90, 54, 0.28);
+
+  /* ==========================================================================
+     6. BASE TYPOGRAPHY TOKENS (Curatorial values; the Swift default paradigm is SWISS — see FrilaTypography.swift)
+     ========================================================================== */
+  --frila-font-stack-display: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --frila-font-stack-placard: "Newsreader", "New York", Georgia, Baskerville, serif;
+  --frila-font-stack-entity:  Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --frila-font-stack-body:    Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --frila-font-stack-micro:   "JetBrains Mono", "SF Mono", Menlo, Monaco, monospace;
+  --frila-font-stack-metric:  Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Display Headline */
+  --frila-type-display-size: 32px;
+  --frila-type-display-lh: 1.15;
+  --frila-type-display-weight: 700;
+  --frila-type-display-tracking: -0.02em;
+  --frila-type-display-style: normal;
+  --frila-type-display-transform: none;
+
+  /* Placard Project Title */
+  --frila-type-placard-size: 18px;
+  --frila-type-placard-lh: 1.35;
+  --frila-type-placard-weight: 400;
+  --frila-type-placard-tracking: -0.01em;
+  --frila-type-placard-style: normal; /* italic is forbidden */
+  --frila-type-placard-transform: none;
+
+  /* Client Entity */
+  --frila-type-entity-size: 17px;
+  --frila-type-entity-lh: 1.25;
+  --frila-type-entity-weight: 700;
+  --frila-type-entity-tracking: -0.015em;
+  --frila-type-entity-style: normal;
+  --frila-type-entity-transform: none;
+
+  /* Body Regular */
+  --frila-type-body-size: 15px;
+  --frila-type-body-lh: 1.50;
+  --frila-type-body-weight: 400;
+  --frila-type-body-tracking: 0em;
+  --frila-type-body-style: normal;
+  --frila-type-body-transform: none;
+
+  /* Archival Micro-Label */
+  --frila-type-micro-size: 11px;
+  --frila-type-micro-lh: 1.20;
+  --frila-type-micro-weight: 600;
+  --frila-type-micro-tracking: 0.08em;
+  --frila-type-micro-style: normal;
+  --frila-type-micro-transform: uppercase;
+
+  /* Compensation Metric */
+  --frila-type-metric-size: 22px;
+  --frila-type-metric-lh: 1.15;
+  --frila-type-metric-weight: 700;
+  --frila-type-metric-tracking: -0.02em;
+  --frila-type-metric-features: "pnum" 1, "lnum" 1;
+
+  /* ==========================================================================
+     7. LIQUID GLASS TOKENS (iOS 26+ Web Shaders)
+     ========================================================================== */
+  --frila-glass-regular-bg: rgba(255, 255, 255, 0.82);
+  --frila-glass-regular-blur: 20px;
+  --frila-glass-regular-saturate: 180%;
+  --frila-glass-regular-border-top: 1px solid rgba(255, 255, 255, 0.60);
+  --frila-glass-regular-border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+  --frila-glass-prominent-bg: rgba(234, 90, 54, 0.92);
+  --frila-glass-prominent-blur: 24px;
+  --frila-glass-prominent-saturate: 200%;
+  --frila-glass-prominent-border-top: 1px solid rgba(255, 255, 255, 0.35);
+  --frila-glass-prominent-border-bottom: 1px solid rgba(0, 0, 0, 0.20);
+
+  --frila-glass-backdrop-bg: rgba(15, 17, 21, 0.40);
+  --frila-glass-backdrop-blur: 16px;
+}
+
+/* ============================================================================
+   THEME OVERRIDES: THE 5 PRIMITIVE TYPOGRAPHY PARADIGMS
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   Variant 1: "Curatorial Placard" (Artsy Heritage Benchmark)
+   ---------------------------------------------------------------------------- */
+[data-frila-theme="curatorial"],
+:root:not([data-frila-theme]) {
+  --frila-font-stack-display: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --frila-font-stack-placard: "Newsreader", "New York", Georgia, Baskerville, serif;
+  --frila-font-stack-entity:  Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --frila-font-stack-body:    Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --frila-font-stack-micro:   "JetBrains Mono", "SF Mono", Menlo, Monaco, monospace;
+  --frila-font-stack-metric:  Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --frila-type-display-size: 32px;
+  --frila-type-display-lh: 1.15;
+  --frila-type-display-weight: 700;
+  --frila-type-display-tracking: -0.02em;
+
+  --frila-type-placard-size: 18px;
+  --frila-type-placard-lh: 1.35;
+  --frila-type-placard-weight: 400;
+  --frila-type-placard-style: normal; /* italic is forbidden */
+
+  --frila-type-entity-size: 17px;
+  --frila-type-entity-lh: 1.25;
+  --frila-type-entity-weight: 700;
+  --frila-type-entity-tracking: -0.015em;
+  --frila-type-entity-transform: none;
+
+  --frila-type-micro-size: 11px;
+  --frila-type-micro-lh: 1.20;
+  --frila-type-micro-weight: 600;
+  --frila-type-micro-tracking: 0.08em;
+  --frila-type-micro-transform: uppercase;
+
+  --frila-type-metric-size: 22px;
+  --frila-type-metric-weight: 700;
+}
+
+/* ----------------------------------------------------------------------------
+   Variant 2: "Swiss Neo-Grotesque" (Linear / Modernist Precision)
+   ---------------------------------------------------------------------------- */
+[data-frila-theme="swiss"] {
+  --frila-font-stack-display: "Suisse Int'l", "Neue Haas Grotesk", "Inter Tight", "Inter", "Helvetica Neue", sans-serif;
+  --frila-font-stack-placard: "Suisse Int'l", "Neue Haas Grotesk", "Inter Tight", "Inter", "Helvetica Neue", sans-serif;
+  --frila-font-stack-entity:  "Suisse Int'l", "Neue Haas Grotesk", "Inter Tight", "Inter", "Helvetica Neue", sans-serif;
+  --frila-font-stack-body:    "Suisse Int'l", "Neue Haas Grotesk", "Inter Tight", "Inter", "Helvetica Neue", sans-serif;
+  --frila-font-stack-micro:   "Suisse Int'l", "Neue Haas Grotesk", "Inter Tight", "Inter", "Helvetica Neue", sans-serif;
+  --frila-font-stack-metric:  "Suisse Int'l", "Neue Haas Grotesk", "Inter Tight", "Inter", "Helvetica Neue", sans-serif;
+
+  --frila-type-display-size: 34px;
+  --frila-type-display-lh: 1.10;
+  --frila-type-display-weight: 800;
+  --frila-type-display-tracking: -0.035em;
+
+  --frila-type-placard-size: 18px;
+  --frila-type-placard-lh: 1.28;
+  --frila-type-placard-weight: 500;
+  --frila-type-placard-style: normal; /* oblique is forbidden */
+  --frila-type-placard-tracking: -0.015em;
+
+  --frila-type-entity-size: 16px;
+  --frila-type-entity-lh: 1.20;
+  --frila-type-entity-weight: 700;
+  --frila-type-entity-tracking: -0.02em;
+  --frila-type-entity-transform: uppercase;
+
+  --frila-type-body-size: 14.5px;
+  --frila-type-body-lh: 1.45;
+  --frila-type-body-weight: 400;
+  --frila-type-body-tracking: -0.005em;
+
+  --frila-type-micro-size: 10.5px;
+  --frila-type-micro-lh: 1.15;
+  --frila-type-micro-weight: 700;
+  --frila-type-micro-tracking: 0.06em;
+  --frila-type-micro-transform: uppercase;
+
+  --frila-type-metric-size: 24px;
+  --frila-type-metric-lh: 1.10;
+  --frila-type-metric-weight: 800;
+  --frila-type-metric-tracking: -0.03em;
+  --frila-type-metric-features: "pnum" 1, "lnum" 1;
+
+  --frila-color-surface-subtle: #F6F7F9;
+  --frila-color-divider: #E2E4E9;
+  --frila-color-text-primary: #0F1115;
+}
+
+/* ----------------------------------------------------------------------------
+   Variant 3: "Humanist Atelier" (Warm Editorial Craft)
+   ---------------------------------------------------------------------------- */
+[data-frila-theme="atelier"] {
+  --frila-font-stack-display: "Fraunces", "Lora", "Baskerville", "Palatino Linotype", "Book Antiqua", serif;
+  --frila-font-stack-placard: "Fraunces", "Lora", "Baskerville", "Palatino Linotype", "Book Antiqua", serif;
+  --frila-font-stack-entity:  "Plus Jakarta Sans", "Optima", "Gill Sans", "Candara", sans-serif;
+  --frila-font-stack-body:    "Plus Jakarta Sans", "Optima", "Gill Sans", "Candara", sans-serif;
+  --frila-font-stack-micro:   "Plus Jakarta Sans", "Optima", "Gill Sans", "Candara", sans-serif;
+  --frila-font-stack-metric:  "Fraunces", "Lora", "Baskerville", serif;
+
+  --frila-type-display-size: 32px;
+  --frila-type-display-lh: 1.20;
+  --frila-type-display-weight: 600;
+  --frila-type-display-tracking: -0.015em;
+
+  --frila-type-placard-size: 19px;
+  --frila-type-placard-lh: 1.35;
+  --frila-type-placard-weight: 500;
+  --frila-type-placard-style: normal;
+  --frila-type-placard-tracking: -0.01em;
+
+  --frila-type-entity-size: 16px;
+  --frila-type-entity-lh: 1.30;
+  --frila-type-entity-weight: 600;
+  --frila-type-entity-tracking: 0em;
+  --frila-type-entity-transform: none;
+
+  --frila-type-body-size: 15px;
+  --frila-type-body-lh: 1.55;
+  --frila-type-body-weight: 400;
+  --frila-type-body-tracking: 0.005em;
+
+  --frila-type-micro-size: 11px;
+  --frila-type-micro-lh: 1.25;
+  --frila-type-micro-weight: 600;
+  --frila-type-micro-tracking: 0.12em;
+  --frila-type-micro-transform: none;
+  font-variant-caps: all-small-caps;
+
+  --frila-type-metric-size: 23px;
+  --frila-type-metric-lh: 1.20;
+  --frila-type-metric-weight: 700;
+  --frila-type-metric-tracking: -0.01em;
+
+  /* Warm Atelier Color Adaptation */
+  --frila-color-canvas: #FDFAF6;
+  --frila-color-surface-subtle: #F7F3EE;
+  --frila-color-input-bg: #EFE9E0;
+  --frila-color-divider: #E4DDD2;
+  --frila-color-border: #CEC4B5;
+  --frila-color-text-primary: #241E19;
+  --frila-color-text-muted: #7A6F64;
+}
+
+/* ----------------------------------------------------------------------------
+   Variant 4: "Hyper-Dense Archival" (Fintech & Dev Contracts)
+   ---------------------------------------------------------------------------- */
+[data-frila-theme="archival"] {
+  --frila-font-stack-display: "Commit Mono", "SF Mono", "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
+  --frila-font-stack-placard: "Commit Mono", "SF Mono", "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
+  --frila-font-stack-entity:  "Commit Mono", "SF Mono", "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
+  --frila-font-stack-body:    "Geist", "Inter Tight", "Roboto Condensed", -apple-system, sans-serif;
+  --frila-font-stack-micro:   "Commit Mono", "SF Mono", "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
+  --frila-font-stack-metric:  "Commit Mono", "SF Mono", "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
+
+  --frila-type-display-size: 26px;
+  --frila-type-display-lh: 1.15;
+  --frila-type-display-weight: 700;
+  --frila-type-display-tracking: -0.03em;
+
+  --frila-type-placard-size: 15px;
+  --frila-type-placard-lh: 1.25;
+  --frila-type-placard-weight: 600;
+  --frila-type-placard-style: normal;
+  --frila-type-placard-tracking: -0.01em;
+
+  --frila-type-entity-size: 14px;
+  --frila-type-entity-lh: 1.20;
+  --frila-type-entity-weight: 700;
+  --frila-type-entity-tracking: 0.02em;
+  --frila-type-entity-transform: uppercase;
+
+  --frila-type-body-size: 13px;
+  --frila-type-body-lh: 1.38;
+  --frila-type-body-weight: 400;
+  --frila-type-body-tracking: 0em;
+
+  --frila-type-micro-size: 9.5px;
+  --frila-type-micro-lh: 1.10;
+  --frila-type-micro-weight: 700;
+  --frila-type-micro-tracking: 0.10em;
+  --frila-type-micro-transform: uppercase;
+
+  --frila-type-metric-size: 19px;
+  --frila-type-metric-lh: 1.10;
+  --frila-type-metric-weight: 700;
+  --frila-type-metric-tracking: -0.02em;
+  --frila-type-metric-features: "pnum" 1, "lnum" 1;
+
+  --frila-radius-card: 8px;
+  --frila-radius-pill: 6px;
+  --frila-space-20: 14px;
+}
+
+/* ----------------------------------------------------------------------------
+   Variant 5: "Tactile Liquid Glass" (Next-Gen Apple OS / VisionOS)
+   ---------------------------------------------------------------------------- */
+[data-frila-theme="glass"] {
+  --frila-font-stack-display: "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Inter Display", sans-serif;
+  --frila-font-stack-placard: "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Inter Display", sans-serif;
+  --frila-font-stack-entity:  "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Inter Display", sans-serif;
+  --frila-font-stack-body:    -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --frila-font-stack-micro:   "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
+  --frila-font-stack-metric:  "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --frila-type-display-size: 32px;
+  --frila-type-display-lh: 1.18;
+  --frila-type-display-weight: 750;
+  --frila-type-display-tracking: -0.025em;
+
+  --frila-type-placard-size: 18px;
+  --frila-type-placard-lh: 1.30;
+  --frila-type-placard-weight: 550;
+  --frila-type-placard-style: normal;
+  --frila-type-placard-tracking: -0.015em;
+
+  --frila-type-entity-size: 16px;
+  --frila-type-entity-lh: 1.22;
+  --frila-type-entity-weight: 700;
+  --frila-type-entity-tracking: -0.01em;
+
+  --frila-type-body-size: 15px;
+  --frila-type-body-lh: 1.48;
+  --frila-type-body-weight: 450;
+  --frila-type-body-tracking: 0em;
+
+  --frila-type-micro-size: 11px;
+  --frila-type-micro-lh: 1.15;
+  --frila-type-micro-weight: 650;
+  --frila-type-micro-tracking: 0.07em;
+  --frila-type-micro-transform: uppercase;
+
+  --frila-type-metric-size: 22px;
+  --frila-type-metric-lh: 1.15;
+  --frila-type-metric-weight: 800;
+  --frila-type-metric-tracking: -0.025em;
+
+  --frila-radius-card: 20px;
+  --frila-radius-sheet: 28px;
+}
+
+/* ============================================================================
+   8. COMPONENT UTILITY CLASSES
+   ============================================================================ */
+
+/* Global Typographic Smoothing */
+html, body {
+  background-color: var(--frila-color-canvas);
+  color: var(--frila-color-text-primary);
+  font-family: var(--frila-font-stack-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+  padding: 0;
+}
+
+/* Typography Hierarchy Mapping */
+.frila-display-headline {
+  font-family: var(--frila-font-stack-display);
+  font-size: var(--frila-type-display-size);
+  line-height: var(--frila-type-display-lh);
+  font-weight: var(--frila-type-display-weight);
+  letter-spacing: var(--frila-type-display-tracking);
+  font-style: var(--frila-type-display-style);
+  text-transform: var(--frila-type-display-transform);
+  margin: 0;
+}
+
+.frila-entity-name {
+  font-family: var(--frila-font-stack-entity);
+  font-size: var(--frila-type-entity-size);
+  line-height: var(--frila-type-entity-lh);
+  font-weight: var(--frila-type-entity-weight);
+  letter-spacing: var(--frila-type-entity-tracking);
+  font-style: var(--frila-type-entity-style);
+  text-transform: var(--frila-type-entity-transform);
+  color: var(--frila-color-text-primary);
+  margin: 0;
+}
+
+.frila-project-title {
+  font-family: var(--frila-font-stack-placard);
+  font-size: var(--frila-type-placard-size);
+  line-height: var(--frila-type-placard-lh);
+  font-weight: var(--frila-type-placard-weight);
+  letter-spacing: var(--frila-type-placard-tracking);
+  font-style: var(--frila-type-placard-style);
+  text-transform: var(--frila-type-placard-transform);
+  color: var(--frila-color-text-primary);
+  margin: 0;
+}
+
+.frila-micro-label {
+  font-family: var(--frila-font-stack-micro);
+  font-size: var(--frila-type-micro-size);
+  line-height: var(--frila-type-micro-lh);
+  font-weight: var(--frila-type-micro-weight);
+  letter-spacing: var(--frila-type-micro-tracking);
+  font-style: var(--frila-type-micro-style);
+  text-transform: var(--frila-type-micro-transform);
+  color: var(--frila-color-text-muted);
+}
+
+.frila-metric-hero {
+  font-family: var(--frila-font-stack-metric);
+  font-size: var(--frila-type-metric-size);
+  line-height: var(--frila-type-metric-lh);
+  font-weight: var(--frila-type-metric-weight);
+  letter-spacing: var(--frila-type-metric-tracking);
+  font-feature-settings: var(--frila-type-metric-features, "pnum" 1);
+  font-variant-numeric: proportional-nums lining-nums; /* tabular-nums only on animated or column values */
+  color: var(--frila-color-text-primary);
+  margin: 0;
+}
+
+.frila-body-text {
+  font-family: var(--frila-font-stack-body);
+  font-size: var(--frila-type-body-size);
+  line-height: var(--frila-type-body-lh);
+  font-weight: var(--frila-type-body-weight);
+  letter-spacing: var(--frila-type-body-tracking);
+  color: var(--frila-color-text-primary);
+}
+
+.frila-meta-text {
+  font-size: 13px;
+  line-height: 1.40;
+  font-weight: 400;
+  color: var(--frila-color-text-muted);
+}
+
+/* The Museum Placard Frame (0-Shadow Rule) */
+.frila-placard-card {
+  background-color: var(--frila-color-canvas);
+  border: 1px solid var(--frila-color-divider);
+  border-radius: var(--frila-radius-card);
+  box-shadow: var(--frila-shadow-card);
+  padding: var(--frila-space-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--frila-space-14);
+  position: relative;
+  transition: border-color 160ms ease-out;
+}
+
+.frila-placard-card:hover {
+  border-color: var(--frila-color-border);
+}
+
+/* Specular Media Frame */
+.frila-media-preview {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: calc(var(--frila-radius-card) - 4px);
+  outline: 1px solid rgba(0, 0, 0, 0.08);
+  outline-offset: -1px;
+  object-fit: cover;
+  background-color: var(--frila-color-surface-subtle);
+}
+
+/* Liquid Glass Surfaces */
+.frila-glass-regular {
+  background: var(--frila-glass-regular-bg);
+  backdrop-filter: blur(var(--frila-glass-regular-blur)) saturate(var(--frila-glass-regular-saturate));
+  -webkit-backdrop-filter: blur(var(--frila-glass-regular-blur)) saturate(var(--frila-glass-regular-saturate));
+  border-top: var(--frila-glass-regular-border-top);
+  border-bottom: var(--frila-glass-regular-border-bottom);
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.frila-glass-prominent {
+  background: var(--frila-glass-prominent-bg);
+  backdrop-filter: blur(var(--frila-glass-prominent-blur)) saturate(var(--frila-glass-prominent-saturate));
+  -webkit-backdrop-filter: blur(var(--frila-glass-prominent-blur)) saturate(var(--frila-glass-prominent-saturate));
+  border-top: var(--frila-glass-prominent-border-top);
+  border-bottom: var(--frila-glass-prominent-border-bottom);
+  color: #FFFFFF;
+  box-shadow: var(--frila-shadow-glow-brand);
+}
+
+.frila-glass-backdrop {
+  background: var(--frila-glass-backdrop-bg);
+  backdrop-filter: blur(var(--frila-glass-backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--frila-glass-backdrop-blur));
+}
+
+/* Button Hierarchies (Genie Synthesis) */
+.frila-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--frila-space-8);
+  min-height: var(--frila-target-min);
+  border-radius: var(--frila-radius-pill);
+  padding: 0 var(--frila-space-24);
+  font-family: var(--frila-font-stack-entity);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: transform 120ms ease-out, background-color 150ms ease-out, opacity 120ms ease-out;
+  user-select: none;
+}
+
+.frila-btn:active {
+  transform: scale(0.97);
+}
+
+.frila-btn-primary {
+  background-color: var(--frila-color-primary-500);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(234, 90, 54, 0.20);
+}
+
+.frila-btn-primary:hover {
+  background-color: var(--frila-color-primary-400);
+}
+
+.frila-btn-primary:active {
+  background-color: var(--frila-color-primary-600);
+}
+
+.frila-btn-ink {
+  background-color: var(--frila-color-text-primary);
+  color: #FFFFFF;
+}
+
+.frila-btn-ink:hover {
+  background-color: var(--frila-color-text-ink);
+}
+
+.frila-btn-outline {
+  background-color: transparent;
+  color: var(--frila-color-text-primary);
+  border: 1px solid var(--frila-color-border);
+}
+
+.frila-btn-outline:hover {
+  background-color: var(--frila-color-surface-subtle);
+  border-color: var(--frila-color-text-muted);
+}
+
+.frila-btn-ghost {
+  background-color: transparent;
+  color: var(--frila-color-text-muted);
+}
+
+.frila-btn-ghost:hover {
+  color: var(--frila-color-text-primary);
+}
+
+.frila-btn-ghost:active {
+  opacity: 0.70;
+}
+
+/* Escrow and Status Badges */
+.frila-badge-escrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--frila-color-escrow-bg);
+  color: var(--frila-color-escrow);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--frila-radius-pill);
+  padding: 4px 10px;
+}
+
+.frila-badge-chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--frila-color-input-bg);
+  color: var(--frila-color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--frila-radius-pill);
+  padding: 4px 12px;
+}

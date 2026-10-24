@@ -96,10 +96,25 @@ public struct DestinoDePublicarVaga: View {
                 }
                 .background(FrilaCor.fundo.ignoresSafeArea())
             case let .pronta(estabelecimento, telefone):
+                #if DEBUG
+                // Enxerto do FrilaLowPhase (Docs/Enxertos/FrilaLowPhase/README.md). Só abre com o argumento.
+                if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE") {
+                    TelaPublicarVagaFrilaLP(
+                        api: api, fila: fila, estabelecimento: estabelecimento,
+                        aoPublicar: aoPublicar, aoCancelar: cancelar
+                    )
+                } else {
+                    TelaPublicarVaga(
+                        api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
+                        sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar
+                    )
+                }
+                #else
                 TelaPublicarVaga(
                     api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
                     sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar
                 )
+                #endif
             case let .erro(mensagem):
                 ScrollView {
                     VStack(spacing: FrilaEspaco.medio) {

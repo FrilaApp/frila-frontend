@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Local da vaga</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',system-ui,sans-serif;color:#111110;background:#F2F2F0;-webkit-font-smoothing:antialiased}
+a{color:#111110}a:hover{color:#000000}
+main>*,[role="dialog"]>*{flex-shrink:0}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; background: #5E5D59; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111110;">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 0 28px 0 40px; flex-shrink: 0; font-size: 17px; font-weight: 600; color: #FFFFFF;"><span>9:41</span><span aria-hidden="true" style="display: flex; align-items: center; gap: 6px;"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"></rect><rect x="5" y="5.5" width="3" height="6.5" rx="1"></rect><rect x="10" y="3" width="3" height="9" rx="1"></rect><rect x="15" y="0" width="3" height="12" rx="1"></rect></svg><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.5a9.5 9.5 0 0 1 13 0"></path><path d="M4 7.3a6 6 0 0 1 8 0"></path><circle cx="8" cy="10.2" r="1" fill="currentColor" stroke="none"></circle></svg><svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.4"></rect><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"></rect><path d="M25 4.5v4" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5" stroke-linecap="round"></path></svg></span></div>
+<div aria-hidden="true" style="position: absolute; left: 12px; right: 12px; top: 48px; height: 40px; border-radius: 28px 28px 0 0; background: rgba(255,255,255,0.35);"></div>
+<section aria-label="Local da vaga" style="position: absolute; left: 0; right: 0; top: 58px; bottom: 0; display: flex; flex-direction: column; border-radius: 28px 28px 0 0; background: #F2F2F0; overflow: hidden;">
+<div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; margin-top: 8px; border-radius: 3px; background: #D1D0CC; flex-shrink: 0;"></div>
+<header style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; height: 52px; padding: 0 8px; flex-shrink: 0;"><a href="{{ linkVoltar }}" style="display: flex; align-items: center; gap: 2px; justify-self: start; height: 44px; padding: 0 8px 0 4px; font-size: 17px; color: #111110; text-decoration: none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M15 18l-6-6 6-6"></path></svg>Voltar</a><h1 style="margin: 0; justify-self: center; font-size: 17px; font-weight: 600; line-height: 22px; white-space: nowrap;">Local da vaga</h1><span></span></header>
+<main style="flex-grow: 1; overflow-y: auto; padding: 8px 16px 140px; display: flex; flex-direction: column; gap: 20px;">
+<sc-if value="{{ isOfflineComCopia }}" hint-placeholder-val="{{ false }}">
+<div role="status" aria-live="polite" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: #E8E7E3; font-size: 14px; line-height: 18px; color: #111110;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+<div><strong>Sem conexão.</strong> Mostrando locais salvos no aparelho. Última atualização hoje às 09:15.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCarregando }}" hint-placeholder-val="{{ false }}">
+<div role="status" aria-live="polite" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 90px 24px; text-align: center; gap: 16px;">
+<div style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid #D1D0CC; border-top-color: #111110; animation: spin 0.8s linear infinite;"></div>
+<p style="margin: 0; font-size: 15px; color: #5C5B57;">Carregando os locais...</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ isErro }}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 72px 24px 0; text-align: center;">
+<div style="width: 72px; height: 72px; border-radius: 36px; background: #E8E7E3; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+</div>
+<h2 style="margin: 0 0 8px; font-size: 20px; font-weight: 600; line-height: 25px;">Não foi possível carregar os locais</h2>
+<p style="margin: 0 0 28px; font-size: 15px; line-height: 20px; color: #5C5B57; max-width: 290px;">Verifique sua conexão e tente carregar novamente.</p>
+<button type="button" onClick="{{ tentarDeNovo }}" aria-disabled="{{ tentandoDeNovo }}" style="display: inline-flex; align-items: center; justify-content: center; height: 44px; min-width: 160px; padding: 0 24px; border-radius: 22px; background: #111110; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; border: none; cursor: pointer;">{{ textoBotaoErro }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOfflineSemCopia }}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 72px 24px 0; text-align: center;">
+<div style="width: 72px; height: 72px; border-radius: 36px; background: #E8E7E3; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+</div>
+<h2 style="margin: 0 0 8px; font-size: 20px; font-weight: 600; line-height: 25px;">Sem conexão com a internet</h2>
+<p style="margin: 0 0 28px; font-size: 15px; line-height: 20px; color: #5C5B57; max-width: 290px;">Conecte-se para ver os locais disponíveis para a vaga.</p>
+<button type="button" onClick="{{ tentarDeNovo }}" aria-disabled="{{ tentandoDeNovo }}" style="display: inline-flex; align-items: center; justify-content: center; height: 44px; min-width: 160px; padding: 0 24px; border-radius: 22px; background: #111110; color: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; border: none; cursor: pointer;">{{ textoBotaoErro }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isVazio }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; gap: 12px;">
+<div style="width: 72px; height: 72px; border-radius: 36px; background: #E8E7E3; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+</div>
+<h2 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 25px;">Nenhum local disponível.</h2>
+<p style="margin: 0; font-size: 15px; line-height: 20px; color: #5C5B57; max-width: 280px;">Não há outros locais cadastrados além do endereço principal.</p>
+<a href="{{ linkVoltar }}" style="display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 24px; border-radius: 22px; background: #111110; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none; margin-top: 16px;">Voltar para a vaga</a>
+</div>
+</sc-if>
+
+<sc-if value="{{ isListaDisponivel }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input aria-label="Buscar endereço" type="search" value="Asa Norte" placeholder="Nome do lugar ou endereço" style="flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110;"></div>
+<div role="radiogroup" aria-label="Resultados" style="display: flex; flex-direction: column; padding-left: 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08);"><sc-for list="{{ lugares }}" as="l" hint-placeholder-count="3"><button type="button" role="radio" onClick="{{ l.escolher }}" aria-checked="{{ l.on }}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 16px 8px 0; {{ l.sep }} width: 100%; border-top: none; border-left: none; border-right: none; background: none; font-family: inherit; color: #111110; text-align: left; cursor: pointer;"><span style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 17px; font-weight: 600; line-height: 22px;">{{ l.nome }}</span><span style="font-size: 15px; line-height: 20px; color: #5C5B57;">{{ l.end }}</span><span style="margin: 0; font-size: 13px; line-height: 18px; color: #5C5B57;">{{ l.info }}</span></span><sc-if value="{{ l.on }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M5 12l5 5 9-10"></path></svg></sc-if></button></sc-for></div>
+<div role="img" aria-label="Mapa com o ponto em {{ enderecoEscolhido }}" style="position: relative; height: 150px; border-radius: 20px; background: #E8E7E3; overflow: hidden;"><svg width="100%" height="132" viewBox="0 0 366 132" preserveAspectRatio="none" fill="none" stroke="#FFFFFF" stroke-width="6"><path d="M-10 40 L380 70"></path><path d="M120 -10 L150 140"></path><path d="M260 -10 L230 140"></path><path d="M-10 110 L380 96" stroke-width="3"></path></svg><span style="position: absolute; left: 50%; top: 50%; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin: -30px 0 0 -18px; border-radius: 18px; background: #111110; color: #FFFFFF;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg></span></div>
+<button type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 22px; border: 1px solid rgba(0,0,0,0.14); background: #FFFFFF; font-family: inherit; font-size: 15px; font-weight: 600; color: #111110; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>Ajustar o ponto no mapa</button><p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: #5C5B57;">Confira se o ponto está na entrada. O check-in dos profissionais usa este ponto, num raio de 200 m.</p><div style="display: flex; flex-direction: column; gap: 8px;"><label for="referencia" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Ponto de referência (opcional)</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14);"><input id="referencia" type="text" placeholder="Ex.: portão 2, ao lado da bilheteria" style="flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110;"></div></div>
+<div role="note" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: #E8E7E3; font-size: 15px; line-height: 20px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6"></path><path d="M12 7.5h.01"></path></svg><span>Vale só para esta vaga. O endereço do estabelecimento não muda.</span></div>
+</sc-if>
+</main>
+<sc-if value="{{ isListaDisponivel }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 34px; background: rgba(255,255,255,0.78); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); box-shadow: inset 0 1px 0 rgba(0,0,0,0.08);"><a href="{{ linkVoltar }}" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: #111110; color: #FFFFFF; font-size: 17px; font-weight: 600; text-decoration: none;"><span>Usar {{ escolhido }}</span></a></div>
+</sc-if>
+</section>
+<div aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; z-index: 5; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: #111110;"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"estado": {"editor": "enum", "options": ["disponível", "carregando", "erro", "offline com cópia", "offline sem cópia", "vazio"], "default": "disponível", "section": "Estado de leitura"}, "copia": {"editor": "enum", "options": ["nenhuma", "Garçom", "Bartender", "Cumim"], "default": "nenhuma", "section": "Cópia"}, "republicacao": {"editor": "enum", "options": ["nenhuma", "Garçom", "Cumim"], "default": "nenhuma", "section": "Republicação"}, "retorno": {"editor": "enum", "options": ["vagas", "turnos"], "default": "vagas", "section": "Origem do descarte"}, "$preview": {"width": 390, "height": 844}}'>
+const LUGARES = [{"nome": "Bar da Quadra", "end": "CLN 408, Bloco B, Asa Norte", "info": "Endereço do cadastro"}, {"nome": "Clube do Lago", "end": "SCES Trecho 2, Lago Sul", "info": "7,4 km do estabelecimento"}, {"nome": "Espaço Hoteleiro", "end": "SHN Quadra 2, Asa Norte", "info": "3,1 km do estabelecimento"}];
+const LINKS_VOLTAR = {
+  'Garçom': 'PublicarCopia.dc.html',
+  'Bartender': 'PublicarCopiaBartender.dc.html',
+  'Cumim': 'PublicarCopiaCumim.dc.html',
+  'nenhuma': 'Publicar.dc.html'
+};
+const LINKS_VOLTAR_REPUBLICACAO = {
+  'Garçom': 'PublicarRepublicarGarcom.dc.html',
+  'Cumim': 'PublicarRepublicarCumim.dc.html'
+};
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      escolha: 0,
+      tentandoDeNovo: false
+    };
+    this._lastRepublicacao = props.republicacao ?? 'nenhuma';
+    this._lastCopia = props.copia ?? 'nenhuma';
+    this._lastRetorno = (props.retorno || 'vagas').toLowerCase() === 'turnos' ? 'turnos' : 'vagas';
+    this._retryTimeout = null;
+  }
+  tentarDeNovo() {
+    if (this.state.tentandoDeNovo) return;
+    if (this._retryTimeout) {
+      clearTimeout(this._retryTimeout);
+      this._retryTimeout = null;
+    }
+    this.setState({ tentandoDeNovo: true });
+    this._retryTimeout = setTimeout(() => {
+      this._retryTimeout = null;
+      this.setState({ tentandoDeNovo: false });
+    }, 1200);
+  }
+  componentWillUnmount() {
+    if (this._retryTimeout) {
+      clearTimeout(this._retryTimeout);
+      this._retryTimeout = null;
+    }
+  }
+  destroy() {
+    if (this._retryTimeout) {
+      clearTimeout(this._retryTimeout);
+      this._retryTimeout = null;
+    }
+    if (super.destroy) super.destroy();
+  }
+  renderVals() {
+    const repAtual = this.props.republicacao ?? 'nenhuma';
+    const copiaAtual = this.props.copia ?? 'nenhuma';
+    const ret = (this.props.retorno || 'vagas').toLowerCase() === 'turnos' ? 'turnos' : 'vagas';
+    if (this._lastRepublicacao !== repAtual || this._lastCopia !== copiaAtual || this._lastRetorno !== ret) {
+      this._lastRepublicacao = repAtual;
+      this._lastCopia = copiaAtual;
+      this._lastRetorno = ret;
+      if (this._retryTimeout) {
+        clearTimeout(this._retryTimeout);
+        this._retryTimeout = null;
+      }
+      this.state.escolha = 0;
+      this.state.tentandoDeNovo = false;
+    }
+    const estado = (this.props.estado || 'disponível').toLowerCase();
+    const isCarregando = estado === 'carregando';
+    const isErro = estado === 'erro';
+    const isOfflineSemCopia = estado === 'offline_sem_copia' || estado === 'offline sem cópia';
+    const isOfflineComCopia = estado === 'offline_com_copia' || estado === 'offline com cópia';
+    const isVazio = estado === 'vazio';
+    const isListaDisponivel = !isCarregando && !isErro && !isOfflineSemCopia && !isVazio;
+
+    const e = this.state.escolha;
+    let linkVoltar = 'Publicar.dc.html';
+    if (repAtual !== 'nenhuma' && LINKS_VOLTAR_REPUBLICACAO[repAtual]) {
+      linkVoltar = LINKS_VOLTAR_REPUBLICACAO[repAtual];
+    } else if (copiaAtual === 'Bartender' && ret === 'turnos') {
+      linkVoltar = 'PublicarCopiaBartenderTurnos.dc.html';
+    } else {
+      linkVoltar = LINKS_VOLTAR[this.props.copia ?? 'nenhuma'] || 'Publicar.dc.html';
+    }
+    return {
+      isCarregando,
+      isErro,
+      isOfflineSemCopia,
+      isOfflineComCopia,
+      isVazio,
+      isListaDisponivel,
+      linkVoltar,
+      lugares: LUGARES.map((l, i) => Object.assign({}, l, {
+        on: e === i,
+        sep: i < LUGARES.length - 1 ? 'border-bottom: 1px solid rgba(0,0,0,0.08);' : 'border-bottom: none;',
+        escolher: () => this.setState({ escolha: i }),
+      })),
+      escolhido: LUGARES[e] ? LUGARES[e].nome : 'Bar da Quadra',
+      enderecoEscolhido: LUGARES[e] ? LUGARES[e].end : 'CLN 408, Bloco B, Asa Norte',
+      tentandoDeNovo: this.state.tentandoDeNovo,
+      textoBotaoErro: this.state.tentandoDeNovo ? 'Tentando de novo...' : 'Tentar de novo',
+      tentarDeNovo: () => this.tentarDeNovo(),
+    };
+  }
+}
+</script>
+</body>
+</html>
