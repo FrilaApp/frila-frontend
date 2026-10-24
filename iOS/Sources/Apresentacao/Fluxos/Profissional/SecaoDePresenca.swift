@@ -21,10 +21,9 @@ struct SecaoDePresenca: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            Text(verbatim: Textos.titulo.uppercased())
-                .font(FrilaTipo.microRotulo)
-                .tracking(0.8)
-                .foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: Textos.titulo)
+                .font(FrilaTipo.secao)
+                .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
             if let aCaminho = situacaoACaminho {
@@ -42,10 +41,12 @@ struct SecaoDePresenca: View {
             if let erro = turno?.mensagemErroACaminho {
                 AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("a-caminho-erro")
                 if turno?.podeTentarAvisarDeNovo == true {
-                    BotaoSecundario(verbatim: TextosDoProfissional.Turnos.tentarDeNovo) {
+                    botaoPresencaInativo(
+                        verbatim: TextosDoProfissional.Turnos.tentarDeNovo,
+                        identificador: "tentar-a-caminho-de-novo"
+                    ) {
                         Task { await turno?.avisarACaminho() }
                     }
-                    .accessibilityIdentifier("tentar-a-caminho-de-novo")
                 }
             }
             acoes
@@ -74,25 +75,43 @@ struct SecaoDePresenca: View {
         switch viewModel.etapa {
         case .parada:
             if turno?.podeExibirBotaoACaminho == true {
-                BotaoSecundario(verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho) {
+                botaoPresencaInativo(
+                    verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho,
+                    identificador: "botao-a-caminho",
+                    desabilitado: turno?.avisandoACaminho == true
+                ) {
                     Task { await turno?.avisarACaminho() }
                 }
-                .disabled(turno?.avisandoACaminho == true)
-                .accessibilityIdentifier("botao-a-caminho")
             }
             if viewModel.podeFazerCheckin {
-                BotaoPrimario(verbatim: Textos.fazerCheckin) { Task { await viewModel.iniciar(.checkin) } }
-                    .accessibilityIdentifier("fazer-checkin")
+                botaoPresencaAtivo(
+                    verbatim: Textos.fazerCheckin,
+                    identificador: "fazer-checkin"
+                ) {
+                    Task { await viewModel.iniciar(.checkin) }
+                }
             } else if viewModel.podeFazerCheckout {
-                BotaoPrimario(verbatim: Textos.fazerCheckout) { Task { await viewModel.iniciar(.checkout) } }
-                    .accessibilityIdentifier("fazer-checkout")
+                botaoPresencaAtivo(
+                    verbatim: Textos.fazerCheckout,
+                    identificador: "fazer-checkout"
+                ) {
+                    Task { await viewModel.iniciar(.checkout) }
+                }
             }
         case .explicando:
             aviso(titulo: Textos.explicacaoTitulo, textos: [Textos.explicacao], identificador: "explicacao-localizacao")
-            BotaoPrimario(verbatim: Textos.continuar) { Task { await viewModel.continuarComPermissao() } }
-                .accessibilityIdentifier("permitir-localizacao")
-            BotaoSecundario(verbatim: Textos.agoraNao) { viewModel.cancelar() }
-                .accessibilityIdentifier("cancelar-presenca")
+            botaoPresencaAtivo(
+                verbatim: Textos.continuar,
+                identificador: "permitir-localizacao"
+            ) {
+                Task { await viewModel.continuarComPermissao() }
+            }
+            botaoPresencaInativo(
+                verbatim: Textos.agoraNao,
+                identificador: "cancelar-presenca"
+            ) {
+                viewModel.cancelar()
+            }
         case .lendo:
             progresso(Textos.lendo)
         case .enviando:
@@ -103,12 +122,18 @@ struct SecaoDePresenca: View {
                 textos: [texto(motivo), registro == .checkin ? Textos.manualExplicacao : Textos.saidaSemLocalizacaoExplicacao],
                 identificador: "sem-gps"
             )
-            BotaoPrimario(verbatim: registro == .checkin ? Textos.checkinManual : Textos.saidaSemLocalizacao) {
+            botaoPresencaAtivo(
+                verbatim: registro == .checkin ? Textos.checkinManual : Textos.saidaSemLocalizacao,
+                identificador: "registro-manual"
+            ) {
                 Task { await viewModel.registrarSemGPS() }
             }
-            .accessibilityIdentifier("registro-manual")
-            BotaoSecundario(verbatim: Textos.tentarGPS) { Task { await viewModel.tentarGPSDeNovo() } }
-                .accessibilityIdentifier("tentar-gps")
+            botaoPresencaInativo(
+                verbatim: Textos.tentarGPS,
+                identificador: "tentar-gps"
+            ) {
+                Task { await viewModel.tentarGPSDeNovo() }
+            }
             if motivo == .permissaoNegada || motivo == .localizacaoAproximada,
                let ajustes = URL(string: UIApplication.openSettingsURLString) {
                 Link(destination: ajustes) {
@@ -120,9 +145,68 @@ struct SecaoDePresenca: View {
                 .contentShape(Rectangle())
                 .accessibilityIdentifier("abrir-ajustes")
             }
-            BotaoSecundario(verbatim: Textos.agoraNao) { viewModel.cancelar() }
-                .accessibilityIdentifier("cancelar-presenca")
+            botaoPresencaInativo(
+                verbatim: Textos.agoraNao,
+                identificador: "cancelar-presenca"
+            ) {
+                viewModel.cancelar()
+            }
         }
+    }
+
+    private func botaoPresencaAtivo(
+        verbatim titulo: String,
+        identificador: String,
+        carregando: Bool = false,
+        acao: @escaping () -> Void
+    ) -> some View {
+        Button(action: acao) {
+            Group {
+                if carregando {
+                    ProgressView().tint(FrilaCor.sobreSelecao)
+                } else {
+                    Text(verbatim: titulo)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, FrilaEspaco.grande)
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+            .foregroundStyle(FrilaCor.sobreSelecao)
+            .background(FrilaCor.selecao, in: Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.tatil)
+        .disabled(carregando)
+        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityIdentifier(identificador)
+    }
+
+    private func botaoPresencaInativo(
+        verbatim titulo: String,
+        identificador: String,
+        desabilitado: Bool = false,
+        acao: @escaping () -> Void
+    ) -> some View {
+        Button(action: acao) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.botao)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, FrilaEspaco.grande)
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .foregroundStyle(FrilaCor.texto)
+                .background(FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.tatil)
+        .disabled(desabilitado)
+        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityIdentifier(identificador)
     }
 
     private func aviso(titulo: String, textos: [String], identificador: String) -> some View {

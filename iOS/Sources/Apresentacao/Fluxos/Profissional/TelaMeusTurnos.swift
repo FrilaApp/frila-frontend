@@ -23,8 +23,9 @@ struct LinhaDoTurnoComIcone: View {
     }
 }
 
-/// Cartão de turno do quadro "MeuTurno" do MidFi: função e casa à esquerda, valor acordado à direita,
-/// data e local com ícone, e o estado do turno depois de uma divisória.
+/// Cartão de turno do profissional, no mesmo padrão de placa de museu da origem (`CartaoVaga`):
+/// casa em caixa alta na `entity` (`FrilaTipo.resumo`), função em `FrilaTipo.tituloDoCartao`,
+/// linhas de dados entre dois fios `FrilaCor.divisoria` e valor em `FrilaTipo.preco`.
 public struct CartaoMeuTurno: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let turno: Turno
@@ -35,14 +36,16 @@ public struct CartaoMeuTurno: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.faixa) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             cabecalho
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 LinhaDoTurnoComIcone(icone: "clock", texto: formatador.intervalo(turno.vaga.periodo))
-                LinhaDoTurnoComIcone(icone: "mappin.and.ellipse", texto: turno.vaga.local)
+                LinhaDoTurnoComIcone(icone: "mappin", texto: turno.vaga.local)
             }
+            .padding(.vertical, FrilaEspaco.pequeno)
+            .overlay(alignment: .top) { fio }
+            .overlay(alignment: .bottom) { fio }
             if turno.cancelado {
-                Divider().overlay(FrilaCor.divisoria)
                 Label {
                     Text(verbatim: TextosDoProfissional.Turnos.canceladoTitulo)
                 } icon: {
@@ -57,30 +60,44 @@ public struct CartaoMeuTurno: View {
         .accessibilityElement(children: .combine)
     }
 
+    private var fio: some View {
+        Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
+    }
+
     @ViewBuilder
     private var cabecalho: some View {
         if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                funcaoECasa
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                casaEFuncao
                 valor
             }
         } else {
-            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.compacto) {
-                funcaoECasa
-                Spacer(minLength: FrilaEspaco.pequeno)
-                valor
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
+                    casaEFuncao
+                    Spacer(minLength: FrilaEspaco.pequeno)
+                    valor
+                }
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    casaEFuncao
+                    valor
+                }
             }
         }
     }
 
-    private var funcaoECasa: some View {
+    private var casaEFuncao: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: turno.vaga.funcao)
-                .font(FrilaTipo.rotuloDoCampo)
-                .foregroundStyle(FrilaCor.texto)
             Text(verbatim: turno.contraparte.nome)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
+                .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityLabel(Text(verbatim: turno.contraparte.nome))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: turno.vaga.funcao)
+                .font(FrilaTipo.tituloDoCartao)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -138,7 +155,7 @@ public struct TelaMeusTurnos: View {
                     ForEach(turnos) { turno in
                         Button { abrir(turno) } label: { CartaoMeuTurno(turno: turno) }
                             .buttonStyle(.plain)
-                            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
                             .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
                             .accessibilityHint(String(localized: "Abre o detalhe do turno", bundle: bundleApresentacao))
                     }
