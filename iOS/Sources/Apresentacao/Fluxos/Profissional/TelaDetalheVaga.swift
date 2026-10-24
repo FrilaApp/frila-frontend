@@ -65,10 +65,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
                     voltarParaLista: { dismiss() }
                 )
             case .carregando:
-                EstadoCarregando()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(FrilaCor.fundo)
-                    .task { await viewModel.carregar() }
+                ScrollView {
+                    estadoCarregandoView
+                        .padding(FrilaEspaco.medio)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(FrilaCor.fundo)
+                .task { await viewModel.carregar() }
             default:
                 corpoPrincipal
             }
@@ -98,7 +101,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 switch viewModel.estado {
                 case .carregando:
-                    EstadoCarregando()
+                    estadoCarregandoView
                 case let .carregado(vaga):
                     if bloqueios.contem(vaga.estabelecimento) {
                         AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
@@ -110,10 +113,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
                     AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
                         .accessibilityIdentifier("detalhe-nao-encontrada")
                 case .falha(.semConexao):
-                    AvisoFrila(verbatim: TextosDoProfissional.Lista.semConexaoMensagem, tom: .alerta)
-                    BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+                    estadoSemConexaoView
                 case .falha:
-                    EstadoErro(verbatim: TextosDoProfissional.Detalhe.erroMensagem) { Task { await viewModel.carregar() } }
+                    estadoErroView
                 }
             }
             .padding(FrilaEspaco.medio)
@@ -146,6 +148,120 @@ public struct TelaDetalheVaga<Acao: View>: View {
     private var detalheNaTela: @MainActor @Sendable () -> Bool {
         let viewModel = viewModel
         return { if case .carregado = viewModel.estado { true } else { false } }
+    }
+
+    private var cabecalhoDetalhe: some View {
+        Text(verbatim: TextosDoProfissional.Detalhe.titulo)
+            .font(FrilaTipo.tituloGrande)
+            .foregroundStyle(FrilaCor.texto)
+            .accessibilityAddTraits(.isHeader)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var estadoCarregandoView: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            cabecalhoDetalhe
+
+            VStack(spacing: FrilaEspaco.medio) {
+                ProgressView()
+                    .controlSize(.regular)
+                    .tint(FrilaCor.texto)
+                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                    .background(FrilaCor.controle, in: Circle())
+                    .accessibilityHidden(true)
+
+                Text(verbatim: TextosDoProfissional.Detalhe.carregando)
+                    .font(FrilaTipo.tituloDeEstado)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, FrilaEspaco.grande)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var estadoErroView: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            cabecalhoDetalhe
+
+            VStack(spacing: FrilaEspaco.medio) {
+                Image(systemName: "exclamationmark.circle")
+                    .font(FrilaTipo.secao)
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                    .background(FrilaCor.controle, in: Circle())
+                    .accessibilityHidden(true)
+
+                VStack(spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: TextosDoProfissional.Detalhe.erroTitulo)
+                        .font(FrilaTipo.tituloDeEstado)
+                        .foregroundStyle(FrilaCor.texto)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(verbatim: TextosDoProfissional.Detalhe.erroApoio)
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+                .modifier(AnunciarAoAparecer(anuncio: .init(
+                    texto: "\(TextosDoProfissional.Detalhe.erroTitulo) \(TextosDoProfissional.Detalhe.erroApoio)",
+                    tom: .erro
+                )))
+
+                BotaoPrimario(verbatim: TextosDoProfissional.Detalhe.tentarDeNovo) {
+                    Task { await viewModel.carregar() }
+                }
+                .padding(.top, FrilaEspaco.pequeno)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, FrilaEspaco.grande)
+        }
+    }
+
+    private var estadoSemConexaoView: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            cabecalhoDetalhe
+
+            VStack(spacing: FrilaEspaco.medio) {
+                Image(systemName: "wifi.slash")
+                    .font(FrilaTipo.secao)
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                    .background(FrilaCor.controle, in: Circle())
+                    .accessibilityHidden(true)
+
+                VStack(spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: TextosDoProfissional.Detalhe.semConexaoTitulo)
+                        .font(FrilaTipo.tituloDeEstado)
+                        .foregroundStyle(FrilaCor.texto)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(verbatim: TextosDoProfissional.Detalhe.semConexaoMensagem)
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+                .modifier(AnunciarAoAparecer(anuncio: .init(
+                    texto: "\(TextosDoProfissional.Detalhe.semConexaoTitulo) \(TextosDoProfissional.Detalhe.semConexaoMensagem)",
+                    tom: .alerta
+                )))
+
+                BotaoPrimario(verbatim: TextosDoProfissional.Detalhe.tentarDeNovo) {
+                    Task { await viewModel.carregar() }
+                }
+                .padding(.top, FrilaEspaco.pequeno)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, FrilaEspaco.grande)
+        }
     }
 
     @ViewBuilder
