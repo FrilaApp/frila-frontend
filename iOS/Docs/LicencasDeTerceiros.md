@@ -22,7 +22,7 @@ O objetivo é fornecer rastreabilidade jurídica completa para cumprimento das e
 | Categoria | Quantidade de Itens | Origem / Mecanismo | Status de Conformidade |
 |---|:---:|---|---|
 | Pacotes Swift (SPM) | 20 | `iOS/Package.resolved` | 100% catalogados e atribuídos na UI |
-| Fontes tipográficas de terceiros | 0 | N/A (fontes do sistema Apple) | Conforme (San Francisco / New York) |
+| Fontes tipográficas de terceiros | 1 família (4 arquivos) | `iOS/Resources/Fonts` (Bricolage Grotesque, SIL OFL 1.1) | Conforme (licença junto dos arquivos; atualizado em 24/10/2026) |
 | Conjuntos de ícones de terceiros | 0 | N/A (SF Symbols nativos da Apple) | Conforme (Apple Developer Agreement) |
 | Código copiado / snippets externos | 0 | N/A (apenas SPM rastreado) | Conforme (zero inclusão manual) |
 | Imagens/ativos de terceiros no binário | 0 | N/A (`AppIcon` e `AccentColor` próprios) | Conforme (titularidade exclusiva FrilaApp) |
@@ -88,9 +88,10 @@ Todas as dependências externas são resolvidas estritamente pelo Swift Package 
 ## 4. Recursos de Terceiros: Fontes, Ícones e Código Copiado
 
 ### 4.1 Fontes Tipográficas
-- **Auditoria:** Varredura em todo o repositório `frila-frontend` por arquivos de fonte (`.ttf`, `.otf`, `.ttc`, `.woff`, `.woff2`) ou chaves `UIAppFonts` no `Info.plist`.
-- **Resultado:** **Nenhuma fonte externa incorporada.**
-- **Conformidade:** O aplicativo utiliza estritamente o sistema tipográfico nativo da Apple (San Francisco Pro, San Francisco Rounded e New York), referenciado via estilos semânticos do SwiftUI (`Font.system`, `.body`, `.headline`, `.title`, etc.), sem carregar arquivos binários de fontes proprietárias. O uso de fontes do sistema está totalmente coberto pelo contrato de desenvolvimento do iOS.
+- **Auditoria (24/10/2026):** Varredura em todo o repositório `frila-frontend` por arquivos de fonte (`.ttf`, `.otf`, `.ttc`, `.woff`, `.woff2`) e por registro em código (`CTFontManagerRegisterFontsForURL`).
+- **Resultado:** **Uma família externa incorporada: Bricolage Grotesque** (Regular, Medium, Bold e ExtraBold), em `iOS/Resources/Fonts/BricolageGrotesque-*.ttf`, registrada no processo por `FontesFrila` (`DesignSystem/DesignTokens.swift`), sem `UIAppFonts` no `Info.plist`. Veio do design system do Fabrício (FrilaLowPhase) e é a voz dos títulos, das perguntas do Estúdio de Criação e dos papéis `display`/`placard` do Hi-Fi (`Docs/DesignSystem.md`).
+- **Licença:** SIL Open Font License 1.1 (OFL), texto integral em `iOS/Resources/Fonts/BricolageGrotesque-OFL.txt`, distribuído junto dos arquivos. A OFL permite embutir a fonte no app e distribuí-la com ele; a fonte não pode ser vendida sozinha e, se for redistribuída à parte, a licença segue junto. Nome reservado: não renomeamos a família (os arquivos têm o nome original).
+- **Demais textos:** o restante do app usa o sistema tipográfico nativo da Apple (San Francisco e New York) por estilos semânticos do SwiftUI, coberto pelo contrato de desenvolvimento do iOS.
 
 ### 4.2 Ícones e Elementos Gráficos
 - **Auditoria:** Varredura em `iOS/Sources/Apresentacao` por ícones vetoriais de terceiros ou fontes de ícones (como FontAwesome ou Material Icons).

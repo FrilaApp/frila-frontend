@@ -280,6 +280,10 @@ O que o dublê não modela nessas operações:
 
 No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso`, `vaga-preenchida`, `inelegivel`, `sem-rede`, `conta-suspensa`, `contestacao-respondida`, `contratante`, `checkin-manual-pendente` ou `atraso-no-turno`. Os dois últimos entram com conta de contratante: um turno em andamento com check-in manual esperando confirmação, e um turno que começou há 20 minutos sem check-in. Para o modo seleção (#10): `selecao-com-candidatos` (contratante, vaga de uma posição com os quatro candidatos de `candidatos.json`), `selecao-com-candidato-da-equipe` (o mesmo, com Bruno na equipe de confiança da casa), `escolha-perde-corrida` (a mesma vaga, e a primeira escolha responde `409 posicao_ja_preenchida` porque outro membro da casa escolheu antes), `selecao-encerrada-sem-escolha` (contratante, vaga que fechou sozinha 24 horas antes), `vaga-em-selecao` (profissional, a vaga da lista é de seleção) e `candidatura-pendente` (profissional que já espera a escolha). Previews e UITests usam a mesma implementação em memória, que parte das fixtures do contrato e responde a todas as operações que o app usa até a Sprint 2.
 
+## Fonte Bricolage Grotesque (OFL 1.1)
+
+A única fonte de terceiros do app é a Bricolage Grotesque (Regular, Medium, Bold e ExtraBold), em `iOS/Resources/Fonts`, registrada no processo por `FontesFrila` ao primeiro uso. A licença é a SIL Open Font License 1.1 e está em `iOS/Resources/Fonts/BricolageGrotesque-OFL.txt`: pode ser embutida e distribuída com o app, não pode ser vendida sozinha, e a licença acompanha qualquer redistribuição. Inventário em [Docs/LicencasDeTerceiros.md](Docs/LicencasDeTerceiros.md), seção 4.1.
+
 ## Licenças de terceiros (#178)
 
 `TelaLicencas` lista os pacotes do build com versão, tipo e texto da licença. Ela lê `Resources/Licencas.json` do bundle do `FrilaApresentacao`. A interface é provisória e, enquanto a tela de Ajuda não existe, a entrada fica no fim do catálogo (Debug).

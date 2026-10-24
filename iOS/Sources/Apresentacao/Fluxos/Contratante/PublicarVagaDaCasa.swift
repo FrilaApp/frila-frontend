@@ -95,21 +95,8 @@ public struct DestinoDePublicarVaga: View {
                 }
                 .background(FrilaCor.fundo.ignoresSafeArea())
             case let .pronta(estabelecimento, _):
-                #if DEBUG
-                // Enxerto do FrilaLowPhase (Docs/Enxertos/FrilaLowPhase/README.md): a folha "Nova vaga" do
-                // protótipo, só com o argumento. Sai na Fase 2 do Hi-Fi.
-                if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE") {
-                    TelaPublicarVagaFrilaLP(
-                        api: api, fila: fila, estabelecimento: estabelecimento,
-                        aoPublicar: aoPublicar, aoCancelar: cancelar
-                    )
-                } else {
-                    // O "Publicar vaga" do app é o Estúdio de Criação do FrilaLowPhase (Docs/Enxertos/FrilaLowPhase/Estudio/README.md).
-                    TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
-                }
-                #else
-                TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
-                #endif
+                // O "Publicar vaga" do app é o Estúdio de Criação do FrilaLowPhase (Docs/EstudioDeVaga.md).
+                TelaEstudioDeVaga(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
             case let .erro(mensagem):
                 ScrollView {
                     VStack(spacing: FrilaEspaco.medio) {
