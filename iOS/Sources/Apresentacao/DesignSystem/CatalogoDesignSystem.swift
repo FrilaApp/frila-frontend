@@ -11,6 +11,16 @@ public struct CatalogoDesignSystem: View {
     @State private var filtro = true
     @State private var resposta: Bool?
     @State private var exibirFolha = ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_FOLHA_DEMO")
+    @State private var chipDoEstudio = true
+    // Amostras do catálogo (ferramenta de desenvolvimento): texto fixo, fora do xcstrings, como as demais.
+    private let amostraPergunta = "Qual é a vaga?"
+    private let amostraResposta = "Garçom"
+    private let amostraContexto = "Salão"
+    private let amostraSecao = "Título de seção"
+    private let amostraCorpo = "Corpo em SF Pro, 17 pt, com Dynamic Type."
+    private let amostraMeta = "Meta e apoio, 15 pt."
+    private let amostraMicro = "O que está incluso"
+    @Environment(\.colorScheme) private var colorScheme
     private let tituloCatalogo = "Frila UI"
     private let textoForcarFalha = "Forçar falha"
     private let textoAbrirFolha = "Abrir folha de exemplo"
@@ -42,7 +52,11 @@ public struct CatalogoDesignSystem: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                        secao("Paleta") { paleta }
+                        secao("Tipografia") { tipografia }
                         secao("Botões") { BotaoPrimario("Continuar") {}; BotaoSecundario("Voltar") {} }
+                        secao("Botões do Estúdio") { botoesDoEstudio }
+                        secao("Chips do Estúdio") { chipsDoEstudio }
                         secao("Toque tátil") {
                             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                                 Text(verbatim: subtituloTatil)
@@ -155,6 +169,92 @@ public struct CatalogoDesignSystem: View {
             .navigationTitle(Text(verbatim: tituloCatalogo))
         }
         .preferredColorScheme(esquemaDeCor)
+    }
+
+    // MARK: - Hi-Fi (Fase 2): paleta, tipografia e peças da origem
+
+    private var escuro: Bool { colorScheme == .dark }
+
+    /// Cada amostra mostra o token do app, a função da origem e os hex claro/escuro (`ParidadeDeCoresDesignTests`).
+    private static let amostras: [(nome: String, origem: String, cor: Color, hex: String)] = [
+        // nome: token do app (`FrilaCor.<nome>`); origem: função do `FrilaColor`.
+        ("fundo", "dynamicCanvas", FrilaCor.fundo, "#FFFFFF · #111111"),
+        ("superficie", "dynamicFormCardSurface", FrilaCor.superficie, "#FAFAFA · #171717"),
+        ("superficieDoCampo", "dynamicFormFieldSurface", FrilaCor.superficieDoCampo, "#F5F5F5 · #1C1C1C"),
+        ("controle", "dynamicInputBg", FrilaCor.controle, "#F2F2F0 · #23221F"),
+        ("texto", "dynamicTextPrimary", FrilaCor.texto, "#1B1A18 · #F5F4F0"),
+        ("textoSecundario", "dynamicFormTextMuted", FrilaCor.textoSecundario, "#6B6B6B · #A3A3A3"),
+        ("primaria", "dynamicTextInk", FrilaCor.primaria, "#090908 · #FFFFFF"),
+        ("selecao", "primarySelection", FrilaCor.selecao, "#C9470F"),
+        ("marca", "dynamicBrandAccent", FrilaCor.marca, "#EA5A36 · #F26643"),
+        ("sucesso", "dynamicVerified", FrilaCor.sucesso, "#007A33 · #4ADE80"),
+        ("alerta", "dynamicWarningText", FrilaCor.alerta, "#9E5C00 · #FBBF24"),
+        ("perigo", "dynamicError", FrilaCor.perigo, "#D82020 · #F87171"),
+        ("divisoria", "dynamicHairline", FrilaCor.divisoria, "#E5E5E3 · #2E2D29"),
+        ("borda", "dynamicBorder", FrilaCor.borda, "#CECECB · #44433E"),
+        ("bordaDoCampo", "dynamicFormFieldBorder", FrilaCor.bordaDoCampo, "#8C8C8C · #6A6A6A")
+    ]
+
+    private var paleta: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            ForEach(Self.amostras, id: \.nome) { amostra in
+                HStack(spacing: FrilaEspaco.compacto) {
+                    RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous)
+                        .fill(amostra.cor)
+                        .frame(width: 44, height: 32)
+                        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                    VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                        Text(verbatim: amostra.nome).font(FrilaTipo.meta.weight(.semibold)).foregroundStyle(FrilaCor.texto)
+                        Text(verbatim: amostra.origem).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
+                        Text(verbatim: amostra.hex).font(FrilaTipo.nota.monospacedDigit()).foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .accessibilityIdentifier("secao-paleta")
+    }
+
+    private var tipografia: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            Text(verbatim: amostraPergunta).font(FrilaTipo.pergunta).foregroundStyle(FrilaCor.texto)
+            Text(verbatim: amostraResposta).font(FrilaTipo.respostaEscolhida).foregroundStyle(FrilaCor.texto)
+            Text(verbatim: amostraContexto).font(FrilaTipo.contextoDaResposta).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: amostraSecao).font(FrilaTipo.secao).foregroundStyle(FrilaCor.texto)
+            Text(verbatim: amostraCorpo).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto)
+            Text(verbatim: amostraMeta).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: amostraMicro).font(FrilaTipo.microRotulo).textCase(.uppercase).tracking(0.8).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: FrilaMoney.rate(160, per: .hour)).font(FrilaTypography.metric).foregroundStyle(FrilaCor.texto)
+        }
+        .accessibilityIdentifier("secao-tipografia")
+    }
+
+    private var botoesDoEstudio: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            FrilaButton("Publicar vaga", icon: "paperplane.fill", variant: .primary, size: .prominent, isDark: escuro, isFullWidth: true)
+            FrilaButton("Continuar", variant: .secondary, size: .standard, isDark: escuro, isFullWidth: true)
+            HStack(spacing: FrilaEspaco.pequeno) {
+                FrilaButton("Contorno", variant: .outline, size: .standard, isDark: escuro)
+                FrilaButton("Discreto", variant: .ghost, size: .standard, isDark: escuro)
+                FrilaButton("Compacto", variant: .outline, size: .compact, isDark: escuro)
+            }
+        }
+        .accessibilityIdentifier("secao-botoes-estudio")
+    }
+
+    private var chipsDoEstudio: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            HStack(spacing: FrilaEspaco.pequeno) {
+                FrilaFilterChip("Perto de mim", isSelected: chipDoEstudio, systemImage: "location.fill", isDark: escuro) { chipDoEstudio.toggle() }
+                FrilaFilterChip("Hoje", isSelected: !chipDoEstudio, isDark: escuro) { chipDoEstudio.toggle() }
+            }
+            HStack(spacing: FrilaEspaco.pequeno) {
+                FrilaStatusChip("Verificado", style: .verified, systemImage: "checkmark.seal.fill", isDark: escuro)
+                FrilaStatusChip("Pendente", style: .warning, systemImage: "clock", isDark: escuro)
+                FrilaStatusChip("Neutro", style: .neutral, isDark: escuro)
+            }
+        }
+        .accessibilityIdentifier("secao-chips-estudio")
     }
 
     private func secao<Conteudo: View>(_ titulo: LocalizedStringKey, @ViewBuilder conteudo: () -> Conteudo) -> some View {
