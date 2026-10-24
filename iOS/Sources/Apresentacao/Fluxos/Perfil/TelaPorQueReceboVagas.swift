@@ -1,8 +1,8 @@
 import FrilaDominio
 import SwiftUI
 
-/// "Por que recebo vagas" (RF27), no bloco do quadro "MeuPerfil" do MidFi do Fabrício: o texto aprovado, os critérios
-/// reais e o pedido de revisão do despacho. Vai dentro da folha de Meu perfil, que põe a pilha de navegação e o Fechar.
+/// "Por que recebo vagas" (RF27), com critérios em lista aberta do Hi-Fi e o pedido de revisão.
+/// A folha de Meu perfil fornece a pilha de navegação e o Fechar.
 public struct TelaPorQueReceboVagas: View {
     /// Em `@State`, e não `@Bindable`: a folha de Meu perfil recria esta view a cada re-render do
     /// perfil, e o view model criado no `init` tem de sobreviver a isso para a carga da `.task`
@@ -93,14 +93,18 @@ public struct TelaPorQueReceboVagas: View {
     private func cartao(_ titulo: String, identificador: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: titulo)
-                .font(FrilaTipo.resumo)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .accessibilityLabel(Text(verbatim: titulo))
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             conteudo()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
+        .padding(.vertical, FrilaEspaco.medio)
+        .overlay(alignment: .bottom) { DivisoriaDeLinha() }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(identificador)
     }
@@ -126,7 +130,10 @@ public struct TelaPorQueReceboVagas: View {
     private var secaoContestar: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosPorQueReceboVagas.secaoContestar)
-                .font(FrilaTipo.resumo)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .accessibilityLabel(Text(verbatim: TextosPorQueReceboVagas.secaoContestar))
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
@@ -157,7 +164,7 @@ public struct TelaPorQueReceboVagas: View {
     private var formulario: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosPorQueReceboVagas.labelRelato)
-                .font(FrilaTipo.meta.weight(.medium))
+                .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -170,9 +177,10 @@ public struct TelaPorQueReceboVagas: View {
             }
             .lineLimit(4...8)
             .textFieldStyle(.plain)
+            .font(FrilaTipo.valorDoCampo)
             .padding(FrilaEspaco.medio)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-despacho")
 
             HStack {

@@ -1,8 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Entrada por e-mail (#13), no quadro "Main" do MidFi do Fabrício:
-/// identidade, campo de e-mail com placeholder cinza e o CTA fixo de receber o código.
+/// Entrada por e-mail (#13), com identidade editorial, campo e pílula do Hi-Fi.
 public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
@@ -29,40 +28,27 @@ public struct TelaEntrada: View {
                         .font(FrilaTipo.tituloGrande)
                         .foregroundStyle(FrilaCor.sobrePrimaria)
                         .frame(width: 64, height: 64)
-                        .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                        .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao))
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text("Frila", bundle: bundleApresentacao)
-                            .font(FrilaTipo.tituloGrande)
+                            .font(FrilaTipo.pergunta)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
 
                         Text("Turnos avulsos no DF, perto de você.", bundle: bundleApresentacao)
-                            .font(FrilaTipo.subtituloDaTela)
+                            .font(FrilaTipo.contextoDaResposta)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
-                // Erro neutro da API / conexão (quando presente)
+                // Erro da API / conexão (quando presente)
                 if let erro = viewModel.erro {
-                    HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-                        Image(systemName: "exclamationmark.circle")
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.texto)
-                            .accessibilityHidden(true)
-
-                        Text(verbatim: erro)
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.texto)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .padding(.vertical, FrilaEspaco.faixa)
-                    .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-                    .accessibilityIdentifier("entrada-erro")
+                    AvisoFrila(verbatim: erro, tom: .erro)
+                        .accessibilityIdentifier("entrada-erro")
                 }
 
                 // Agrupamento sob gap16 (FrilaEspaco.medio): formulário de e-mail e textos legais
@@ -70,7 +56,7 @@ public struct TelaEntrada: View {
                     // Formulário de e-mail
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text("E-mail", bundle: bundleApresentacao)
-                            .font(FrilaTipo.meta.weight(.semibold))
+                            .font(FrilaTipo.rotuloDoCampo)
                             .foregroundStyle(FrilaCor.texto)
 
                         CampoFrila(verbatim: exemploDeEmail, texto: $viewModel.email)
@@ -85,8 +71,8 @@ public struct TelaEntrada: View {
                                 executarEnvio()
                             }
                             .overlay(
-                                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
-                                    .strokeBorder(erroLocal != nil ? FrilaCor.texto : Color.clear, lineWidth: erroLocal != nil ? 2 : 0)
+                                RoundedRectangle(cornerRadius: FrilaRaio.entrada)
+                                    .strokeBorder(erroLocal != nil ? FrilaCor.perigo : Color.clear, lineWidth: erroLocal != nil ? 2 : 0)
                                     .allowsHitTesting(false)
                             )
                             .accessibilityLabel(Text("E-mail", bundle: bundleApresentacao))
@@ -96,18 +82,18 @@ public struct TelaEntrada: View {
                             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                                 Image(systemName: "exclamationmark.triangle")
                                     .font(FrilaTipo.meta)
-                                    .foregroundStyle(FrilaCor.texto)
+                                    .foregroundStyle(FrilaCor.perigo)
                                     .accessibilityHidden(true)
 
                                 Text(verbatim: erro)
                                     .font(FrilaTipo.meta)
-                                    .foregroundStyle(FrilaCor.texto)
+                                    .foregroundStyle(FrilaCor.perigo)
                             }
                             .padding(.horizontal, FrilaEspaco.minimo)
                         }
 
                         Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
-                            .font(FrilaTipo.nota)
+                            .font(FrilaTipo.contextoDaResposta)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .padding(.horizontal, FrilaEspaco.minimo)
                     }
@@ -129,9 +115,9 @@ public struct TelaEntrada: View {
                     .padding(.horizontal, FrilaEspaco.minimo)
                 }
             }
-            .padding(.top, FrilaEspaco.enorme + FrilaEspaco.enorme + FrilaEspaco.pequeno)
+            .padding(.top, FrilaEspaco.enorme)
             .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.bottom, FrilaEspaco.enorme * 3)
+            .padding(.bottom, FrilaEspaco.enorme)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -180,23 +166,16 @@ public struct TelaEntrada: View {
 }
 
 private extension View {
-    @ViewBuilder
     func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
-        if #available(iOS 26, *) {
-            safeAreaBar(edge: .bottom) {
+        safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(FrilaCor.divisoria)
+                    .frame(height: 1)
+                    .accessibilityHidden(true)
                 conteudo()
             }
-        } else {
-            safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    Rectangle()
-                        .fill(FrilaCor.divisoria)
-                        .frame(height: 1)
-
-                    conteudo()
-                }
-                .background(.regularMaterial)
-            }
+            .background(FrilaCor.fundo)
         }
     }
 }

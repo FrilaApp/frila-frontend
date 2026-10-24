@@ -1,8 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Confirmação do código de 6 dígitos (#13), no quadro "Codigo" do MidFi do Fabrício:
-/// retorno nativo, seis caixas com borda neutra e o CTA fixo de entrar.
+/// Confirmação do código (#13), com pergunta editorial e campos do Hi-Fi.
 public struct TelaCodigo: View {
     @Bindable var viewModel: CodigoViewModel
     var aoVoltar: () -> Void
@@ -30,15 +29,15 @@ public struct TelaCodigo: View {
                         // Bloco do título e subtítulo com respiro enxuto
                         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                             Text("Digite o código", bundle: bundleApresentacao)
-                                .font(FrilaTipo.tituloGrande)
+                                .font(FrilaTipo.pergunta)
                                 .foregroundStyle(FrilaCor.texto)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
 
-                            (Text("Enviamos um código para", bundle: bundleApresentacao).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
+                            (Text("Enviamos um código para", bundle: bundleApresentacao).font(FrilaTipo.contextoDaResposta).foregroundStyle(FrilaCor.textoSecundario)
                              + Text(verbatim: " ")
-                             + Text(verbatim: viewModel.email).font(FrilaTipo.corpo.weight(.semibold)).foregroundStyle(FrilaCor.texto)
-                             + Text(verbatim: ".").font(FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario))
+                             + Text(verbatim: viewModel.email).font(FrilaTipo.respostaEscolhida).foregroundStyle(FrilaCor.texto)
+                             + Text(verbatim: ".").font(FrilaTipo.contextoDaResposta).foregroundStyle(FrilaCor.textoSecundario))
                             .fixedSize(horizontal: false, vertical: true)
 
                             Button(action: aoVoltar) {
@@ -55,7 +54,7 @@ public struct TelaCodigo: View {
                         caixasDeCodigo
                             .padding(.top, FrilaEspaco.compacto)
 
-                        // Erro neutro da API / verificação
+                        // Erro da API / verificação
                         if let erro = viewModel.erro {
                             AvisoFrila(verbatim: erro, tom: .alerta)
                                 .accessibilityIdentifier("codigo-erro")
@@ -92,6 +91,7 @@ public struct TelaCodigo: View {
                         Button(action: aoVoltar) {
                             Image(systemName: "chevron.left")
                                 .foregroundStyle(FrilaCor.texto)
+                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         }
                         .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                         .accessibilityIdentifier("codigo-voltar")
@@ -153,12 +153,12 @@ public struct TelaCodigo: View {
             .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
             .accessibilityIdentifier("codigo-campo")
 
-            // 6 caixas visuais
+            // Seis caixas de código
             HStack(spacing: FrilaEspaco.pequeno) {
                 ForEach(0..<6, id: \.self) { indice in
                     let caractere = caractereNoIndice(indice)
                     let estaAtiva = campoFocado && indice == viewModel.codigo.count
-                    let bordaCor = temErroNoCodigo ? FrilaCor.texto : (estaAtiva ? FrilaCor.texto : FrilaCor.borda)
+                    let bordaCor = temErroNoCodigo ? FrilaCor.perigo : (estaAtiva ? FrilaCor.texto : FrilaCor.bordaDoCampo)
                     let bordaLargura: CGFloat = (temErroNoCodigo || estaAtiva) ? 2 : 1
 
                     Text(verbatim: caractere)
@@ -167,9 +167,9 @@ public struct TelaCodigo: View {
                         .lineLimit(1)
                         .foregroundStyle(FrilaCor.texto)
                         .frame(maxWidth: .infinity, minHeight: 60)
-                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                        .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
                                 .strokeBorder(bordaCor, lineWidth: bordaLargura)
                         )
                         .accessibilityHidden(true)
@@ -181,6 +181,12 @@ public struct TelaCodigo: View {
                 campoFocado = true
             }
         }
+    }
+
+    private func caractereNoIndice(_ indice: Int) -> String {
+        guard indice < viewModel.codigo.count else { return "" }
+        let index = viewModel.codigo.index(viewModel.codigo.startIndex, offsetBy: indice)
+        return String(viewModel.codigo[index])
     }
 
     private var textoContagemReenvio: String {
@@ -215,7 +221,9 @@ public struct TelaCodigo: View {
                         .foregroundStyle(FrilaCor.texto)
                 }
                 .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                .contentShape(Rectangle())
+                .padding(.horizontal, FrilaEspaco.medio)
+                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .contentShape(Capsule())
             }
             .buttonStyle(.plain)
             .disabled(viewModel.carregando)
@@ -242,30 +250,9 @@ public struct TelaCodigo: View {
 
     private var botaoEntrar: some View {
         VStack(spacing: FrilaEspaco.minimo) {
-            let habilitado = viewModel.codigoValido && !viewModel.carregando
-            Button(action: confirmar) {
-                Group {
-                    if viewModel.carregando {
-                        ProgressView()
-                            .tint(habilitado ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
-                    } else {
-                        Text("Entrar", bundle: bundleApresentacao)
-                            .font(FrilaTipo.botao)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-                .padding(.horizontal, FrilaEspaco.grande)
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .foregroundStyle(habilitado ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
-                .background(habilitado ? FrilaCor.primaria : FrilaCor.controle, in: Capsule())
-                .contentShape(Capsule())
-            }
-            .buttonStyle(.tatil)
-            .disabled(!habilitado)
-            .accessibilityIdentifier("codigo-entrar")
-            .accessibilityLabel(Text("Entrar", bundle: bundleApresentacao))
-            .accessibilityValue(viewModel.carregando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
+            BotaoPrimario("Entrar", carregando: viewModel.carregando, acao: confirmar)
+                .disabled(!viewModel.codigoValido || viewModel.carregando)
+                .accessibilityIdentifier("codigo-entrar")
 
             if !viewModel.codigoValido {
                 Text("Digite os 6 números para entrar.", bundle: bundleApresentacao)
@@ -292,12 +279,6 @@ public struct TelaCodigo: View {
                 aoConcluir(destino)
             }
         }
-    }
-
-    private func caractereNoIndice(_ indice: Int) -> String {
-        guard indice < viewModel.codigo.count else { return "" }
-        let index = viewModel.codigo.index(viewModel.codigo.startIndex, offsetBy: indice)
-        return String(viewModel.codigo[index])
     }
 
     #if DEBUG
@@ -355,23 +336,16 @@ public struct TelaCodigo: View {
 }
 
 private extension View {
-    @ViewBuilder
     func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
-        if #available(iOS 26, *) {
-            safeAreaBar(edge: .bottom) {
+        safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(FrilaCor.divisoria)
+                    .frame(height: 1)
+                    .accessibilityHidden(true)
                 conteudo()
             }
-        } else {
-            safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    Rectangle()
-                        .fill(FrilaCor.divisoria)
-                        .frame(height: 1)
-
-                    conteudo()
-                }
-                .background(.regularMaterial)
-            }
+            .background(FrilaCor.fundo)
         }
     }
 }
