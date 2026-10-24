@@ -164,6 +164,9 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         let pilula = app.buttons["Perto de mim"]
         XCTAssertTrue(pilula.waitForExistence(timeout: 5))
         XCTAssertTrue(pilula.isSelected, "o catálogo abre com o filtro ligado")
+        // Com as seções do Hi-Fi (paleta, tipografia, peças do Estúdio) a pílula nasce abaixo
+        // da dobra; o toque por coordenada não rola sozinho como `tap()` faz.
+        trazerParaATela(pilula, em: app)
 
         pilula.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
 
@@ -233,7 +236,8 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     func testCapturasDoCatalogoEmAX5() {
         let app = abrirCatalogo(tamanho: Self.ax5)
         let fim = app.buttons["abrir-licencas"]
-        for indice in 0..<12 {
+        // 20 passos: o catálogo ganhou Paleta, Tipografia, Botões e Chips do Estúdio na Fase 2 do Hi-Fi
+        for indice in 0..<20 {
             if !Self.naCI {
                 let opcoes = XCTExpectedFailure.Options()
                 opcoes.isStrict = false
