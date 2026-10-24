@@ -600,6 +600,7 @@ public struct FrilaLPECoupledRolePicker: View {
         .onSnapshot { snapshot in
             categorySnapshot = snapshot
         }
+        .accessibilityIdentifier("categoria-vaga-roleta")
     }
 
     private var roleWheelView: some View {
@@ -634,6 +635,8 @@ public struct FrilaLPECoupledRolePicker: View {
         .onSnapshot { snapshot in
             roleSnapshot = snapshot
         }
+        // Enxerto: a roleta é um elemento ajustável único; o identificador deixa o teste de UI girá-la
+        .accessibilityIdentifier("funcao-vaga-roleta")
     }
 
     // MARK: - Campo Único (layout horizontal)
@@ -941,6 +944,8 @@ public struct FrilaLPECoupledRolePicker: View {
                             badge: nil,
                             action: toggleCategoryWheel
                         )
+                        // Enxerto: identificador para os testes de UI do app (eixo vertical)
+                        .accessibilityIdentifier("categoria-vaga-picker")
                         .transition(.frilaLPEFieldContent)
                     }
                 }

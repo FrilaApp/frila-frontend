@@ -847,6 +847,7 @@ struct FrilaLPEJobFormValorSection: View {
             HStack(spacing: FrilaLPEGeometry.space4) {
                 stepButton(systemImage: "minus", label: "Remover uma vaga", delta: -1)
                     .disabled(draft.positionsCount <= 1)
+                    .accessibilityIdentifier("posicoes-vaga-menos")
 
                 Text("\(draft.positionsCount)", tableName: "FrilaLPEEstudio", bundle: bundleApresentacao)
                     .font(FrilaLPETypography.metricTabular(size: 18, weight: .bold))

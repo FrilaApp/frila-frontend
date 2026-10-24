@@ -10156,6 +10156,46 @@
           }
         }
       }
+    },
+    "Rateio dos 10%, observações e aviso se a vaga seguir vazia": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rateio dos 10%, observações e aviso se a vaga seguir vazia"
+          }
+        }
+      }
+    },
+    "Aberto": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aberto"
+          }
+        }
+      }
+    },
+    "Fechado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechado"
+          }
+        }
+      }
+    },
+    "Aparece no detalhe da vaga, antes do aceite.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aparece no detalhe da vaga, antes do aceite."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -27,9 +27,11 @@ final class FormularioEstudioFrilaLPE {
             rascunho.roleOrigin = .catalog
         }
         let calendario = FrilaLPEShiftCalendar.brasilia
-        rascunho.shiftDate = FrilaLPEJobShiftFormat.dateLabel(vaga.inicio, calendar: calendario)
-        rascunho.startTime = Self.relogio(de: vaga.inicio, calendario: calendario).fieldLabel
-        rascunho.endTime = Self.relogio(de: vaga.fim, calendario: calendario).fieldLabel
+        // Arredonda a data inteira, não só a hora: 23:50 vira 00:00 do dia seguinte e a data acompanha.
+        let inicio = Self.arredondar(vaga.inicio, calendario: calendario)
+        rascunho.shiftDate = FrilaLPEJobShiftFormat.dateLabel(inicio, calendar: calendario)
+        rascunho.startTime = Self.relogio(de: inicio, calendario: calendario).fieldLabel
+        rascunho.endTime = Self.relogio(de: Self.arredondar(vaga.fim, calendario: calendario), calendario: calendario).fieldLabel
         if vaga.valorCentavos > 0 { rascunho.payPerPosition = vaga.valorCentavos / 100 }
         if let posicoes = Int(vaga.posicoesTexto), posicoes > 0 { rascunho.positionsCount = posicoes }
         rascunho.mealIncluded = vaga.refeicao
@@ -39,6 +41,16 @@ final class FormularioEstudioFrilaLPE {
         rascunho.dressCode = vaga.traje
         rascunho.recalculateTotalBudget()
         return rascunho
+    }
+
+    /// A data no passo da roleta da origem (30 min), arredondada para a opção mais próxima. Quem cruza a
+    /// meia-noite muda de dia junto: a hora e a data do turno saem da mesma data arredondada.
+    static func arredondar(_ data: Date, calendario: Calendar = FrilaLPEShiftCalendar.brasilia, passo: Int = 30) -> Date {
+        let componentes = calendario.dateComponents([.hour, .minute, .second], from: data)
+        let segundos = (componentes.hour ?? 0) * 3_600 + (componentes.minute ?? 0) * 60 + (componentes.second ?? 0)
+        let passoEmSegundos = passo * 60
+        let arredondado = Int((Double(segundos) / Double(passoEmSegundos)).rounded()) * passoEmSegundos
+        return calendario.date(byAdding: .second, value: arredondado - segundos, to: data) ?? data
     }
 
     /// Hora do dia no passo da roleta da origem (30 min), arredondada para a opção mais próxima.

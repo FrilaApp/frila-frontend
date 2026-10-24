@@ -313,6 +313,64 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertEqual(vagas(app).count, antes)
     }
 
+    /// A função escolhida pela roleta da origem, sem o roteiro de teste preencher nada (Loki, #498).
+    /// Também é a prova de que a etapa incompleta volta ao normal ao preencher: sem função, Publicar
+    /// fica na etapa 1; com função, valor e responsável, a mesma vaga publica (o estúdio não escreve
+    /// aviso por campo, a barra de etapas faz esse papel).
+    func testEscolherFuncaoNaRoletaDestravaAPublicacao() {
+        let app = abrir()
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        let antes = vagas(app).count
+        tocar(app.buttons["publicar-vaga-entrada"])
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
+
+        let botaoPublicar = app.buttons["publicar-vaga-botao"]
+        rolarAte(botaoPublicar, em: app)
+        tocar(botaoPublicar)
+        XCTAssertFalse(app.buttons["celebracao-concluir"].waitForExistence(timeout: 3), "sem função a vaga não é publicada")
+        let etapaUm = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Publicar vaga, etapa 1 de 3")).firstMatch
+        XCTAssertTrue(etapaUm.waitForExistence(timeout: 5), "a barra volta à etapa da vaga, a primeira incompleta")
+
+        // A categoria fica como está (nenhuma escolhida): a roleta de função lista o catálogo inteiro.
+        let categoria = app.descendants(matching: .any)["categoria-vaga-picker"]
+        rolarAte(categoria, em: app)
+        XCTAssertTrue(categoria.exists, "o campo fechado da categoria deve estar na tela")
+
+        // Função: a linha 0 é o espaço neutro ("Nenhuma função"); o toque na linha de baixo gira
+        // uma posição e confirma a primeira função da lista. O toque que abre a roleta pode cair
+        // no ciclo de recolhimento de um toque anterior (coordenador de toque fora), daí a repetição.
+        let funcao = app.descendants(matching: .any)["funcao-vaga-picker"]
+        let roletaFuncao = app.descendants(matching: .any)["funcao-vaga-roleta"]
+        for _ in 0..<3 where !roletaFuncao.exists {
+            tocar(funcao)
+            _ = roletaFuncao.waitForExistence(timeout: 3)
+        }
+        XCTAssertTrue(roletaFuncao.waitForExistence(timeout: Espera.aparecer), "a roleta de função deve abrir")
+        roletaFuncao.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).tap()
+        let escolheu = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "NOT (value IN %@)", ["Nenhuma função", "Nenhum selecionado", ""]),
+            object: roletaFuncao
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [escolheu], timeout: 5), .completed, "a roleta deveria parar numa função: \(roletaFuncao.value ?? "nil")")
+        let escolhida = roletaFuncao.value as? String ?? ""
+        tocar(app.buttons["Recolher função"])
+        XCTAssertTrue(funcao.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(funcao.label.contains(escolhida), "campo fechado: \(funcao.label); escolhida: \(escolhida)")
+
+        let responsavel = app.textFields["responsavel-local-campo"]
+        rolarAte(responsavel, em: app)
+        substituirTexto(responsavel, por: "Marina")
+        app.swipeUp(velocity: .slow)
+        ajustarValorPorTurno(app, para: 160)
+
+        rolarAte(botaoPublicar, em: app)
+        tocar(botaoPublicar)
+        concluirCelebracao(app)
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(vagas(app).count, antes + 1)
+    }
+
     private func salvarCaptura(_ nome: String) {
         let captura = XCUIScreen.main.screenshot()
         let anexo = XCTAttachment(screenshot: captura)

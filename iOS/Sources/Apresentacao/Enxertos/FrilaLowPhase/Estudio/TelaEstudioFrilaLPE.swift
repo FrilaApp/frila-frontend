@@ -81,9 +81,7 @@ struct TelaEstudioFrilaLPE: View {
                     let avisos = AvisosDoEstudioFrilaLPE(vaga: vaga, isDark: isDark)
                     return avisos.temConteudo ? AnyView(avisos) : nil
                 },
-                sectionFooter: { secao in
-                    secao == .turno ? AnyView(ModoDaVagaEstudioFrilaLPE(vaga: vaga, isDark: isDark)) : nil
-                },
+                sectionFooter: { secao in complementoDaEtapa(secao, vaga: vaga) },
                 fieldsLocked: { vaga.camposBloqueados },
                 publishLabel: { vaga.publicacaoPendente != nil ? TextosPublicarVaga.tentarNovamente : nil },
                 closeLabel: { vaga.textoAoFechar },
@@ -102,6 +100,15 @@ struct TelaEstudioFrilaLPE: View {
                 onDraftChange: { formulario.sincronizar($0) }
             )
         )
+    }
+
+    /// O que o app acrescenta ao fim de cada etapa: o modo da vaga no Turno e "Mais opções" no Valor.
+    private func complementoDaEtapa(_ secao: FrilaLPEJobFormSection, vaga: PublicarVagaViewModel) -> AnyView? {
+        switch secao {
+        case .vaga: nil
+        case .turno: AnyView(ModoDaVagaEstudioFrilaLPE(vaga: vaga, isDark: isDark))
+        case .valor: AnyView(MaisOpcoesEstudioFrilaLPE(vaga: vaga, isDark: isDark))
+        }
     }
 
     private func carregar() async {

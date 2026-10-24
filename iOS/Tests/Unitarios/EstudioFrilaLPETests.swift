@@ -110,6 +110,29 @@ struct EstudioFrilaLPETests {
         #expect(FormularioEstudioFrilaLPE.relogio(de: data(23, 50)).fieldLabel == "00:00")
     }
 
+    @Test("Hora arredondada que cruza a meia-noite leva a data do turno ao dia seguinte (Loki, #498)")
+    func relogioCruzaMeiaNoite() throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let calendario = FrilaLPEShiftCalendar.brasilia
+        let vaga = formulario.vaga
+        let dia = try #require(calendario.date(byAdding: .day, value: 2, to: calendario.startOfDay(for: agora)))
+        vaga.inicio = try #require(calendario.date(bySettingHour: 23, minute: 50, second: 0, of: dia))
+        vaga.fim = vaga.inicio.addingTimeInterval(6 * 3_600)
+        let rascunho = formulario.rascunhoInicial
+        let diaSeguinte = try #require(calendario.date(byAdding: .day, value: 1, to: dia))
+        #expect(rascunho.shiftDate == FrilaLPEJobShiftFormat.dateLabel(diaSeguinte, calendar: calendario))
+        #expect(rascunho.startTime == "00:00")
+        #expect(rascunho.endTime == "06:00")
+        // Ida e volta: o período reconstruído fica a 10 minutos do original, no dia certo.
+        let periodo = try #require(formulario.periodo(de: rascunho))
+        #expect(abs(periodo.inicio.timeIntervalSince(vaga.inicio)) <= 10 * 60)
+        #expect(periodo.fim.timeIntervalSince(periodo.inicio) == 6 * 3_600)
+        // 23:40 arredonda para baixo e fica no mesmo dia.
+        vaga.inicio = try #require(calendario.date(bySettingHour: 23, minute: 40, second: 0, of: dia))
+        #expect(formulario.rascunhoInicial.shiftDate == FrilaLPEJobShiftFormat.dateLabel(dia, calendar: calendario))
+        #expect(formulario.rascunhoInicial.startTime == "23:30")
+    }
+
     @Test("Sem rede a publicação fica na fila: não é erro nem celebração")
     func publicacaoSemRedeFicaNaFila() async throws {
         let formulario = try formulario { _ in throw ErroDaApi(codigo: .semRede) }

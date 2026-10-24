@@ -70,15 +70,28 @@ validação, mesma fila. Não há campo, regra nem endpoint novo.
     celebra e o aviso "A publicação continua" aparece. O rascunho inicial traz data e horários dos
     padrões do app (agora + 3 h, arredondado ao passo de 30 min da roleta), não em branco como na
     origem. Identificadores dos testes de UI (`publicar-vaga-botao`, `funcao-vaga-picker`,
-    `valor-vaga-campo`, `datepicker-*`, `modo-vaga-picker`, `celebracao-concluir`…) nos controles
-    equivalentes; a roleta de função não é dirigível pelo XCUITest, então os testes usam a função do
-    roteiro (`-FRILA_CADASTRO_UI_TEST`).
-12. Campos do app sem lugar no estúdio: observações, rateio e alerta de vaga vazia
-    (`observacoes`, `participaRateio`, `alertaAntecedenciaMinutos` do `PublicarVagaViewModel`). A
-    origem não tem campo para eles; ficam no padrão do view model (vazio, `false`, 180 min) e não
-    aparecem. O telefone do responsável (RN10), que o formulário antigo mostrava só para leitura
-    com o número da conta, também não aparece: a prévia mantém o aviso da origem sobre telefone e
-    WhatsApp. Modo da vaga e responsável no local entram pelos ganchos (itens 7 e 11).
+    `categoria-vaga-picker`, `funcao-vaga-roleta`, `categoria-vaga-roleta`, `posicoes-vaga-menos`,
+    `valor-vaga-campo`, `datepicker-*`, `modo-vaga-picker`, `mais-opcoes-botao`, `rateio-vaga-campo`,
+    `observacoes-vaga-campo`, `alerta-vaga-picker`, `celebracao-concluir`…) nos controles equivalentes.
+    A roleta (`FrilaLPEWheelColumn`) é um elemento ajustável único; o XCUITest não aciona a ação
+    ajustável, mas toca uma linha da roleta aberta, que gira até ela e confirma
+    (`testEscolherFuncaoNaRoletaDestravaAPublicacao`); os demais testes usam a função do roteiro
+    (`-FRILA_CADASTRO_UI_TEST`).
+12. "Mais opções" no fim da etapa Valor (`MaisOpcoesEstudioFrilaLPE`, gancho `sectionFooter`): rateio
+    dos 10%, observações e alerta de vaga vazia (`participaRateio`, `observacoes`,
+    `alertaAntecedenciaMinutos` do `PublicarVagaViewModel`), funções do Publicar vaga que o estúdio da
+    origem não desenhou. O cartão-linha (título, apoio, chevron) é o do protótipo midfi da origem
+    (`prototipo-midfi/Publicar.dc.html`), que lá abria a tela `MaisOpcoes.dc.html`; aqui abre no lugar,
+    com as molas de disclosure da origem (`FrilaLPEMotion.disclosureExpand/Collapse`,
+    `frilaLPEDisclosureDrop`). Dentro: linha Sim/Não do formulário (`FrilaLPEJobFormYesNoRow`), campo
+    rotulado com apoio (`FrilaLPEJobFormLabeledField`) e o segmentado com 2, 3 e 6 horas antes. Mesmos
+    identificadores do formulário antigo (`mais-opcoes-botao`, `observacoes-vaga-campo`,
+    `alerta-vaga-picker`; o rateio ganhou `rateio-vaga-campo`). Abre sozinho quando a restauração traz
+    esses campos preenchidos ou quando um erro deles aparece. O traje fica na etapa Turno, onde a origem
+    o pôs ("Traje ou uniforme"), por isso o apoio do cartão não o cita. O telefone do responsável
+    (RN10), que o formulário antigo mostrava só para leitura com o número da conta, não aparece: a
+    prévia mantém o aviso da origem sobre telefone e WhatsApp. Modo da vaga e responsável no local
+    entram pelos ganchos (itens 7 e 11).
 
 ## Como entra no app
 

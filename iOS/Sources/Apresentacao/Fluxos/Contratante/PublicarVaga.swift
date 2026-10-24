@@ -43,6 +43,10 @@ enum TextosPublicarVaga {
     static let alertaSeisHoras = String(localized: "6 horas antes", bundle: bundleApresentacao)
     static let maisOpcoes = String(localized: "Mais opções", bundle: bundleApresentacao)
     static let maisOpcoesAjuda = String(localized: "Traje, rateio dos 10% e observações", bundle: bundleApresentacao)
+    static let maisOpcoesAjudaEstudio = String(localized: "Rateio dos 10%, observações e aviso se a vaga seguir vazia", bundle: bundleApresentacao)
+    static let maisOpcoesAberto = String(localized: "Aberto", bundle: bundleApresentacao)
+    static let maisOpcoesFechado = String(localized: "Fechado", bundle: bundleApresentacao)
+    static let observacoesAjuda = String(localized: "Aparece no detalhe da vaga, antes do aceite.", bundle: bundleApresentacao)
     static let traje = String(localized: "Traje", bundle: bundleApresentacao)
     static let rateio = String(localized: "Participa do rateio dos 10%", bundle: bundleApresentacao)
     static let observacoes = String(localized: "Observações", bundle: bundleApresentacao)
@@ -195,6 +199,11 @@ public final class PublicarVagaViewModel {
         didSet {
             limparErroSeValido(.observacoes)
         }
+    }
+    /// O rateio como Sim/Não para controles de dois estados: sem resposta conta como "Não".
+    public var participaRateioOuNao: Bool {
+        get { participaRateio ?? false }
+        set { participaRateio = newValue }
     }
     public var mostrandoMaisOpcoes = false
     public private(set) var carregandoFuncoes = false
