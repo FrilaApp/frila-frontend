@@ -1,7 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Ações de denunciar e bloquear de um perfil (#39), com a folha de denúncia do quadro "Denuncia" do MidFi do Fabrício.
+/// Ações de segurança (#39) em pílulas Hi-Fi, com a folha de denúncia.
 struct AcoesDeSeguranca: View {
     @ScaledMetric(relativeTo: .body) private var colunaDoIcone: CGFloat = 28
     @State private var model: SegurancaViewModel
@@ -33,14 +33,14 @@ struct AcoesDeSeguranca: View {
             Button { denunciando = true } label: {
                 linha(icone: "exclamationmark.bubble", titulo: TextosDaSeguranca.denunciar, corDoIcone: FrilaCor.textoSecundario, corDoTexto: FrilaCor.texto)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.tatil)
             .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.denunciar) \(nomeAlvo)"))
             .accessibilityIdentifier(identificadorDenunciar)
 
             Button { confirmandoBloqueio = true } label: {
                 linha(icone: "nosign", titulo: TextosDaSeguranca.bloquear, corDoIcone: FrilaCor.perigo, corDoTexto: FrilaCor.perigo)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.tatil)
             .accessibilityLabel(Text(verbatim: "\(TextosDaSeguranca.bloquear) \(nomeAlvo)"))
             .disabled(model.bloqueando || model.bloqueado)
             .accessibilityIdentifier(identificadorBloquear)
@@ -55,7 +55,11 @@ struct AcoesDeSeguranca: View {
             Button(TextosDaSeguranca.bloquear, role: .destructive) { Task { await model.bloquear() } }
                 .accessibilityIdentifier(identificadorConfirmarBloqueio)
         } message: { Text(verbatim: TextosDaSeguranca.efeitoBloqueio) }
-        .sheet(isPresented: $denunciando) { FolhaDeDenuncia(model: model) }
+        .sheet(isPresented: $denunciando) {
+            FolhaDeDenuncia(model: model)
+                .presentationCornerRadius(FrilaRaio.folha)
+                .presentationDragIndicator(.visible)
+        }
     }
 
     /// Linha de ação: ícone em coluna fixa e texto, com toque de pelo menos 44 pt.
@@ -72,13 +76,14 @@ struct AcoesDeSeguranca: View {
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-        .contentShape(Rectangle())
+        .padding(.horizontal, FrilaEspaco.medio)
+        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+        .overlay(Capsule().strokeBorder(corDoTexto == FrilaCor.perigo ? FrilaCor.perigo : FrilaCor.borda, lineWidth: 1))
+        .contentShape(Capsule())
     }
 }
 
-/// Folha de denúncia, no quadro "Denuncia" do MidFi: campos em superfícies brancas sobre o fundo cinza,
-/// atalhos de emergência quando o motivo é risco à segurança e tela de protocolo com círculo de 72 pt.
+/// Denúncia com campos Hi-Fi, atalhos de emergência e estado de confirmação com protocolo.
 private struct FolhaDeDenuncia: View {
     @ScaledMetric(relativeTo: .body) private var colunaDoIcone: CGFloat = 28
     @Environment(\.dismiss) private var dismiss
@@ -93,10 +98,10 @@ private struct FolhaDeDenuncia: View {
                     Section {
                         VStack(spacing: FrilaEspaco.compacto) {
                             Image(systemName: "checkmark")
-                                .font(.title)
-                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .font(FrilaTipo.tituloGrande)
+                                .foregroundStyle(FrilaCor.sucesso)
                                 .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                                .background(FrilaCor.controle, in: Circle())
+                                .background(FrilaCor.sucesso.opacity(0.1), in: Circle())
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDaSeguranca.enviada)
                                 .font(FrilaTipo.tituloDeEstado)
@@ -146,6 +151,10 @@ private struct FolhaDeDenuncia: View {
                         TextField(TextosDaSeguranca.relato, text: $model.relato, axis: .vertical)
                             .font(FrilaTipo.valorDoCampo)
                             .lineLimit(4...10)
+                            .padding(FrilaEspaco.compacto)
+                            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada))
+                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+                            .listRowSeparator(.hidden)
                             .focused($focoNoRelato)
                             .accessibilityIdentifier("relato-denuncia")
                             .accessibilityHint(Text(verbatim: model.relatoValido ? TextosDaSeguranca.relatoValidoAcessibilidade : "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
@@ -188,6 +197,8 @@ private struct FolhaDeDenuncia: View {
                     }
                 }
             }
+            .listSectionSpacing(FrilaEspaco.grande)
+            .tint(FrilaCor.primaria)
             .scrollContentBackground(.hidden)
             .background(FrilaCor.fundo.ignoresSafeArea())
             .scrollDismissesKeyboard(.interactively)
@@ -201,7 +212,8 @@ private struct FolhaDeDenuncia: View {
                         .accessibilityIdentifier("enviar-denuncia")
                     }
                     .padding(FrilaEspaco.medio)
-                    .background(FrilaCor.fundo.opacity(0.95))
+                    .background(FrilaCor.fundo)
+                    .overlay(alignment: .top) { Divider().overlay(FrilaCor.divisoria) }
                 } else {
                     VStack(spacing: FrilaEspaco.minimo) {
                         BotaoPrimario(verbatim: TextosDaSeguranca.concluir) {
@@ -210,10 +222,13 @@ private struct FolhaDeDenuncia: View {
                         .accessibilityIdentifier("concluir-denuncia")
                     }
                     .padding(FrilaEspaco.medio)
-                    .background(FrilaCor.fundo.opacity(0.95))
+                    .background(FrilaCor.fundo)
+                    .overlay(alignment: .top) { Divider().overlay(FrilaCor.divisoria) }
                 }
             }
             .navigationTitle(TextosDaSeguranca.denunciar)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -293,13 +308,32 @@ struct TelaPerfilPublico: View {
                     case let .falha(erro):
                         EstadoErro(verbatim: erro) { Task { await model.carregar() } }
                     case let .carregado(perfil):
-                        Text(verbatim: perfil.nome).font(FrilaTipo.tituloGrande).accessibilityAddTraits(.isHeader)
-                        if !perfil.funcoes.isEmpty {
-                            Text(verbatim: perfil.funcoes.joined(separator: ", "))
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.textoSecundario)
+                        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                            HStack(alignment: .center, spacing: FrilaEspaco.medio) {
+                                Image(systemName: perfil.tipo == .profissional ? "person.fill" : "building.2.fill")
+                                    .font(FrilaTipo.tituloGrande)
+                                    .foregroundStyle(FrilaCor.texto)
+                                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                                    .background(FrilaCor.controle, in: Circle())
+                                    .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                    Text(verbatim: perfil.nome)
+                                        .font(FrilaTipo.tituloDoCartao.weight(.bold))
+                                        .foregroundStyle(FrilaCor.texto)
+                                        .accessibilityAddTraits(.isHeader)
+                                    if !perfil.funcoes.isEmpty {
+                                        Text(verbatim: perfil.funcoes.joined(separator: ", "))
+                                            .font(FrilaTipo.meta)
+                                            .foregroundStyle(FrilaCor.textoSecundario)
+                                    }
+                                }
+                            }
+                            SeloReputacao(perfil.reputacao)
                         }
-                        SeloReputacao(perfil.reputacao)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, FrilaEspaco.medio)
+                        Divider().overlay(FrilaCor.divisoria)
                         AcoesDeSeguranca(perfil: perfil, api: api, bloqueios: bloqueios)
                             .id(perfil.id)
                     }

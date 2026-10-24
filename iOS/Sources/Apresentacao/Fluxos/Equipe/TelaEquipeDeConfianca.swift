@@ -1,7 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// "Equipe de confiança" em Estabelecimento (#24), nos quadros "Estabelecimento" e "ContaContratante" do MidFi do Fabrício: a lista da equipe em cartões e a remoção, com confirmação.
+/// Equipe de confiança (#24): lista Hi-Fi com divisórias e remoção com confirmação.
 public struct TelaEquipeDeConfianca: View {
     @State private var viewModel: EquipeDeConfiancaViewModel
     @State private var aRemover: PerfilPublico?
@@ -38,7 +38,8 @@ public struct TelaEquipeDeConfianca: View {
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosEquipeDeConfianca.titulo))
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(.hidden, for: .navigationBar)
 
         .task { await viewModel.carregar() }
         .refreshable { await viewModel.carregar() }
@@ -71,16 +72,19 @@ public struct TelaEquipeDeConfianca: View {
             EstadoErro(verbatim: TextosEquipeDeConfianca.erroCarregar) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("equipe-erro")
         case let .conteudo(membros):
-            ForEach(membros) { perfil in
-                cartao(perfil)
+            VStack(spacing: 0) {
+                ForEach(membros) { perfil in
+                    linha(perfil)
+                    Divider().overlay(FrilaCor.divisoria)
+                }
             }
         }
     }
 
-    private func cartao(_ perfil: PerfilPublico) -> some View {
+    private func linha(_ perfil: PerfilPublico) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: perfil.nome)
-                .font(FrilaTipo.resumo)
+                .font(FrilaTipo.tituloDoCartao.weight(.bold))
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
             if !perfil.funcoes.isEmpty {
@@ -96,7 +100,7 @@ public struct TelaEquipeDeConfianca: View {
             if viewModel.removendo == perfil.id { ProgressView() }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
+        .padding(.vertical, FrilaEspaco.medio)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("membro-da-equipe-\(perfil.id)")
     }
@@ -130,6 +134,10 @@ struct BotaoIncluirNaEquipe: View {
                 }
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.sucesso)
+                .padding(.horizontal, FrilaEspaco.compacto)
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .background(FrilaCor.sucesso.opacity(0.1), in: Capsule())
+                .overlay(Capsule().strokeBorder(FrilaCor.sucesso.opacity(0.3), lineWidth: 1))
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                 .accessibilityIdentifier("na-equipe-\(identificador)")
             } else {
@@ -139,10 +147,14 @@ struct BotaoIncluirNaEquipe: View {
                     } icon: {
                         Image(systemName: "person.badge.plus")
                     }
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
+                    .font(FrilaTipo.botaoPadrao)
+                    .foregroundStyle(FrilaCor.texto)
+                    .padding(.horizontal, FrilaEspaco.medio)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                    .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .contentShape(Capsule())
                 }
+                .buttonStyle(.tatil)
                 .disabled(model.incluindo)
                 .accessibilityIdentifier(identificador)
                 if model.incluindo { ProgressView() }
