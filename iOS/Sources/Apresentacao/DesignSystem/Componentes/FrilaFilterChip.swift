@@ -153,7 +153,9 @@ public struct FrilaFilterChip: View {
                     popTrigger = false
                 }
             }
-            .contentShape(Capsule())
+            // 32 pt visíveis, 44 pt de toque (regra do app: alvo mínimo em todo controle)
+            .frame(minHeight: FrilaGeometry.hitboxMinimum)
+            .contentShape(Rectangle())
         }
         .buttonStyle(FrilaChipBounceButtonStyle(reduceMotion: isReduceActive))
         .sensoryFeedback(.selection, trigger: isSelected)
