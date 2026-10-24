@@ -604,10 +604,9 @@ public struct TelaMinhasVagas: View {
                 )
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+            .cartaoFrila()
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
                     .strokeBorder(FrilaCor.texto, lineWidth: 2)
             )
         } else {
@@ -656,7 +655,7 @@ public struct TelaMinhasVagas: View {
                 Divider()
                     .overlay(FrilaCor.divisoria)
             }
-            Text(verbatim: vaga.vaga.funcao).font(FrilaTipo.resumo)
+            Text(verbatim: vaga.vaga.funcao).font(FrilaTipo.tituloDoCartao)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
             LinhaDeVaga(icone: "calendar", texto: periodo(vaga.vaga.periodo))
@@ -686,12 +685,7 @@ public struct TelaMinhasVagas: View {
             conteudo
         } else {
             conteudo
-                .padding(FrilaEspaco.medio)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
-                        .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-                )
+                .cartaoFrila()
         }
     }
 
@@ -1013,9 +1007,9 @@ private struct TelaDetalheVagaContratante: View {
                         )
                     }
                     .padding(.leading, FrilaEspaco.medio)
-                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+                    .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+                        RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
                             .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
                     )
                 }

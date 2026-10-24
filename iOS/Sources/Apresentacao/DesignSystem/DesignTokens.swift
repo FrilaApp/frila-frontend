@@ -92,38 +92,54 @@ public enum FrilaMetrica {
     public static let circuloDeEstado: CGFloat = 72
 }
 
-/// Tipografia. As telas usam SF Pro pelos estilos de texto, com Dynamic Type (`FrilaTypography.Native`).
-/// A Bricolage Grotesque é a voz das perguntas e respostas dos formulários (`FrilaFormType`);
-/// números e dinheiro ficam sempre em SF Pro. Os papéis da origem estão em `FrilaTypography`.
+/// Tipografia. Os papéis das telas leem a escala Minor Third da origem (`FrilaTypeScaleStep`: 11/13/15/18/22/26/32)
+/// e as specs do paradigma Swiss (`FrilaTypography`: display, title, placard, entity, body, caption, micro, metric),
+/// sempre com Dynamic Type (`FrilaFonteDoSistema.fonte` mede pelo estilo mais próximo). A Bricolage Grotesque é a voz
+/// das perguntas e respostas dos formulários (`FrilaFormType`); números e dinheiro ficam sempre em SF Pro.
 public enum FrilaTipo {
-    public static let tituloGrande = Font.largeTitle.bold()
-    /// Cabeçalho de seção ("Abertas", "Seus dados").
-    public static let secao = Font.title2.bold()
-    public static let subtituloDaTela = Font.title3
-    public static let rotuloDoCampo = Font.headline
-    public static let valorDoCampo = Font.body
-    public static let chip = Font.body.weight(.semibold)
-    public static let tituloDoCartao = Font.title3.weight(.semibold)
-    public static let corpo = Font.body
+    /// Título da tela fora da barra: display 32 heavy, tracking −0.8 (`FrilaTypography.display`).
+    public static let tituloGrande = FrilaTypography.display
+    /// Cabeçalho de seção ("Abertas", "Seus dados"): title 22 bold (`FrilaTypography.title`).
+    public static let secao = FrilaTypography.title
+    /// Subtítulo abaixo do título da tela: placard 18 medium.
+    public static let subtituloDaTela = FrilaTypography.placard
+    /// Rótulo do campo: SF Pro Semibold 13 (`FrilaFormType.fieldLabel`), como nos campos do Estúdio.
+    public static let rotuloDoCampo = FrilaFormType.fieldLabel.font
+    /// Texto digitado no campo: SF Pro Regular 17 (`FrilaFormType.input`).
+    public static let valorDoCampo = FrilaFormType.input.font
+    /// Rótulo de chip e filtro: caption 13 bold.
+    public static let chip = FrilaTypography.captionBold
+    /// Título do cartão (placa de museu): placard 18 medium.
+    public static let tituloDoCartao = FrilaTypography.placard
+    /// Corpo de leitura: body 15 regular.
+    public static let corpo = FrilaTypography.body
+    /// Meta e apoio (linhas de dados, contatos, endereço): 15 regular, o mesmo degrau `body` da escala,
+    /// em `.subheadline` para manter a curva de Dynamic Type que os testes de acessibilidade do perfil
+    /// e do turno fixam (caption 13 encolhia o contato e o endereço em AX5). Legendas curtas usam `nota`.
     public static let meta = Font.subheadline
-    /// Aviso neutro ou contextual (DESIGN.md: 15 pt regular).
-    public static let aviso = Font.subheadline
-    public static let nota = Font.footnote
-    public static let resumo = Font.headline
-    public static let preco = Font.title3.bold()
-    public static let tituloDeEstado = Font.title3.weight(.semibold)
-    public static let tituloDaFolha = Font.title3.weight(.semibold)
+    /// Aviso neutro ou contextual: apoio 15 regular (`FrilaFormType.support`).
+    public static let aviso = FrilaFormType.support.font
+    /// Nota de rodapé e ajuda: caption 13 regular.
+    public static let nota = FrilaTypography.caption
+    /// Linha de destaque (nome da casa, resumo): entity 15 bold (`FrilaTypography.entity`).
+    public static let resumo = FrilaTypography.entity
+    /// Preço fora da etiqueta (`FrilaPriceTag`): métrica compacta 18 bold, dígitos tabulares.
+    public static let preco = FrilaTypography.metricCompact.monospacedDigit()
+    /// Título de estado (vazio, erro, concluído): title 22 bold.
+    public static let tituloDeEstado = FrilaTypography.title
+    /// Título de folha: placard 18 medium.
+    public static let tituloDaFolha = FrilaTypography.placard
     /// Rótulo do botão grande (52 pt): SF Pro Bold 18, o `prominent` da origem.
     public static let botao = FrilaTypography.sans(size: FrilaTypeScaleStep.placard.pointSize, weight: .bold)
     /// Rótulo do botão padrão (44 pt) e dos chips: SF Pro Semibold 15 (`FrilaTypography.button`).
     public static let botaoPadrao = FrilaTypography.button
 
     /// Pergunta do formulário: Bricolage Bold 26 (`FrilaFormType.question`), acompanha `.title`.
-    public static var pergunta: Font { FrilaFormType.question.font }
+    public static var pergunta: Font { FrilaFormType.question.dynamicFont }
     /// Resposta escolhida no formulário: Bricolage Bold 17 (`FrilaFormType.answer`), acompanha `.body`.
-    public static var respostaEscolhida: Font { FrilaFormType.answer.font }
+    public static var respostaEscolhida: Font { FrilaFormType.answer.dynamicFont }
     /// Contexto da resposta: Bricolage Regular 17 (`FrilaFormType.answerContext`), acompanha `.body`.
-    public static var contextoDaResposta: Font { FrilaFormType.answerContext.font }
+    public static var contextoDaResposta: Font { FrilaFormType.answerContext.dynamicFont }
     /// Microrrótulo em caixa alta (use com `.textCase(.uppercase)` e `.tracking(0.8)`): `FrilaFormType.microLabel`.
     public static let microRotulo = FrilaFormType.microLabel.font
 }
@@ -323,11 +339,9 @@ public enum FrilaMaterial {
 }
 
 public extension View {
-    /// Cartão agrupado do MidFi: superfície branca, raio 20 contínuo e fio de 1 pt, sem sombra.
+    /// Cartão da origem (`FrilaOpportunityCard`): fundo do canvas, raio 16 contínuo, fio de 1 pt e sombra sutil.
     func cartaoFrila() -> some View {
-        padding(FrilaEspaco.medio)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        modifier(CartaoFrilaModificador())
     }
 
     /// Aplica o sistema Beautiful Shadows com três camadas coordenadas (rim, key, ambient).
@@ -345,5 +359,18 @@ public extension View {
             background(material, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: raio, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
         }
+    }
+}
+
+/// Anatomia do cartão da origem, lendo o tema para a sombra (`FrilaShadowElevation.subtle`).
+private struct CartaoFrilaModificador: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .padding(FrilaGeometry.space20)
+            .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+            .frilaShadow(.subtle, isDark: colorScheme == .dark)
     }
 }
