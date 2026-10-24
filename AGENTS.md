@@ -4,7 +4,7 @@ Instruções para agentes de IA neste repositório. A seção 1 vale para todos.
 
 ## 1. Para todos os agentes
 
-- **Regras de código e design** moram nos documentos do próprio repo: `iOS/README.md`, `iOS/Docs/GuiaDoFabricio.md`, `iOS/Docs/DesignSystem.md` e, para telas, `iOS/Docs/MidFi/DESIGN.md` e `iOS/Docs/MidFi/FLUXOS.md`. Este arquivo não as repete.
+- **Regras de código e design** moram nos documentos do próprio repo: `iOS/README.md`, `iOS/Docs/GuiaDoFabricio.md`, `iOS/Docs/DesignSystem.md` e, para telas, `iOS/Docs/HiFi/REFERENCIA.md` e `iOS/Docs/HiFi/ESTADO.md`. Este arquivo não as repete.
 - **Branch nova sempre a partir de `origin/main`**, um worktree por branch. A `main` é protegida: só entra por PR.
 - **`Frila.xcodeproj` não é versionado.** Em todo clone ou worktree novo, e depois de trocar de branch, rode `iOS/Scripts/gerar-projeto.sh`.
 - Proibido: force push, apagar a `main`, `git reset --hard` ou `git clean` em trabalho que não é seu.
