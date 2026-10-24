@@ -397,7 +397,7 @@ struct SecaoDeCandidatos: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            Text(verbatim: TextosDosCandidatos.titulo).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
+            Text(verbatim: TextosDosCandidatos.titulo).font(FrilaTipo.secao).foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             avisos

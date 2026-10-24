@@ -96,8 +96,14 @@ validação, mesma fila. Não há campo, regra nem endpoint novo.
 ## Como entra no app
 
 `DestinoDePublicarVaga` (`Fluxos/Contratante/PublicarVagaDaCasa.swift`) e o fim do cadastro da casa
-(`CadastroEstabelecimento.swift`) abrem `TelaEstudioDeVaga`. A `TelaPublicarVaga` antiga segue no
-código até a fatia Contratante da Fase 3 do Hi-Fi.
+(`CadastroEstabelecimento.swift`) abrem `TelaEstudioDeVaga`. A `TelaPublicarVaga` antiga foi removida
+na fatia Contratante da Fase 3 do Hi-Fi; `PublicarVagaViewModel` e `CampoValorVaga` ficam.
+
+## O que ficou fora, de propósito
+
+- **"Desfazer de 5 s"** (toast com desfazer logo após publicar): não existe no Estúdio do Fabrício, que
+  publica e celebra na hora, e não existe no app de hoje. Adiaria a publicação em 5 s e pesaria na fila
+  offline. Decisão do Nick Fury em 24/10/2026; não voltar a perguntar.
 
 ## Licença da fonte
 
