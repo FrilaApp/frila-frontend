@@ -5,25 +5,34 @@
 # parte 2 roda todo o resto da suíte do Frila-Local (-skip-testing desta mesma lista). Classe ou
 # alvo novo fica fora da lista e cai sozinho na parte 2.
 #
-# O tempo ao lado de cada classe foi medido na execução 37244334865 (push no main, 05/10/2026).
-# Quando rebalancear e como: iOS/Docs/CI.md.
+# O tempo ao lado de cada classe é a soma dos testes da classe na execução 40096028812 (PR #503,
+# 24/10/2026), em minutos. Quando rebalancear e como: iOS/Docs/CI.md.
 #
 # 24/10/2026 (#498): a parte 1 passou de 65 min (Estúdio de Criação no publicar) e a parte 2 tinha
 # ~39 min de folga; AutenticacaoUITests (8,8 min) e TurnoContrato0231UITests (4,0 min), sem relação
 # com o Estúdio, saíram da lista e caem na parte 2.
+#
+# 24/10/2026 (fatia contratante do Hi-Fi): na 40096028812 a parte 1 levou 63 min (47,9 de testes) e
+# a parte 2, 97 min (66,0 de testes mais os builds de Release). PresencaUITests (4,6),
+# ExclusaoDeContaUITests (4,5) e CadastroEstabelecimentoUITests (3,3) entraram na lista: 60,3 min
+# de testes na parte 1 e 53,6 na parte 2. As duas partes ainda passam de 65 min medidos; com dois
+# jobs e 114 min de testes, só uma terceira parte resolve.
 
 FrilaTests
-FrilaUITests/AcessibilidadeDoCatalogoUITests      # 4,7 min
-FrilaUITests/AcessibilidadeDoContratanteUITests   # 3,6 min
-FrilaUITests/AcessibilidadeDoProfissionalUITests  # 2,9 min
-FrilaUITests/CancelamentoDoProfissionalUITests    # 3,0 min
-FrilaUITests/CandidaturaUITests                   # 2,9 min
-FrilaUITests/CicloDePontaAPontaUITests            # 3,5 min
-FrilaUITests/FluxoDoContratanteUITests            # 2,8 min
-FrilaUITests/ModoSelecaoDoContratanteUITests      # 1,8 min
-FrilaUITests/ModoSelecaoDoProfissionalUITests     # 2,2 min
-FrilaUITests/PorQueReceboVagasUITests             # 2,7 min
-FrilaUITests/PublicarVagaEmMinhasVagasUITests     # 2,1 min
-FrilaUITests/ReputacaoDosPerfisPublicosUITests    # 2,4 min
+FrilaUITests/AcessibilidadeDoCatalogoUITests      # 7,4 min
+FrilaUITests/AcessibilidadeDoContratanteUITests   # 2,0 min
+FrilaUITests/AcessibilidadeDoProfissionalUITests  # 3,0 min
+FrilaUITests/CadastroEstabelecimentoUITests       # 3,3 min
+FrilaUITests/CancelamentoDoProfissionalUITests    # 3,5 min
+FrilaUITests/CandidaturaUITests                   # 3,5 min
+FrilaUITests/CicloDePontaAPontaUITests            # 4,0 min
+FrilaUITests/ExclusaoDeContaUITests               # 4,5 min
+FrilaUITests/FluxoDoContratanteUITests            # 7,1 min
+FrilaUITests/ModoSelecaoDoContratanteUITests      # 3,6 min
+FrilaUITests/ModoSelecaoDoProfissionalUITests     # 2,4 min
+FrilaUITests/PorQueReceboVagasUITests             # 1,1 min
+FrilaUITests/PresencaUITests                      # 4,6 min
+FrilaUITests/PublicarVagaEmMinhasVagasUITests     # 6,7 min
+FrilaUITests/ReputacaoDosPerfisPublicosUITests    # 0,6 min
 FrilaUITests/ServidorDeHojeUITests                # 1,5 min
-FrilaUITests/SuporteTurnoUITests                  # 1,5 min
+FrilaUITests/SuporteTurnoUITests                  # 1,4 min
