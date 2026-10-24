@@ -117,6 +117,7 @@ final class PermissaoDePushUITests: XCTestCase {
         app.swipeUp()
         XCTAssertFalse(app.descendants(matching: .any)["explicacao-do-push"].exists)
         publicar.tap()
+        concluirCelebracao(app)
 
         XCTAssertTrue(app.staticTexts["Ative as notificações"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Confirmação de quem vai trabalhar"].exists)

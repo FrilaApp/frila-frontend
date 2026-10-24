@@ -60,8 +60,7 @@ public final class PublicacaoDaCasaViewModel {
 }
 
 /// A publicação de uma vaga a partir de Minhas vagas, para quem já tem estabelecimento. Lê o
-/// cadastro da casa e abre o mesmo formulário do primeiro acesso.
-/// O formulário segue os quadros "Publicar" e "PublicarCopia" do MidFi do Fabrício.
+/// cadastro da casa e abre o mesmo Estúdio de Criação do primeiro acesso (Hi-Fi do FrilaLowPhase).
 public struct DestinoDePublicarVaga: View {
     private let api: any ApiCliente
     private let fila: any FilaDeAcoes
@@ -95,28 +94,21 @@ public struct DestinoDePublicarVaga: View {
                     .padding(FrilaEspaco.medio)
                 }
                 .background(FrilaCor.fundo.ignoresSafeArea())
-            case let .pronta(estabelecimento, telefone):
+            case let .pronta(estabelecimento, _):
                 #if DEBUG
-                // Enxerto do FrilaLowPhase (Docs/Enxertos/FrilaLowPhase/README.md). Só abre com o argumento.
+                // Enxerto do FrilaLowPhase (Docs/Enxertos/FrilaLowPhase/README.md): a folha "Nova vaga" do
+                // protótipo, só com o argumento. Sai na Fase 2 do Hi-Fi.
                 if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE") {
                     TelaPublicarVagaFrilaLP(
                         api: api, fila: fila, estabelecimento: estabelecimento,
                         aoPublicar: aoPublicar, aoCancelar: cancelar
                     )
-                } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE_ESTUDIO") {
-                    // Estúdio de criação (Docs/Enxertos/FrilaLowPhase/Estudio/README.md)
-                    TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, aoPublicar: aoPublicar, aoCancelar: cancelar)
                 } else {
-                    TelaPublicarVaga(
-                        api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
-                        sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar
-                    )
+                    // O "Publicar vaga" do app é o Estúdio de Criação do FrilaLowPhase (Docs/Enxertos/FrilaLowPhase/Estudio/README.md).
+                    TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
                 }
                 #else
-                TelaPublicarVaga(
-                    api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
-                    sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar
-                )
+                TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
                 #endif
             case let .erro(mensagem):
                 ScrollView {

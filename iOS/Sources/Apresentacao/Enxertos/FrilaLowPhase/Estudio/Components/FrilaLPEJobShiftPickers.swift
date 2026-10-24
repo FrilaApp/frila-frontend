@@ -391,6 +391,7 @@ struct FrilaLPEJobFormShiftTimeRow: View {
                     isActive: editing == .date,
                     showsMissing: showsMissing,
                     isLanded: landed.contains(.date),
+                    identifier: "datepicker-data",
                     isDark: isDark
                 ) { editing = .date }
             }
@@ -408,6 +409,7 @@ struct FrilaLPEJobFormShiftTimeRow: View {
                         showsMissing: showsMissing,
                         isLanded: landed.contains(.start),
                         filledTint: FrilaLPEColor.dynamicBrandText(isDark: isDark),
+                        identifier: "datepicker-inicio",
                         isDark: isDark
                     ) { editing = .start }
                 }
@@ -423,6 +425,7 @@ struct FrilaLPEJobFormShiftTimeRow: View {
                         showsMissing: showsMissing,
                         isLanded: landed.contains(.end),
                         filledTint: FrilaLPEColor.dynamicBrandText(isDark: isDark),
+                        identifier: "datepicker-fim",
                         isDark: isDark
                     ) { editing = .end }
                 }
@@ -470,6 +473,8 @@ struct FrilaLPEJobFormPickerField: View {
     var isLanded: Bool = false
     /// Cor do valor preenchido. Nil: cor primária.
     var filledTint: Color? = nil
+    /// Enxerto: identificador para os testes de UI do app (os mesmos do formulário antigo).
+    var identifier: String? = nil
     let isDark: Bool
     let action: () -> Void
 
@@ -565,6 +570,7 @@ struct FrilaLPEJobFormPickerField: View {
             .contentShape(RoundedRectangle(cornerRadius: FrilaLPEGeometry.radiusInput, style: .continuous))
         }
         .buttonStyle(FrilaLPEHapticBounceButtonStyle(reduceMotion: reduceMotion, scale: 0.98))
+        .accessibilityIdentifier(identifier ?? "")
         .accessibilityLabel(spokenLabel)
         .accessibilityValue(spokenValue ?? (isMissing ? String(localized: "obrigatório, não definido", table: "FrilaLPEEstudio", bundle: bundleApresentacao) : String(localized: "não definido", table: "FrilaLPEEstudio", bundle: bundleApresentacao)))
         .accessibilityAddTraits(.isButton)

@@ -229,6 +229,51 @@ public struct FrilaLPEJobCreationDraft: Identifiable, Hashable, Sendable {
 }
 
 // MARK: - Curatorial Studio Component
+// MARK: - Enxerto: o que o app acrescenta ao estúdio
+
+/// Resultado da publicação real pelo app. `.queued` é a publicação sem rede: ficou na fila do
+/// aparelho, o aviso do formulário explica e não há celebração nem alerta.
+public enum FrilaLPEPublishOutcome: Equatable, Sendable {
+    case published
+    case queued
+    case failed(String)
+}
+
+/// Pontos em que o app entra no estúdio sem mudar o desenho da origem: aviso no topo do formulário
+/// (fila, erro, pendência), complemento no fim de uma seção (modo da vaga), campos travados enquanto há
+/// publicação pendente, rótulos do botão de publicar e do fechar, e o botão de perfil do primeiro
+/// acesso. Tudo opcional: sem ganchos, o estúdio é o da origem.
+struct FrilaLPEStudioHostHooks {
+    var banner: (() -> AnyView?)?
+    var sectionFooter: ((FrilaLPEJobFormSection) -> AnyView?)?
+    var fieldsLocked: (() -> Bool)?
+    var publishLabel: (() -> String?)?
+    var closeLabel: (() -> String?)?
+    var showsClose: Bool
+    var trailingToolbar: (() -> AnyView?)?
+    var onDraftChange: ((FrilaLPEJobCreationDraft) -> Void)?
+
+    init(
+        banner: (() -> AnyView?)? = nil,
+        sectionFooter: ((FrilaLPEJobFormSection) -> AnyView?)? = nil,
+        fieldsLocked: (() -> Bool)? = nil,
+        publishLabel: (() -> String?)? = nil,
+        closeLabel: (() -> String?)? = nil,
+        showsClose: Bool = true,
+        trailingToolbar: (() -> AnyView?)? = nil,
+        onDraftChange: ((FrilaLPEJobCreationDraft) -> Void)? = nil
+    ) {
+        self.banner = banner
+        self.sectionFooter = sectionFooter
+        self.fieldsLocked = fieldsLocked
+        self.publishLabel = publishLabel
+        self.closeLabel = closeLabel
+        self.showsClose = showsClose
+        self.trailingToolbar = trailingToolbar
+        self.onDraftChange = onDraftChange
+    }
+}
+
 public struct FrilaLPEJobCreationStudioView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -243,7 +288,8 @@ public struct FrilaLPEJobCreationStudioView: View {
 
     @State private var showingCelebrationSheet: Bool = false
     // Enxerto: publicação real pelo app (nil mantém o comportamento da origem, só a celebração)
-    private let publicar: ((FrilaLPEJobCreationDraft) async -> String?)?
+    private let publicar: ((FrilaLPEJobCreationDraft) async -> FrilaLPEPublishOutcome)?
+    private let hooks: FrilaLPEStudioHostHooks
     @State private var enviando = false
     @State private var erroDaPublicacao: String?
     @State private var showingPreviewSheet: Bool
@@ -375,7 +421,7 @@ public struct FrilaLPEJobCreationStudioView: View {
         "Remoto"
     ]
 
-    public init(
+    init(
         isDark: Bool = false,
         initialDraft: FrilaLPEJobCreationDraft = .blank,
         startsWithPreview: Bool = false,
@@ -384,9 +430,11 @@ public struct FrilaLPEJobCreationStudioView: View {
         onPublish: @escaping (FrilaLPEOpportunityItem) -> Void,
         onSaveDraft: ((FrilaLPEJobCreationDraft) -> Void)? = nil,
         onDismiss: @escaping () -> Void,
-        publicar: ((FrilaLPEJobCreationDraft) async -> String?)? = nil
+        publicar: ((FrilaLPEJobCreationDraft) async -> FrilaLPEPublishOutcome)? = nil,
+        hooks: FrilaLPEStudioHostHooks = FrilaLPEStudioHostHooks()
     ) {
         self.publicar = publicar
+        self.hooks = hooks
         self.isDark = isDark
         // O total é derivado de valor e vagas: recalcula para não herdar um total inconsistente
         var resolvedDraft = initialDraft
@@ -413,15 +461,23 @@ public struct FrilaLPEJobCreationStudioView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(action: handleClose) {
-                        Image(systemName: "xmark")
-                            .font(FrilaLPEFonteDoSistema.fonte(size: 13, weight: .bold))
-                            .foregroundColor(FrilaLPEColor.dynamicTextPrimary(isDark: isDark))
-                            .frame(width: 30, height: 30)
-                            .contentShape(Circle())
+                // Enxerto: no primeiro acesso do app não há para onde voltar e o X não aparece.
+                if hooks.showsClose {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(action: handleClose) {
+                            Image(systemName: "xmark")
+                                .font(FrilaLPEFonteDoSistema.fonte(size: 13, weight: .bold))
+                                .foregroundColor(FrilaLPEColor.dynamicTextPrimary(isDark: isDark))
+                                .frame(width: 30, height: 30)
+                                .contentShape(Circle())
+                        }
+                        .disabled(enviando)
+                        .accessibilityLabel(hooks.closeLabel?() ?? String(localized: "Fechar estúdio de criação", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
+                        .accessibilityIdentifier("cancelar-publicacao")
                     }
-                    .accessibilityLabel(String(localized: "Fechar estúdio de criação", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
+                }
+                if let trailing = hooks.trailingToolbar?() {
+                    ToolbarItem(placement: .topBarTrailing) { trailing }
                 }
 
                 // Título com a posição da etapa como subtítulo, no padrão de barra de navegação iOS.
@@ -485,6 +541,7 @@ public struct FrilaLPEJobCreationStudioView: View {
             }
         }
         .frilaLPEKeyboardDismissScope(observer: keyboardObserver)
+        .onChange(of: draft) { _, novo in hooks.onDraftChange?(novo) }
         .alert(
             String(localized: "Não deu para publicar", table: "FrilaLPEEstudio", bundle: bundleApresentacao),
             isPresented: Binding(get: { erroDaPublicacao != nil }, set: { if !$0 { erroDaPublicacao = nil } })
@@ -512,16 +569,22 @@ public struct FrilaLPEJobCreationStudioView: View {
         enviando = true
         let enviado = draft
         Task {
-            let erro = await publicar(enviado)
+            let resultado = await publicar(enviado)
             enviando = false
-            if let erro {
-                erroDaPublicacao = erro
-            } else {
+            switch resultado {
+            case .published:
                 publishedItem = enviado.toOpportunityItem()
                 showingCelebrationSheet = true
+            case .queued:
+                // Sem rede: a publicação continua na fila; o aviso do topo (gancho do app) explica.
+                break
+            case .failed(let erro):
+                erroDaPublicacao = erro
             }
         }
     }
+
+    private var fieldsLocked: Bool { hooks.fieldsLocked?() ?? false }
 
     // MARK: - FORMULÁRIO CONTÍNUO (cabeçalho de etapas guiado pela rolagem)
     private static let formSectionSteps = FrilaLPEJobFormSection.allCases.map(\.stepItem)
@@ -543,6 +606,11 @@ public struct FrilaLPEJobCreationStudioView: View {
         ScrollViewReader { scrollProxy in
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: FrilaLPEGeometry.space32) {
+                    // Enxerto: avisos do app (publicação na fila, erro, pendência) acima da primeira etapa
+                    if let banner = hooks.banner?() {
+                        banner
+                    }
+
                     ForEach(FrilaLPEJobFormSection.allCases) { section in
                         let isActive = activeSection == section.rawValue + 1
                         formSectionContent(section)
@@ -598,6 +666,7 @@ public struct FrilaLPEJobCreationStudioView: View {
             #if os(iOS)
             .scrollDismissesKeyboard(.interactively)
             #endif
+            .accessibilityIdentifier("publicar-vaga-formulario")
             .scrollTargetBehavior(
                 FrilaLPEJobFormSectionPagingBehavior(
                     anchors: FrilaLPEJobFormSection.allCases.compactMap { section in
@@ -658,10 +727,21 @@ public struct FrilaLPEJobCreationStudioView: View {
 
     @ViewBuilder
     private func formSectionContent(_ section: FrilaLPEJobFormSection) -> some View {
-        switch section {
-        case .vaga: FrilaLPEJobFormVagaSection(draft: $draft, isDark: isDark, groupStyle: pickerGroupStyle)
-        case .turno: FrilaLPEJobFormTurnoSection(draft: $draft, editingShift: $editingShift, isDark: isDark, navigationStyle: shiftNavigationStyle, showsMissing: showsMissingFields)
-        case .valor: FrilaLPEJobFormValorSection(draft: $draft, isDark: isDark)
+        VStack(alignment: .leading, spacing: FrilaLPEGeometry.space20) {
+            Group {
+                switch section {
+                case .vaga: FrilaLPEJobFormVagaSection(draft: $draft, isDark: isDark, groupStyle: pickerGroupStyle)
+                case .turno: FrilaLPEJobFormTurnoSection(draft: $draft, editingShift: $editingShift, isDark: isDark, navigationStyle: shiftNavigationStyle, showsMissing: showsMissingFields)
+                case .valor: FrilaLPEJobFormValorSection(draft: $draft, isDark: isDark)
+                }
+            }
+            // Enxerto: com publicação pendente na fila, os campos ficam travados até ela concluir
+            .disabled(fieldsLocked)
+
+            // Enxerto: complemento do app no fim da etapa (o modo da vaga, no Turno)
+            if let footer = hooks.sectionFooter?(section) {
+                footer
+            }
         }
     }
 
@@ -703,6 +783,7 @@ public struct FrilaLPEJobCreationStudioView: View {
                     .frame(height: FrilaLPEGeometry.buttonHeightProminent)
             }
             .buttonStyle(FrilaLPEPillButtonStyle(variant: .outline, isDark: isDark))
+            .accessibilityIdentifier("previa-vaga-botao")
 
             Button(action: {
                 if let missing {
@@ -714,8 +795,14 @@ public struct FrilaLPEJobCreationStudioView: View {
                 }
             }) {
                 HStack(spacing: FrilaLPEGeometry.space8) {
-                    Text("Publicar vaga", tableName: "FrilaLPEEstudio", bundle: bundleApresentacao)
-                        .font(FrilaLPETypography.button)
+                    // Enxerto: com publicação pendente, o app diz "Tentar novamente"
+                    if let publishLabel = hooks.publishLabel?() {
+                        Text(verbatim: publishLabel)
+                            .font(FrilaLPETypography.button)
+                    } else {
+                        Text("Publicar vaga", tableName: "FrilaLPEEstudio", bundle: bundleApresentacao)
+                            .font(FrilaLPETypography.button)
+                    }
                     Image(systemName: "paperplane.fill")
                         .font(FrilaLPETypography.captionBold)
                 }
@@ -726,8 +813,9 @@ public struct FrilaLPEJobCreationStudioView: View {
             .disabled(enviando)
             .opacity(missing == nil && !enviando ? 1 : 0.55)
             .sensoryFeedback(.warning, trigger: missingTapTrigger)
-            .accessibilityLabel(String(localized: "Publicar vaga de \(draft.role)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
+            .accessibilityLabel(hooks.publishLabel?() ?? String(localized: "Publicar vaga de \(draft.role)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
             .accessibilityHint(missing.map { String(localized: "Falta preencher \($0.title). Toque duas vezes para ir até a seção.", table: "FrilaLPEEstudio", bundle: bundleApresentacao) } ?? "")
+            .accessibilityIdentifier("publicar-vaga-botao")
         }
         .padding(.horizontal, FrilaLPEGeometry.space20)
         .padding(.top, FrilaLPEGeometry.space12)
@@ -874,6 +962,7 @@ public struct FrilaLPEJobCelebrationSheet: View {
                             .frame(height: FrilaLPEGeometry.buttonHeightStandard)
                     }
                     .buttonStyle(FrilaLPEPillButtonStyle(variant: .primary, isDark: isDark))
+                    .accessibilityIdentifier("celebracao-ver-vaga")
 
                     // Enxerto: sem o botão "Ver Alerta no Lock Screen" (tela de bloqueio fora do escopo).
                     Button(action: onFinish) {
@@ -883,6 +972,7 @@ public struct FrilaLPEJobCelebrationSheet: View {
                             .padding(.vertical, 8)
                     }
                     .frilaLPEHitbox()
+                    .accessibilityIdentifier("celebracao-concluir")
                 }
                 .padding(.horizontal, FrilaLPEGeometry.space20)
                 .padding(.bottom, FrilaLPEGeometry.space16)

@@ -95,6 +95,14 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         elemento.tap()
     }
 
+    /// Rola o formulário do estúdio arrastando a partir da faixa logo acima do dock. `swipeUp` parte do
+    /// centro da tela, que em AX5 cai no cabeçalho fixo (pergunta e apoio da etapa) e não rola nada.
+    private func rolarOEstudio(_ app: XCUIApplication) {
+        let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.84))
+        let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12))
+        inicio.press(forDuration: 0.05, thenDragTo: fim)
+    }
+
     private func esperar(_ elemento: XCUIElement, _ mensagem: String, timeout: TimeInterval = 15) -> Bool {
         let existe = elemento.waitForExistence(timeout: timeout)
         XCTAssertTrue(existe, mensagem)
@@ -111,6 +119,8 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
             return "falso-positivo-textfield"
         case .textClipped where elemento.contains("Atualização necessária"):
             return "falso-positivo-atualizacao"
+        case .textClipped where achado.element.map(cortadoPelaBordaDaRolagem) == true:
+            return "falso-positivo-borda-da-rolagem"
         case .hitRegion where achado.detailedDescription.contains("MKAttributionLabel"):
             return "sistema-mapkit"
         default:
@@ -118,16 +128,29 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         }
     }
 
+    /// Texto que atravessa a borda de uma área de rolagem: a parte de fora está rolada para fora da
+    /// tela, não cortada pelo layout (o estúdio rola sob o cabeçalho fixo da etapa).
+    private func cortadoPelaBordaDaRolagem(_ elemento: XCUIElement) -> Bool {
+        guard let appAtual else { return false }
+        let quadro = elemento.frame
+        guard !quadro.isEmpty else { return false }
+        return appAtual.scrollViews.allElementsBoundByIndex.contains { rolagem in
+            let area = rolagem.frame
+            return area.intersects(quadro) && !area.contains(quadro)
+        }
+    }
+
     /// Roda a auditoria numa tela. Cada achado vira uma linha
-    /// `AUDITORIA|tela|tamanho|tipo|classe|descrição|elemento|detalhe` no log, para o relatório.
+    /// `AUDITORIA|tela|tamanho|tipo|classe|descrição|elemento|detalhe|quadro e tocabilidade` no log, para o relatório.
     private func auditar(_ app: XCUIApplication, tela: String) {
         var linhas: [String] = []
         do {
-            try app.performAccessibilityAudit(for: .all) { achado in
+            try auditarComRepeticao(app) { achado in
                 let classe = self.classeIgnorada(achado)
                 let elemento = achado.element.map { "\($0)" } ?? "-"
                 let detalhe = achado.detailedDescription.replacingOccurrences(of: "\n", with: " ")
-                let linha = "AUDITORIA|\(tela)|\(self.tamanhoAtual)|\(achado.auditType.nome)|\(classe ?? "falha")|\(achado.compactDescription)|\(elemento)|\(detalhe)"
+                let posicao = achado.element.map { "quadro=\($0.frame) tocavel=\($0.isHittable)" } ?? "-"
+                let linha = "AUDITORIA|\(tela)|\(self.tamanhoAtual)|\(achado.auditType.nome)|\(classe ?? "falha")|\(achado.compactDescription)|\(elemento)|\(detalhe)|\(posicao)"
                 linhas.append(linha)
                 print(linha)
                 return Self.soRegistra || classe != nil
@@ -141,6 +164,17 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         add(anexo)
     }
 
+    /// A simulação de Dynamic Type numa tela longa (o estúdio inteiro) às vezes passa do tempo do
+    /// XCTest ("Audit failed to complete in time", código -56): uma segunda tentativa, só nesse caso.
+    private func auditarComRepeticao(_ app: XCUIApplication, _ tratar: @escaping (XCUIAccessibilityAuditIssue) -> Bool) throws {
+        do {
+            try app.performAccessibilityAudit(for: .all, tratar)
+        } catch let erro as NSError where erro.code == -56 {
+            sleep(1)
+            try app.performAccessibilityAudit(for: .all, tratar)
+        }
+    }
+
     /// Auditoria de tela com achado conhecido e ainda não corrigido: falha esperada, com o motivo.
     private func auditar(_ app: XCUIApplication, tela: String, pendente motivo: String, estrito: Bool = false) {
         if Self.soRegistra { auditar(app, tela: tela); return }
@@ -150,7 +184,8 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     }
 
     private static let cartaoDaVagaLimitadoAAX1 = "o cartão da vaga não acompanha o Dynamic Type além de AX1 por decisão de layout do design (#139): sem o limite a altura passa da tela em AX5 (957 pt de 874); as pílulas de filtro já acompanham até AX5"
-    private static let publicarVagaComDatePicker = "o UIDatePicker do sistema não acompanha o Dynamic Type em AX5 (no cadastro) e no tamanho padrão e AX5 (em Minhas vagas) por limitação do UIKit (_UIDatePickerWheelsTimeLabel e botão compacto não alteram tamanho da fonte)"
+    private static let estudioBarraEDock = "no Estúdio de Criação (Publicar vaga), o título da barra (\"Publicar vaga\", \"n de 3\") é item principal da barra de navegação e não acompanha o Dynamic Type além do limite da barra, como o título do sistema; as pílulas \"Prévia\" e \"Publicar vaga\" do dock têm altura fixa e uma linha por desenho da origem (FrilaLPEPillButtonStyle), assim como os campos fechados da roleta de categoria e função (FrilaLPECoupledRolePicker, lineLimit(1)), e a auditoria os aponta como cortados nos tamanhos de acessibilidade; ao auditar com o formulário rolado (Mais opções), os textos das etapas anteriores, rolados sob o cabeçalho fixo, também aparecem como cortados. Os tamanhos de acessibilidade do estúdio ficam para a Fase 4 da missão hi-fi (hifi/ESTUDO-E-PLANO.md)"
+    private static let cadastroBotaoSairNaBarra = "o botão Sair da barra do cadastro do estabelecimento não acompanha o Dynamic Type por desenho do sistema iOS (item de toolbar); achado do #494 registrado para o Nick Fury"
     private static let porQueReceboVagasBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
     private static let ajudaDoPerfilAchados = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
 
@@ -466,28 +501,44 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private func cadastroDoEstabelecimentoEPublicarVaga(ax5: Bool) {
         let app = abrir(["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"], ax5: ax5)
         guard esperar(app.staticTexts["Dados do negócio"], "O cadastro deve abrir") else { return }
-        auditar(app, tela: "cadastro-estabelecimento")
+        auditar(app, tela: "cadastro-estabelecimento", pendente: Self.cadastroBotaoSairNaBarra, estrito: true)
 
         tocar(app.buttons["continuar-cadastro"], em: app)
-        guard esperar(app.navigationBars["Nova vaga"], "Publicar vaga deve abrir") else { return }
-        if ax5 {
-            auditar(app, tela: "publicar-vaga", pendente: Self.publicarVagaComDatePicker, estrito: true)
-        } else {
-            auditar(app, tela: "publicar-vaga")
-        }
+        guard esperar(elemento("publicar-vaga-formulario", em: app), "Publicar vaga deve abrir") else { return }
+        auditar(app, tela: "publicar-vaga", pendente: Self.estudioBarraEDock, estrito: true)
 
-        tocar(app.buttons["mais-opcoes-botao"], em: app)
+        // "Mais opções" fica no fim da etapa Valor. O estúdio é um formulário contínuo: o passo 3 do
+        // stepper salta para a etapa, e a rolagem termina de trazer o botão (em AX5 a etapa passa de
+        // uma tela, e a rolagem a partir do passo 1 não chega).
+        let passoValor = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Passo 03'")).firstMatch
+        if passoValor.waitForExistence(timeout: 5) { passoValor.tap() }
+        let maisOpcoes = app.buttons["mais-opcoes-botao"]
+        let janela = app.windows.firstMatch
+        for _ in 0..<12 {
+            if maisOpcoes.exists && maisOpcoes.isHittable && janela.frame.contains(maisOpcoes.frame) { break }
+            rolarOEstudio(app)
+        }
+        guard maisOpcoes.exists, maisOpcoes.isHittable else {
+            XCTFail("\"mais-opcoes-botao\" não ficou tocável depois do passo 3 e da rolagem")
+            return
+        }
+        maisOpcoes.tap()
         guard esperar(elemento("observacoes-vaga-campo", em: app), "Mais opções deve abrir") else { return }
+        // A seção inteira na tela antes de auditar (em AX5 ela passa de uma tela).
+        let alerta = elemento("alerta-vaga-picker", em: app)
+        for _ in 0..<12 where !(alerta.exists && alerta.isHittable) {
+            rolarOEstudio(app)
+        }
         let botaoPublicar = app.buttons["publicar-vaga-botao"]
         for _ in 0..<8 where !botaoPublicar.isHittable {
-            app.swipeUp(velocity: .fast)
+            rolarOEstudio(app)
         }
         let estacionado = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "isHittable == true"),
             object: botaoPublicar
         )
         _ = XCTWaiter.wait(for: [estacionado], timeout: 5)
-        auditar(app, tela: "publicar-vaga-mais-opcoes")
+        auditar(app, tela: "publicar-vaga-mais-opcoes", pendente: Self.estudioBarraEDock, estrito: true)
     }
 
     func testCadastroDoEstabelecimentoEPublicarVaga() { cadastroDoEstabelecimentoEPublicarVaga(ax5: false) }
@@ -593,7 +644,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         tocar(entrada, em: app)
         guard esperar(elemento("publicar-vaga-formulario", em: app), "O formulário de publicar vaga deve abrir") else { return }
 
-        auditar(app, tela: "publicar-vaga-em-minhas-vagas", pendente: Self.publicarVagaComDatePicker, estrito: true)
+        auditar(app, tela: "publicar-vaga-em-minhas-vagas", pendente: Self.estudioBarraEDock, estrito: true)
     }
 
     func testPublicarVagaEmMinhasVagas() { publicarVagaEmMinhasVagas(ax5: false) }

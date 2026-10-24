@@ -600,6 +600,7 @@ public struct FrilaLPECoupledRolePicker: View {
         .onSnapshot { snapshot in
             categorySnapshot = snapshot
         }
+        .accessibilityIdentifier("categoria-vaga-roleta")
     }
 
     private var roleWheelView: some View {
@@ -634,6 +635,8 @@ public struct FrilaLPECoupledRolePicker: View {
         .onSnapshot { snapshot in
             roleSnapshot = snapshot
         }
+        // Enxerto: a roleta é um elemento ajustável único; o identificador deixa o teste de UI girá-la
+        .accessibilityIdentifier("funcao-vaga-roleta")
     }
 
     // MARK: - Campo Único (layout horizontal)
@@ -770,6 +773,8 @@ public struct FrilaLPECoupledRolePicker: View {
                 if !isExpanded { toggleAllWheels() }
             }
             .accessibilityElement(children: isExpanded ? .contain : .ignore)
+            // Enxerto: identificador do formulário antigo do app, para os testes de UI
+            .accessibilityIdentifier(isExpanded ? "" : "funcao-vaga-picker")
             .accessibilityLabel(isExpanded ? "" : String(localized: "Categoria \(selectedCategory?.name ?? "não escolhida"), função \(selectedRole.isEmpty ? "não escolhida" : selectedRole)", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
             .accessibilityHint(isExpanded ? "" : String(localized: "Toque para escolher", table: "FrilaLPEEstudio", bundle: bundleApresentacao))
             .accessibilityAddTraits(isExpanded ? [] : .isButton)
@@ -939,6 +944,8 @@ public struct FrilaLPECoupledRolePicker: View {
                             badge: nil,
                             action: toggleCategoryWheel
                         )
+                        // Enxerto: identificador para os testes de UI do app (eixo vertical)
+                        .accessibilityIdentifier("categoria-vaga-picker")
                         .transition(.frilaLPEFieldContent)
                     }
                 }
@@ -965,6 +972,8 @@ public struct FrilaLPECoupledRolePicker: View {
                             badge: selectedRoleOrigin == .custom && !selectedRole.isEmpty ? "Criada por você" : nil,
                             action: toggleRoleWheel
                         )
+                        // Enxerto: identificador do formulário antigo do app, para os testes de UI (eixo vertical)
+                        .accessibilityIdentifier("funcao-vaga-picker")
                         .transition(.frilaLPEFieldContent)
                     }
                 }

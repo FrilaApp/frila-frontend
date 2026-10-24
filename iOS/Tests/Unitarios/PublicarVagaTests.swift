@@ -657,4 +657,15 @@ struct PublicarVagaTests {
             #expect(itemComTitulo.largeTitleDisplayMode == .never)
         }
     }
+
+    @Test("Rateio como Sim/Não: sem resposta conta como Não e a escolha volta ao campo opcional")
+    func rateioComoSimNao() throws {
+        let vm = try modelo()
+        vm.participaRateio = nil
+        #expect(vm.participaRateioOuNao == false)
+        vm.participaRateioOuNao = true
+        #expect(vm.participaRateio == true)
+        vm.participaRateioOuNao = false
+        #expect(vm.participaRateio == false)
+    }
 }

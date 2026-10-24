@@ -30,13 +30,39 @@ public enum FrilaLPEFontLoader {
 
 /// Enxerto: substitui `FrilaLPEFonteDoSistema.fonte(size:)` da origem. No tamanho padrão de texto o resultado é o mesmo;
 /// nos demais tamanhos acompanha o texto do sistema, como pede a regra 7 do `conferir-textos.sh`.
+///
+/// A fonte do sistema sai de `Font.custom(_:size:relativeTo:)`, que o SwiftUI reescala quando o
+/// tamanho de texto muda com o app aberto (um `UIFont` medido uma vez ficava parado nos `static let`
+/// de `FrilaLPETypography`, e a auditoria de acessibilidade apontava o título, a etapa e os botões
+/// do estúdio como "Dynamic Type unsupported"). Serif e mono não têm nome de família fixo e seguem
+/// medidos pela métrica do estilo mais próximo.
 public enum FrilaLPEFonteDoSistema {
     public static func fonte(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
+        let estilo = FrilaLPETypeScaleStep.nearest(to: size).textStyle
+        guard design != .default else {
+            return Font.custom(".AppleSystemUIFont", size: size, relativeTo: estilo).weight(weight)
+        }
         var base = UIFont.systemFont(ofSize: size, weight: pesoUIKit(weight))
         if let desenho = desenhoUIKit(design), let descritor = base.fontDescriptor.withDesign(desenho) {
             base = UIFont(descriptor: descritor, size: size)
         }
-        return Font(UIFontMetrics.default.scaledFont(for: base) as CTFont)
+        return Font(UIFontMetrics(forTextStyle: estiloUIKit(estilo)).scaledFont(for: base) as CTFont)
+    }
+
+    private static func estiloUIKit(_ estilo: Font.TextStyle) -> UIFont.TextStyle {
+        switch estilo {
+        case .largeTitle: .largeTitle
+        case .title: .title1
+        case .title2: .title2
+        case .title3: .title3
+        case .headline: .headline
+        case .subheadline: .subheadline
+        case .callout: .callout
+        case .footnote: .footnote
+        case .caption: .caption1
+        case .caption2: .caption2
+        default: .body
+        }
     }
 
     private static func pesoUIKit(_ weight: Font.Weight) -> UIFont.Weight {

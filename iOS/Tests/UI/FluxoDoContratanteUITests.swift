@@ -158,11 +158,12 @@ final class FluxoDoContratanteUITests: XCTestCase {
         continuarCadastro.tap()
 
         // 2. Tela de Publicar Vaga
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
         let botaoPublicar = app.buttons["publicar-vaga-botao"]
         XCTAssertTrue(botaoPublicar.waitForExistence(timeout: 10))
         trazerParaATela(botaoPublicar, em: app)
         botaoPublicar.tap()
+        concluirCelebracao(app)
 
         // 3. Termina em Minhas vagas de verdade, com a vaga publicada
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))

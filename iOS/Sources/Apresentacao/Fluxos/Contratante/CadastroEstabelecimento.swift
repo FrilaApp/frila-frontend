@@ -336,7 +336,8 @@ public struct TelaCadastroEstabelecimento: View {
     public var body: some View {
         if model.concluido, let estabelecimento = model.estabelecimentoCriado {
             if let fila {
-                TelaPublicarVaga(api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: responsavelTelefone, sair: sair, aoPublicar: aoPublicarPrimeiraVaga)
+                // Primeiro acesso: o Estúdio de Criação sem o X (não há para onde voltar) e com o perfil da casa na barra.
+                TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicarPrimeiraVaga)
             } else {
                 Color.clear.task { aoPublicarPrimeiraVaga() }
             }

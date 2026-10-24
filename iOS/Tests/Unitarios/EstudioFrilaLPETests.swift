@@ -63,6 +63,111 @@ struct EstudioFrilaLPETests {
         #expect(rascunho.address == "CLS 405, Asa Sul, Brasília - DF")
         #expect(rascunho.paymentMode == .perShift)
         #expect(rascunho.role.isEmpty)
+        #expect(rascunho.payPerPosition == 0)
+        // O horário padrão do app (daqui a 3 h, por 3 h) já vem marcado, no passo de 30 min da roleta.
+        #expect(rascunho.shiftDate == FrilaLPEJobShiftFormat.dateLabel(agora.addingTimeInterval(3 * 3_600)))
+        #expect(rascunho.startTime == FormularioEstudioFrilaLPE.relogio(de: agora.addingTimeInterval(3 * 3_600)).fieldLabel)
+        #expect(FrilaLPEJobShiftFormat.durationMinutes(start: rascunho.startTime, end: rascunho.endTime) == 180)
+    }
+
+    @Test("Rascunho inicial traz o que o view model já guarda: função, valor, responsável e turno")
+    func rascunhoInicialPreenchido() throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let vaga = formulario.vaga
+        vaga.funcaoID = funcao.id
+        vaga.valorTexto = "14000"
+        vaga.posicoesTexto = "3"
+        vaga.responsavelLocal = "Gerente de Teste"
+        vaga.traje = "Camisa preta"
+        vaga.refeicao = true
+        vaga.inicio = agora.addingTimeInterval(30 * 3_600)
+        vaga.fim = vaga.inicio.addingTimeInterval(8 * 3_600)
+        let rascunho = formulario.rascunhoInicial
+        #expect(rascunho.role == "Garçom")
+        #expect(rascunho.roleOrigin == .catalog)
+        #expect(rascunho.payPerPosition == 140)
+        #expect(rascunho.positionsCount == 3)
+        #expect(rascunho.totalBudget == 420)
+        #expect(rascunho.contactPerson == "Gerente de Teste")
+        #expect(rascunho.dressCode == "Camisa preta")
+        #expect(rascunho.mealIncluded)
+        #expect(FrilaLPEJobFormSection.firstIncomplete(in: rascunho) == nil)
+        // Ida e volta: o rascunho pré-preenchido devolve ao view model o mesmo período.
+        let periodo = try #require(formulario.periodo(de: rascunho))
+        #expect(periodo.fim.timeIntervalSince(periodo.inicio) == 8 * 3_600)
+        #expect(abs(periodo.inicio.timeIntervalSince(vaga.inicio)) < 15 * 60)
+    }
+
+    @Test("Hora do view model cai na opção mais próxima da roleta de 30 minutos")
+    func relogioNoPassoDaRoleta() {
+        let calendario = FrilaLPEShiftCalendar.brasilia
+        func data(_ hora: Int, _ minuto: Int) -> Date {
+            calendario.date(bySettingHour: hora, minute: minuto, second: 0, of: agora)!
+        }
+        #expect(FormularioEstudioFrilaLPE.relogio(de: data(18, 0)).fieldLabel == "18:00")
+        #expect(FormularioEstudioFrilaLPE.relogio(de: data(18, 10)).fieldLabel == "18:00")
+        #expect(FormularioEstudioFrilaLPE.relogio(de: data(18, 20)).fieldLabel == "18:30")
+        #expect(FormularioEstudioFrilaLPE.relogio(de: data(23, 50)).fieldLabel == "00:00")
+    }
+
+    @Test("Hora arredondada que cruza a meia-noite leva a data do turno ao dia seguinte (Loki, #498)")
+    func relogioCruzaMeiaNoite() throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let calendario = FrilaLPEShiftCalendar.brasilia
+        let vaga = formulario.vaga
+        let dia = try #require(calendario.date(byAdding: .day, value: 2, to: calendario.startOfDay(for: agora)))
+        vaga.inicio = try #require(calendario.date(bySettingHour: 23, minute: 50, second: 0, of: dia))
+        vaga.fim = vaga.inicio.addingTimeInterval(6 * 3_600)
+        let rascunho = formulario.rascunhoInicial
+        let diaSeguinte = try #require(calendario.date(byAdding: .day, value: 1, to: dia))
+        #expect(rascunho.shiftDate == FrilaLPEJobShiftFormat.dateLabel(diaSeguinte, calendar: calendario))
+        #expect(rascunho.startTime == "00:00")
+        #expect(rascunho.endTime == "06:00")
+        // Ida e volta: o período reconstruído fica a 10 minutos do original, no dia certo.
+        let periodo = try #require(formulario.periodo(de: rascunho))
+        #expect(abs(periodo.inicio.timeIntervalSince(vaga.inicio)) <= 10 * 60)
+        #expect(periodo.fim.timeIntervalSince(periodo.inicio) == 6 * 3_600)
+        // 23:40 arredonda para baixo e fica no mesmo dia.
+        vaga.inicio = try #require(calendario.date(bySettingHour: 23, minute: 40, second: 0, of: dia))
+        #expect(formulario.rascunhoInicial.shiftDate == FrilaLPEJobShiftFormat.dateLabel(dia, calendar: calendario))
+        #expect(formulario.rascunhoInicial.startTime == "23:30")
+    }
+
+    @Test("Sem rede a publicação fica na fila: não é erro nem celebração")
+    func publicacaoSemRedeFicaNaFila() async throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .semRede) }
+        let resultado = await formulario.publicar(rascunhoCompleto(formulario))
+        #expect(resultado == .queued)
+        #expect(formulario.vaga.publicacaoPendente != nil)
+        #expect(formulario.vaga.mensagemErro == nil)
+        #expect(formulario.vaga.mostraAvisoPublicacaoContinua)
+        #expect(formulario.vaga.textoAoFechar == TextosPublicarVaga.voltar)
+    }
+
+    @Test("Erro do servidor volta como falha com a mensagem do app")
+    func erroDoServidor() async throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let resultado = await formulario.publicar(rascunhoCompleto(formulario))
+        #expect(resultado == .failed(TextosPublicarVaga.erroPublicar))
+        // Erro genérico não é recusa definitiva: a publicação fica pendente para "Tentar novamente".
+        #expect(formulario.vaga.publicacaoPendente != nil)
+        #expect(formulario.vaga.mensagemErro == TextosPublicarVaga.erroPublicar)
+    }
+
+    @Test("Sincronizar acompanha o rascunho: a seleção volta a urgência quando o início fica perto (MS-RF01)")
+    func sincronizarAjustaOModo() throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        var rascunho = rascunhoCompleto(formulario)
+        formulario.sincronizar(rascunho)
+        #expect(formulario.vaga.selecaoDisponivel)
+        formulario.vaga.modo = .selecao
+        #expect(formulario.vaga.prazoDeEscolha != nil)
+        rascunho.shiftDate = FrilaLPEJobShiftFormat.dateLabel(agora)
+        rascunho.startTime = FormularioEstudioFrilaLPE.relogio(de: agora.addingTimeInterval(4 * 3_600)).fieldLabel
+        rascunho.endTime = FormularioEstudioFrilaLPE.relogio(de: agora.addingTimeInterval(8 * 3_600)).fieldLabel
+        formulario.sincronizar(rascunho)
+        #expect(!formulario.vaga.selecaoDisponivel)
+        #expect(formulario.vaga.modo == .urgencia)
     }
 
     @Test("Sem quem recebe o profissional, o turno fica incompleto e Publicar leva até ele")
@@ -106,9 +211,11 @@ struct EstudioFrilaLPETests {
     func validacaoSemRede() async throws {
         let api = ApiClienteEmMemoria(relogio: RelogioDoEstudio(agora: agora))
         let formulario = try formulario { try await api.publicarVaga($0) }
-        let erro = await formulario.publicar(formulario.rascunhoInicial)
-        #expect(erro != nil)
-        #expect(erro == formulario.erroDaPublicacao)
+        var rascunho = formulario.rascunhoInicial
+        rascunho.contactPerson = ""
+        let resultado = await formulario.publicar(rascunho)
+        #expect(resultado == .failed(formulario.erroDaPublicacao ?? ""))
+        #expect(formulario.erroDaPublicacao != nil)
         #expect(await api.chamadasAPublicarVaga == 0)
     }
 
@@ -118,7 +225,7 @@ struct EstudioFrilaLPETests {
         let formulario = try formulario { try await api.publicarVaga($0) }
         var rascunho = rascunhoCompleto(formulario)
         rascunho.paymentMode = .hourly
-        #expect(await formulario.publicar(rascunho) == FormularioEstudioFrilaLPE.semValorPorHora)
+        #expect(await formulario.publicar(rascunho) == .failed(FormularioEstudioFrilaLPE.semValorPorHora))
         #expect(await api.chamadasAPublicarVaga == 0)
     }
 
@@ -126,8 +233,8 @@ struct EstudioFrilaLPETests {
     func publicaPelaApi() async throws {
         let api = ApiClienteEmMemoria(relogio: RelogioDoEstudio(agora: agora))
         let formulario = try formulario { try await api.publicarVaga($0) }
-        let erro = await formulario.publicar(rascunhoCompleto(formulario))
-        #expect(erro == nil)
+        let resultado = await formulario.publicar(rascunhoCompleto(formulario))
+        #expect(resultado == .published)
         #expect(formulario.vaga.resultado != nil)
         #expect(await api.chamadasAPublicarVaga == 1)
         let enviada = try #require(await api.publicacoesRecebidas.first)

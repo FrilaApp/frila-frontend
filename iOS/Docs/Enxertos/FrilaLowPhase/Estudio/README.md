@@ -60,17 +60,51 @@ validação, mesma fila. Não há campo, regra nem endpoint novo.
     `GuardaTokensDesignTests` recebe a mesma mudança do #493 (aceitar `*DesignTokens.swift`). A
     diluição resolve.
 
-## Como ligar
+11. Hi-Fi, Fase 1 (24/10): o estúdio é o "Publicar vaga" do app, sem flag. O app entra por ganchos
+    (`FrilaLPEStudioHostHooks`, em `FrilaLPEJobCreationStudioView.swift`) sem mexer no desenho da
+    origem: avisos da fila, da pendência e de erro no topo do formulário; o modo da vaga
+    (urgência/seleção, MS-RF01) no fim da etapa Turno, construído do zero no idioma da origem porque
+    o FrilaLowPhase não tem seletor de modo (`ComplementosDoAppEstudioFrilaLPE.swift`); campos
+    travados com publicação pendente; "Tentar novamente" e "Voltar" nos rótulos; botão do perfil do
+    estabelecimento no primeiro acesso (sem X). Sem rede, Publicar devolve `.queued`: o estúdio não
+    celebra e o aviso "A publicação continua" aparece. O rascunho inicial traz data e horários dos
+    padrões do app (agora + 3 h, arredondado ao passo de 30 min da roleta), não em branco como na
+    origem. Identificadores dos testes de UI (`publicar-vaga-botao`, `funcao-vaga-picker`,
+    `categoria-vaga-picker`, `funcao-vaga-roleta`, `categoria-vaga-roleta`, `posicoes-vaga-menos`,
+    `valor-vaga-campo`, `datepicker-*`, `modo-vaga-picker`, `mais-opcoes-botao`, `rateio-vaga-campo`,
+    `observacoes-vaga-campo`, `alerta-vaga-picker`, `celebracao-concluir`…) nos controles equivalentes.
+    A roleta (`FrilaLPEWheelColumn`) é um elemento ajustável único; o XCUITest não aciona a ação
+    ajustável, mas toca uma linha da roleta aberta, que gira até ela e confirma
+    (`testEscolherFuncaoNaRoletaDestravaAPublicacao`); os demais testes usam a função do roteiro
+    (`-FRILA_CADASTRO_UI_TEST`).
+12. "Mais opções" no fim da etapa Valor (`MaisOpcoesEstudioFrilaLPE`, gancho `sectionFooter`): rateio
+    dos 10%, observações e alerta de vaga vazia (`participaRateio`, `observacoes`,
+    `alertaAntecedenciaMinutos` do `PublicarVagaViewModel`), funções do Publicar vaga que o estúdio da
+    origem não desenhou. O cartão-linha (título, apoio, chevron) é o do protótipo midfi da origem
+    (`prototipo-midfi/Publicar.dc.html`), que lá abria a tela `MaisOpcoes.dc.html`; aqui abre no lugar,
+    com as molas de disclosure da origem (`FrilaLPEMotion.disclosureExpand/Collapse`,
+    `frilaLPEDisclosureDrop`). Dentro: linha Sim/Não do formulário (`FrilaLPEJobFormYesNoRow`), campo
+    rotulado com apoio (`FrilaLPEJobFormLabeledField`) e o segmentado com 2, 3 e 6 horas antes. Mesmos
+    identificadores do formulário antigo (`mais-opcoes-botao`, `observacoes-vaga-campo`,
+    `alerta-vaga-picker`; o rateio ganhou `rateio-vaga-campo`). Abre sozinho quando a restauração traz
+    esses campos preenchidos ou quando um erro deles aparece. O traje fica na etapa Turno, onde a origem
+    o pôs ("Traje ou uniforme"), por isso o apoio do cartão não o cita. O telefone do responsável
+    (RN10), que o formulário antigo mostrava só para leitura com o número da conta, não aparece: a
+    prévia mantém o aviso da origem sobre telefone e WhatsApp. Modo da vaga e responsável no local
+    entram pelos ganchos (itens 7 e 11).
 
-Só em DEBUG. Lance o app com o argumento `-FRILA_ENXERTO_LOWPHASE_ESTUDIO` e abra "Publicar vaga":
-o `DestinoDePublicarVaga` (`Fluxos/Contratante/PublicarVagaDaCasa.swift`) mostra o estúdio no lugar
-da `TelaPublicarVaga`. Sem o argumento, e em Release, o fluxo atual fica igual.
+## Como entra no app
+
+`DestinoDePublicarVaga` (`Fluxos/Contratante/PublicarVagaDaCasa.swift`) e o fim do cadastro da casa
+(`CadastroEstabelecimento.swift`) abrem `TelaEstudioFrilaLPE`. A `TelaPublicarVaga` antiga segue no
+código até a fatia Contratante da Fase 3 do Hi-Fi; o enxerto #493 (`-FRILA_ENXERTO_LOWPHASE`) segue
+só em DEBUG até a Fase 2.
 
 ## Como remover
 
 1. Apague `Sources/Apresentacao/Enxertos/FrilaLowPhase/Estudio/`, esta pasta e
    `Tests/Unitarios/EstudioFrilaLPETests.swift`.
-2. Em `PublicarVagaDaCasa.swift`, tire o ramo `else if` do `-FRILA_ENXERTO_LOWPHASE_ESTUDIO`.
+2. Em `PublicarVagaDaCasa.swift` e `CadastroEstabelecimento.swift`, volte a abrir a `TelaPublicarVaga`.
 3. Rode `Scripts/gerar-projeto.sh`.
 
 ## Licença da fonte

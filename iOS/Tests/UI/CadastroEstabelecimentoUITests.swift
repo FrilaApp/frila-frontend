@@ -19,7 +19,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         // Obrigatória desde o contrato 0.2.20: o roteiro de teste já a traz preenchida.
         XCTAssertTrue(app.staticTexts["Região Administrativa"].exists)
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
         let btnPerfil = app.buttons["Perfil do estabelecimento"]
         XCTAssertTrue(btnPerfil.waitForExistence(timeout: Espera.aparecer))
@@ -28,7 +28,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         let btnFechar = app.buttons["Fechar"]
         XCTAssertTrue(btnFechar.waitForExistence(timeout: Espera.aparecer))
         tocar(btnFechar)
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
     }
 
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {
@@ -217,7 +217,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
         let larguraTela = app.windows.firstMatch.frame.width
 
@@ -268,7 +268,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
         let larguraTela = app.windows.firstMatch.frame.width
 
@@ -346,7 +346,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         salvarCaptura("01-cadastro-estabelecimento-padrao")
 
         tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(app.navigationBars["Nova vaga"].waitForExistence(timeout: 10))
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
         salvarCaptura("03-tela-vizinha-publicar-vaga")
     }
 

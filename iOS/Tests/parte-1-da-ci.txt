@@ -7,12 +7,15 @@
 #
 # O tempo ao lado de cada classe foi medido na execução 37244334865 (push no main, 05/10/2026).
 # Quando rebalancear e como: iOS/Docs/CI.md.
+#
+# 24/10/2026 (#498): a parte 1 passou de 65 min (Estúdio de Criação no publicar) e a parte 2 tinha
+# ~39 min de folga; AutenticacaoUITests (8,8 min) e TurnoContrato0231UITests (4,0 min), sem relação
+# com o Estúdio, saíram da lista e caem na parte 2.
 
 FrilaTests
 FrilaUITests/AcessibilidadeDoCatalogoUITests      # 4,7 min
 FrilaUITests/AcessibilidadeDoContratanteUITests   # 3,6 min
 FrilaUITests/AcessibilidadeDoProfissionalUITests  # 2,9 min
-FrilaUITests/AutenticacaoUITests                  # 8,8 min
 FrilaUITests/CancelamentoDoProfissionalUITests    # 3,0 min
 FrilaUITests/CandidaturaUITests                   # 2,9 min
 FrilaUITests/CicloDePontaAPontaUITests            # 3,5 min
@@ -24,4 +27,3 @@ FrilaUITests/PublicarVagaEmMinhasVagasUITests     # 2,1 min
 FrilaUITests/ReputacaoDosPerfisPublicosUITests    # 2,4 min
 FrilaUITests/ServidorDeHojeUITests                # 1,5 min
 FrilaUITests/SuporteTurnoUITests                  # 1,5 min
-FrilaUITests/TurnoContrato0231UITests             # 4,0 min
