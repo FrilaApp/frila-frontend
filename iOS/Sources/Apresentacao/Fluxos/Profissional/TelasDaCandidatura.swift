@@ -352,12 +352,14 @@ public struct TelaResultadoDaCandidatura: View {
 
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                    Text(verbatim: vaga.funcao.nome)
-                        .font(FrilaTipo.resumo)
-                        .foregroundStyle(FrilaCor.texto)
                     Text(verbatim: vaga.estabelecimento.nome)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .font(FrilaTipo.resumo)
+                        .textCase(.uppercase)
+                        .accessibilityLabel(Text(verbatim: vaga.estabelecimento.nome))
+                        .foregroundStyle(FrilaCor.texto)
+                    Text(verbatim: vaga.funcao.nome)
+                        .font(FrilaTipo.tituloDoCartao)
+                        .foregroundStyle(FrilaCor.texto)
                 }
 
                 HStack(spacing: FrilaEspaco.minimo) {

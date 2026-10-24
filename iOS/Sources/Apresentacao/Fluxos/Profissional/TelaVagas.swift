@@ -357,7 +357,7 @@ public struct TelaVagas: View {
     }
 }
 
-/// Chip de filtro do MidFi que abre um menu: ativo escuro com texto claro, inativo claro com fio.
+/// Chip de filtro que abre um menu: ativo na terracota de seleção da origem (`FrilaFilterChip`), inativo sobre a superfície com fio.
 /// O estado ativo não depende só de cor: ganha um ícone. Altura visual 36 pt num alvo de 44 pt.
 private struct PilulaDeFiltro: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -382,8 +382,8 @@ private struct PilulaDeFiltro: View {
         .padding(.horizontal, FrilaEspaco.compacto)
         .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : 0)
         .frame(minHeight: Self.alturaVisual)
-        .foregroundStyle(ativo ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-        .background(ativo ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+        .foregroundStyle(ativo ? FrilaCor.sobreSelecao : FrilaCor.texto)
+        .background(ativo ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
         .overlay(Capsule().strokeBorder(ativo ? Color.clear : FrilaCor.borda, lineWidth: 1))
         .frame(minHeight: FrilaMetrica.alvoMinimo)
         .contentShape(Rectangle())

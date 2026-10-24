@@ -584,7 +584,7 @@ struct CartaoDaCandidatura: View {
     }
 
     private var funcao: some View {
-        Text(verbatim: candidatura.vaga.funcao).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
+        Text(verbatim: candidatura.vaga.funcao).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
     }
 
     private var valor: some View {
