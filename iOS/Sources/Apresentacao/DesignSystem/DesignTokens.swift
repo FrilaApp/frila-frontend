@@ -6,36 +6,46 @@ import UIKit
 public final class MarcadorApresentacao: NSObject {}
 public let bundleApresentacao = Bundle(for: MarcadorApresentacao.self)
 
-/// Cores do sistema de design do Fabrício (FrilaLowPhase, `FrilaShiftTokens` e quadros MidFi).
-/// As telas seguem o tema neutro decidido para o MidFi: seleção ativa e botão principal em
-/// preenchimento escuro com texto branco, superfícies brancas sobre fundo agrupado cinza.
-/// A terracota da marca (`marca`) fica só como acento, nunca como fundo de tela ou de cartão.
+/// Cores do Hi-Fi do Fabrício (FrilaLowPhase). Cada token do `DesignSystem.xcassets` é o mesmo RGB de
+/// uma função do `FrilaColor` (`Primitivas/FrilaColorDesignTokens.swift`); `ParidadeDeCoresDesignTests`
+/// prova a igualdade. As telas antigas leem daqui; o Estúdio lê do `FrilaColor` com `isDark:`.
+/// Botão principal e pílulas neutras são a tinta (`dynamicTextInk`); a seleção da marca usa a terracota
+/// escura (`primarySelection`); a terracota viva (`marca`) é acento e botão de destaque, nunca fundo de tela.
 public enum FrilaCor {
     private static let recursos = bundleApresentacao
-    /// Seleção ativa e botão principal (`selectionFill`): quase preto no claro, quase branco no escuro.
+    /// Botão principal e pílula neutra ativa (`dynamicTextInk`): #090908 no claro, branco no escuro.
     public static let primaria = Color("BrandPrimary", bundle: recursos)
+    /// Texto sobre `primaria`: a tela (`dynamicCanvas`).
     public static let sobrePrimaria = Color("BrandOnPrimary", bundle: recursos)
-    /// Fundo agrupado das telas (`groupedBackground`).
+    /// Terracota de seleção (`primarySelection`, #C9470F): filtro ativo, escolha confirmada.
+    public static let selecao = Color("BrandSelection", bundle: recursos)
+    /// Texto sobre `selecao`: branco nos dois modos (`dynamicBrandSolidText`).
+    public static let sobreSelecao = Color("BrandOnSelection", bundle: recursos)
+    /// Tela (`dynamicCanvas`): branco no claro, #111111 no escuro.
     public static let fundo = Color("Surface", bundle: recursos)
     /// A cortina UIKit usa o mesmo fundo das telas SwiftUI, inclusive no modo escuro.
     static let fundoUIKit = UIColor(named: "Surface", in: recursos, compatibleWith: nil) ?? .systemBackground
-    /// Cartões, campos e linhas sobre o fundo agrupado (`groupedSurface`).
+    /// Cartões e folhas sobre a tela (`dynamicFormCardSurface`): #FAFAFA / #171717.
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
+    /// Preenchimento dos campos de formulário (`dynamicFormFieldSurface`).
+    public static let superficieDoCampo = Color("FieldSurface", bundle: recursos)
+    /// Fio de 1 pt dos campos (`dynamicFormFieldBorder`): 3:1 sobre a tela e sobre o cartão.
+    public static let bordaDoCampo = Color("FieldBorder", bundle: recursos)
     public static let texto = Color("TextPrimary", bundle: recursos)
     /// O mesmo token para o UIKit, pelo catálogo: segue claro e escuro sozinho.
     static let textoUIKit = UIColor(named: "TextPrimary", in: recursos, compatibleWith: nil) ?? .label
-    /// Texto de apoio: 4,8:1 sobre o fundo agrupado.
+    /// Texto de apoio (`dynamicFormTextMuted`, #6B6B6B): 5,1:1 sobre o cartão; o `dynamicTextMuted` da origem (#767571) ficava em 4,4:1.
     public static let textoSecundario = Color("TextSecondary", bundle: recursos)
     public static let sucesso = Color("Success", bundle: recursos)
     public static let alerta = Color("Warning", bundle: recursos)
     public static let perigo = Color("Danger", bundle: recursos)
-    /// Terracota da marca (#EA5A36). Só acento: ícone, marca, destaque pontual.
+    /// Terracota da marca (`dynamicBrandAccent`, #EA5A36). Acento e botão de destaque do Estúdio (texto grande); nunca texto corrido.
     public static let marca = Color("BrandAccent", bundle: recursos)
-    /// Preenchimento de controle e de aviso neutro (`controlFill`).
+    /// Preenchimento de controle e de aviso neutro (`dynamicInputBg`).
     public static let controle = Color("ControlFill", bundle: recursos)
-    /// Fio de 1 pt de cartões e divisórias.
+    /// Fio de 1 pt de cartões e divisórias (`dynamicHairline`).
     public static let divisoria = Color("Hairline", bundle: recursos)
-    /// Contorno de chip inativo, botão de contorno e campo.
+    /// Contorno de chip inativo e botão de contorno (`dynamicBorder`). Campo usa `bordaDoCampo`.
     public static let borda = Color("ControlBorder", bundle: recursos)
     /// Puxador das folhas.
     public static let puxador = Color("SheetGrabber", bundle: recursos)
@@ -55,15 +65,20 @@ public enum FrilaEspaco {
     public static let enorme: CGFloat = 32
 }
 
+/// Raios do Hi-Fi (`FrilaGeometry`): 8 aninhado, 14 campo, 16 cartão, 24 folha; botões são sempre cápsula.
 public enum FrilaRaio {
-    public static let pequeno: CGFloat = 8
-    public static let medio: CGFloat = 12
-    /// Avisos e blocos de informação.
-    public static let aviso: CGFloat = 16
-    /// Cartões agrupados (`radiusGroupedCard`).
-    public static let grande: CGFloat = 20
-    /// Topo das folhas.
-    public static let folha: CGFloat = 28
+    /// Elemento aninhado dentro de um cartão (`radiusNested`).
+    public static let pequeno: CGFloat = FrilaGeometry.radiusNested
+    /// Campo de formulário (`radiusInput`).
+    public static let entrada: CGFloat = FrilaGeometry.radiusInput
+    public static let medio: CGFloat = FrilaGeometry.radiusInput
+    /// Cartão (`radiusCard`).
+    public static let cartao: CGFloat = FrilaGeometry.radiusCard
+    /// Avisos e blocos de informação: o mesmo raio do cartão.
+    public static let aviso: CGFloat = FrilaGeometry.radiusCard
+    public static let grande: CGFloat = FrilaGeometry.radiusCard
+    /// Topo das folhas (`radiusSheet`).
+    public static let folha: CGFloat = FrilaGeometry.radiusSheet
 }
 
 public enum FrilaMetrica {
@@ -78,7 +93,8 @@ public enum FrilaMetrica {
 }
 
 /// Tipografia. As telas usam SF Pro pelos estilos de texto, com Dynamic Type (`FrilaTypography.Native`).
-/// A Bricolage Grotesque é só a voz do formulário de publicar vaga; números e dinheiro ficam sempre em SF Pro.
+/// A Bricolage Grotesque é a voz das perguntas e respostas dos formulários (`FrilaFormType`);
+/// números e dinheiro ficam sempre em SF Pro. Os papéis da origem estão em `FrilaTypography`.
 public enum FrilaTipo {
     public static let tituloGrande = Font.largeTitle.bold()
     /// Cabeçalho de seção ("Abertas", "Seus dados").
@@ -97,21 +113,19 @@ public enum FrilaTipo {
     public static let preco = Font.title3.bold()
     public static let tituloDeEstado = Font.title3.weight(.semibold)
     public static let tituloDaFolha = Font.title3.weight(.semibold)
-    public static let botao = Font.headline
+    /// Rótulo do botão grande (52 pt): SF Pro Bold 18, o `prominent` da origem.
+    public static let botao = FrilaTypography.sans(size: FrilaTypeScaleStep.placard.pointSize, weight: .bold)
+    /// Rótulo do botão padrão (44 pt) e dos chips: SF Pro Semibold 15 (`FrilaTypography.button`).
+    public static let botaoPadrao = FrilaTypography.button
 
-    /// Pergunta do formulário: Bricolage Bold 26, acompanha o estilo `.title`.
-    public static var pergunta: Font { bricolage("BricolageGrotesque-Bold", tamanho: 26, relativoA: .title) }
-    /// Resposta escolhida no formulário: Bricolage Bold 17, acompanha `.body`.
-    public static var respostaEscolhida: Font { bricolage("BricolageGrotesque-Bold", tamanho: 17, relativoA: .body) }
-    /// Contexto da resposta: Bricolage Regular 17, acompanha `.body`.
-    public static var contextoDaResposta: Font { bricolage("BricolageGrotesque-Regular", tamanho: 17, relativoA: .body) }
-    /// Microrrótulo em caixa alta (use com `.textCase(.uppercase)` e `.tracking(0.8)`).
-    public static let microRotulo = Font.footnote.weight(.semibold)
-
-    private static func bricolage(_ nome: String, tamanho: CGFloat, relativoA estilo: Font.TextStyle) -> Font {
-        _ = FontesFrila.registradas
-        return Font.custom(nome, size: tamanho, relativeTo: estilo)
-    }
+    /// Pergunta do formulário: Bricolage Bold 26 (`FrilaFormType.question`), acompanha `.title`.
+    public static var pergunta: Font { FrilaFormType.question.font }
+    /// Resposta escolhida no formulário: Bricolage Bold 17 (`FrilaFormType.answer`), acompanha `.body`.
+    public static var respostaEscolhida: Font { FrilaFormType.answer.font }
+    /// Contexto da resposta: Bricolage Regular 17 (`FrilaFormType.answerContext`), acompanha `.body`.
+    public static var contextoDaResposta: Font { FrilaFormType.answerContext.font }
+    /// Microrrótulo em caixa alta (use com `.textCase(.uppercase)` e `.tracking(0.8)`): `FrilaFormType.microLabel`.
+    public static let microRotulo = FrilaFormType.microLabel.font
 }
 
 /// Registra as fontes do bundle no processo, uma vez. Se falhar, o `Font.custom` cai na fonte do sistema.
@@ -134,14 +148,14 @@ public enum FontesFrila {
 /// Ponto único para controle de animações respeitando a preferência de Reduzir Movimento (#71.4).
 /// Quando `reduzir` é verdadeiro, retorna `nil` para que a transição ocorra de forma imediata sem deslocamento.
 public enum FrilaMovimento {
-    /// Compressão padrão para botões ao pressionar (0,96).
-    public static let pressScaleBotao: CGFloat = 0.96
-    /// Compressão tátil refinada para chips e pílulas compactas (0,94).
-    public static let pressScaleChip: CGFloat = 0.94
-    /// Mola tátil geral para botões (rigidez 350, amortecimento 25) do FrilaLowPhase.
-    public static let molaTatil: Animation = .interpolatingSpring(stiffness: 350, damping: 25)
-    /// Mola ultrarrápida para compressão de chips (rigidez 380, amortecimento 24).
-    public static let molaTatilChip: Animation = .interpolatingSpring(stiffness: 380, damping: 24)
+    /// Compressão padrão para botões ao pressionar (0,96): `FrilaMotion.pressScaleButton`.
+    public static let pressScaleBotao: CGFloat = FrilaMotion.pressScaleButton
+    /// Compressão tátil para chips e pílulas compactas (0,94): `FrilaMotion.pressScaleChip`.
+    public static let pressScaleChip: CGFloat = FrilaMotion.pressScaleChip
+    /// Mola tátil dos botões (350/25): `FrilaMotion.tactileSpring`.
+    public static let molaTatil: Animation = FrilaMotion.tactileSpring
+    /// Mola dos chips (380/24): `FrilaMotion.chipPressSpring`.
+    public static let molaTatilChip: Animation = FrilaMotion.chipPressSpring
 
     public static func animacao(_ animacao: Animation = .default, reduzir: Bool) -> Animation? {
         reduzir ? nil : animacao

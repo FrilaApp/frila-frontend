@@ -108,7 +108,7 @@ public struct BotaoPrimario: View {
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
             .foregroundStyle(FrilaCor.sobrePrimaria)
-            // Pílula escura do MidFi (`selectionFill`), 52 pt.
+            // Pílula `.ink` da origem (`dynamicTextInk`), 52 pt (`buttonHeightProminent`).
             .background(FrilaCor.primaria, in: Capsule())
             .contentShape(Capsule())
         }
@@ -144,8 +144,7 @@ public struct BotaoSecundario: View {
                 .padding(.vertical, FrilaEspaco.pequeno)
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                 .foregroundStyle(FrilaCor.texto)
-                // Botão de contorno do MidFi: superfície clara com fio de controle.
-                .background(FrilaCor.superficie, in: Capsule())
+                // Botão `.outline` da origem: sem preenchimento, fio de 1 pt (`dynamicBorder`).
                 .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
                 .contentShape(Capsule())
         }
@@ -163,7 +162,6 @@ public extension View {
             .padding(.horizontal, FrilaEspaco.grande)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: Capsule())
             .overlay(Capsule().strokeBorder(FrilaCor.perigo, lineWidth: 1.5))
             .contentShape(Capsule())
     }
@@ -191,8 +189,9 @@ public struct CampoFrila: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            // Campo da origem (`FrilaJobFormLabeledField`): superfície e fio próprios, raio 14.
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .accessibilityLabel(titulo)
             .modifier(ErroLidoComoValor(texto: texto, erro: erroDeCampo))
     }
@@ -206,10 +205,10 @@ public struct CaixaDoCampoFrila: ViewModifier {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
-                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                    .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
             )
     }
 }
@@ -258,8 +257,8 @@ public struct CampoCodigo: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
             .modifier(ErroLidoComoValor(texto: codigo, erro: erroDeCampo))
     }
@@ -297,8 +296,9 @@ public struct FiltroPill: View {
             }
             .padding(.horizontal, FrilaEspaco.faixa)
             .frame(minHeight: FrilaMetrica.alturaDoChip)
-            .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-            .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+            // Filtro ativo na terracota de seleção da origem (`FrilaFilterChip`); inativo sobre a superfície com fio.
+            .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
+            .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
             .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
             // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
             .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -638,8 +638,8 @@ public struct RespostaSimNao: View {
             }
             .font(FrilaTipo.botao)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .foregroundStyle(resposta == valor ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-            .background(resposta == valor ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+            .foregroundStyle(resposta == valor ? FrilaCor.sobreSelecao : FrilaCor.texto)
+            .background(resposta == valor ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
             .overlay(Capsule().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
             .contentShape(Capsule())
         }
