@@ -266,14 +266,17 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
     @ViewBuilder
     private func conteudo(_ vaga: Vaga) -> some View {
+        // Placa aberta da origem (`FrilaOpportunityPlacardDetail`): entidade em caixa alta e título.
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: vaga.estabelecimento.nome)
+                .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityLabel(Text(verbatim: vaga.estabelecimento.nome))
             Text(verbatim: vaga.funcao.nome)
-                .font(FrilaTipo.tituloGrande)
+                .font(FrilaTipo.tituloDoDetalhe)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
-            Text(verbatim: vaga.estabelecimento.nome)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
 

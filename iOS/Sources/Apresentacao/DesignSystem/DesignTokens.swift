@@ -101,6 +101,9 @@ public enum FrilaTipo {
     public static let tituloGrande = FrilaTypography.display
     /// Cabeçalho de seção ("Abertas", "Seus dados"): title 22 bold (`FrilaTypography.title`).
     public static let secao = FrilaTypography.title
+    /// Título da placa aberta (função no detalhe da vaga): titleLarge 26 bold, tracking −0.5,
+    /// o degrau da escala mais próximo do título de 28 pt do detalhe da origem.
+    public static let tituloDoDetalhe = FrilaTypography.titleLarge
     /// Subtítulo abaixo do título da tela: placard 18 medium.
     public static let subtituloDaTela = FrilaTypography.placard
     /// Rótulo do campo: SF Pro Semibold 13 (`FrilaFormType.fieldLabel`), como nos campos do Estúdio.
