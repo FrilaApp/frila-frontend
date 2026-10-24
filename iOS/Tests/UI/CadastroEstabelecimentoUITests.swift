@@ -389,7 +389,10 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             defer { app.terminate() }
             let campo = app.textFields["CNPJ ou CPF"]
             XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer))
-            for _ in 0..<4 where !campo.isHittable { app.swipeUp() }
+            // Em AX5 o campo pode ficar só parcialmente visível (isHittable já é verdadeiro) e o toque no
+            // centro cai fora da janela: rola até o campo caber inteiro.
+            let janela = app.windows.firstMatch.frame
+            for _ in 0..<4 where !campo.isHittable || campo.frame.maxY > janela.maxY { app.swipeUp() }
             campo.tap()
             campo.typeText(digitos)
             XCTAssertEqual(campo.value as? String, esperado)
