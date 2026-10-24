@@ -103,6 +103,9 @@ public struct DestinoDePublicarVaga: View {
                         api: api, fila: fila, estabelecimento: estabelecimento,
                         aoPublicar: aoPublicar, aoCancelar: cancelar
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE_ESTUDIO") {
+                    // Estúdio de criação (Docs/Enxertos/FrilaLowPhase/Estudio/README.md)
+                    TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, aoPublicar: aoPublicar, aoCancelar: cancelar)
                 } else {
                     TelaPublicarVaga(
                         api: api, fila: fila, estabelecimento: estabelecimento, telefoneResponsavel: telefone,
