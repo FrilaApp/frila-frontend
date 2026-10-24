@@ -2,7 +2,8 @@
 
 Como gerar o projeto, abrir no Xcode e ver todas as telas no design do Fabrício (claro e escuro), sem rede e contra o `frila-dev`.
 Conferido do zero em 24/10/2026, `main` em `4d19e74f`, Xcode 27.0, simulador de iPhone (iOS 26.5). As capturas finais ficam
-em `.workers/capita-marvel/hifi/final/` (inventário em `.workers/capita-marvel/hifi/INVENTARIO.md`).
+em `.workers/capita-marvel/hifi/final/` (inventário em `.workers/capita-marvel/hifi/INVENTARIO.md`); `.workers/` é a pasta local do
+workspace Maestri, fora deste repositório.
 
 ## Pré-requisitos
 - Xcode com um simulador de iPhone instalado. A CI fixa o 26.6 (`.github/workflows/ios.yml`); o 27.0 abre e compila o mesmo projeto.
@@ -21,9 +22,12 @@ Pela linha de comando, sem abrir o Xcode (mesmo resultado do ⌘R):
 ```
 xcodebuild -project Frila.xcodeproj -scheme Frila-Local \
   -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/dd-frila build
+xcrun simctl boot "iPhone 17"   # ou o simulador pedido; `build` não liga o simulador (só `test` liga)
 xcrun simctl install booted /tmp/dd-frila/Build/Products/Debug-Local-iphonesimulator/Frila.app
 xcrun simctl launch booted com.frila.org.app -FRILA_SCENARIO contratante -FRILA_ABRIR_PUBLICAR
 ```
+
+O simulador roda sem janela; para ver a tela, `open -a Simulator` (só se quiser olhar).
 
 ## Cair direto numa tela
 Edite o esquema (Product → Scheme → Edit Scheme → Run → Arguments → "Arguments Passed On Launch") com os mesmos argumentos que os
@@ -65,7 +69,7 @@ Os argumentos `-FRILA_*` só têm efeito no `Frila-Local` (Debug); os builds de 
    `FRILA_SUPABASE_DEV_URL` e `FRILA_SUPABASE_DEV_PUBLISHABLE_KEY` (o script valida e grava o arquivo com permissão 600, sem imprimir
    valores). O formato está em `Configurations/Secrets.example.xcconfig`; o arquivo gerado é ignorado pelo Git e nunca entra em commit.
    Esquema **Frila-Dev**, ⌘R. Detalhes dos ambientes: `Docs/Environments.md`.
-7. Entre com a conta de demonstração (`revisao-contratante@frila.app` ou `revisao-profissional@frila.app`); o código fixo fica com o Cauê, fora do repositório.
+7. Entre com a conta de demonstração (`revisao-contratante` ou `revisao-profissional`, no `frila-dev`; endereço completo e código fixo ficam com o Cauê, fora do repositório, como em `DiarioDeConfiguracao.md`).
 8. Fluxo de prova (Fase 5 do Hi-Fi): como contratante, publicar uma vaga pelo Estúdio e vê-la em Minhas vagas; como profissional, ver a vaga no feed e candidatar-se.
 
 ## Conferido
