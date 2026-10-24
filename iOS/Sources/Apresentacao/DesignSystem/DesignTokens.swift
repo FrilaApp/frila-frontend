@@ -116,8 +116,10 @@ public enum FrilaTipo {
     public static let tituloDoCartao = FrilaTypography.placard
     /// Corpo de leitura: body 15 regular.
     public static let corpo = FrilaTypography.body
-    /// Meta e apoio (linhas de dados, legendas): caption 13 regular.
-    public static let meta = FrilaTypography.caption
+    /// Meta e apoio (linhas de dados, contatos, endereço): 15 regular, o mesmo degrau `body` da escala,
+    /// em `.subheadline` para manter a curva de Dynamic Type que os testes de acessibilidade do perfil
+    /// e do turno fixam (caption 13 encolhia o contato e o endereço em AX5). Legendas curtas usam `nota`.
+    public static let meta = Font.subheadline
     /// Aviso neutro ou contextual: apoio 15 regular (`FrilaFormType.support`).
     public static let aviso = FrilaFormType.support.font
     /// Nota de rodapé e ajuda: caption 13 regular.

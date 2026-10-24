@@ -232,7 +232,7 @@ public struct CatalogoDesignSystem: View {
     private var botoesDoEstudio: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             FrilaButton("Publicar vaga", icon: "paperplane.fill", variant: .primary, size: .prominent, isDark: escuro, isFullWidth: true)
-            FrilaButton("Continuar", variant: .secondary, size: .standard, isDark: escuro, isFullWidth: true)
+            FrilaButton("Entendi", variant: .secondary, size: .standard, isDark: escuro, isFullWidth: true)
             HStack(spacing: FrilaEspaco.pequeno) {
                 FrilaButton("Contorno", variant: .outline, size: .standard, isDark: escuro)
                 FrilaButton("Discreto", variant: .ghost, size: .standard, isDark: escuro)
