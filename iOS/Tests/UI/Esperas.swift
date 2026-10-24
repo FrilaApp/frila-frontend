@@ -32,17 +32,55 @@ func concluirCelebracao(_ app: XCUIApplication, file: StaticString = #filePath, 
 /// Escolhe o valor por turno pelos atalhos do estúdio (R$ 100, 120, 140, 160 e 200): a régua do SwiftUI
 /// não obedece ao `adjust(toNormalizedSliderPosition:)` do XCUITest, e os atalhos são o caminho que a
 /// origem oferece. O texto do valor vem do `pt_BR` (espaço inseparável depois de "R$").
+///
+/// Com o teclado do campo anterior aberto, o atalho existe mas fica coberto (na CI: "Failed to not
+/// hittable: Button 'R$ 160'"), e nenhum swipe o descobre. Por isso o teclado fecha primeiro e a
+/// rolagem é pelo quadro do atalho, sem laço cego nem toque repetido.
 func ajustarValorPorTurno(_ app: XCUIApplication, para valor: Int, file: StaticString = #filePath, line: UInt = #line) {
+    fecharTeclado(app)
     let atalho = app.buttons.matching(textoDeDinheiro(valor)).firstMatch
-    for _ in 0..<10 where !atalho.isHittable { app.swipeUp(velocity: .slow) }
     XCTAssertTrue(atalho.waitForExistence(timeout: Espera.aparecer), "o atalho R$ \(valor) deve existir", file: file, line: line)
-    // Com o teclado aberto, o primeiro toque fora do campo só fecha o teclado; o segundo chega ao atalho.
+    trazerParaAJanela(atalho, em: app)
+    atalho.tap()
     let mostrado = app.staticTexts.matching(textoDeDinheiro(valor)).firstMatch
-    for _ in 0..<2 where !mostrado.exists {
-        atalho.tap()
-        _ = mostrado.waitForExistence(timeout: 2)
+    XCTAssertTrue(mostrado.waitForExistence(timeout: Espera.aparecer), "o estúdio deveria mostrar R$ \(valor)", file: file, line: line)
+}
+
+/// Fecha o teclado se ele estiver aberto: Return encerra a edição do campo de texto focado; se o
+/// teclado continuar (campo sem Return), a rolagem interativa do estúdio o recolhe.
+func fecharTeclado(_ app: XCUIApplication) {
+    let teclado = app.keyboards.firstMatch
+    guard teclado.exists else { return }
+    app.typeText("\n")
+    let sumiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: teclado)
+    if XCTWaiter.wait(for: [sumiu], timeout: 2) != .completed {
+        app.swipeDown(velocity: .slow)
+        _ = XCTWaiter.wait(for: [sumiu], timeout: 2)
     }
-    XCTAssertTrue(mostrado.exists, "o estúdio deveria mostrar R$ \(valor)", file: file, line: line)
+}
+
+/// Traz o elemento para a área tocável. O Estúdio alinha a rolagem ao topo da seção
+/// (`FrilaLPEJobFormSectionPagingBehavior`): uma faixa fixa de altura nunca é atingida, e o laço
+/// antigo oscilava dez vezes entre "alto demais" e "baixo demais" (2,5 s cada no simulador, três
+/// vezes por teste). Aqui basta o elemento ser tocável, e a rolagem para quando o quadro não se move.
+func trazerParaAJanela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 4) {
+    let janela = app.windows.firstMatch.frame
+    var anterior = CGRect.null
+    for _ in 0..<tentativas {
+        guard elemento.exists else {
+            app.swipeUp(velocity: .slow)
+            continue
+        }
+        if elemento.isHittable { return }
+        let quadro = elemento.frame
+        if quadro.equalTo(anterior) { return }
+        anterior = quadro
+        if quadro.midY < janela.midY {
+            app.swipeDown(velocity: .slow)
+        } else {
+            app.swipeUp(velocity: .slow)
+        }
+    }
 }
 
 /// "R$ 180" como o `pt_BR` escreve (com espaço inseparável) ou com espaço comum.

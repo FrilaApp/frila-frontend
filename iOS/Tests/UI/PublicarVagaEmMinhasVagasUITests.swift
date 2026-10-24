@@ -31,7 +31,6 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let responsavel = app.textFields["responsavel-local-campo"]
         rolarAte(responsavel, em: app)
         substituirTexto(responsavel, por: "Marina")
-        app.swipeUp(velocity: .slow)
 
         ajustarValorPorTurno(app, para: 160)
         let publicar = app.buttons["publicar-vaga-botao"]
@@ -361,7 +360,6 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         let responsavel = app.textFields["responsavel-local-campo"]
         rolarAte(responsavel, em: app)
         substituirTexto(responsavel, por: "Marina")
-        app.swipeUp(velocity: .slow)
         ajustarValorPorTurno(app, para: 160)
 
         rolarAte(botaoPublicar, em: app)
@@ -389,21 +387,11 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         }
     }
 
-    private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {
-        let janela = app.windows.firstMatch.frame
-        for _ in 0..<tentativas {
-            guard elemento.exists else {
-                app.swipeUp(velocity: .slow)
-                continue
-            }
-            let quadro = elemento.frame
-            if elemento.isHittable, quadro.minY >= 120, quadro.maxY <= janela.height - 60 { return }
-            if quadro.minY < 120 {
-                app.swipeDown(velocity: .slow)
-            } else {
-                app.swipeUp(velocity: .slow)
-            }
-        }
+    /// Rolagem até o elemento: fecha o teclado (ele cobre o que está embaixo) e usa a rolagem
+    /// comum dos testes, que respeita o alinhamento por seção do Estúdio.
+    private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication) {
+        fecharTeclado(app)
+        trazerParaAJanela(elemento, em: app)
     }
 }
 
