@@ -26,6 +26,8 @@ Só `iOS/Sources/Apresentacao/`. Nunca `Dominio/`, `Dados/`, `Infraestrutura/`, 
 
 **Exceção estreita: testes que procuram texto.** Quando a tela troca um texto, título, rótulo ou placeholder que um teste em `iOS/Tests` procura, o AGY atualiza a asserção **na mesma entrega**, trocando só o texto e o localizador, sem mudar a lógica do teste (fluxo, esperas, condições, quantidade de asserções). O Codex acha as dependências com `grep -rn '"<texto antigo>"' iOS/Tests` (só dentro de `iOS/Tests`) e lista os arquivos no despacho. Prefira localizar por `accessibilityIdentifier`, que não muda. Qualquer outra mudança em teste segue a regra acima.
 
+**Exceção estreita: texto novo no catálogo.** Quando uma tela em `iOS/Sources/Apresentacao/` usa um texto novo, aprovado no Log, o AGY acrescenta **só as entradas novas** em `iOS/Resources/Localizable.xcstrings`, na mesma entrega. Não altera, renomeia nem apaga entradas existentes, e não mexe em `InfoPlist.xcstrings`. A edição preserva o formato JSON do Xcode (chaves em ordem, mesma indentação), e o gate prova com `Scripts/conferir-textos.sh` sem falhas. O despacho do Codex lista as chaves novas.
+
 ### 2.3 Consumo por camada
 
 Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe só por ambiguidade ou julgamento.
