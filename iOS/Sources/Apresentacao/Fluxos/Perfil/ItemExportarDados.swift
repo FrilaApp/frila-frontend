@@ -25,7 +25,7 @@ public struct FolhaCompartilhamento: UIViewControllerRepresentable {
     public func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
-/// Linha "Exportar meus dados" (#24), no estilo das linhas dos quadros "MeuPerfil" e "ExportarDados" do MidFi do Fabrício; o toque abre o compartilhar do iPhone com o arquivo.
+/// Linha "Exportar meus dados" (#24), na lista aberta do perfil; abre o compartilhar do iPhone.
 public struct ItemExportarDados: View {
     @Bindable private var viewModel: ExportarDadosViewModel
     private let identificador: String
@@ -40,27 +40,24 @@ public struct ItemExportarDados: View {
             Button {
                 Task { await viewModel.exportarDados() }
             } label: {
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosExportarDados.titulo)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: FrilaEspaco.pequeno)
-                    if viewModel.estaCarregando {
+                if viewModel.estaCarregando {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        Text(verbatim: TextosExportarDados.titulo)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: FrilaEspaco.pequeno)
                         ProgressView()
                             .controlSize(.small)
                             .accessibilityIdentifier("progresso-exportar-dados")
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .font(FrilaTipo.meta.weight(.semibold))
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .accessibilityHidden(true)
                     }
+                    .padding(.vertical, FrilaEspaco.minimo)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                    .contentShape(Rectangle())
+                } else {
+                    RotuloDeLinha(TextosExportarDados.titulo)
                 }
-                .padding(.vertical, FrilaEspaco.minimo)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(viewModel.estaCarregando)

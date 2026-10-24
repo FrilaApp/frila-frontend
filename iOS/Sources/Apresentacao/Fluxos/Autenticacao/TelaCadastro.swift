@@ -1,7 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Cadastro (#12), nos quadros "Perfil" (escolha do perfil) e "Main" (campos) do MidFi do Fabrício: voltar circular, cartões de perfil e botão escuro de continuar.
+/// Cadastro (#12), com pergunta editorial, escolha de perfil e campos do Hi-Fi.
 public struct TelaCadastro: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
@@ -45,7 +45,7 @@ public struct TelaCadastro: View {
                     }
 
                     Text("Como você quer usar o Frila?", bundle: bundleApresentacao)
-                        .font(FrilaTipo.secao)
+                        .font(FrilaTipo.pergunta)
                         .foregroundStyle(FrilaCor.texto)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -77,7 +77,7 @@ public struct TelaCadastro: View {
                     // Campos de dados
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text("Nome", bundle: bundleApresentacao)
-                            .font(FrilaTipo.meta.weight(.semibold))
+                            .font(FrilaTipo.rotuloDoCampo)
                             .foregroundStyle(FrilaCor.texto)
 
                         CampoFrila("Como você quer ser chamado", texto: $viewModel.nome)
@@ -97,7 +97,7 @@ public struct TelaCadastro: View {
 
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text("Telefone com WhatsApp", bundle: bundleApresentacao)
-                            .font(FrilaTipo.meta.weight(.semibold))
+                            .font(FrilaTipo.rotuloDoCampo)
                             .foregroundStyle(FrilaCor.texto)
 
                         CampoMascara(
@@ -128,7 +128,7 @@ public struct TelaCadastro: View {
 
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text("Data de nascimento", bundle: bundleApresentacao)
-                            .font(FrilaTipo.meta.weight(.semibold))
+                            .font(FrilaTipo.rotuloDoCampo)
                             .foregroundStyle(FrilaCor.texto)
 
                         CampoMascara(
@@ -186,7 +186,7 @@ public struct TelaCadastro: View {
                             Text("Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)", bundle: bundleApresentacao)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.texto)
-                                .padding(.top, 10)
+                                .padding(.top, FrilaEspaco.pequeno)
                                 .accessibilityHidden(true)
                         }
 
@@ -218,7 +218,7 @@ public struct TelaCadastro: View {
                     .disabled(viewModel.carregando || viewModel.ehMenorDeIdade)
                     .accessibilityIdentifier("cadastro-continuar")
 
-                    Spacer(minLength: 40)
+                    Spacer(minLength: FrilaEspaco.enorme)
                 }
                 .padding(.horizontal, FrilaEspaco.medio)
                 .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
@@ -274,26 +274,26 @@ public struct TelaCadastro: View {
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: titulo)
-                        .font(FrilaTipo.resumo)
+                        .font(FrilaTipo.respostaEscolhida)
                         .foregroundStyle(FrilaCor.texto)
 
                     Text(verbatim: descricao)
-                        .font(FrilaTipo.nota)
+                        .font(FrilaTipo.contextoDaResposta)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: FrilaEspaco.minimo)
                 Image(systemName: selecionado ? "checkmark.circle.fill" : "circle")
                     .font(FrilaTipo.subtituloDaTela)
-                    .foregroundStyle(selecionado ? FrilaCor.primaria : FrilaCor.borda)
+                    .foregroundStyle(selecionado ? FrilaCor.selecao : FrilaCor.borda)
                     .accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(FrilaEspaco.medio)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
-                    .strokeBorder(selecionado ? FrilaCor.primaria : FrilaCor.divisoria, lineWidth: selecionado ? 2 : 1)
+                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                    .strokeBorder(selecionado ? FrilaCor.selecao : FrilaCor.bordaDoCampo, lineWidth: selecionado ? 2 : 1)
             )
             .contentShape(Rectangle())
         }

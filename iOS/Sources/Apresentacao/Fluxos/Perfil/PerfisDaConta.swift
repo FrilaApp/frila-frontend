@@ -135,7 +135,7 @@ struct DivisoriaDeLinha: View {
     }
 }
 
-/// Cartão único do MidFi com as linhas da conta: superfície branca, raio 20 contínuo, fio de 1 pt e recuo de 16 pt à esquerda.
+/// Lista aberta do Hi-Fi, delimitada por fios e sem cartões aninhados.
 struct GrupoDeLinhas<Conteudo: View>: View {
     private let conteudo: Conteudo
 
@@ -145,23 +145,22 @@ struct GrupoDeLinhas<Conteudo: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            DivisoriaDeLinha()
             conteudo
+            DivisoriaDeLinha()
         }
-        .padding(.horizontal, FrilaEspaco.medio)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
     }
 }
 
-/// Botão de contorno `perigo` do MidFi para "Excluir conta"; o toque abre a tela de exclusão, que pede a confirmação.
+/// Contorno destrutivo para "Excluir conta"; o toque abre a tela de confirmação.
 struct BotaoDeExclusaoDeConta: View {
     var body: some View {
         Text(verbatim: TextosPerfilConta.excluir).capsulaDestrutiva()
     }
 }
 
-/// Perfil do profissional (#18), no quadro "MeuPerfil" do MidFi do Fabrício: dados no cartão, linhas num cartão único com chevron e "Excluir conta" de contorno.
+/// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
 public struct TelaMeuPerfilProfissional: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var despachoModel: PorQueReceboVagasViewModel
@@ -194,14 +193,23 @@ public struct TelaMeuPerfilProfissional: View {
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
-                        linha(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", contato: true)
-                        linha(TextosPerfilConta.email, conta.email, id: "perfil-email", contato: true)
-                        if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
-                        linha(TextosPerfilConta.funcao, perfil.funcoes.map(\.nome).joined(separator: ", "), id: "perfil-funcoes")
-                        linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao), id: "perfil-horarios")
+                        GrupoDeLinhas {
+                            linha(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", contato: true)
+                                .padding(.vertical, FrilaEspaco.pequeno)
+                            DivisoriaDeLinha()
+                            linha(TextosPerfilConta.email, conta.email, id: "perfil-email", contato: true)
+                                .padding(.vertical, FrilaEspaco.pequeno)
+                            if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
+                            DivisoriaDeLinha()
+                            linha(TextosPerfilConta.funcao, perfil.funcoes.map(\.nome).joined(separator: ", "), id: "perfil-funcoes")
+                                .padding(.vertical, FrilaEspaco.pequeno)
+                            DivisoriaDeLinha()
+                            linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao), id: "perfil-horarios")
+                                .padding(.vertical, FrilaEspaco.pequeno)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .cartaoFrila()
+                    .padding(.vertical, FrilaEspaco.medio)
                     GrupoDeLinhas {
                         NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
                             RotuloDeLinha(TextosPerfilConta.funcoesHorarios)
@@ -279,7 +287,7 @@ public struct TelaMeuPerfilProfissional: View {
         }
     }
 
-    /// "Excluir conta" do MidFi: botão de contorno `perigo` num cartão próprio, longe das linhas comuns.
+    /// Ação destrutiva de contorno, separada das linhas comuns.
     private var excluirConta: some View {
         NavigationLink {
             TelaExclusaoDeConta(
@@ -315,7 +323,7 @@ public struct TelaMeuPerfilProfissional: View {
     }
 }
 
-/// Perfil do estabelecimento (#18), nos quadros "ContaContratante" e "Estabelecimento" do MidFi do Fabrício: mesmas linhas agrupadas do perfil do profissional.
+/// Perfil do estabelecimento (#18), com a mesma lista aberta do perfil do profissional.
 public struct TelaPerfilEstabelecimento: View {
     @State private var model: PerfilEstabelecimentoViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -342,30 +350,35 @@ public struct TelaPerfilEstabelecimento: View {
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
-                        if let tipo = estabelecimento.tipo {
+                        GrupoDeLinhas {
+                            if let tipo = estabelecimento.tipo {
+                                LabeledContent {
+                                    Text(verbatim: tipo.descricaoPerfil)
+                                        .font(FrilaTipo.meta)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                } label: {
+                                    Text(verbatim: TextosPerfilConta.tipo)
+                                        .font(FrilaTipo.meta)
+                                        .foregroundStyle(FrilaCor.texto)
+                                }
+                                .padding(.vertical, FrilaEspaco.pequeno)
+                                DivisoriaDeLinha()
+                            }
                             LabeledContent {
-                                Text(verbatim: tipo.descricaoPerfil)
+                                Text(verbatim: estabelecimento.papel.descricaoPerfil)
                                     .font(FrilaTipo.meta)
                                     .foregroundStyle(FrilaCor.textoSecundario)
                             } label: {
-                                Text(verbatim: TextosPerfilConta.tipo)
+                                Text(verbatim: TextosPerfilConta.papel)
                                     .font(FrilaTipo.meta)
                                     .foregroundStyle(FrilaCor.texto)
                             }
-                        }
-                        LabeledContent {
-                            Text(verbatim: estabelecimento.papel.descricaoPerfil)
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-                        } label: {
-                            Text(verbatim: TextosPerfilConta.papel)
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.texto)
+                            .padding(.vertical, FrilaEspaco.pequeno)
                         }
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .cartaoFrila()
+                    .padding(.vertical, FrilaEspaco.medio)
                     GrupoDeLinhas {
                         NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
                             RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
@@ -530,6 +543,9 @@ struct TelaAjudaPerfil: View {
                 }
                 .accessibilityIdentifier("perfil-licencas")
             }
+            .listStyle(.plain)
+            .listRowBackground(FrilaCor.fundo)
+            .listRowSeparatorTint(FrilaCor.divisoria)
             .scrollContentBackground(.hidden)
             .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosPerfilConta.ajuda)).navigationBarTitleDisplayMode(.inline)
