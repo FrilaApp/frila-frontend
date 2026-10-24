@@ -177,6 +177,7 @@ public struct TelaMeuTurno: View {
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, FrilaEspaco.pequeno)
             .overlay(alignment: .top) { fio }
             .overlay(alignment: .bottom) { fio }
