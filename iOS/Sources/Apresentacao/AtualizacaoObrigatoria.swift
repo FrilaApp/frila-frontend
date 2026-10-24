@@ -78,7 +78,7 @@ public final class AtualizacaoObrigatoriaViewModel {
     }
 }
 
-/// Tela cheia de atualização obrigatória: segue o padrão de estados do MidFi do Fabrício (círculo de 72 pt, título, apoio e botão escuro).
+/// Tela cheia de atualização obrigatória: segue o padrão de estados Hi-Fi do Fabrício (ícone limpo, título display, apoio em corpo e botão primário cápsula).
 public struct PortaoDeAtualizacao<Conteudo: View>: View {
     @State private var viewModel: AtualizacaoObrigatoriaViewModel
     @Environment(\.openURL) private var abrirURL
@@ -100,10 +100,8 @@ public struct PortaoDeAtualizacao<Conteudo: View>: View {
                 ScrollView {
                     VStack(spacing: FrilaEspaco.grande) {
                         Image(systemName: "arrow.down.app.fill")
-                            .font(FrilaTipo.secao)
+                            .font(FrilaTipo.tituloGrande)
                             .foregroundStyle(FrilaCor.textoSecundario)
-                            .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                            .background(FrilaCor.controle, in: Circle())
                             .accessibilityHidden(true)
                         VStack(spacing: FrilaEspaco.pequeno) {
                             Text("Atualização necessária", bundle: bundleApresentacao)
