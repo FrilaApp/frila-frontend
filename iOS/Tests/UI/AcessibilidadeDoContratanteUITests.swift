@@ -50,11 +50,13 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(esperarFormularioDePublicarVaga(app))
 
-        // 3.10 Roleta de Função: rótulo acessível diz a categoria e a função (nunca "Função, Função")
+        // 3.10 Roleta de Função (estúdio, eixo vertical): o campo fechado lê a função escolhida, nunca o nome do campo
         let pickerFuncao = app.descendants(matching: .any)["funcao-vaga-picker"]
         XCTAssertTrue(pickerFuncao.waitForExistence(timeout: Espera.aparecer))
         XCTAssertNotEqual(pickerFuncao.label, "Função, Função")
-        XCTAssertTrue(pickerFuncao.label.lowercased().contains("função"), pickerFuncao.label)
+        XCTAssertFalse(pickerFuncao.label.isEmpty)
+        XCTAssertNotEqual(pickerFuncao.label.lowercased(), "função", pickerFuncao.label)
+        XCTAssertTrue(app.buttons["Escolher função"].exists, "o cabeçalho do campo diz o que se escolhe")
 
         // 2.4 Régua de valor: tocável
         let regua = app.sliders["valor-vaga-campo"]

@@ -33,7 +33,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         substituirTexto(responsavel, por: "Marina")
         app.swipeUp(velocity: .slow)
 
-        ajustarValorPorTurno(app, para: 180)
+        ajustarValorPorTurno(app, para: 160)
         let publicar = app.buttons["publicar-vaga-botao"]
         rolarAte(publicar, em: app)
         tocar(publicar)
@@ -199,7 +199,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         // A régua do Estúdio mostra o valor restaurado da fila.
         XCTAssertTrue(app.sliders["valor-vaga-campo"].exists)
-        XCTAssertTrue(app.staticTexts["R$ 180"].exists)
+        XCTAssertTrue(mostraDinheiro(app, 160))
     }
 
     func testPublicarVagaEmAX5SeletorDeDataETocavel() throws {
@@ -214,7 +214,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 10))
 
         let campoValor = app.sliders["valor-vaga-campo"]
-        let campoPosicoes = app.descendants(matching: .any)["posicoes-vaga-stepper"]
+        let campoPosicoes = app.descendants(matching: .any)["posicoes-vaga-campo"]
         rolarAte(campoValor, em: app)
         XCTAssertTrue(campoValor.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(campoPosicoes.waitForExistence(timeout: Espera.aparecer))
@@ -266,7 +266,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         let valor = app.sliders["valor-vaga-campo"]
         rolarAte(valor, em: app)
-        ajustarValorPorTurno(app, para: 150)
+        ajustarValorPorTurno(app, para: 160)
 
         // O contador de vagas do Estúdio: botões de menos e mais em volta do número.
         let mais = app.buttons["posicoes-vaga-mais"]
@@ -278,10 +278,11 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         tocar(mais)
         XCTAssertTrue(contador.label.hasPrefix("2"), contador.label)
 
-        let totalCalculado = app.staticTexts["total-vaga-calculado"]
+        // O bloco do total combina os textos: o primeiro elemento com o identificador é o bloco inteiro.
+        let totalCalculado = app.staticTexts.matching(identifier: "total-vaga-calculado").firstMatch
         rolarAte(totalCalculado, em: app)
         XCTAssertTrue(totalCalculado.waitForExistence(timeout: 5))
-        XCTAssertTrue(totalCalculado.label.contains("300"), totalCalculado.label)
+        XCTAssertTrue(totalCalculado.label.contains("320"), totalCalculado.label)
 
         salvarCaptura("02-publicar-vaga-padrao")
     }

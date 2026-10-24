@@ -967,6 +967,8 @@ public struct FrilaLPECoupledRolePicker: View {
                             badge: selectedRoleOrigin == .custom && !selectedRole.isEmpty ? "Criada por você" : nil,
                             action: toggleRoleWheel
                         )
+                        // Enxerto: identificador do formulário antigo do app, para os testes de UI (eixo vertical)
+                        .accessibilityIdentifier("funcao-vaga-picker")
                         .transition(.frilaLPEFieldContent)
                     }
                 }

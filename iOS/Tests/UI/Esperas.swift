@@ -29,28 +29,43 @@ func concluirCelebracao(_ app: XCUIApplication, file: StaticString = #filePath, 
     tocar(app.buttons["celebracao-concluir"], file: file, line: line)
 }
 
-/// Ajusta o valor por turno na régua do Estúdio (R$ 80 a R$ 300, passo 10) e confere o valor mostrado.
-/// Quando o arrasto erra um passo, corrige pela porcentagem que a régua informa.
+/// Escolhe o valor por turno pelos atalhos do estúdio (R$ 100, 120, 140, 160 e 200): a régua do SwiftUI
+/// não obedece ao `adjust(toNormalizedSliderPosition:)` do XCUITest, e os atalhos são o caminho que a
+/// origem oferece. O texto do valor vem do `pt_BR` (espaço inseparável depois de "R$").
 func ajustarValorPorTurno(_ app: XCUIApplication, para valor: Int, file: StaticString = #filePath, line: UInt = #line) {
-    let regua = app.sliders["valor-vaga-campo"]
-    XCTAssertTrue(regua.waitForExistence(timeout: Espera.aparecer), "a régua de valor deve existir", file: file, line: line)
-    let mostrado = app.staticTexts["R$ \(valor)"]
-    var posicao = CGFloat(valor - 80) / 220
-    for _ in 0..<4 {
-        regua.adjust(toNormalizedSliderPosition: posicao)
-        if mostrado.waitForExistence(timeout: 1) { return }
-        guard let texto = regua.value as? String,
-              let porcentagem = Double(texto.filter { $0.isNumber || $0 == "." || $0 == "," }.replacingOccurrences(of: ",", with: ".")) else { break }
-        let atual = 80 + porcentagem / 100 * 220
-        posicao += CGFloat((Double(valor) - atual) / 220)
+    let atalho = app.buttons.matching(textoDeDinheiro(valor)).firstMatch
+    for _ in 0..<10 where !atalho.isHittable { app.swipeUp(velocity: .slow) }
+    XCTAssertTrue(atalho.waitForExistence(timeout: Espera.aparecer), "o atalho R$ \(valor) deve existir", file: file, line: line)
+    // Com o teclado aberto, o primeiro toque fora do campo só fecha o teclado; o segundo chega ao atalho.
+    let mostrado = app.staticTexts.matching(textoDeDinheiro(valor)).firstMatch
+    for _ in 0..<2 where !mostrado.exists {
+        atalho.tap()
+        _ = mostrado.waitForExistence(timeout: 2)
     }
-    XCTAssertTrue(mostrado.exists, "a régua deveria mostrar R$ \(valor)", file: file, line: line)
+    XCTAssertTrue(mostrado.exists, "o estúdio deveria mostrar R$ \(valor)", file: file, line: line)
 }
 
-/// Substitui o texto de um campo: leva o cursor ao fim, apaga o que há e digita o novo.
+/// "R$ 180" como o `pt_BR` escreve (com espaço inseparável) ou com espaço comum.
+func textoDeDinheiro(_ valor: Int) -> NSPredicate {
+    NSPredicate(format: "label == %@ OR label == %@", "R$\u{00A0}\(valor)", "R$ \(valor)")
+}
+
+/// Verdadeiro se há um texto na tela com o valor em reais.
+func mostraDinheiro(_ app: XCUIApplication, _ valor: Int) -> Bool {
+    app.staticTexts.matching(textoDeDinheiro(valor)).firstMatch.exists
+}
+
+/// Substitui o texto de um campo: foca (até três toques, pois o estúdio reorganiza o formulário quando o
+/// teclado sobe), apaga o que há e digita o novo.
 func substituirTexto(_ campo: XCUIElement, por texto: String, file: StaticString = #filePath, line: UInt = #line) {
-    campo.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
-    _ = esperarFocoDoTeclado(campo)
+    var focado = false
+    for _ in 0..<3 where !focado {
+        campo.tap()
+        focado = esperarFocoDoTeclado(campo, timeout: 2)
+    }
+    XCTAssertTrue(focado, "o campo deveria receber o foco do teclado", file: file, line: line)
+    guard focado else { return }
+    // O toque no meio do campo cai depois do fim de um texto curto, e o cursor fica no fim.
     let atual = (campo.value as? String) ?? ""
     if !atual.isEmpty {
         campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: atual.count))

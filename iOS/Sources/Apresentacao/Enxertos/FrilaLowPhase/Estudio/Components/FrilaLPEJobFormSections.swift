@@ -859,7 +859,6 @@ struct FrilaLPEJobFormValorSection: View {
                 stepButton(systemImage: "plus", label: "Adicionar uma vaga", delta: 1)
                     .accessibilityIdentifier("posicoes-vaga-mais")
             }
-            .accessibilityIdentifier("posicoes-vaga-stepper")
         }
     }
 
