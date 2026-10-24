@@ -71,3 +71,10 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 - **Codex → Claude, só nos marcos e em até 5 linhas:** assumido; pronto para integrar (PR, gate, aceite técnico); bloqueio; decisão de produto com as opções.
 - No máximo 2 rodadas de correção por tarefa; na terceira, muda a abordagem ou sobe ao Claude. Sem tarefa: aguarde, sem polling.
 - `maestri ask` pode voltar antes de o agente terminar: confirme pelo diff e por `maestri check`. Depois de `/clear`, confira a caixa pronta antes do `ask`.
+
+### 2.7 Demo pós-iteração
+
+- Depois do gate verde e antes do marco "pronto para integrar", o Codex do Log pede ao mesmo AGY: compilar a branch do Log (`Frila-Local`) no simulador **Frila Demo** (UDID `907B7EAE-82FB-439F-8054-B0CB496A222D`), instalar e abrir o app **na tela alvo** só por argumentos de lançamento e cenários que já existem (sem clicar, sem mudar código), e deixar o app aberto sem rodar mais testes nesse simulador.
+- O marco "pronto para integrar" passa a trazer também `demo: <UDID> | <argumentos> | <tela alcançada ou o toque que falta>` e um contexto de até 4 linhas para o usuário: o que mudou, o que conferir e as ressalvas.
+- O Claude abre a demo com `~/dev/frila-orquestra/demo.sh`: um único portal de simulador e uma única nota ("Demo atual") no canvas; a demo anterior fecha sozinha.
+- **Dois simuladores, papéis fixos:** "Frila Demo" só para demos (nunca para testes) e "iPhone 18 Pro" (UDID `2AF3E1DE-44A3-433F-B09B-CDC8E0BD8737`) só para gates. Assim um gate não espera a demo. Ninguém cria outro simulador.
