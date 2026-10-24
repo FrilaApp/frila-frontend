@@ -63,6 +63,7 @@ public struct FolhaDeCancelamento: View {
 
         Text(verbatim: TextosDoCancelamento.motivoTitulo)
             .font(FrilaTipo.rotuloDoCampo)
+            .foregroundStyle(FrilaCor.textoSecundario)
             .accessibilityAddTraits(.isHeader)
         VStack(spacing: 0) {
             ForEach(Array(viewModel.motivos.enumerated()), id: \.element.id) { indice, motivo in
@@ -76,17 +77,17 @@ public struct FolhaDeCancelamento: View {
                 opcao(motivo)
             }
         }
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("motivos-do-cancelamento")
 
         if let motivo = viewModel.motivo {
             // O rótulo do campo é o mesmo do título: obrigatório em "Outro motivo", opcional nos demais.
             let rotulo = motivo.exigeDetalhes ? TextosDoCancelamento.detalhesObrigatorios : TextosDoCancelamento.detalhesTitulo
-            let prompt = motivo.exigeDetalhes ? Text(verbatim: TextosDoCancelamento.placeholderDetalhes) : nil
+            let prompt = motivo.exigeDetalhes ? Text(verbatim: TextosDoCancelamento.placeholderDetalhes).foregroundStyle(FrilaCor.textoSecundario) : nil
             Text(verbatim: rotulo)
-                .font(FrilaTipo.meta)
+                .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.textoSecundario)
             TextField(text: $viewModel.detalhes, prompt: prompt, axis: .vertical) {
                 Text(verbatim: rotulo)
@@ -94,14 +95,15 @@ public struct FolhaDeCancelamento: View {
             .lineLimit(2...5)
             .focused($focoNosDetalhes)
             .textFieldStyle(.plain)
+            .font(FrilaTipo.valorDoCampo)
             .padding(FrilaEspaco.medio)
             .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .accessibilityIdentifier("detalhes-do-cancelamento")
         } else {
             Text(verbatim: TextosDoCancelamento.motivoObrigatorio)
-                .font(FrilaTipo.meta)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("motivo-obrigatorio")
         }
@@ -116,11 +118,32 @@ public struct FolhaDeCancelamento: View {
         switch viewModel.estado {
         case .pronto, .enviando, .falha:
             VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoPrimario(verbatim: TextosDoCancelamento.confirmar, carregando: viewModel.estado == .enviando) {
+                Button {
                     Task { await viewModel.confirmar() }
+                } label: {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        if viewModel.estado == .enviando {
+                            ProgressView()
+                                .tint(FrilaCor.sobrePrimaria)
+                                .accessibilityHidden(true)
+                        }
+                        Text(verbatim: TextosDoCancelamento.confirmar)
+                            .font(FrilaTipo.botao)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, FrilaEspaco.grande)
+                    .padding(.vertical, FrilaEspaco.pequeno)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                    .foregroundStyle(viewModel.podeConfirmar ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
+                    .background(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle, in: Capsule())
+                    .contentShape(Capsule())
                 }
-                .disabled(!viewModel.podeConfirmar)
+                .buttonStyle(.tatil)
+                .disabled(!viewModel.podeConfirmar || viewModel.estado == .enviando)
                 .accessibilityIdentifier("confirmar-cancelamento")
+                .accessibilityLabel(Text(verbatim: TextosDoCancelamento.confirmar))
+                .accessibilityValue(viewModel.estado == .enviando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
 
                 BotaoSecundario(verbatim: TextosDoCancelamento.voltar, acao: fechar)
                     .disabled(viewModel.estado == .enviando)
@@ -179,7 +202,7 @@ public struct FolhaDeCancelamento: View {
     }
 }
 
-/// Botão de contorno (pílula branca do MidFi) que abre a folha de cancelamento, nos dois lados.
+/// Botão de cancelamento em cápsula destrutiva (MidFi do Fabrício) que abre a folha de cancelamento, nos dois lados.
 public struct BotaoDeCancelamento: View {
     private let titulo: String
     private let acao: () -> Void
@@ -192,16 +215,8 @@ public struct BotaoDeCancelamento: View {
     public var body: some View {
         Button(role: .destructive, action: acao) {
             Text(verbatim: titulo)
-                .font(FrilaTipo.botao)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(FrilaCor.texto)
-                .padding(.horizontal, FrilaEspaco.grande)
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                .background(FrilaCor.superficie, in: Capsule())
-                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                .contentShape(Capsule())
+                .capsulaDestrutiva()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.tatil)
     }
 }

@@ -114,7 +114,7 @@ public struct FolhaSuporteTurno: View {
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             Text(verbatim: motivo.rotulo)
-                                .font(FrilaTipo.meta)
+                                .font(FrilaTipo.corpo)
                                 .foregroundStyle(FrilaCor.texto)
                                 .multilineTextAlignment(.leading)
                             Spacer(minLength: 0)
@@ -177,7 +177,7 @@ public struct FolhaSuporteTurno: View {
             }
             .capsulaDestrutiva()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.tatil)
     }
 
     private var blocoRelato: some View {
@@ -190,16 +190,19 @@ public struct FolhaSuporteTurno: View {
                 .accessibilityAddTraits(.isHeader)
 
             TextField(
-                TextosDoSuporte.promptRelato,
                 text: $viewModel.relato,
+                prompt: Text(verbatim: TextosDoSuporte.promptRelato).foregroundStyle(FrilaCor.textoSecundario),
                 axis: .vertical
-            )
+            ) {
+                Text(verbatim: TextosDoSuporte.secaoRelato)
+            }
             .lineLimit(3...6)
+            .textFieldStyle(.plain)
             .font(FrilaTipo.valorDoCampo)
             .padding(FrilaEspaco.compacto)
             .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .accessibilityIdentifier("campo-relato-suporte")
             .accessibilityHint(Text(verbatim: TextosDoSuporte.quantidadeCaracteres(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)))
 
