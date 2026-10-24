@@ -73,7 +73,7 @@ public struct TelaExplicacaoDoPush: View {
                 .font(FrilaTipo.resumo.weight(.bold))
                 .foregroundStyle(FrilaCor.sobrePrimaria)
                 .frame(width: 38, height: 38)
-                .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous))
 
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 HStack(alignment: .firstTextBaseline) {
@@ -94,11 +94,11 @@ public struct TelaExplicacaoDoPush: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(14)
+        .padding(FrilaEspaco.faixa)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
+        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous)
+            RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
         )
         .accessibilityHidden(true)
@@ -116,7 +116,7 @@ public struct TelaExplicacaoDoPush: View {
                             .frame(width: diametroDoVisto, height: diametroDoVisto)
                         Image(systemName: "checkmark")
                             .font(FrilaTipo.microRotulo)
-                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .foregroundStyle(FrilaCor.texto)
                             .accessibilityHidden(true)
                     }
                     Text(verbatim: item)
@@ -136,12 +136,15 @@ public struct TelaExplicacaoDoPush: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             ForEach(TextosDoPush.Explicacao.itens(.contratante), id: \.self) { item in
                 HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-                    Image(systemName: "checkmark")
-                        .font(FrilaTipo.microRotulo)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(width: diametroDoVisto, height: diametroDoVisto)
-                        .background(FrilaCor.controle, in: Circle())
-                        .accessibilityHidden(true)
+                    ZStack {
+                        Circle()
+                            .fill(FrilaCor.controle)
+                            .frame(width: diametroDoVisto, height: diametroDoVisto)
+                        Image(systemName: "checkmark")
+                            .font(FrilaTipo.microRotulo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .accessibilityHidden(true)
+                    }
                     Text(verbatim: item)
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.texto)
@@ -152,7 +155,6 @@ public struct TelaExplicacaoDoPush: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
     }
 
     // MARK: - Barra inferior fixa
@@ -169,7 +171,7 @@ public struct TelaExplicacaoDoPush: View {
                 modelo.agoraNao()
             } label: {
                 Text(verbatim: TextosDoPush.Explicacao.agoraNao)
-                    .font(FrilaTipo.meta.weight(.semibold))
+                    .font(FrilaTipo.botaoPadrao)
                     .foregroundStyle(FrilaCor.texto)
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
                     .contentShape(Rectangle())

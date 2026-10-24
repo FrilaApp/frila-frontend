@@ -161,8 +161,10 @@ struct TelaVagaIndisponivel: View {
                     .accessibilityIdentifier("voltar-para-lista")
             }
             .padding(FrilaEspaco.medio)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+            .frame(maxWidth: .infinity)
         }
-        .background(FrilaCor.fundo)
+        .background(FrilaCor.fundo.ignoresSafeArea())
         // O título do que aconteceu está no corpo: a barra leva só "Vaga", em linha, sem repeti-lo.
         .navigationTitle(Text(verbatim: TextosDoProfissional.Detalhe.titulo))
         .navigationBarTitleDisplayMode(.inline)
@@ -246,8 +248,10 @@ struct DestinoDoTurnoDoAviso<Conteudo: View>: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: FrilaEspaco.medio) { semTurno }
                     .padding(FrilaEspaco.medio)
+                    .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+                    .frame(maxWidth: .infinity)
             }
-            .background(FrilaCor.fundo)
+            .background(FrilaCor.fundo.ignoresSafeArea())
             .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
             .navigationBarTitleDisplayMode(.inline)
             .task { await carregar() }
