@@ -166,7 +166,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     /// A simulação de Dynamic Type numa tela longa (o estúdio inteiro) às vezes passa do tempo do
     /// XCTest ("Audit failed to complete in time", código -56): uma segunda tentativa, só nesse caso.
-    private func auditarComRepeticao(_ app: XCUIApplication, _ tratar: (XCUIAccessibilityAuditIssue) -> Bool) throws {
+    private func auditarComRepeticao(_ app: XCUIApplication, _ tratar: @escaping (XCUIAccessibilityAuditIssue) -> Bool) throws {
         do {
             try app.performAccessibilityAudit(for: .all, tratar)
         } catch let erro as NSError where erro.code == -56 {
@@ -184,7 +184,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     }
 
     private static let cartaoDaVagaLimitadoAAX1 = "o cartão da vaga não acompanha o Dynamic Type além de AX1 por decisão de layout do design (#139): sem o limite a altura passa da tela em AX5 (957 pt de 874); as pílulas de filtro já acompanham até AX5"
-    private static let estudioBarraEDock = "no Estúdio de Criação (Publicar vaga), o título da barra (\"Publicar vaga\", \"n de 3\") é item principal da barra de navegação e não acompanha o Dynamic Type além do limite da barra, como o título do sistema; as pílulas \"Prévia\" e \"Publicar vaga\" do dock têm altura fixa e uma linha por desenho da origem (FrilaLPEPillButtonStyle) e a auditoria as aponta como cortadas nos tamanhos de acessibilidade. Os tamanhos de acessibilidade do estúdio ficam para a Fase 4 da missão hi-fi (hifi/ESTUDO-E-PLANO.md)"
+    private static let estudioBarraEDock = "no Estúdio de Criação (Publicar vaga), o título da barra (\"Publicar vaga\", \"n de 3\") é item principal da barra de navegação e não acompanha o Dynamic Type além do limite da barra, como o título do sistema; as pílulas \"Prévia\" e \"Publicar vaga\" do dock têm altura fixa e uma linha por desenho da origem (FrilaLPEPillButtonStyle), assim como os campos fechados da roleta de categoria e função (FrilaLPECoupledRolePicker, lineLimit(1)), e a auditoria os aponta como cortados nos tamanhos de acessibilidade; ao auditar com o formulário rolado (Mais opções), os textos das etapas anteriores, rolados sob o cabeçalho fixo, também aparecem como cortados. Os tamanhos de acessibilidade do estúdio ficam para a Fase 4 da missão hi-fi (hifi/ESTUDO-E-PLANO.md)"
     private static let cadastroBotaoSairNaBarra = "o botão Sair da barra do cadastro do estabelecimento não acompanha o Dynamic Type por desenho do sistema iOS (item de toolbar); achado do #494 registrado para o Nick Fury"
     private static let porQueReceboVagasBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
     private static let ajudaDoPerfilAchados = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
