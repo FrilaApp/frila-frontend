@@ -13,7 +13,7 @@ Snapshots deste levantamento:
 | FrilaLowPhase, fonte | `origin/main` | `cfe8a64377bb01fc18f70b8fde28d99893db0064` |
 | frila-frontend, destino | `origin/main` | `4d19e74f3f1c1991f5f15d9807ca6fe161aa631e` |
 
-Toda leitura do FrilaLowPhase usou `git show origin/main:<arquivo>`; o checkout local sujo não serviu como referência. Paths de origem abaixo são relativos à raiz desse repositório, nesse commit.
+As fontes são os snapshots de origin/main fixados pelos SHAs da tabela. Paths de origem abaixo são relativos à raiz de cada repositório, no respectivo SHA.
 
 - **R:** `RULES.md`, §1, §§3.1–3.5: guardrails, acessibilidade, formulários, M1–M21, seis pilares e movimento.
 - **T:** `docs/design-system/tokens.json`: papéis de cor, geometria, paradigmas e exemplos. Não transportar tecnologia web nem converter unidades de exemplos automaticamente.
@@ -228,4 +228,4 @@ Aprovadas pelo usuário em 24/10/2026. As quatro questões estão encerradas, se
 
 ## 10. Evidência da referência
 
-Worktree `~/dev/frila-frontend--hifi-ref`, branch `docs/hifi-referencia`, de origin/main do destino. Inventário `/tmp/HIFI-01-inventario.md` e correção factual `/tmp/HIFI-01-fatos-verificados.md`; o segundo corrige caminhos, cores e equivalências indevidas do primeiro. Preparação do worktree apenas por xcodegen; sem xcodebuild, testes, captura ou implementação. Único arquivo de entrega: este documento, com commit autorizado após aprovação. Sem push ou PR nesta etapa; publicação conjunta com ESTADO.md depende da aprovação do usuário. Conversões continuam exigindo validação própria.
+A régua foi destilada de `FrilaLowPhase@cfe8a64377bb01fc18f70b8fde28d99893db0064`: `RULES.md` §1 e §§3.1–3.5, os documentos de `docs/design-system/` citados na §1 e as primitivas Swift que eles referenciam. A correspondência no app foi conferida em `frila-frontend@4d19e74f3f1c1991f5f15d9807ca6fe161aa631e`, nos arquivos de `iOS/Sources/Apresentacao/DesignSystem/` identificados nas §§3–7. O estado de aplicação é documentado separadamente em [ESTADO.md](ESTADO.md). Esta entrega é documental, sem compilação, testes, captura ou implementação; aprova a régua e as decisões da §9, sem aprovar conversões.
