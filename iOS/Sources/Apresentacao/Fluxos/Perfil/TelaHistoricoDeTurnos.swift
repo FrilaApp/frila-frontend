@@ -1,7 +1,7 @@
 import FrilaDominio
 import SwiftUI
 
-/// Histórico de turnos (#23), no quadro "ExportarDados" do MidFi do Fabrício: período em chips, formato e Exportar.
+/// Histórico de turnos (#23), com seções editoriais e fios do Hi-Fi.
 public struct TelaHistoricoDeTurnos: View {
     @State private var model: HistoricoDeTurnosViewModel
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
@@ -72,7 +72,10 @@ public struct TelaHistoricoDeTurnos: View {
     private var secaoPeriodo: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosHistoricoDeTurnos.periodo)
-                .font(FrilaTipo.resumo)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .accessibilityLabel(Text(verbatim: TextosHistoricoDeTurnos.periodo))
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             // Os três numa linha; no iPhone SE, dois e um; no maior texto, um por linha.
@@ -99,6 +102,9 @@ public struct TelaHistoricoDeTurnos: View {
                     .accessibilityIdentifier("historico-periodo-invalido")
             }
         }
+        .padding(.vertical, FrilaEspaco.medio)
+        .overlay(alignment: .top) { DivisoriaDeLinha() }
+        .overlay(alignment: .bottom) { DivisoriaDeLinha() }
         .disabled(model.estaCarregando)
     }
 
@@ -150,7 +156,10 @@ public struct TelaHistoricoDeTurnos: View {
     private var secaoFormato: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosHistoricoDeTurnos.formato)
-                .font(FrilaTipo.resumo)
+                .font(FrilaTipo.microRotulo)
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .accessibilityLabel(Text(verbatim: TextosHistoricoDeTurnos.formato))
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             if dynamicTypeSize.isAccessibilitySize {
@@ -177,6 +186,8 @@ public struct TelaHistoricoDeTurnos: View {
                 .accessibilityIdentifier("historico-formato")
             }
         }
+        .padding(.bottom, FrilaEspaco.medio)
+        .overlay(alignment: .bottom) { DivisoriaDeLinha() }
         .disabled(model.estaCarregando)
     }
 
