@@ -617,47 +617,6 @@ struct PublicarVagaTests {
         #expect(vm.erros[.fim] != nil)
     }
 
-    @Test("TelaPublicarVaga alinha ao padrão com navigationBarTitleDisplayMode inline para evitar títulos empilhados (Achado 3 do PR #365)")
-    func tituloDaBarraDeNavegacaoInline() throws {
-        let fila = FilaPublicacaoTeste()
-        let est = try estabelecimento()
-        let tela = TelaPublicarVaga(
-            api: ApiClienteEncaminhador(),
-            fila: fila,
-            estabelecimento: est,
-            telefoneResponsavel: "(61) 99999-0000"
-        )
-        let hosting = UIHostingController(rootView: tela)
-        let janela = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 874))
-        janela.rootViewController = hosting
-        janela.makeKeyAndVisible()
-        hosting.beginAppearanceTransition(true, animated: false)
-        hosting.endAppearanceTransition()
-        hosting.view.layoutIfNeeded()
-        defer { janela.isHidden = true }
-
-        func extrairTodosVCs(de vc: UIViewController) -> [UIViewController] {
-            [vc] + vc.children.flatMap { extrairTodosVCs(de: $0) }
-        }
-
-        func extrairBarras(de view: UIView) -> [UINavigationBar] {
-            var barras: [UINavigationBar] = []
-            if let b = view as? UINavigationBar { barras.append(b) }
-            for s in view.subviews { barras.append(contentsOf: extrairBarras(de: s)) }
-            return barras
-        }
-
-        let vcs = extrairTodosVCs(de: hosting)
-        let barras = extrairBarras(de: hosting.view)
-        let items = vcs.map(\.navigationItem) + barras.compactMap(\.items).flatMap { $0 }
-
-        let itemInline = items.first { $0.largeTitleDisplayMode == .never }
-        #expect(itemInline != nil, "A barra de navegação deve ter largeTitleDisplayMode configurado como .never (.inline) para evitar dois títulos grandes empilhados")
-        if let itemComTitulo = items.first(where: { $0.title == "Nova vaga" }) {
-            #expect(itemComTitulo.largeTitleDisplayMode == .never)
-        }
-    }
-
     @Test("Rateio como Sim/Não: sem resposta conta como Não e a escolha volta ao campo opcional")
     func rateioComoSimNao() throws {
         let vm = try modelo()

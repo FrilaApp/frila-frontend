@@ -195,7 +195,7 @@ struct TelaTurnoDoContratante: View {
 
         AvisosDoAcompanhamento(viewModel: viewModel)
 
-        Text(verbatim: TextosDoAcompanhamento.chegada).font(FrilaTipo.tituloDoCartao).accessibilityAddTraits(.isHeader)
+        Text(verbatim: TextosDoAcompanhamento.chegada).font(FrilaTipo.secao).accessibilityAddTraits(.isHeader)
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             chegada(turno)
         }
@@ -519,7 +519,7 @@ struct PendenciasDoContratante: View {
 
     private func secao(_ titulo: String, id: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo).font(FrilaTipo.tituloDoCartao).accessibilityAddTraits(.isHeader)
+            Text(verbatim: titulo).font(FrilaTipo.secao).accessibilityAddTraits(.isHeader)
             conteudo()
         }
         .accessibilityElement(children: .contain)

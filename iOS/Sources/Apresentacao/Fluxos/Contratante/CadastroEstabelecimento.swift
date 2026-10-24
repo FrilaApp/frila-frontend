@@ -501,7 +501,7 @@ public struct TelaCadastroEstabelecimento: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(bordaDoCampo(.nome))
             .accessibilityLabel(Text(verbatim: TextosCadastro.nomeCampo))
 
@@ -543,7 +543,7 @@ public struct TelaCadastroEstabelecimento: View {
                 .padding(.horizontal, FrilaEspaco.medio)
                 .padding(.vertical, FrilaEspaco.pequeno)
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
                 .overlay(bordaDoCampo(.tipo))
             }
             .accessibilityLabel(Text(verbatim: TextosCadastro.tipo))
@@ -570,7 +570,7 @@ public struct TelaCadastroEstabelecimento: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(bordaDoCampo(.documento))
 
             mensagemDeErroAbaixo(do: .documento)
@@ -627,7 +627,7 @@ public struct TelaCadastroEstabelecimento: View {
             .padding(.leading, FrilaEspaco.medio)
             .padding(.trailing, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(bordaDoCampo(.endereco))
 
             mensagemDeErroAbaixo(do: .endereco)
@@ -651,8 +651,8 @@ public struct TelaCadastroEstabelecimento: View {
                             .padding(.horizontal, FrilaEspaco.medio)
                             .padding(.vertical, FrilaEspaco.pequeno)
                             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
                             .contentShape(Rectangle())
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
@@ -705,7 +705,7 @@ public struct TelaCadastroEstabelecimento: View {
                 .padding(.horizontal, FrilaEspaco.medio)
                 .padding(.vertical, FrilaEspaco.pequeno)
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
                 .overlay(bordaDoCampo(.regiaoAdministrativa))
             }
             .accessibilityLabel(Text(verbatim: TextosCadastro.regiaoAdministrativa))
@@ -834,8 +834,8 @@ public struct TelaCadastroEstabelecimento: View {
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
 
             Text(verbatim: formatarTelefoneResponsavel(responsavelTelefone))
                 .font(FrilaTipo.meta)
@@ -900,7 +900,7 @@ public struct TelaCadastroEstabelecimento: View {
 
     private func bordaDoCampo(_ campo: CampoCadastro) -> some View {
         let temErro = temErroNoCampo(campo)
-        return RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+        return RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
             .strokeBorder(temErro ? FrilaCor.texto : FrilaCor.borda, lineWidth: temErro ? 2 : 1)
     }
 
