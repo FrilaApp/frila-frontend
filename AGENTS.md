@@ -4,7 +4,7 @@ Instruções para agentes de IA neste repositório. A seção 1 vale para todos.
 
 ## 1. Para todos os agentes
 
-- **Regras de código e design** moram nos documentos do próprio repo: `iOS/README.md`, `iOS/Docs/GuiaDoFabricio.md`, `iOS/Docs/DesignSystem.md` e, para telas, `iOS/Docs/MidFi/DESIGN.md` e `iOS/Docs/MidFi/FLUXOS.md`. Este arquivo não as repete.
+- **Regras de código e design** moram nos documentos do próprio repo: `iOS/README.md`, `iOS/Docs/GuiaDoFabricio.md`, `iOS/Docs/DesignSystem.md` e, para telas, `iOS/Docs/HiFi/REFERENCIA.md` e `iOS/Docs/HiFi/ESTADO.md`. Este arquivo não as repete.
 - **Branch nova sempre a partir de `origin/main`**, um worktree por branch. A `main` é protegida: só entra por PR.
 - **`Frila.xcodeproj` não é versionado.** Em todo clone ou worktree novo, e depois de trocar de branch, rode `iOS/Scripts/gerar-projeto.sh`.
 - Proibido: force push, apagar a `main`, `git reset --hard` ou `git clean` em trabalho que não é seu.
@@ -70,11 +70,18 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 - **Devolução** (AGY → Codex, uma por rodada, até 15 linhas): `ID/rN | ok, bloqueado ou falhou | arquivos | comandos e saídas | bloqueio`. Não invente sucesso.
 - **Codex → Claude, só nos marcos e em até 5 linhas:** assumido; pronto para integrar (PR, gate, aceite técnico); bloqueio; decisão de produto com as opções.
 - No máximo 2 rodadas de correção por tarefa; na terceira, muda a abordagem ou sobe ao Claude. Sem tarefa: aguarde, sem polling.
-- `maestri ask` pode voltar antes de o agente terminar: confirme pelo diff e por `maestri check`. Depois de `/clear`, confira a caixa pronta antes do `ask`.
 
 ### 2.7 Demo pós-iteração
 
 - Depois do gate verde e antes do marco "pronto para integrar", o Codex do Log pede ao mesmo AGY: compilar a branch do Log (`Frila-Local`) no simulador **Frila Demo** (UDID `907B7EAE-82FB-439F-8054-B0CB496A222D`), instalar e abrir o app **na tela alvo** só por argumentos de lançamento e cenários que já existem (sem clicar, sem mudar código), e deixar o app aberto sem rodar mais testes nesse simulador.
 - O marco "pronto para integrar" passa a trazer também `demo: <UDID> | <argumentos> | <tela alcançada ou o toque que falta>` e um contexto de até 4 linhas para o usuário: o que mudou, o que conferir e as ressalvas.
 - O Claude abre a demo com `~/dev/frila-orquestra/demo.sh`: um único portal de simulador e uma única nota ("Demo atual") no canvas; a demo anterior fecha sozinha.
-- **Dois simuladores, papéis fixos:** "Frila Demo" só para demos (nunca para testes) e "iPhone 18 Pro" (UDID `2AF3E1DE-44A3-433F-B09B-CDC8E0BD8737`) só para gates. Assim um gate não espera a demo. Ninguém cria outro simulador.
+
+### 2.8 Lições
+
+- Antes de rascunhar um Log, rode `gh pr list` e compare os arquivos com os PRs abertos; Log com sobreposição espera.
+- O Log declara `iOS/Docs/HiFi/REFERENCIA.md` como referência de design; o Codex a confere em `origin/main` antes de detalhar a solução.
+- `ask` volta cedo e `/clear` pode engolir o ask seguinte: confirme a caixa pronta, a entrega por `maestri check` e o diff, sem polling.
+- `Frila.xcodeproj` não é versionado: rode `iOS/Scripts/gerar-projeto.sh` por worktree. iOS 26.4 não existe aqui: gate no iPhone 18 Pro (iOS 27.0; UDID `2AF3E1DE-44A3-433F-B09B-CDC8E0BD8737`), demo no Frila Demo; papéis exclusivos, sem criar outro simulador.
+- Na retomada pós-reset, o estado do andar vive na Fila de Logs e no `git status` do worktree, não na conversa.
+- Devolução longa vai para arquivo; a mensagem leva só o caminho.
