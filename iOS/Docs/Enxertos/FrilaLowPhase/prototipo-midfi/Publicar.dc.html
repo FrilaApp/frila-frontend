@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Publicar vaga</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',system-ui,sans-serif;color:#111110;background:#F2F2F0;-webkit-font-smoothing:antialiased}
+a{color:#111110}a:hover{color:#000000}
+main>*,[role="dialog"]>*{flex-shrink:0}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; background: #5E5D59; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111110;">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 0 28px 0 40px; flex-shrink: 0; font-size: 17px; font-weight: 600; color: #FFFFFF;"><span>9:41</span><span aria-hidden="true" style="display: flex; align-items: center; gap: 6px;"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"></rect><rect x="5" y="5.5" width="3" height="6.5" rx="1"></rect><rect x="10" y="3" width="3" height="9" rx="1"></rect><rect x="15" y="0" width="3" height="12" rx="1"></rect></svg><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.5a9.5 9.5 0 0 1 13 0"></path><path d="M4 7.3a6 6 0 0 1 8 0"></path><circle cx="8" cy="10.2" r="1" fill="currentColor" stroke="none"></circle></svg><svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.4"></rect><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"></rect><path d="M25 4.5v4" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5" stroke-linecap="round"></path></svg></span></div>
+<div aria-hidden="true" style="position: absolute; left: 12px; right: 12px; top: 48px; height: 40px; border-radius: 28px 28px 0 0; background: rgba(255,255,255,0.35);"></div>
+<section aria-label="Nova vaga" style="position: absolute; left: 0; right: 0; top: 58px; bottom: 0; display: flex; flex-direction: column; border-radius: 28px 28px 0 0; background: #F2F2F0; overflow: hidden; width: 392px">
+<div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; margin-top: 8px; border-radius: 3px; background: #D1D0CC; flex-shrink: 0;"></div>
+<header style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; height: 52px; padding: 0 8px; flex-shrink: 0;"><sc-if value="{{ podeCancelar }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ pedirDescarte }}" style="display: flex; align-items: center; justify-self: start; height: 44px; padding: 0 8px; border: none; background: none; font-family: inherit; font-size: 17px; color: #111110; text-decoration: none; cursor: pointer;">Cancelar</button></sc-if><sc-if value="{{ publicada }}" hint-placeholder-val="{{ false }}"><a href="Acompanhar.dc.html" style="display: flex; align-items: center; justify-self: start; height: 44px; padding: 0 8px; border: none; background: none; font-family: inherit; font-size: 17px; color: #111110; text-decoration: none; cursor: pointer;">Fechar</a></sc-if><h1 style="margin: 0; justify-self: center; font-size: 17px; font-weight: 600; line-height: 22px; white-space: nowrap;">{{ topoTitulo }}</h1><span></span></header>
+<main style="flex-grow: 1; overflow-y: auto; padding: 8px 16px 200px; display: flex; flex-direction: column;">
+<sc-if value="{{ temBanner }}" hint-placeholder-val="{{ false }}"><div role="note" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; margin-bottom: 16px; border-radius: 16px; background: #E8E7E3; font-size: 15px; line-height: 20px; color: #111110;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg><div style="display: flex; flex-direction: column; gap: 2px;"><span><strong style="font-weight: 600;">Sem conexão.</strong> Você está vendo os dados salvos neste aparelho.</span><span style="font-size: 13px; line-height: 18px; color: #5C5B57;">Última atualização hoje, às 9:30.</span></div></div></sc-if>
+<sc-if value="{{ carregando }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 72px 24px 0; text-align: center;"><div aria-hidden="true" style="display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 36px; background: #E8E7E3; color: #111110;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg></div><div role="status" style="display: flex; flex-direction: column; gap: 6px;"><h2 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 25px;">Carregando os dados do negócio.</h2></div></div></sc-if>
+<sc-if value="{{ erroSemCopia }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 72px 24px 0; text-align: center;"><div aria-hidden="true" style="display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 36px; background: #E8E7E3; color: #111110;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div><div role="alert" style="display: flex; flex-direction: column; gap: 6px;"><h2 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 25px;">Não foi possível carregar os dados do negócio.</h2><p style="margin: 0; font-size: 15px; line-height: 20px; color: #5C5B57;">Tente de novo.</p></div><button type="button" onClick="{{ tentarDeNovo }}" aria-disabled="{{ retryOcupado }}" style="display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px; border-radius: 22px; border: none; background: #111110; font-family: inherit; font-size: 15px; font-weight: 600; color: #FFFFFF; cursor: pointer;">{{ tentarTexto }}</button></div></sc-if>
+<sc-if value="{{ offlineSemCopia }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 72px 24px 0; text-align: center;"><div aria-hidden="true" style="display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 36px; background: #E8E7E3; color: #111110;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg></div><div role="alert" style="display: flex; flex-direction: column; gap: 6px;"><h2 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 25px;">Sem conexão</h2><p style="margin: 0; font-size: 15px; line-height: 20px; color: #5C5B57;">Não há dados salvos deste negócio no aparelho. Conecte-se à internet para carregar.</p></div><button type="button" onClick="{{ tentarDeNovo }}" aria-disabled="{{ retryOcupado }}" style="display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px; border-radius: 22px; border: none; background: #111110; font-family: inherit; font-size: 15px; font-weight: 600; color: #FFFFFF; cursor: pointer;">{{ tentarTexto }}</button></div></sc-if>
+<sc-if value="{{ comFormulario }}" hint-placeholder-val="{{ true }}"><sc-if value="{{ editando }}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 20px;"><sc-if value="{{ temBannerAviso }}" hint-placeholder-val="{{ false }}"><div role="note" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: #E8E7E3; font-size: 15px; line-height: 20px; color: #111110;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M4 16V6a2 2 0 0 1 2-2h10"></path></svg><span><strong style="font-weight: 600;">{{ bannerAvisoTitulo }}</strong> {{ bannerAvisoCorpo }}</span></div></sc-if>
+<div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><label for="funcao" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Função</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); padding: 0 14px;"><select id="funcao" style="-webkit-appearance: none; appearance: none; flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110; cursor: pointer;"><sc-if value="{{ isGarcomOuNova }}"><option selected>Garçom</option><option>Bartender</option><option>Cumim</option><option>Recepcionista</option><option>Auxiliar de cozinha</option><option>Promotor</option></sc-if><sc-if value="{{ isBartender }}"><option>Garçom</option><option selected>Bartender</option><option>Cumim</option><option>Recepcionista</option><option>Auxiliar de cozinha</option><option>Promotor</option></sc-if><sc-if value="{{ isCumim }}"><option>Garçom</option><option>Bartender</option><option selected>Cumim</option><option>Recepcionista</option><option>Auxiliar de cozinha</option><option>Promotor</option></sc-if></select><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;"><div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><span id="posicoes-rotulo" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Posições</span><sc-if value="{{ podeAlterarPosicoes }}" hint-placeholder-val="{{ true }}"><div role="group" aria-labelledby="posicoes-rotulo" style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); justify-content: space-between; padding: 0 2px;"><button type="button" onClick="{{ menos }}" aria-label="Diminuir posições" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: none; background: none; cursor: pointer;"><span style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 16px; background: #E8E7E3; font-size: 20px; font-weight: 600; line-height: 1; color: #111110;">−</span></button><span aria-live="polite" style="font-size: 17px; font-weight: 600;">{{ posicoes }}</span><button type="button" onClick="{{ mais }}" aria-label="Aumentar posições" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: none; background: none; cursor: pointer;"><span style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 16px; background: #E8E7E3; font-size: 20px; font-weight: 600; line-height: 1; color: #111110;">+</span></button></div></sc-if><sc-if value="{{ isRepublicacao }}" hint-placeholder-val="{{ false }}"><div style="display: flex; align-items: center; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14);"><span aria-live="polite" style="font-size: 17px; font-weight: 600; color: #111110;">{{ posicoes }}</span></div></sc-if></div><div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><label for="valor" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Valor por pessoa</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); padding: 0 14px; gap: 6px;"><span style="font-size: 17px; color: #5C5B57;">R$</span><input id="valor" type="text" inputmode="decimal" value="{{ valorFormatado }}" onChange="{{ mudarValor }}" onInput="{{ mudarValor }}" style="flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110;"></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px;"><span style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Quando</span><div style="display: flex; flex-wrap: wrap; column-gap: 8px;"><button type="button" onClick="{{ dia_hoje }}" aria-pressed="{{ on_hoje }}" style="display: flex; align-items: center; height: 44px; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid {{ borda_hoje }}; background: {{ fundo_hoje }}; box-sizing: border-box; font-size: 15px; font-weight: 600; color: {{ cor_hoje }};">Hoje, sex 25/09</span></button><button type="button" onClick="{{ dia_amanha }}" aria-pressed="{{ on_amanha }}" style="display: flex; align-items: center; height: 44px; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid {{ borda_amanha }}; background: {{ fundo_amanha }}; box-sizing: border-box; font-size: 15px; font-weight: 600; color: {{ cor_amanha }};">Amanhã</span></button><button type="button" onClick="{{ dia_outra }}" aria-pressed="{{ on_outra }}" style="display: flex; align-items: center; height: 44px; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid {{ borda_outra }}; background: {{ fundo_outra }}; box-sizing: border-box; font-size: 15px; font-weight: 600; color: {{ cor_outra }};">Outra data</span></button></div>
+<sc-if value="{{ outraData }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><label for="data" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Data</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); padding: 0 14px;"><select id="data" onChange="{{ mudarOutraData }}" onInput="{{ mudarOutraData }}" style="-webkit-appearance: none; appearance: none; flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110; cursor: pointer;"><sc-if value="{{ isOutraDom }}"><option selected value="Dom, 27/09">Dom, 27/09</option><option value="Seg, 28/09">Seg, 28/09</option><option value="Ter, 29/09">Ter, 29/09</option><option value="Qua, 30/09">Qua, 30/09</option></sc-if><sc-if value="{{ isOutraSeg }}"><option value="Dom, 27/09">Dom, 27/09</option><option selected value="Seg, 28/09">Seg, 28/09</option><option value="Ter, 29/09">Ter, 29/09</option><option value="Qua, 30/09">Qua, 30/09</option></sc-if><sc-if value="{{ isOutraTer }}"><option value="Dom, 27/09">Dom, 27/09</option><option value="Seg, 28/09">Seg, 28/09</option><option selected value="Ter, 29/09">Ter, 29/09</option><option value="Qua, 30/09">Qua, 30/09</option></sc-if><sc-if value="{{ isOutraQua }}"><option value="Dom, 27/09">Dom, 27/09</option><option value="Seg, 28/09">Seg, 28/09</option><option value="Ter, 29/09">Ter, 29/09</option><option selected value="Qua, 30/09">Qua, 30/09</option></sc-if></select><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 9l6 6 6-6"></path></svg></div></div></sc-if>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;"><div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><label for="inicio" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Início</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); padding: 0 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><select id="inicio" onChange="{{ mudarInicio }}" onInput="{{ mudarInicio }}" style="-webkit-appearance: none; appearance: none; flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110; cursor: pointer;"><sc-if value="{{ isGarcomOuNova }}"><option>17:00</option><option>17:30</option><option selected>18:00</option><option>18:30</option><option>19:00</option><option>19:30</option><option>20:00</option></sc-if><sc-if value="{{ isBartender }}"><option>17:00</option><option>17:30</option><option>18:00</option><option>18:30</option><option>19:00</option><option>19:30</option><option selected>20:00</option></sc-if><sc-if value="{{ isCumim }}"><option selected>11:00</option><option>17:00</option><option>17:30</option><option>18:00</option><option>18:30</option><option>19:00</option><option>19:30</option><option>20:00</option></sc-if></select><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 9l6 6 6-6"></path></svg></div></div><div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><label for="fim" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Fim</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); padding: 0 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><select id="fim" onChange="{{ mudarFim }}" onInput="{{ mudarFim }}" style="-webkit-appearance: none; appearance: none; flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110; cursor: pointer;"><sc-if value="{{ isGarcomOuNova }}"><option>23:00</option><option>00:00</option><option>01:00</option><option selected>02:00</option><option>03:00</option></sc-if><sc-if value="{{ isBartender }}"><option>23:00</option><option>00:00</option><option>01:00</option><option>02:00</option><option selected>03:00</option></sc-if><sc-if value="{{ isCumim }}"><option selected>17:00</option><option>23:00</option><option>00:00</option><option>01:00</option><option>02:00</option><option>03:00</option></sc-if></select><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 9l6 6 6-6"></path></svg></div></div></div>
+<p style="display: flex; align-items: center; gap: 6px; margin: 0 4px; font-size: 13px; line-height: 18px; color: #111110;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>{{ terminaTexto }}</p></div>
+<div style="display: flex; flex-direction: column; gap: 8px;"><span style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Local</span><div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 12px 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg><span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0;"><span style="font-size: 17px; font-weight: 600; line-height: 22px;">Bar da Quadra</span><span style="font-size: 15px; line-height: 20px; color: #5C5B57;">CLN 408, Bloco B, Asa Norte</span></span><a href="{{ linkTrocarLocal }}" style="display: flex; align-items: center; height: 44px; text-decoration: none;"><span style="display: flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.14); background: #FFFFFF; box-sizing: border-box; font-size: 15px; font-weight: 600; color: #111110;">Trocar</span></a></div><p style="margin: 0 4px; font-size: 13px; line-height: 18px; color: #5C5B57;">Ponto confirmado no mapa no cadastro. O check-in dos profissionais usa este ponto.</p></div>
+<div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><label for="recebe" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Quem recebe o profissional no local</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); padding: 0 14px;"><input id="recebe" type="text" value="{{ quemRecebe }}" onChange="{{ mudarQuemRecebe }}" onInput="{{ mudarQuemRecebe }}" style="flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110;"></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px;"><span style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">Inclusos e o que levar</span><div style="display: flex; flex-direction: column; padding-left: 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08);"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding-right: 16px; font-size: 17px; line-height: 22px; border-bottom: 1px solid rgba(0,0,0,0.08);"><span>Refeição inclusa</span><div role="group" aria-label="Refeição inclusa" style="display: flex; align-items: center; height: 44px; padding: 0 2px;"><div style="display: flex; gap: 2px; padding: 2px; border-radius: 18px; background: #E8E7E3;"><button type="button" onClick="{{ refSim }}" aria-pressed="{{ on_refS }}" style="display: flex; align-items: center; height: 44px; margin: -6px 0; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 16px; background: {{ fundo_refS }}; font-size: 15px; font-weight: 600; color: {{ cor_refS }};">Sim</span></button><button type="button" onClick="{{ refNao }}" aria-pressed="{{ on_refN }}" style="display: flex; align-items: center; height: 44px; margin: -6px 0; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 16px; background: {{ fundo_refN }}; font-size: 15px; font-weight: 600; color: {{ cor_refN }};">Não</span></button></div></div></div><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding-right: 16px; font-size: 17px; line-height: 22px; border-bottom: 1px solid rgba(0,0,0,0.08);"><span>Transporte incluso</span><div role="group" aria-label="Transporte incluso" style="display: flex; align-items: center; height: 44px; padding: 0 2px;"><div style="display: flex; gap: 2px; padding: 2px; border-radius: 18px; background: #E8E7E3;"><button type="button" onClick="{{ traSim }}" aria-pressed="{{ on_traS }}" style="display: flex; align-items: center; height: 44px; margin: -6px 0; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 16px; background: {{ fundo_traS }}; font-size: 15px; font-weight: 600; color: {{ cor_traS }};">Sim</span></button><button type="button" onClick="{{ traNao }}" aria-pressed="{{ on_traN }}" style="display: flex; align-items: center; height: 44px; margin: -6px 0; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 16px; background: {{ fundo_traN }}; font-size: 15px; font-weight: 600; color: {{ cor_traN }};">Não</span></button></div></div></div><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding-right: 16px; font-size: 17px; line-height: 22px;"><span>Precisa levar material</span><div role="group" aria-label="Precisa levar material" style="display: flex; align-items: center; height: 44px; padding: 0 2px;"><div style="display: flex; gap: 2px; padding: 2px; border-radius: 18px; background: #E8E7E3;"><button type="button" onClick="{{ matSim }}" aria-pressed="{{ on_matS }}" style="display: flex; align-items: center; height: 44px; margin: -6px 0; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 16px; background: {{ fundo_matS }}; font-size: 15px; font-weight: 600; color: {{ cor_matS }};">Sim</span></button><button type="button" onClick="{{ matNao }}" aria-pressed="{{ on_matN }}" style="display: flex; align-items: center; height: 44px; margin: -6px 0; padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;"><span style="display: flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 16px; background: {{ fundo_matN }}; font-size: 15px; font-weight: 600; color: {{ cor_matN }};">Não</span></button></div></div></div></div><sc-if value="{{ levaMaterial }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;"><label for="material" style="margin: 0 4px; font-size: 15px; font-weight: 600; line-height: 20px;">O que levar</label><div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.14); padding: 0 14px;"><input id="material" type="text" value="{{ oqueLevar }}" onChange="{{ mudarOqueLevar }}" onInput="{{ mudarOqueLevar }}" placeholder="Ex.: abridor, avental preto" style="flex-grow: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 17px; color: #111110;"></div></div></sc-if></div>
+<a href="{{ linkMaisOpcoes }}" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px; padding: 8px 16px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); background: #FFFFFF;  font-size: 17px; color: #111110; text-align: left;  text-decoration: none;"><span style="display: flex; flex-direction: column; gap: 2px;"><span>Mais opções</span><span style="font-size: 13px; line-height: 18px; color: #5C5B57;">Traje, rateio dos 10%, observações e aviso se a vaga seguir vazia (3 h antes)</span></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: #5C5B57; opacity: 0.6;"><path d="M9 6l6 6-6 6"></path></svg></a>
+</div></sc-if></sc-if><sc-if value="{{ publicada }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 20px; padding-top: 48px;"><div aria-hidden="true" style="display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 36px; background: #E8E7E3;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M5 12l5 5 9-10"></path></svg></div><div style="display: flex; flex-direction: column; gap: 6px;"><h2 style="margin: 0; font-size: 28px; font-weight: 700; line-height: 34px;">{{ tituloConclusao }}</h2><p style="margin: 0; font-size: 17px; line-height: 22px; color: #5C5B57;">{{ publicadaTexto }} Os profissionais da região estão sendo avisados agora.</p></div><div role="note" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: #E8E7E3; font-size: 15px; line-height: 20px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg><span><strong style="font-weight: 600;">Pode fechar o app.</strong> {{ avisoPos }}</span></div></div></sc-if>
+</main>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 34px; background: rgba(255,255,255,0.78); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); box-shadow: inset 0 1px 0 rgba(0,0,0,0.08);"><sc-if value="{{ barraEdicao }}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 10px;"><p style="margin: 0; font-size: 15px; font-weight: 600; line-height: 20px;">{{ resumo }}</p><div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;"><div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 22px; font-weight: 700; line-height: 28px;">{{ total }}</span><span style="margin: 0; font-size: 13px; line-height: 18px; color: #5C5B57;">{{ resumoTotal }}</span></div><button type="button" onClick="{{ publicar }}" aria-disabled="{{ botaoPublicarDesabilitado }}" style="height: 52px; padding: 0 24px; border-radius: 26px; border: none; background: {{ fundoPublicar }}; font-family: inherit; font-size: 17px; font-weight: 600; color: #FFFFFF; cursor: {{ cursorPublicar }};">Publicar vaga</button></div><sc-if value="{{ emMenosDe3h }}" hint-placeholder-val="{{ false }}"><p style="display: gap: 8px; align-items: flex-start; margin: 0; font-size: 13px; line-height: 18px; color: #111110;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span><strong style="font-weight: 600;">Começa em menos de 3 horas.</strong> Não haverá o aviso de 3 h antes: enquanto seguir vazia, a vaga fica em Precisa de atenção, em Minhas vagas.</span></p></sc-if><p style="margin: 0; font-size: 13px; line-height: 18px; color: #5C5B57;">O primeiro profissional elegível que aceitar será confirmado automaticamente, sem você precisar aprovar.</p></div></sc-if><sc-if value="{{ enviando }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 10px;"><div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;"><div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 17px; font-weight: 600; line-height: 22px;">Enviando em {{ restante }} s</span><span style="margin: 0; font-size: 13px; line-height: 18px; color: #5C5B57;">Ainda dá para desfazer e corrigir.</span></div><button type="button" onClick="{{ desfazer }}" style="height: 52px; padding: 0 24px; border-radius: 26px; border: 1px solid rgba(0,0,0,0.14); background: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 600; color: #111110; cursor: pointer;">Desfazer</button></div><div aria-hidden="true" style="height: 4px; border-radius: 2px; background: #E8E7E3; overflow: hidden;"><div style="width: {{ progresso }}; height: 100%; background: #111110;"></div></div></div></sc-if><sc-if value="{{ publicada }}" hint-placeholder-val="{{ false }}"><a href="Acompanhar.dc.html" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: #111110; color: #FFFFFF; font-size: 17px; font-weight: 600; text-decoration: none;">Ver minhas vagas</a></sc-if></div>
+<sc-if value="{{ descartando }}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0; z-index: 6;"><div onClick="{{ continuar }}" aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,0.28);"></div><section role="alertdialog" aria-label="Descartar vaga" style="position: absolute; left: 8px; right: 8px; bottom: 30px; display: flex; flex-direction: column; gap: 12px; padding: 20px 16px 16px; border-radius: 28px; background: #FFFFFF;"><div style="display: flex; flex-direction: column; gap: 4px; text-align: center;"><h2 style="margin: 0; font-size: 17px; font-weight: 600; line-height: 22px;">Descartar esta vaga?</h2><p style="margin: 0; font-size: 13px; line-height: 18px; color: #5C5B57;">O que você preencheu não fica salvo.</p></div><a href="{{ linkDescartar }}" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: #D70015; color: #FFFFFF; font-size: 17px; font-weight: 600; text-decoration: none;">Descartar vaga</a><button type="button" onClick="{{ continuar }}" style="height: 52px; padding: 0 24px; border-radius: 26px; border: 1px solid rgba(0,0,0,0.14); background: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 600; color: #111110; cursor: pointer;">Continuar editando</button></section></div></sc-if>
+</section>
+<div aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; z-index: 5; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: #111110;"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"estado": {"editor": "enum", "options": ["disponível", "carregando", "erro", "offline com cópia", "offline sem cópia"], "default": "disponível", "section": "Estado de leitura"}, "origem": {"editor": "enum", "options": ["nova", "cópia de vaga anterior"], "default": "nova", "section": "Origem"}, "copia": {"editor": "enum", "options": ["nenhuma", "Garçom", "Bartender", "Cumim"], "default": "nenhuma", "section": "Cópia"}, "republicacao": {"editor": "enum", "options": ["nenhuma", "Garçom", "Cumim"], "default": "nenhuma", "section": "Republicação"}, "retorno": {"editor": "enum", "options": ["vagas", "turnos"], "default": "vagas", "section": "Origem do descarte"}, "inicio": {"editor": "enum", "options": ["com antecedência", "em menos de 3 h"], "default": "com antecedência", "section": "Início do turno"}, "$preview": {"width": 390, "height": 844}}'>
+const CONFIGS_COPIA = {
+  'Garçom': {
+    funcao: 'Garçom',
+    plural: 'Garçons',
+    posicoes: 2,
+    valor: 140,
+    valorFormatado: '140,00',
+    horaIni: '18h',
+    horaFim: '02h',
+    viraNoite: true,
+    quemRecebe: 'Renata, no balcão',
+    refeicao: true,
+    transporte: false,
+    material: false,
+    oqueLevar: '',
+    bannerTitulo: 'Cópia de Garçom, sex 18/09.',
+    bannerCorpo: 'Escolha a nova data e confira os dados antes de publicar. A vaga anterior não muda.',
+    linkMaisOpcoes: 'MaisOpcoesCopiaGarcom.dc.html',
+    linkTrocarLocal: 'TrocarLocalCopiaGarcom.dc.html'
+  },
+  'Bartender': {
+    funcao: 'Bartender',
+    plural: 'Bartenders',
+    posicoes: 1,
+    valor: 180,
+    valorFormatado: '180,00',
+    horaIni: '20h',
+    horaFim: '03h',
+    viraNoite: true,
+    quemRecebe: 'Lia Exemplo, no balcão',
+    refeicao: true,
+    transporte: true,
+    material: true,
+    oqueLevar: 'Abridor de garrafas',
+    bannerTitulo: 'Cópia de Bartender, sáb 19/09.',
+    bannerCorpo: 'Escolha a nova data e confira os dados antes de publicar. A vaga anterior não muda.',
+    linkMaisOpcoes: 'MaisOpcoesCopiaBartender.dc.html',
+    linkTrocarLocal: 'TrocarLocalCopiaBartender.dc.html'
+  },
+  'Cumim': {
+    funcao: 'Cumim',
+    plural: 'Cumins',
+    posicoes: 1,
+    valor: 120,
+    valorFormatado: '120,00',
+    horaIni: '11h',
+    horaFim: '17h',
+    viraNoite: false,
+    quemRecebe: 'Davi Exemplo, na entrada',
+    refeicao: true,
+    transporte: false,
+    material: false,
+    oqueLevar: '',
+    bannerTitulo: 'Cópia de Cumim, qui 17/09.',
+    bannerCorpo: 'Escolha a nova data e confira os dados antes de publicar. A vaga anterior não muda.',
+    linkMaisOpcoes: 'MaisOpcoesCopiaCumim.dc.html',
+    linkTrocarLocal: 'TrocarLocalCopiaCumim.dc.html'
+  },
+  'nenhuma': {
+    funcao: 'Garçom',
+    plural: 'Garçons',
+    posicoes: 2,
+    valor: 140,
+    valorFormatado: '140,00',
+    horaIni: '18h',
+    horaFim: '02h',
+    viraNoite: true,
+    quemRecebe: 'Renata, no balcão',
+    refeicao: true,
+    transporte: false,
+    material: false,
+    oqueLevar: '',
+    bannerTitulo: '',
+    bannerCorpo: '',
+    linkMaisOpcoes: 'MaisOpcoes.dc.html',
+    linkTrocarLocal: 'TrocarLocal.dc.html'
+  }
+};
+
+const CONFIGS_REPUBLICACAO = {
+  'Garçom': {
+    funcao: 'Garçom',
+    plural: 'Garçons',
+    posicoes: 1,
+    valor: 140,
+    valorFormatado: '140,00',
+    horaIni: '18h',
+    horaFim: '02h',
+    viraNoite: true,
+    dia: 'hoje',
+    outraData: 'Dom, 27/09',
+    quemRecebe: 'Renata, no balcão',
+    refeicao: true,
+    transporte: false,
+    material: false,
+    oqueLevar: '',
+    topoTitulo: 'Republicação de Garçom, sex 25/09.',
+    bannerTitulo: 'Republicação de Garçom, sex 25/09.',
+    bannerCorpo: 'Ao republicar, a posição aberta é cancelada e sai uma vaga nova. O Paulo continua confirmado.',
+    linkMaisOpcoes: 'MaisOpcoesRepublicarGarcom.dc.html',
+    linkTrocarLocal: 'TrocarLocalRepublicarGarcom.dc.html',
+    linkDescartar: 'Acompanhar.dc.html',
+    tituloConclusao: 'Vaga republicada',
+    mencaoPaulo: true
+  },
+  'Cumim': {
+    funcao: 'Cumim',
+    plural: 'Cumins',
+    posicoes: 1,
+    valor: 120,
+    valorFormatado: '120,00',
+    horaIni: '11h',
+    horaFim: '17h',
+    viraNoite: false,
+    dia: 'outra',
+    outraData: 'Dom, 27/09',
+    quemRecebe: 'Renata, no balcão',
+    refeicao: true,
+    transporte: false,
+    material: false,
+    oqueLevar: '',
+    topoTitulo: 'Republicação de Cumim, dom 27/09.',
+    bannerTitulo: 'Republicação de Cumim, dom 27/09.',
+    bannerCorpo: 'Ao republicar, a posição aberta é cancelada e sai uma vaga nova.',
+    linkMaisOpcoes: 'MaisOpcoesRepublicarCumim.dc.html',
+    linkTrocarLocal: 'TrocarLocalRepublicarCumim.dc.html',
+    linkDescartar: 'Acompanhar.dc.html',
+    tituloConclusao: 'Vaga republicada',
+    mencaoPaulo: false
+  }
+};
+
+function getModoCopia(props) {
+  const pCopia = props.copia ?? 'nenhuma';
+  if (pCopia !== 'nenhuma' && CONFIGS_COPIA[pCopia]) return pCopia;
+  if ((props.origem ?? 'nova') === 'cópia de vaga anterior') return 'Garçom';
+  return 'nenhuma';
+}
+
+function getCenario(props) {
+  const pRep = props.republicacao ?? 'nenhuma';
+  if (pRep !== 'nenhuma' && CONFIGS_REPUBLICACAO[pRep]) {
+    return { tipo: 'republicacao', chave: pRep, cfg: CONFIGS_REPUBLICACAO[pRep] };
+  }
+  const modoCopia = getModoCopia(props);
+  return { tipo: modoCopia !== 'nenhuma' ? 'copia' : 'nova', chave: modoCopia, cfg: CONFIGS_COPIA[modoCopia] };
+}
+
+function formatarHora(h) {
+  if (!h) return '';
+  return String(h).replace(':00', 'h');
+}
+
+function parseValorMoeda(v) {
+  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  if (!v) return 0;
+  let str = String(v).trim().replace(/[^\d.,]/g, '');
+  if (!str) return 0;
+  if (str.includes('.') && str.includes(',')) {
+    if (str.lastIndexOf('.') < str.lastIndexOf(',')) {
+      str = str.replace(/\./g, '').replace(',', '.');
+    } else {
+      str = str.replace(/,/g, '');
+    }
+  } else if (str.includes(',')) {
+    str = str.replace(',', '.');
+  } else if (str.includes('.')) {
+    const parts = str.split('.');
+    if (parts.length > 2) {
+      str = parts.join('');
+    } else if (parts[1].length === 3) {
+      str = parts.join('');
+    }
+  }
+  const n = parseFloat(str);
+  return isNaN(n) ? 0 : n;
+}
+
+function formatarMoedaBR(n, originalStr) {
+  if (typeof n !== 'number' || isNaN(n)) return '0';
+  const temDecimaisNaOrigem = originalStr && /,\d+$/.test(String(originalStr).trim());
+  const temFracao = (n % 1 !== 0);
+  const casas = (temFracao || temDecimaisNaOrigem) ? 2 : 0;
+  const partes = n.toFixed(casas).split('.');
+  partes[0] = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return partes.join(',');
+}
+
+function horaParaMinutos(str) {
+  if (!str) return 0;
+  const s = String(str).trim();
+  const m = s.match(/^(\d{1,2})(?::(\d{2})|h(\d{2})?|h)?$/);
+  if (!m) {
+    const num = parseInt(s, 10);
+    return isNaN(num) ? 0 : num * 60;
+  }
+  const horas = parseInt(m[1], 10);
+  const minutos = parseInt(m[2] || m[3] || '0', 10);
+  return (horas * 60) + minutos;
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const cenario = getCenario(props);
+    const cfg = cenario.cfg;
+    const isRep = cenario.tipo === 'republicacao';
+    const isCopia = cenario.tipo === 'copia';
+    this.state = {
+      publicada: false,
+      enviando: false,
+      restante: 5,
+      descartando: false,
+      posicoes: cfg.posicoes,
+      dia: isRep ? cfg.dia : (isCopia ? null : 'hoje'),
+      outraData: cfg.outraData || 'Dom, 27/09',
+      valorFormatado: cfg.valorFormatado,
+      valorNumerico: cfg.valor,
+      horaIni: cfg.horaIni,
+      horaFim: cfg.horaFim,
+      quemRecebe: cfg.quemRecebe,
+      oqueLevar: cfg.oqueLevar,
+      refeicao: cfg.refeicao,
+      transporte: cfg.transporte,
+      material: cfg.material,
+      retrying: false
+    };
+    this._lastCenarioTipo = cenario.tipo;
+    this._lastCenarioChave = cenario.chave;
+    this._lastRetorno = (props.retorno || 'vagas').toLowerCase() === 'turnos' ? 'turnos' : 'vagas';
+    this._retryTimeout = null;
+  }
+  destroy() {
+    clearInterval(this.timer);
+    if (this._retryTimeout) {
+      clearTimeout(this._retryTimeout);
+      this._retryTimeout = null;
+    }
+    if (super.destroy) super.destroy();
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer);
+    if (this._retryTimeout) {
+      clearTimeout(this._retryTimeout);
+      this._retryTimeout = null;
+    }
+    if (super.componentWillUnmount) super.componentWillUnmount();
+  }
+  renderVals() {
+    function vals(chave, on) {
+      const o = {};
+      o['on_' + chave] = on;
+      o['fundo_' + chave] = on ? '#111110' : 'transparent';
+      o['cor_' + chave] = on ? '#FFFFFF' : '#111110';
+      return o;
+    }
+    function chip(chave, on) {
+      const o = {};
+      o['on_' + chave] = on;
+      o['fundo_' + chave] = on ? '#111110' : '#FFFFFF';
+      o['borda_' + chave] = on ? '#111110' : 'rgba(0,0,0,0.14)';
+      o['cor_' + chave] = on ? '#FFFFFF' : '#111110';
+      return o;
+    }
+    const cenario = getCenario(this.props);
+    const retorno = (this.props.retorno || 'vagas').toLowerCase() === 'turnos' ? 'turnos' : 'vagas';
+    if (this._lastCenarioTipo !== cenario.tipo || this._lastCenarioChave !== cenario.chave || this._lastRetorno !== retorno) {
+      this._lastCenarioTipo = cenario.tipo;
+      this._lastCenarioChave = cenario.chave;
+      this._lastRetorno = retorno;
+      const c = cenario.cfg;
+      const isRep = cenario.tipo === 'republicacao';
+      const isCopia = cenario.tipo === 'copia';
+      this.state.posicoes = c.posicoes;
+      this.state.dia = isRep ? c.dia : (isCopia ? null : 'hoje');
+      this.state.outraData = c.outraData || 'Dom, 27/09';
+      this.state.valorFormatado = c.valorFormatado;
+      this.state.valorNumerico = c.valor;
+      this.state.horaIni = c.horaIni;
+      this.state.horaFim = c.horaFim;
+      this.state.quemRecebe = c.quemRecebe;
+      this.state.oqueLevar = c.oqueLevar;
+      this.state.refeicao = c.refeicao;
+      this.state.transporte = c.transporte;
+      this.state.material = c.material;
+      this.state.publicada = false;
+      this.state.enviando = false;
+      this.state.restante = 5;
+      this.state.descartando = false;
+      this.state.retrying = false;
+      clearInterval(this.timer);
+      if (this._retryTimeout) {
+        clearTimeout(this._retryTimeout);
+        this._retryTimeout = null;
+      }
+    }
+    const cfg = cenario.cfg;
+    const isRepublicacao = cenario.tipo === 'republicacao';
+    const isCopia = cenario.tipo === 'copia';
+    const s = this.state;
+    const est = this.props.estado ?? 'disponível';
+    const retrying = s.retrying;
+    const carregando = est === 'carregando';
+    const erroSemCopia = est === 'erro';
+    const offlineSemCopia = est === 'offline sem cópia';
+    const offlineComCopia = est === 'offline com cópia';
+    const comFormulario = !carregando && !erroSemCopia && !offlineSemCopia;
+
+    const OUTRAS_OPCOES = {
+      'Dom, 27/09': { curto: 'dom 27/09', termina: 'seg 28/09' },
+      'Seg, 28/09': { curto: 'seg 28/09', termina: 'ter 29/09' },
+      'Ter, 29/09': { curto: 'ter 29/09', termina: 'qua 30/09' },
+      'Qua, 30/09': { curto: 'qua 30/09', termina: 'qui 01/10' },
+    };
+    const outraEscolhida = OUTRAS_OPCOES[s.outraData] || OUTRAS_OPCOES['Dom, 27/09'];
+
+    const DIAS = {
+      hoje: { curto: 'hoje, sex 25/09', termina: 'sáb 26/09' },
+      amanha: { curto: 'sáb 26/09', termina: 'dom 27/09' },
+      outra: outraEscolhida,
+    };
+
+    const temData = Boolean(s.dia);
+    const d = temData ? (DIAS[s.dia] || DIAS.hoje) : null;
+
+    const isGarcomOuNova = cenario.chave === 'Garçom' || (cenario.tipo === 'nova' && cenario.chave === 'nenhuma');
+    const isBartender = cenario.chave === 'Bartender';
+    const isCumim = cenario.chave === 'Cumim';
+
+    const horarioTexto = s.horaIni + ' às ' + s.horaFim;
+
+    const minIni = horaParaMinutos(s.horaIni);
+    const minFim = horaParaMinutos(s.horaFim);
+    const viraNoite = (minIni > 0 || minFim > 0)
+      ? (minFim < minIni)
+      : cfg.viraNoite;
+
+    const terminaTexto = temData
+      ? (viraNoite
+          ? 'Termina no dia seguinte: ' + d.termina + ', às ' + s.horaFim + '.'
+          : 'Termina no mesmo dia: ' + d.curto + ', às ' + s.horaFim + '.')
+      : 'Escolha uma nova data antes de publicar.';
+
+    const posicoesEfetivas = isRepublicacao ? 1 : s.posicoes;
+    const funcaoNome = posicoesEfetivas === 1 ? cfg.funcao : cfg.plural;
+    const dataTexto = temData ? d.curto : 'escolha a data';
+    const resumo = posicoesEfetivas + ' ' + funcaoNome + ', ' + dataTexto + ', ' + horarioTexto;
+
+    const valorNum = (typeof s.valorNumerico === 'number' && !isNaN(s.valorNumerico)) ? s.valorNumerico : parseValorMoeda(s.valorFormatado);
+    const valorTextoConclusao = formatarMoedaBR(valorNum, s.valorFormatado);
+
+    let publicadaTexto = '';
+    if (isRepublicacao && cenario.chave === 'Garçom') {
+      publicadaTexto = '1 posição aberta para Garçom, ' + (temData ? d.curto : 'hoje, sex 25/09') + ', ' + horarioTexto + ', R$ ' + valorTextoConclusao + ' por pessoa. O Paulo continua confirmado na vaga original.';
+    } else if (isRepublicacao && cenario.chave === 'Cumim') {
+      publicadaTexto = '1 posição aberta para Cumim, ' + (temData ? d.curto : 'dom 27/09') + ', ' + horarioTexto + ', R$ ' + valorTextoConclusao + ' por pessoa.';
+    } else {
+      publicadaTexto = temData
+        ? ((posicoesEfetivas === 1 ? '1 posição aberta' : posicoesEfetivas + ' posições abertas') + ' para ' + cfg.funcao + ', ' + d.curto + ', ' + horarioTexto + '.')
+        : '';
+    }
+
+    const podePublicar = !isCopia || temData;
+    const fundoPublicar = podePublicar ? '#111110' : '#8E8E93';
+    const cursorPublicar = podePublicar ? 'pointer' : 'default';
+    const botaoPublicarDesabilitado = !podePublicar;
+
+    const selOutra = s.outraData || 'Dom, 27/09';
+    const isOutraDom = selOutra === 'Dom, 27/09';
+    const isOutraSeg = selOutra === 'Seg, 28/09';
+    const isOutraTer = selOutra === 'Ter, 29/09';
+    const isOutraQua = selOutra === 'Qua, 30/09';
+
+    const linkDescartar = isRepublicacao ? 'Acompanhar.dc.html' : (retorno === 'turnos' ? 'TurnosContratante.dc.html' : 'Acompanhar.dc.html');
+    let linkMaisOpcoes = cfg.linkMaisOpcoes;
+    let linkTrocarLocal = cfg.linkTrocarLocal;
+    if (cenario.chave === 'Bartender' && retorno === 'turnos') {
+      linkMaisOpcoes = 'MaisOpcoesCopiaBartenderTurnos.dc.html';
+      linkTrocarLocal = 'TrocarLocalCopiaBartenderTurnos.dc.html';
+    }
+
+    const topoTitulo = isRepublicacao ? cfg.topoTitulo : 'Nova vaga';
+    const temBannerAviso = isCopia || isRepublicacao;
+    const bannerAvisoTitulo = cfg.bannerTitulo;
+    const bannerAvisoCorpo = cfg.bannerCorpo;
+    const tituloConclusao = isRepublicacao ? 'Vaga republicada' : 'Vaga publicada';
+
+    return Object.assign(
+      {},
+      vals('refS', s.refeicao), vals('refN', !s.refeicao),
+      vals('traS', s.transporte), vals('traN', !s.transporte),
+      vals('matS', s.material), vals('matN', !s.material),
+      chip('hoje', s.dia === 'hoje'), chip('amanha', s.dia === 'amanha'), chip('outra', s.dia === 'outra'),
+      {
+        carregando,
+        erroSemCopia,
+        offlineSemCopia,
+        temBanner: offlineComCopia,
+        comFormulario,
+        retryOcupado: retrying,
+        tentarTexto: retrying ? 'Tentando de novo...' : 'Tentar de novo',
+        tentarDeNovo: () => {
+          if (this.state.retrying) return;
+          if (this._retryTimeout) {
+            clearTimeout(this._retryTimeout);
+            this._retryTimeout = null;
+          }
+          this.setState({ retrying: true });
+          this._retryTimeout = setTimeout(() => {
+            this._retryTimeout = null;
+            this.setState({ retrying: false });
+          }, 1500);
+        },
+        publicada: s.publicada,
+        editando: !s.publicada,
+        podeCancelar: !s.publicada && !s.enviando,
+        barraEdicao: comFormulario && !s.publicada && !s.enviando,
+        enviando: s.enviando,
+        restante: s.restante,
+        progresso: ((5 - s.restante) * 20) + '%',
+        descartando: s.descartando && !s.publicada && !s.enviando,
+        linkDescartar,
+        outraData: s.dia === 'outra',
+        isOutraDom,
+        isOutraSeg,
+        isOutraTer,
+        isOutraQua,
+        mudarOutraData: (e) => {
+          const v = (e && e.target) ? e.target.value : e;
+          if (v) this.setState({ outraData: v, dia: 'outra' });
+        },
+        levaMaterial: s.material,
+        posicoes: posicoesEfetivas,
+        podeAlterarPosicoes: !isRepublicacao,
+        isRepublicacao,
+        copia: isCopia,
+        temBannerAviso,
+        bannerAvisoTitulo,
+        bannerAvisoCorpo,
+        bannerCopiaTitulo: bannerAvisoTitulo,
+        bannerCopiaCorpo: bannerAvisoCorpo,
+        topoTitulo,
+        tituloConclusao,
+        isGarcomOuNova,
+        isBartender,
+        isCumim,
+        valorFormatado: s.valorFormatado,
+        quemRecebe: s.quemRecebe,
+        oqueLevar: s.oqueLevar,
+        mudarValor: (e) => {
+          const v = (e && e.target) ? e.target.value : e;
+          if (v !== undefined) {
+            const num = parseValorMoeda(v);
+            this.setState({ valorFormatado: String(v), valorNumerico: num });
+          }
+        },
+        mudarInicio: (e) => {
+          const v = (e && e.target) ? e.target.value : e;
+          if (v) this.setState({ horaIni: formatarHora(v) });
+        },
+        mudarFim: (e) => {
+          const v = (e && e.target) ? e.target.value : e;
+          if (v) this.setState({ horaFim: formatarHora(v) });
+        },
+        mudarQuemRecebe: (e) => {
+          const v = (e && e.target) ? e.target.value : e;
+          if (v !== undefined) this.setState({ quemRecebe: String(v) });
+        },
+        mudarOqueLevar: (e) => {
+          const v = (e && e.target) ? e.target.value : e;
+          if (v !== undefined) this.setState({ oqueLevar: String(v) });
+        },
+        linkMaisOpcoes,
+        linkTrocarLocal,
+        emMenosDe3h: (this.props.inicio ?? 'com antecedência') === 'em menos de 3 h',
+        avisoPos: (this.props.inicio ?? 'com antecedência') === 'em menos de 3 h' ? 'Avisamos quando alguém confirmar. Enquanto seguir vazia, a vaga fica em Precisa de atenção.' : 'Avisamos quando alguém confirmar, e também 3 horas antes do início se a vaga seguir vazia.',
+        publicadaTexto,
+        resumo,
+        terminaTexto,
+        resumoTotal: posicoesEfetivas === 1 ? 'Valor de 1 pessoa, pago direto a ela' : 'Soma de ' + posicoesEfetivas + ' pessoas, pago direto a cada uma',
+        total: 'R$ ' + formatarMoedaBR(posicoesEfetivas * valorNum, s.valorFormatado),
+        fundoPublicar,
+        cursorPublicar,
+        botaoPublicarDesabilitado,
+        menos: () => {
+          if (isRepublicacao) return;
+          this.setState({ posicoes: Math.max(1, this.state.posicoes - 1) });
+        },
+        mais: () => {
+          if (isRepublicacao) return;
+          this.setState({ posicoes: Math.min(200, this.state.posicoes + 1) });
+        },
+        dia_hoje: () => this.setState({ dia: 'hoje' }),
+        dia_amanha: () => this.setState({ dia: 'amanha' }),
+        dia_outra: () => this.setState({ dia: 'outra' }),
+        publicar: () => {
+          if (!podePublicar) return;
+          clearInterval(this.timer);
+          this.setState({ enviando: true, descartando: false, restante: 5 });
+          this.timer = setInterval(() => {
+            const r = this.state.restante - 1;
+            if (r <= 0) { clearInterval(this.timer); this.setState({ enviando: false, publicada: true, restante: 0 }); }
+            else this.setState({ restante: r });
+          }, 1000);
+        },
+        desfazer: () => { clearInterval(this.timer); this.setState({ enviando: false, restante: 5 }); },
+        pedirDescarte: () => {
+          if (this.state.enviando || this.state.publicada) return;
+          this.setState({ descartando: true });
+        },
+        continuar: () => this.setState({ descartando: false }),
+        refSim: () => this.setState({ refeicao: true }), refNao: () => this.setState({ refeicao: false }),
+        traSim: () => this.setState({ transporte: true }), traNao: () => this.setState({ transporte: false }),
+        matSim: () => this.setState({ material: true }), matNao: () => this.setState({ material: false }),
+      }
+    );
+  }
+}
+</script>
+</body>
+</html>

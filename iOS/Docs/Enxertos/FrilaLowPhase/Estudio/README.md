@@ -70,7 +70,7 @@ da `TelaPublicarVaga`. Sem o argumento, e em Release, o fluxo atual fica igual.
 
 1. Apague `Sources/Apresentacao/Enxertos/FrilaLowPhase/Estudio/`, esta pasta e
    `Tests/Unitarios/EstudioFrilaLPETests.swift`.
-2. Em `PublicarVagaDaCasa.swift`, tire o bloco `#if DEBUG … #else` e deixe só a `TelaPublicarVaga`.
+2. Em `PublicarVagaDaCasa.swift`, tire o ramo `else if` do `-FRILA_ENXERTO_LOWPHASE_ESTUDIO`.
 3. Rode `Scripts/gerar-projeto.sh`.
 
 ## Licença da fonte

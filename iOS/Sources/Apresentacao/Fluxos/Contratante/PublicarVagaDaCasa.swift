@@ -97,7 +97,14 @@ public struct DestinoDePublicarVaga: View {
                 .background(FrilaCor.fundo.ignoresSafeArea())
             case let .pronta(estabelecimento, telefone):
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE_ESTUDIO") {
+                // Enxerto do FrilaLowPhase (Docs/Enxertos/FrilaLowPhase/README.md). Só abre com o argumento.
+                if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE") {
+                    TelaPublicarVagaFrilaLP(
+                        api: api, fila: fila, estabelecimento: estabelecimento,
+                        aoPublicar: aoPublicar, aoCancelar: cancelar
+                    )
+                } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ENXERTO_LOWPHASE_ESTUDIO") {
+                    // Estúdio de criação (Docs/Enxertos/FrilaLowPhase/Estudio/README.md)
                     TelaEstudioFrilaLPE(api: api, fila: fila, estabelecimento: estabelecimento, aoPublicar: aoPublicar, aoCancelar: cancelar)
                 } else {
                     TelaPublicarVaga(

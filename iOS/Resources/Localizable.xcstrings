@@ -9866,6 +9866,296 @@
           }
         }
       }
+    },
+    "Informe o valor por posição.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe o valor por posição."
+          }
+        }
+      }
+    },
+    "O fim precisa ser diferente do início.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O fim precisa ser diferente do início."
+          }
+        }
+      }
+    },
+    "Esse início já passou. Escolha outro horário ou outra data.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esse início já passou. Escolha outro horário ou outra data."
+          }
+        }
+      }
+    },
+    "1 posição": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 posição"
+          }
+        }
+      }
+    },
+    "%lld posições": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld posições"
+          }
+        }
+      }
+    },
+    "%@ de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ de %@"
+          }
+        }
+      }
+    },
+    "hoje, %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hoje, %@"
+          }
+        }
+      }
+    },
+    "amanhã, %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amanhã, %@"
+          }
+        }
+      }
+    },
+    "Outra data": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outra data"
+          }
+        }
+      }
+    },
+    "Nome de quem recebe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome de quem recebe"
+          }
+        }
+      }
+    },
+    "Descartar esta vaga?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar esta vaga?"
+          }
+        }
+      }
+    },
+    "Descartar vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar vaga"
+          }
+        }
+      }
+    },
+    "Continuar editando": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar editando"
+          }
+        }
+      }
+    },
+    "O que você preencheu não fica salvo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que você preencheu não fica salvo."
+          }
+        }
+      }
+    },
+    "Ponto confirmado no mapa no cadastro. O check-in dos profissionais vale num raio de 200 m deste ponto.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponto confirmado no mapa no cadastro. O check-in dos profissionais vale num raio de 200 m deste ponto."
+          }
+        }
+      }
+    },
+    "Trocar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trocar"
+          }
+        }
+      }
+    },
+    "Trocar local": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trocar local"
+          }
+        }
+      }
+    },
+    "Total %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total %@"
+          }
+        }
+      }
+    },
+    "%lld de %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %@"
+          }
+        }
+      }
+    },
+    "Quem aceitar primeiro fica com a vaga, sem você precisar aprovar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem aceitar primeiro fica com a vaga, sem você precisar aprovar."
+          }
+        }
+      }
+    },
+    "Enviando a vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando a vaga"
+          }
+        }
+      }
+    },
+    "Vai para os profissionais em %lld s": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vai para os profissionais em %lld s"
+          }
+        }
+      }
+    },
+    "Desfazer": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desfazer"
+          }
+        }
+      }
+    },
+    "Data do turno": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data do turno"
+          }
+        }
+      }
+    },
+    "Os locais vêm do cadastro do estabelecimento, cada um com o ponto confirmado no mapa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os locais vêm do cadastro do estabelecimento, cada um com o ponto confirmado no mapa."
+          }
+        }
+      }
+    },
+    "Carregando: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando: %@"
+          }
+        }
+      }
+    },
+    "0,00": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0,00"
+          }
+        }
+      }
+    },
+    "R$": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R$"
+          }
+        }
+      }
+    },
+    "Toque para escolher o horário": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para escolher o horário"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

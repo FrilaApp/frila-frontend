@@ -175,7 +175,7 @@ public enum FrilaLPEShiftCalendar {
 
 extension String {
     /// Só a primeira letra em maiúscula: "sáb 27/09" vira "Sáb 27/09".
-    var capitalizedFirst: String {
+    var frilaLPECapitalizedFirst: String {
         guard let first else { return self }
         return first.uppercased() + dropFirst()
     }
@@ -250,7 +250,7 @@ public struct FrilaLPEShiftPosting: Identifiable, Hashable, Sendable {
 
     /// Linha do card: "Hoje, 18h às 02h", "Sáb 27/09, 19h às 01h".
     public func whenLabel(now: Date, calendar: Calendar = FrilaLPEShiftCalendar.brasilia) -> String {
-        "\(FrilaLPEShiftCalendar.relativeLabel(day, now: now, calendar: calendar).capitalizedFirst), \(window.rangeLabel)"
+        "\(FrilaLPEShiftCalendar.relativeLabel(day, now: now, calendar: calendar).frilaLPECapitalizedFirst), \(window.rangeLabel)"
     }
 
     /// "3,2 km, Asa Norte".
