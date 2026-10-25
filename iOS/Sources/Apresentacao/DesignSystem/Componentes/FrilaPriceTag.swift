@@ -78,12 +78,9 @@ public struct FrilaPriceTag: View {
     }
 
     var spokenLabel: String {
-        var label = valueText
-        if let unit {
-            label += " por \(unit.spokenName)"
-        }
+        var label = FrilaMoney.spoken(reais: amount, por: unit?.spokenName)
         if let estimate {
-            label += ", estimado \(FrilaMoney.total(estimate))"
+            label += ", estimado \(FrilaMoney.spoken(reais: estimate))"
         }
         return label
     }

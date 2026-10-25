@@ -68,6 +68,7 @@ public struct FrilaShiftNotificationBanner: View {
                                 Text("F", tableName: "Estudio", bundle: bundleApresentacao)
                                     .font(FrilaFonteDoSistema.fonte(size: 9, weight: .black))
                                     .foregroundColor(.white)
+                                    .accessibilityHidden(true)
                             }
 
                         Text(verbatim: appTitle.uppercased())

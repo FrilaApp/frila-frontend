@@ -189,7 +189,7 @@ public struct FrilaPlacardPressStampButton: View {
             Text(verbatim: title.uppercased())
                 .font(FrilaTypography.microBold)
                 .tracking(FrilaTypography.trackingMicro)
-                .foregroundStyle(isDark ? Color.black : Color.white)
+                .foregroundStyle(FrilaColor.dynamicCanvas(isDark: isDark))
                 .padding(.horizontal, FrilaGeometry.space20)
                 .frame(height: FrilaGeometry.buttonHeightStandard)
                 .background(FrilaColor.dynamicTextPrimary(isDark: isDark), in: Capsule())
