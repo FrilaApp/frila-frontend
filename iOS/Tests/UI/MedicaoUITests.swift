@@ -19,6 +19,19 @@ final class MedicaoUITests: XCTestCase {
         app.descendants(matching: .any)["medicoes-\(tela)"].label
     }
 
+    private func conferirOrcamentoDaSessao(_ totalBytes: Int64, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertGreaterThanOrEqual(totalBytes, 0, "O total de bytes não pode ser negativo", file: file, line: line)
+        // O app e Docs/Desempenho.md definem 1 MB decimal; mantém o limite mais restritivo.
+        XCTAssertLessThan(totalBytes, 1_000_000, "Sessão excedeu o limite de 1 MB da RNF05", file: file, line: line)
+    }
+
+    func testOrcamentoAceita999999BytesEReprovaUmMegabyte() {
+        conferirOrcamentoDaSessao(999_999)
+        XCTExpectFailure("1.000.000 bytes deve reprovar o mesmo orçamento usado no fluxo de UI") {
+            self.conferirOrcamentoDaSessao(1_000_000)
+        }
+    }
+
     func testSemOArgumentoNaoHaBotaoDeMedicoes() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
@@ -94,9 +107,7 @@ final class MedicaoUITests: XCTestCase {
         let campoBytes = try XCTUnwrap(campos.last, texto)
         XCTAssertTrue(campoBytes.hasSuffix(" B"), texto)
         let totalBytes = try XCTUnwrap(Int64(campoBytes.dropLast(2)), texto)
-        XCTAssertGreaterThanOrEqual(totalBytes, 0, texto)
-        // O app e Docs/Desempenho.md definem 1 MB decimal; mantém o limite mais restritivo.
-        XCTAssertLessThan(totalBytes, 1_000_000, "Sessão excedeu o limite de 1 MB da RNF05")
+        conferirOrcamentoDaSessao(totalBytes)
         print("MEDICOES rede: \(totalBytes) bytes (dublê em memória; não comprova tráfego HTTP)")
     }
 
