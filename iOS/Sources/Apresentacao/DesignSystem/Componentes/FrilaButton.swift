@@ -38,11 +38,12 @@ public struct FrilaPillButtonStyle: ButtonStyle {
             .minimumScaleFactor(0.85)
             .padding(.horizontal, customHorizontalPadding ?? horizontalPadding)
             .frame(height: visualHeight)
-            .frame(minHeight: FrilaGeometry.hitboxMinimum)
             .background(backgroundColor(isPressed: configuration.isPressed))
             .foregroundColor(foregroundColor)
             .clipShape(Capsule())
             .overlay(borderOverlay())
+            .frame(minHeight: FrilaGeometry.hitboxMinimum)
+            .contentShape(Rectangle())
             .scaleEffect(reduceMotion ? 1.0 : (configuration.isPressed ? 0.97 : 1.0))
             .animation(
                 FrilaMovimento.animacao(.interpolatingSpring(stiffness: 350, damping: 25), reduzir: reduceMotion),
