@@ -188,4 +188,183 @@ struct MaioridadeEVerificacaoDeIdadeTests {
         #expect(destino == nil)
         #expect(vm.erro == "O Frila é exclusivo para maiores de 18 anos.")
     }
+
+    @Test("Cadastro prossegue quando verificador de idade não responde e ignora cancelamento")
+    func cadastroProssegueQuandoVerificadorNaoRespondeEIgnoraCancelamento() async throws {
+        let api = ApiClienteEspiaoCadastroLocal()
+        let agora = Date(timeIntervalSince1970: 1_792_065_600) // Outubro/2026
+        let relogioFixo = RelogioFixo(agora: agora)
+        let verificador = VerificadorDeIdadeSuspenso()
+        let vm = CadastroViewModel(
+            api: api,
+            email: "adulto-timeout@frila.app",
+            relogio: relogioFixo,
+            verificadorDeIdade: verificador,
+            prazoVerificacaoIdade: .milliseconds(50)
+        )
+
+        vm.nome = "Profissional Adulto"
+        vm.telefone = "61999993333"
+        vm.nascimentoTexto = "01/01/2000" // 26 anos
+        vm.aceitouTermos = true
+
+        let estado = EstadoExecucaoCadastro()
+
+        let watchdog = Task {
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled {
+                Issue.record("Watchdog: timeout de segurança excedido no teste")
+                verificador.retomar(com: .abaixoDe18)
+            }
+        }
+        defer {
+            watchdog.cancel()
+            verificador.retomar(com: .abaixoDe18)
+        }
+
+        let task = Task { @MainActor in
+            let destino = await vm.criarConta()
+            estado.destinoObtido = destino
+            estado.finalizou = true
+            return destino
+        }
+
+        let iniciou = await verificador.aguardarInicio()
+        #expect(iniciou, "A verificação de idade deveria ter iniciado")
+
+        // Aguarda finalização condicionada ao estado com deadline de 1s
+        let deadline = ContinuousClock.now + .seconds(1)
+        while !estado.finalizou && ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        // ANTES de liberar dublê:
+        #expect(estado.finalizou, "O cadastro deveria ter finalizado pelo timeout da verificação de idade")
+        #expect(estado.destinoObtido == .funcoesEHorarios, "Destino após timeout deveria ser .funcoesEHorarios")
+        #expect(api.chamadasACriarConta == 1, "API deveria ter sido chamada exatamente 1 vez")
+        #expect(api.ultimoCadastroRecebido?.sinalIdade == .indisponivel, "Sinal enviado deve ser .indisponivel")
+        #expect(!vm.carregando, "Estado de carregando deve ser falso após término")
+
+        // Liberar dublê com .abaixoDe18 APENAS para limpeza e provar que resposta tardia não altera caminho
+        verificador.retomar(com: .abaixoDe18)
+
+        let dubleRetornou = await verificador.aguardarRetorno()
+        #expect(dubleRetornou, "O dublê deveria ter retornado após a retomada")
+
+        // Aguarda task terminar para não vazar suspensão e dá oportunidade ao chamador processar a resposta
+        _ = await task.value
+        let deadlineProcessamento = ContinuousClock.now + .milliseconds(200)
+        while ContinuousClock.now < deadlineProcessamento {
+            await Task.yield()
+        }
+
+        // Prova que a resposta tardia não alterou caminho nem duplicou chamada à API
+        #expect(estado.destinoObtido == .funcoesEHorarios)
+        #expect(api.chamadasACriarConta == 1)
+        #expect(api.ultimoCadastroRecebido?.sinalIdade == .indisponivel)
+        #expect(!vm.carregando)
+        #expect(vm.erro == nil)
+        #expect(verificador.chamadasAVerificar == 1)
+    }
+}
+
+// MARK: - Dublês locais para teste de timeout e cancelamento não cooperativo
+
+@MainActor
+private final class EstadoExecucaoCadastro {
+    var finalizou = false
+    var destinoObtido: DestinoAposEntrada?
+}
+
+private final class ApiClienteEspiaoCadastroLocal: ApiClienteEncaminhador, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _cadastrosRecebidos: [CadastroConta] = []
+
+    override init(base: ApiClienteEmMemoria = ApiClienteEmMemoria(cenario: .primeiroAcesso)) {
+        super.init(base: base)
+    }
+
+    var chamadasACriarConta: Int {
+        lock.withLock { _cadastrosRecebidos.count }
+    }
+
+    var ultimoCadastroRecebido: CadastroConta? {
+        lock.withLock { _cadastrosRecebidos.last }
+    }
+
+    override func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
+        lock.withLock { _cadastrosRecebidos.append(cadastro) }
+        return try await base.criarConta(cadastro)
+    }
+}
+
+private final class VerificadorDeIdadeSuspenso: VerificadorDeIdade, @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<ResultadoVerificacaoIdade, Never>?
+    private var resultadoPendente: ResultadoVerificacaoIdade?
+    private var retomado = false
+    private var iniciou = false
+    private var retornou = false
+    private var _chamadasAVerificar = 0
+
+    var chamadasAVerificar: Int {
+        lock.withLock { _chamadasAVerificar }
+    }
+
+    @MainActor
+    func verificarMaioridade() async -> ResultadoVerificacaoIdade {
+        let resultado = await withCheckedContinuation { cont in
+            var contParaRetomar: CheckedContinuation<ResultadoVerificacaoIdade, Never>?
+            var resultadoImediato: ResultadoVerificacaoIdade?
+            lock.withLock {
+                _chamadasAVerificar += 1
+                iniciou = true
+                if retomado, let pendente = resultadoPendente {
+                    resultadoImediato = pendente
+                    contParaRetomar = cont
+                } else {
+                    continuation = cont
+                }
+            }
+            if let resultadoImediato, let contParaRetomar {
+                contParaRetomar.resume(returning: resultadoImediato)
+            }
+        }
+        lock.withLock {
+            retornou = true
+        }
+        return resultado
+    }
+
+    func aguardarInicio(timeout: Duration = .seconds(1)) async -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            let foiIniciado = lock.withLock { iniciou }
+            if foiIniciado { return true }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return lock.withLock { iniciou }
+    }
+
+    func aguardarRetorno(timeout: Duration = .seconds(1)) async -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            let jaRetornou = lock.withLock { retornou }
+            if jaRetornou { return true }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return lock.withLock { retornou }
+    }
+
+    func retomar(com resultado: ResultadoVerificacaoIdade) {
+        let contParaRetomar: CheckedContinuation<ResultadoVerificacaoIdade, Never>? = lock.withLock {
+            guard !retomado else { return nil }
+            retomado = true
+            resultadoPendente = resultado
+            let cont = continuation
+            continuation = nil
+            return cont
+        }
+        contParaRetomar?.resume(returning: resultado)
+    }
 }
