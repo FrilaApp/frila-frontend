@@ -296,6 +296,7 @@ private enum IDScroll: Hashable {
 /// Cadastro do estabelecimento no primeiro acesso do contratante, no quadro "Estabelecimento" do MidFi do Fabrício:
 /// campos contornados, mapa com raio e o responsável da conta em cartão.
 public struct TelaCadastroEstabelecimento: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
@@ -334,6 +335,12 @@ public struct TelaCadastroEstabelecimento: View {
     }
 
     public var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         if model.concluido, let estabelecimento = model.estabelecimentoCriado {
             if let fila {
                 // Primeiro acesso: o Estúdio de Criação sem o X (não há para onde voltar) e com o perfil da casa na barra.
@@ -354,7 +361,7 @@ public struct TelaCadastroEstabelecimento: View {
                             }
                         }
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button(action: sair) {
+                            Button { mostrarConfirmacaoDeSaida = true } label: {
                                 Text("Sair", bundle: bundleApresentacao)
                             }
                             .accessibilityIdentifier("sair-fluxo-contratante")
@@ -964,6 +971,51 @@ public struct TelaCadastroEstabelecimento: View {
 
     private func centralizarMapa(em coordenada: CLLocationCoordinate2D) {
         posicaoMapa = .region(MKCoordinateRegion(center: coordenada, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)))
+    }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    sair()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
     }
 }
 

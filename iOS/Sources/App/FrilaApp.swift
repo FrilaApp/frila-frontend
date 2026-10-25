@@ -315,7 +315,10 @@ private struct EntradaDoApp: View {
         Group {
             #if DEBUG
             // Entrada isolada para o UI test do cadastro; a entrada por código fará a ligação de produto.
-            if api is ApiClienteEmMemoria, ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_AVALIACAO_UI_TEST") {
+            if api is ApiClienteEmMemoria, ProcessInfo.processInfo.arguments.contains("-FRILA_FLUXO_CONTRATANTE_SEM_REDE_UI_TEST") {
+                // Falha isolada do carregamento do fluxo, sem derrubar a avaliação da sessão.
+                FluxoDoContratante(api: ApiClienteEmMemoria(cenario: .semRede), fila: nil, sair: acaoDeSair)
+            } else if api is ApiClienteEmMemoria, ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_AVALIACAO_UI_TEST") {
                 DestinoDaAvaliacaoParaTeste(api: api)
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_MINHAS_VAGAS") {
                 let estabelecimento = EstabelecimentoDaConta(
@@ -812,6 +815,7 @@ private struct ContaNaTela: Equatable {
 
 /// O cadastro mantém seu modelo enquanto há erro e usa a mesma saída dos demais fluxos.
 private struct CriacaoDoPerfilProfissional: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     @State private var viewModel: PerfilProfissionalViewModel
     let sair: () -> Void
     let aoConcluir: () -> Void
@@ -836,11 +840,17 @@ private struct CriacaoDoPerfilProfissional: View {
     }
 
     var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         NavigationStack {
             TelaPerfilProfissional(viewModel: viewModel, aoSalvar: aoConcluir)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: sair) {
+                        Button { mostrarConfirmacaoDeSaida = true } label: {
                             Text("Sair", bundle: bundleApresentacao)
                         }
                         .accessibilityShowsLargeContentViewer()
@@ -848,6 +858,51 @@ private struct CriacaoDoPerfilProfissional: View {
                     }
                 }
         }
+    }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    sair()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
     }
 }
 

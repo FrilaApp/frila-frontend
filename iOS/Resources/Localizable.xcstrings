@@ -1,6 +1,17 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "Sair da conta?": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair da conta?"
+          }
+        }
+      }
+    },
     "Estou a caminho": {
       "localizations": {
         "pt-BR": {

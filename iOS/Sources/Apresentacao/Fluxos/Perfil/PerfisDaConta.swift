@@ -162,6 +162,7 @@ struct BotaoDeExclusaoDeConta: View {
 
 /// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
 public struct TelaMeuPerfilProfissional: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
@@ -182,6 +183,12 @@ public struct TelaMeuPerfilProfissional: View {
     }
 
     public var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if model.carregando { EstadoCarregando() }
@@ -236,10 +243,11 @@ public struct TelaMeuPerfilProfissional: View {
                         DivisoriaDeLinha()
                         ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
                         DivisoriaDeLinha()
-                        Button(role: .destructive, action: sair) {
+                        Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
                             RotuloDeLinha(TextosPerfilConta.sair)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("perfil-sair")
                     }
                     excluirConta
                 }
@@ -320,10 +328,56 @@ public struct TelaMeuPerfilProfissional: View {
             }
         }.presentationDetents([.large])
     }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    sair()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
+    }
 }
 
 /// Perfil do estabelecimento (#18), com a mesma lista aberta do perfil do profissional.
 public struct TelaPerfilEstabelecimento: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     @State private var model: PerfilEstabelecimentoViewModel
     @State private var exportarModel: ExportarDadosViewModel
     private let api: any ApiCliente
@@ -338,6 +392,12 @@ public struct TelaPerfilEstabelecimento: View {
         _exportarModel = State(initialValue: ExportarDadosViewModel(api: api))
     }
     public var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if model.carregando { EstadoCarregando() }
@@ -399,10 +459,11 @@ public struct TelaPerfilEstabelecimento: View {
                         DivisoriaDeLinha()
                         ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
                         DivisoriaDeLinha()
-                        Button(role: .destructive, action: sair) {
+                        Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
                             RotuloDeLinha(TextosPerfilConta.sair)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("estabelecimento-sair")
                     }
                     NavigationLink {
                         TelaExclusaoDeConta(
@@ -432,7 +493,53 @@ public struct TelaPerfilEstabelecimento: View {
         .navigationBarTitleDisplayMode(.inline).task { await model.carregar() }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    sair()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
+    }
 }
+
 
 struct TelaAjudaPerfil: View {
     @Environment(\.dismiss) private var dismiss

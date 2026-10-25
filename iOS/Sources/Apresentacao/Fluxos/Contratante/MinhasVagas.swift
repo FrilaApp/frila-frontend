@@ -277,6 +277,7 @@ public final class MinhasVagasViewModel {
 /// Minhas vagas do contratante: seções de vagas em cartões brancos sobre o fundo agrupado, como nos quadros
 /// "Acompanhar" e "Preenchida" do MidFi do Fabrício.
 public struct TelaMinhasVagas: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var larguraDoIcone: CGFloat = 24
     @State private var bloqueios = BloqueiosDaSessao()
@@ -317,6 +318,12 @@ public struct TelaMinhasVagas: View {
     }
 
     public var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         @Bindable var roteador = roteador
         NavigationStack(path: $roteador.caminho) {
             ScrollView {
@@ -391,9 +398,9 @@ public struct TelaMinhasVagas: View {
             .navigationTitle(Text(verbatim: TextosMinhasVagas.titulo))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                if let sair {
+                if sair != nil {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button(action: sair) {
+                        Button { mostrarConfirmacaoDeSaida = true } label: {
                             Text("Sair", bundle: bundleApresentacao)
                         }
                         .accessibilityIdentifier("sair-fluxo-contratante")
@@ -708,6 +715,51 @@ public struct TelaMinhasVagas: View {
     private func periodo(_ periodo: Periodo) -> String {
         textoPeriodo(periodo)
     }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    sair?()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
+    }
 }
 
 /// Linha de dados da vaga: ícone em coluna de largura fixa e texto de apoio, como nos cartões do MidFi.
@@ -923,6 +975,7 @@ private struct DestinoDaVagaDoContratante: View {
 }
 
 private struct TelaDetalheVagaContratante: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     @Environment(BloqueiosDaSessao.self) private var bloqueios
     @Environment(RoteadorDoContratante.self) private var roteadorDoAmbiente: RoteadorDoContratante?
     let vaga: VagaNoPainel
@@ -951,6 +1004,12 @@ private struct TelaDetalheVagaContratante: View {
     private let formatador = FormatadorFrila()
 
     var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if republicacaoConcluida {
@@ -1081,9 +1140,9 @@ private struct TelaDetalheVagaContratante: View {
         .navigationTitle(Text(verbatim: TextosMinhasVagas.detalheTitulo))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if let sair {
+            if sair != nil {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: sair) {
+                    Button { mostrarConfirmacaoDeSaida = true } label: {
                         Text("Sair", bundle: bundleApresentacao)
                     }
                     .accessibilityIdentifier("sair-fluxo-contratante")
@@ -1253,5 +1312,50 @@ private struct TelaDetalheVagaContratante: View {
 
     private func periodo(_ periodo: Periodo) -> String {
         textoPeriodo(periodo)
+    }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    sair?()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
     }
 }
