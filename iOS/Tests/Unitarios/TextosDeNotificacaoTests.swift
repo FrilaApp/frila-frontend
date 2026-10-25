@@ -146,9 +146,9 @@ struct TextosDeNotificacaoTests {
         #expect(faltandoNaPlanilha.isEmpty, "Tipos de TipoDeAviso ausentes na planilha: \(faltandoNaPlanilha)")
     }
 
-    @Test("Todo título da planilha cumpre a regra de partida de até 40 caracteres (iPhone SE)")
-    func limitesDeTitulo() throws {
-        let tabela = try Self.carregarTabela()
+    @Test("Cada um dos 19 tipos tem títulos de até 40 caracteres (iPhone SE)", arguments: TipoDeAviso.allCases)
+    func limitesDeTitulo(tipo: TipoDeAviso) throws {
+        let tabela = try Self.carregarTabela().filter { $0.tipo == tipo.rawValue }
         #expect(!tabela.isEmpty, "Tabela de notificações não pode estar vazia")
 
         for linha in tabela {
@@ -161,15 +161,15 @@ struct TextosDeNotificacaoTests {
         }
     }
 
-    @Test("Todo corpo na planilha cumpre o teto de 110 caracteres da tela bloqueada (iPhone SE)")
-    func limitesDeCorpo() throws {
-        let tabela = try Self.carregarTabela()
+    @Test("Cada um dos 19 tipos tem corpos de até 110 caracteres, salvo a divergência contratual documentada", arguments: TipoDeAviso.allCases)
+    func limitesDeCorpo(tipo: TipoDeAviso) throws {
+        let tabela = try Self.carregarTabela().filter { $0.tipo == tipo.rawValue }
         #expect(!tabela.isEmpty, "Tabela de notificações não pode estar vazia")
 
         for linha in tabela {
             for variante in linha.variantesDeCorpo {
                 // A linha 29 possui uma divergência real no contrato (128 car.), cuja proposta ajustada mede 79 car.
-                if linha.numero == "29" && variante.rotulo == "contrato" {
+                if linha.numero == "29" && linha.tipo == "candidatura_recusada" && variante.rotulo == "contrato" {
                     continue
                 }
 

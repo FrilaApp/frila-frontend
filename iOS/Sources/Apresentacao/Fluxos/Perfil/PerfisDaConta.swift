@@ -195,21 +195,20 @@ public struct TelaMeuPerfilProfissional: View {
                             .accessibilityAddTraits(.isHeader)
                         GrupoDeLinhas {
                             linha(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", contato: true)
-                                .padding(.vertical, FrilaEspaco.pequeno)
+                                .padding(.vertical, FrilaEspaco.minimo)
                             DivisoriaDeLinha()
                             linha(TextosPerfilConta.email, conta.email, id: "perfil-email", contato: true)
-                                .padding(.vertical, FrilaEspaco.pequeno)
+                                .padding(.vertical, FrilaEspaco.minimo)
                             if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                             DivisoriaDeLinha()
                             linha(TextosPerfilConta.funcao, perfil.funcoes.map(\.nome).joined(separator: ", "), id: "perfil-funcoes")
-                                .padding(.vertical, FrilaEspaco.pequeno)
+                                .padding(.vertical, FrilaEspaco.minimo)
                             DivisoriaDeLinha()
                             linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao), id: "perfil-horarios")
-                                .padding(.vertical, FrilaEspaco.pequeno)
+                                .padding(.vertical, FrilaEspaco.minimo)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, FrilaEspaco.medio)
                     GrupoDeLinhas {
                         NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
                             RotuloDeLinha(TextosPerfilConta.funcoesHorarios)

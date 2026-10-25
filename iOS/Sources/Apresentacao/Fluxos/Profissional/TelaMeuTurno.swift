@@ -180,7 +180,6 @@ public struct TelaMeuTurno: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, FrilaEspaco.pequeno)
             .overlay(alignment: .top) { fio }
-            .overlay(alignment: .bottom) { fio }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
