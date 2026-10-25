@@ -180,4 +180,22 @@ struct ComponentesDesignD01Tests {
         let camadasEscuro = FrilaElevacao.sutil.camadas(escuro: true)
         #expect(camadasEscuro.count == 3)
     }
+
+    // MARK: - Botão compacto e hitbox de 44pt (Critério 2)
+
+    @Test("FrilaPillButtonStyle e FrilaGeometry mantêm altura visual compacta de 32pt e hitbox mínimo de 44pt")
+    func botaoCompactoHitboxMinimo() {
+        #expect(FrilaGeometry.buttonHeightCompact == 32)
+        #expect(FrilaGeometry.hitboxMinimum == 44)
+
+        let estiloCompacto = FrilaPillButtonStyle(size: .compact)
+        #expect(estiloCompacto.size == .compact)
+
+        let botaoCompacto = FrilaButton(
+            "Salvar",
+            variant: .primary,
+            size: .compact
+        ) {}
+        #expect(botaoCompacto.size == .compact)
+    }
 }
