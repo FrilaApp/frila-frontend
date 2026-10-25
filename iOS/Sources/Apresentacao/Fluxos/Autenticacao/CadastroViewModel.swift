@@ -8,6 +8,7 @@ public final class CadastroViewModel {
     private let relogio: any Relogio
     private let verificadorDeIdade: any VerificadorDeIdade
     private let telemetria: RegistradorDeTelemetria?
+    private let prazoVerificacaoIdade: Duration
     private var jaEmitiuCadastro = false
     public let email: String
 
@@ -32,13 +33,15 @@ public final class CadastroViewModel {
         email: String,
         relogio: any Relogio = RelogioDoSistema(),
         verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel(),
-        telemetria: RegistradorDeTelemetria? = nil
+        telemetria: RegistradorDeTelemetria? = nil,
+        prazoVerificacaoIdade: Duration = .seconds(5)
     ) {
         self.api = api
         self.email = email
         self.relogio = relogio
         self.verificadorDeIdade = verificadorDeIdade
         self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
+        self.prazoVerificacaoIdade = prazoVerificacaoIdade
     }
 
     public var ehMenorDeIdade: Bool {
@@ -113,7 +116,7 @@ public final class CadastroViewModel {
         defer { carregando = false }
 
         // Verificação condicional de maioridade via Declared Age Range (iOS 26.2+, RN20 / Cartão #215)
-        let resultadoIdade = await verificadorDeIdade.verificarMaioridade()
+        let resultadoIdade = await verificarMaioridadeComPrazo()
         if resultadoIdade == .abaixoDe18 {
             campoComErro = .nascimento
             erro = String(localized: "O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
@@ -172,6 +175,33 @@ public final class CadastroViewModel {
             erro = String(localized: "Esta conta já foi cadastrada.", bundle: bundleApresentacao)
         } else {
             erro = MensagemDoErroAPI.texto(erroApi)
+        }
+    }
+
+    private func verificarMaioridadeComPrazo() async -> ResultadoVerificacaoIdade {
+        let verificador = self.verificadorDeIdade
+        let prazo = self.prazoVerificacaoIdade
+
+        return await withCheckedContinuation { continuation in
+            let estado = EstadoVerificacaoComPrazo(continuation: continuation)
+
+            let tarefaVerificacao: Task<Void, Never> = Task { [weak estado] in
+                let resultado = await verificador.verificarMaioridade()
+                estado?.resolver(com: resultado)
+            }
+
+            let tarefaTimer: Task<Void, Never> = Task { [estado] in
+                do {
+                    try await Task.sleep(for: prazo)
+                } catch {
+                    // Timer cancelado porque a verificação respondeu antes do prazo: não faz fallback
+                    return
+                }
+                estado.resolver(com: .indisponivel)
+            }
+
+            estado.tarefaVerificacao = tarefaVerificacao
+            estado.tarefaTimer = tarefaTimer
         }
     }
 
@@ -295,5 +325,28 @@ public final class CadastroViewModel {
         let parte1 = String(digitos[2..<7])
         let parte2 = String(digitos[7..<11])
         return "(\(ddd)) \(parte1)-\(parte2)"
+    }
+}
+
+// MARK: - Estado de verificação de maioridade com limite de tempo
+
+@MainActor
+private final class EstadoVerificacaoComPrazo {
+    private var continuation: CheckedContinuation<ResultadoVerificacaoIdade, Never>?
+    var tarefaVerificacao: Task<Void, Never>?
+    var tarefaTimer: Task<Void, Never>?
+
+    init(continuation: CheckedContinuation<ResultadoVerificacaoIdade, Never>) {
+        self.continuation = continuation
+    }
+
+    func resolver(com resultado: ResultadoVerificacaoIdade) {
+        guard let continuationParaRetomar = self.continuation else { return }
+        self.continuation = nil
+        tarefaVerificacao?.cancel()
+        tarefaTimer?.cancel()
+        tarefaVerificacao = nil
+        tarefaTimer = nil
+        continuationParaRetomar.resume(returning: resultado)
     }
 }
