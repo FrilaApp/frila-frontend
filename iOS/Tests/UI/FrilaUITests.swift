@@ -1,6 +1,150 @@
 import XCTest
 
 @MainActor
+final class SaidaDaContaUITests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        continueAfterFailure = false
+    }
+
+    func testCancelarSaidaMantemContaEConfirmarVoltaAoLogin() {
+        let app = abrir("success")
+        tocar(app.buttons["abrir-meu-perfil"])
+        let email = app.descendants(matching: .any)["perfil-email-valor"]
+        XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
+        let emailAntes = email.label
+        conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional")
+        XCTAssertTrue(app.navigationBars["Meu perfil"].exists)
+        app.swipeDown()
+        XCTAssertEqual(email.label, emailAntes)
+        XCTAssertFalse(app.textFields["entrada-email"].exists)
+
+        rolarAte(app.buttons["perfil-sair"], app: app)
+        tocar(app.buttons["perfil-sair"])
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
+        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+        salvar(app, "saida-confirmada-login")
+    }
+
+    func testDetalheDaVagaNosTamanhosPadraoEAX4() {
+        for (nome, categoria) in [("padrao", "UICTContentSizeCategoryL"), ("ax4", "UICTContentSizeCategoryAccessibilityXXL")] {
+            let app = abrir("vaga-em-selecao", argumentos: ["-UIPreferredContentSizeCategoryName", categoria])
+            let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
+            XCTAssertTrue(primeira.waitForExistence(timeout: Espera.aparecer))
+            salvar(app, "lista-\(nome)")
+            tocar(primeira)
+            let candidatar = app.buttons["candidatar"]
+            XCTAssertTrue(candidatar.waitForExistence(timeout: Espera.aparecer))
+            salvar(app, "detalhe-\(nome)")
+            tocar(candidatar)
+            XCTAssertTrue(app.buttons["ver-minhas-candidaturas"].waitForExistence(timeout: Espera.aparecer))
+            salvar(app, "candidatura-enviada-\(nome)")
+            app.terminate()
+        }
+    }
+
+    func testCancelarSaidaDoPerfilEmAX4() {
+        let app = abrir("success", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
+        tocar(app.buttons["abrir-meu-perfil"])
+        conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional-ax4")
+        XCTAssertTrue(app.navigationBars["Meu perfil"].exists)
+    }
+
+    func testCancelarSaidaDaCriacaoDoPerfil() {
+        let app = abrir("sem-perfil-profissional")
+        conferirCancelamento(app, botao: app.buttons["criacao-perfil-sair"], nome: "criacao-perfil")
+        XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].exists)
+    }
+
+    func testCancelarSaidaDoCadastroDoEstabelecimento() {
+        let app = abrir("contratante-sem-estabelecimento")
+        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "cadastro-estabelecimento")
+        XCTAssertTrue(app.buttons["continuar-cadastro"].exists)
+    }
+
+    func testCancelarSaidaDeMinhasVagas() {
+        let app = abrir("contratante")
+        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "minhas-vagas")
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].exists)
+    }
+
+    func testCancelarSaidaDoFluxoDoContratanteSemRede() {
+        let app = abrir("contratante", argumentos: ["-FRILA_FLUXO_CONTRATANTE_SEM_REDE_UI_TEST"])
+        XCTAssertTrue(app.buttons["Tentar novamente"].waitForExistence(timeout: Espera.aparecer))
+        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "fluxo-contratante-sem-rede")
+        XCTAssertTrue(app.buttons["Tentar novamente"].exists)
+        XCTAssertFalse(app.textFields["entrada-email"].exists)
+    }
+
+    func testCancelarSaidaDoDetalheDaVaga() {
+        let app = abrir("contratante")
+        tocar(app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"])
+        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "detalhe-vaga-contratante")
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].exists)
+    }
+
+    func testCancelarSaidaDoTurnoDoContratante() {
+        let app = abrir("painel-contratante")
+        tocar(app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"])
+        let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'acompanhar-turno-'")).firstMatch
+        rolarAte(turno, app: app)
+        tocar(turno)
+        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "turno-contratante")
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].exists)
+    }
+
+    func testCancelarSaidaDoPerfilDoEstabelecimentoPreservaFolha() {
+        let app = abrir("contratante")
+        tocar(app.buttons["abrir-perfil-estabelecimento"])
+        conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "perfil-estabelecimento")
+        XCTAssertTrue(app.navigationBars["Perfil do estabelecimento"].exists)
+        rolarAte(app.buttons["estabelecimento-sair"], app: app)
+        tocar(app.buttons["estabelecimento-sair"])
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
+        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+    }
+
+    func testCancelarSaidaDaContaSuspensa() {
+        let app = abrir("conta-suspensa")
+        conferirCancelamento(app, botao: app.buttons["conta-suspensa-sair"], nome: "conta-suspensa")
+        XCTAssertTrue(app.descendants(matching: .any)["tela-conta-suspensa"].exists)
+    }
+
+    private func abrir(_ cenario: String, argumentos: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", cenario, "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"] + argumentos
+        app.launch()
+        return app
+    }
+
+    private func conferirCancelamento(_ app: XCUIApplication, botao: XCUIElement, nome: String) {
+        rolarAte(botao, app: app)
+        tocar(botao)
+        let titulo = app.staticTexts["Sair da conta?"]
+        XCTAssertTrue(titulo.waitForExistence(timeout: Espera.aparecer))
+        guard titulo.exists else { return }
+        XCTAssertTrue(app.buttons["botao-cancelar-saida-dialogo"].isHittable)
+        XCTAssertTrue(app.buttons["botao-confirmar-saida-dialogo"].isHittable)
+        salvar(app, "sair-\(nome)")
+        tocar(app.buttons["botao-cancelar-saida-dialogo"])
+        XCTAssertTrue(botao.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(titulo.exists)
+        salvar(app, "cancelar-\(nome)")
+    }
+
+    private func salvar(_ app: XCUIApplication, _ nome: String) {
+        let anexo = XCTAttachment(screenshot: app.screenshot())
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+    }
+
+    private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        for _ in 0..<6 where !elemento.isHittable { app.swipeUp() }
+    }
+}
+
+@MainActor
 final class FrilaUITests: XCTestCase {
     func testCatalogoAbreEmPortugues() {
         let app = XCUIApplication()
@@ -387,6 +531,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(sair.waitForExistence(timeout: 10))
         guard sair.exists else { return }
         sair.tap()
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["tela-perfil-profissional"].exists)
     }
@@ -420,6 +565,7 @@ final class AutenticacaoUITests: XCTestCase {
         tocar(app.buttons["botao-salvar-perfil"])
         XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
         tocar(app.buttons["criacao-perfil-sair"])
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
     }
 
@@ -556,6 +702,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 10))
         app.buttons["Sair"].tap()
 
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.navigationBars["Meu perfil"].exists)
     }

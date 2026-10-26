@@ -160,6 +160,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         for _ in 0..<5 where !sair.isHittable { app.swipeUp() }
         XCTAssertTrue(sair.waitForExistence(timeout: Espera.aparecer))
         tocar(sair)
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         tocar(email)

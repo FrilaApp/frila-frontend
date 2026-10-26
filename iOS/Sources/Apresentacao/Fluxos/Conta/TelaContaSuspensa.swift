@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Conta suspensa (#105): estado e formulário com os tokens Hi-Fi; ações em lista com divisórias.
 public struct TelaContaSuspensa: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     @Bindable private var viewModel: ContaSuspensaViewModel
     @State private var exportarModel: ExportarDadosViewModel
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -15,6 +16,12 @@ public struct TelaContaSuspensa: View {
     }
 
     public var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
@@ -267,7 +274,7 @@ public struct TelaContaSuspensa: View {
             Divider().overlay(FrilaCor.divisoria)
 
             Button {
-                viewModel.executarSair()
+                mostrarConfirmacaoDeSaida = true
             } label: {
                 linhaDeAcao(TextosContaSuspensa.sair, cor: FrilaCor.texto)
             }
@@ -304,5 +311,50 @@ public struct TelaContaSuspensa: View {
 
     private func formatarDataCivil(_ data: DataCivil) -> String {
         String(format: "%02d/%02d/%04d", data.dia, data.mes, data.ano)
+    }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    viewModel.executarSair()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
     }
 }

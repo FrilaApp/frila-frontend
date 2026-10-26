@@ -53,6 +53,7 @@ public final class FluxoDoContratanteViewModel {
 /// Entrada do contratante: primeiro estabelecimento da API ou cadastro com o responsável da conta. A barra de cima
 /// e o fundo agrupado seguem o quadro "Main" do MidFi do Fabrício.
 public struct FluxoDoContratante: View {
+    @State private var mostrarConfirmacaoDeSaida = false
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let sair: () -> Void
@@ -73,6 +74,12 @@ public struct FluxoDoContratante: View {
     }
 
     public var body: some View {
+        conteudoDaTela
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+    }
+
+    @ViewBuilder
+    private var conteudoDaTela: some View {
         VStack(spacing: 0) {
             if case .cadastro = model.estado {
                 // Toolbar nativo dentro de TelaCadastroEstabelecimento
@@ -81,7 +88,7 @@ public struct FluxoDoContratante: View {
             } else {
                 HStack {
                     Spacer()
-                    Button(action: sair) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
+                    Button(action: solicitarSaida) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
                         .foregroundStyle(FrilaCor.texto)
                         .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
                         .accessibilityIdentifier("sair-fluxo-contratante")
@@ -170,6 +177,55 @@ public struct FluxoDoContratante: View {
 
     private func erro(_ mensagem: String) -> some View {
         EstadoErro(verbatim: mensagem) { Task { await model.carregar() } }
+    }
+
+    private var solicitarSaida: () -> Void {
+        { mostrarConfirmacaoDeSaida = true }
+    }
+
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    private var confirmacaoDeSaida: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.medio)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                    mostrarConfirmacaoDeSaida = false
+                }
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+                Button(role: .destructive) {
+                    mostrarConfirmacaoDeSaida = false
+                    sair()
+                } label: {
+                    Text("Sair", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botao)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .background(FrilaCor.perigo, in: Capsule())
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+            }
+            .padding(FrilaEspaco.medio)
+            .background(FrilaCor.fundo)
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
     }
 }
 

@@ -14,6 +14,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         let sair = app.buttons["sair-fluxo-contratante"]
         XCTAssertTrue(sair.isHittable)
         sair.tap()
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
     }
 
@@ -29,6 +30,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10))
 
         tocar(app.buttons["sair-fluxo-contratante"])
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -101,6 +103,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         let sair = app.buttons["sair-fluxo-contratante"]
         XCTAssertTrue(sair.isHittable)
         sair.tap()
+        tocar(app.buttons["botao-confirmar-saida-dialogo"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
     }
 
