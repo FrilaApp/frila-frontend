@@ -33,7 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -48,8 +50,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
+import java.time.Instant
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaRaios
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 
 /** Estados do turno em que o check-in ainda pode ser feito (RF13). */
@@ -62,6 +68,7 @@ fun TelaMeusTurnos(
     criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
     modifier: Modifier = Modifier,
     aoAbrirAvaliacao: (turnoId: String) -> Unit = {},
+    relogio: () -> Instant = { Instant.now() },
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -129,6 +136,7 @@ fun TelaMeusTurnos(
                     criarCheckinViewModel = criarCheckinViewModel,
                     aoAbrirAvaliacao = aoAbrirAvaliacao,
                     aoCancelar = viewModel::abrirCancelamento,
+                    relogio = relogio,
                 )
             }
         }
@@ -151,6 +159,7 @@ private fun ListaDeTurnos(
     criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
     aoAbrirAvaliacao: (turnoId: String) -> Unit,
     aoCancelar: (ItemTurno) -> Unit,
+    relogio: () -> Instant = { Instant.now() },
 ) {
     if (itens.isEmpty()) {
         Vazio()
@@ -178,15 +187,91 @@ private fun ListaDeTurnos(
                     BadgeDeStatus(estado = turno.estado)
                 }
                 if (turno.estado == ESTADO_CHECKIN_DISPONIVEL) {
-                    SecaoDeCheckin(turnoId = turno.turnoId, criarCheckinViewModel = criarCheckinViewModel)
-                    BotaoSecundario(
-                        texto = "Cancelar turno",
-                        aoClicar = { aoCancelar(turno) },
-                        modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+                    SecaoTurnoConfirmado(
+                        turno = turno,
+                        criarCheckinViewModel = criarCheckinViewModel,
+                        aoCancelar = aoCancelar,
+                        relogio = relogio,
                     )
                 }
                 SecaoDeAvaliacao(turno = turno, aoAbrirAvaliacao = aoAbrirAvaliacao)
             }
+        }
+    }
+}
+
+@Composable
+private fun SecaoTurnoConfirmado(
+    turno: ItemTurno,
+    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
+    aoCancelar: (ItemTurno) -> Unit,
+    relogio: () -> Instant = { Instant.now() },
+) {
+    var estadoContagem by remember(turno.inicio, turno.fim) {
+        mutableStateOf(CalculadorContagemRegressiva.calcular(turno.inicio, turno.fim, relogio()))
+    }
+
+    LaunchedEffect(turno.inicio, turno.fim) {
+        while (isActive) {
+            val novoEstado = CalculadorContagemRegressiva.calcular(turno.inicio, turno.fim, relogio())
+            estadoContagem = novoEstado
+            if (novoEstado !is EstadoContagemRegressiva.AguardandoJanela) break
+            delay(1000L)
+        }
+    }
+
+    when (val contagem = estadoContagem) {
+        is EstadoContagemRegressiva.AguardandoJanela -> {
+            BlocoContagemRegressiva(texto = contagem.textoFormatado)
+            BotaoSecundario(
+                texto = "Cancelar turno",
+                aoClicar = { aoCancelar(turno) },
+                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+            )
+        }
+        is EstadoContagemRegressiva.JanelaAberta -> {
+            SecaoDeCheckin(turnoId = turno.turnoId, criarCheckinViewModel = criarCheckinViewModel)
+            BotaoSecundario(
+                texto = "Cancelar turno",
+                aoClicar = { aoCancelar(turno) },
+                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+            )
+        }
+        is EstadoContagemRegressiva.TurnoFinalizado -> {
+            // Turno finalizado não exibe check-in nem cancelamento
+        }
+    }
+}
+
+@Composable
+fun BlocoContagemRegressiva(
+    texto: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = FrilaEspacamento.pequeno)
+            .semantics {
+                contentDescription = "Check-in abre em: $texto"
+            },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(FrilaRaios.medio),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Column(
+            modifier = Modifier.padding(FrilaEspacamento.compacto),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+        ) {
+            Text(
+                text = "Janela de check-in (RN06)",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Check-in abre em $texto",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

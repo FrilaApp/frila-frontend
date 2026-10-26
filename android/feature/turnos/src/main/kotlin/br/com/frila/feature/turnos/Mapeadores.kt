@@ -13,6 +13,7 @@ fun TurnoDto.paraItem(): ItemTurno = ItemTurno(
     turnoId = turnoId,
     posicaoId = posicaoId,
     inicio = Instant.parse(inicioEm),
+    fim = runCatching { Instant.parse(fimEm) }.getOrNull(),
     funcaoNome = funcao.nome,
     estabelecimentoNome = contraparte.nome,
     dataHorarioFormatado = FORMATO_DATA_HORARIO.withZone(FUSO_BRASILIA).format(Instant.parse(inicioEm)),
