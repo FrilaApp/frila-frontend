@@ -50,4 +50,5 @@ data class EstadoFeed(
     val filtroPeriodo: FiltroPeriodo = FiltroPeriodo.QUALQUER,
     val exibindoFiltrosAvancados: Boolean = false,
     val mensagemErro: String? = null,
+    val atualizando: Boolean = false,
 )

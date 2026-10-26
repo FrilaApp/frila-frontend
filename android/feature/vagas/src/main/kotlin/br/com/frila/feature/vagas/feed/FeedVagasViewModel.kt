@@ -55,6 +55,26 @@ class FeedVagasViewModel(
     fun tentarNovamente(): Job = carregar()
 
     /**
+     * Recarregamento reativo via pull-to-refresh (RNF10). Preserva a lista e filtros ativos
+     * enquanto atualiza os dados em segundo plano com indicador de progresso no topo.
+     */
+    fun atualizar(): Job {
+        _estado.update { it.copy(atualizando = true, mensagemErro = null) }
+        return escopoDeTrabalho.launch {
+            try {
+                vagasCarregadas = servicoVagas.listarVagasAbertas()
+                aplicarFiltros()
+            } catch (erro: ErroDaApi) {
+                _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
+            } catch (t: Throwable) {
+                _estado.update { it.copy(mensagemErro = "Não foi possível carregar as vagas. Tente de novo em instantes.") }
+            } finally {
+                _estado.update { it.copy(atualizando = false) }
+            }
+        }
+    }
+
+    /**
      * Vaga já carregada pelo feed, pelo id — usado pela navegação para abrir o detalhe sem
      * refazer a chamada de `/rpc/vagas_abertas` só para reler o mesmo objeto.
      */

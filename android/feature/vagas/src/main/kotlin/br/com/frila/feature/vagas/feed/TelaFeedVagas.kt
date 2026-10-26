@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -26,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -74,23 +77,32 @@ fun TelaFeedVagas(
             )
         },
     ) { paddingInterno ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = estado.atualizando,
+            onRefresh = viewModel::atualizar,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingInterno),
+                .padding(paddingInterno)
+                .semantics {
+                    contentDescription = if (estado.atualizando) "Atualizando vagas abertas" else "Feed de vagas abertas"
+                },
         ) {
-            CampoBuscaVagas(
-                texto = estado.textoBusca,
-                aoAlterarTexto = viewModel::aoAlterarTextoBusca,
-                aoLimpar = viewModel::aoLimparBusca,
-            )
-            LinhaDeFiltros(estado = estado, viewModel = viewModel)
+            Column(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                CampoBuscaVagas(
+                    texto = estado.textoBusca,
+                    aoAlterarTexto = viewModel::aoAlterarTextoBusca,
+                    aoLimpar = viewModel::aoLimparBusca,
+                )
+                LinhaDeFiltros(estado = estado, viewModel = viewModel)
 
-            when (estado.status) {
-                StatusFeed.CARREGANDO -> CarregandoFeed()
-                StatusFeed.ERRO -> ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
-                StatusFeed.VAZIO -> VazioFeed(textoBusca = estado.textoBusca)
-                StatusFeed.SUCESSO -> ListaDeVagas(vagas = estado.vagas, aoAbrirDetalhe = aoAbrirDetalhe)
+                when (estado.status) {
+                    StatusFeed.CARREGANDO -> CarregandoFeed()
+                    StatusFeed.ERRO -> ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
+                    StatusFeed.VAZIO -> VazioFeed(textoBusca = estado.textoBusca)
+                    StatusFeed.SUCESSO -> ListaDeVagas(vagas = estado.vagas, aoAbrirDetalhe = aoAbrirDetalhe)
+                }
             }
         }
     }
@@ -325,7 +337,10 @@ private fun CarregandoFeed() {
 @Composable
 private fun VazioFeed(textoBusca: String) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(FrilaEspacamento.grande),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.grande),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -343,7 +358,10 @@ private fun VazioFeed(textoBusca: String) {
 @Composable
 private fun ErroFeed(mensagem: String?, aoTentarNovamente: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(FrilaEspacamento.grande),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.grande),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
     ) {

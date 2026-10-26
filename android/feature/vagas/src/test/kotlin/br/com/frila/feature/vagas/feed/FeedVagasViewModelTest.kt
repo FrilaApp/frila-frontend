@@ -423,4 +423,67 @@ class FeedVagasViewModelTest {
         assertEquals("", viewModel.estado.value.textoBusca)
         assertEquals(listOf("a", "b"), viewModel.estado.value.vagas.map { it.id })
     }
+
+    @Test
+    fun `atualizar preserva filtros ativos e atualiza lista com novas vagas`() = runBlocking {
+        var chamada = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamada++
+                val json = if (chamada == 1) {
+                    "[${vagaJson(id = "1", funcao = "garçom")}]"
+                } else {
+                    "[${vagaJson(id = "1", funcao = "garçom")}, ${vagaJson(id = "2", funcao = "garçom")}]"
+                }
+                respond(
+                    content = json,
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+        assertEquals(1, viewModel.estado.value.vagas.size)
+
+        viewModel.aoSelecionarFiltroFuncao("garçom")
+        viewModel.atualizar().join()
+
+        assertEquals(2, viewModel.estado.value.vagas.size)
+        assertEquals("garçom", viewModel.estado.value.filtroFuncao)
+        assertEquals(false, viewModel.estado.value.atualizando)
+        assertEquals(StatusFeed.SUCESSO, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `atualizar com falha mantem dados anteriores e expoe mensagem de erro`() = runBlocking {
+        var chamada = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamada++
+                if (chamada == 1) {
+                    respond(
+                        content = "[${vagaJson(id = "1", funcao = "garçom")}]",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                } else {
+                    respond(
+                        content = """{"code": "500", "message": "erro interno do servidor"}""",
+                        status = HttpStatusCode.InternalServerError,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            },
+        )
+
+        viewModel.carregar().join()
+        assertEquals(1, viewModel.estado.value.vagas.size)
+
+        viewModel.atualizar().join()
+
+        assertEquals(1, viewModel.estado.value.vagas.size)
+        assertEquals(false, viewModel.estado.value.atualizando)
+        assertTrue(viewModel.estado.value.mensagemErro != null)
+    }
 }
