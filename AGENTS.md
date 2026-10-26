@@ -85,3 +85,22 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 - `Frila.xcodeproj` não é versionado: rode `iOS/Scripts/gerar-projeto.sh` por worktree. iOS 26.4 não existe aqui: gate no iPhone 18 Pro (iOS 27.0; UDID `2AF3E1DE-44A3-433F-B09B-CDC8E0BD8737`), demo no Frila Demo; papéis exclusivos, sem criar outro simulador.
 - Na retomada pós-reset, o estado do andar vive na Fila de Logs e no `git status` do worktree, não na conversa.
 - Devolução longa vai para arquivo; a mensagem leva só o caminho.
+- `maestri ask` passa para segundo plano depois de uns 20 s e devolve `OK`; a resposta do agente chega depois, como mensagem. Não descarte a saída, não faça polling; confirme com `maestri check`.
+- O Claude só alcança CO1 e CO2; os AGYs respondem ao seu Codex.
+- Limpar contexto (`/clear`): AGYs primeiro, pelo próprio Codex, um por vez; Codex por último. `maestri ask "<agente>" --raw "/clear\n"` deixa o texto só digitado: envie `--raw "\r"` e confirme o prompt vazio com `maestri check`. Antes de limpar um Codex, grave o que ele vai precisar em `~/dev/frila-orquestra/briefs/` e cite o caminho no ask seguinte.
+- Loading sem fim: procure primeiro um `await` sem prazo, sobretudo APIs do sistema (ex.: DeclaredAgeRange, LOG-004). Todo `await` de API do sistema dentro de um fluxo com `carregando` leva prazo e fallback explícito.
+- Bug visto no aparelho: o Log traz o trecho do log do aparelho e a causa confirmada ou descartada; o teste de regressão vem antes do fix.
+- Build no iPhone físico: `iOS/Configurations/Secrets.xcconfig` fica fora do Git (`chmod 600`; nunca em PR, chat ou e-mail). Ajustes locais de assinatura (time pessoal, bundle ID, entitlements) não entram em commit e se desfazem antes de um pull que mexa nesses arquivos.
+- Antes de liberar um Log, além do `gh pr list`, confira arquivo a arquivo se algum PR aberto toca os mesmos arquivos.
+
+### 2.9 Playbooks por tipo de Log
+
+A decisão de produto ou design vai ao usuário uma vez, de uma só vez, antes do rascunho (escopo, onde entra cor, coordenação com outro time). O resto o Claude roteia sem perguntar de novo.
+
+| Tipo | Rota | Passos | Específico do tipo |
+|---|---|---|---|
+| Correção de bug | CO da área | evidência do aparelho → causa → Log mínimo → teste de regressão antes do fix → fix → gate → demo → merge | exceção de teste só com autorização expressa no Log |
+| Refino visual de tela | CO2 (telas); CO1 antes, se houver componente ou token novo | briefing do usuário (captura e decisões) em `~/dev/frila-orquestra/briefs/` → rascunho com antes/depois por tokens → validação do design → implementação → gate com `Scripts/auditoria-de-acessibilidade.sh` → demo → merge | diff-log (`~/dev/frila-orquestra/diff-log/MODELO.md`): antes de `origin/main`, depois da branch, mesmas condições (claro, escuro, texto grande); contraste e proporção de cor calculados |
+| Componente ou token | CO1 | Log → implementação → catálogo do design system → gate → merge | telas que dependem esperam o merge |
+| Documentação e governança | CO1 | briefing exato → commit `docs(governanca)` → PR → merge | sem build; o usuário valida o texto |
+| Exploração livre | Claude | `demo.sh EXPLORACAO <UDID> "<contexto>"` com `Frila-Local` instalado no Frila Demo; o usuário anota; o Claude agrupa por área e abre os Logs | sem Log até o usuário listar os pontos |
