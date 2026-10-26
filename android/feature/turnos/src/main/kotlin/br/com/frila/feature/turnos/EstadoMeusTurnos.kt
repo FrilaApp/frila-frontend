@@ -14,6 +14,7 @@ data class ItemTurno(
     val turnoId: String,
     val posicaoId: String,
     val inicio: Instant,
+    val fim: Instant? = null,
     val funcaoNome: String,
     val estabelecimentoNome: String,
     val dataHorarioFormatado: String,
