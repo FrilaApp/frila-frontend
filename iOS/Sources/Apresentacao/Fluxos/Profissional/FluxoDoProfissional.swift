@@ -67,6 +67,7 @@ public final class RoteadorDoProfissional {
 
     public func voltarParaLista() {
         caminho = []
+        aba = .vagas
     }
 
     public func ajustarFuncoes(vagaID: UUID, resultado: ResultadoDaCandidatura) {
