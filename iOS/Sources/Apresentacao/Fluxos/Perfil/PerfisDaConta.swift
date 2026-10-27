@@ -216,7 +216,9 @@ public struct TelaMeuPerfilProfissional: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    GrupoDeLinhas {
+                }
+                GrupoDeLinhas {
+                    if !model.carregando, model.mensagemErro == nil, model.conta != nil, model.perfil != nil {
                         NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
                             RotuloDeLinha(TextosPerfilConta.funcoesHorarios)
                         }
@@ -243,14 +245,14 @@ public struct TelaMeuPerfilProfissional: View {
                         DivisoriaDeLinha()
                         ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
                         DivisoriaDeLinha()
-                        Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
-                            RotuloDeLinha(TextosPerfilConta.sair)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("perfil-sair")
                     }
-                    excluirConta
+                    Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
+                        RotuloDeLinha(TextosPerfilConta.sair)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("perfil-sair")
                 }
+                excluirConta
             }.padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
@@ -438,7 +440,17 @@ public struct TelaPerfilEstabelecimento: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, FrilaEspaco.medio)
-                    GrupoDeLinhas {
+                } else {
+                    ContentUnavailableView {
+                        Label {
+                            Text(verbatim: TextosPerfilConta.vazio)
+                        } icon: {
+                            Image(systemName: "building.2")
+                        }
+                    }
+                }
+                GrupoDeLinhas {
+                    if !model.carregando, model.mensagemErro == nil, let estabelecimento = model.estabelecimento {
                         NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
                             RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
                         }
@@ -459,33 +471,25 @@ public struct TelaPerfilEstabelecimento: View {
                         DivisoriaDeLinha()
                         ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
                         DivisoriaDeLinha()
-                        Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
-                            RotuloDeLinha(TextosPerfilConta.sair)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("estabelecimento-sair")
                     }
-                    NavigationLink {
-                        TelaExclusaoDeConta(
-                            viewModel: ExclusaoDeContaViewModel(
-                                api: api,
-                                aoConcluir: sair
-                            )
-                        )
-                    } label: {
-                        BotaoDeExclusaoDeConta()
+                    Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
+                        RotuloDeLinha(TextosPerfilConta.sair)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier("estabelecimento-excluir-conta")
-                } else {
-                    ContentUnavailableView {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.vazio)
-                        } icon: {
-                            Image(systemName: "building.2")
-                        }
-                    }
+                    .accessibilityIdentifier("estabelecimento-sair")
                 }
+                NavigationLink {
+                    TelaExclusaoDeConta(
+                        viewModel: ExclusaoDeContaViewModel(
+                            api: api,
+                            aoConcluir: sair
+                        )
+                    )
+                } label: {
+                    BotaoDeExclusaoDeConta()
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("estabelecimento-excluir-conta")
             }.padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
