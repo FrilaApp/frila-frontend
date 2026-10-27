@@ -55,11 +55,12 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 
 - Um Log = uma branch `log/<ID>-<slug>` de `origin/main` = um PR para `main`. Tarefa paralela = worktree e branch `log/<ID>-<tarefa>` nascida da branch do Log.
 - Rodadas não viram commit; o Codex revisa pelo `git diff` e faz **um commit por tarefa aceita**. Mensagem em português, no padrão `tipo(escopo): descrição`, **sem citar IA, modelo ou ferramenta** e sem `Co-Authored-By`.
-- **Gate local** (o Codex pede a um AGY, no worktree do Log, a partir de `iOS/`):
+- **Gate local mínimo** (o Codex pede a um AGY, no worktree do Log, a partir de `iOS/`):
   1. `Scripts/gerar-projeto.sh` (uma vez por worktree);
   2. `Scripts/conferir-textos.sh`;
-  3. `xcodebuild build-for-testing -scheme Frila-Local -destination 'platform=iOS Simulator,name=<simulador do despacho>'`;
-  4. `xcodebuild test-without-building` com o mesmo esquema e destino, só `-only-testing:` dos testes da tela tocada.
+  3. `xcodebuild build -scheme Frila-Local -destination 'platform=iOS Simulator,name=<simulador do despacho>'`;
+  4. testes só quando o Log os listar: troque o `build` por `build-for-testing` e rode `xcodebuild test-without-building` com o mesmo esquema e destino, só `-only-testing:` dos testes listados (o de regressão de um bug, ou os testes adaptados com autorização expressa do §2.2). Sem lista no Log, não há teste. Nada de suíte inteira nem de teste novo que o Log não peça.
+- A conferência visual é a demo (§2.7); o gate prova só que o projeto compila e que os textos passam.
 - O Codex do Log integra, roda o gate, faz push, abre o PR e avisa o Claude. O Claude leva ao usuário e, com o ok, faz o merge (`gh pr merge <n> --merge`). O Codex remove os worktrees.
 - **CI (`ios.yml`) fica ligado e não bloqueia o merge** (leva de 70 a 90 min). CI vermelho num PR já mesclado vira um Log de correção na frente da Fila.
 
