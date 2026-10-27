@@ -3,7 +3,10 @@ package br.com.frila.feature.turnos
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin
+import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
@@ -55,20 +58,35 @@ class CheckinViewModel(
             try {
                 val coordenadaAtual = provedorDeLocalizacao.obterCoordenadaAtual()
                 val distanciaMetros = calcularDistanciaMetros(coordenadaAtual, coordenadaDaVaga)
+                val agora = instanteAtual()
 
                 val resultado = servicoTurnos.fazerCheckin(
                     turnoId = turnoId,
                     distanciaMetros = distanciaMetros,
-                    registradoEm = instanteAtual().toString(),
+                    registradoEm = agora.toString(),
+                )
+
+                val tipoVerificacao = if (resultado.verificacao == "verificado") {
+                    TipoVerificacaoCheckin.GEOLOCALIZADO
+                } else {
+                    TipoVerificacaoCheckin.MANUAL_PENDENTE
+                }
+
+                val comprovante = GeradorComprovanteCheckin.gerar(
+                    turnoId = turnoId,
+                    registradoEm = agora,
+                    tipoVerificacao = tipoVerificacao,
+                    coordenada = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) coordenadaAtual else null,
                 )
 
                 _estado.update {
                     it.copy(
-                        status = if (resultado.verificacao == "verificado") {
+                        status = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) {
                             StatusCheckin.VERIFICADO
                         } else {
                             StatusCheckin.MANUAL_PENDENTE
                         },
+                        comprovante = comprovante,
                     )
                 }
             } catch (erro: ErroDaApi) {

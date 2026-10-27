@@ -56,7 +56,9 @@ import kotlinx.coroutines.isActive
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaRaios
+import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
+import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 
 /** Estados do turno em que o check-in ainda pode ser feito (RF13). */
 private const val ESTADO_CHECKIN_DISPONIVEL = "confirmada"
@@ -72,6 +74,7 @@ fun TelaMeusTurnos(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var comprovanteParaExibir by remember { mutableStateOf<ComprovanteCheckin?>(null) }
 
     LaunchedEffect(estado.mensagemFeedback) {
         estado.mensagemFeedback?.let {
@@ -136,6 +139,7 @@ fun TelaMeusTurnos(
                     criarCheckinViewModel = criarCheckinViewModel,
                     aoAbrirAvaliacao = aoAbrirAvaliacao,
                     aoCancelar = viewModel::abrirCancelamento,
+                    aoExibirComprovante = { comprovanteParaExibir = it },
                     relogio = relogio,
                 )
             }
@@ -151,6 +155,13 @@ fun TelaMeusTurnos(
             aoVoltar = viewModel::fecharCancelamento,
         )
     }
+
+    comprovanteParaExibir?.let { comprovante ->
+        DialogoComprovanteCheckin(
+            comprovante = comprovante,
+            aoFechar = { comprovanteParaExibir = null },
+        )
+    }
 }
 
 @Composable
@@ -159,6 +170,7 @@ private fun ListaDeTurnos(
     criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
     aoAbrirAvaliacao: (turnoId: String) -> Unit,
     aoCancelar: (ItemTurno) -> Unit,
+    aoExibirComprovante: (ComprovanteCheckin) -> Unit,
     relogio: () -> Instant = { Instant.now() },
 ) {
     if (itens.isEmpty()) {
@@ -191,6 +203,7 @@ private fun ListaDeTurnos(
                         turno = turno,
                         criarCheckinViewModel = criarCheckinViewModel,
                         aoCancelar = aoCancelar,
+                        aoExibirComprovante = aoExibirComprovante,
                         relogio = relogio,
                     )
                 }
@@ -205,6 +218,7 @@ private fun SecaoTurnoConfirmado(
     turno: ItemTurno,
     criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
     aoCancelar: (ItemTurno) -> Unit,
+    aoExibirComprovante: (ComprovanteCheckin) -> Unit,
     relogio: () -> Instant = { Instant.now() },
 ) {
     var estadoContagem by remember(turno.inicio, turno.fim) {
@@ -230,7 +244,11 @@ private fun SecaoTurnoConfirmado(
             )
         }
         is EstadoContagemRegressiva.JanelaAberta -> {
-            SecaoDeCheckin(turnoId = turno.turnoId, criarCheckinViewModel = criarCheckinViewModel)
+            SecaoDeCheckin(
+                turno = turno,
+                criarCheckinViewModel = criarCheckinViewModel,
+                aoExibirComprovante = aoExibirComprovante,
+            )
             BotaoSecundario(
                 texto = "Cancelar turno",
                 aoClicar = { aoCancelar(turno) },
@@ -385,31 +403,63 @@ private fun SecaoDeAvaliacao(turno: ItemTurno, aoAbrirAvaliacao: (turnoId: Strin
 }
 
 @Composable
-private fun SecaoDeCheckin(turnoId: String, criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel) {
-    val viewModel = criarCheckinViewModel(turnoId)
+private fun SecaoDeCheckin(
+    turno: ItemTurno,
+    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
+    aoExibirComprovante: (ComprovanteCheckin) -> Unit,
+) {
+    val viewModel = criarCheckinViewModel(turno.turnoId)
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+
+    LaunchedEffect(estado.comprovante) {
+        estado.comprovante?.let { aoExibirComprovante(it) }
+    }
+
+    val comprovanteAtivo = estado.comprovante ?: turno.comprovante
 
     Column(
         modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
     ) {
-        when (estado.status) {
-            StatusCheckin.OCIOSO -> BotaoSecundario(texto = "Fazer check-in", aoClicar = { viewModel.fazerCheckin() })
-            StatusCheckin.REGISTRANDO -> Text("Registrando check-in…", style = MaterialTheme.typography.bodySmall)
-            StatusCheckin.VERIFICADO -> Text("Check-in verificado", style = MaterialTheme.typography.bodySmall)
-            StatusCheckin.MANUAL_PENDENTE -> Text(
-                "Check-in manual, aguardando confirmação do contratante",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            StatusCheckin.ERRO -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
+        when {
+            estado.status == StatusCheckin.REGISTRANDO -> {
+                Text("Registrando check-in…", style = MaterialTheme.typography.bodySmall)
+            }
+            estado.status == StatusCheckin.VERIFICADO || (estado.status == StatusCheckin.OCIOSO && turno.comprovante?.tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) -> {
+                Text("Check-in verificado", style = MaterialTheme.typography.bodySmall)
+                if (comprovanteAtivo != null) {
+                    BotaoSecundario(
+                        texto = "Ver comprovante",
+                        aoClicar = { aoExibirComprovante(comprovanteAtivo) },
+                    )
+                }
+            }
+            estado.status == StatusCheckin.MANUAL_PENDENTE || (estado.status == StatusCheckin.OCIOSO && turno.comprovante?.tipoVerificacao == TipoVerificacaoCheckin.MANUAL_PENDENTE) -> {
                 Text(
-                    text = estado.mensagemErro ?: "Não foi possível registrar o check-in.",
+                    "Check-in manual, aguardando confirmação do contratante",
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.semantics {
-                        error(estado.mensagemErro ?: "Não foi possível registrar o check-in.")
-                    },
                 )
-                BotaoSecundario(texto = "Tentar novamente", aoClicar = { viewModel.fazerCheckin() })
+                if (comprovanteAtivo != null) {
+                    BotaoSecundario(
+                        texto = "Ver comprovante",
+                        aoClicar = { aoExibirComprovante(comprovanteAtivo) },
+                    )
+                }
+            }
+            estado.status == StatusCheckin.ERRO -> {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
+                    Text(
+                        text = estado.mensagemErro ?: "Não foi possível registrar o check-in.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics {
+                            error(estado.mensagemErro ?: "Não foi possível registrar o check-in.")
+                        },
+                    )
+                    BotaoSecundario(texto = "Tentar novamente", aoClicar = { viewModel.fazerCheckin() })
+                }
+            }
+            else -> {
+                BotaoSecundario(texto = "Fazer check-in", aoClicar = { viewModel.fazerCheckin() })
             }
         }
     }

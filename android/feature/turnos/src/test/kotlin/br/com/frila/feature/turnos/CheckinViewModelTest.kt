@@ -1,6 +1,7 @@
 package br.com.frila.feature.turnos
 
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
@@ -68,6 +69,11 @@ class CheckinViewModelTest {
         viewModel.fazerCheckin().join()
 
         assertEquals(StatusCheckin.VERIFICADO, viewModel.estado.value.status)
+        val comprovante = viewModel.estado.value.comprovante
+        assertNotNull(comprovante)
+        assertEquals(TipoVerificacaoCheckin.GEOLOCALIZADO, comprovante!!.tipoVerificacao)
+        assertTrue(comprovante.codigoAutenticacao.startsWith("CHK-"))
+        assertNotNull(comprovante.coordenadasAproximadas)
     }
 
     @Test
@@ -80,6 +86,10 @@ class CheckinViewModelTest {
         viewModel.fazerCheckin().join()
 
         assertEquals(StatusCheckin.MANUAL_PENDENTE, viewModel.estado.value.status)
+        val comprovante = viewModel.estado.value.comprovante
+        assertNotNull(comprovante)
+        assertEquals(TipoVerificacaoCheckin.MANUAL_PENDENTE, comprovante!!.tipoVerificacao)
+        assertTrue(comprovante.codigoAutenticacao.startsWith("CHK-"))
     }
 
     @Test
