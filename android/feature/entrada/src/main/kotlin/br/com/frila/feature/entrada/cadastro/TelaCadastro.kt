@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -29,8 +32,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.mascara.CpfVisualTransformation
+import br.com.frila.core.designsystem.mascara.TelefoneVisualTransformation
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.dominio.modelo.DataCivil
@@ -43,7 +49,8 @@ fun TelaCadastro(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val erroNome = estado.erro?.takeIf { it == "Informe seu nome." }
-    val erroTelefone = estado.erro?.takeIf { it == "Informe seu telefone." }
+    val erroCpf = estado.erro?.takeIf { it == "Informe seu CPF." || it == MENSAGEM_CPF_INVALIDO }
+    val erroTelefone = estado.erro?.takeIf { it == "Informe seu telefone." || it == MENSAGEM_TELEFONE_INVALIDO }
     val erroNascimento = estado.erro?.takeIf {
         it == "Informe sua data de nascimento." || it == MENSAGEM_MENOR_DE_IDADE
     }
@@ -59,6 +66,7 @@ fun TelaCadastro(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
             .padding(FrilaEspacamento.grande),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
@@ -80,15 +88,50 @@ fun TelaCadastro(
         )
 
         OutlinedTextField(
+            value = estado.cpf,
+            onValueChange = viewModel::aoMudarCpf,
+            label = { Text("CPF") },
+            placeholder = { Text("000.000.000-00") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            visualTransformation = remember { CpfVisualTransformation() },
+            isError = erroCpf != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { erroCpf?.let { error(it) } },
+        )
+
+        if (erroCpf != null) {
+            Text(
+                text = erroCpf,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+            )
+        }
+
+        OutlinedTextField(
             value = estado.telefone,
             onValueChange = viewModel::aoMudarTelefone,
-            label = { Text("Telefone") },
+            label = { Text("Telefone com DDD") },
+            placeholder = { Text("(00) 00000-0000") },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            visualTransformation = remember { TelefoneVisualTransformation() },
             isError = erroTelefone != null,
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { erroTelefone?.let { error(it) } },
         )
+
+        if (erroTelefone != null) {
+            Text(
+                text = erroTelefone,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+            )
+        }
 
         CampoDeNascimento(
             nascimento = estado.nascimento,
@@ -131,20 +174,23 @@ fun TelaCadastro(
             Text(text = "Li e aceito os termos de uso e a política de privacidade.")
         }
 
-        estado.erro?.takeUnless { it == MENSAGEM_MENOR_DE_IDADE }?.let { mensagem ->
+        val erroGenerico = estado.erro?.takeUnless {
+            it == MENSAGEM_MENOR_DE_IDADE || it == erroCpf || it == erroTelefone
+        }
+        if (erroGenerico != null) {
             Text(
-                text = mensagem,
+                text = erroGenerico,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
 
+        val podeSubmeter = estado.nascimentoValido && estado.cpfValido && estado.telefoneValido
         BotaoPrimario(
             texto = "Concluir cadastro",
             aoClicar = viewModel::concluirCadastro,
-            // RN20 bloqueia visualmente antes mesmo do clique: menor de idade nunca vê o botão habilitado.
-            habilitado = estado.nascimentoValido,
+            habilitado = podeSubmeter,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -169,7 +215,9 @@ private fun CampoDeNascimento(
             parseDataBr(novoTexto)?.let(aoMudar)
         },
         label = { Text("Data de nascimento (dd/mm/aaaa)") },
+        placeholder = { Text("dd/mm/aaaa") },
         singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         isError = mensagemErro != null,
         modifier = Modifier
             .fillMaxWidth()
