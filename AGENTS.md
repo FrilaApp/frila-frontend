@@ -92,7 +92,7 @@ Scripts/auditoria-de-acessibilidade.sh   # tela nova ou alterada: tamanho padrã
 Também existem `conferir-movimento.sh`, `conferir-datas-fixas.sh` e `conferir-release.sh`; a CI roda todos.
 
 ### CI e merge
-`ios.yml` roda em PR que toque `iOS/**` e leva de ~70 a ~135 min de macOS (a organização tem orçamento zero e bloqueio). **Hoje ela não bloqueia o merge**, então o gate local é obrigatório e a saída vai no PR. CI vermelha depois do merge passa na frente de qualquer trabalho novo na área. (Decisão do time pendente: tornar a CI bloqueante.)
+`ios.yml` roda em PR que toque `iOS/**` e leva de ~70 a ~135 min de macOS (a organização tem orçamento zero e bloqueio). **Hoje ela não bloqueia o merge**, então o gate local é obrigatório e a saída vai no PR. CI vermelha depois do merge passa na frente de qualquer trabalho novo na área. (Decidido por quem lidera o time em 27/10/2026: a CI do frontend não precisa bloquear o merge.)
 
 ### Onde estão as regras de código e de design
 Não se repetem aqui: `iOS/README.md`, `iOS/Docs/GuiaDoFabricio.md`, `iOS/Docs/DesignSystem.md` e, para telas, `iOS/Docs/HiFi/REFERENCIA.md` e `iOS/Docs/HiFi/ESTADO.md`. Android: `docs/android/README.md`.
