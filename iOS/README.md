@@ -18,6 +18,19 @@ Fundação nativa em Swift 6.3, SwiftUI e SwiftData, com alvo mínimo iOS 17 e b
 
 `Local.xcconfig`, `Dev.xcconfig` e `Prod.xcconfig` escolhem o ambiente sem alteração de código. As chaves `FRILA_*` chegam ao app pelo `Sources/App/Info.plist` parcial, que o Xcode mescla ao Info.plist gerado.
 
+### Buildar no simulador sem conta paga
+
+Para compilar e rodar no simulador sem uma conta de desenvolvedor Apple paga (ou sem certificados de assinatura configurados), use como destino o Simulador (nunca 'Any iOS Device') e o esquema `Frila-Local`:
+
+```sh
+cd iOS && ./Scripts/gerar-projeto.sh && xcodebuild build -project Frila.xcodeproj -scheme Frila-Local -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+```
+
+Por que o esquema `Frila` falha sem conta paga:
+1. O app declara capacidades restritas em `Sources/App/Frila.entitlements`: `aps-environment`, App Group `group.com.frila.org.app` e Declared Age Range (`com.apple.developer.declared-age-range`).
+2. Essas capacidades exigem que o App ID e o App Group estejam registrados no Apple Developer Program.
+3. Sem vínculo a uma conta paga associada ao `DEVELOPMENT_TEAM` do `project.yml`, o Xcode recusa a assinatura automática para dispositivo físico; no simulador com `Frila-Local` e `CODE_SIGNING_ALLOWED=NO`, as restrições de assinatura são dispensadas.
+
 ### Configuração ausente é erro, nunca simulado
 
 `ConfiguracaoAmbiente` decide o cliente a partir do Info.plist e lança `ErroDeConfiguracao` em vez de cair no dublê em memória:
