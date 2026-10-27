@@ -2,7 +2,7 @@
 
 > Movido sem alteração de texto de `AGENTS.md` (seção 2) em 27/10/2026. É a orquestração **pessoal** do Fabrício no Maestri; só quem usa o andar `alinhamento` precisa ler. As regras do time estão em `AGENTS.md` na raiz e valem para todos, inclusive aqui.
 >
-> Pontos que o time precisa decidir, porque esta orquestração contradiz ou se sobrepõe às regras do time: (1) a regra "sem `Co-Authored-By` e sem citar IA nos commits" (2.5); (2) "a CI não bloqueia o merge" (2.5); (3) o merge feito pelo Claude com o ok do usuário (2.5), que o núcleo trata como decisão humana.
+> Pontos em que esta orquestração diverge das regras do time (ajuste por quem a usa): (1) a regra "sem `Co-Authored-By` e sem citar IA nos commits" (2.5): o time decidiu que pessoa e IA **podem e devem** ser citadas, no PR e no commit; (2) "a CI não bloqueia o merge" (2.5): a decisão de bloquear ainda é do time; (3) o merge feito pelo Claude com o ok do usuário (2.5): o núcleo trata aprovar e mesclar como decisão humana.
 
 ## 2. Andar alinhamento (Maestri)
 
