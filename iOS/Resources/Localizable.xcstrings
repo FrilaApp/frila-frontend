@@ -1302,6 +1302,16 @@
         }
       }
     },
+    "Conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta"
+          }
+        }
+      }
+    },
     "Conta de teste": {
       "localizations": {
         "pt-BR": {
