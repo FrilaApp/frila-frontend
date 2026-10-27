@@ -7,10 +7,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
         app.launch()
 
-        // 1. Abre a lista de vagas e navega para o perfil
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10))
-        botaoPerfil.tap()
+        // 1. Abre a lista de vagas e navega para a aba Conta
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
+        abaConta.tap()
 
         // 2. No perfil, aciona o item "Excluir conta"
         let botaoIrParaExclusao = app.buttons["perfil-excluir-conta"]
@@ -74,10 +74,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
         app.launch()
 
-        // 1. O app abre no fluxo do contratante e apresenta o botão de perfil do estabelecimento
-        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Contratante existente deve ver o botão de perfil")
-        botaoPerfil.tap()
+        // 1. O app abre no fluxo do contratante e navega para a aba Conta
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10), "Contratante existente deve ver a aba Conta")
+        abaConta.tap()
 
         // 2. Na tela de perfil do estabelecimento, aciona "Excluir conta"
         let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
@@ -96,10 +96,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
         app.launch()
 
-        // 1. Acesso direto ao perfil do estabelecimento a partir do fluxo principal
-        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Contratante existente deve ver o botão de perfil")
-        botaoPerfil.tap()
+        // 1. Acesso direto à aba Conta a partir do fluxo principal
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10), "Contratante existente deve ver a aba Conta")
+        abaConta.tap()
 
         // 2. Botão de exclusão visível no menu principal (sem aninhamento em submenus)
         let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
@@ -148,10 +148,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "painel-contratante"]
         app.launch()
 
-        // 1. Acesso direto a partir do painel
-        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Contratante existente deve ver o botão de perfil")
-        botaoPerfil.tap()
+        // 1. Acesso direto à aba Conta a partir do painel
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10), "Contratante existente deve ver a aba Conta")
+        abaConta.tap()
 
         // 2. Botão de exclusão no menu principal
         let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
@@ -198,10 +198,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "painel-contratante"]
         app.launch()
 
-        // 1. O app abre no fluxo do contratante e apresenta o botão de perfil do estabelecimento
-        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Contratante existente deve ver o botão de perfil")
-        botaoPerfil.tap()
+        // 1. O app abre no fluxo do contratante e navega para a aba Conta
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10), "Contratante existente deve ver a aba Conta")
+        abaConta.tap()
 
         // 2. Na tela de perfil do estabelecimento, aciona "Excluir conta"
         let botaoExcluir = app.buttons["estabelecimento-excluir-conta"]
@@ -225,11 +225,15 @@ final class ExclusaoDeContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "contratante-sem-estabelecimento"]
         app.launch()
 
-        // 1. Contratante sem estabelecimento vê o botão "Excluir conta" na barra superior junto com "Sair"
-        let botaoExcluirConta = app.buttons["contratante-sem-estabelecimento-excluir-conta"]
+        // 1. Contratante sem estabelecimento acessa a aba Conta com Sair e Excluir conta
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10), "Contratante sem estabelecimento deve ver a aba Conta")
+        abaConta.tap()
+
+        let botaoExcluirConta = app.buttons["estabelecimento-excluir-conta"]
         XCTAssertTrue(botaoExcluirConta.waitForExistence(timeout: 10), "Contratante sem estabelecimento deve ter acesso a Excluir conta")
 
-        let botaoSair = app.buttons["sair-fluxo-contratante"]
+        let botaoSair = app.buttons["estabelecimento-sair"]
         XCTAssertTrue(botaoSair.exists, "Botão Sair deve continuar visível")
 
         // 2. Aciona o botão de exclusão
@@ -276,9 +280,9 @@ final class ExclusaoDeContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
 
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10))
-        botaoPerfil.tap()
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
+        abaConta.tap()
 
         let irParaExclusao = app.buttons["perfil-excluir-conta"]
         XCTAssertTrue(irParaExclusao.waitForExistence(timeout: Espera.aparecer))
@@ -341,9 +345,9 @@ final class ExclusaoDeContaUITests: XCTestCase {
         }
         app.launch()
 
-        let perfil = app.buttons["abrir-perfil-estabelecimento"]
-        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
-        perfil.tap()
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
+        abaConta.tap()
         let abrirExclusao = app.buttons["estabelecimento-excluir-conta"]
         XCTAssertTrue(abrirExclusao.waitForExistence(timeout: Espera.aparecer))
         rolarAte(abrirExclusao, em: app)

@@ -398,23 +398,8 @@ public struct TelaMinhasVagas: View {
             .navigationTitle(Text(verbatim: TextosMinhasVagas.titulo))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                if sair != nil {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { mostrarConfirmacaoDeSaida = true } label: {
-                            Text("Sair", bundle: bundleApresentacao)
-                        }
-                        .accessibilityIdentifier("sair-fluxo-contratante")
-                    }
-                }
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if let abrirPerfil {
-                        Button(action: abrirPerfil) {
-                            Label(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao), systemImage: "person.crop.circle")
-                        }
-                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
-                        .accessibilityIdentifier("abrir-perfil-estabelecimento")
-                    }
-                    if let publicarVaga, !viewModel.vagas.isEmpty {
+                if let publicarVaga, !viewModel.vagas.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(action: publicarVaga) {
                             Label(TextosMinhasVagas.publicarVaga, systemImage: "plus")
                         }
@@ -1139,16 +1124,6 @@ private struct TelaDetalheVagaContratante: View {
         }
         .navigationTitle(Text(verbatim: TextosMinhasVagas.detalheTitulo))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if sair != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { mostrarConfirmacaoDeSaida = true } label: {
-                        Text("Sair", bundle: bundleApresentacao)
-                    }
-                    .accessibilityIdentifier("sair-fluxo-contratante")
-                }
-            }
-        }
         .navigationDestination(item: $perfilSelecionado) { perfil in
             TelaPerfilPublico(perfil: perfil, api: api, bloqueios: bloqueios)
         }

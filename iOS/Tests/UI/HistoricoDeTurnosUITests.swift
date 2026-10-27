@@ -8,7 +8,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
     }
 
     func testProfissionalExportaCSVDesteMesEAbreCompartilhamento() {
-        let app = abrir(cenario: "success", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos")
+        let app = abrir(cenario: "success", item: "perfil-historico-turnos")
         XCTAssertTrue(app.buttons["historico-este-mes"].isSelected, "Este mês é o período inicial")
         XCTAssertTrue(app.staticTexts["historico-resumo-periodo"].exists, "O período escolhido aparece por extenso")
         anexar(app, "historico-profissional")
@@ -20,7 +20,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
     }
 
     func testContratanteExportaPDFDoMesPassadoEAbreCompartilhamento() {
-        let app = abrir(cenario: "contratante", perfil: "abrir-perfil-estabelecimento", item: "estabelecimento-historico-turnos")
+        let app = abrir(cenario: "contratante", item: "estabelecimento-historico-turnos")
         let mesPassado = app.buttons["historico-mes-passado"]
         tocar(mesPassado)
         tocar(app.segmentedControls["historico-formato"].buttons["PDF"])
@@ -35,7 +35,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
     }
 
     func testPeriodoSemTurnosAvisaENaoAbreCompartilhamento() {
-        let app = abrir(cenario: "exportar-turnos-sem-turnos", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos")
+        let app = abrir(cenario: "exportar-turnos-sem-turnos", item: "perfil-historico-turnos")
 
         app.buttons["historico-exportar"].tap()
 
@@ -53,7 +53,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
     }
 
     func testErroDeRedeMostraMensagemETentarNovamente() {
-        let app = abrir(cenario: "exportar-sem-rede", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos")
+        let app = abrir(cenario: "exportar-sem-rede", item: "perfil-historico-turnos")
 
         app.buttons["historico-exportar"].tap()
 
@@ -65,7 +65,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
     }
 
     func testIntervaloMaximoExcedidoExplicaLimiteSemOferecerReenvio() {
-        let app = abrir(cenario: "exportar-intervalo-maximo-excedido", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos")
+        let app = abrir(cenario: "exportar-intervalo-maximo-excedido", item: "perfil-historico-turnos")
         app.buttons["historico-exportar"].tap()
         let erro = app.descendants(matching: .any)["historico-erro"]
         XCTAssertTrue(erro.waitForExistence(timeout: 10))
@@ -79,7 +79,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
 
     func testIntervaloLivreNoMaiorTextoCabeNaTelaEExporta() {
         let app = abrir(
-            cenario: "success", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos",
+            cenario: "success", item: "perfil-historico-turnos",
             extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         )
         let largura = app.windows.firstMatch.frame.width
@@ -103,7 +103,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
     /// pílulas que crescem com o texto (QA de 04/10, achado 4).
     func testEmAX5OFormatoViraPilulasQueCrescemComOTexto() {
         let app = abrir(
-            cenario: "success", perfil: "abrir-meu-perfil", item: "perfil-historico-turnos",
+            cenario: "success", item: "perfil-historico-turnos",
             extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         )
         let csv = app.buttons["historico-formato-csv"]
@@ -123,12 +123,12 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         anexar(app, "historico-formato-ax5")
     }
 
-    private func abrir(cenario: String, perfil: String, item: String, extras: [String] = []) -> XCUIApplication {
+    private func abrir(cenario: String, item: String, extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + extras
         app.launch()
 
-        let botaoPerfil = app.buttons[perfil]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "O botão do perfil deve estar visível")
         botaoPerfil.tap()
 
@@ -165,7 +165,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
         app.launch()
 
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "O botão do perfil deve estar visível")
         botaoPerfil.tap()
 
@@ -198,7 +198,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         ]
         app.launch()
 
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "O botão do perfil deve estar visível")
         botaoPerfil.tap()
 

@@ -6,11 +6,10 @@ import SwiftUI
 /// com os ganchos do app (avisos, modo da vaga, campos travados, rótulos do fechar e do publicar).
 ///
 /// `aoCancelar` nulo é o primeiro acesso (logo depois do cadastro da casa): não há para onde voltar, o X
-/// não aparece e a barra ganha o botão do perfil do estabelecimento, como no formulário antigo.
+/// e o botão de perfil na toolbar não aparecem e a barra de abas fica visível (LOG-007).
 struct TelaEstudioDeVaga: View {
     @State private var formulario: FormularioEstudioDeVaga
     @State private var catalogoPronto = false
-    @State private var mostrandoPerfilEstabelecimento = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
     private let api: any ApiCliente
@@ -41,26 +40,11 @@ struct TelaEstudioDeVaga: View {
                 ProgressView()
             }
         }
+        .toolbar(aoCancelar != nil ? .hidden : .visible, for: .tabBar)
         .task { await carregar() }
         // A fila avisa quando uma publicação guardada foi recusada pelo servidor.
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
             Task { await formulario.vaga.carregarRecusaDaFila() }
-        }
-        .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
-            NavigationStack {
-                TelaPerfilEstabelecimento(api: api, sair: sair)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button {
-                                mostrandoPerfilEstabelecimento = false
-                            } label: {
-                                Text("Fechar", bundle: bundleApresentacao)
-                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                            }
-                            .accessibilityShowsLargeContentViewer()
-                        }
-                    }
-            }
         }
     }
 
@@ -86,17 +70,7 @@ struct TelaEstudioDeVaga: View {
                 publishLabel: { vaga.publicacaoPendente != nil ? TextosPublicarVaga.tentarNovamente : nil },
                 closeLabel: { vaga.textoAoFechar },
                 showsClose: aoCancelar != nil,
-                trailingToolbar: aoCancelar != nil ? nil : {
-                    AnyView(
-                        Button { mostrandoPerfilEstabelecimento = true } label: {
-                            Image(systemName: "building.2.crop.circle")
-                                .foregroundStyle(FrilaColor.dynamicTextPrimary(isDark: isDark))
-                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        }
-                        .accessibilityLabel(String(localized: "Perfil do estabelecimento", bundle: bundleApresentacao))
-                        .accessibilityShowsLargeContentViewer()
-                    )
-                },
+                trailingToolbar: nil,
                 onDraftChange: { formulario.sincronizar($0) }
             )
         )

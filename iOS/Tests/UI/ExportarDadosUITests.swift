@@ -8,7 +8,7 @@ final class ExportarDadosUITests: XCTestCase {
         app.launch()
 
         // 1. Abre a lista de vagas e navega para o perfil do profissional
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Botão de abrir perfil deve estar visível")
         botaoPerfil.tap()
 
@@ -38,7 +38,7 @@ final class ExportarDadosUITests: XCTestCase {
         app.launch()
 
         // 1. Abre o fluxo do contratante e navega para o perfil do estabelecimento
-        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Botão de perfil do estabelecimento deve estar visível")
         botaoPerfil.tap()
 
@@ -67,7 +67,7 @@ final class ExportarDadosUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "exportar-sem-rede"]
         app.launch()
 
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "Botão de abrir perfil deve estar visível")
         botaoPerfil.tap()
 
@@ -86,7 +86,7 @@ final class ExportarDadosUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10), "Feed inicial de vagas deve carregar")
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer), "Botão de abrir perfil deve estar visível")
         botaoPerfil.tap()
 

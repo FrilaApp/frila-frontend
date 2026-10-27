@@ -343,7 +343,7 @@ public struct TelaCadastroEstabelecimento: View {
     private var conteudoDaTela: some View {
         if model.concluido, let estabelecimento = model.estabelecimentoCriado {
             if let fila {
-                // Primeiro acesso: o Estúdio de Criação sem o X (não há para onde voltar) e com o perfil da casa na barra.
+                // Primeiro acesso: o Estúdio de Criação sem o X (não há para onde voltar), com a tab bar visível.
                 TelaEstudioDeVaga(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicarPrimeiraVaga)
             } else {
                 Color.clear.task { aoPublicarPrimeiraVaga() }
@@ -351,22 +351,6 @@ public struct TelaCadastroEstabelecimento: View {
         } else {
             NavigationStack {
                 formulario
-                    .toolbar {
-                        if let excluirConta {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button(role: .destructive, action: excluirConta) {
-                                    Text("Excluir conta", bundle: bundleApresentacao)
-                                }
-                                .accessibilityIdentifier("contratante-sem-estabelecimento-excluir-conta")
-                            }
-                        }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button { mostrarConfirmacaoDeSaida = true } label: {
-                                Text("Sair", bundle: bundleApresentacao)
-                            }
-                            .accessibilityIdentifier("sair-fluxo-contratante")
-                        }
-                    }
             }
         }
     }

@@ -9,7 +9,7 @@ final class SaidaDaContaUITests: XCTestCase {
 
     func testCancelarSaidaMantemContaEConfirmarVoltaAoLogin() {
         let app = abrir("success")
-        tocar(app.buttons["abrir-meu-perfil"])
+        tocar(app.tabBars.buttons["Conta"])
         let email = app.descendants(matching: .any)["perfil-email-valor"]
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
         let emailAntes = email.label
@@ -45,7 +45,7 @@ final class SaidaDaContaUITests: XCTestCase {
 
     func testCancelarSaidaDoPerfilEmAX4() {
         let app = abrir("success", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
-        tocar(app.buttons["abrir-meu-perfil"])
+        tocar(app.tabBars.buttons["Conta"])
         conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional-ax4")
         XCTAssertTrue(app.navigationBars["Meu perfil"].exists)
     }
@@ -58,20 +58,26 @@ final class SaidaDaContaUITests: XCTestCase {
 
     func testCancelarSaidaDoCadastroDoEstabelecimento() {
         let app = abrir("contratante-sem-estabelecimento")
-        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "cadastro-estabelecimento")
+        tocar(app.tabBars.buttons["Conta"])
+        conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "cadastro-estabelecimento")
+        tocar(app.tabBars.buttons["Minhas vagas"])
         XCTAssertTrue(app.buttons["continuar-cadastro"].exists)
     }
 
     func testCancelarSaidaDeMinhasVagas() {
         let app = abrir("contratante")
-        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "minhas-vagas")
+        tocar(app.tabBars.buttons["Conta"])
+        conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "minhas-vagas")
+        tocar(app.tabBars.buttons["Minhas vagas"])
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].exists)
     }
 
     func testCancelarSaidaDoFluxoDoContratanteSemRede() {
         let app = abrir("contratante", argumentos: ["-FRILA_FLUXO_CONTRATANTE_SEM_REDE_UI_TEST"])
         XCTAssertTrue(app.buttons["Tentar novamente"].waitForExistence(timeout: Espera.aparecer))
-        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "fluxo-contratante-sem-rede")
+        tocar(app.tabBars.buttons["Conta"])
+        conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "fluxo-contratante-sem-rede")
+        tocar(app.tabBars.buttons["Minhas vagas"])
         XCTAssertTrue(app.buttons["Tentar novamente"].exists)
         XCTAssertFalse(app.textFields["entrada-email"].exists)
     }
@@ -79,7 +85,12 @@ final class SaidaDaContaUITests: XCTestCase {
     func testCancelarSaidaDoDetalheDaVaga() {
         let app = abrir("contratante")
         tocar(app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"])
-        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "detalhe-vaga-contratante")
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: Espera.aparecer))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        tocar(app.tabBars.buttons["Conta"])
+        conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "detalhe-vaga-contratante")
+        tocar(app.tabBars.buttons["Minhas vagas"])
+        tocar(app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"])
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].exists)
     }
 
@@ -89,13 +100,21 @@ final class SaidaDaContaUITests: XCTestCase {
         let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'acompanhar-turno-'")).firstMatch
         rolarAte(turno, app: app)
         tocar(turno)
-        conferirCancelamento(app, botao: app.buttons["sair-fluxo-contratante"], nome: "turno-contratante")
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: Espera.aparecer))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        tocar(app.tabBars.buttons["Conta"])
+        conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "turno-contratante")
+        tocar(app.tabBars.buttons["Minhas vagas"])
+        tocar(app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"])
+        rolarAte(turno, app: app)
+        tocar(turno)
         XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].exists)
     }
 
     func testCancelarSaidaDoPerfilDoEstabelecimentoPreservaFolha() {
         let app = abrir("contratante")
-        tocar(app.buttons["abrir-perfil-estabelecimento"])
+        tocar(app.tabBars.buttons["Conta"])
         conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "perfil-estabelecimento")
         XCTAssertTrue(app.navigationBars["Perfil do estabelecimento"].exists)
         rolarAte(app.buttons["estabelecimento-sair"], app: app)
@@ -696,7 +715,7 @@ final class AutenticacaoUITests: XCTestCase {
         }
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "o botão para abrir o perfil deve aparecer na barra")
         botaoPerfil.tap()
         XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 10))
@@ -1032,8 +1051,8 @@ final class PerfilUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
         app.launch()
 
-        XCTAssertTrue(app.buttons["abrir-meu-perfil"].waitForExistence(timeout: 15))
-        app.buttons["abrir-meu-perfil"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Conta"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["Conta"].tap()
         let funcoesEHorarios = app.descendants(matching: .any)["perfil-funcoes-horarios"]
         XCTAssertTrue(funcoesEHorarios.waitForExistence(timeout: 10))
         funcoesEHorarios.tap()
@@ -1045,7 +1064,7 @@ final class PerfilUITests: XCTestCase {
 
         app.tabBars.buttons["Meus turnos"].tap()
         XCTAssertFalse(funcao.waitForExistence(timeout: 2))
-        app.tabBars.buttons["Vagas no DF"].tap()
+        app.tabBars.buttons["Conta"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
         XCTAssertTrue(funcao.waitForExistence(timeout: Espera.aparecer), "as funções carregadas continuam no formulário")
@@ -1059,7 +1078,7 @@ final class PerfilUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer))
         botaoPerfil.tap()
 
@@ -1100,7 +1119,7 @@ final class PerfilUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "contratante"]
         app.launch()
 
-        let botaoPerfil = app.buttons["abrir-perfil-estabelecimento"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "botão de abrir perfil do estabelecimento deve existir")
         botaoPerfil.tap()
 
@@ -1143,7 +1162,7 @@ final class PerfilUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer))
         botaoPerfil.tap()
 
@@ -1176,7 +1195,7 @@ final class PerfilUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
 
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: Espera.aparecer))
         botaoPerfil.tap()
 

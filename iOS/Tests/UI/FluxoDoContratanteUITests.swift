@@ -11,7 +11,12 @@ final class FluxoDoContratanteUITests: XCTestCase {
         let captura = XCTAttachment(screenshot: app.screenshot())
         captura.lifetime = .keepAlways
         add(captura)
-        let sair = app.buttons["sair-fluxo-contratante"]
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
+        abaConta.tap()
+        let sair = app.buttons["estabelecimento-sair"]
+        XCTAssertTrue(sair.waitForExistence(timeout: 10))
+        rolarAte(sair, app: app)
         XCTAssertTrue(sair.isHittable)
         sair.tap()
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
@@ -29,7 +34,15 @@ final class FluxoDoContratanteUITests: XCTestCase {
         tocar(app.buttons["vaga-contratante-40000000-0000-0000-0000-000000000001"])
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10))
 
-        tocar(app.buttons["sair-fluxo-contratante"])
+        // O detalhe da vaga oculta a tab bar; volta para Minhas vagas antes de acessar a aba Conta.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
+        abaConta.tap()
+        let sair = app.buttons["estabelecimento-sair"]
+        XCTAssertTrue(sair.waitForExistence(timeout: 10))
+        rolarAte(sair, app: app)
+        sair.tap()
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
@@ -100,7 +113,12 @@ final class FluxoDoContratanteUITests: XCTestCase {
         let captura = XCTAttachment(screenshot: app.screenshot())
         captura.lifetime = .keepAlways
         add(captura)
-        let sair = app.buttons["sair-fluxo-contratante"]
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
+        abaConta.tap()
+        let sair = app.buttons["estabelecimento-sair"]
+        XCTAssertTrue(sair.waitForExistence(timeout: 10))
+        rolarAte(sair, app: app)
         XCTAssertTrue(sair.isHittable)
         sair.tap()
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
@@ -255,7 +273,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Algo deu errado"].exists)
         anexarCaptura(app, nome: "fila-nula-\(captura)-minhas-vagas")
 
-        let perfilEstabelecimento = app.buttons["abrir-perfil-estabelecimento"]
+        let perfilEstabelecimento = app.tabBars.buttons["Conta"]
         XCTAssertTrue(perfilEstabelecimento.isHittable)
         XCTAssertTrue(perfilEstabelecimento.isEnabled)
         // O recorte desta regressão termina no destino com acesso ao perfil disponível.

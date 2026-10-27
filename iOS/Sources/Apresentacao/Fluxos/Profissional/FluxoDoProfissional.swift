@@ -8,6 +8,7 @@ public enum AbaDoProfissional: Hashable, Sendable {
     case turnos
     /// As candidaturas da conta, com as que esperam a escolha da casa nas vagas de seleção (#10).
     case candidaturas
+    case conta
 }
 
 /// Destinos do fluxo de quem procura turno.
@@ -66,6 +67,7 @@ public final class RoteadorDoProfissional {
 
     public func voltarParaLista() {
         caminho = []
+        aba = .vagas
     }
 
     public func ajustarFuncoes(vagaID: UUID, resultado: ResultadoDaCandidatura) {
@@ -159,15 +161,6 @@ public struct FluxoDoProfissional<Barra: View>: View {
                             barra()
                                 .accessibilityShowsLargeContentViewer()
                         }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            NavigationLink(value: RotaDoProfissional.meuPerfil) {
-                                Image(systemName: "person.crop.circle")
-                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                            }
-                            .accessibilityShowsLargeContentViewer()
-                            .accessibilityLabel(String(localized: "Meu perfil", bundle: bundleApresentacao))
-                            .accessibilityIdentifier("abrir-meu-perfil")
-                        }
                     }
                     .navigationDestination(for: RotaDoProfissional.self) { rota in
                         switch rota {
@@ -256,6 +249,14 @@ public struct FluxoDoProfissional<Barra: View>: View {
                 Label(TextosDaCandidaturaEmSelecao.titulo, systemImage: "paperplane")
             }
             .tag(AbaDoProfissional.candidaturas)
+
+            NavigationStack {
+                TelaMeuPerfilProfissional(api: api, sair: sair)
+            }
+            .tabItem {
+                Label(String(localized: "Conta", bundle: bundleApresentacao), systemImage: "person.crop.circle")
+            }
+            .tag(AbaDoProfissional.conta)
         }
         .environment(feed.bloqueios)
         .onChange(of: feed.bloqueios.alvos) {

@@ -2,6 +2,11 @@ import FrilaDominio
 import Observation
 import SwiftUI
 
+public enum AbaDoContratante: Hashable, Sendable {
+    case vagas
+    case conta
+}
+
 public enum EstadoDoFluxoContratante: Equatable, Sendable {
     case carregando
     case cadastro(Conta)
@@ -50,16 +55,16 @@ public final class FluxoDoContratanteViewModel {
     }
 }
 
-/// Entrada do contratante: primeiro estabelecimento da API ou cadastro com o responsável da conta. A barra de cima
-/// e o fundo agrupado seguem o quadro "Main" do MidFi do Fabrício.
+/// Entrada do contratante: primeiro estabelecimento da API ou cadastro com o responsável da conta,
+/// organizados em abas nativas com Minhas vagas e Conta (LOG-007).
 public struct FluxoDoContratante: View {
+    @State private var aba: AbaDoContratante = .vagas
     @State private var mostrarConfirmacaoDeSaida = false
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let sair: () -> Void
     private let roteador: RoteadorDoContratante?
     @State private var model: FluxoDoContratanteViewModel
-    @State private var mostrandoPerfilEstabelecimento = false
     @State private var mostrandoExclusaoDeConta = false
     @State private var publicando = ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PUBLICAR")
 
@@ -74,54 +79,22 @@ public struct FluxoDoContratante: View {
     }
 
     public var body: some View {
-        conteudoDaTela
-            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
-    }
+        TabView(selection: $aba) {
+            conteudoPrincipal
+                .tabItem {
+                    Label(String(localized: "Minhas vagas", bundle: bundleApresentacao), systemImage: "briefcase")
+                }
+                .tag(AbaDoContratante.vagas)
 
-    @ViewBuilder
-    private var conteudoDaTela: some View {
-        VStack(spacing: 0) {
-            if case .cadastro = model.estado {
-                // Toolbar nativo dentro de TelaCadastroEstabelecimento
-            } else if case .vagas = model.estado {
-                // Toolbar nativo dentro de TelaMinhasVagas
-            } else {
-                HStack {
-                    Spacer()
-                    Button(action: solicitarSaida) { Text("Sair", bundle: bundleApresentacao).font(FrilaTipo.meta) }
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        .accessibilityIdentifier("sair-fluxo-contratante")
-                }
-                .padding(.horizontal, FrilaEspaco.medio)
-            }
-            conteudo.frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .background(FrilaCor.fundo.ignoresSafeArea())
-        .sheet(isPresented: $mostrandoPerfilEstabelecimento) {
             NavigationStack {
-                TelaPerfilEstabelecimento(
-                    api: api,
-                    sair: {
-                        mostrandoPerfilEstabelecimento = false
-                        sair()
-                    }
-                )
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            mostrandoPerfilEstabelecimento = false
-                        } label: {
-                            Label(String(localized: "Fechar", bundle: bundleApresentacao), systemImage: "xmark")
-                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                                .contentShape(Rectangle())
-                        }
-                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                        .accessibilityShowsLargeContentViewer()
-                    }
-                }
+                TelaPerfilEstabelecimento(api: api, sair: sair)
             }
+            .tabItem {
+                Label(String(localized: "Conta", bundle: bundleApresentacao), systemImage: "person.crop.circle")
+            }
+            .tag(AbaDoContratante.conta)
         }
+        .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
         .sheet(isPresented: $mostrandoExclusaoDeConta) {
             NavigationStack {
                 TelaExclusaoDeConta(
@@ -145,6 +118,18 @@ public struct FluxoDoContratante: View {
             }
         }
         .task { await model.carregar() }
+        .onChange(of: roteador?.avisosAbertos) {
+            if roteador?.avisosAbertos != nil {
+                aba = .vagas
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var conteudoPrincipal: some View {
+        conteudo
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(FrilaCor.fundo.ignoresSafeArea())
     }
 
     @ViewBuilder
@@ -164,8 +149,7 @@ public struct FluxoDoContratante: View {
                 estabelecimento: estabelecimento,
                 roteador: roteador,
                 publicando: $publicando,
-                sair: sair,
-                abrirPerfil: { mostrandoPerfilEstabelecimento = true }
+                sair: sair
             )
         case let .erro(mensagem):
             erro(mensagem)
@@ -276,6 +260,7 @@ private struct DestinoDasVagasDoContratante: View {
                         Task { await permissaoDePush?.oferecer() }
                     }
                 )
+                .toolbar(.hidden, for: .tabBar)
             } else {
                 // Sem o banco local não há fila para a publicação: a entrada não aparece.
                 TelaMinhasVagas(
