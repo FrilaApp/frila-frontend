@@ -149,16 +149,6 @@ struct TelaTurnoDoContratante: View {
         .background(FrilaCor.fundo.ignoresSafeArea())
         .navigationTitle(TextosDoAcompanhamento.titulo)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if sair != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { mostrarConfirmacaoDeSaida = true } label: {
-                        Text("Sair", bundle: bundleApresentacao)
-                    }
-                    .accessibilityIdentifier("sair-fluxo-contratante")
-                }
-            }
-        }
         .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .refreshable { await viewModel.carregar() }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in

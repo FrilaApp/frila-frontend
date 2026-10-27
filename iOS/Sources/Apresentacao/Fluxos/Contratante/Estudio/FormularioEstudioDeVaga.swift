@@ -8,6 +8,7 @@ import Observation
 final class FormularioEstudioDeVaga {
     let vaga: PublicarVagaViewModel
     private let agora: @Sendable () -> Date
+    private var ultimoRascunho: FrilaJobCreationDraft?
 
     init(vaga: PublicarVagaViewModel, agora: @escaping @Sendable () -> Date = Date.init) {
         self.vaga = vaga
@@ -17,7 +18,11 @@ final class FormularioEstudioDeVaga {
     /// Rascunho da origem com o que o app já sabe: a casa, o endereço dela, o valor por turno e o que o
     /// `PublicarVagaViewModel` já guarda (publicação pendente restaurada, pré-preenchimento de teste, o
     /// horário padrão do app). Função só entra quando existe no catálogo do servidor.
+    /// Preserva edições em andamento caso a view seja recriada ao alternar abas.
     var rascunhoInicial: FrilaJobCreationDraft {
+        if let ultimoRascunho {
+            return ultimoRascunho
+        }
         var rascunho = FrilaJobCreationDraft.blank
         rascunho.client = vaga.estabelecimento?.nome ?? ""
         rascunho.address = vaga.local
@@ -96,6 +101,7 @@ final class FormularioEstudioDeVaga {
     /// A cada toque no rascunho o view model acompanha: é ele quem diz se a seleção ainda cabe no
     /// início escolhido (MS-RF01) e qual é o prazo de escolha (D2).
     func sincronizar(_ rascunho: FrilaJobCreationDraft) {
+        ultimoRascunho = rascunho
         aplicar(rascunho)
         vaga.ajustarModoAoInicio()
     }
