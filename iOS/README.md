@@ -28,8 +28,8 @@ cd iOS && ./Scripts/gerar-projeto.sh && xcodebuild build -project Frila.xcodepro
 
 Por que o esquema `Frila` falha sem conta paga:
 1. O app declara capacidades restritas em `Sources/App/Frila.entitlements`: `aps-environment`, App Group `group.com.frila.org.app` e Declared Age Range (`com.apple.developer.declared-age-range`).
-2. Essas capacidades exigem que o App ID e o App Group estejam registrados no Apple Developer Program.
-3. Sem vínculo a uma conta paga associada ao `DEVELOPMENT_TEAM` do `project.yml`, o Xcode recusa a assinatura automática para dispositivo físico; no simulador com `Frila-Local` e `CODE_SIGNING_ALLOWED=NO`, as restrições de assinatura são dispensadas.
+2. Essas capacidades exigem que o App ID e o App Group estejam previamente registrados no Apple Developer Program.
+3. Sem vínculo a uma conta paga associada ao `DEVELOPMENT_TEAM` do `project.yml`, o Xcode recusa a assinatura automática para dispositivo físico; no simulador com `Frila-Local` e `CODE_SIGNING_ALLOWED=NO`, as restrições não são validadas pelo Apple Developer Program (o App Group opera localmente no simulador e o aps-environment não bloqueia o build) e o app roda normalmente.
 
 ### Configuração ausente é erro, nunca simulado
 
