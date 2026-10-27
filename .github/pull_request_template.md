@@ -26,8 +26,10 @@ Rode, olhe a saída, e só então marque. A CI de iOS não bloqueia o merge, ent
 
 <!-- Cole o resumo da saída. O que não rodou, escreva que não rodou e por quê. -->
 
-## Risco
+## Faixa de risco
 
-<!-- Faixa (verde, amarela ou vermelha, veja o AGENTS.md) e o que pode quebrar. -->
+Verde, amarela ou vermelha (veja o `AGENTS.md`), e o que pode quebrar: 
+
+<!-- Vermelha: o sócio que aprova leu o diff inteiro, ele mesmo, sem delegar ao agente. Ele escreve aqui o que conferiu. -->
 
 ## O que ficou de fora
