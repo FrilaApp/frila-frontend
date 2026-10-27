@@ -20,8 +20,8 @@ final class ContaSuspensaUITests: XCTestCase {
         XCTAssertTrue(motivo.waitForExistence(timeout: Espera.aparecer), "Motivo da suspensão deve estar visível")
 
         // 2. O resto do app não abre (as telas normais ficam inacessíveis)
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
-        XCTAssertFalse(botaoPerfil.exists, "Telas normais não devem ser acessadas por conta suspensa")
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertFalse(abaConta.exists, "Telas normais não devem ser acessadas por conta suspensa")
 
         let botaoMinhasVagas = app.buttons["minhas-vagas"]
         XCTAssertFalse(botaoMinhasVagas.exists, "Telas normais do contratante não devem ser acessadas")

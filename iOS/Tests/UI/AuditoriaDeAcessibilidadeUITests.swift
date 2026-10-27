@@ -356,7 +356,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func perfilEExclusaoDeConta(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
-        let perfil = app.buttons["abrir-meu-perfil"]
+        let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
         guard esperar(app.buttons["perfil-excluir-conta"], "O perfil deve abrir") else { return }
@@ -386,7 +386,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func historicoDeTurnos(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
-        let perfil = app.buttons["abrir-meu-perfil"]
+        let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
 
@@ -403,7 +403,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func confirmacaoDeExclusaoDeConta(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
-        let perfil = app.buttons["abrir-meu-perfil"]
+        let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
 
@@ -435,7 +435,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func porQueReceboVagas(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
-        let perfil = app.buttons["abrir-meu-perfil"]
+        let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
 
@@ -452,7 +452,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func ajudaDoPerfil(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "success"], ax5: ax5)
-        let perfil = app.buttons["abrir-meu-perfil"]
+        let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
 
@@ -608,7 +608,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func perfilDoEstabelecimento(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "contratante"], ax5: ax5)
-        let perfil = app.buttons["abrir-perfil-estabelecimento"]
+        let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil do estabelecimento deve existir") else { return }
         perfil.tap()
         guard esperar(app.buttons["estabelecimento-excluir-conta"], "O perfil do estabelecimento deve abrir") else { return }
@@ -620,7 +620,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     private func equipeDeConfianca(ax5: Bool) {
         let app = abrir(["-FRILA_SCENARIO", "equipe-de-confianca-com-membro"], ax5: ax5)
-        let perfil = app.buttons["abrir-perfil-estabelecimento"]
+        let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil do estabelecimento deve existir") else { return }
         perfil.tap()
 

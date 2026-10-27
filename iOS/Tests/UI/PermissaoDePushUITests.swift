@@ -89,7 +89,7 @@ final class PermissaoDePushUITests: XCTestCase {
         let app = abrir(["-FRILA_SCENARIO", "success", "-FRILA_PERMISSAO_PUSH", "nao-pedida"])
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 15))
-        app.buttons["abrir-meu-perfil"].tap()
+        app.tabBars.buttons["Conta"].tap()
         let funcoesEHorarios = app.descendants(matching: .any)["perfil-funcoes-horarios"]
         XCTAssertTrue(funcoesEHorarios.waitForExistence(timeout: 10))
         funcoesEHorarios.tap()

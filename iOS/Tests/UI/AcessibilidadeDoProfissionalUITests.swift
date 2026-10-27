@@ -163,7 +163,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
         app.launch()
         defer { app.terminate() }
-        let perfil = app.buttons["abrir-meu-perfil"]
+        let perfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
         perfil.tap()
         XCTAssertTrue(app.buttons["perfil-funcoes-horarios"].waitForExistence(timeout: 10))
@@ -224,7 +224,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
         app.launch()
 
-        let btnPerfil = app.buttons["abrir-meu-perfil"]
+        let btnPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(btnPerfil.waitForExistence(timeout: 10))
         btnPerfil.tap()
 

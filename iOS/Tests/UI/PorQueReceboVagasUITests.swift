@@ -13,7 +13,7 @@ final class PorQueReceboVagasUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        let botaoPerfil = app.buttons["abrir-meu-perfil"]
+        let botaoPerfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 5))
         botaoPerfil.tap()
         XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 5))

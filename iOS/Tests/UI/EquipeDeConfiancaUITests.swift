@@ -19,7 +19,7 @@ final class EquipeDeConfiancaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", cenario] + argumentos
         app.launch()
 
-        let perfil = app.buttons["abrir-perfil-estabelecimento"]
+        let perfil = app.tabBars.buttons["Conta"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
         perfil.tap()
 
