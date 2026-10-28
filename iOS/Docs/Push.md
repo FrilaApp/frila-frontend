@@ -303,17 +303,20 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
 2. **Preparação do vínculo e simulação de payloads:**
    - **Habilitação da extensão:** O campo `"mutable-content": 1` no bloco `aps` é a flag do sistema iOS que aciona a extensão `FrilaNotificationService` (`UNNotificationServiceExtension`). Se estiver ausente ou for `0`, o iOS não invoca a extensão e exibe o alerta bruto diretamente.
    - **Origem e consulta do vínculo ativo:** O `vinculo_id` vem do servidor no registro do dispositivo (`api.registrarDispositivo`) e é gravado pelo app na chave `"vinculo_id"` do App Group `group.com.frila.org.app` (`UserDefaults`).
-     - Para consultar o vínculo ativo atual no simulador:
+     - *Observação técnica (a confirmar):* No simulador, o comando `defaults` pode não alcançar o container real do App Group (`UserDefaults(suiteName: "group.com.frila.org.app")`), atuando no domínio global de preferências do simulador. A forma comprovada de exercitar gravação/leitura/limpeza no grupo são os testes unitários `NotificationServiceTests` (usam `UserDefaults(suiteName:)` e `removePersistentDomain`). Alternativamente, para inspecionar o container real do grupo no disco (a confirmar), pode-se localizar o caminho com:
        ```bash
+       xcrun simctl get_app_container <UDID> com.frila.org.app groups
+       ```
+     - Para inspeção ou teste rápido via `defaults` no simulador (a confirmar se alcança o container do grupo):
+       ```bash
+       # Consultar:
        xcrun simctl spawn <UDID> defaults read group.com.frila.org.app vinculo_id
-       ```
-     - Para definir ou substituir manualmente o vínculo ativo para teste sem depender de login:
-       ```bash
+
+       # Gravar / substituir:
        xcrun simctl spawn <UDID> defaults write group.com.frila.org.app vinculo_id "4d2f6c1a-9b3e-4e7a-8c5d-2f1b0a9e8d7c"
-       ```
-     - Para limpar o vínculo ativo no simulador (simulando aparelho após logout):
-       ```bash
-       xcrun simctl spawn <UDID> defaults remove group.com.frila.org.app vinculo_id
+
+       # Limpar (subcomando delete):
+       xcrun simctl spawn <UDID> defaults delete group.com.frila.org.app vinculo_id
        ```
 
    - **Cenário A — Payload com `vinculo_id` coincidente (conta ativa):**
@@ -338,7 +341,7 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
      *Comportamento esperado:* O `FiltroDoPushPorVinculo` decide `.manter`. O aviso é preservado com título, corpo e dados originais, com o app aberto ou fechado.
 
    - **Cenário B — Payload com `vinculo_id` divergente ou sem vínculo ativo (conta que saiu):**
-     O payload contém `"mutable-content": 1`, mas traz um UUID diferente do guardado no App Group (ou o App Group teve a chave removida via `defaults remove`):
+     O payload contém `"mutable-content": 1`, mas traz um UUID diferente do guardado no App Group (ou o App Group não possui vínculo ativo após logout):
      ```json
      {
        "Simulator Target Bundle": "com.frila.org.app",
