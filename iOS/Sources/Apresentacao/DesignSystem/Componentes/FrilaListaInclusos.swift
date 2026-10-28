@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Chave de preferência para medição das alturas reais das linhas da lista.
 private struct AlturasItensPreferenceKey: PreferenceKey {
-    static var defaultValue: [Int: CGFloat] = [:]
+    static let defaultValue: [Int: CGFloat] = [:]
     static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
         value.merge(nextValue(), uniquingKeysWith: { $1 })
     }
