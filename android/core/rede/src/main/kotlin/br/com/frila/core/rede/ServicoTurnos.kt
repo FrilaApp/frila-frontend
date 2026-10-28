@@ -62,4 +62,20 @@ class ServicoTurnos(private val cliente: ClienteSupabase) {
         }
         return cliente.corpoOuErro(resposta)
     }
+
+    /**
+     * `POST /rest/v1/rpc/abrir_suporte` (RF12/RF23/RN15, UC14). Abre o chamado de ocorrência do
+     * turno e devolve o `Protocolo` — o relato de texto livre e a foto nunca sobem por aqui,
+     * só a `categoria` normativa; o restante segue por e-mail do aparelho, fora deste serviço.
+     * Idempotente pela `chave`: reenviar com a mesma chave devolve o mesmo protocolo. Erros
+     * esperados: `422 campo_obrigatorio`/`campo_invalido`, `404 nao_encontrado`,
+     * `403 sem_permissao` (conta suspensa), `429 limite_excedido`.
+     */
+    suspend fun abrirSuporte(turnoId: String, categoria: String, chave: String): ProtocoloDto {
+        val resposta = cliente.http.post(cliente.urlRpc("abrir_suporte")) {
+            contentType(ContentType.Application.Json)
+            setBody(AbrirSuporteDto(turnoId = turnoId, categoria = categoria, chave = chave))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
 }

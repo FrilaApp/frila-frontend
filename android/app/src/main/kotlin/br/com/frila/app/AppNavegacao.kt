@@ -23,8 +23,10 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaPerfil
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
+import br.com.frila.feature.turnos.TelaOcorrencia
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -39,15 +41,18 @@ object Rotas {
     const val MEUS_TURNOS = "meus_turnos"
     const val AVALIACAO = "avaliacao/{turnoId}"
     const val PERFIL = "perfil"
+    const val OCORRENCIA = "ocorrencia/{turnoId}"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
+    fun ocorrencia(turnoId: String) = "ocorrencia/$turnoId"
 }
 
 object DeepLinks {
     const val DETALHE_VAGA = "frila://vagas/{vagaId}"
     const val MEUS_TURNOS = "frila://meus_turnos"
+    const val SUPORTE = "frila://suporte?turno_id={turnoId}"
 }
 
 /**
@@ -149,6 +154,18 @@ fun AppNavegacao(
             val viewModel: AvaliacaoViewModel = koinViewModel()
             TelaAvaliacao(
                 turnoId = turnoId,
+                viewModel = viewModel,
+                aoVoltar = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = Rotas.OCORRENCIA,
+            deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.SUPORTE }),
+        ) { entrada ->
+            val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+            val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
+            TelaOcorrencia(
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
             )
