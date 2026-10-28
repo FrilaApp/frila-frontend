@@ -34,6 +34,7 @@ fun BotaoSecundario(
             .heightIn(min = FrilaMetricas.alturaBotao)
             .widthIn(min = FrilaMetricas.alvoMinimo)
             .focoAcessivelFrila(forma = RoundedCornerShape(FrilaRaios.medio)),
+        shape = RoundedCornerShape(FrilaRaios.medio),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = MaterialTheme.colorScheme.onBackground,

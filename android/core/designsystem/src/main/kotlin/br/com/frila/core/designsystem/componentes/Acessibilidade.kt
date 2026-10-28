@@ -30,14 +30,15 @@ import br.com.frila.core.designsystem.tema.brandAccent
 
 /**
  * Contrato semântico, de toque e de foco dos chips que selecionam uma única opção de filtro
- * — forma de pílula (`FrilaRaios.total`), igual ao desenho real do `FilterChip` do M3.
+ * — raio 8dp (`FrilaRaios.pequeno`), igual ao `FilterChipDefaults.shape` real do Material 3
+ * (BOM 2024.09.00 / material3 1.3.0 — MEDIDO pelo portão de revisão: não é pílula).
  */
 fun Modifier.semanticaDeFiltro(selecionado: Boolean): Modifier =
     sizeIn(
         minWidth = FrilaMetricas.alvoMinimo,
         minHeight = FrilaMetricas.alvoMinimo,
     )
-        .focoAcessivelFrila(forma = RoundedCornerShape(FrilaRaios.total))
+        .focoAcessivelFrila(forma = RoundedCornerShape(FrilaRaios.pequeno))
         .semantics {
             role = Role.RadioButton
             stateDescription = if (selecionado) "selecionado" else "não selecionado"

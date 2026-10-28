@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
@@ -115,6 +117,30 @@ class FocoAcessivelFrilaTest {
         compose.onNodeWithText("Garçom").performKeyInput { pressKey(Key.DirectionCenter) }
 
         assertTrue(cliques > 0)
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun `chip de filtro com semanticaDeFiltro recebe foco por Tab e liga o contorno de foco`() {
+        compose.setContent {
+            FrilaTheme {
+                FilterChip(
+                    selected = true,
+                    onClick = {},
+                    label = { Text("Até 5 km") },
+                    modifier = Modifier.semanticaDeFiltro(selecionado = true),
+                )
+            }
+        }
+
+        val chip = compose.onNodeWithText("Até 5 km")
+        chip.assertIsNotFocused()
+        chip.assert(SemanticsMatcher.expectValue(ContornoDeFocoVisivelFrila, false))
+
+        compose.onRoot().performKeyInput { pressKey(Key.Tab) }
+
+        chip.assertIsFocused()
+        chip.assert(SemanticsMatcher.expectValue(ContornoDeFocoVisivelFrila, true))
     }
 
     /**

@@ -36,6 +36,7 @@ fun BotaoPrimario(
             .heightIn(min = FrilaMetricas.alturaBotao)
             .widthIn(min = FrilaMetricas.alvoMinimo)
             .focoAcessivelFrila(forma = RoundedCornerShape(FrilaRaios.medio)),
+        shape = RoundedCornerShape(FrilaRaios.medio),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
