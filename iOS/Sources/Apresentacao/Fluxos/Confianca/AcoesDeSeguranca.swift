@@ -308,28 +308,51 @@ struct TelaPerfilPublico: View {
                     case let .falha(erro):
                         EstadoErro(verbatim: erro) { Task { await model.carregar() } }
                     case let .carregado(perfil):
+                        let reputacao = perfil.reputacao
                         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                            HStack(alignment: .center, spacing: FrilaEspaco.medio) {
-                                Image(systemName: perfil.tipo == .profissional ? "person.fill" : "building.2.fill")
-                                    .font(FrilaTipo.tituloGrande)
-                                    .foregroundStyle(FrilaCor.texto)
-                                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                                    .background(FrilaCor.controle, in: Circle())
-                                    .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
-                                    .accessibilityHidden(true)
-                                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                                    Text(verbatim: perfil.nome)
-                                        .font(FrilaTipo.tituloDoCartao.weight(.bold))
+                            if perfil.tipo == .estabelecimento {
+                                FrilaCabecalhoEstabelecimento(
+                                    nome: perfil.nome,
+                                    localizacao: nil,
+                                    avaliacao: reputacao.semHistorico
+                                        ? nil
+                                        : TextosDoProfissional.Detalhe.reputacaoContagem(
+                                            positivas: reputacao.positivas,
+                                            total: reputacao.total
+                                        ),
+                                    acao: nil
+                                )
+                                if !perfil.funcoes.isEmpty {
+                                    Text(verbatim: perfil.funcoes.joined(separator: ", "))
+                                        .font(FrilaTipo.meta)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                }
+                                if !reputacao.semHistorico {
+                                    SeloReputacao(reputacao)
+                                }
+                            } else {
+                                HStack(alignment: .center, spacing: FrilaEspaco.medio) {
+                                    Image(systemName: "person.fill")
+                                        .font(FrilaTipo.tituloGrande)
                                         .foregroundStyle(FrilaCor.texto)
-                                        .accessibilityAddTraits(.isHeader)
-                                    if !perfil.funcoes.isEmpty {
-                                        Text(verbatim: perfil.funcoes.joined(separator: ", "))
-                                            .font(FrilaTipo.meta)
-                                            .foregroundStyle(FrilaCor.textoSecundario)
+                                        .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                                        .background(FrilaCor.controle, in: Circle())
+                                        .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                                        .accessibilityHidden(true)
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                        Text(verbatim: perfil.nome)
+                                            .font(FrilaTipo.tituloDoCartao.weight(.bold))
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .accessibilityAddTraits(.isHeader)
+                                        if !perfil.funcoes.isEmpty {
+                                            Text(verbatim: perfil.funcoes.joined(separator: ", "))
+                                                .font(FrilaTipo.meta)
+                                                .foregroundStyle(FrilaCor.textoSecundario)
+                                        }
                                     }
                                 }
+                                SeloReputacao(reputacao)
                             }
-                            SeloReputacao(perfil.reputacao)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, FrilaEspaco.medio)
