@@ -118,3 +118,7 @@ Decisões de produto e design vão ao usuário no formato padrão: `Decisão: <t
 | Componente ou token | CO1 | Log → implementação → catálogo do design system → gate → merge | telas que dependem esperam o merge |
 | Documentação e governança | CO1 | briefing exato → commit `docs(governanca)` → PR → merge | sem build; o usuário valida o texto. Coordenação com PR #531 do Cauê: rebasear após ele mesclar, respeitando branch nascida de `origin/main`; sem incorporar o #531 conflitante nem `CLAUDE.md`. |
 | Exploração livre | Claude | `demo.sh EXPLORACAO <UDID> "<contexto>"` com `Frila-Local` instalado no Frila Demo; o usuário anota; o Claude agrupa por área e abre os Logs | sem Log até o usuário listar os pontos |
+
+## Bancada
+
+**Regra da Bancada (leia `BANCADA.md`):** todo PR mergeado vira fato na Bancada no mesmo dia, pelo humano ou pela IA que mergeou. Os mentores só leem o site; o que não chegou lá, para eles, não aconteceu.
