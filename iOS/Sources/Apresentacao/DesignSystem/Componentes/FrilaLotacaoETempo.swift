@@ -106,7 +106,7 @@ public struct FrilaLotacao: View {
 /// - Antes do início: relógio em tempo real atualizado a cada 1 s exibe "Começa em %@".
 /// - Formatação de duração via `DateComponentsFormatter` em pt-BR no estilo `.full` (dia, hora, minuto)
 ///   com arredondamento sem falso zero (evita abreviações e melhora leitura falada).
-/// - Utiliza tokens de cor acessíveis (`FrilaCor.texto` para texto, `FrilaCor.marca` para acento visual).
+/// - Utiliza tokens de cor acessíveis (`FrilaCor.texto` para texto, `FrilaCor.marca` para acento no estado em andamento e `FrilaCor.textoSecundario` no relógio futuro).
 public struct FrilaContagemTurno: View {
     public let inicio: Date?
     public let fim: Date?
@@ -169,7 +169,7 @@ public struct FrilaContagemTurno: View {
             HStack(spacing: FrilaEspaco.minimo) {
                 Image(systemName: "clock")
                     .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.marca)
+                    .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityHidden(true)
                 Text(verbatim: texto)
                     .font(FrilaTipo.nota)

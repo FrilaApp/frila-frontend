@@ -380,6 +380,7 @@ public struct CatalogoDesignSystem: View {
         .accessibilityIdentifier("secao-titulo-navegacao-vaga")
     }
 
+    // As amostras demonstram o relógio da contagem futura em tom neutro (FrilaCor.textoSecundario).
     private var secaoResumoVaga: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
@@ -461,6 +462,7 @@ public struct CatalogoDesignSystem: View {
         .accessibilityIdentifier("secao-resumo-vaga")
     }
 
+    // As amostras demonstram o contorno do monograma em tom neutro (FrilaCor.borda).
     private var secaoCabecalhoEstabelecimento: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {

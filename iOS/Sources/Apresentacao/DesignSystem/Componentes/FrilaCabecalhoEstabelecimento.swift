@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Cabeçalho reutilizável do estabelecimento com monograma derivado, nome e metadados opcionais.
 /// Conforme especificação Hi-Fi (§2–4, REFERENCIA.md e LOG-010):
-/// - Monograma derivado do nome em container circular de 44 pt com fundo `FrilaCor.superficie`, contorno gráfico `FrilaCor.marca` e letra em `FrilaCor.texto` (contraste AAA 16,66:1)
+/// - Monograma derivado do nome em container circular de 44 pt com fundo `FrilaCor.superficie`, contorno gráfico `FrilaCor.borda` e letra em `FrilaCor.texto` (contraste AAA 16,66:1)
 /// - Tipografia e superfícies neutras de leitura, sem lineLimit fixo para compatibilidade integral com Dynamic Type
 /// - Bloco tocável com feedback tátil quando `acao` é informada (uso na Detalhe da vaga); sem navegação interna
 /// - Modo estático sem affordance de toque quando `acao == nil` (uso no topo da Tela Perfil público)
@@ -49,7 +49,7 @@ public struct FrilaCabecalhoEstabelecimento: View {
                 .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
                 .overlay(
                     Circle()
-                        .strokeBorder(FrilaCor.marca, lineWidth: 1.5)
+                        .strokeBorder(FrilaCor.borda, lineWidth: 1.5)
                 )
 
             if texto.isEmpty {
