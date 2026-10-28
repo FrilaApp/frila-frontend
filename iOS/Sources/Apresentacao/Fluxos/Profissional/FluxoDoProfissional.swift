@@ -145,18 +145,6 @@ public struct FluxoDoProfissional<Barra: View>: View {
             NavigationStack(path: $roteador.caminho) {
                 TelaVagas(viewModel: feed) { roteador.caminho.append(.detalhe(vagaID: $0)) }
                     .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button {
-                                roteador.aba = .turnos
-                            } label: {
-                                Label(TextosDoProfissional.Turnos.tituloMeusTurnos, systemImage: "calendar")
-                                    .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                                    .contentShape(Rectangle())
-                            }
-                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
-                            .accessibilityShowsLargeContentViewer()
-                            .accessibilityIdentifier("abrir-meus-turnos")
-                        }
                         ToolbarItem(placement: .topBarTrailing) {
                             barra()
                                 .accessibilityShowsLargeContentViewer()

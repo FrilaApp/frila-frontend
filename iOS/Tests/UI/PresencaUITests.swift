@@ -16,7 +16,7 @@ final class PresencaUITests: XCTestCase {
         tocar(candidatar)
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: Espera.aparecer))
         tocar(app.buttons["voltar-para-lista"])
-        let meusTurnos = app.buttons["abrir-meus-turnos"]
+        let meusTurnos = app.tabBars.buttons["Meus turnos"]
         tocar(meusTurnos)
         let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
         tocar(turno)
