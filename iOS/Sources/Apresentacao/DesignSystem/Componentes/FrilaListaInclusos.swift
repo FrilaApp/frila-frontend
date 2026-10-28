@@ -108,19 +108,11 @@ public struct FrilaListaInclusos: View {
     private var botaoToggle: some View {
         Button {
             let animacao = expandido ? FrilaMotion.disclosureCollapse : FrilaMotion.disclosureExpand
-            if reduceMotion {
+            withAnimation(FrilaMovimento.animacao(animacao, reduzir: reduceMotion)) {
                 expandido.toggle()
                 if !expandido {
                     haConteudoAcima = false
                     haConteudoAbaixo = true
-                }
-            } else {
-                withAnimation(animacao) {
-                    expandido.toggle()
-                    if !expandido {
-                        haConteudoAcima = false
-                        haConteudoAbaixo = true
-                    }
                 }
             }
         } label: {
@@ -254,14 +246,9 @@ public struct FrilaListaInclusos: View {
                         let acima = offset.minY < -1.0
                         let abaixo = offset.maxY > (alturaCompactaCalculada + 1.0)
                         if acima != haConteudoAcima || abaixo != haConteudoAbaixo {
-                            if reduceMotion {
+                            withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.15), reduzir: reduceMotion)) {
                                 haConteudoAcima = acima
                                 haConteudoAbaixo = abaixo
-                            } else {
-                                withAnimation(.easeInOut(duration: 0.15)) {
-                                    haConteudoAcima = acima
-                                    haConteudoAbaixo = abaixo
-                                }
                             }
                         }
                     }
