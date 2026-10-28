@@ -92,8 +92,12 @@ private struct PreviaMapaGenerica: View {
     }
 }
 
-/// Card consolidado com dados da vaga, lotação, contagem do turno e localização integrada (LOG-010).
-/// Aplica zero-shadow, tokens semânticos do Frila e botão de mapa com alvo interativo mínimo de 44 pt.
+/// Card consolidado com dados da vaga, lotação, contagem do turno e localização integrada (LOG-010, refino r2 e ponto #24).
+/// Organizado por proximidade e unidade da Gestalt em três grupos verticais sem divisores:
+/// (1) Tempo: Quando e Horário lado a lado em colunas flexíveis iguais com FrilaContagemTurno imediatamente abaixo;
+/// (2) Compensação e Lotação: Valor e Posições lado a lado na mesma distribuição e alinhamento;
+/// (3) Localização: Endereço, prévia vetorial de mapa e botão de ação.
+/// Utiliza `ViewThatFits` para empilhamento responsivo e fallback em pilha vertical para tamanhos de acessibilidade.
 public struct FrilaResumoVaga: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -137,72 +141,9 @@ public struct FrilaResumoVaga: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                        blocoQuando
-                        blocoHorario
-                        blocoValor
-                        blocoPosicoes
-                    }
-                } else {
-                    Grid(alignment: .topLeading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.medio) {
-                        GridRow(alignment: .top) {
-                            blocoQuando
-                            blocoHorario
-                        }
-                        GridRow(alignment: .top) {
-                            blocoValor
-                            blocoPosicoes
-                        }
-                    }
-                }
-
-                FrilaContagemTurno(inicio: inicio, fim: fim)
-            }
-
-            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                    Image(systemName: "mappin")
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.marca)
-                        .frame(width: 16, height: 16)
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                        Text(verbatim: local)
-                            .font(FrilaTipo.resumo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if let distancia, !distancia.isEmpty {
-                            Text(verbatim: distancia)
-                                .font(FrilaTipo.nota)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-                        }
-                    }
-                }
-                .accessibilityElement(children: .combine)
-
-                PreviaMapaGenerica()
-
-                Button(action: abrirMapa) {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        Image(systemName: "map")
-                            .font(FrilaTipo.nota)
-                            .accessibilityHidden(true)
-                        Text("Abrir no mapa", bundle: bundleApresentacao)
-                            .font(FrilaTipo.botaoPadrao)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .background(FrilaCor.fundo, in: Capsule())
-                    .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                    .contentShape(Capsule())
-                }
-                .buttonStyle(.tatil)
-                .accessibilityIdentifier("abrir-no-mapa")
-            }
+            grupoTempo
+            grupoCompensacaoELotacao
+            grupoLocalizacaoEMapa
         }
         .padding(FrilaEspaco.medio)
         .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
@@ -210,6 +151,102 @@ public struct FrilaResumoVaga: View {
             RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private var grupoTempo: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                    blocoQuando
+                    blocoHorario
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: FrilaEspaco.medio) {
+                        blocoQuando
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                        blocoHorario
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                        blocoQuando
+                        blocoHorario
+                    }
+                }
+            }
+
+            FrilaContagemTurno(inicio: inicio, fim: fim)
+        }
+    }
+
+    @ViewBuilder
+    private var grupoCompensacaoELotacao: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                blocoValor
+                blocoPosicoes
+            }
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: FrilaEspaco.medio) {
+                    blocoValor
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    blocoPosicoes
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    blocoValor
+                    blocoPosicoes
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var grupoLocalizacaoEMapa: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                Image(systemName: "mappin")
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.marca)
+                    .frame(width: 16, height: 16)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: local)
+                        .font(FrilaTipo.resumo)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let distancia, !distancia.isEmpty {
+                        Text(verbatim: distancia)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                }
+            }
+            .accessibilityElement(children: .combine)
+
+            PreviaMapaGenerica()
+
+            Button(action: abrirMapa) {
+                HStack(spacing: FrilaEspaco.pequeno) {
+                    Image(systemName: "map")
+                        .font(FrilaTipo.nota)
+                        .accessibilityHidden(true)
+                    Text("Abrir no mapa", bundle: bundleApresentacao)
+                        .font(FrilaTipo.botaoPadrao)
+                }
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .foregroundStyle(FrilaCor.texto)
+                .background(FrilaCor.fundo, in: Capsule())
+                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.tatil)
+            .accessibilityIdentifier("abrir-no-mapa")
+        }
     }
 
     private var blocoQuando: some View {

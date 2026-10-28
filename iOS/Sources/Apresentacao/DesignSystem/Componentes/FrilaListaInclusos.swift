@@ -8,6 +8,18 @@ private struct AlturasItensPreferenceKey: PreferenceKey {
     }
 }
 
+/// Chave de preferência para acompanhamento da posição real de rolagem do conteúdo interno.
+private struct DeslocamentoRolagemPreferenceKey: PreferenceKey {
+    struct Offset: Equatable, Sendable {
+        let minY: CGFloat
+        let maxY: CGFloat
+    }
+    static let defaultValue = Offset(minY: 0, maxY: 0)
+    static func reduce(value: inout Offset, nextValue: () -> Offset) {
+        value = nextValue()
+    }
+}
+
 /// Item individual da lista de itens inclusos na vaga.
 public struct FrilaItemIncluso: Identifiable, Hashable, Sendable {
     public let id: String
@@ -22,21 +34,30 @@ public struct FrilaItemIncluso: Identifiable, Hashable, Sendable {
 }
 
 /// Lista expansível em linha dos itens inclusos na vaga.
-/// Conforme especificação Hi-Fi (§2–4, REFERENCIA.md, LOG-010 e refino r2):
+/// Conforme especificação Hi-Fi (§2–4, REFERENCIA.md, LOG-010, refino r2 e ponto #23):
 /// - Lista com mais de 3 itens: ScrollView vertical nativo com rolagem livre (gesto A: arraste na lista rola lista);
 /// - Viewport compacto em repouso que exibe 3 linhas completas e a metade da quarta (corte visível como affordance);
 /// - Medição dinâmica das alturas reais de cada linha via PreferenceKey, suportando quebras de texto;
-/// - Sem faixa decorativa de esmaecimento;
+/// - Acompanhamento geométrico nativo dos limites reais de rolagem via `DeslocamentoRolagemPreferenceKey`;
+/// - Máscara com fade progressivo superior de 12 pt apenas quando há conteúdo acima;
+/// - Fade progressivo inferior de 12 pt apenas quando há conteúdo abaixo, terminando 8 pt antes da borda (região de 8 pt restante transparente);
+/// - Sombra neutra de duas camadas suaves em preto neutro (`Color.black` com opacidades 0,06 e 0,03, evitando glow no modo escuro)
+///   aplicada como overlay não interativo (`allowsHitTesting(false)`) na borda superior da faixa do botão,
+///   projetada 8 pt para dentro da lista em ambos os estados (compacto e expandido) e persistente até o fim da rolagem;
+/// - Máscara com fade inferior condicionado a conteúdo abaixo, terminando 8 pt antes da borda sem sobreposição com a sombra;
 /// - Botão mini-CTA com alvo mínimo de 44 pt preservado exatamente: "Ver tudo (N)" e "Ver menos";
 /// - Expansão e recolhimento em linha respeitando `FrilaMotion.disclosureExpand` e `FrilaMotion.disclosureCollapse`;
+/// - No estado expandido, renderização direta em `VStack` sem ScrollView, recriando o ScrollView no início a cada recolhimento;
 /// - Respeito estrito a `accessibilityReduceMotion` (transição instantânea sem bounce);
-/// - Lista curta (até 3 itens): exibição direta sem corte e sem botão;
+/// - Lista curta (até 3 itens): exibição direta sem corte, sem máscara e sem botão;
 /// - Chaves de texto localizadas via `bundleApresentacao`.
 public struct FrilaListaInclusos: View {
     public let itens: [FrilaItemIncluso]
 
     @State private var expandido: Bool = false
     @State private var alturasItens: [Int: CGFloat] = [:]
+    @State private var haConteudoAcima: Bool = false
+    @State private var haConteudoAbaixo: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(itens: [FrilaItemIncluso]) {
@@ -87,9 +108,17 @@ public struct FrilaListaInclusos: View {
             let animacao = expandido ? FrilaMotion.disclosureCollapse : FrilaMotion.disclosureExpand
             if reduceMotion {
                 expandido.toggle()
+                if !expandido {
+                    haConteudoAcima = false
+                    haConteudoAbaixo = true
+                }
             } else {
                 withAnimation(animacao) {
                     expandido.toggle()
+                    if !expandido {
+                        haConteudoAcima = false
+                        haConteudoAbaixo = true
+                    }
                 }
             }
         } label: {
@@ -132,6 +161,66 @@ public struct FrilaListaInclusos: View {
         }
     }
 
+    @ViewBuilder
+    private func mascaraRolagem(altura: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            // Fade superior de 12 pt apenas quando há conteúdo acima
+            if haConteudoAcima {
+                LinearGradient(
+                    colors: [.clear, .black],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 12)
+            } else {
+                Color.black
+                    .frame(height: 12)
+            }
+
+            // Região central totalmente opaca
+            Color.black
+                .frame(maxHeight: .infinity)
+
+            // Fade inferior de 12 pt apenas quando há conteúdo abaixo,
+            // terminando 8 pt antes da borda inferior (região restante transparente)
+            if haConteudoAbaixo {
+                LinearGradient(
+                    colors: [.black, .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 12)
+
+                Color.clear
+                    .frame(height: 8)
+            } else {
+                Color.black
+                    .frame(height: 20)
+            }
+        }
+        .frame(height: altura)
+    }
+
+    @ViewBuilder
+    private var sombraFaixaBotao: some View {
+        ZStack {
+            // Camada 1: projeção suave de contato (preto neutro opacidade 0,06)
+            LinearGradient(
+                colors: [Color.black.opacity(0.06), Color.clear],
+                startPoint: .bottom,
+                endPoint: .top
+            )
+            // Camada 2: dispersão suave complementar (preto neutro opacidade 0,03)
+            LinearGradient(
+                colors: [Color.black.opacity(0.03), Color.clear],
+                startPoint: .bottom,
+                endPoint: .top
+            )
+        }
+        .frame(height: 8)
+        .allowsHitTesting(false)
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
             if itens.count > 3 {
@@ -140,14 +229,51 @@ public struct FrilaListaInclusos: View {
                 } else {
                     ScrollView(.vertical, showsIndicators: true) {
                         conteudoLista
+                            .background(
+                                GeometryReader { geo in
+                                    let frame = geo.frame(in: .named("scrollInclusos"))
+                                    Color.clear.preference(
+                                        key: DeslocamentoRolagemPreferenceKey.self,
+                                        value: DeslocamentoRolagemPreferenceKey.Offset(
+                                            minY: frame.minY,
+                                            maxY: frame.maxY
+                                        )
+                                    )
+                                }
+                            )
                     }
+                    .coordinateSpace(name: "scrollInclusos")
                     .frame(height: alturaCompactaCalculada)
+                    .mask {
+                        mascaraRolagem(altura: alturaCompactaCalculada)
+                    }
+                    .onPreferenceChange(DeslocamentoRolagemPreferenceKey.self) { offset in
+                        let acima = offset.minY < -1.0
+                        let abaixo = offset.maxY > (alturaCompactaCalculada + 1.0)
+                        if acima != haConteudoAcima || abaixo != haConteudoAbaixo {
+                            if reduceMotion {
+                                haConteudoAcima = acima
+                                haConteudoAbaixo = abaixo
+                            } else {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    haConteudoAcima = acima
+                                    haConteudoAbaixo = abaixo
+                                }
+                            }
+                        }
+                    }
                 }
 
-                Divider()
-                    .overlay(FrilaCor.divisoria)
+                VStack(spacing: 0) {
+                    Divider()
+                        .overlay(FrilaCor.divisoria)
 
-                botaoToggle
+                    botaoToggle
+                }
+                .overlay(alignment: .top) {
+                    sombraFaixaBotao
+                        .alignmentGuide(.top) { d in d[.bottom] }
+                }
             } else {
                 conteudoLista
             }
