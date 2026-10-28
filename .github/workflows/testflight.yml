@@ -52,12 +52,10 @@ jobs:
       XCODEGEN_VERSION: "2.45.3"
       XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
       XCODE_VERSION: "26.6"
-      # Esquema que as tags mandam. O 0.4 e o 0.5 vão com o Frila-Beta (frila-dev), porque o
-      # frila-prod ainda não tem as migrações (frila-backend, docs/ESTADO.md; cartão do ambiente de
-      # produção, 29/10). Quando ele tiver, apague a linha ativa e descomente a de baixo: as tags
-      # passam a mandar o Frila-Prod. O disparo manual continua escolhendo os dois.
-      ESQUEMA_DA_TAG: Frila-Beta
-      # ESQUEMA_DA_TAG: Frila-Prod
+      # Esquema que as tags mandam. Desde 26/10/2026 as tags mandam o Frila-Prod (frila-prod),
+      # após o Matheus provisionar o ambiente com as migrações (frila-backend). O disparo manual
+      # continua escolhendo os dois (Frila-Beta e Frila-Prod).
+      ESQUEMA_DA_TAG: Frila-Prod
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

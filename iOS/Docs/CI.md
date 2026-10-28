@@ -95,17 +95,16 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
 
 ### Quando roda
 
-- **Tag `vX.Y.Z` num commit do `main`**: manda o esquema da tag com a versão `X.Y.Z`. Hoje o esquema
-  é o `Frila-Beta` (Release apontando para o frila-dev), o que o cartão pede para o 0.4 e o 0.5. Uma
-  tag fora do `main` é recusada.
+- **Tag `vX.Y.Z` num commit do `main`**: manda o esquema da tag com a versão `X.Y.Z`. O esquema da tag
+  é o `Frila-Prod` (Release apontando para o frila-prod), ativado em 26/10/2026 após o provisionamento
+  das migrações no frila-prod (o 0.4 foi enviado com o Frila-Beta). Uma tag fora do `main` é recusada.
 - **Disparo manual** (Actions > TestFlight > Run workflow): escolhe o esquema (`Frila-Beta` ou
   `Frila-Prod`), a versão, o ensaio de falha, o build de medição e se envia. Com "Enviar ao
   TestFlight" desmarcado, o job faz o archive, a assinatura, a conferência e os símbolos e para antes
   do envio.
-- **Prod como padrão da tag**: no `testflight.yml`, apague a linha `ESQUEMA_DA_TAG: Frila-Beta` e
-  descomente a `# ESQUEMA_DA_TAG: Frila-Prod` logo abaixo. Faça isso quando o frila-prod tiver as
-  migrações (cartão do ambiente de produção, 29/10). Até lá, um build Prod abriria contra um banco
-  vazio. Os dois esquemas têm o mesmo bundle id e vão para o mesmo app no App Store Connect.
+- **Prod como padrão da tag**: no `testflight.yml`, a linha ativa é `ESQUEMA_DA_TAG: Frila-Prod`,
+  configurada em 26/10/2026 após o Matheus provisionar as migrações no `frila-prod` (frila-backend).
+  Os dois esquemas têm o mesmo bundle id e vão para o mesmo app no App Store Connect.
 
 ### O que o job faz
 
