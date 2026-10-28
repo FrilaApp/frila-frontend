@@ -229,3 +229,15 @@ Aprovadas pelo usuário em 24/10/2026. As quatro questões estão encerradas, se
 ## 10. Evidência da referência
 
 A régua foi destilada de `FrilaLowPhase@cfe8a64377bb01fc18f70b8fde28d99893db0064`: `RULES.md` §1 e §§3.1–3.5, os documentos de `docs/design-system/` citados na §1 e as primitivas Swift que eles referenciam. A correspondência no app foi conferida em `frila-frontend@4d19e74f3f1c1991f5f15d9807ca6fe161aa631e`, nos arquivos de `iOS/Sources/Apresentacao/DesignSystem/` identificados nas §§3–7. O estado de aplicação é documentado separadamente em [ESTADO.md](ESTADO.md). Esta entrega é documental, sem compilação, testes, captura ou implementação; aprova a régua e as decisões da §9, sem aprovar conversões.
+
+## 11. Regras permanentes de refinamento
+
+Decisões de refinamento visual (LOG-010, LOG-011, LOG-012) aprovadas pelo usuário como regras permanentes de design:
+
+- **Terracota em ação principal e estados ativos:** Decisão aplicada no LOG-011 (piloto): a cor terracota (`FrilaCor.marca` / `#EA5A36 / #F26643`) aplica-se ao CTA principal e a estados ativos (ex.: turno "Em andamento", círculos preenchidos de lotação, pin); monograma, cabeçalho de estabelecimento e contagem futura permanecem neutros (`FrilaCor.texto`, `FrilaCor.textoSecundario`). O LOG-013 define a distribuição e o papel de acento por tela.
+- **Escaneabilidade, Gestalt e colunas estreitas:** Proibido o uso de ponto médio ("·") e de divisores artificiais excessivos; a separação visual apoia-se em whitespace e agrupamento de Gestalt. Colunas estreitas empilham verticalmente via `ViewThatFits` sem permitir quebra de palavras ou hifenização indevida. Proibida compensação óptica arbitrária baseada apenas em posição.
+- **Lista longa e rolagem:** A lista longa adota rolagem livre mantendo amostra de metade do próximo item visível como affordance de continuidade; fade suave nas margens superior e inferior; sombra neutra em camadas sob "Ver tudo (N)"; indicador de rolagem com recuo vertical das bordas (`.contentMargins(.vertical, ..., for: .scrollIndicators)`) para não colidir com o raio dos cantos. Rolagem aninhada preserva o comportamento e a inércia nativos.
+- **Tratamento de dado ausente:** Dado ausente é omitido, sem texto genérico de ausência e sem dado inventado (a palavra "Nenhum" não é proibida como termo legítimo de domínio ou cópia intencional).
+- **Centralização de movimento:** Toda animação no aplicativo passa pela política central `FrilaMovimento.animacao(_:reduzir:)`; o uso de `withAnimation` é permitido quando envolver `FrilaMovimento.animacao`. Curvas adicionais são permitidas desde que respeitem as primitivas e tokens do design system.
+
+> **Ressalva de escopo e generalização:** Regras validadas em uma tela piloto não devem ser generalizadas presumidamente para outras superfícies sem validação humana; o **LOG-013** define formalmente o papel da cor de marca e do acento por tela.

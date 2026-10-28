@@ -28,6 +28,9 @@ dependencias: nenhuma
 ## Componentes e tokens
 <componentes e tokens usados>
 
+## Papel de cor por estado
+<especificação das decisões aprovadas por papel e estado em iOS/Docs/HiFi/REFERENCIA.md: repouso, pressionado, ativo/selecionado, confirmado, carregando, vazio e erro; terracota em CTA principal e estados ativos (ex.: Em andamento, círculos preenchidos, pin; decisão aplicada no LOG-011 e piloto; LOG-013 define por tela); monograma, cabeçalho e contagem futura neutros>
+
 ## Escopo (só `iOS/Sources/Apresentacao/`)
 - Dentro: <arquivos>
 - Fora: <o que não muda>
@@ -37,6 +40,8 @@ dependencias: nenhuma
 
 ## Critérios de aceite
 - [ ] <verificável, um por linha>
+- Roteiro de interação na demo: executado | parcial | não relatado
 
-## Validação
-<smoke UITest (até 2 min) + roteiro>
+## Validação e scripts do gate
+- Scripts do gate: `Scripts/conferir-textos.sh`, `Scripts/conferir-movimento.sh` e `Scripts/conferir-datas-fixas.sh` (conforme §2.5 e iOS/Docs/HiFi/REFERENCIA.md)
+- Smoke UITest (até 2 min) + roteiro de interação na demo
