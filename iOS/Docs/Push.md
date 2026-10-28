@@ -211,12 +211,17 @@ intercepta a notificação e consulta o `FiltroDoPushPorVinculo` (`Sources/Domin
 comparando o `vinculo_id` do payload ao vínculo ativo guardado pelo app no App Group
 `group.com.frila.org.app` (`VinculoNoGrupoDoApp`):
 
-- **Mesmo `vinculo_id`:** o aviso é da conta ativa no aparelho e é exibido normalmente, com seu
-  conteúdo original e payload preservado.
-- **`vinculo_id` diferente ou sem sessão no aparelho:** o aviso pertence a outra conta que utilizou
-  o iPhone (ou a ninguém dentro). O título e o corpo são substituídos pelo **texto neutro**, e o
-  payload de dados é esvaziado. O toque no aviso neutro apenas abre o app na raiz, sem navegar para
-  detalhes ou expor dados da outra conta.
+- **Conta ativa (mesmo `vinculo_id`):** o aviso pertence à conta atualmente autenticada no aparelho.
+  É exibido normalmente com seu título e corpo originais, tanto com o app em primeiro plano (aberto,
+  via banner do sistema) quanto com o app em segundo plano ou fechado (tela bloqueada e central de
+  notificações). Todos os dados do payload são preservados para navegação correta ao toque.
+- **Conta que saiu ou sem sessão ativa (`vinculo_id` divergente ou sem vínculo guardado):** o aviso
+  pertence a outra conta que utilizou o iPhone anteriormente (ou a ninguém dentro). Antes de ser
+  renderizado na tela bloqueada ou na central, o `FiltroDoPushPorVinculo` neutraliza o aviso: o
+  título e o corpo originais são descartados e substituídos pelo **texto neutro**, e o payload de
+  dados é esvaziado (`payload: [:]`). Não há exposição de detalhes de vagas, turnos, estabelecimentos
+  ou valores para terceiros em posse do dispositivo. O toque no aviso neutro apenas abre o app na raiz,
+  sem navegar para telas internas nem expor dados da conta que saiu.
 - **Constantes de texto neutro:**
   - Título: `FiltroDoPushPorVinculo.tituloNeutro` (`"Frila"`)
   - Corpo: `FiltroDoPushPorVinculo.corpoNeutro` (`"Nova notificação disponível"`)
@@ -284,7 +289,85 @@ Scripts/simular-push.sh checkin [UDID]
 xcrun simctl push <UDID> com.frila.org.app Tests/Fixtures/Push/vaga.apns
 ```
 
+#### Passo a passo de simulação local da extensão (NSE)
+
+Para validar localmente a extensão de notificação e o comportamento do `FiltroDoPushPorVinculo`:
+
+1. **Validar sintaxe das fixtures:**
+   Execute a validação estática de todos os arquivos `.apns` em `Tests/Fixtures/Push/`:
+   ```bash
+   Scripts/simular-push.sh --validar
+   ```
+   O script confere se o JSON é válido, se contém o objeto `aps`, o campo `tipo` e o `Simulator Target Bundle` correto (`com.frila.org.app`).
+
+2. **Simular payloads com e sem `vinculo_id` coincidente:**
+   A extensão exige `"mutable-content": 1` no bloco `aps` e o campo `vinculo_id` no payload. Crie ou ajuste fixtures `.apns` para exercitar os cenários:
+
+   - **Cenário A — Payload com `vinculo_id` coincidente (conta ativa):**
+     O payload contém o mesmo UUID de vínculo gravado no App Group (`group.com.frila.org.app`):
+     ```json
+     {
+       "Simulator Target Bundle": "com.frila.org.app",
+       "aps": {
+         "alert": {
+           "title": "Turno confirmado",
+           "body": "Seu turno de Garçom foi confirmado"
+         },
+         "mutable-content": 1,
+         "sound": "default"
+       },
+       "tipo": "confirmacao",
+       "vinculo_id": "4d2f6c1a-9b3e-4e7a-8c5d-2f1b0a9e8d7c",
+       "turno_id": "60000000-0000-0000-0000-000000000001",
+       "vaga_id": "40000000-0000-0000-0000-000000000001"
+     }
+     ```
+     *Comportamento esperado:* O aviso é preservado com título e corpo originais, tanto com o app aberto quanto fechado.
+
+   - **Cenário B — Payload com `vinculo_id` não coincidente (conta que saiu):**
+     O payload contém um UUID diferente do vínculo ativo guardado no App Group:
+     ```json
+     {
+       "Simulator Target Bundle": "com.frila.org.app",
+       "aps": {
+         "alert": {
+           "title": "Turno confirmado",
+           "body": "Seu turno de Garçom foi confirmado"
+         },
+         "mutable-content": 1,
+         "sound": "default"
+       },
+       "tipo": "confirmacao",
+       "vinculo_id": "00000000-0000-0000-0000-000000000000",
+       "turno_id": "60000000-0000-0000-0000-000000000001",
+       "vaga_id": "40000000-0000-0000-0000-000000000001"
+     }
+     ```
+     *Comportamento esperado:* O `FiltroDoPushPorVinculo` neutraliza a notificação. Título e corpo originais são descartados e substituídos por `"Frila"` e `"Nova notificação disponível"`, e todo o payload de dados é esvaziado.
+
+   - **Cenário C — Payload legado (sem `vinculo_id`):**
+     Payloads sem o campo `vinculo_id` passam direto sem alteração pelo filtro, mantendo o comportamento legado.
+
+3. **Disparo do push no simulador:**
+   Envie o arquivo customizado via script ou `simctl`:
+   ```bash
+   # Pelo script auxiliar:
+   Scripts/simular-push.sh Tests/Fixtures/Push/meu-push.apns [UDID]
+
+   # Diretamente via xcrun simctl:
+   xcrun simctl push <UDID> com.frila.org.app Tests/Fixtures/Push/meu-push.apns
+   ```
+
+4. **Testes unitários automatizados da extensão:**
+   Como a execução da extensão via `simctl push` no simulador pode variar entre versões do Xcode, a prova formal da lógica de neutralização e gravação no App Group é executada via testes unitários:
+   ```bash
+   xcodebuild test-without-building -scheme Frila-Local -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:NotificationServiceTests
+   ```
+
 ## Roteiro de teste no aparelho
+
+> [!IMPORTANT]
+> **Validação exclusiva em aparelho físico:** Nada que dependa de validação em aparelho físico vira "feito" sem o aparelho físico. Simulações em simulador e testes unitários comprovam a lógica interna, os modelos e os contratos de dados, mas o ciclo de vida real da entrega pelo APNs, a interceptação em segundo plano pelo iOS e a renderização da extensão na tela bloqueada só são comprovados com o teste executado no iPhone real.
 
 O que o simulador e o dublê não provam, para rodar num iPhone com o build do TestFlight (Beta):
 
@@ -297,17 +380,46 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
 4. **Reinstalação.** Apague o app, instale de novo e entre: o token novo aparece no servidor, e o
    antigo deixa de receber.
 5. **Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6):**
-   - Instalar o build assinado no iPhone e entrar com a Conta A.
-   - Bloquear a tela ou fechar o app. Enviar push para a Conta A com `mutable-content: 1` e `vinculo_id`
-     da Conta A → o aviso aparece com título e corpo originais.
-   - Sair da Conta A e entrar com a Conta B no mesmo aparelho. Bloquear a tela.
-   - Enviar push para a Conta A (com o `vinculo_id` da A) → a extensão intercepta na tela bloqueada e
-     o aviso aparece com o texto neutro: `"Frila — Nova notificação disponível"`. O toque abre o app
-     sem navegar para dados da Conta A.
-   - Enviar push para a Conta B (com o `vinculo_id` da B) → aviso exibido normalmente com título e
-     corpo originais.
-   - Conferir no Console.app (filtrando pelo subsistema `com.frila.org.app.notificationservice`):
-     `push_recebido tipo=... com_vinculo=true sessao=true decisao=manter|neutralizar`.
+   Valida o isolamento de notificações entre contas diferentes no mesmo aparelho físico, comprovando que pushes de uma conta anterior não expõem dados confidenciais na tela bloqueada nem na central de notificações.
+
+   - **Pré-requisitos:**
+     - Build assinado (Beta via TestFlight ou build Development com os entitlements corretos) instalado no iPhone físico.
+     - Duas contas cadastradas: **Conta A** e **Conta B**.
+     - Permissão de notificações concedida para o Frila no aparelho.
+     - Ambiente de envio de push (console do Firebase / Supabase) configurado para enviar mensagens com `mutable-content: 1` e `vinculo_id`.
+
+   - **Passo 1 — Conta A ativa (com app aberto e fechado):**
+     - Instalar o build assinado no iPhone e entrar com a Conta A.
+     - Bloquear a tela ou fechar o app. Enviar push para a Conta A com `mutable-content: 1` e `vinculo_id` da Conta A.
+     - **Comportamento da conta ativa (app fechado / tela bloqueada):** O aviso é exibido normalmente com seu título e corpo originais na tela bloqueada.
+     - Abrir o app na Conta A e enviar novo push com o mesmo `vinculo_id`.
+     - **Comportamento da conta ativa (app aberto):** O aviso é exibido normalmente via banner do sistema, com título e corpo originais preservados.
+
+   - **Passo 2 — Troca de conta (Conta A sai, Conta B entra):**
+     - No app, realizar logout da Conta A.
+     - Entrar com a Conta B no mesmo aparelho.
+     - Aguardar a confirmação de registro e o término da janela de carência de 60 s. O App Group agora contém o `vinculo_id` da Conta B.
+     - Bloquear a tela do iPhone ou fechar o app.
+
+   - **Passo 3 — Comportamento da conta que saiu (Conta A):**
+     - Enviar push para a Conta A (com `mutable-content: 1` e o `vinculo_id` da Conta A).
+     - **Comportamento da conta que saiu:** A extensão `FrilaNotificationService` intercepta a notificação antes da renderização. Como o `vinculo_id` da Conta A diverge do vínculo ativo da Conta B no App Group:
+       - O aviso é exibido **sem o título nem o corpo originais na tela bloqueada**, neutralizado pelo `FiltroDoPushPorVinculo` sem expor dados.
+       - Título e corpo são substituídos pelo texto neutro: `"Frila — Nova notificação disponível"`.
+       - O payload de dados é esvaziado, garantindo que função, endereço, horário e valor da Conta A não sejam revelados.
+       - O toque no aviso neutro apenas abre o app na raiz, sem navegar para dados da Conta A.
+
+   - **Passo 4 — Comportamento da conta ativa (Conta B):**
+     - Enviar push para a Conta B (com o `vinculo_id` da Conta B).
+     - **Comportamento da conta ativa:** O aviso é exibido normalmente com título e corpo originais, tanto com o app fechado (na tela bloqueada) quanto com o app aberto.
+
+   - **Passo 5 — Verificação no Console.app:**
+     - Conectar o iPhone ao Mac via cabo, abrir o aplicativo **Console.app** e filtrar pelo subsistema da extensão: `com.frila.org.app.notificationservice`.
+     - Confirmar as entradas de telemetria emitidas pela extensão:
+       - Para o push da Conta B: `push_recebido tipo=... com_vinculo=true sessao=true decisao=manter`
+       - Para o push da Conta A: `push_recebido tipo=... com_vinculo=true sessao=true decisao=neutralizar`
+     - Verificar que nem o `vinculo_id` nem os dados privados do push aparecem no log.
+
 6. **Permissão negada.** Negue nos Ajustes e volte ao app: o aviso fixo aparece, e o dispositivo
    sai do servidor.
 7. **Assinatura.** `Scripts/conferir-release.sh` no `.app` do build exportado passa, e
@@ -324,8 +436,9 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
     Abra o app de novo com rede: o registro acontece e os avisos voltam.
 
 O simulador e o dublê provam a ordem das chamadas (suspender antes da rede, reativar só depois da
-confirmação) e a carência. O efeito de `unregisterForRemoteNotifications` sobre a entrega do APNs, e
-a volta dela, só o aparelho prova: são os passos 8 a 10.
+confirmação) e a carência. O efeito de `unregisterForRemoteNotifications` sobre a entrega do APNs,
+e a validação do filtro da extensão na tela bloqueada, só o aparelho prova: são os passos 5 e 8 a 10.
+Nada que dependa de validação em aparelho físico vira 'feito' sem o teste real no aparelho.
 
 ## Rótulo de privacidade da loja
 
