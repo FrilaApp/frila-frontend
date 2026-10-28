@@ -34,18 +34,20 @@ public struct FrilaItemIncluso: Identifiable, Hashable, Sendable {
 }
 
 /// Lista expansível em linha dos itens inclusos na vaga.
-/// Conforme especificação Hi-Fi (§2–4, REFERENCIA.md, LOG-010, refino r2 e ponto #23):
+/// Conforme especificação Hi-Fi (§2–4, REFERENCIA.md, LOG-010, refino r2, pontos #23, #25 e #26):
 /// - Lista com mais de 3 itens: ScrollView vertical nativo com rolagem livre (gesto A: arraste na lista rola lista);
 /// - Viewport compacto em repouso que exibe 3 linhas completas e a metade da quarta (corte visível como affordance);
 /// - Medição dinâmica das alturas reais de cada linha via PreferenceKey, suportando quebras de texto;
 /// - Acompanhamento geométrico nativo dos limites reais de rolagem via `DeslocamentoRolagemPreferenceKey`;
+/// - Margem vertical de 12 pt exclusiva para os indicadores de rolagem via `.contentMargins(.vertical, 12, for: .scrollIndicators)`,
+///   evitando corte pelo corner radius nos extremos de topo e fim (#25);
 /// - Máscara com fade progressivo superior de 12 pt apenas quando há conteúdo acima;
 /// - Fade progressivo inferior de 12 pt apenas quando há conteúdo abaixo, terminando 8 pt antes da borda (região de 8 pt restante transparente);
 /// - Sombra neutra de duas camadas suaves em preto neutro (`Color.black` com opacidades 0,06 e 0,03, evitando glow no modo escuro)
 ///   aplicada como overlay não interativo (`allowsHitTesting(false)`) na borda superior da faixa do botão,
 ///   projetada 8 pt para dentro da lista em ambos os estados (compacto e expandido) e persistente até o fim da rolagem;
 /// - Máscara com fade inferior condicionado a conteúdo abaixo, terminando 8 pt antes da borda sem sobreposição com a sombra;
-/// - Botão mini-CTA com alvo mínimo de 44 pt preservado exatamente: "Ver tudo (N)" e "Ver menos";
+/// - Botão mini-CTA com alvo mínimo de 44 pt: rótulo e chevron centralizados na faixa do botão via `alignment: .center` (#26): "Ver tudo (N)" e "Ver menos";
 /// - Expansão e recolhimento em linha respeitando `FrilaMotion.disclosureExpand` e `FrilaMotion.disclosureCollapse`;
 /// - No estado expandido, renderização direta em `VStack` sem ScrollView, recriando o ScrollView no início a cada recolhimento;
 /// - Respeito estrito a `accessibilityReduceMotion` (transição instantânea sem bounce);
@@ -141,7 +143,7 @@ public struct FrilaListaInclusos: View {
                         .accessibilityHidden(true)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .center)
             .padding(.horizontal, FrilaEspaco.medio)
             .contentShape(Rectangle())
         }
@@ -243,6 +245,7 @@ public struct FrilaListaInclusos: View {
                             )
                     }
                     .coordinateSpace(name: "scrollInclusos")
+                    .contentMargins(.vertical, 12, for: .scrollIndicators)
                     .frame(height: alturaCompactaCalculada)
                     .mask {
                         mascaraRolagem(altura: alturaCompactaCalculada)
