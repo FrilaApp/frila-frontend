@@ -51,7 +51,7 @@ Owner ou Admin da organização `Frila'orgs`.
 
 ## 3. O que falta para o frila-prod funcionar ponta a ponta
 
-Atualizado em 28/10/2026 com base em comandos locais e execuções da CI (o estado de 11/10/2026 descrevia o ambiente vazio; a data de 26/10 consta de notas do CI.md:99 e testflight.yml:55).
+Atualizado em 28/10/2026 com base em comandos locais e execuções da CI (o estado preliminar de 11/10/2026 descrevia o ambiente vazio; a data de provisionamento em 26/10 é proposta no PR #540, ainda aberto: não verificado).
 
 | Item | Cartão / Origem | Responsável | Estado em 28/10/2026 | Evidência / Como verificar |
 |---|---|---|---|---|
@@ -263,7 +263,7 @@ O cartão #76 pede "alerta de teste chega ao time por e-mail". Opções a avalia
 - [ ] `pg_cron` ativo para o despacho (agendamento no banco de produção é **não verificado** — depende de Cauê/Matheus no painel SQL do Supabase).
 - [ ] Catálogo e duas contas de revisão criados em produção (scripts implementados no repositório, mas execução em dev/prod é **não verificado** — depende de Cauê/Matheus).
 - [ ] `testflight.yml`: `ESQUEMA_DA_TAG` apontando para `Frila-Prod` (proposto no PR #540, ainda aberto; a `main` atual mantém `Frila-Beta` até o merge).
-- [x] Build Prod compilado, conferido pelo `conferir-release.sh` e enviado ao TestFlight (comprovado por disparo manual no run 40632099918 em 28/10/2026: `Frila-Prod 0.5.3` enviado com sucesso ao App Store Connect).
+- [x] Build Prod compilado e enviado ao TestFlight (comprovado por disparo manual no run 40632099918 em 28/10/2026: `Frila-Prod 0.5.3` enviado com sucesso ao App Store Connect; a execução do `conferir-release.sh` é invocada por `enviar-testflight.sh:202` antes do envio e o passo terminou em sucesso, embora o log da CI não imprima a conferência de forma destacada).
 - [ ] Ensaio de falha no Crashlytics do frila-prod: falha aparece simbolizada (não verificado — depende de ensaio no TestFlight por Cauê).
 - [ ] Push de teste enviado pelo console FCM do frila-prod: notificação chega ao aparelho (não verificado — depende de aparelho físico com Cauê).
 - [ ] Código de entrada por e-mail chega na caixa de entrada (Gmail, iCloud, Outlook) (não verificado — depende de Cauê).
