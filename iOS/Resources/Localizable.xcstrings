@@ -10277,6 +10277,36 @@
           }
         }
       }
+    },
+    "Em andamento": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em andamento"
+          }
+        }
+      }
+    },
+    "Ver tudo (%lld)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver tudo (%lld)"
+          }
+        }
+      }
+    },
+    "Ver menos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver menos"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
