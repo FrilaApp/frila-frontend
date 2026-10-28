@@ -44,6 +44,8 @@ public struct TelaDetalheVaga<Acao: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Bindable private var viewModel: DetalheVagaViewModel
     @State private var avisosDaAcao = AvisosDoDetalhe()
+    @State private var tituloNavegacaoVisivel = false
+    @State private var navegarParaPerfil = false
     private let acao: (Vaga) -> Acao
     private static var idDosAvisos: String { "avisos-da-acao" }
 
@@ -120,18 +122,37 @@ public struct TelaDetalheVaga<Acao: View>: View {
             }
             .padding(FrilaEspaco.medio)
         }
+        .coordinateSpace(name: "rolagemDetalhe")
+        .onPreferenceChange(VisibilidadePlacaPreferenceKey.self) { saiuDeVista in
+            if tituloNavegacaoVisivel != saiuDeVista {
+                tituloNavegacaoVisivel = saiuDeVista
+            }
+        }
         .accessibilityIdentifier("tela-detalhe-vaga")
         .modifier(BarraInferiorDoDetalhe(ativo: rodapeAtivo) {
             if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
-                VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-                    avisoRN10View(vaga)
-                    acao(vaga)
-                        .environment(avisosDaAcao)
-                }
+                acao(vaga)
+                    .environment(avisosDaAcao)
             }
         })
         .background(FrilaCor.fundo)
         .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
+                    FrilaTituloNavegacaoVaga(
+                        funcao: vaga.funcao.nome,
+                        estabelecimento: vaga.estabelecimento.nome,
+                        visivel: tituloNavegacaoVisivel
+                    )
+                }
+            }
+        }
+        .navigationDestination(isPresented: $navegarParaPerfil) {
+            if let api = viewModel.api, case let .carregado(vaga) = viewModel.estado {
+                TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
+            }
+        }
         .navigationTitle(Text(verbatim: TextosDoProfissional.Detalhe.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await medirAbertura(.detalheDaVaga, carregar: viewModel.carregar, pronto: detalheNaTela) }
@@ -266,42 +287,19 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
     @ViewBuilder
     private func conteudo(_ vaga: Vaga) -> some View {
-        // Placa aberta da origem (`FrilaOpportunityPlacardDetail`): entidade em caixa alta e título.
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: vaga.estabelecimento.nome)
-                .font(FrilaTipo.resumo)
-                .textCase(.uppercase)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityLabel(Text(verbatim: vaga.estabelecimento.nome))
-            Text(verbatim: vaga.funcao.nome)
-                .font(FrilaTipo.tituloDoDetalhe)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        placaVaga(vaga)
 
-        cartaoResumo(vaga)
+        cabecalhoEstabelecimento(vaga)
 
-        cartaoLocal(vaga)
+        resumoVaga(vaga)
+
+        notasResumo(vaga)
 
         cartaoInclusos(vaga)
 
-        if let api = viewModel.api {
-            NavigationLink {
-                TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
-            } label: {
-                Text(verbatim: TextosDaSeguranca.verPerfil)
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    .padding(.horizontal, FrilaEspaco.minimo)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("abrir-perfil-estabelecimento")
-        }
-
         cartaoReputacao(vaga.estabelecimento.reputacao)
+
+        avisoRN10View(vaga)
 
         if !avisosDaAcao.avisos.isEmpty {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -319,160 +317,106 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
     }
 
-    private func cartaoResumo(_ vaga: Vaga) -> some View {
+    private func placaVaga(_ vaga: Vaga) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: vaga.estabelecimento.nome)
+                .font(FrilaTipo.resumo)
+                .textCase(.uppercase)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityLabel(Text(verbatim: vaga.estabelecimento.nome))
+            Text(verbatim: vaga.funcao.nome)
+                .font(FrilaTipo.tituloDoDetalhe)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: VisibilidadePlacaPreferenceKey.self,
+                    value: geo.frame(in: .named("rolagemDetalhe")).maxY < 0
+                )
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func cabecalhoEstabelecimento(_ vaga: Vaga) -> some View {
+        let reputacao = vaga.estabelecimento.reputacao
+        let avaliacao: String? = reputacao.semHistorico
+            ? nil
+            : TextosDoProfissional.Detalhe.reputacaoContagem(positivas: reputacao.positivas, total: reputacao.total)
+        let localizacao = vaga.regiaoAdministrativa.isEmpty ? nil : vaga.regiaoAdministrativa
+
+        if viewModel.api != nil {
+            FrilaCabecalhoEstabelecimento(
+                nome: vaga.estabelecimento.nome,
+                localizacao: localizacao,
+                avaliacao: avaliacao,
+                acao: { navegarParaPerfil = true }
+            )
+            .accessibilityIdentifier("abrir-perfil-estabelecimento")
+        } else {
+            FrilaCabecalhoEstabelecimento(
+                nome: vaga.estabelecimento.nome,
+                localizacao: localizacao,
+                avaliacao: avaliacao,
+                acao: nil
+            )
+        }
+    }
+
+    private func resumoVaga(_ vaga: Vaga) -> some View {
         let formatador = FormatadorFrila()
         let totalPosicoes = max(1, vaga.posicoes)
         let preenchidas = max(0, min(totalPosicoes, totalPosicoes - vaga.posicoesAbertas))
-
-        return VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                    blocoQuando(vaga)
-                    blocoHorario(vaga)
-                    blocoValor(vaga, formatador: formatador)
-                    blocoPosicoes(preenchidas: preenchidas, total: totalPosicoes)
-                }
-            } else {
-                Grid(alignment: .leading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.medio) {
-                    GridRow {
-                        blocoQuando(vaga)
-                        blocoHorario(vaga)
-                    }
-                    GridRow {
-                        blocoValor(vaga, formatador: formatador)
-                        blocoPosicoes(preenchidas: preenchidas, total: totalPosicoes)
-                    }
-                }
-            }
-
-            Rectangle()
-                .fill(FrilaCor.divisoria)
-                .frame(height: 1)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: vaga.modoEfetivo(em: .now) == .urgencia
-                    ? TextosDoProfissional.Detalhe.notaUrgencia
-                    : TextosDoProfissional.Detalhe.notaSelecao
-                )
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-
-                Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
-    }
-
-    private func blocoQuando(_ vaga: Vaga) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: TextosDoProfissional.Detalhe.quando)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: formatarQuando(vaga.periodo.inicio))
-                .font(FrilaTipo.resumo)
-                .foregroundStyle(FrilaCor.texto)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private func blocoHorario(_ vaga: Vaga) -> some View {
         let inicio = vaga.periodo.inicio
         let fim = vaga.periodo.fim
-        let cal = calendarioSp
-        let cruzaDia = !cal.isDate(inicio, inSameDayAs: fim)
+        let cruzaDia = !calendarioSp.isDate(inicio, inSameDayAs: fim)
+        let intervalo = TextosDoProfissional.Detalhe.intervaloHorario(inicio: formatarHora(inicio), fim: formatarHora(fim))
+        let horarioTexto = cruzaDia
+            ? "\(intervalo)\n\(TextosDoProfissional.Detalhe.horarioTermina(formatarDiaMesCurto(fim)))"
+            : intervalo
 
-        return VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: TextosDoProfissional.Detalhe.horario)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: TextosDoProfissional.Detalhe.intervaloHorario(inicio: formatarHora(inicio), fim: formatarHora(fim)))
-                .font(FrilaTipo.resumo)
-                .foregroundStyle(FrilaCor.texto)
-            if cruzaDia {
-                Text(verbatim: TextosDoProfissional.Detalhe.horarioTermina(formatarDiaMesCurto(fim)))
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            }
+        let valorFormatado = formatador.dinheiro(vaga.valor)
+        let valorFalado = formatador.dinheiroFalado(vaga.valor, por: "pessoa")
+        let distanciaTexto = vaga.distanciaKm.map { km in
+            TextosDoProfissional.Detalhe.distanciaPontoBase(formatador.distancia(km))
         }
-        .accessibilityElement(children: .combine)
+
+        return FrilaResumoVaga(
+            quando: formatarQuando(inicio),
+            horario: horarioTexto,
+            valor: valorFormatado,
+            valorAcessibilidade: valorFalado,
+            local: vaga.local,
+            distancia: distanciaTexto,
+            preenchidas: preenchidas,
+            total: totalPosicoes,
+            inicio: inicio,
+            fim: fim,
+            abrirMapa: { abrirNoMapa(vaga.local) }
+        )
     }
 
-    private func blocoValor(_ vaga: Vaga, formatador: FormatadorFrila) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: TextosDoProfissional.Detalhe.valor)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: formatador.dinheiro(vaga.valor))
-                .font(FrilaTipo.resumo)
-                .monospacedDigit()
-                .foregroundStyle(FrilaCor.texto)
+    private func notasResumo(_ vaga: Vaga) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: TextosDoProfissional.Detalhe.porPessoa)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
-        }
-        .accessibilityElement(children: .combine)
-    }
 
-    private func blocoPosicoes(preenchidas: Int, total: Int) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: TextosDoProfissional.Detalhe.posicoes)
+            Text(verbatim: vaga.modoEfetivo(em: .now) == .urgencia
+                ? TextosDoProfissional.Detalhe.notaUrgencia
+                : TextosDoProfissional.Detalhe.notaSelecao
+            )
+            .font(FrilaTipo.nota)
+            .foregroundStyle(FrilaCor.textoSecundario)
+
+            Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: TextosDoProfissional.Detalhe.posicoesPreenchidas(preenchidas: preenchidas, total: total))
-                .font(FrilaTipo.resumo)
-                .foregroundStyle(FrilaCor.texto)
-            HStack(spacing: FrilaEspaco.minimo) {
-                ForEach(0..<total, id: \.self) { indice in
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(indice < preenchidas ? FrilaCor.texto : FrilaCor.controle)
-                        .frame(height: 4)
-                }
-            }
-            .padding(.top, FrilaEspaco.fio)
-            .accessibilityHidden(true)
         }
-        .accessibilityElement(children: .combine)
-    }
-
-    private func cartaoLocal(_ vaga: Vaga) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                    Image(systemName: "mappin")
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(width: 16, height: 16)
-                        .accessibilityHidden(true)
-                    Text(verbatim: vaga.local)
-                        .font(FrilaTipo.resumo)
-                        .foregroundStyle(FrilaCor.texto)
-                }
-                if let km = vaga.distanciaKm {
-                    Text(verbatim: TextosDoProfissional.Detalhe.distanciaPontoBase(FormatadorFrila().distancia(km)))
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .padding(.leading, 24)
-                }
-            }
-            BotaoSecundario(verbatim: TextosDoProfissional.Detalhe.abrirNoMapa) {
-                abrirNoMapa(vaga.local)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
-    }
-
-    private func abrirNoMapa(_ endereco: String) {
-        var componentes = URLComponents()
-        componentes.scheme = "maps"
-        componentes.queryItems = [URLQueryItem(name: "q", value: endereco)]
-        if let url = componentes.url {
-            openURL(url)
-        }
+        .padding(.horizontal, FrilaEspaco.minimo)
     }
 
     private func cartaoInclusos(_ vaga: Vaga) -> some View {
@@ -485,56 +429,58 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 .padding(.horizontal, FrilaEspaco.minimo)
                 .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: 0) {
-                linhaIncluso(rotulo: TextosDoProfissional.Detalhe.refeicao, valor: TextosDoProfissional.simNaoCapitalizado(vaga.inclusos.refeicao))
-                divisorDeLinha
-                linhaIncluso(rotulo: TextosDoProfissional.Detalhe.transporte, valor: TextosDoProfissional.simNaoCapitalizado(vaga.inclusos.transporte))
-                divisorDeLinha
-                linhaIncluso(
-                    rotulo: TextosDoProfissional.Detalhe.material,
-                    valor: vaga.inclusos.exigeMaterialProprio ? TextosDoProfissional.Detalhe.precisaLevar : TextosDoProfissional.Detalhe.naoPrecisaLevar
-                )
-                if let traje = vaga.traje, !traje.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    divisorDeLinha
-                    linhaIncluso(rotulo: TextosDoProfissional.Detalhe.traje, valor: traje)
-                }
-                divisorDeLinha
-                linhaIncluso(rotulo: TextosDoProfissional.Detalhe.quemRecebe, valor: vaga.responsavelLocal)
-                if let rateio = vaga.participaRateio {
-                    divisorDeLinha
-                    linhaIncluso(rotulo: TextosDoProfissional.Detalhe.rateio, valor: TextosDoProfissional.simNaoCapitalizado(rateio))
-                }
-                if let observacoes = vaga.observacoes, !observacoes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    divisorDeLinha
-                    linhaIncluso(rotulo: TextosDoProfissional.Detalhe.observacoes, valor: observacoes)
-                }
-            }
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+            FrilaListaInclusos(itens: itensInclusos(da: vaga))
         }
     }
 
-    private func linhaIncluso(rotulo: String, valor: String) -> some View {
-        HStack(alignment: .center, spacing: FrilaEspaco.compacto) {
-            Text(verbatim: rotulo)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.texto)
-            Spacer(minLength: FrilaEspaco.medio)
-            Text(verbatim: valor)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .multilineTextAlignment(.trailing)
+    private func itensInclusos(da vaga: Vaga) -> [FrilaItemIncluso] {
+        var itens: [FrilaItemIncluso] = []
+        itens.append(FrilaItemIncluso(
+            rotulo: TextosDoProfissional.Detalhe.refeicao,
+            valor: TextosDoProfissional.simNaoCapitalizado(vaga.inclusos.refeicao)
+        ))
+        itens.append(FrilaItemIncluso(
+            rotulo: TextosDoProfissional.Detalhe.transporte,
+            valor: TextosDoProfissional.simNaoCapitalizado(vaga.inclusos.transporte)
+        ))
+        itens.append(FrilaItemIncluso(
+            rotulo: TextosDoProfissional.Detalhe.material,
+            valor: vaga.inclusos.exigeMaterialProprio
+                ? TextosDoProfissional.Detalhe.precisaLevar
+                : TextosDoProfissional.Detalhe.naoPrecisaLevar
+        ))
+        if let traje = vaga.traje, !traje.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            itens.append(FrilaItemIncluso(
+                rotulo: TextosDoProfissional.Detalhe.traje,
+                valor: traje
+            ))
         }
-        .frame(minHeight: FrilaMetrica.alturaDoCampo)
-        .padding(.horizontal, FrilaEspaco.medio)
+        itens.append(FrilaItemIncluso(
+            rotulo: TextosDoProfissional.Detalhe.quemRecebe,
+            valor: vaga.responsavelLocal
+        ))
+        if let rateio = vaga.participaRateio {
+            itens.append(FrilaItemIncluso(
+                rotulo: TextosDoProfissional.Detalhe.rateio,
+                valor: TextosDoProfissional.simNaoCapitalizado(rateio)
+            ))
+        }
+        if let observacoes = vaga.observacoes, !observacoes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            itens.append(FrilaItemIncluso(
+                rotulo: TextosDoProfissional.Detalhe.observacoes,
+                valor: observacoes
+            ))
+        }
+        return itens
     }
 
-    private var divisorDeLinha: some View {
-        Rectangle()
-            .fill(FrilaCor.divisoria)
-            .frame(height: 1)
-            .padding(.leading, FrilaEspaco.medio)
-            .accessibilityHidden(true)
+    private func abrirNoMapa(_ endereco: String) {
+        var componentes = URLComponents()
+        componentes.scheme = "maps"
+        componentes.queryItems = [URLQueryItem(name: "q", value: endereco)]
+        if let url = componentes.url {
+            openURL(url)
+        }
     }
 
     private func cartaoReputacao(_ reputacao: Reputacao) -> some View {
@@ -567,7 +513,12 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .cartaoFrila()
+        .padding(FrilaEspaco.medio)
+        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+                .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("detalhe-reputacao")
     }
@@ -712,5 +663,12 @@ private struct BarraInferiorDoDetalhe<Rodape: View>: ViewModifier {
 extension TelaDetalheVaga where Acao == EmptyView {
     public init(viewModel: DetalheVagaViewModel) {
         self.init(viewModel: viewModel) { _ in EmptyView() }
+    }
+}
+
+private struct VisibilidadePlacaPreferenceKey: PreferenceKey {
+    static let defaultValue: Bool = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = nextValue()
     }
 }

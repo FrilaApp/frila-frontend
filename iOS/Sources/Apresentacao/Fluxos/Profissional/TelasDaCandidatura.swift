@@ -129,6 +129,7 @@ public struct AreaDeCandidatura: View {
 
     private var botaoView: some View {
         let desabilitado = viewModel.enviando || viewModel.conferindo
+        let usaCorMarca = quadro != nil && !desabilitado
         return Button {
             Task { await candidatar(viewModel) }
         } label: {
@@ -143,8 +144,8 @@ public struct AreaDeCandidatura: View {
             }
             .padding(.horizontal, FrilaEspaco.grande)
             .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            .foregroundStyle(desabilitado ? FrilaCor.textoSecundario : FrilaCor.sobrePrimaria)
-            .background(desabilitado ? FrilaCor.controle : FrilaCor.primaria, in: Capsule())
+            .foregroundStyle(desabilitado ? FrilaCor.textoSecundario : (usaCorMarca ? FrilaCor.sobreSelecao : FrilaCor.sobrePrimaria))
+            .background(desabilitado ? FrilaCor.controle : (usaCorMarca ? FrilaCor.marca : FrilaCor.primaria), in: Capsule())
             .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
