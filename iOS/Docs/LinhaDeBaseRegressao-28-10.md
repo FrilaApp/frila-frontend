@@ -6,7 +6,7 @@
 - [6ab26a32](https://trello.com/c/6ab26a32) — Regressão final e checklist das diretrizes da App Store (antigo [5Lx5v39r](https://trello.com/c/5Lx5v39r))  
 **Branch de Trabalho:** `docs/linha-de-base-regressao-28-10`  
 **Commit Base:** `39b1a1c4` (origin/main em 28/10/2026)  
-**Ambiente de Execução:** Mac Apple Silicon (10 núcleos), macOS 26.0, Xcode 26.0 (Build 16A242d), Simulador `iPhone 17 Pro` (iOS 26.5, UDID `C5723206-4177-45B9-9496-7EA46550F215`), gerenciado pela fila de recursos `orquestracao/scripts/fila.sh`.
+**Ambiente de Execução:** Mac Apple Silicon (10 núcleos), macOS 27.0.1 (Build 26A434, verificado via `sw_vers`), Xcode 27.0 (Build 27A266a, verificado via `xcodebuild -version`), Simulador `iPhone 17 Pro` (iOS 26.5, UDID `C5723206-4177-45B9-9496-7EA46550F215`), gerenciado pela fila de recursos `orquestracao/scripts/fila.sh`.
 
 ---
 
@@ -52,6 +52,9 @@ xcodebuild test \
 | **Caminho do Pacote .xcresult** | `iOS/build/Resultados/CicloDePontaAPonta-exec1.xcresult` | `iOS/build/Resultados/CicloDePontaAPonta-exec2.xcresult` | Válido |
 
 > **Conclusão da Linha de Base:** O caminho feliz do cliente iOS encontra-se **100% funcional e reprodutível no simulador**, sem qualquer quebra de fluxo ou timeout nas 4 etapas críticas.
+>
+> [!IMPORTANT]
+> **Limite da Prova da Linha de Base (Dublê em Memória):** A suíte `CicloDePontaAPontaUITests` é executada com o dublê em memória nativo do cliente (`ApiClienteEmMemoria`). Isso prova exaustivamente e de ponta a ponta a camada de apresentação, modelos de visão, máquinas de estado, navegação e persistência local, mas **não substitui** o teste de integração contra o backend real (Supabase e Edge Functions), que depende de testes em aparelho físico e scripts de fumaça da API (`scripts/fumaca-v1.sh`).
 
 ---
 
@@ -59,11 +62,17 @@ xcodebuild test \
 
 Avaliação dos 27 itens de conformidade contra a `main` atual (`39b1a1c4`), confrontando a pré-auditoria do Loki (22/10), o checklist oficial (`iOS/Docs/ChecklistDiretrizesAppStore.md`) e os metadados da loja (`iOS/Docs/FichaAppStore.md`).
 
+**Origem da Matriz dos 27 Itens:** A matriz de auditoria consolida os 26 itens documentados em `iOS/Docs/ChecklistDiretrizesAppStore.md` (no qual a auditoria de 12/10 identificou 21 conformidades provadas por código/testes e 5 dependentes de ações humanas) somados ao item 27 de escopo do identificador de dispositivo em `PrivacyInfo.xcprivacy:20`. Esses requisitos cobrem as 11 famílias de diretrizes do App Store Review Guidelines (1.1, 1.2, 1.5, 2.1, 2.3, 3.1, 4.0/4.2, 4.8, 5.1.1, 5.1.2 e ECA Digital).
+
 ### 2.1 Matriz de Verificação dos 27 Itens
+
+**Distinção de Fontes:**
+- **Executado (2x no simulador):** Os 4 cenários encadeados de UI em `CicloDePontaAPontaUITests` (Seção 1).
+- **Auditado por Código (estático arquivo:linha):** Os 27 itens de conformidade abaixo foram verificados e comprovados por leitura estática linha a linha dos arquivos de produção e testes no commit `39b1a1c4`.
 
 Legenda de status:
 - **continua OK**: Implementação e testes confirmados em arquivo:linha na `main` atual.
-- **mudou**: Estado alterado em relação à auditoria anterior (avanço ou regressão identificada).
+- **mudou**: Estado alterado em relação à auditoria anterior (avanço ou regressão identificada e detalhada).
 - **não achei**: Não localizado na `main` atual (nenhum item classificado assim).
 
 | # | Diretriz Apple | Requisito / Tema | Evidência no Código (`iOS/Sources/`) | Evidência nos Testes (`iOS/Tests/`) | Situação na `main` | Análise e Evidência Atual |
@@ -78,7 +87,7 @@ Legenda de status:
 | 8 | **2.3.7** | Nome, Subtítulo e Keywords dentro dos Limites | `FichaAppStore.md:31–53` | `conferir-textos.sh` | **continua OK** | Nome: 21 car. ($\le 30$); Subtítulo: 25 car. ($\le 30$); Keywords: 97 bytes UTF-8 ($\le 100$ bytes). Sem concorrentes ou "grátis". |
 | 9 | **3.1.1 / 3.1.3(e)** | IAP Dispensado (Serviços no Mundo Físico) | `MinhasVagasViewModel.swift:50`<br>`FichaAppStore.md:17` | `MinhasVagasTests.swift:40`<br>`TurnoContrato0231Tests.swift:20` | **continua OK** | Intermediação de trabalho presencial com acerto direto no local sem retenção de comissão (RN01); exceção formal 3.1.3(e). |
 | 10 | **4.0 / 4.2** | Design Nativo e Alvos de Toque $\ge 44 \times 44$ pt | `DesignTokens.swift:10–50` | `AuditoriaDeAcessibilidadeUITests.swift:45` | **continua OK** | Componentes padronizados e áreas de toque em conformidade com as Human Interface Guidelines. |
-| 11 | **4.0 / 4.2** | Respeito a Reduzir Movimento (Reduce Motion) | `FrilaMovimento.swift:15`<br>`FrilaListaInclusos.swift:118, 261` | `ReduzirMovimentoTests.swift`<br>`conferir-movimento.sh` | **mudou** | **Regressão pontual na main:** O PR #539 (mesclado às 02h20 de 28/10) introduziu `withAnimation` direto em `FrilaListaInclusos.swift:118` e `:261`, violando o script `conferir-movimento.sh` (objeto de correção do brief F-006). |
+| 11 | **4.0 / 4.2** | Respeito a Reduzir Movimento (Reduce Motion) | `FrilaMovimento.swift:15`<br>`FrilaListaInclusos.swift:111, 249` | `ReduzirMovimentoTests.swift`<br>`conferir-movimento.sh` | **mudou** | **Regressão pontual na main corrigida no PR #546:** O PR #539 havia introduzido `withAnimation` direto em `FrilaListaInclusos.swift:118` e `:261`, violando o script `conferir-movimento.sh`. A correção foi implementada no PR #546 via `FrilaMovimento.animacao(_:reduzir:)`, com o passo de conferência de movimento já aprovado na CI (Run 40642217304). |
 | 12 | **4.2** | Padrões de Estado e Resiliência Offline | `EstadosDeTela.swift:62`<br>`CacheSwiftData.swift:35` | `PadroesDeEstadoTests.swift:20`<br>`ModoAviaoUITests.swift:15` | **continua OK** | Cinco estados visuais padronizados (`Carregando`, `Vazio`, `Erro`, `Offline`, `Pendente`) implementados e testados. |
 | 13 | **5.1.1(i)** | Política de Privacidade no App e na Web | `EnderecosOficiais.swift:21`<br>`PerfisDaConta.swift:415` | `AppPrivacyTests.swift:45–65` | **continua OK** | URL segura HTTPS `https://frila.netlify.app/privacidade` configurada e acessível in-app. |
 | 14 | **5.1.1(v)** | Exclusão de Conta In-App (Account Deletion) | `TelaExclusaoDeConta.swift:20–280`<br>`PerfisDaConta.swift:215, 321` | `ExclusaoDeContaUITests.swift:16`<br>`LimpezaAposExclusaoTests.swift:30` | **continua OK** | Acesso direto no nível raiz nos dois perfis, diálogo confirmatório e expurgo do Keychain e cache local. |
