@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -22,13 +23,14 @@ private val INICIO_TARDE: LocalTime = LocalTime.of(12, 0)
 private val INICIO_NOITE: LocalTime = LocalTime.of(18, 0)
 
 /**
- * Feed de vagas abertas (RF07). `escopo` é nulo em produção (usa `viewModelScope`); testes
+ * Feed de vagas abertas (RF05/RF07/RN01). `escopo` é nulo em produção (usa `viewModelScope`); testes
  * injetam um escopo próprio e esperam o `Job` devolvido com `.join()` — ver a nota detalhada em
  * `br.com.frila.feature.entrada.entrada.EntradaViewModel` sobre por que isso é necessário com
  * o cliente Ktor de `:core:rede`.
  */
 class FeedVagasViewModel(
     private val servicoVagas: ServicoVagas,
+    private val armazenamentoPreferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -38,6 +40,20 @@ class FeedVagasViewModel(
     val estado: StateFlow<EstadoFeed> = _estado.asStateFlow()
 
     private var vagasCarregadas: List<VagaAbertaDto> = emptyList()
+
+    init {
+        armazenamentoPreferencias.obterFaixaRemuneracaoHora()?.let { salva ->
+            _estado.update {
+                it.copy(
+                    faixaRemuneracaoHora = FaixaRemuneracaoHora(
+                        minima = salva.minima,
+                        maxima = salva.maxima,
+                        ativa = salva.ativa,
+                    ),
+                )
+            }
+        }
+    }
 
     fun carregar(): Job {
         _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null) }
@@ -114,16 +130,55 @@ class FeedVagasViewModel(
         aplicarFiltros()
     }
 
+    /**
+     * RF05/RN01: Atualiza a faixa de remuneração líquida por hora através do RangeSlider
+     * e persiste a preferência localmente.
+     */
+    fun aoAlterarFaixaRemuneracaoHora(faixa: ClosedFloatingPointRange<Float>, ativa: Boolean = true) {
+        _estado.update {
+            it.copy(
+                faixaRemuneracaoHora = FaixaRemuneracaoHora(
+                    minima = faixa.start,
+                    maxima = faixa.endInclusive,
+                    ativa = ativa,
+                ),
+            )
+        }
+        armazenamentoPreferencias.salvarFaixaRemuneracaoHora(
+            minimo = faixa.start,
+            maximo = faixa.endInclusive,
+            ativa = ativa,
+        )
+        aplicarFiltros()
+    }
+
+    /** Desativa o filtro de faixa por hora sem apagar os limites configurados. */
+    fun aoDesativarFaixaRemuneracaoHora() {
+        _estado.update {
+            it.copy(
+                faixaRemuneracaoHora = it.faixaRemuneracaoHora.copy(ativa = false),
+            )
+        }
+        armazenamentoPreferencias.salvarFaixaRemuneracaoHora(
+            minimo = _estado.value.faixaRemuneracaoHora.minima,
+            maximo = _estado.value.faixaRemuneracaoHora.maxima,
+            ativa = false,
+        )
+        aplicarFiltros()
+    }
+
     fun aoSelecionarFiltroPeriodo(filtro: FiltroPeriodo) {
         _estado.update { it.copy(filtroPeriodo = filtro) }
         aplicarFiltros()
     }
 
     fun aoLimparFiltrosAvancados() {
+        armazenamentoPreferencias.limparFaixaRemuneracaoHora()
         _estado.update {
             it.copy(
                 filtroRemuneracao = FiltroRemuneracao.QUALQUER,
                 filtroPeriodo = FiltroPeriodo.QUALQUER,
+                faixaRemuneracaoHora = FaixaRemuneracaoHora.PADRAO,
             )
         }
         aplicarFiltros()
@@ -150,6 +205,15 @@ class FeedVagasViewModel(
                 val minimo = filtroAtual.filtroRemuneracao.minimoCentavos
                 minimo == null || vaga.valorCentavos >= minimo
             }
+            .filter { vaga ->
+                val faixaHora = filtroAtual.faixaRemuneracaoHora
+                if (!faixaHora.ativa) {
+                    true
+                } else {
+                    val valorHora = vaga.calcularValorHoraReais()
+                    valorHora >= faixaHora.minima && valorHora <= faixaHora.maxima
+                }
+            }
             .filter { vaga -> filtroAtual.filtroPeriodo.aceita(vaga.inicioEm) }
             .sortedBy { it.distanciaKm }
             .map { it.paraItem() }
@@ -169,6 +233,23 @@ class FeedVagasViewModel(
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível carregar as vagas. Tente de novo em instantes."
     }
+}
+
+/**
+ * Calcula o valor líquido por hora de uma vaga em reais (RF05/RN01).
+ * O valor anunciado é integral sem comissões da plataforma (RN01).
+ */
+fun VagaAbertaDto.calcularValorHoraReais(): Double {
+    val inicio = runCatching { Instant.parse(inicioEm) }.getOrNull()
+    val fim = runCatching { Instant.parse(fimEm) }.getOrNull()
+    val duracaoHoras = if (inicio != null && fim != null) {
+        val minutos = Duration.between(inicio, fim).toMinutes()
+        if (minutos > 0) minutos / 60.0 else 1.0
+    } else {
+        1.0
+    }
+    val totalReais = valorCentavos / 100.0
+    return totalReais / duracaoHoras
 }
 
 private fun FiltroPeriodo.aceita(inicioEm: String): Boolean {

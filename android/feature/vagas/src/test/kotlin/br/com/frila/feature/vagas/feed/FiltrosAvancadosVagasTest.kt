@@ -115,4 +115,28 @@ class FiltrosAvancadosVagasTest {
         compose.onNodeWithText("Noite")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "não selecionado"))
     }
+
+    @Test
+    fun `bottom sheet exibe secao e slider de remuneracao por hora`() {
+        compose.setContent {
+            FrilaTheme {
+                FiltrosAvancadosVagas(
+                    filtroRemuneracao = FiltroRemuneracao.QUALQUER,
+                    filtroPeriodo = FiltroPeriodo.QUALQUER,
+                    faixaRemuneracaoHora = FaixaRemuneracaoHora(minima = 25f, maxima = 100f, ativa = true),
+                    aoSelecionarRemuneracao = {},
+                    aoSelecionarPeriodo = {},
+                    aoAlterarFaixaRemuneracaoHora = {},
+                    aoAplicar = {},
+                    aoLimpar = {},
+                    aoFechar = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Remuneração por hora (líquida)").assertIsDisplayed()
+        compose.onNodeWithText("R$ 25/h a R$ 100/h").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Faixa de remuneração de R$ 25 por hora até R$ 100 por hora")
+            .assertIsDisplayed()
+    }
 }

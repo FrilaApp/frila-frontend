@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,6 +47,7 @@ import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.componentes.semanticaDeFiltro
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,8 +114,10 @@ fun TelaFeedVagas(
         FiltrosAvancadosVagas(
             filtroRemuneracao = estado.filtroRemuneracao,
             filtroPeriodo = estado.filtroPeriodo,
+            faixaRemuneracaoHora = estado.faixaRemuneracaoHora,
             aoSelecionarRemuneracao = viewModel::aoSelecionarFiltroRemuneracao,
             aoSelecionarPeriodo = viewModel::aoSelecionarFiltroPeriodo,
+            aoAlterarFaixaRemuneracaoHora = { viewModel.aoAlterarFaixaRemuneracaoHora(it, ativa = true) },
             aoAplicar = viewModel::aoFecharFiltrosAvancados,
             aoLimpar = viewModel::aoLimparFiltrosAvancados,
             aoFechar = viewModel::aoFecharFiltrosAvancados,
@@ -225,14 +230,16 @@ private fun LinhaDeFiltros(estado: EstadoFeed, viewModel: FeedVagasViewModel) {
     }
 }
 
-/** Folha Material 3 dos filtros adicionais do RF10. */
+/** Folha Material 3 dos filtros adicionais do RF05/RF10/RN01. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FiltrosAvancadosVagas(
     filtroRemuneracao: FiltroRemuneracao,
     filtroPeriodo: FiltroPeriodo,
+    faixaRemuneracaoHora: FaixaRemuneracaoHora = FaixaRemuneracaoHora.PADRAO,
     aoSelecionarRemuneracao: (FiltroRemuneracao) -> Unit,
     aoSelecionarPeriodo: (FiltroPeriodo) -> Unit,
+    aoAlterarFaixaRemuneracaoHora: (ClosedFloatingPointRange<Float>) -> Unit = {},
     aoAplicar: () -> Unit,
     aoLimpar: () -> Unit,
     aoFechar: () -> Unit,
@@ -244,15 +251,49 @@ fun FiltrosAvancadosVagas(
                 .padding(
                     start = FrilaEspacamento.medio,
                     end = FrilaEspacamento.medio,
-                    bottom = FrilaEspacamento.grande,
+                    bottom = FrilaEspacamento.medio,
                 ),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
         ) {
             Text(
                 text = "Filtros avançados",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.semantics { heading() },
             )
+
+            // RF05/RN01: RangeSlider para faixa de remuneração líquida por hora
+            val minFormatado = faixaRemuneracaoHora.minima.roundToInt()
+            val maxFormatado = faixaRemuneracaoHora.maxima.roundToInt()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Remuneração por hora (líquida)",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = "R$ $minFormatado/h a R$ $maxFormatado/h",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            RangeSlider(
+                value = faixaRemuneracaoHora.minima..faixaRemuneracaoHora.maxima,
+                onValueChange = { range ->
+                    aoAlterarFaixaRemuneracaoHora(range)
+                },
+                valueRange = FaixaRemuneracaoHora.LIMITE_MINIMO..FaixaRemuneracaoHora.LIMITE_MAXIMO,
+                steps = 25,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentDescription = "Faixa de remuneração de R$ $minFormatado por hora até R$ $maxFormatado por hora"
+                    },
+            )
+
             Text(
                 text = "Remuneração mínima",
                 style = MaterialTheme.typography.titleSmall,
@@ -285,16 +326,23 @@ fun FiltrosAvancadosVagas(
                     )
                 }
             }
-            BotaoPrimario(
-                texto = "Aplicar filtros",
-                aoClicar = aoAplicar,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            BotaoSecundario(
-                texto = "Limpar",
-                aoClicar = aoLimpar,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.minimo),
+                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+            ) {
+                BotaoPrimario(
+                    texto = "Aplicar filtros",
+                    aoClicar = aoAplicar,
+                    modifier = Modifier.weight(1f),
+                )
+                BotaoSecundario(
+                    texto = "Limpar",
+                    aoClicar = aoLimpar,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }

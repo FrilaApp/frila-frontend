@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -28,6 +29,7 @@ class FeedVagasViewModelTest {
         estabelecimento: String = "Bar do Zé",
         distanciaKm: Double = 4.2,
         inicioEm: String = "2026-11-01T21:00:00Z",
+        fimEm: String = "2026-11-02T03:00:00Z",
         valorCentavos: Long = 16_000L,
     ) = """
         {
@@ -40,7 +42,7 @@ class FeedVagasViewModelTest {
             "reputacao": {"positivas": 7, "total": 7, "taxa_comparecimento": 1.0, "turnos_considerados": 7, "turnos_realizados": 7}
           },
           "inicio_em": "$inicioEm",
-          "fim_em": "2026-11-02T03:00:00Z",
+          "fim_em": "$fimEm",
           "local": "SQN 108",
           "regiao_administrativa": "Asa Norte",
           "distancia_km": $distanciaKm,
@@ -51,9 +53,16 @@ class FeedVagasViewModelTest {
         }
     """.trimIndent()
 
-    private fun viewModelComEngine(engine: MockEngine): FeedVagasViewModel {
+    private fun viewModelComEngine(
+        engine: MockEngine,
+        preferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
+    ): FeedVagasViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
-        return FeedVagasViewModel(ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return FeedVagasViewModel(
+            servicoVagas = ServicoVagas(cliente),
+            armazenamentoPreferencias = preferencias,
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
     }
 
     @Test
@@ -485,5 +494,106 @@ class FeedVagasViewModelTest {
         assertEquals(1, viewModel.estado.value.vagas.size)
         assertEquals(false, viewModel.estado.value.atualizando)
         assertTrue(viewModel.estado.value.mensagemErro != null)
+    }
+
+    @Test
+    fun `filtro de remuneracao por hora exclui vagas abaixo do minimo selecionado (RF05, RN01)`() = runBlocking {
+        // Todas as vagas duram 4 horas (18:00 às 22:00)
+        // Vaga A: R$ 80,00 total = R$ 20,00/h
+        // Vaga B: R$ 120,00 total = R$ 30,00/h
+        // Vaga C: R$ 200,00 total = R$ 50,00/h
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[" + listOf(
+                        vagaJson(id = "a", inicioEm = "2026-11-01T18:00:00Z", fimEm = "2026-11-01T22:00:00Z", valorCentavos = 8_000L),
+                        vagaJson(id = "b", inicioEm = "2026-11-01T18:00:00Z", fimEm = "2026-11-01T22:00:00Z", valorCentavos = 12_000L),
+                        vagaJson(id = "c", inicioEm = "2026-11-01T18:00:00Z", fimEm = "2026-11-01T22:00:00Z", valorCentavos = 20_000L),
+                    ).joinToString(",") + "]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+        assertEquals(3, viewModel.estado.value.vagas.size)
+
+        // Seleciona faixa mínima de R$ 25/h até R$ 60/h
+        viewModel.aoAlterarFaixaRemuneracaoHora(25f..60f, ativa = true)
+
+        // Vaga A (R$ 20/h) deve ser excluída por estar abaixo do mínimo (R$ 25/h)
+        val vagasFiltradas = viewModel.estado.value.vagas.map { it.id }
+        assertEquals(listOf("a", "b", "c").filter { it != "a" }, vagasFiltradas)
+        assertEquals(listOf("b", "c"), vagasFiltradas)
+    }
+
+    @Test
+    fun `filtro de remuneracao por hora exclui vagas acima do maximo selecionado quando ativo`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[" + listOf(
+                        vagaJson(id = "b", inicioEm = "2026-11-01T18:00:00Z", fimEm = "2026-11-01T22:00:00Z", valorCentavos = 12_000L),
+                        vagaJson(id = "c", inicioEm = "2026-11-01T18:00:00Z", fimEm = "2026-11-01T22:00:00Z", valorCentavos = 20_000L),
+                    ).joinToString(",") + "]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        // Seleciona faixa de R$ 25/h a R$ 35/h (exclui Vaga C a R$ 50/h)
+        viewModel.aoAlterarFaixaRemuneracaoHora(25f..35f, ativa = true)
+
+        assertEquals(listOf("b"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `aoAlterarFaixaRemuneracaoHora persiste faixa e status no armazenamento local`() {
+        val preferencias = ArmazenamentoPreferenciasFiltroEmMemoria()
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = "[]", status = HttpStatusCode.OK) },
+            preferencias = preferencias,
+        )
+
+        viewModel.aoAlterarFaixaRemuneracaoHora(30f..80f, ativa = true)
+
+        val salva = preferencias.obterFaixaRemuneracaoHora()
+        assertNotNull(salva)
+        assertEquals(30f, salva?.minima)
+        assertEquals(80f, salva?.maxima)
+        assertEquals(true, salva?.ativa)
+    }
+
+    @Test
+    fun `inicializacao restaura preferencia de faixa de remuneracao salva`() {
+        val preferencias = ArmazenamentoPreferenciasFiltroEmMemoria()
+        preferencias.salvarFaixaRemuneracaoHora(minimo = 35f, maximo = 95f, ativa = true)
+
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = "[]", status = HttpStatusCode.OK) },
+            preferencias = preferencias,
+        )
+
+        assertEquals(35f, viewModel.estado.value.faixaRemuneracaoHora.minima)
+        assertEquals(95f, viewModel.estado.value.faixaRemuneracaoHora.maxima)
+        assertEquals(true, viewModel.estado.value.faixaRemuneracaoHora.ativa)
+    }
+
+    @Test
+    fun `aoLimparFiltrosAvancados redefine faixa padrao e limpa persistencia`() {
+        val preferencias = ArmazenamentoPreferenciasFiltroEmMemoria()
+        preferencias.salvarFaixaRemuneracaoHora(minimo = 35f, maximo = 95f, ativa = true)
+
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = "[]", status = HttpStatusCode.OK) },
+            preferencias = preferencias,
+        )
+
+        viewModel.aoLimparFiltrosAvancados()
+
+        assertEquals(FaixaRemuneracaoHora.PADRAO, viewModel.estado.value.faixaRemuneracaoHora)
+        assertEquals(null, preferencias.obterFaixaRemuneracaoHora())
     }
 }
