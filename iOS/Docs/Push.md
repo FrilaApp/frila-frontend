@@ -300,11 +300,24 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
    ```
    O script confere se o JSON é válido, se contém o objeto `aps`, o campo `tipo` e o `Simulator Target Bundle` correto (`com.frila.org.app`).
 
-2. **Simular payloads com e sem `vinculo_id` coincidente:**
-   A extensão exige `"mutable-content": 1` no bloco `aps` e o campo `vinculo_id` no payload. Crie ou ajuste fixtures `.apns` para exercitar os cenários:
+2. **Preparação do vínculo e simulação de payloads:**
+   - **Habilitação da extensão:** O campo `"mutable-content": 1` no bloco `aps` é a flag do sistema iOS que aciona a extensão `FrilaNotificationService` (`UNNotificationServiceExtension`). Se estiver ausente ou for `0`, o iOS não invoca a extensão e exibe o alerta bruto diretamente.
+   - **Origem e consulta do vínculo ativo:** O `vinculo_id` vem do servidor no registro do dispositivo (`api.registrarDispositivo`) e é gravado pelo app na chave `"vinculo_id"` do App Group `group.com.frila.org.app` (`UserDefaults`).
+     - Para consultar o vínculo ativo atual no simulador:
+       ```bash
+       xcrun simctl spawn <UDID> defaults read group.com.frila.org.app vinculo_id
+       ```
+     - Para definir ou substituir manualmente o vínculo ativo para teste sem depender de login:
+       ```bash
+       xcrun simctl spawn <UDID> defaults write group.com.frila.org.app vinculo_id "4d2f6c1a-9b3e-4e7a-8c5d-2f1b0a9e8d7c"
+       ```
+     - Para limpar o vínculo ativo no simulador (simulando aparelho após logout):
+       ```bash
+       xcrun simctl spawn <UDID> defaults remove group.com.frila.org.app vinculo_id
+       ```
 
    - **Cenário A — Payload com `vinculo_id` coincidente (conta ativa):**
-     O payload contém o mesmo UUID de vínculo gravado no App Group (`group.com.frila.org.app`):
+     O payload contém `"mutable-content": 1` no `aps` e no corpo de dados o mesmo UUID configurado no App Group (`group.com.frila.org.app`):
      ```json
      {
        "Simulator Target Bundle": "com.frila.org.app",
@@ -322,10 +335,10 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
        "vaga_id": "40000000-0000-0000-0000-000000000001"
      }
      ```
-     *Comportamento esperado:* O aviso é preservado com título e corpo originais, tanto com o app aberto quanto fechado.
+     *Comportamento esperado:* O `FiltroDoPushPorVinculo` decide `.manter`. O aviso é preservado com título, corpo e dados originais, com o app aberto ou fechado.
 
-   - **Cenário B — Payload com `vinculo_id` não coincidente (conta que saiu):**
-     O payload contém um UUID diferente do vínculo ativo guardado no App Group:
+   - **Cenário B — Payload com `vinculo_id` divergente ou sem vínculo ativo (conta que saiu):**
+     O payload contém `"mutable-content": 1`, mas traz um UUID diferente do guardado no App Group (ou o App Group teve a chave removida via `defaults remove`):
      ```json
      {
        "Simulator Target Bundle": "com.frila.org.app",
@@ -343,10 +356,27 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
        "vaga_id": "40000000-0000-0000-0000-000000000001"
      }
      ```
-     *Comportamento esperado:* O `FiltroDoPushPorVinculo` neutraliza a notificação. Título e corpo originais são descartados e substituídos por `"Frila"` e `"Nova notificação disponível"`, e todo o payload de dados é esvaziado.
+     *Comportamento esperado:* O `FiltroDoPushPorVinculo` decide `.neutralizar`. Título e corpo originais são substituídos por `"Frila"` e `"Nova notificação disponível"`, e todo o dicionário de dados (`payload`) é esvaziado.
 
    - **Cenário C — Payload legado (sem `vinculo_id`):**
-     Payloads sem o campo `vinculo_id` passam direto sem alteração pelo filtro, mantendo o comportamento legado.
+     O payload contém `"mutable-content": 1`, mas **não** possui a chave `vinculo_id` (formato emitido por versões legadas do servidor anteriores à 0.2.30 do contrato):
+     ```json
+     {
+       "Simulator Target Bundle": "com.frila.org.app",
+       "aps": {
+         "alert": {
+           "title": "Turno confirmado",
+           "body": "Seu turno de Garçom foi confirmado"
+         },
+         "mutable-content": 1,
+         "sound": "default"
+       },
+       "tipo": "confirmacao",
+       "turno_id": "60000000-0000-0000-0000-000000000001",
+       "vaga_id": "40000000-0000-0000-0000-000000000001"
+     }
+     ```
+     *Comportamento esperado:* `FiltroDoPushPorVinculo.decidir(...)` devolve `.manter`. A extensão não altera o conteúdo e o entrega como veio; o descarte de notificações de contas anteriores nesse caso fica a cargo do mecanismo legado do app principal via relógio (`AparelhoDePush.descartarAvisosDeAntesDoVinculo`) quando o app for aberto.
 
 3. **Disparo do push no simulador:**
    Envie o arquivo customizado via script ou `simctl`:
@@ -359,9 +389,16 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
    ```
 
 4. **Testes unitários automatizados da extensão:**
-   Como a execução da extensão via `simctl push` no simulador pode variar entre versões do Xcode, a prova formal da lógica de neutralização e gravação no App Group é executada via testes unitários:
+   A prova automatizada da lógica de neutralização, gravação e leitura no App Group é executada via testes unitários no alvo `FrilaTests` (esquema `Frila-Local`).
+
+   Para compilar e rodar os testes correspondentes (`NotificationServiceTests` e `NotificationServiceXCTestCase`):
    ```bash
-   xcodebuild test-without-building -scheme Frila-Local -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:NotificationServiceTests
+   # Compilar e executar os testes unitários do filtro de notificação:
+   xcodebuild test -scheme Frila-Local -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:FrilaTests/NotificationServiceTests -only-testing:FrilaTests/NotificationServiceXCTestCase
+
+   # Ou separando compilação prévia e execução (padrão do gate):
+   xcodebuild build-for-testing -scheme Frila-Local -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
+   xcodebuild test-without-building -scheme Frila-Local -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:FrilaTests/NotificationServiceTests -only-testing:FrilaTests/NotificationServiceXCTestCase
    ```
 
 ## Roteiro de teste no aparelho
@@ -382,36 +419,55 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
 5. **Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6):**
    Valida o isolamento de notificações entre contas diferentes no mesmo aparelho físico, comprovando que pushes de uma conta anterior não expõem dados confidenciais na tela bloqueada nem na central de notificações.
 
-   - **Pré-requisitos:**
-     - Build assinado (Beta via TestFlight ou build Development com os entitlements corretos) instalado no iPhone físico.
-     - Duas contas cadastradas: **Conta A** e **Conta B**.
-     - Permissão de notificações concedida para o Frila no aparelho.
-     - Ambiente de envio de push (console do Firebase / Supabase) configurado para enviar mensagens com `mutable-content: 1` e `vinculo_id`.
+   - **Separação de papéis no teste:**
+     - **Destinatário (`token` do aparelho):** O token APNs/FCM retornado pelo iOS para este aparelho físico específico. Identifica o hardware destinatário da entrega.
+     - **Transporte (APNs / FCM):** A infraestrutura de nuvem que entrega o push ao destinatário.
+     - **Vínculo testado (`vinculo_id` no payload):** O identificador opaco da sessão vinculada à conta no backend (contrato 0.2.30), que o servidor inclui no payload de dados e que a extensão compara contra o App Group (`group.com.frila.org.app`).
 
-   - **Passo 1 — Conta A ativa (com app aberto e fechado):**
-     - Instalar o build assinado no iPhone e entrar com a Conta A.
-     - Bloquear a tela ou fechar o app. Enviar push para a Conta A com `mutable-content: 1` e `vinculo_id` da Conta A.
+   - **Origem do `vinculo_id`:**
+     O `vinculo_id` é gerado pelo backend Supabase ao registrar o aparelho (`POST /v1/dispositivos`). O app o armazena no App Group na chave `"vinculo_id"` via `VinculoNoGrupoDoApp`. Ao fazer logout (`soltar`), o app apaga esse valor do App Group.
+
+   - **Pré-requisitos:**
+     - Build assinado (Beta via TestFlight ou build Development com entitlements) instalado no iPhone físico.
+     - Duas contas cadastradas no backend: **Conta A** e **Conta B**.
+     - Permissão de notificações concedida para o Frila no aparelho.
+     - Acesso a ambiente ou ferramenta de disparo controlado com chave APNs ou console Firebase (**passo humano**).
+
+   - **Passo 1 — Preparação da Conta A e obtenção dos identificadores (passo humano):**
+     - Instalar o app no iPhone e fazer login com a **Conta A**.
+     - Obter e anotar o `token` do aparelho e o `vinculo_id` gerado para a Conta A (**passo humano**):
+       - Consultando o banco Supabase na tabela de dispositivos da Conta A (`select token, vinculo_id from dispositivos ...`), ou
+       - Inspecionando os logs de registro no Mac via **Console.app** (filtrando por `com.frila.org.app`).
+     - Bloquear o iPhone ou fechar o app.
+     - Envio controlado para a Conta A: disparar push endereçado ao `token` do aparelho, contendo `"mutable-content": 1` no `aps` e `vinculo_id: <vinculo_id da Conta A>` no payload (**passo humano**).
      - **Comportamento da conta ativa (app fechado / tela bloqueada):** O aviso é exibido normalmente com seu título e corpo originais na tela bloqueada.
-     - Abrir o app na Conta A e enviar novo push com o mesmo `vinculo_id`.
-     - **Comportamento da conta ativa (app aberto):** O aviso é exibido normalmente via banner do sistema, com título e corpo originais preservados.
+     - Abrir o app e repetir o envio: o aviso é exibido normalmente via banner do sistema com dados originais preservados.
 
    - **Passo 2 — Troca de conta (Conta A sai, Conta B entra):**
-     - No app, realizar logout da Conta A.
-     - Entrar com a Conta B no mesmo aparelho.
-     - Aguardar a confirmação de registro e o término da janela de carência de 60 s. O App Group agora contém o `vinculo_id` da Conta B.
+     - No app, realizar logout da Conta A. O app executa a saída e remove o `vinculo_id` do App Group.
+     - Fazer login com a **Conta B** no mesmo aparelho.
+     - O app registra o aparelho para a Conta B no backend, recebe um novo `vinculo_id` e o grava no App Group.
+     - Aguardar a confirmação de registro e o término da janela de carência de 60 s (`carenciaNaTrocaDeConta`). O App Group agora contém ativamente o `vinculo_id` da Conta B.
      - Bloquear a tela do iPhone ou fechar o app.
 
-   - **Passo 3 — Comportamento da conta que saiu (Conta A):**
-     - Enviar push para a Conta A (com `mutable-content: 1` e o `vinculo_id` da Conta A).
-     - **Comportamento da conta que saiu:** A extensão `FrilaNotificationService` intercepta a notificação antes da renderização. Como o `vinculo_id` da Conta A diverge do vínculo ativo da Conta B no App Group:
-       - O aviso é exibido **sem o título nem o corpo originais na tela bloqueada**, neutralizado pelo `FiltroDoPushPorVinculo` sem expor dados.
-       - Título e corpo são substituídos pelo texto neutro: `"Frila — Nova notificação disponível"`.
-       - O payload de dados é esvaziado, garantindo que função, endereço, horário e valor da Conta A não sejam revelados.
-       - O toque no aviso neutro apenas abre o app na raiz, sem navegar para dados da Conta A.
+   - **Passo 3 — Envio controlado para simular notificação da conta que saiu (Conta A) (passo humano):**
+     - *Contexto de envio controlado:* Como a saída da Conta A solicita ao servidor a desassociação do dispositivo (`removerDispositivo`), o backend normal não envia pushes da Conta A para esse aparelho. Para exercitar o filtro de isolamento contra pushes residuais, mensagens atrasadas na rede ou disparos concorrentes, faz-se um envio controlado direcionado ao token do aparelho com os dados da conta que saiu.
+     - **Execução do envio controlado (passo humano):** No Console do Firebase (Messaging) ou via `curl` na API HTTP v1 do FCM / ferramenta APNs com credenciais de envio:
+       - **Destinatário:** O `token` do iPhone (obtido no Passo 1).
+       - **Transporte:** APNs / Firebase.
+       - **Payload:** `"mutable-content": 1` no bloco `aps`, e nos dados o `vinculo_id` antigo da **Conta A**.
+     - **Comportamento esperado da conta que saiu:**
+       - O APNs (transporte) entrega a notificação para o `token` do aparelho (destinatário).
+       - Com `"mutable-content": 1`, o iOS aciona a extensão `FrilaNotificationService`.
+       - A extensão compara o `vinculo_id` do payload (Conta A) com o `vinculo_id` ativo no App Group (Conta B).
+       - Constatando a divergência, o `FiltroDoPushPorVinculo` **neutraliza** a notificação:
+         - Título original e corpo original são substituídos por `"Frila"` e `"Nova notificação disponível"`.
+         - O payload de dados é esvaziado (`payload: [:]`), garantindo que função, turno, endereço e valor da Conta A não sejam expostos na tela bloqueada nem na central.
+         - O toque no aviso neutro apenas abre o app na raiz, sem navegar para telas da Conta A.
 
    - **Passo 4 — Comportamento da conta ativa (Conta B):**
-     - Enviar push para a Conta B (com o `vinculo_id` da Conta B).
-     - **Comportamento da conta ativa:** O aviso é exibido normalmente com título e corpo originais, tanto com o app fechado (na tela bloqueada) quanto com o app aberto.
+     - Enviar push controlado para o `token` do aparelho com o `vinculo_id` da **Conta B** (**passo humano**).
+     - **Comportamento esperado:** O vínculo coincide com o App Group; o aviso é exibido normalmente com título, corpo e dados originais, tanto na tela bloqueada quanto com o app aberto.
 
    - **Passo 5 — Verificação no Console.app:**
      - Conectar o iPhone ao Mac via cabo, abrir o aplicativo **Console.app** e filtrar pelo subsistema da extensão: `com.frila.org.app.notificationservice`.
