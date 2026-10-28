@@ -70,7 +70,7 @@ Para manter a operação estável, garantir conformidade e acompanhar os indicad
 
 | Periodicidade | Horário / Momento | Atividade Operacional | Ferramenta / Fonte | Indicador Acompanhado |
 |---|---|---|---|---|
-| **Diária** | Manhã (até 10h) | Triagem da caixa de suporte e denúncias. | `suportefrila@gmail.com` e RPC `situacao_da_conta`. | Compromisso operacional: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê de 15/10/2026). |
+| **Diária** | Manhã (até 10h) | Triagem da caixa de suporte e denúncias. | `suporte@frilabr.com` e RPC `situacao_da_conta`. | Compromisso operacional: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê de 15/10/2026). |
 | **Diária** | Fim de tarde (16h) | Verificação de vagas publicadas e integridade do despacho. | Painel Supabase e view `metrica.funil_por_dia`. | RNF03 ($\le 30$ s) e taxa de preenchimento (`PlanoDeMetricas.md:3`). |
 | **Sex / Sáb / Dom** | Noite (19h às 23h) | Acompanhamento de turnos ativos e check-ins no local. | View `metrica.funil_por_vaga` (`checkins` vs `confirmacoes`). | Comparecimento (`PlanoDeMetricas.md:3`), ausência de falhas GPS e fila offline. |
 | **Segunda-feira** | Manhã (10h) | Reunião semanal de métricas e alinhamento do piloto. | Views `metrica.funil_geral` e `metrica.funil_por_estabelecimento`. | North Star semanal (`PlanoDeMetricas.md:2`), retenção D7 e tempo mediano. |
@@ -111,7 +111,7 @@ O piloto será interrompido ou pausado preventivamente caso ocorra:
 
 ## 7. Escala Operacional da Equipe Frila (13/11 a 04/12)
 
-Escala de responsabilidade para triagem da caixa de suporte (`suportefrila@gmail.com`), moderação de denúncias (o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos) e monitoramento de infraestrutura. Cobre todos os 22 dias, incluindo fins de semana e os feriados de 20/11 (Consciência Negra) e 30/11 (Dia do Evangélico / DF):
+Escala de responsabilidade para triagem da caixa de suporte (`suporte@frilabr.com`), moderação de denúncias (o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos) e monitoramento de infraestrutura. Cobre todos os 22 dias, incluindo fins de semana e os feriados de 20/11 (Consciência Negra) e 30/11 (Dia do Evangélico / DF):
 
 | Data | Dia / Evento | Suporte e Denúncias (o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos) | Monitoramento Técnico e Métricas |
 |---|---|---|---|
