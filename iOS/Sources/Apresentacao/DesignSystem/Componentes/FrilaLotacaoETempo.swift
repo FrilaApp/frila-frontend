@@ -27,44 +27,56 @@ public struct FrilaLotacao: View {
     }
 
     private var circulosView: some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
-            HStack(spacing: 4) {
-                ForEach(0..<total, id: \.self) { indice in
-                    if indice < preenchidas {
-                        Circle()
-                            .fill(FrilaCor.marca)
-                            .frame(width: 10, height: 10)
-                    } else {
-                        Circle()
-                            .strokeBorder(FrilaCor.borda, lineWidth: 1.5)
-                            .frame(width: 10, height: 10)
-                    }
+        let circulos = HStack(spacing: 4) {
+            ForEach(0..<total, id: \.self) { indice in
+                if indice < preenchidas {
+                    Circle()
+                        .fill(FrilaCor.marca)
+                        .frame(width: 10, height: 10)
+                } else {
+                    Circle()
+                        .strokeBorder(FrilaCor.borda, lineWidth: 1.5)
+                        .frame(width: 10, height: 10)
                 }
             }
-            .accessibilityHidden(true)
-
-            textoPreenchidasView
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityHidden(true)
+
+        return indicadorComTexto(marca: circulos)
     }
 
     private var anelView: some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
-            ZStack {
-                Circle()
-                    .stroke(FrilaCor.divisoria, lineWidth: 3)
-                Circle()
-                    .trim(from: 0, to: proporcao)
-                    .stroke(FrilaCor.marca, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                Text(verbatim: "\(preenchidas)")
-                    .font(FrilaTipo.nota.weight(.bold))
-                    .foregroundStyle(FrilaCor.texto)
-            }
-            .frame(width: 32, height: 32)
-            .accessibilityHidden(true)
+        let anel = ZStack {
+            Circle()
+                .stroke(FrilaCor.divisoria, lineWidth: 3)
+            Circle()
+                .trim(from: 0, to: proporcao)
+                .stroke(FrilaCor.marca, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text(verbatim: "\(preenchidas)")
+                .font(FrilaTipo.nota.weight(.bold))
+                .foregroundStyle(FrilaCor.texto)
+        }
+        .frame(width: 32, height: 32)
+        .accessibilityHidden(true)
 
-            textoPreenchidasView
+        return indicadorComTexto(marca: anel)
+    }
+
+    /// Marca e texto na mesma linha quando cabem; senão a marca vai acima e o texto abaixo,
+    /// sempre inteiro e alinhado à esquerda, sem quebra de palavra nem hifenização na coluna estreita.
+    private func indicadorComTexto(marca: some View) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: FrilaEspaco.pequeno) {
+                marca
+                textoPreenchidasView
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                marca
+                textoPreenchidasView
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .accessibilityElement(children: .combine)
     }
