@@ -7,19 +7,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,12 +34,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
@@ -44,10 +51,11 @@ import br.com.frila.core.rede.ReputacaoDto
 import kotlin.math.roundToInt
 
 /**
- * Perfil do profissional (RF03/RF16/RF25/RN15/RNF08, UC09/UC16): reputação sempre com
- * denominador (RN08), nunca uma média sem contexto (RN07); logout e exclusão de conta são
- * locais primeiro (RN15) — a sessão só é limpa depois da confirmação (logout) ou do sucesso
- * da Edge Function (exclusão), nunca antes.
+ * Perfil do profissional (RF02/RF03/RF16/RF25/RN15/RNF08, UC09/UC16):
+ * - RF02: Bio profissional limitada a 280 caracteres com contador e especialidades em FlowRow com FilterChip.
+ * - Reputação sempre com denominador (RN08), nunca uma média sem contexto (RN07).
+ * - Logout e exclusão de conta locais primeiro (RN15) — a sessão só é limpa depois da confirmação
+ *   (logout) ou do sucesso da Edge Function (exclusão), nunca antes.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -84,6 +92,17 @@ fun TelaPerfil(
             StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                 funcoes = estado.perfil?.funcoes.orEmpty(),
                 reputacao = estado.perfil?.reputacao,
+                bio = estado.bio,
+                bioEmEdicao = estado.bioEmEdicao,
+                estaEditandoBio = estado.estaEditandoBio,
+                caracteresRestantesBio = estado.caracteresRestantesBio,
+                especialidadesDisponiveis = estado.especialidadesDisponiveis,
+                especialidadesSelecionadas = estado.especialidadesSelecionadas,
+                aoIniciarEdicaoBio = viewModel::iniciarEdicaoBio,
+                aoAtualizarBioEmEdicao = viewModel::atualizarBioEmEdicao,
+                aoSalvarBio = viewModel::salvarBio,
+                aoCancelarEdicaoBio = viewModel::cancelarEdicaoBio,
+                aoAlternarEspecialidade = viewModel::alternarEspecialidade,
                 aoDeslogar = {
                     viewModel.aoDeslogar()
                     aoDeslogar()
@@ -112,15 +131,45 @@ fun TelaPerfil(
 private fun ConteudoDoPerfil(
     funcoes: List<FuncaoDto>,
     reputacao: ReputacaoDto?,
+    bio: String,
+    bioEmEdicao: String,
+    estaEditandoBio: Boolean,
+    caracteresRestantesBio: Int,
+    especialidadesDisponiveis: List<String>,
+    especialidadesSelecionadas: Set<String>,
+    aoIniciarEdicaoBio: () -> Unit,
+    aoAtualizarBioEmEdicao: (String) -> Unit,
+    aoSalvarBio: () -> Unit,
+    aoCancelarEdicaoBio: () -> Unit,
+    aoAlternarEspecialidade: (String) -> Unit,
     aoDeslogar: () -> Unit,
     aoAbrirExclusao: () -> Unit,
     paddingValues: PaddingValues,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(paddingValues).padding(FrilaEspacamento.medio),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.medio),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
         BlocoDeReputacao(reputacao)
+        BlocoDeBioProfissional(
+            bio = bio,
+            bioEmEdicao = bioEmEdicao,
+            estaEditandoBio = estaEditandoBio,
+            caracteresRestantes = caracteresRestantesBio,
+            aoIniciarEdicao = aoIniciarEdicaoBio,
+            aoAtualizarBio = aoAtualizarBioEmEdicao,
+            aoSalvar = aoSalvarBio,
+            aoCancelar = aoCancelarEdicaoBio,
+        )
+        BlocoDeEspecialidades(
+            especialidades = especialidadesDisponiveis,
+            selecionadas = especialidadesSelecionadas,
+            aoAlternar = aoAlternarEspecialidade,
+        )
         BlocoDeFuncoes(funcoes)
         BlocoDeConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
     }
@@ -161,6 +210,143 @@ private fun BlocoDeReputacao(reputacao: ReputacaoDto?) {
 
 private fun formatarTaxa(taxa: Double?): String =
     if (taxa == null) "Sem histórico" else "${(taxa * 100).roundToInt()}%"
+
+/** RF02: Biografia profissional com limite estrito de 280 caracteres e contador acessível. */
+@Composable
+private fun BlocoDeBioProfissional(
+    bio: String,
+    bioEmEdicao: String,
+    estaEditandoBio: Boolean,
+    caracteresRestantes: Int,
+    aoIniciarEdicao: () -> Unit,
+    aoAtualizarBio: (String) -> Unit,
+    aoSalvar: () -> Unit,
+    aoCancelar: () -> Unit,
+) {
+    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Biografia profissional",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
+            if (!estaEditandoBio) {
+                TextButton(
+                    onClick = aoIniciarEdicao,
+                    modifier = Modifier.sizeIn(
+                        minWidth = FrilaMetricas.alvoMinimo,
+                        minHeight = FrilaMetricas.alvoMinimo,
+                    ),
+                ) {
+                    Text(if (bio.isBlank()) "Adicionar" else "Editar")
+                }
+            }
+        }
+
+        if (estaEditandoBio) {
+            OutlinedTextField(
+                value = bioEmEdicao,
+                onValueChange = aoAtualizarBio,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .semantics {
+                        contentDescription = "Campo de edição da biografia profissional. Limite de 280 caracteres."
+                    },
+                placeholder = {
+                    Text("Ex.: Bartender com 5 anos de experiência em coquetelaria e grandes eventos no DF.")
+                },
+                minLines = 3,
+                maxLines = 5,
+                supportingText = {
+                    Text(
+                        text = "$caracteresRestantes caracteres restantes",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Restam $caracteresRestantes de 280 caracteres"
+                        },
+                    )
+                },
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno),
+                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+            ) {
+                BotaoPrimario(
+                    texto = "Salvar",
+                    aoClicar = aoSalvar,
+                    modifier = Modifier.weight(1f),
+                )
+                BotaoSecundario(
+                    texto = "Cancelar",
+                    aoClicar = aoCancelar,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        } else {
+            Text(
+                text = bio.ifBlank { "Nenhuma biografia cadastrada ainda. Apresente sua trajetória aos estabelecimentos." },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (bio.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+            )
+        }
+    }
+}
+
+/** RF02: Seleção de especialidades com FilterChip Material 3 em FlowRow. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BlocoDeEspecialidades(
+    especialidades: List<String>,
+    selecionadas: Set<String>,
+    aoAlternar: (String) -> Unit,
+) {
+    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Especialidades",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            text = "Destaque suas habilidades para estabelecimentos parceiros:",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = FrilaEspacamento.minimo),
+        )
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = FrilaEspacamento.pequeno),
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+        ) {
+            especialidades.forEach { especialidade ->
+                val selecionada = selecionadas.contains(especialidade)
+                FilterChip(
+                    selected = selecionada,
+                    onClick = { aoAlternar(especialidade) },
+                    label = { Text(especialidade) },
+                    modifier = Modifier
+                        .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
+                        .semantics {
+                            contentDescription = if (selecionada) {
+                                "$especialidade, selecionada"
+                            } else {
+                                "$especialidade, não selecionada"
+                            }
+                        },
+                )
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

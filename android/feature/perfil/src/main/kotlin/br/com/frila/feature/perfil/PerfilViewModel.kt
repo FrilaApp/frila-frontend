@@ -48,6 +48,53 @@ class PerfilViewModel(
         armazenamentoDeSessao.limparSessao()
     }
 
+    /** RF02: Inicia a edição da biografia profissional copiando o texto atual para o rascunho. */
+    fun iniciarEdicaoBio() {
+        _estado.update { it.copy(estaEditandoBio = true, bioEmEdicao = it.bio) }
+    }
+
+    /**
+     * RF02: Atualiza o rascunho da biografia. Rejeita qualquer entrada que exceda
+     * o limite máximo de 280 caracteres.
+     */
+    fun atualizarBioEmEdicao(novoTexto: String) {
+        if (novoTexto.length <= EstadoPerfil.LIMITE_MAXIMO_BIO) {
+            _estado.update { it.copy(bioEmEdicao = novoTexto) }
+        }
+    }
+
+    /** RF02: Salva a biografia atualizando o perfil local e fecha o modo de edição. */
+    fun salvarBio() {
+        _estado.update {
+            it.copy(
+                bio = it.bioEmEdicao.trim(),
+                estaEditandoBio = false,
+            )
+        }
+    }
+
+    /** RF02: Cancela a edição da biografia, descartando alterações não salvas. */
+    fun cancelarEdicaoBio() {
+        _estado.update {
+            it.copy(
+                estaEditandoBio = false,
+                bioEmEdicao = it.bio,
+            )
+        }
+    }
+
+    /** RF02: Alterna a seleção de uma especialidade (adiciona ou remove do conjunto selecionado). */
+    fun alternarEspecialidade(especialidade: String) {
+        _estado.update { atual ->
+            val novas = if (atual.especialidadesSelecionadas.contains(especialidade)) {
+                atual.especialidadesSelecionadas - especialidade
+            } else {
+                atual.especialidadesSelecionadas + especialidade
+            }
+            atual.copy(especialidadesSelecionadas = novas)
+        }
+    }
+
     /** Abre o diálogo de confirmação de exclusão de conta (RF25/UC16). */
     fun abrirDialogoExclusao() {
         _estado.update { it.copy(statusExclusao = StatusExclusao.DIALOGO_ABERTO, mensagemErroExclusao = null) }

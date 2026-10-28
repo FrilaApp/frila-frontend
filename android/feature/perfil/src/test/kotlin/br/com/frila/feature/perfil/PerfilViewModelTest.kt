@@ -14,7 +14,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -146,5 +148,94 @@ class PerfilViewModelTest {
         assertEquals(StatusExclusao.ERRO, viewModel.estado.value.statusExclusao)
         assertNotNull(viewModel.estado.value.mensagemErroExclusao)
         verify(exactly = 0) { armazenamento.limparSessao() }
+    }
+
+    @Test
+    fun `atualizarBioEmEdicao rejeita texto acima de 280 caracteres mantendo o texto anterior`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) })
+        viewModel.iniciarEdicaoBio()
+
+        val texto280 = "A".repeat(280)
+        viewModel.atualizarBioEmEdicao(texto280)
+        assertEquals(texto280, viewModel.estado.value.bioEmEdicao)
+        assertEquals(0, viewModel.estado.value.caracteresRestantesBio)
+
+        val texto281 = "A".repeat(281)
+        viewModel.atualizarBioEmEdicao(texto281)
+        // Bloqueio de caracteres excedentes: mantém os 280 anteriores
+        assertEquals(texto280, viewModel.estado.value.bioEmEdicao)
+        assertEquals(0, viewModel.estado.value.caracteresRestantesBio)
+    }
+
+    @Test
+    fun `atualizarBioEmEdicao aceita texto de ate 280 caracteres e calcula caracteres restantes corretamente`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) })
+        viewModel.iniciarEdicaoBio()
+
+        val texto50 = "Bartender com experiência em coquetelaria clássica."
+        viewModel.atualizarBioEmEdicao(texto50)
+
+        assertEquals(texto50, viewModel.estado.value.bioEmEdicao)
+        assertEquals(280 - texto50.length, viewModel.estado.value.caracteresRestantesBio)
+    }
+
+    @Test
+    fun `iniciarEdicaoBio copia a bio atual para bioEmEdicao e ativa modo edicao`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) })
+
+        viewModel.iniciarEdicaoBio()
+        assertTrue(viewModel.estado.value.estaEditandoBio)
+        assertEquals("", viewModel.estado.value.bioEmEdicao)
+    }
+
+    @Test
+    fun `salvarBio persiste bioEmEdicao trimada em bio e encerra modo edicao`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) })
+
+        viewModel.iniciarEdicaoBio()
+        viewModel.atualizarBioEmEdicao("   Garçom bilíngue para eventos VIP   ")
+        viewModel.salvarBio()
+
+        assertFalse(viewModel.estado.value.estaEditandoBio)
+        assertEquals("Garçom bilíngue para eventos VIP", viewModel.estado.value.bio)
+    }
+
+    @Test
+    fun `cancelarEdicaoBio restaura bioEmEdicao com o valor de bio e encerra modo edicao`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) })
+
+        viewModel.iniciarEdicaoBio()
+        viewModel.atualizarBioEmEdicao("Bio inicial")
+        viewModel.salvarBio()
+
+        viewModel.iniciarEdicaoBio()
+        viewModel.atualizarBioEmEdicao("Texto que sera descartado")
+        viewModel.cancelarEdicaoBio()
+
+        assertFalse(viewModel.estado.value.estaEditandoBio)
+        assertEquals("Bio inicial", viewModel.estado.value.bio)
+        assertEquals("Bio inicial", viewModel.estado.value.bioEmEdicao)
+    }
+
+    @Test
+    fun `alternarEspecialidade adiciona especialidade nao selecionada e remove especialidade ja selecionada`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) })
+
+        assertTrue(viewModel.estado.value.especialidadesSelecionadas.isEmpty())
+
+        viewModel.alternarEspecialidade("Coquetelaria clássica")
+        assertTrue(viewModel.estado.value.especialidadesSelecionadas.contains("Coquetelaria clássica"))
+        assertEquals(1, viewModel.estado.value.especialidadesSelecionadas.size)
+
+        viewModel.alternarEspecialidade("Vinhos e sommellerie")
+        assertTrue(viewModel.estado.value.especialidadesSelecionadas.contains("Coquetelaria clássica"))
+        assertTrue(viewModel.estado.value.especialidadesSelecionadas.contains("Vinhos e sommellerie"))
+        assertEquals(2, viewModel.estado.value.especialidadesSelecionadas.size)
+
+        // Remove ao alternar de novo
+        viewModel.alternarEspecialidade("Coquetelaria clássica")
+        assertFalse(viewModel.estado.value.especialidadesSelecionadas.contains("Coquetelaria clássica"))
+        assertTrue(viewModel.estado.value.especialidadesSelecionadas.contains("Vinhos e sommellerie"))
+        assertEquals(1, viewModel.estado.value.especialidadesSelecionadas.size)
     }
 }
