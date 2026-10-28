@@ -237,7 +237,7 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 
 | Pendência | Responsável | Ação Necessária |
 |---|---|---|
-| **Aprovação dos Textos da Ficha** | Nick Fury e Fabrício | Revisão final e aprovação dos textos de descrição, subtítulo e palavras-chave conduzida por Nick Fury, por delegação do Cauê em 16/10/2026 (substitui a aprovação da Júlia); alinhamento visual de design com o Fabrício. |
+| **Aprovação dos Textos da Ficha** | Nick Fury e Fabrício | Revisão final e aprovação dos textos de descrição, subtítulo e palavras-chave conduzida por Nick Fury, por delegação do Cauê em 16/10/2026; alinhamento visual de design com o Fabrício. |
 | **Definição das Frases das Capturas** | Fabrício e Nick Fury | Redação das frases informativas sobre as capturas de tela (Screenshots) até 29/10 (Sprint 2/3). |
 | **Configuração das Contas Demo** | Lead Técnico / Cauê | E-mails e códigos continuam `[A DEFINIR]`; depende de cartão do backend (OTP fixo). |
 | **Inserção no App Store Connect** | Cauê | Preenchimento dos campos cadastrados no painel oficial do App Store Connect quando o binário for submetido. |
