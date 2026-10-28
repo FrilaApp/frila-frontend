@@ -32,17 +32,13 @@
 -keep class br.com.frila.core.dominio.modelo.** { *; }
 -keepclassmembers class br.com.frila.core.dominio.modelo.** { *; }
 
-# Ktor HTTP Client & Content Negotiation
--keep class io.ktor.** { *; }
--keepclassmembers class io.ktor.** { *; }
-
-# Injeção de Dependência Koin
--keep class org.koin.** { *; }
--keepclassmembers class org.koin.** { *; }
-
-# Android Keystore e EncryptedSharedPreferences (RN15)
--keep class androidx.security.crypto.** { *; }
--keepclassmembers class androidx.security.crypto.** { *; }
+# Revisão ANBU (PR #557): removidos os -keep indiscriminados de io.ktor.**, org.koin.**
+# e androidx.security.crypto.** que estavam aqui — MEDIDO em mapping.txt do build anterior,
+# preservavam ~1996 classes de Ktor e ~439 de Koin inalteradas, anulando a ofuscação dessas
+# bibliotecas. Ktor, Koin e androidx.security.crypto já publicam suas próprias consumer
+# ProGuard rules (embutidas no .aar) e não usam reflexão bruta sobre tipo do app — não
+# precisam de keep aqui; os keeps acima bastam para serialização e para os DTOs/modelos
+# do próprio app, que são os únicos pontos refletidos via KotlinX Serialization.
 
 # Otimização e Ofuscação R8
 -repackageclasses 'br.com.frila.o'
