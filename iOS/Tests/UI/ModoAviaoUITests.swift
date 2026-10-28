@@ -50,7 +50,7 @@ final class ModoAviaoUITests: XCTestCase {
         candidatar.tap()
         XCTAssertTrue(comRede.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
         comRede.buttons["voltar-para-lista"].tap()
-        let meusTurnos = comRede.buttons["abrir-meus-turnos"]
+        let meusTurnos = comRede.tabBars.buttons["Meus turnos"]
         XCTAssertTrue(meusTurnos.waitForExistence(timeout: 10))
         meusTurnos.tap()
         let turnoComRede = comRede.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch

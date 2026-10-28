@@ -137,7 +137,7 @@ final class MedicaoUITests: XCTestCase {
         candidatar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
         app.buttons["voltar-para-lista"].tap()
-        let meusTurnos = app.buttons["abrir-meus-turnos"]
+        let meusTurnos = app.tabBars.buttons["Meus turnos"]
         XCTAssertTrue(meusTurnos.waitForExistence(timeout: 10))
         meusTurnos.tap()
         let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch

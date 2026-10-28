@@ -126,8 +126,8 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         tocar(voltar)
 
         // 4. Meus turnos -> Meu turno
-        let meusTurnos = app.buttons["abrir-meus-turnos"]
-        XCTAssertTrue(meusTurnos.waitForExistence(timeout: 10), "Atalho para Meus turnos deve existir")
+        let meusTurnos = app.tabBars.buttons["Meus turnos"]
+        XCTAssertTrue(meusTurnos.waitForExistence(timeout: 10), "Aba Meus turnos deve existir")
         tocar(meusTurnos)
 
         let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
