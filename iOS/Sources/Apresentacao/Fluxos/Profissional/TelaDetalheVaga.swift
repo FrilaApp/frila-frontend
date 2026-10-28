@@ -45,6 +45,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
     @Bindable private var viewModel: DetalheVagaViewModel
     @State private var avisosDaAcao = AvisosDoDetalhe()
     @State private var tituloNavegacaoVisivel = false
+    @State private var alturaDaPlaca: CGFloat = 0
     @State private var navegarParaPerfil = false
     private let acao: (Vaga) -> Acao
     private static var idDosAvisos: String { "avisos-da-acao" }
@@ -123,9 +124,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .padding(FrilaEspaco.medio)
         }
         .coordinateSpace(name: "rolagemDetalhe")
-        .onPreferenceChange(VisibilidadePlacaPreferenceKey.self) { saiuDeVista in
-            if tituloNavegacaoVisivel != saiuDeVista {
-                tituloNavegacaoVisivel = saiuDeVista
+        .modifier(MonitoramentoRolagemPlaca(
+            alturaDaPlaca: alturaDaPlaca,
+            visivel: $tituloNavegacaoVisivel
+        ))
+        .onPreferenceChange(AlturaDaPlacaPreferenceKey.self) { altura in
+            if alturaDaPlaca != altura {
+                alturaDaPlaca = altura
             }
         }
         .accessibilityIdentifier("tela-detalhe-vaga")
@@ -145,6 +150,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
                         estabelecimento: vaga.estabelecimento.nome,
                         visivel: tituloNavegacaoVisivel
                     )
+                    .frame(width: 240, alignment: .leading)
                 }
             }
         }
@@ -153,9 +159,21 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
             }
         }
-        .navigationTitle(Text(verbatim: TextosDoProfissional.Detalhe.titulo))
+        .navigationTitle(Text(verbatim: tituloDaNavegacao))
         .navigationBarTitleDisplayMode(.inline)
         .task { await medirAbertura(.detalheDaVaga, carregar: viewModel.carregar, pronto: detalheNaTela) }
+    }
+
+    private var tituloDaNavegacao: String {
+        switch viewModel.estado {
+        case let .carregado(vaga):
+            if bloqueios.contem(vaga.estabelecimento) {
+                return TextosDoProfissional.Detalhe.titulo
+            }
+            return ""
+        default:
+            return TextosDoProfissional.Detalhe.titulo
+        }
     }
 
     private var rodapeAtivo: Bool {
@@ -332,10 +350,15 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             GeometryReader { geo in
-                Color.clear.preference(
-                    key: VisibilidadePlacaPreferenceKey.self,
-                    value: geo.frame(in: .named("rolagemDetalhe")).maxY < 0
-                )
+                Color.clear
+                    .preference(
+                        key: AlturaDaPlacaPreferenceKey.self,
+                        value: geo.size.height
+                    )
+                    .preference(
+                        key: PosicaoPlacaPreferenceKey.self,
+                        value: geo.frame(in: .named("rolagemDetalhe")).maxY
+                    )
             }
         )
     }
@@ -666,9 +689,44 @@ extension TelaDetalheVaga where Acao == EmptyView {
     }
 }
 
-private struct VisibilidadePlacaPreferenceKey: PreferenceKey {
-    static let defaultValue: Bool = false
-    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+private struct AlturaDaPlacaPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+private struct MonitoramentoRolagemPlaca: ViewModifier {
+    let alturaDaPlaca: CGFloat
+    @Binding var visivel: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, macOS 15.0, *) {
+            content
+                .onScrollGeometryChange(for: Bool.self) { geo in
+                    let offset = max(0, geo.visibleRect.minY + geo.contentInsets.top)
+                    let limiar = max(alturaDaPlaca + FrilaEspaco.medio, 44)
+                    return offset >= limiar
+                } action: { _, saiuDeVista in
+                    if visivel != saiuDeVista {
+                        visivel = saiuDeVista
+                    }
+                }
+        } else {
+            content
+                .onPreferenceChange(PosicaoPlacaPreferenceKey.self) { maxY in
+                    let saiuDeVista = maxY <= 0
+                    if visivel != saiuDeVista {
+                        visivel = saiuDeVista
+                    }
+                }
+        }
+    }
+}
+
+private struct PosicaoPlacaPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = .greatestFiniteMagnitude
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
 }
