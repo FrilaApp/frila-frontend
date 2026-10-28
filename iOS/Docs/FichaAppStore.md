@@ -182,15 +182,24 @@ Dados obrigatórios inseridos no App Store Connect para permitir a validação c
 - **Telefone:** `[A DEFINIR]`
 
 ### 5.2 Contas de Demonstração para Testes (*Demo Accounts*)
-Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos via e-mail (OTP), as contas de demonstração continuam pendentes: **depende de cartão do backend (OTP fixo)**.
+Como o Frila utiliza autenticação sem senha baseada em código de 6 dígitos via e-mail (OTP), o backend implementou um mecanismo de demonstração dedicado para a revisão da App Store (superando a dependência preliminar de "cartão do backend (OTP fixo)"):
+
+- **Edge Function `entrar-demonstracao` (`frila-backend/supabase/functions/entrar-demonstracao/index.ts:1–320`):**
+  Porta de entrada HTTP que recebe `{ email, codigo }` e atende exclusivamente às contas declaradas para a revisão da Apple (`DEMONSTRACAO_EMAILS`, linhas 88–93), comparando em tempo constante (`igualEmTempoConstante`, linhas 79–80) contra o código mantido em segredo (`DEMONSTRACAO_CODIGO`, com teto de 10 tentativas em 10 minutos por IP/e-mail, linhas 47–48). Quando válido e dentro da janela ativa (`privado.janela_demonstracao`), gera a sessão autenticada do Supabase Auth via `POST /auth/v1/admin/generate_link` com a chave `service_role` e `POST /auth/v1/verify` (linhas 13–24), devolvendo ao app exatamente a mesma estrutura de `Sessao` do fluxo normal (`access_token`, `refresh_token`, `user`).
+- **Script de Semeadura de Vagas (`frila-backend/scripts/semear-vagas-demonstracao.sh:1–182`):**
+  Semeia vagas abertas e futuras pós-06/11 para o perfil contratante de demonstração (`Bar da Revisão` / `revisao-contratante`), configurando posições abertas (padrão 20 posições) e quantidade de vagas (padrão 5 vagas). Idempotente por `chave_cliente` (RF04) com suporte aos ambientes `local`, `dev` e `prod`.
+- **Script de Renovação de Dados (`frila-backend/scripts/renovar-demonstracao.sh:1–90`):**
+  Executa `privado.renovar_dados_demonstracao()` para manter datas de vagas e turnos sempre à frente do relógio, restaurando turnos de demonstração para o estado virgem (pendente de check-in) e zerando o teto de tentativas na tabela de controle de entradas de demonstração. Suporta ambientes `local`, `dev` e `prod` (exige `EU_SEI_QUE_E_PRODUCAO=1` para proteção em produção).
+
+Os identificadores e códigos fixos são mantidos confidenciais e cadastrados diretamente no App Store Connect:
 
 1. **Conta de Demonstração 1 — Perfil Profissional:**
-   - E-mail: `[A DEFINIR: E-mail da conta de demonstração profissional]`
-   - Código OTP fixo: `[A DEFINIR: Código OTP fixo da conta]`
+   - E-mail: `[A DEFINIR: e-mail oficial declarado no App Store Connect]`
+   - Código OTP fixo: `[A DEFINIR: código mantido em segredo de ambiente]`
    - Perfil pré-configurado: Garçom / Bartender, Brasília-DF.
 2. **Conta de Demonstração 2 — Perfil Estabelecimento (Contratante):**
-   - E-mail: `[A DEFINIR: E-mail da conta de demonstração contratante]`
-   - Código OTP fixo: `[A DEFINIR: Código OTP fixo da conta]`
+   - E-mail: `[A DEFINIR: e-mail oficial declarado no App Store Connect]`
+   - Código OTP fixo: `[A DEFINIR: código mantido em segredo de ambiente]`
    - Perfil pré-configurado: Bar e Restaurante Demo, Asa Sul, Brasília-DF.
 
 ### 5.3 Notas de Revisão (*Review Notes*)
@@ -239,7 +248,7 @@ Os pontos abaixo dependem de validação de pessoas específicas e permanecem em
 |---|---|---|
 | **Aprovação dos Textos da Ficha** | Nick Fury e Fabrício | Revisão final e aprovação dos textos de descrição, subtítulo e palavras-chave conduzida por Nick Fury, por delegação do Cauê em 16/10/2026 (substitui a aprovação da Júlia); alinhamento visual de design com o Fabrício. |
 | **Definição das Frases das Capturas** | Fabrício e Nick Fury | Redação das frases informativas sobre as capturas de tela (Screenshots) até 29/10 (Sprint 2/3). |
-| **Configuração das Contas Demo** | Lead Técnico / Cauê | E-mails e códigos continuam `[A DEFINIR]`; depende de cartão do backend (OTP fixo). |
+| **Configuração das Contas Demo** | Lead Técnico / Cauê | Mecanismo implementado no backend (`entrar-demonstracao`, `semear-vagas-demonstracao.sh`, `renovar-demonstracao.sh`); credenciais oficiais e janela ativa no App Store Connect e no `frila-prod` pendentes de conferência em produção por Cauê. |
 | **Inserção no App Store Connect** | Cauê | Preenchimento dos campos cadastrados no painel oficial do App Store Connect quando o binário for submetido. |
 
 ---
