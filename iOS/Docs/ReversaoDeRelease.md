@@ -71,6 +71,7 @@ Assim que um defeito impeditivo for confirmado (vazamento de dados, falha grave 
     ```json
     {"mensagem": null, "plataforma": "ios", "url_da_loja": "https://apps.apple.com/app/id6815311991", "versao_minima": "0.1.0", "versao_recomendada": "0.1.0"}
     ```
+  - Nota de escopo: a chamada sem cabeçalho foi validada no ambiente local; em ambientes hospedados (remoto/produção), o gateway do Supabase exige o envio do cabeçalho `apikey: $SUPABASE_ANON_KEY` (fonte: `subir-versao-minima.md:83-85`).
   - Teste de mutação DML no Postgres via container `supabase_db_frila-backend`: executado `BEGIN; UPDATE privado.configuracao_app SET versao_minima = '1.0.2'; SELECT public.configuracao_do_app('ios'); ROLLBACK;`, confirmando atualização atômica e reflexo imediato sem cache.
 - **Quem executa:** Engenheiro de Backend ou Administrador de Banco (`cauecarneiro` ou `jotape12-Dev`).
 
