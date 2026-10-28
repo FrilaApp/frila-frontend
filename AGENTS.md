@@ -45,7 +45,7 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 ### 2.4 Logs, Fila e roteamento
 
 - **Log** = blueprint aprovado pelo usuário, em `iOS/Docs/Logs/<ID>.md` (modelo em `iOS/Docs/Logs/MODELO.md`). O Codex da área rascunha; o usuário valida; muda só com nova validação.
-- **Fila de Logs** é uma nota do canvas, escrita só pelo Claude: `ID | status | grupo | branch | contas em uso | bloqueio`. Status: rascunho → validação humana → disponível → assumido → implementado → revisão → aceito.
+- **Fila de Logs** é uma nota do canvas, escrita só pelo Claude: `LOG-ID título | status | grupo` seguido de um `> Resumo` de até 4 linhas do que o Log promove. Só ficam os Logs em aberto e os 3 últimos aceitos; o histórico mora nos PRs e em `~/dev/frila-orquestra/briefs/`. Status: rascunho → validação humana → disponível → assumido → implementado → revisão → aceito.
 - **Área:** CO1 fica com componentes e tokens (`Componentes.swift`, `DesignTokens.swift`, catálogo do design system); CO2 com as telas. Log que cruza vira duas tarefas, componentes primeiro.
 - **Afinidade:** o mesmo arquivo fica com o mesmo AGY até o fim do Log.
 - **Conta:** os trios compartilham `agy-1`, `agy-2` e `agy-3` (`AGY1` e `CO2-AGY1` = `agy-1`, e assim por diante). No máximo um AGY ativo por conta.
@@ -93,6 +93,15 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 - Bug visto no aparelho: o Log traz o trecho do log do aparelho e a causa confirmada ou descartada; o teste de regressão vem antes do fix.
 - Build no iPhone físico: `iOS/Configurations/Secrets.xcconfig` fica fora do Git (`chmod 600`; nunca em PR, chat ou e-mail). Ajustes locais de assinatura (time pessoal, bundle ID, entitlements) não entram em commit e se desfazem antes de um pull que mexa nesses arquivos.
 - Antes de liberar um Log, além do `gh pr list`, confira arquivo a arquivo se algum PR aberto toca os mesmos arquivos.
+- **Relato do usuário literal.** O brief e o Log citam o relato com as palavras do usuário e classificam o tipo (UX e movimento, layout, componente, bug de dados) **antes** de rotear. Não traduza "tempo de resposta e glitch na troca de aba" em "falha de layout" (LOG-008).
+- **Veredito objetivo antes de medir.** Em bug de percepção (piscar, latência, sobreposição), fixe os critérios de defeito em ms e em quadros **antes** de olhar os números, nas duas versões (antes e depois), em mais de uma tela. Dois vereditos: defeito comprovado ou sem defeito comprovado. Simulador não prova o aparelho: diga o que ficou sem prova.
+- **Evidência de mídia não se apaga sem índice.** Guarde os quadros do instante do toque em `briefs/<ID>-quadros/` com `INDICE.md` por commit, cenário e transição; apague só os brutos.
+- **Consulta direta.** O Claude lê os terminais com `maestri check`; não espere a mensagem. `maestri ask` passa para segundo plano depois de uns 20 s; a resposta chega depois. Monitor de andamento usa sinais estáveis (commits, fontes alteradas, PR), não a tela do Codex, que rola e esvazia o filtro.
+- **Modo automático (`/goal`).** Com o usuário em modo automático, o Claude valida Log e design por ele e responde as perguntas de produto pelo critério já aprovado; o merge na `main` ainda pede o ok final. Toda decisão tomada pelo Claude entra no Log como "decisão do Claude, a validar na demo".
+- **Restrição de escopo vira instrução ao Codex na hora.** Quando o usuário restringe o escopo no meio do Log (ex.: sem mexer em esqueletos), o Claude manda ao Codex, que reverte o que já tocou e devolve `bloqueado: depende de <X>` se a causa exigir o proibido.
+- **Build no iPhone físico.** CO1 despacha ao AGY2: `git pull --ff-only` (patch local de assinatura intocado e sem commit), `Scripts/gerar-projeto.sh`, `xcodebuild -scheme Frila-Dev -destination 'id=<UDID>' -allowProvisioningUpdates build`, `xcrun devicectl device install app` e `process launch com.fabriciotosta.frila`. Aparelho bloqueado devolve `FBSOpenApplicationErrorDomain error 7 - Locked`: peça ao usuário para desbloquear. Nunca apagar `iOS DeviceSupport`.
+- **PR em rascunho.** O Codex abre o PR como rascunho; antes do merge o Claude o tira de rascunho (`gh pr ready <n>`) e mescla com o ok do usuário.
+- **Causa em área restrita adia o Log, não o contorna.** Se um defeito comprovado tem a causa numa área que o usuário restringiu (ex.: `EstadoCarregando` e esqueletos), o Codex devolve `bloqueado: depende de <X>`, o achado fica no Log e nos briefs com os quadros, o worktree e a branch são removidos, e o Claude marca o Log como `adiado` na Fila até o usuário liberar a área. Não se mascara o defeito por layout (LOG-008: 6 quadros de `EstadoCarregando` antes dos dados na 1ª abertura de Conta).
 
 ### 2.9 Playbooks por tipo de Log
 
@@ -101,7 +110,7 @@ A decisão de produto ou design vai ao usuário uma vez, de uma só vez, antes d
 | Tipo | Rota | Passos | Específico do tipo |
 |---|---|---|---|
 | Correção de bug | CO da área | evidência do aparelho → causa → Log mínimo → teste de regressão antes do fix → fix → gate → demo → merge | exceção de teste só com autorização expressa no Log |
-| Refino visual de tela | CO2 (telas); CO1 antes, se houver componente ou token novo | briefing do usuário (captura e decisões) em `~/dev/frila-orquestra/briefs/` → rascunho com antes/depois por tokens → validação do design → implementação → gate com `Scripts/auditoria-de-acessibilidade.sh` → demo → merge | diff-log (`~/dev/frila-orquestra/diff-log/MODELO.md`): antes de `origin/main`, depois da branch, mesmas condições (claro, escuro, texto grande); contraste e proporção de cor calculados |
+| Refino visual de tela | CO2 (telas); CO1 antes, se houver componente ou token novo | briefing do usuário (captura e decisões) em `~/dev/frila-orquestra/briefs/` → rascunho com antes/depois por tokens → validação do design → implementação → gate com `Scripts/auditoria-de-acessibilidade.sh` → demo → merge | diff-log (`~/dev/frila-orquestra/diff-log/MODELO.md`): antes de `origin/main`, depois da branch, mesmas condições (claro, escuro, texto grande); contraste e proporção de cor calculados. UI primeiro, esqueletos depois: não crie nem mude esqueleto, EstadoCarregando ou placeholder compartilhado em Log de refino; esqueletos espelham a UI depois que ela estiver estável. |
 | Componente ou token | CO1 | Log → implementação → catálogo do design system → gate → merge | telas que dependem esperam o merge |
 | Documentação e governança | CO1 | briefing exato → commit `docs(governanca)` → PR → merge | sem build; o usuário valida o texto |
 | Exploração livre | Claude | `demo.sh EXPLORACAO <UDID> "<contexto>"` com `Frila-Local` instalado no Frila Demo; o usuário anota; o Claude agrupa por área e abre os Logs | sem Log até o usuário listar os pontos |
