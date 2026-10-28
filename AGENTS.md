@@ -59,8 +59,9 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
   1. `Scripts/gerar-projeto.sh` (uma vez por worktree);
   2. `Scripts/conferir-textos.sh`;
   3. `xcodebuild build -scheme Frila-Local -destination 'platform=iOS Simulator,name=<simulador do despacho>'`;
-  4. testes só quando o Log os listar: troque o `build` por `build-for-testing` e rode `xcodebuild test-without-building` com o mesmo esquema e destino, só `-only-testing:` dos testes listados (o de regressão de um bug, ou os testes adaptados com autorização expressa do §2.2). Sem lista no Log, não há teste. Nada de suíte inteira nem de teste novo que o Log não peça.
-- A conferência visual é a demo (§2.7); o gate prova só que o projeto compila e que os textos passam.
+  4. testes só quando o Log os listar: troque o `build` por `build-for-testing` e rode `xcodebuild test-without-building` com o mesmo esquema e destino, só `-only-testing:` dos testes listados (o de regressão de um bug, os testes adaptados com autorização expressa do §2.2 ou o smoke UITest do caminho feliz). Para o smoke, reaproveite teste existente; teste novo só com autorização expressa no Log (§2.2), meta de até 2 min e uma classe. Sem lista no Log, não há teste. Nada de suíte inteira nem de teste novo sem autorização expressa no Log.
+- Fora do gate por ora (decisão do usuário, 28/10): auditoria de acessibilidade, AX5, Reduzir Movimento e texto grande. Voltam por Log próprio (LOG-006). O gate enxuto vale a partir do LOG-011; o LOG-010 segue o processo anterior.
+- A conferência visual é a demo (§2.7); o gate verifica compilação, textos e os testes listados no Log.
 - O Codex do Log integra, roda o gate, faz push, abre o PR e avisa o Claude. O Claude leva ao usuário e, com o ok, faz o merge (`gh pr merge <n> --merge`). O Codex remove os worktrees.
 - **CI (`ios.yml`) fica ligado e não bloqueia o merge** (leva de 70 a 90 min). CI vermelho num PR já mesclado vira um Log de correção na frente da Fila.
 
@@ -75,7 +76,7 @@ Empurrar para baixo: cada tarefa vai à camada mais barata que a faça bem; sobe
 ### 2.7 Demo pós-iteração
 
 - Depois do gate verde e antes do marco "pronto para integrar", o Codex do Log pede ao mesmo AGY: compilar a branch do Log (`Frila-Local`) no simulador **Frila Demo** (UDID `907B7EAE-82FB-439F-8054-B0CB496A222D`), instalar e abrir o app **na tela alvo** só por argumentos de lançamento e cenários que já existem (sem clicar, sem mudar código), e deixar o app aberto sem rodar mais testes nesse simulador.
-- O marco "pronto para integrar" passa a trazer também `demo: <UDID> | <argumentos> | <tela alcançada ou o toque que falta>` e um contexto de até 4 linhas para o usuário: o que mudou, o que conferir e as ressalvas.
+- O marco "pronto para integrar" passa a trazer também `demo: <UDID> | <argumentos> | <tela alcançada ou o toque que falta>` e um contexto de até 4 linhas para o usuário: o que mudou, o que conferir, as ressalvas e a referência ao roteiro de interação do Log, executado pelo usuário na demo.
 - O Claude abre a demo com `~/dev/frila-orquestra/demo.sh`: um único portal de simulador e uma única nota ("Demo atual") no canvas; a demo anterior fecha sozinha.
 
 ### 2.8 Lições
@@ -110,7 +111,7 @@ A decisão de produto ou design vai ao usuário uma vez, de uma só vez, antes d
 | Tipo | Rota | Passos | Específico do tipo |
 |---|---|---|---|
 | Correção de bug | CO da área | evidência do aparelho → causa → Log mínimo → teste de regressão antes do fix → fix → gate → demo → merge | exceção de teste só com autorização expressa no Log |
-| Refino visual de tela | CO2 (telas); CO1 antes, se houver componente ou token novo | briefing do usuário (captura e decisões) em `~/dev/frila-orquestra/briefs/` → rascunho com antes/depois por tokens → validação do design → implementação → gate com `Scripts/auditoria-de-acessibilidade.sh` → demo → merge | diff-log (`~/dev/frila-orquestra/diff-log/MODELO.md`): antes de `origin/main`, depois da branch, mesmas condições (claro, escuro, texto grande); contraste e proporção de cor calculados. UI primeiro, esqueletos depois: não crie nem mude esqueleto, EstadoCarregando ou placeholder compartilhado em Log de refino; esqueletos espelham a UI depois que ela estiver estável. |
+| Refino visual de tela | CO2 (telas); CO1 antes, se houver componente ou token novo | briefing do usuário (captura e decisões) em `~/dev/frila-orquestra/briefs/` → rascunho com antes/depois por tokens → validação do design → implementação → gate mínimo + smoke do caminho feliz → demo → merge | diff-log (`~/dev/frila-orquestra/diff-log/MODELO.md`): antes de `origin/main`, depois da branch, claro, topo/meio/fim, sem números de cor. Roteiro de interação (usuário-modelo e usuário médio) no Log, executado pelo usuário na demo. UI primeiro, esqueletos depois: não crie nem mude esqueleto, EstadoCarregando ou placeholder compartilhado em Log de refino; esqueletos espelham a UI depois que ela estiver estável. |
 | Componente ou token | CO1 | Log → implementação → catálogo do design system → gate → merge | telas que dependem esperam o merge |
 | Documentação e governança | CO1 | briefing exato → commit `docs(governanca)` → PR → merge | sem build; o usuário valida o texto |
 | Exploração livre | Claude | `demo.sh EXPLORACAO <UDID> "<contexto>"` com `Frila-Local` instalado no Frila Demo; o usuário anota; o Claude agrupa por área e abre os Logs | sem Log até o usuário listar os pontos |
