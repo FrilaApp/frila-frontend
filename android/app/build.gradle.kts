@@ -6,6 +6,20 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Revisão ANBU (PR #557): o build type release não pode assinar com o keystore de debug
+// ('CN=Android Debug'), nem a oficial da loja. O keystore de release só existe fora do
+// repositório (CI/máquina de release); sem essas variáveis, o release fica sem signingConfig
+// — compila (R8/shrink continuam sendo exercitados) mas o APK sai sem assinatura, nunca com
+// a assinatura de debug carimbada como se fosse a oficial.
+val releaseKeystorePath: String? = System.getenv("FRILA_RELEASE_KEYSTORE_PATH")
+val releaseKeystorePassword: String? = System.getenv("FRILA_RELEASE_KEYSTORE_PASSWORD")
+val releaseKeyAlias: String? = System.getenv("FRILA_RELEASE_KEY_ALIAS")
+val releaseKeyPassword: String? = System.getenv("FRILA_RELEASE_KEY_PASSWORD")
+val temKeystoreDeRelease: Boolean = !releaseKeystorePath.isNullOrBlank() &&
+    !releaseKeystorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank()
+
 android {
     namespace = "br.com.frila.app"
     compileSdk = 35
@@ -29,6 +43,34 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    if (temKeystoreDeRelease) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            if (temKeystoreDeRelease) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+        debug {
+            isMinifyEnabled = false
+        }
     }
 
     testOptions {
