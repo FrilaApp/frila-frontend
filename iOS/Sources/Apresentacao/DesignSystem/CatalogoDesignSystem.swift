@@ -37,9 +37,9 @@ public struct CatalogoDesignSystem: View {
     // Amostras de componentes do LOG-010
     private let rotuloTituloVisivel = "Visível (ao rolar)"
     private let rotuloTituloOculto = "Oculto (topo da tela)"
-    private let rotuloResumoZeroPosicoes = "Zero posições · Começa em 2h"
-    private let rotuloResumoSeisPosicoes = "6 posições (todas preenchidas) · Em andamento"
-    private let rotuloResumoOitoPosicoes = "8 posições (anel > 6) · Encerrado"
+    private let rotuloResumoZeroPosicoes = "Zero posições, começa em 2h"
+    private let rotuloResumoSeisPosicoes = "6 posições (todas preenchidas), em andamento"
+    private let rotuloResumoOitoPosicoes = "8 posições (anel > 6), encerrado"
     private let rotuloResumoContagemAusente = "Sem horário de início (contagem ausente)"
     private let rotuloCabecalhoCompleto = "Com localização e ação"
     private let rotuloCabecalhoSimples = "Sem localização e sem ação"
@@ -49,7 +49,7 @@ public struct CatalogoDesignSystem: View {
     private let amostraFuncao = "Garçom"
     private let amostraEstabelecimento = "Bistrô Ipê"
     private let amostraOutroEstabelecimento = "Café Cobogó"
-    private let amostraLocalizacaoEstabelecimento = "Asa Sul · Brasília"
+    private let amostraLocalizacaoEstabelecimento = "Asa Sul, Brasília"
     private let amostraAvaliacaoBoa = "18 de 20 avaliações positivas"
     private let amostraAvaliacaoPerfeita = "15 de 15 avaliações positivas"
 

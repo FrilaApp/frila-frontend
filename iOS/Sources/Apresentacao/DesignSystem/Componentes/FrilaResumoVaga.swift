@@ -1,9 +1,9 @@
 import Foundation
 import SwiftUI
 
-/// Título de navegação contextual para a tela Detalhe da vaga (LOG-010).
-/// Exibe a função e o estabelecimento separados por ponto médio em fonte de marca (Bricolage),
-/// alinhado à esquerda. O comportamento ao rolar a tela será integrado no LOG-011.
+/// Título de navegação contextual para a tela Detalhe da vaga (LOG-010, refino r2).
+/// Exibe a função em destaque e o estabelecimento em apoio secundário via HStack com espaçamento de token,
+/// alinhado à esquerda, sem ponto de segmento nem separadores artificiais.
 public struct FrilaTituloNavegacaoVaga: View {
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
@@ -18,18 +18,25 @@ public struct FrilaTituloNavegacaoVaga: View {
     }
 
     public var body: some View {
-        let titulo = "\(funcao) · \(estabelecimento)"
-        HStack(spacing: 0) {
-            Text(verbatim: titulo)
+        HStack(spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: funcao)
                 .font(FrilaTypography.bricolage(size: 17, weight: .bold))
                 .foregroundStyle(FrilaCor.texto)
                 .lineLimit(1)
                 .truncationMode(.tail)
+
+            Text(verbatim: estabelecimento)
+                .font(FrilaTypography.bricolage(size: 17, weight: .regular))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(visivel ? 1 : 0)
         .animation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento), value: visivel)
+        .accessibilityElement(children: .combine)
         .accessibilityHidden(!visivel)
         .accessibilityAddTraits(.isHeader)
     }
@@ -129,50 +136,50 @@ public struct FrilaResumoVaga: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                    blocoQuando
-                    blocoHorario
-                    blocoValor
-                    blocoPosicoes
-                }
-            } else {
-                Grid(alignment: .leading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.medio) {
-                    GridRow {
+        VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                         blocoQuando
                         blocoHorario
-                    }
-                    GridRow {
                         blocoValor
                         blocoPosicoes
                     }
+                } else {
+                    Grid(alignment: .topLeading, horizontalSpacing: FrilaEspaco.medio, verticalSpacing: FrilaEspaco.medio) {
+                        GridRow(alignment: .top) {
+                            blocoQuando
+                            blocoHorario
+                        }
+                        GridRow(alignment: .top) {
+                            blocoValor
+                            blocoPosicoes
+                        }
+                    }
                 }
+
+                FrilaContagemTurno(inicio: inicio, fim: fim)
             }
 
-            Rectangle()
-                .fill(FrilaCor.divisoria)
-                .frame(height: 1)
-                .accessibilityHidden(true)
-
             VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                    HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                        Image(systemName: "mappin")
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.marca)
-                            .frame(width: 16, height: 16)
-                            .accessibilityHidden(true)
+                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                    Image(systemName: "mappin")
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.marca)
+                        .frame(width: 16, height: 16)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                         Text(verbatim: local)
                             .font(FrilaTipo.resumo)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
-                    }
-                    if let distancia, !distancia.isEmpty {
-                        Text(verbatim: distancia)
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .padding(.leading, 24)
+
+                        if let distancia, !distancia.isEmpty {
+                            Text(verbatim: distancia)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
                     }
                 }
                 .accessibilityElement(children: .combine)
@@ -225,7 +232,6 @@ public struct FrilaResumoVaga: View {
             Text(verbatim: horario)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
-            FrilaContagemTurno(inicio: inicio, fim: fim)
         }
         .accessibilityElement(children: .combine)
     }

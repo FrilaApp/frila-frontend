@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// Chave de preferência para medição das alturas reais das linhas da lista.
+private struct AlturasItensPreferenceKey: PreferenceKey {
+    static var defaultValue: [Int: CGFloat] = [:]
+    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
 /// Item individual da lista de itens inclusos na vaga.
 public struct FrilaItemIncluso: Identifiable, Hashable, Sendable {
     public let id: String
@@ -14,33 +22,38 @@ public struct FrilaItemIncluso: Identifiable, Hashable, Sendable {
 }
 
 /// Lista expansível em linha dos itens inclusos na vaga.
-/// Conforme especificação Hi-Fi (§2–4, REFERENCIA.md e LOG-010):
-/// - Três linhas visíveis em repouso (estado padrão compacto), totalmente legíveis e sem fade no texto;
-/// - Faixa decorativa própria de esmaecimento após a terceira linha quando houver mais de 3 itens;
-/// - Identificação por índice no ForEach para prevenir colisões de itens repetidos;
-/// - Botão mini-CTA com alvo mínimo de 44 pt: "Ver tudo (N)" (onde N é o total) e "Ver menos";
-/// - Expansão estritamente em linha (inline), sem rolagem aninhada e sem transição para sheet/modal;
-/// - Física de animação respeitando `FrilaMotion.disclosureExpand` e `FrilaMotion.disclosureCollapse`;
+/// Conforme especificação Hi-Fi (§2–4, REFERENCIA.md, LOG-010 e refino r2):
+/// - Lista com mais de 3 itens: ScrollView vertical nativo com rolagem livre (gesto A: arraste na lista rola lista);
+/// - Viewport compacto em repouso que exibe 3 linhas completas e a metade da quarta (corte visível como affordance);
+/// - Medição dinâmica das alturas reais de cada linha via PreferenceKey, suportando quebras de texto;
+/// - Sem faixa decorativa de esmaecimento;
+/// - Botão mini-CTA com alvo mínimo de 44 pt preservado exatamente: "Ver tudo (N)" e "Ver menos";
+/// - Expansão e recolhimento em linha respeitando `FrilaMotion.disclosureExpand` e `FrilaMotion.disclosureCollapse`;
 /// - Respeito estrito a `accessibilityReduceMotion` (transição instantânea sem bounce);
+/// - Lista curta (até 3 itens): exibição direta sem corte e sem botão;
 /// - Chaves de texto localizadas via `bundleApresentacao`.
 public struct FrilaListaInclusos: View {
     public let itens: [FrilaItemIncluso]
 
     @State private var expandido: Bool = false
+    @State private var alturasItens: [Int: CGFloat] = [:]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(itens: [FrilaItemIncluso]) {
         self.itens = itens
     }
 
-    private var itensVisiveis: [FrilaItemIncluso] {
-        if expandido || itens.count <= 3 {
-            return itens
-        }
-        return Array(itens.prefix(3))
+    private var alturaCompactaCalculada: CGFloat {
+        guard itens.count > 3 else { return 0 }
+        let h0 = alturasItens[0] ?? FrilaMetrica.alturaDoCampo
+        let h1 = alturasItens[1] ?? FrilaMetrica.alturaDoCampo
+        let h2 = alturasItens[2] ?? FrilaMetrica.alturaDoCampo
+        let h3 = alturasItens[3] ?? FrilaMetrica.alturaDoCampo
+        // 3 divisores de 1 pt entre as 4 primeiras linhas
+        return h0 + h1 + h2 + (h3 / 2.0) + 3.0
     }
 
-    private func linha(_ item: FrilaItemIncluso) -> some View {
+    private func linha(_ item: FrilaItemIncluso, indice: Int) -> some View {
         HStack(alignment: .center, spacing: FrilaEspaco.compacto) {
             Text(verbatim: item.rotulo)
                 .font(FrilaTipo.corpo)
@@ -53,35 +66,19 @@ public struct FrilaListaInclusos: View {
         }
         .frame(minHeight: FrilaMetrica.alturaDoCampo)
         .padding(.horizontal, FrilaEspaco.medio)
-        .accessibilityElement(children: .combine)
-    }
-
-    @ViewBuilder
-    private var listaItensView: some View {
-        let visiveis = itensVisiveis
-        VStack(spacing: 0) {
-            ForEach(0..<visiveis.count, id: \.self) { index in
-                if index > 0 {
-                    Divider()
-                        .overlay(FrilaCor.divisoria)
+        .background(
+            Group {
+                if indice < 4 {
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: AlturasItensPreferenceKey.self,
+                            value: [indice: geo.size.height]
+                        )
+                    }
                 }
-                linha(visiveis[index])
             }
-        }
-    }
-
-    @ViewBuilder
-    private var faixaEsmaecimentoDecorativa: some View {
-        LinearGradient(
-            colors: [
-                FrilaCor.superficie.opacity(0),
-                FrilaCor.divisoria.opacity(0.4)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
         )
-        .frame(height: 6)
-        .accessibilityHidden(true)
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -123,25 +120,46 @@ public struct FrilaListaInclusos: View {
         .accessibilityIdentifier("toggle-inclusos")
     }
 
+    private var conteudoLista: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<itens.count, id: \.self) { index in
+                if index > 0 {
+                    Divider()
+                        .overlay(FrilaCor.divisoria)
+                }
+                linha(itens[index], indice: index)
+            }
+        }
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
-            listaItensView
-
-            if !expandido && itens.count > 3 {
-                faixaEsmaecimentoDecorativa
-            }
-
             if itens.count > 3 {
+                if expandido {
+                    conteudoLista
+                } else {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        conteudoLista
+                    }
+                    .frame(height: alturaCompactaCalculada)
+                }
+
                 Divider()
                     .overlay(FrilaCor.divisoria)
 
                 botaoToggle
+            } else {
+                conteudoLista
             }
+        }
+        .onPreferenceChange(AlturasItensPreferenceKey.self) { alturas in
+            self.alturasItens = alturas
         }
         .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
                 .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
         )
+        .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
     }
 }
