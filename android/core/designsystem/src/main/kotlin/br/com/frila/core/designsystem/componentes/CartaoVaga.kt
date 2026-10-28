@@ -38,6 +38,7 @@ fun CartaoVaga(
                 minWidth = FrilaMetricas.alvoMinimo,
                 minHeight = FrilaMetricas.alvoMinimo,
             )
+            .focoAcessivelFrila(forma = forma)
             .clickable(
                 onClickLabel = rotuloDaAcao,
                 role = Role.Button,
