@@ -46,7 +46,7 @@ Nas telas de perfil e configurações, a auditoria confirmou que todos os pontos
 ### 1.2 Divergência Identificada de Canais de Suporte
 A auditoria identificou que o código do aplicativo unificou o canal em `suporte@frilabr.com`:
 - **Canal em `EnderecosOficiais.padrao` (`EnderecosOficiais.swift:22`):** Configurado como `"suporte@frilabr.com"` (vigente), verificado por testes de unidade e UI (`PerfisDaContaTests.swift:65,90,105`, `FrilaUITests.swift:740,781`, `ContaSuspensaUITests.swift:131`).
-- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `suporte@frilabr.com` (delegando a `EnderecosOficiais.padrao.emailSuporte` e explicitado nos textos de interface/acessibilidade). O endereço alternativo `"suporte@frila.app"` não existe em `iOS/Sources/`, constando apenas no contrato (`openapi.yaml:2954`) e em requisitos (`frila-docs/requisitos/ingestao-email-suporte-v1.1.md:13`, decisão pendente do Cauê). O canal vigente em todas as telas permanece `suporte@frilabr.com`.
+- **Canal em Suporte de Turno (`SuporteTurnoViewModel.swift:142` e `TextosDoSuporte.swift:36,41,42`):** Configurado como `suporte@frilabr.com` (delegando a `EnderecosOficiais.padrao.emailSuporte` e explicitado nos textos de interface/acessibilidade). O canal oficial é `suporte@frilabr.com` (decidido pelo Cauê em 28/10/2026; a menção no contrato em `openapi.yaml:3032` e em requisitos não recebe e-mail). O canal vigente em todas as telas permanece `suporte@frilabr.com`.
 
 ---
 
@@ -115,7 +115,7 @@ Redação proposta em conformidade estrita com o `iOS/Docs/GuiaDeVoz.md` (tom di
 ### 4.1 Diretrizes Normativas Aplicadas aos Textos
 1. **Identificação do suporte:** Canal oficial vigente da Equipe Frila.
    - E-mail vigente no app (perfil e turno): `suporte@frilabr.com` (`EnderecosOficiais.swift:22`, `SuporteTurnoViewModel.swift:142`, `TextosDoSuporte.swift:36,41,42`).
-   - Alternativa citada fora do código do app (`openapi.yaml:2954` e `ingestao-email-suporte-v1.1.md:13`): `suporte@frila.app` (decisão pendente).
+   - Canal oficial de suporte: `suporte@frilabr.com` (decidido pelo Cauê em 28/10/2026; a menção fora do código em `openapi.yaml:3032` e `ingestao-email-suporte-v1.1.md:13` não recebe e-mail).
 2. **Prazo de resposta institucional e SLA de moderação:**
    - Suporte geral no aplicativo: `"Respondemos o mais breve possível, com triagem em até 5 dias úteis."` (`TextosDoSuporte.swift:7` e `PerfisDaConta.swift:16`; Fonte: Visão 7.2 e RF23). O prazo de "5 dias úteis" sem menção à triagem ainda consta em `TextosPorQueReceboVagas.swift:29` e `TextosContaSuspensa.swift:10`.
    - Moderação, denúncias e atendimento: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). A citação do app acima descreve o estado atual, ainda pendente de alinhamento nos fluxos específicos de contestação.
