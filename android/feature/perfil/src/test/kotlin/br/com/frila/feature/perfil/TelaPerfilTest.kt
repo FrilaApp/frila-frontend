@@ -7,7 +7,9 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -61,6 +63,10 @@ class TelaPerfilTest {
         statusHttp: HttpStatusCode = HttpStatusCode.OK,
         armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true),
         respostaTurnosJson: String = "[]",
+        comprimirFoto: (android.content.Context, android.net.Uri) -> java.io.File = { _, _ ->
+            throw IllegalStateException("comprimirFoto não configurado neste teste")
+        },
+        obterAvatarSalvo: (android.content.Context) -> java.io.File? = { null },
     ): PerfilViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -89,6 +95,8 @@ class TelaPerfilTest {
             servicoTurnos = ServicoTurnos(clienteTurnos),
             armazenamentoDeSessao = armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
+            comprimirFoto = comprimirFoto,
+            obterAvatarSalvo = obterAvatarSalvo,
         )
     }
 
@@ -276,6 +284,100 @@ class TelaPerfilTest {
                 .performScrollTo()
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        }
+    }
+
+    @Test
+    fun avatarSemFotoMostraPlaceholderEBotaoComAlvoMinimo() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithContentDescription("Sem foto de perfil cadastrada").assertIsDisplayed()
+
+            rule.onNodeWithText("Alterar foto de perfil")
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        }
+    }
+
+    @Test
+    fun selecionarFotoComSucessoTrocaPlaceholderPelaImagemDoAvatar() {
+        runBlocking {
+            val arquivoAvatar = kotlin.io.path.createTempFile(prefix = "avatar", suffix = ".jpg").toFile()
+            android.graphics.Bitmap.createBitmap(10, 10, android.graphics.Bitmap.Config.ARGB_8888)
+                .compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, arquivoAvatar.outputStream())
+
+            val viewModel = criarViewModel(comprimirFoto = { _, _ -> arquivoAvatar })
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                }
+            }
+            rule.waitForIdle()
+
+            viewModel.selecionarFoto(mockk(relaxed = true), mockk(relaxed = true)).join()
+            rule.waitForIdle()
+
+            rule.onNodeWithContentDescription("Foto de perfil do profissional").assertIsDisplayed()
+            assertTrue(rule.onAllNodesWithContentDescription("Sem foto de perfil cadastrada").fetchSemanticsNodes().isEmpty())
+        }
+    }
+
+    @Test
+    fun falhaAoSelecionarFotoMostraMensagemDeErroEMantemPlaceholder() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                comprimirFoto = { _, _ -> throw IllegalStateException("Não foi possível decodificar a imagem selecionada.") },
+            )
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                }
+            }
+            rule.waitForIdle()
+
+            viewModel.selecionarFoto(mockk(relaxed = true), mockk(relaxed = true)).join()
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Não foi possível processar a foto. Tente outra imagem.").assertIsDisplayed()
+            rule.onNodeWithContentDescription("Sem foto de perfil cadastrada").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun avatarSalvoEmDiscoApareceAoAbrirATelaSemPrecisarSelecionarDeNovo() {
+        runBlocking {
+            val arquivoAvatar = kotlin.io.path.createTempFile(prefix = "avatar", suffix = ".jpg").toFile()
+            android.graphics.Bitmap.createBitmap(10, 10, android.graphics.Bitmap.Config.ARGB_8888)
+                .compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, arquivoAvatar.outputStream())
+
+            // MEDIDO (Shisui, PR #590): o bug era o avatar desaparecer ao reabrir a tela porque
+            // nada lia o filesDir na montagem. Aqui obterAvatarSalvo simula um avatar já
+            // persistido de uma sessão anterior — selecionarFoto nunca é chamado.
+            val viewModel = criarViewModel(obterAvatarSalvo = { arquivoAvatar })
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithContentDescription("Foto de perfil do profissional").assertIsDisplayed()
+            assertTrue(rule.onAllNodesWithContentDescription("Sem foto de perfil cadastrada").fetchSemanticsNodes().isEmpty())
         }
     }
 }

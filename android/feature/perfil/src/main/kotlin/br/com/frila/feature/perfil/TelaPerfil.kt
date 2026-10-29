@@ -1,6 +1,13 @@
 package br.com.frila.feature.perfil
 
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,10 +19,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,6 +34,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -32,9 +44,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -73,6 +89,13 @@ fun TelaPerfil(
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
 
+    // RF03/RNF04: repõe o avatar persistido ao montar a tela — independente do carregamento de
+    // rede em viewModel.carregar(). MEDIDO (Shisui, PR #590): sem isto o avatar desaparecia ao
+    // reabrir o app/tela.
+    LaunchedEffect(Unit) {
+        viewModel.carregarAvatarSalvo(contexto)
+    }
+
     // RF25/UC16: a exclusão com sucesso expulsa a navegação do mesmo jeito que o logout —
     // a sessão local já foi limpa pelo ViewModel antes de chegar aqui.
     LaunchedEffect(estado.statusExclusao) {
@@ -97,6 +120,10 @@ fun TelaPerfil(
                 paddingValues = paddingInterno,
             )
             StatusPerfil.SUCESSO -> ConteudoDoPerfil(
+                fotoLocalPath = estado.fotoLocalPath,
+                statusFoto = estado.statusFoto,
+                mensagemErroFoto = estado.mensagemErroFoto,
+                aoSelecionarFoto = { uri -> viewModel.selecionarFoto(contexto, uri) },
                 funcoes = estado.perfil?.funcoes.orEmpty(),
                 reputacao = estado.perfil?.reputacao,
                 resumoFinanceiro = estado.resumoFinanceiro,
@@ -154,6 +181,10 @@ fun TelaPerfil(
 
 @Composable
 private fun ConteudoDoPerfil(
+    fotoLocalPath: String?,
+    statusFoto: StatusFotoPerfil,
+    mensagemErroFoto: String?,
+    aoSelecionarFoto: (Uri) -> Unit,
     funcoes: List<FuncaoDto>,
     reputacao: ReputacaoDto?,
     resumoFinanceiro: ResumoFinanceiroPerfil?,
@@ -181,6 +212,12 @@ private fun ConteudoDoPerfil(
             .padding(FrilaEspacamento.medio),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
+        BlocoDeAvatar(
+            fotoLocalPath = fotoLocalPath,
+            statusFoto = statusFoto,
+            mensagemErroFoto = mensagemErroFoto,
+            aoSelecionarFoto = aoSelecionarFoto,
+        )
         BlocoDeReputacao(reputacao)
         BlocoDeRemuneracoes(resumoFinanceiro, aoExportarExtrato)
         BlocoDeBioProfissional(
@@ -200,6 +237,96 @@ private fun ConteudoDoPerfil(
         )
         BlocoDeFuncoes(funcoes)
         BlocoDeConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
+    }
+}
+
+/**
+ * RF03/RNF04: avatar do profissional, selecionável via Android Photo Picker
+ * (`ActivityResultContracts.PickVisualMedia`, sem permissão de storage) e comprimido
+ * defensivamente antes de exibir (ver [CompressorDeFotoPerfil]). Sem foto cadastrada, mostra um
+ * placeholder circular neutro — nunca um espaço vazio sem explicação.
+ */
+@Composable
+private fun BlocoDeAvatar(
+    fotoLocalPath: String?,
+    statusFoto: StatusFotoPerfil,
+    mensagemErroFoto: String?,
+    aoSelecionarFoto: (Uri) -> Unit,
+) {
+    val lancadorDeSelecao = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> if (uri != null) aoSelecionarFoto(uri) }
+
+    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+        ) {
+            Box(modifier = Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                // DEDUZIDO: decodificar o arquivo inteiro aqui é seguro porque ele já foi
+                // comprimido para no máximo 512px por CompressorDeFotoPerfil — não é a imagem
+                // original de origem desconhecida que motivou a subamostragem defensiva (RNF04).
+                val imagemAvatar = remember(fotoLocalPath) {
+                    fotoLocalPath?.let { caminho -> BitmapFactory.decodeFile(caminho)?.asImageBitmap() }
+                }
+                if (imagemAvatar != null) {
+                    Image(
+                        bitmap = imagemAvatar,
+                        contentDescription = "Foto de perfil do profissional",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(72.dp).clip(CircleShape),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = "Sem foto de perfil cadastrada",
+                            modifier = Modifier.size(40.dp),
+                        )
+                    }
+                }
+                if (statusFoto == StatusFotoPerfil.COMPRIMINDO) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .semantics { contentDescription = "Processando foto de perfil" },
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
+                TextButton(
+                    onClick = {
+                        lancadorDeSelecao.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    modifier = Modifier.sizeIn(
+                        minWidth = FrilaMetricas.alvoMinimo,
+                        minHeight = FrilaMetricas.alvoMinimo,
+                    ),
+                ) {
+                    Text("Alterar foto de perfil")
+                }
+                if (statusFoto == StatusFotoPerfil.ERRO) {
+                    val textoErro = mensagemErroFoto ?: "Não foi possível processar a foto."
+                    Text(
+                        text = textoErro,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Assertive
+                            error(textoErro)
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 

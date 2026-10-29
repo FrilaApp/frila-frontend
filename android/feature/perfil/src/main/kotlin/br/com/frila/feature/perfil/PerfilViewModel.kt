@@ -1,5 +1,7 @@
 package br.com.frila.feature.perfil
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -9,13 +11,16 @@ import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.TurnoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Perfil do profissional e reputação agregada (RF03/RF16/RN07/RN08/RN15, UC09).
@@ -28,6 +33,9 @@ class PerfilViewModel(
     private val servicoTurnos: ServicoTurnos,
     private val armazenamentoDeSessao: ArmazenamentoDeSessao,
     escopo: CoroutineScope? = null,
+    /** RF03/RNF04: injetável para teste de JVM sem decodificar bitmap real (Robolectric só na tela). */
+    private val comprimirFoto: (Context, Uri) -> File = CompressorDeFotoPerfil::comprimir,
+    private val obterAvatarSalvo: (Context) -> File? = CompressorDeFotoPerfil::avatarExistente,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -100,6 +108,48 @@ class PerfilViewModel(
             turnos = _estado.value.turnosExtrato,
             nomeProfissional = nomeProfissional,
         )
+    }
+
+    /**
+     * RF03/RNF04: comprime [uri] (subamostragem + recorte 1:1) e persiste como avatar local.
+     * Falha de decodificação (imagem corrompida, origem inválida) vira [StatusFotoPerfil.ERRO]
+     * sem tocar em [EstadoPerfil.fotoLocalPath] — o avatar anterior continua valendo (rollback
+     * defensivo: a tela nunca fica sem avatar por causa de uma foto nova que não presta).
+     */
+    fun selecionarFoto(contexto: Context, uri: Uri): Job {
+        _estado.update { it.copy(statusFoto = StatusFotoPerfil.COMPRIMINDO, mensagemErroFoto = null) }
+        return escopoDeTrabalho.launch {
+            try {
+                // Decodificação/recorte/escala são CPU-bound e bloqueantes — Dispatchers.IO para
+                // não travar a Main thread (item não-bloqueante do Shisui, PR #590).
+                val arquivo = withContext(Dispatchers.IO) { comprimirFoto(contexto, uri) }
+                _estado.update {
+                    it.copy(statusFoto = StatusFotoPerfil.SUCESSO, fotoLocalPath = arquivo.absolutePath)
+                }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Throwable) {
+                _estado.update {
+                    it.copy(
+                        statusFoto = StatusFotoPerfil.ERRO,
+                        mensagemErroFoto = "Não foi possível processar a foto. Tente outra imagem.",
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * RF03/RNF04: repõe [EstadoPerfil.fotoLocalPath] a partir do avatar já persistido em
+     * `filesDir`, se houver. MEDIDO (Shisui, PR #590): sem isto o avatar desaparecia ao reabrir
+     * o app/tela, porque só [selecionarFoto] escrevia o caminho no estado. Chamar na montagem da
+     * tela (`TelaPerfil`), independente do carregamento de rede em [carregar].
+     */
+    fun carregarAvatarSalvo(contexto: Context): Job = escopoDeTrabalho.launch {
+        val arquivo = withContext(Dispatchers.IO) { obterAvatarSalvo(contexto) }
+        if (arquivo != null) {
+            _estado.update { it.copy(fotoLocalPath = arquivo.absolutePath) }
+        }
     }
 
     /** RN15: encerra a sessão local. Não chama a rede — logout é só limpar o que ficou no aparelho. */
