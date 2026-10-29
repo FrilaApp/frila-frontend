@@ -67,6 +67,7 @@ private struct PainelDebugModifier: ViewModifier {
     @State private var aberto = false
     @State private var informacoes = false
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @Environment(\.accessibilityReduceTransparency) private var reduzirTransparencia
 
     func body(content: Content) -> some View {
         content
@@ -89,8 +90,17 @@ private struct PainelDebugModifier: ViewModifier {
             }
     }
 
+    @ViewBuilder
     private var cabecalho: some View {
-        HStack(spacing: 12) {
+        if #available(iOS 26, *), !reduzirTransparencia {
+            GlassEffectContainer(spacing: FrilaEspaco.pequeno) { conteudoDoCabecalho }
+        } else {
+            conteudoDoCabecalho
+        }
+    }
+
+    private var conteudoDoCabecalho: some View {
+        HStack(spacing: FrilaEspaco.pequeno) {
             if let registro = contexto.registro, !registro.variantes.isEmpty {
                 Menu {
                     Menu(registro.titulo) {
@@ -102,36 +112,64 @@ private struct PainelDebugModifier: ViewModifier {
                         }
                     }
                 } label: {
-                    Image(systemName: "square.stack.3d.up")
-                        .frame(width: 44, height: 44)
+                    rotuloDoBotao("Versões", simbolo: "square.stack.3d.up")
+                        .vidroDebug(reduzirTransparencia: reduzirTransparencia)
                 }
-                .accessibilityLabel(Text("Variantes", bundle: bundleApresentacao))
+            }
+            if let registro = contexto.registro {
+                Text(verbatim: contexto.selecao ?? registro.titulo)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity)
+            } else {
+                Spacer(minLength: 0)
             }
             if let registro = contexto.registro, !registro.decisoes.isEmpty {
                 Button { informacoes = true } label: {
-                    Image(systemName: "info.circle").frame(width: 44, height: 44)
+                    rotuloDoBotao("Info", simbolo: "info.circle")
+                        .vidroDebug(reduzirTransparencia: reduzirTransparencia)
                 }
-                .accessibilityLabel(Text("Informações", bundle: bundleApresentacao))
                 .popover(isPresented: $informacoes) {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(registro.decisoes, id: \.self) { Text(verbatim: $0) }
                     }.padding()
                 }
             }
-            Spacer()
             Button {
                 withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.25), reduzir: reduzirMovimento)) {
                     aberto = false
                 }
-            } label: { Image(systemName: "xmark").frame(width: 44, height: 44) }
+            } label: {
+                Image(systemName: "xmark").frame(width: 44, height: 44)
+                    .vidroDebug(reduzirTransparencia: reduzirTransparencia)
+            }
                 .accessibilityLabel(Text("Fechar", bundle: bundleApresentacao))
         }
+        .font(FrilaTipo.chip)
         .foregroundStyle(FrilaCor.texto)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-        .background(FrilaCor.superficie)
+        .padding(.horizontal, FrilaEspaco.medio)
+        .padding(.bottom, FrilaEspaco.pequeno)
+    }
+
+    private func rotuloDoBotao(_ titulo: LocalizedStringKey, simbolo: String) -> some View {
+        Label { Text(titulo, bundle: bundleApresentacao) } icon: { Image(systemName: simbolo) }
+            .padding(.horizontal, FrilaEspaco.compacto)
+            .frame(minHeight: 44)
     }
 }
+private extension View {
+    @ViewBuilder
+    func vidroDebug(reduzirTransparencia: Bool) -> some View {
+        if #available(iOS 26, *), !reduzirTransparencia {
+            self.glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            self.background(FrilaCor.superficie, in: Capsule())
+        }
+    }
+}
+
 private struct DetectorDePressaoDeDoisDedos: UIViewRepresentable {
     let abrir: () -> Void
 
