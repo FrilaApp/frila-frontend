@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -16,8 +18,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,7 +53,11 @@ fun TelaAvaliacao(
         },
     ) { paddingInterno ->
         Box(
-            modifier = Modifier.fillMaxSize().padding(paddingInterno).padding(FrilaEspacamento.grande),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingInterno)
+                .verticalScroll(rememberScrollState())
+                .padding(FrilaEspacamento.grande),
             contentAlignment = Alignment.Center,
         ) {
             when (estado.status) {
@@ -113,6 +121,9 @@ private fun ConfirmacaoDeAvaliacao(resposta: Boolean?, aoVoltar: () -> Unit) {
             text = if (resposta == true) "Você recomendou este local." else "Você não recomendou este local.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics {
+                liveRegion = LiveRegionMode.Polite
+            },
         )
         BotaoPrimario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
     }
@@ -120,16 +131,18 @@ private fun ConfirmacaoDeAvaliacao(resposta: Boolean?, aoVoltar: () -> Unit) {
 
 @Composable
 private fun ErroDeAvaliacao(mensagem: String?, aoTentarNovamente: (Boolean) -> Unit) {
+    val textoErro = mensagem ?: "Não foi possível registrar sua avaliação."
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
         Text(
-            text = mensagem ?: "Não foi possível registrar sua avaliação.",
+            text = textoErro,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.semantics {
-                error(mensagem ?: "Não foi possível registrar sua avaliação.")
+                liveRegion = LiveRegionMode.Assertive
+                error(textoErro)
             },
         )
         Text(
