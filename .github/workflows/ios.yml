@@ -4,8 +4,6 @@ on:
   pull_request:
     paths:
       - "iOS/**"
-      - "!iOS/**/*.md"
-      - "!iOS/Docs/**"
       - ".github/workflows/ios.yml"
   schedule:
     - cron: "0 6 * * *"
