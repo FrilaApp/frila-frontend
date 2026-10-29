@@ -49,17 +49,36 @@ data class EstadoCancelamentoTurno(
         get() = motivoCompleto != null && !enviando
 }
 
+/** RF16: tamanho de cada fatia da paginação progressiva do histórico. */
+const val TAMANHO_PAGINA_HISTORICO = 10
+
 /** Estado da tela de meus turnos: listas já separadas por aba, prontas para a `LazyColumn`. */
 data class EstadoMeusTurnos(
     val status: StatusMeusTurnos = StatusMeusTurnos.CARREGANDO,
     val abaSelecionada: AbaDeTurnos = AbaDeTurnos.AGENDADOS,
     val agendados: List<ItemTurno> = emptyList(),
-    val historico: List<ItemTurno> = emptyList(),
+    /** RF16: histórico completo vindo da API, já ordenado (mais recente primeiro); nunca exibido
+     * de uma vez — a UI lê sempre [historicoPaginado]. */
+    val historicoCompleto: List<ItemTurno> = emptyList(),
+    /** Quantas fatias de [TAMANHO_PAGINA_HISTORICO] já foram liberadas para a UI. */
+    val paginaHistorico: Int = 1,
+    /** Verdadeiro enquanto [carregarMaisHistorico][MeusTurnosViewModel.carregarMaisHistorico] prepara a próxima fatia. */
+    val carregandoMaisHistorico: Boolean = false,
+    /** Verdadeiro durante o pull-to-refresh (`PullToRefreshBox.isRefreshing`). */
+    val atualizando: Boolean = false,
     val mensagemErro: String? = null,
     val cancelamento: EstadoCancelamentoTurno? = null,
     val mensagemFeedback: String? = null,
 ) {
+    /** Fatia do histórico já liberada para a UI (RF16: paginação progressiva de 10 em 10). */
+    val historicoPaginado: List<ItemTurno>
+        get() = historicoCompleto.take(paginaHistorico * TAMANHO_PAGINA_HISTORICO)
+
+    /** Verdadeiro enquanto existir mais histórico completo do que o já paginado. */
+    val temMaisHistorico: Boolean
+        get() = historicoPaginado.size < historicoCompleto.size
+
     /** A lista que a aba atualmente selecionada deve mostrar. */
     val itensDaAbaAtual: List<ItemTurno>
-        get() = if (abaSelecionada == AbaDeTurnos.AGENDADOS) agendados else historico
+        get() = if (abaSelecionada == AbaDeTurnos.AGENDADOS) agendados else historicoPaginado
 }

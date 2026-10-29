@@ -91,7 +91,7 @@ class MeusTurnosViewModelTest {
         assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
         assertEquals(1, viewModel.estado.value.agendados.size)
         assertEquals("a", viewModel.estado.value.agendados.first().turnoId)
-        assertEquals(2, viewModel.estado.value.historico.size)
+        assertEquals(2, viewModel.estado.value.historicoCompleto.size)
     }
 
     @Test
@@ -108,8 +108,8 @@ class MeusTurnosViewModelTest {
 
         viewModel.carregar().join()
 
-        assertEquals(1, viewModel.estado.value.historico.size)
-        assertEquals("cancelada", viewModel.estado.value.historico.first().estado)
+        assertEquals(1, viewModel.estado.value.historicoCompleto.size)
+        assertEquals("cancelada", viewModel.estado.value.historicoCompleto.first().estado)
         assertTrue(viewModel.estado.value.agendados.isEmpty())
     }
 
@@ -253,7 +253,7 @@ class MeusTurnosViewModelTest {
         assertTrue(corpoCancelamento!!.contains("\"posicao_id\":\"posicao-a\""))
         assertTrue(corpoCancelamento!!.contains("\"motivo\":\"Preciso acompanhar um familiar\""))
         assertTrue(viewModel.estado.value.agendados.isEmpty())
-        assertEquals("cancelada", viewModel.estado.value.historico.first().estado)
+        assertEquals("cancelada", viewModel.estado.value.historicoCompleto.first().estado)
         assertEquals("Turno cancelado e registrado como falta.", viewModel.estado.value.mensagemFeedback)
         assertEquals(null, viewModel.estado.value.cancelamento)
     }
@@ -339,5 +339,119 @@ class MeusTurnosViewModelTest {
         org.junit.jupiter.api.Assertions.assertNotNull(turno.comprovante)
         assertEquals(br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin.GEOLOCALIZADO, turno.comprovante!!.tipoVerificacao)
         assertTrue(turno.comprovante!!.codigoAutenticacao.startsWith("CHK-"))
+    }
+
+    private fun jsonComHistorico(quantidade: Int): String =
+        "[" + (1..quantidade).joinToString(",") { turnoJson("h$it", "cumprida") } + "]"
+
+    @Test
+    fun `carregar com mais de 10 turnos no historico limita primeira pagina a 10 itens`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(content = jsonComHistorico(15), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(15, viewModel.estado.value.historicoCompleto.size)
+        assertEquals(10, viewModel.estado.value.historicoPaginado.size)
+        assertTrue(viewModel.estado.value.temMaisHistorico)
+    }
+
+    @Test
+    fun `carregarMaisHistorico adiciona proxima fatia de itens ate esgotar historicoCompleto`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(content = jsonComHistorico(15), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.carregar().join()
+        assertEquals(10, viewModel.estado.value.historicoPaginado.size)
+
+        viewModel.carregarMaisHistorico()!!.join()
+
+        assertEquals(15, viewModel.estado.value.historicoPaginado.size)
+        assertTrue(!viewModel.estado.value.temMaisHistorico)
+        assertEquals(false, viewModel.estado.value.carregandoMaisHistorico)
+    }
+
+    @Test
+    fun `carregarMaisHistorico nao faz nada quando nao ha mais historico`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(content = jsonComHistorico(5), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.carregar().join()
+        assertEquals(5, viewModel.estado.value.historicoPaginado.size)
+
+        val job = viewModel.carregarMaisHistorico()
+
+        assertEquals(null, job)
+        assertEquals(1, viewModel.estado.value.paginaHistorico)
+    }
+
+    @Test
+    fun `quando historico tem menos de TAMANHO_PAGINA_HISTORICO itens, temMaisHistorico e falso`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(content = jsonComHistorico(3), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(3, viewModel.estado.value.historicoPaginado.size)
+        assertTrue(!viewModel.estado.value.temMaisHistorico)
+    }
+
+    @Test
+    fun `atualizar recarrega a lista da rede e reseta a pagina do historico para 1`() = runBlocking {
+        var chamada = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamada++
+                val json = if (chamada == 1) jsonComHistorico(15) else jsonComHistorico(20)
+                respond(content = json, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.carregar().join()
+        viewModel.carregarMaisHistorico()!!.join()
+        assertEquals(2, viewModel.estado.value.paginaHistorico)
+
+        viewModel.atualizar().join()
+
+        assertEquals(20, viewModel.estado.value.historicoCompleto.size)
+        assertEquals(1, viewModel.estado.value.paginaHistorico)
+        assertEquals(10, viewModel.estado.value.historicoPaginado.size)
+        assertEquals(false, viewModel.estado.value.atualizando)
+    }
+
+    @Test
+    fun `atualizar com falha mantem dados anteriores e expoe mensagem de erro`() = runBlocking {
+        var chamada = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamada++
+                if (chamada == 1) {
+                    respond(content = jsonComHistorico(5), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond(
+                        content = """{"code":"500","message":"erro interno"}""",
+                        status = HttpStatusCode.InternalServerError,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            },
+        )
+        viewModel.carregar().join()
+        assertEquals(5, viewModel.estado.value.historicoCompleto.size)
+
+        viewModel.atualizar().join()
+
+        assertEquals(5, viewModel.estado.value.historicoCompleto.size)
+        assertEquals(false, viewModel.estado.value.atualizando)
+        assertTrue(viewModel.estado.value.mensagemErro != null)
     }
 }

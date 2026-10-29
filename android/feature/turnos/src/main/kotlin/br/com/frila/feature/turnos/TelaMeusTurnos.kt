@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,8 +32,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
@@ -96,7 +101,17 @@ fun TelaMeusTurnos(
             )
         },
     ) { paddingInterno ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingInterno)) {
+        PullToRefreshBox(
+            isRefreshing = estado.atualizando,
+            onRefresh = viewModel::atualizar,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingInterno)
+                .semantics {
+                    contentDescription = if (estado.atualizando) "Atualizando turnos" else "Meus turnos"
+                },
+        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             TabRow(selectedTabIndex = estado.abaSelecionada.ordinal) {
                 Tab(
                     selected = estado.abaSelecionada == AbaDeTurnos.AGENDADOS,
@@ -145,8 +160,12 @@ fun TelaMeusTurnos(
                     aoCancelar = viewModel::abrirCancelamento,
                     aoExibirComprovante = { comprovanteParaExibir = it },
                     relogio = relogio,
+                    abaHistorico = estado.abaSelecionada == AbaDeTurnos.HISTORICO,
+                    carregandoMaisHistorico = estado.carregandoMaisHistorico,
+                    aoCarregarMaisHistorico = { viewModel.carregarMaisHistorico() },
                 )
             }
+        }
         }
     }
 
@@ -176,15 +195,38 @@ private fun ListaDeTurnos(
     aoCancelar: (ItemTurno) -> Unit,
     aoExibirComprovante: (ComprovanteCheckin) -> Unit,
     relogio: () -> Instant = { Instant.now() },
+    abaHistorico: Boolean = false,
+    carregandoMaisHistorico: Boolean = false,
+    aoCarregarMaisHistorico: () -> Unit = {},
 ) {
     if (itens.isEmpty()) {
         Vazio()
         return
     }
 
+    val listState = rememberLazyListState()
+
+    // RF16: gatilho de rolagem infinita — quando faltam 2 itens para o fim da lista do
+    // histórico, pede a próxima fatia. derivedStateOf evita recompor a cada frame de scroll.
+    val deveCarregarMais by remember {
+        derivedStateOf {
+            val total = listState.layoutInfo.totalItemsCount
+            val ultimoVisivel = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            total > 0 && ultimoVisivel >= total - 2
+        }
+    }
+
+    LaunchedEffect(deveCarregarMais, abaHistorico) {
+        if (deveCarregarMais && abaHistorico) {
+            aoCarregarMaisHistorico()
+        }
+    }
+
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(FrilaEspacamento.medio),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+        modifier = Modifier.testTag("lista-de-turnos"),
     ) {
         items(itens, key = { it.turnoId }) { turno ->
             CartaoVaga(modifier = Modifier.fillMaxWidth()) {
@@ -212,6 +254,18 @@ private fun ListaDeTurnos(
                     )
                 }
                 SecaoDeAvaliacao(turno = turno, aoAbrirAvaliacao = aoAbrirAvaliacao)
+            }
+        }
+        if (abaHistorico && carregandoMaisHistorico) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(FrilaEspacamento.pequeno),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
             }
         }
     }
