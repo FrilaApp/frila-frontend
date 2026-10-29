@@ -437,7 +437,7 @@ A sugestão inicial, sem edição, não cria uma faixa. A adição explícita li
 Início e fim iguais bloqueiam o envio; faixas noturnas continuam aceitas (#98 C2).
 A revisão `swiftui-pro` ficou restrita ao diff: estado no modelo observável, bindings
 diretos, controles nativos e APIs disponíveis desde o iOS 17. A prova visual e os
-resultados executados estão em `evidencias/ux-04-perfil-profissional/README.md`.
+resultados executados estão em `docs/evidencias/ux-04-perfil-profissional/README.md`.
 
 Na tela vizinha Meu perfil, os tamanhos de acessibilidade empilham os rótulos de
 Telefone, E-mail, Funções e Horários disponíveis acima dos valores. Telefone e
