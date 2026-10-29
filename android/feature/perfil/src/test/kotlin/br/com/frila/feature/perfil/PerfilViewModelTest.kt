@@ -375,4 +375,50 @@ class PerfilViewModelTest {
         assertFalse(resumo!!.temHistorico)
         assertEquals(ResumoFinanceiroPerfil.VAZIO, resumo)
     }
+
+    private fun viewModelComCompressor(
+        comprimirFoto: (android.content.Context, android.net.Uri) -> java.io.File,
+    ): PerfilViewModel {
+        val engineVazio = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engineVazio)
+        return PerfilViewModel(
+            servicoPerfil = ServicoPerfil(cliente),
+            servicoTurnos = ServicoTurnos(cliente),
+            armazenamentoDeSessao = mockk(relaxed = true),
+            escopo = CoroutineScope(Dispatchers.Default),
+            comprimirFoto = comprimirFoto,
+        )
+    }
+
+    @Test
+    fun `selecionarFoto com sucesso resulta em status SUCESSO com o caminho do avatar`() = runBlocking {
+        val arquivoEsperado = java.io.File("/caminho/falso/avatar_perfil.jpg")
+        val viewModel = viewModelComCompressor { _, _ -> arquivoEsperado }
+
+        viewModel.selecionarFoto(mockk(relaxed = true), mockk(relaxed = true)).join()
+
+        assertEquals(StatusFotoPerfil.SUCESSO, viewModel.estado.value.statusFoto)
+        assertEquals(arquivoEsperado.absolutePath, viewModel.estado.value.fotoLocalPath)
+        assertEquals(null, viewModel.estado.value.mensagemErroFoto)
+    }
+
+    @Test
+    fun `selecionarFoto com falha de decodificacao resulta em status ERRO e preserva avatar anterior`() = runBlocking {
+        val arquivoAnterior = java.io.File("/caminho/falso/avatar_antigo.jpg")
+        var chamadas = 0
+        val viewModel = viewModelComCompressor { _, _ ->
+            chamadas++
+            if (chamadas == 1) arquivoAnterior else throw IllegalStateException("Não foi possível decodificar a imagem selecionada.")
+        }
+
+        viewModel.selecionarFoto(mockk(relaxed = true), mockk(relaxed = true)).join()
+        assertEquals(arquivoAnterior.absolutePath, viewModel.estado.value.fotoLocalPath)
+
+        viewModel.selecionarFoto(mockk(relaxed = true), mockk(relaxed = true)).join()
+
+        assertEquals(StatusFotoPerfil.ERRO, viewModel.estado.value.statusFoto)
+        assertNotNull(viewModel.estado.value.mensagemErroFoto)
+        // Rollback: avatar anterior continua valendo, a falha não apaga a referência que funcionava.
+        assertEquals(arquivoAnterior.absolutePath, viewModel.estado.value.fotoLocalPath)
+    }
 }

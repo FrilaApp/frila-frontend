@@ -12,6 +12,13 @@ enum class StatusPerfil { CARREGANDO, SUCESSO, ERRO }
 enum class StatusExclusao { OCIOSO, DIALOGO_ABERTO, EXCLUINDO, SUCESSO, ERRO }
 
 /**
+ * Status do upload/compressão do avatar de perfil (RF03/RNF04). Sem `ENVIANDO`: não há endpoint
+ * remoto de avatar no contrato atual (MEDIDO em openapi.yaml/Dtos.kt — ver nota em
+ * [CompressorDeFotoPerfil]), então não existe uma etapa de envio de rede a representar aqui.
+ */
+enum class StatusFotoPerfil { OCIOSO, COMPRIMINDO, SUCESSO, ERRO }
+
+/**
  * Resumo de remunerações acordadas (RF16): soma dos valores de [TurnoDto.valorAcordadoCentavos]
  * dos turnos `cumprida` (concluído) e `confirmada` (pendente) do profissional. Turnos `cancelada`
  * nunca entram nesta soma. O Frila não é parte do pagamento (RN09 / Zero Escrow) — este resumo é
@@ -58,6 +65,10 @@ data class EstadoPerfil(
     val estaEditandoBio: Boolean = false,
     val especialidadesDisponiveis: List<String> = ESPECIALIDADES_PADRAO,
     val especialidadesSelecionadas: Set<String> = emptySet(),
+    /** RF03/RNF04: caminho absoluto do avatar já comprimido e persistido em `filesDir`. */
+    val fotoLocalPath: String? = null,
+    val statusFoto: StatusFotoPerfil = StatusFotoPerfil.OCIOSO,
+    val mensagemErroFoto: String? = null,
 ) {
     val caracteresRestantesBio: Int
         get() = LIMITE_MAXIMO_BIO - bioEmEdicao.length

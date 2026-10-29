@@ -1,5 +1,7 @@
 package br.com.frila.feature.perfil
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -9,6 +11,7 @@ import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.TurnoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +31,8 @@ class PerfilViewModel(
     private val servicoTurnos: ServicoTurnos,
     private val armazenamentoDeSessao: ArmazenamentoDeSessao,
     escopo: CoroutineScope? = null,
+    /** RF03/RNF04: injetável para teste de JVM sem decodificar bitmap real (Robolectric só na tela). */
+    private val comprimirFoto: (Context, Uri) -> File = CompressorDeFotoPerfil::comprimir,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -100,6 +105,33 @@ class PerfilViewModel(
             turnos = _estado.value.turnosExtrato,
             nomeProfissional = nomeProfissional,
         )
+    }
+
+    /**
+     * RF03/RNF04: comprime [uri] (subamostragem + recorte 1:1) e persiste como avatar local.
+     * Falha de decodificação (imagem corrompida, origem inválida) vira [StatusFotoPerfil.ERRO]
+     * sem tocar em [EstadoPerfil.fotoLocalPath] — o avatar anterior continua valendo (rollback
+     * defensivo: a tela nunca fica sem avatar por causa de uma foto nova que não presta).
+     */
+    fun selecionarFoto(contexto: Context, uri: Uri): Job {
+        _estado.update { it.copy(statusFoto = StatusFotoPerfil.COMPRIMINDO, mensagemErroFoto = null) }
+        return escopoDeTrabalho.launch {
+            try {
+                val arquivo = comprimirFoto(contexto, uri)
+                _estado.update {
+                    it.copy(statusFoto = StatusFotoPerfil.SUCESSO, fotoLocalPath = arquivo.absolutePath)
+                }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Throwable) {
+                _estado.update {
+                    it.copy(
+                        statusFoto = StatusFotoPerfil.ERRO,
+                        mensagemErroFoto = "Não foi possível processar a foto. Tente outra imagem.",
+                    )
+                }
+            }
+        }
     }
 
     /** RN15: encerra a sessão local. Não chama a rede — logout é só limpar o que ficou no aparelho. */
