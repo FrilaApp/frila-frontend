@@ -11,6 +11,8 @@ Instruções para agentes de IA neste repositório. A seção 1 vale para todos.
 
 ## 2. Andar alinhamento (Maestri)
 
+> **Suspenso desde 28/10/2026.** O andar `alinhamento` (AGYs implementando, CO1/CO2, Fila de Logs) não está em uso. No workspace atual (andar HiFi: Claude e dois Codex implementam e revisam; AGY1–3 e DSK só monitoram, sem editar código) valem as regras de `~/dev/frila-orquestra/regras/`. Do §2 continuam valendo apenas o escopo de edição (§2.2) e as exceções estreitas dele.
+
 ### 2.1 Quem faz o quê
 
 | Quem | Faz | Não faz |
