@@ -74,7 +74,10 @@ private struct PainelDebugModifier: ViewModifier {
 
     private var reducao: CGFloat {
         let altura = max(tamanho.height, referenciaReducao + tamanho.width / 2 + 1)
-        return min(referenciaReducao / (altura - tamanho.width / 2), 0.25)
+        let reducaoAtual = min(referenciaReducao / (altura - tamanho.width / 2), 0.25)
+        let comFolgaMinima = (60 - areaSeguraInferior) / altura
+        let comFolgaLateral = (52 - areaSeguraInferior) / (altura - tamanho.width / 2)
+        return min(reducaoAtual, max(0, comFolgaMinima, comFolgaLateral))
     }
 
     private var alturaCabecalho: CGFloat {
@@ -219,7 +222,9 @@ private struct FormaMolduraDebug: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        let area = progresso <= 0 ? rect.insetBy(dx: -1000, dy: -1000) : rect
+        // O recorte volta gradualmente a cobrir as áreas seguras no fechamento.
+        let expansao = 160 * (1 - progresso)
+        let area = rect.insetBy(dx: -expansao, dy: -expansao)
         return RoundedRectangle(cornerRadius: raio * progresso, style: .continuous).path(in: area)
     }
 }
