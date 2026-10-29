@@ -10,10 +10,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
@@ -94,8 +96,15 @@ fun TelaDetalheVaga(
                     else -> MaterialTheme.colorScheme.onSurface
                 },
                 modifier = Modifier.semantics {
-                    if (estado.statusCandidatura == StatusCandidatura.ERRO) {
-                        error(mensagem)
+                    when (estado.statusCandidatura) {
+                        StatusCandidatura.ERRO -> {
+                            liveRegion = LiveRegionMode.Assertive
+                            error(mensagem)
+                        }
+                        StatusCandidatura.CONFIRMADA, StatusCandidatura.PENDENTE -> {
+                            liveRegion = LiveRegionMode.Polite
+                        }
+                        else -> Unit
                     }
                 },
             )
