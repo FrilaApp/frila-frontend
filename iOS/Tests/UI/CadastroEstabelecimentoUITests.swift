@@ -21,14 +21,6 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         tocar(app.buttons["continuar-cadastro"])
         XCTAssertTrue(esperarFormularioDePublicarVaga(app))
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
-        let btnPerfil = app.buttons["Perfil do estabelecimento"]
-        XCTAssertTrue(btnPerfil.waitForExistence(timeout: Espera.aparecer))
-        tocar(btnPerfil)
-
-        let btnFechar = app.buttons["Fechar"]
-        XCTAssertTrue(btnFechar.waitForExistence(timeout: Espera.aparecer))
-        tocar(btnFechar)
-        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
     }
 
     func testArrastarMarcadorMudaPontoParaDireitaECima() throws {

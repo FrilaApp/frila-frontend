@@ -144,20 +144,15 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
     }
 
-    // MARK: - 4. Perfil do Estabelecimento: Toolbar e Hints de Botões Desabilitados
+    // MARK: - 4. Perfil do Estabelecimento: Acessibilidade e Hints (#139)
 
     func testPerfilDoEstabelecimentoToolbarEHintsSemVazamento() {
-        let app = abrir(argumentos: ["-FRILA_ABRIR_CADASTRO_ESTABELECIMENTO", "-FRILA_CADASTRO_UI_TEST"])
+        let app = abrir(argumentos: ["-FRILA_SCENARIO", "ciclo-contratante-turno-concluido"])
 
-        XCTAssertTrue(app.staticTexts["Dados do negócio"].waitForExistence(timeout: 10))
-        tocar(app.buttons["continuar-cadastro"])
-        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
-
-        // Toolbar: botão de Perfil do Estabelecimento deve abrir a folha do perfil
-        let btnPerfil = app.buttons["Perfil do estabelecimento"]
-        XCTAssertTrue(btnPerfil.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(btnPerfil.isHittable)
-        tocar(btnPerfil)
+        let perfil = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(perfil.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(perfil.isHittable)
+        tocar(perfil)
 
         // 3.11 Botão Exportar dados não pode vazar referências a cartões (#219/#50)
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '#219' OR label CONTAINS '#50'")).firstMatch.exists)
