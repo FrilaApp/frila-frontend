@@ -46,7 +46,7 @@ for opcao in "$@"; do
 done
 
 case "$ESQUEMA" in
-  Frila-Beta) AMBIENTE=frila-dev; AMBIENTE_FIREBASE=Dev ;;
+  Frila-Beta|Frila-Design) AMBIENTE=frila-dev; AMBIENTE_FIREBASE=Dev ;;
   Frila-Prod) AMBIENTE=frila-prod; AMBIENTE_FIREBASE=Prod ;;
   *) falhar "o esquema deve ser Frila-Beta ou Frila-Prod (recebido: $ESQUEMA)" ;;
 esac

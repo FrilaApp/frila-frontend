@@ -1,6 +1,46 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "Versões": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versões"
+          }
+        }
+      }
+    },
+    "Info": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Info"
+          }
+        }
+      }
+    },
+    "Variantes": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Variantes"
+          }
+        }
+      }
+    },
+    "Informações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informações"
+          }
+        }
+      }
+    },
     "Sair da conta?": {
       "extractionState": "manual",
       "localizations": {

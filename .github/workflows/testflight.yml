@@ -12,7 +12,7 @@ on:
       esquema:
         description: "Esquema: Frila-Beta (frila-dev) ou Frila-Prod (frila-prod)"
         type: choice
-        options: [Frila-Beta, Frila-Prod]
+        options: [Frila-Beta, Frila-Prod, Frila-Design]
         default: Frila-Beta
       versao:
         description: "Versão no formato X.Y.Z (ex.: 0.4.0)"
@@ -92,7 +92,7 @@ jobs:
             ENVIAR=$([[ "$ENTRADA_ENVIAR" == "true" ]] && echo 1 || echo 0)
           fi
           case "$ESQUEMA" in
-            Frila-Beta|Frila-Prod) ;;
+            Frila-Beta|Frila-Prod|Frila-Design) ;;
             *) echo "::error::Esquema inválido: $ESQUEMA"; exit 1 ;;
           esac
           if [[ ! "$VERSAO" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -176,7 +176,7 @@ jobs:
           FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
         run: |
           case "$FRILA_ESQUEMA" in
-            Frila-Beta) AMBIENTE=dev ;;
+            Frila-Beta|Frila-Design) AMBIENTE=dev ;;
             Frila-Prod) AMBIENTE=prod ;;
           esac
           Scripts/generate-supabase-secrets.sh "$AMBIENTE"

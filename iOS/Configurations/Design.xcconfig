@@ -1,0 +1,2 @@
+#include "Beta.xcconfig"
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) FRILA_DESIGN

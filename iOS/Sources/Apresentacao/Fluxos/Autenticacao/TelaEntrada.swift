@@ -142,6 +142,9 @@ public struct TelaEntrada: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.compacto)
         }
+        #if FRILA_DESIGN
+        .exemploDebugEntrada()
+        #endif
     }
 
     private func executarEnvio() {
