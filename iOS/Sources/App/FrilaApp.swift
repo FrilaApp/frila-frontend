@@ -78,9 +78,20 @@ struct FrilaApp: App {
             Group {
                 switch inicializacao {
                 case let .pronta(dependencias):
+                    #if FRILA_DESIGN
+                    if ProcessInfo.processInfo.arguments.contains("-FRILA_DEMO_ENTRADA") {
+                        TelaEntrada(viewModel: EntradaViewModel(api: dependencias.api), aoAvancarParaCodigo: { _ in })
+                            .disabled(true)
+                    } else {
+                        PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: dependencias.api, versaoAtual: versao)) {
+                            EntradaDoApp(dependencias, armazenamento: armazenamento, navegacao: delegado.navegacao)
+                        }
+                    }
+                    #else
                     PortaoDeAtualizacao(viewModel: AtualizacaoObrigatoriaViewModel(api: dependencias.api, versaoAtual: versao)) {
                         EntradaDoApp(dependencias, armazenamento: armazenamento, navegacao: delegado.navegacao)
                     }
+                    #endif
                 case let .configuracaoInvalida(erro):
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
