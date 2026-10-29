@@ -85,31 +85,47 @@ class SerializacaoRoundtripTest {
     @Test
     fun `roundtrip TurnoDto com checkin e avaliacao`() {
         val original = TurnoDto(
-            turnoId = "t-1",
-            vagaId = "v-1",
-            posicaoId = "p-1",
-            funcao = FuncaoDto("f1", "cozinheiro", "Cozinha"),
+            id = "11111111-1111-1111-1111-111111111111",
+            posicaoId = "33333333-3333-3333-3333-333333333333",
+            vaga = VagaResumoDto(
+                id = "22222222-2222-2222-2222-222222222222",
+                funcao = "cozinheiro",
+                local = "CLN 201 Bloco B",
+                regiaoAdministrativa = "Plano Piloto",
+                inicioEm = "2026-11-01T12:00:00Z",
+                fimEm = "2026-11-01T18:00:00Z",
+                valorCentavos = 15_000L,
+            ),
             contraparte = PerfilPublicoDto(
                 id = "c-1",
                 tipo = "estabelecimento",
                 nome = "Restaurante Central",
                 reputacao = ReputacaoDto(3, 3, 1.0, 3, 3),
             ),
-            inicioEm = "2026-11-01T12:00:00Z",
-            fimEm = "2026-11-01T18:00:00Z",
-            valorCentavos = 15_000L,
-            estado = "confirmada",
-            checkin = CheckinDto(feitoEm = "2026-11-01T11:55:00Z", distanciaMetros = 45.0),
-            avaliacao = AvaliacaoDto(turnoId = "t-1", resposta = true, criadaEm = "2026-11-01T18:10:00Z"),
+            contatoVisivelAte = "2026-11-08T18:00:00Z",
+            aCaminhoEm = "2026-11-01T11:30:00Z",
+            checkinEm = "2026-11-01T11:55:00Z",
+            checkinTipo = "geolocalizado",
+            checkinDistanciaM = 45,
+            checkinConfirmadoEm = "2026-11-01T11:55:05Z",
+            checkoutEm = null,
+            checkoutDistanciaM = null,
+            verificacao = "verificado",
+            valorAcordadoCentavos = 15_000L,
             podeAvaliar = false,
+            estado = "confirmada",
+            avaliacao = AvaliacaoDto(turnoId = "11111111-1111-1111-1111-111111111111", resposta = true, criadaEm = "2026-11-01T18:10:00Z"),
+            cancelamento = null,
         )
 
         val encoded = json.encodeToString(original)
         val decoded = json.decodeFromString<TurnoDto>(encoded)
 
         assertEquals(original, decoded)
-        assertEquals(45.0, decoded.checkin?.distanciaMetros)
+        assertEquals(45, decoded.checkinDistanciaM)
+        assertEquals("geolocalizado", decoded.checkinTipo)
         assertEquals(true, decoded.avaliacao?.resposta)
+        assertEquals("cozinheiro", decoded.vaga.funcao)
     }
 
     @Test

@@ -139,18 +139,36 @@ data class DispositivoDto(
     @SerialName("vinculo_id") val vinculoId: String? = null,
 )
 
-/** Checagem de presença de um turno (`feito_em`), com distância opcional do ponto esperado. */
+/**
+ * Resumo da vaga retornado em `/rpc/meus_turnos` e `/rpc/minhas_candidaturas` (schema `VagaResumo`,
+ * MEDIDO em `iOS/Contrato/openapi.yaml:4455`).
+ */
 @Serializable
-data class CheckinDto(
-    @SerialName("feito_em") val feitoEm: String,
-    @SerialName("distancia_metros") val distanciaMetros: Double? = null,
+data class VagaResumoDto(
+    @SerialName("id") val id: String,
+    @SerialName("funcao") val funcao: String,
+    @SerialName("local") val local: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+)
+
+/**
+ * Cancelamento de um turno lido em `/rpc/meus_turnos` (schema `CancelamentoDoTurno`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:4702`, RN12). Sem `motivo` (decisão de produto de 02/10/2026).
+ */
+@Serializable
+data class CancelamentoDoTurnoDto(
+    @SerialName("causa") val causa: String,
+    @SerialName("falta") val falta: Boolean,
+    @SerialName("cancelada_em") val canceladaEm: String,
 )
 
 /**
  * Avaliação que o chamador já deu a este turno (schema `Avaliacao`, MEDIDO em
  * `iOS/Contrato/openapi.yaml:4749`). O contrato exige `turno_id` e `resposta`; aqui ficam
- * defensivamente opcionais com default — mesmo padrão já usado em `TurnoDto.checkin`/`avaliacao`
- * para servidor mais antigo que ainda não mande o campo.
+ * defensivamente opcionais com default para servidor mais antigo que ainda não mande o campo.
  */
 @Serializable
 data class AvaliacaoDto(
@@ -174,24 +192,30 @@ data class CancelarPosicaoDto(
 )
 
 /**
- * Resposta de `/rpc/meus_turnos` (schema `Turno`, MEDIDO em `iOS/Contrato/openapi.yaml:2454`).
- * RN12: turno cancelado continua na lista, com `estado: cancelada` — o cancelamento não apaga
- * o registro do que foi combinado.
+ * Resposta de `/rpc/meus_turnos` (schema `Turno`, MEDIDO em `iOS/Contrato/openapi.yaml:4613` e
+ * gerado por `privado.turno_em_json`).
+ * RN12: turno cancelado continua na lista, com `estado: cancelada` e objeto `cancelamento`.
  */
 @Serializable
 data class TurnoDto(
-    @SerialName("turno_id") val turnoId: String,
-    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("id") val id: String,
     @SerialName("posicao_id") val posicaoId: String,
-    @SerialName("funcao") val funcao: FuncaoDto,
+    @SerialName("vaga") val vaga: VagaResumoDto,
     @SerialName("contraparte") val contraparte: PerfilPublicoDto,
-    @SerialName("inicio_em") val inicioEm: String,
-    @SerialName("fim_em") val fimEm: String,
-    @SerialName("valor_centavos") val valorCentavos: Long,
-    @SerialName("estado") val estado: String,
-    @SerialName("checkin") val checkin: CheckinDto? = null,
+    @SerialName("contato_visivel_ate") val contatoVisivelAte: String,
+    @SerialName("a_caminho_em") val aCaminhoEm: String? = null,
+    @SerialName("checkin_em") val checkinEm: String? = null,
+    @SerialName("checkin_tipo") val checkinTipo: String? = null,
+    @SerialName("checkin_distancia_m") val checkinDistanciaM: Int? = null,
+    @SerialName("checkin_confirmado_em") val checkinConfirmadoEm: String? = null,
+    @SerialName("checkout_em") val checkoutEm: String? = null,
+    @SerialName("checkout_distancia_m") val checkoutDistanciaM: Int? = null,
+    @SerialName("verificacao") val verificacao: String,
+    @SerialName("valor_acordado_centavos") val valorAcordadoCentavos: Long,
+    @SerialName("pode_avaliar") val podeAvaliar: Boolean,
+    @SerialName("estado") val estado: String? = null,
     @SerialName("avaliacao") val avaliacao: AvaliacaoDto? = null,
-    @SerialName("pode_avaliar") val podeAvaliar: Boolean? = null,
+    @SerialName("cancelamento") val cancelamento: CancelamentoDoTurnoDto? = null,
 )
 
 /** Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela. */

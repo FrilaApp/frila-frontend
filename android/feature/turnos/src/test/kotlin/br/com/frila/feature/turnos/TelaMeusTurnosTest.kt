@@ -71,18 +71,37 @@ class TelaMeusTurnosTest {
 
     private fun turnoJson(id: String, estado: String, funcao: String, estabelecimento: String) = """
         {
-          "turno_id": "$id",
-          "vaga_id": "vaga-$id",
+          "id": "$id",
           "posicao_id": "posicao-$id",
-          "funcao": {"id": "f1", "nome": "$funcao", "categoria": "Salão"},
+          "vaga": {
+            "id": "vaga-$id",
+            "funcao": "$funcao",
+            "local": "CLS 405 Bloco C",
+            "regiao_administrativa": "Plano Piloto",
+            "inicio_em": "2026-11-01T21:00:00Z",
+            "fim_em": "2026-11-02T03:00:00Z",
+            "valor_centavos": 16000
+          },
           "contraparte": {
-            "id": "e1", "tipo": "estabelecimento", "nome": "$estabelecimento",
+            "id": "e1",
+            "tipo": "estabelecimento",
+            "nome": "$estabelecimento",
             "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}
           },
-          "inicio_em": "2026-11-01T21:00:00Z",
-          "fim_em": "2026-11-02T03:00:00Z",
-          "valor_centavos": 16000,
-          "estado": "$estado"
+          "contato_visivel_ate": "2026-11-09T03:00:00Z",
+          "a_caminho_em": null,
+          "checkin_em": null,
+          "checkin_tipo": null,
+          "checkin_distancia_m": null,
+          "checkin_confirmado_em": null,
+          "checkout_em": null,
+          "checkout_distancia_m": null,
+          "verificacao": "pendente",
+          "valor_acordado_centavos": 16000,
+          "pode_avaliar": false,
+          "estado": "$estado",
+          "avaliacao": null,
+          "cancelamento": null
         }
     """.trimIndent()
 
