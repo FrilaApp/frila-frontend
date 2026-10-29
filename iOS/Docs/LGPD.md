@@ -123,7 +123,7 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 
 | Papel | Responsável | Contato |
 |---|---|---|
-| **Responsável (coordena o incidente)** | Cauê Carneiro Crillanovick | `suportefrila@gmail.com` |
+| **Responsável (coordena o incidente)** | Cauê Carneiro Crillanovick | `suporte@frilabr.com` |
 | **Equipe Técnica** | Responsável pela infraestrutura (Supabase, Firebase, CI/CD) | — |
 | **Comunicação** | Responsável por notificar titulares e ANPD | — |
 

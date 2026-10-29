@@ -350,3 +350,11 @@ envio acima e o cartão TestFlight 0.5.
 O job usa o mesmo runner `macos-26` da CI de PR e roda só por tag ou disparo manual. Ele consome a
 mesma cota de minutos da organização, que tem orçamento de US$ 0 com bloqueio de uso adicional: sem
 cobrança.
+
+## Builds de loja
+
+Política oficial decidida pelo Cauê em 28/10/2026:
+
+- **Origem dos builds:** Todos os builds destinados ao TestFlight e à App Store saem exclusivamente da CI pelo workflow `.github/workflows/testflight.yml`.
+- **Versão do Xcode da CI:** A CI utiliza o Xcode da versão fixada no workflow: versão `26.6` (definida em `.github/workflows/testflight.yml:54` como `XCODE_VERSION: "26.6"`, e conferida nas etapas das linhas 121–135; também fixada em `.github/workflows/ios.yml:39, 226`).
+- **Papel do Mac de desenvolvimento:** O Xcode instalado no Mac de desenvolvimento serve para desenvolver e testar; nada é enviado à Apple diretamente a partir do Mac.
