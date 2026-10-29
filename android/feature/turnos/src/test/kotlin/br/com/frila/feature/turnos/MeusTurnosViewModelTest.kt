@@ -267,4 +267,43 @@ class MeusTurnosViewModelTest {
         assertTrue(viewModel.estado.value.cancelamento!!.mensagemErro!!.contains("não pode mais ser cancelado"))
         assertEquals(1, viewModel.estado.value.agendados.size)
     }
+
+    @Test
+    fun `turno com checkin existente mapeia comprovante preservando codigo verificador e status`() = runBlocking {
+        val jsonTurnoComCheckin = """
+            {
+              "turno_id": "turno-chk-1",
+              "vaga_id": "vaga-1",
+              "posicao_id": "posicao-1",
+              "funcao": {"id": "f1", "nome": "garçom", "categoria": "Salão"},
+              "contraparte": {
+                "id": "e1", "tipo": "estabelecimento", "nome": "Bar do Zé",
+                "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}
+              },
+              "inicio_em": "2026-11-01T21:00:00Z",
+              "fim_em": "2026-11-02T03:00:00Z",
+              "valor_centavos": 16000,
+              "estado": "confirmada",
+              "checkin": {
+                "feito_em": "2026-11-01T20:55:00Z",
+                "distancia_metros": 85.0
+              }
+            }
+        """.trimIndent()
+
+        val engine = MockEngine {
+            respond(
+                content = "[$jsonTurnoComCheckin]",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val viewModel = viewModelComEngine(engine)
+        viewModel.carregar().join()
+
+        val turno = viewModel.estado.value.agendados.first()
+        org.junit.jupiter.api.Assertions.assertNotNull(turno.comprovante)
+        assertEquals(br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin.GEOLOCALIZADO, turno.comprovante!!.tipoVerificacao)
+        assertTrue(turno.comprovante!!.codigoAutenticacao.startsWith("CHK-"))
+    }
 }

@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import java.time.Instant
 
@@ -24,6 +25,8 @@ data class ItemTurno(
     val podeAvaliar: Boolean = false,
     /** Resposta já registrada (RN07); `null` enquanto não avaliado. */
     val avaliacaoResposta: Boolean? = null,
+    /** Comprovante de check-in emitido (RN06/RN22); `null` antes do registro. */
+    val comprovante: ComprovanteCheckin? = null,
 )
 
 /** Estado do diálogo RN12 enquanto o profissional decide e envia o cancelamento. */
