@@ -41,6 +41,34 @@ class FrilaThemeTest {
     }
 
     @Test
+    fun `EsquemaEscuroOled troca so o background para preto puro (RNF10)`() {
+        assertEquals(FrilaCores.surfaceOled, EsquemaEscuroOled.background)
+        // surface/surfaceVariant continuam em surfaceElevatedDark: elevação visual dos cartões
+        // sobre o preto puro, não é o mesmo tom do fundo.
+        assertEquals(FrilaCores.surfaceElevatedDark, EsquemaEscuroOled.surface)
+        assertEquals(FrilaCores.surfaceElevatedDark, EsquemaEscuroOled.surfaceVariant)
+        assertNotEquals(EsquemaEscuroOled.background, EsquemaEscuroOled.surface)
+    }
+
+    @Test
+    fun `EsquemaEscuroOled preserva todos os outros tokens de EsquemaEscuro`() {
+        assertEquals(EsquemaEscuro.primary, EsquemaEscuroOled.primary)
+        assertEquals(EsquemaEscuro.onPrimary, EsquemaEscuroOled.onPrimary)
+        assertEquals(EsquemaEscuro.onBackground, EsquemaEscuroOled.onBackground)
+        assertEquals(EsquemaEscuro.onSurface, EsquemaEscuroOled.onSurface)
+        assertEquals(EsquemaEscuro.onSurfaceVariant, EsquemaEscuroOled.onSurfaceVariant)
+        assertEquals(EsquemaEscuro.error, EsquemaEscuroOled.error)
+        assertEquals(EsquemaEscuro.outline, EsquemaEscuroOled.outline)
+        assertEquals(EsquemaEscuro.outlineVariant, EsquemaEscuroOled.outlineVariant)
+        assertEquals(EsquemaEscuro.tertiary, EsquemaEscuroOled.tertiary)
+    }
+
+    @Test
+    fun `BrandAccent no modo OLED continua brandAccentDark`() {
+        assertEquals(FrilaCores.brandAccentDark, EsquemaEscuroOled.brandAccent)
+    }
+
+    @Test
     fun `extensoes resolvem tokens claros`() {
         assertEquals(FrilaCores.brandAccentLight, EsquemaClaro.brandAccent)
         assertEquals(FrilaCores.warningLight, EsquemaClaro.warning)

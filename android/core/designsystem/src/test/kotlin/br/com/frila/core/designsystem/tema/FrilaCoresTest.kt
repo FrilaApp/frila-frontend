@@ -92,6 +92,32 @@ class FrilaCoresTest {
     }
 
     @Test
+    fun `SurfaceOled e preto puro (RNF10)`() {
+        assertEquals(Color(0xFF000000), FrilaCores.surfaceOled)
+    }
+
+    @Test
+    fun `TextPrimaryDark sobre SurfaceOled atinge contraste AAA (7 a 1)`() {
+        val razao = contraste(FrilaCores.textPrimaryDark, FrilaCores.surfaceOled)
+
+        assertTrue(razao >= 7.0, "contraste medido foi $razao, abaixo do mínimo AAA de 7:1")
+    }
+
+    @Test
+    fun `TextSecondaryDark sobre SurfaceOled atinge contraste AAA (7 a 1)`() {
+        val razao = contraste(FrilaCores.textSecondaryDark, FrilaCores.surfaceOled)
+
+        assertTrue(razao >= 7.0, "contraste medido foi $razao, abaixo do mínimo AAA de 7:1")
+    }
+
+    @Test
+    fun `BrandAccentDark sobre SurfaceOled atinge contraste AA de controles (4_5 a 1)`() {
+        val razao = contraste(FrilaCores.brandAccentDark, FrilaCores.surfaceOled)
+
+        assertTrue(razao >= 4.5, "contraste medido foi $razao, abaixo do mínimo de 4.5:1")
+    }
+
+    @Test
     fun `Danger nao e igual a Success nem a Warning em nenhum tema`() {
         assertTrue(FrilaCores.dangerLight != FrilaCores.successLight)
         assertTrue(FrilaCores.dangerLight != FrilaCores.warningLight)
