@@ -48,7 +48,7 @@ final class PlacaDaVagaUITests: XCTestCase {
         let detalhe = app.descendants(matching: .any)["tela-detalhe-vaga"]
         XCTAssertTrue(detalhe.waitForExistence(timeout: Espera.aparecer))
 
-        let todosTextos = app.staticTexts
+        let todosTextos = detalhe.staticTexts
         let casa = todosTextos.matching(NSPredicate(format: "label == %@", "Bistrô Ipê")).firstMatch
         XCTAssertTrue(casa.waitForExistence(timeout: Espera.aparecer),
                       "O estabelecimento deve estar no detalhe com label original 'Bistrô Ipê'")

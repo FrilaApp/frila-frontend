@@ -36,9 +36,10 @@ public struct FrilaTituloNavegacaoVaga: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(visivel ? 1 : 0)
         .animation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento), value: visivel)
-        .accessibilityElement(children: .combine)
-        .accessibilityHidden(!visivel)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: "\(funcao), \(estabelecimento)"))
         .accessibilityAddTraits(.isHeader)
+        .accessibilityHidden(!visivel)
     }
 }
 
