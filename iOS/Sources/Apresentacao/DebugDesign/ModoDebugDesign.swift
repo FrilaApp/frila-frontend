@@ -208,8 +208,12 @@ private extension View {
             .offset(y: areaSeguraInferior * progresso)
             .transaction { if reduzirMovimento { $0.animation = nil } }
             .background {
-                Color.black.ignoresSafeArea().opacity(progresso)
-                    .allowsHitTesting(false)
+                ZStack {
+                    FrilaCor.fundo
+                    Color.black.opacity(progresso)
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
             }
     }
 
