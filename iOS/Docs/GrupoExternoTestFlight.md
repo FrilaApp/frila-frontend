@@ -4,7 +4,7 @@ As ações `grupo-externo` e `revisao-beta` do workflow **App Store Connect** us
 
 `grupo-externo` procura o build iOS mais recente pela data de upload entre os processados (`VALID`), não expirados e `APP_STORE_ELIGIBLE` da versão solicitada. Confere a versão/plataforma pela relação `preReleaseVersion`, recusa grupo interno homônimo e não remove builds ou testadores. A API não informa o esquema Xcode: antes de aplicar, confirme que o número escolhido corresponde ao envio **Frila-Beta** no workflow TestFlight. Um link criado não comprova aprovação da revisão ou instalação externa.
 
-`revisao-beta` lista cada campo pendente sem registrar valores de contato, credenciais ou notas existentes. Prepara descrições e “o que testar” em pt-BR/en-US e usa `suportefrila@gmail.com` para feedback. Preserva descrições, instruções de teste e notas já preenchidas. Com aplicação, sincroniza contato/credenciais exclusivamente pelos segredos, preenche as lacunas e cria uma submissão apenas se ainda não existe. Revisão rejeitada exige resolução pelo responsável; a ação não duplica submissões existentes. Sem os segredos ou build elegível, a aplicação para antes de escrever.
+`revisao-beta` lista cada campo pendente sem registrar valores de contato, credenciais ou notas existentes. Prepara descrições e “o que testar” em pt-BR/en-US e usa `suporte@frilabr.com` para feedback. Preserva descrições, instruções de teste e notas já preenchidas. Com aplicação, sincroniza contato/credenciais exclusivamente pelos segredos, preenche as lacunas e cria uma submissão apenas se ainda não existe. Revisão rejeitada exige resolução pelo responsável; a ação não duplica submissões existentes. Sem os segredos ou build elegível, a aplicação para antes de escrever.
 
 ## Segredos para Nick Fury
 

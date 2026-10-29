@@ -482,7 +482,7 @@ class BetaAppStoreConnectTest < Minitest::Test
     assert_equal true, attrs['demoAccountRequired']
     assert_equal '123456', attrs['demoAccountPassword']
     assert_equal %w[en-US pt-BR], @api.app_locales.map { |r| r['attributes']['locale'] }.sort
-    assert @api.app_locales.all? { |r| r['attributes']['feedbackEmail'] == 'suportefrila@gmail.com' }
+    assert @api.app_locales.all? { |r| r['attributes']['feedbackEmail'] == 'suporte@frilabr.com' }
     assert_equal 2, @api.build_locales.size
     submission = @api.escritas.last
     assert_equal '/v1/betaAppReviewSubmissions', submission[1]
@@ -511,7 +511,7 @@ class BetaAppStoreConnectTest < Minitest::Test
     refute @api.escritas.any? { |_, path, _| path == '/v1/betaAppReviewSubmissions' }
     assert_equal 'Descrição existente', @api.app_locales.first['attributes']['description']
     assert_equal 'Instruções existentes', @api.detail['attributes']['notes']
-    assert_equal 'suportefrila@gmail.com', @api.app_locales.first['attributes']['feedbackEmail']
+    assert_equal 'suporte@frilabr.com', @api.app_locales.first['attributes']['feedbackEmail']
     @api.submission['attributes']['betaReviewState'] = 'REJECTED'
     before = @api.escritas.size
     assert_raises(AppStoreConnect::Erro) { run_beta('revisao-beta', apply: true) }

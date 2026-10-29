@@ -407,7 +407,7 @@ module AppStoreConnect
       build_locales = build ? @client.list("/v1/builds/#{id(build)}/betaBuildLocalizations") : []
       TEXTOS_BETA.each do |locale, texts|
         plans << plano_localizacao('betaAppLocalizations', app_locales, locale,
-          {'description'=>texts['description'], 'feedbackEmail'=>'suportefrila@gmail.com'}, 'app', @app)
+          {'description'=>texts['description'], 'feedbackEmail'=>'suporte@frilabr.com'}, 'app', @app)
         if build
           plans << plano_localizacao('betaBuildLocalizations', build_locales, locale,
             {'whatsNew'=>texts['whatsNew']}, 'build', build)
