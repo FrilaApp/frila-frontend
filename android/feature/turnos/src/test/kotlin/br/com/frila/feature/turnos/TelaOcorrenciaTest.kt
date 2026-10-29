@@ -1,13 +1,23 @@
 package br.com.frila.feature.turnos
 
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onParent
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 import br.com.frila.core.rede.ClienteSupabase
@@ -37,6 +47,7 @@ class TelaOcorrenciaTest {
 
     private fun criarViewModel(
         respostaJson: String = """{"ocorrencia_id":"6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88","tipo":"suporte","criada_em":"2026-10-08T14:00:00Z","prazo_resposta_ate":"2026-10-15"}""",
+        statusHttp: HttpStatusCode = HttpStatusCode.OK,
     ): OcorrenciaTurnoViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -44,7 +55,7 @@ class TelaOcorrenciaTest {
             engine = MockEngine {
                 respond(
                     content = respostaJson,
-                    status = HttpStatusCode.OK,
+                    status = statusHttp,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
@@ -92,52 +103,119 @@ class TelaOcorrenciaTest {
     }
 
     @Test
-    fun `em caso de sucesso exibe confirmacao com protocolo curto de 8 caracteres em maiusculas`() = runBlocking {
-        val viewModel = criarViewModel()
-        var protocoloEnviado: String? = null
+    fun `em caso de sucesso exibe confirmacao com protocolo curto de 8 caracteres em maiusculas`() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            var protocoloEnviado: String? = null
 
-        compose.setContent {
-            FrilaTheme {
-                TelaOcorrencia(
-                    viewModel = viewModel,
-                    aoAbrirEmailDeSuporte = { protocoloEnviado = it },
-                )
+            compose.setContent {
+                FrilaTheme {
+                    TelaOcorrencia(
+                        viewModel = viewModel,
+                        aoAbrirEmailDeSuporte = { protocoloEnviado = it },
+                    )
+                }
             }
+
+            // Seleciona motivo e envia aguardando conclusão da coroutine
+            viewModel.selecionarMotivo(MotivoOcorrencia.RISCO_SEGURANCA)
+            viewModel.enviar()?.join()
+            compose.waitForIdle()
+
+            // 6f1c2a4e-2b7d -> take(8) = "6f1c2a4e" -> uppercase = "6F1C2A4E"
+            compose.onNodeWithText("Chamado aberto. Protocolo #6F1C2A4E").assertIsDisplayed()
+
+            // Clique em abrir email
+            compose.onNodeWithText("Abrir e-mail de suporte").assertIsDisplayed().assertHasClickAction().performClick()
+            assertEquals("6F1C2A4E", protocoloEnviado)
         }
-
-        // Seleciona motivo e envia aguardando conclusão da coroutine
-        viewModel.selecionarMotivo(MotivoOcorrencia.RISCO_SEGURANCA)
-        viewModel.enviar()?.join()
-        compose.waitForIdle()
-
-        // 6f1c2a4e-2b7d -> take(8) = "6f1c2a4e" -> uppercase = "6F1C2A4E"
-        compose.onNodeWithText("Chamado aberto. Protocolo #6F1C2A4E").assertIsDisplayed()
-
-        // Clique em abrir email
-        compose.onNodeWithText("Abrir e-mail de suporte").assertIsDisplayed().assertHasClickAction().performClick()
-        assertEquals("6F1C2A4E", protocoloEnviado)
     }
 
     @Test
-    fun `clique em voltar invoca callback aoVoltar`() = runBlocking {
+    fun `clique em voltar invoca callback aoVoltar`() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            var voltou = false
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaOcorrencia(
+                        viewModel = viewModel,
+                        aoVoltar = { voltou = true },
+                    )
+                }
+            }
+
+            // Simula estado de sucesso
+            viewModel.selecionarMotivo(MotivoOcorrencia.OUTRO)
+            viewModel.enviar()?.join()
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Voltar").assertIsDisplayed().performClick()
+            assertTrue(voltou)
+        }
+    }
+
+    @Test
+    fun `titulos possuem semantica de heading para navegacao acessivel do TalkBack`() {
         val viewModel = criarViewModel()
-        var voltou = false
 
         compose.setContent {
             FrilaTheme {
-                TelaOcorrencia(
-                    viewModel = viewModel,
-                    aoVoltar = { voltou = true },
-                )
+                TelaOcorrencia(viewModel = viewModel)
             }
         }
 
-        // Simula estado de sucesso
-        viewModel.selecionarMotivo(MotivoOcorrencia.OUTRO)
-        viewModel.enviar()?.join()
-        compose.waitForIdle()
+        compose.onNodeWithText("Relatar ocorrência")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        compose.onNodeWithText("O que aconteceu?")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+    }
 
-        compose.onNodeWithText("Voltar").assertIsDisplayed().performClick()
-        assertTrue(voltou)
+    @Test
+    fun `opcoes de motivo atendem alvo de toque minimo de 48dp e semantica de RadioButton unificada`() {
+        val viewModel = criarViewModel()
+
+        compose.setContent {
+            FrilaTheme {
+                TelaOcorrencia(viewModel = viewModel)
+            }
+        }
+
+        MotivoOcorrencia.entries.forEach { motivo ->
+            compose.onNode(
+                SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton) and
+                    hasText(motivo.descricao),
+            )
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        }
+    }
+
+    @Test
+    fun `estado de erro exibe mensagem com liveRegion assertiva para TalkBack`() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"limite_excedido","message":"maximo de chamados diarios atingido"}""",
+                statusHttp = HttpStatusCode.TooManyRequests,
+            )
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaOcorrencia(viewModel = viewModel)
+                }
+            }
+
+            viewModel.selecionarMotivo(MotivoOcorrencia.OUTRO)
+            viewModel.enviar()?.join()
+            compose.waitForIdle()
+
+            assertEquals(StatusOcorrencia.ERRO, viewModel.estado.value.status)
+
+            compose.onNode(
+                SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive),
+                useUnmergedTree = true,
+            ).performScrollTo().assertIsDisplayed()
+        }
     }
 }

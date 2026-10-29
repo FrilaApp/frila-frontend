@@ -1,11 +1,16 @@
 package br.com.frila.feature.turnos
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -15,15 +20,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 
 /**
@@ -44,7 +55,16 @@ fun TelaOcorrencia(
 
     Scaffold(
         modifier = modifier,
-        topBar = { CenterAlignedTopAppBar(title = { Text("Relatar ocorrência") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Relatar ocorrência",
+                        modifier = Modifier.semantics { heading() },
+                    )
+                },
+            )
+        },
     ) { paddingInterno ->
         when (estado.status) {
             StatusOcorrencia.SUCESSO -> ConfirmacaoDeOcorrencia(
@@ -72,16 +92,25 @@ private fun FormularioDeOcorrencia(
     aoEnviar: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(FrilaEspacamento.medio),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.medio),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
-        Text(text = "O que aconteceu?", style = MaterialTheme.typography.titleSmall)
-        MotivoOcorrencia.entries.forEach { motivo ->
-            LinhaDeMotivo(
-                motivo = motivo,
-                selecionado = estado.motivo == motivo,
-                aoSelecionar = { aoSelecionarMotivo(motivo) },
-            )
+        Text(
+            text = "O que aconteceu?",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
+        Column(modifier = Modifier.selectableGroup()) {
+            MotivoOcorrencia.entries.forEach { motivo ->
+                LinhaDeMotivo(
+                    motivo = motivo,
+                    selecionado = estado.motivo == motivo,
+                    aoSelecionar = { aoSelecionarMotivo(motivo) },
+                )
+            }
         }
 
         OutlinedTextField(
@@ -98,10 +127,15 @@ private fun FormularioDeOcorrencia(
         )
 
         if (estado.status == StatusOcorrencia.ERRO) {
+            val mensagem = estado.mensagemErro ?: "Não foi possível abrir o chamado."
             Text(
-                text = estado.mensagemErro ?: "Não foi possível abrir o chamado.",
+                text = mensagem,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                    error(mensagem)
+                },
             )
         }
 
@@ -116,19 +150,26 @@ private fun FormularioDeOcorrencia(
 
 @Composable
 private fun LinhaDeMotivo(motivo: MotivoOcorrencia, selecionado: Boolean, aoSelecionar: () -> Unit) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = aoSelecionar)
+            .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo)
+            .selectable(
+                selected = selecionado,
+                role = Role.RadioButton,
+                onClick = aoSelecionar,
+            )
             .semantics {
-                role = Role.RadioButton
-            }
-            .padding(vertical = FrilaEspacamento.pequeno),
+                stateDescription = if (selecionado) "selecionado" else "não selecionado"
+            },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            RadioButton(selected = selecionado, onClick = aoSelecionar)
-            Text(text = motivo.descricao, style = MaterialTheme.typography.bodyMedium)
-        }
+        RadioButton(selected = selecionado, onClick = null)
+        Text(
+            text = motivo.descricao,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(start = FrilaEspacamento.pequeno),
+        )
     }
 }
 
