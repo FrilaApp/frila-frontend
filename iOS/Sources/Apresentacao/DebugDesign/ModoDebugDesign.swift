@@ -101,6 +101,17 @@ private struct PainelDebugModifier: ViewModifier {
                 }
                 .frame(width: 0, height: 0)
             }
+            .overlay {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(MagnifyGesture().onEnded { valor in
+                        if aberto && valor.magnification >= 1.15 {
+                            alterarPainel(aberto: false)
+                        }
+                    })
+                    .allowsHitTesting(aberto)
+                    .accessibilityHidden(true)
+            }
             .overlay(alignment: .top) {
                 cabecalho
                     .environment(\.colorScheme, .dark)
