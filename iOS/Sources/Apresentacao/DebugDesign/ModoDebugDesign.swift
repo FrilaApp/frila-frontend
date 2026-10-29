@@ -71,6 +71,7 @@ private struct PainelDebugModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .molduraDebug(aberto: aberto)
             .environment(\.contextoDebugDesign, contexto)
             .background {
                 DetectorDePressaoDeDoisDedos {
@@ -84,6 +85,7 @@ private struct PainelDebugModifier: ViewModifier {
             .overlay(alignment: .top) {
                 if aberto {
                     cabecalho
+                        .environment(\.colorScheme, .dark)
                         .padding(.top, 8)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
@@ -160,6 +162,23 @@ private struct PainelDebugModifier: ViewModifier {
     }
 }
 private extension View {
+    @ViewBuilder
+    func molduraDebug(aberto: Bool) -> some View {
+        if aberto {
+            self
+                .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+                .shadow(color: .black.opacity(0.06), radius: 3, y: 3)
+                .shadow(color: .black.opacity(0.06), radius: 12, y: 12)
+                .shadow(color: .black.opacity(0.06), radius: 24, y: 24)
+                .scaleEffect(0.93, anchor: .bottom)
+                .padding(.bottom, 8)
+                .allowsHitTesting(false)
+                .background(Color.black.ignoresSafeArea())
+        } else {
+            self
+        }
+    }
+
     @ViewBuilder
     func vidroDebug(reduzirTransparencia: Bool) -> some View {
         if #available(iOS 26, *), !reduzirTransparencia {
