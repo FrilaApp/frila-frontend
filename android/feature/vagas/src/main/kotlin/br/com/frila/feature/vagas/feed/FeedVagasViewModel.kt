@@ -2,6 +2,7 @@ package br.com.frila.feature.vagas.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
@@ -30,6 +31,7 @@ private val INICIO_NOITE: LocalTime = LocalTime.of(18, 0)
  */
 class FeedVagasViewModel(
     private val servicoVagas: ServicoVagas,
+    private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val armazenamentoPreferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
@@ -59,7 +61,11 @@ class FeedVagasViewModel(
         _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
-                vagasCarregadas = servicoVagas.listarVagasAbertas()
+                val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
+                // distanciaMaxKm fica de fora de propósito (achado bloqueante do Shisui): restringir no
+                // servidor impede ampliar o raio sem forçar um recarregamento — vagasCarregadas precisa
+                // conter todo o raio possível para que aplicarFiltros() seja reativo em qualquer chip.
+                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
                 aplicarFiltros()
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro)) }
@@ -78,7 +84,8 @@ class FeedVagasViewModel(
         _estado.update { it.copy(atualizando = true, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
-                vagasCarregadas = servicoVagas.listarVagasAbertas()
+                val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
+                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
                 aplicarFiltros()
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }

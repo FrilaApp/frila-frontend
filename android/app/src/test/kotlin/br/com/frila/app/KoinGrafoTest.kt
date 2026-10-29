@@ -15,8 +15,10 @@ import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
+import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import io.mockk.mockk
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -24,14 +26,28 @@ import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
+import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
 
 /**
  * Prova que o grafo Koin monta sem faltar nenhuma dependência — cada `get<T>()` que falhasse
  * aqui falharia exatamente do mesmo jeito em produção, na primeira tela que precisasse de T.
+ *
+ * Roda sem `androidContext()`, de propósito (ver comentário em [moduloSeguranca]): isso prova
+ * que `ArmazenamentoDeSessao`/`ArmazenamentoPreferenciasFiltro` continuam utilizáveis em JVM puro,
+ * sem `Context`. `moduloLocalizacao` é o único módulo que exige um `Context` Android de verdade
+ * (via `ProvedorDeLocalizacaoFused`), então aqui ele é substituído por [moduloLocalizacaoFalso],
+ * que resolve `ProvedorDeLocalizacao` sem precisar de `Context` — preserva o resto do grafo
+ * exatamente como era antes do RF05/RN02 (filtro por raio GPS) acrescentar essa dependência.
  */
+private val moduloLocalizacaoFalso = module {
+    single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
+}
+
 class KoinGrafoTest : KoinTest {
+
+    private val modulosDeTeste = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoFalso, moduloFeatures)
 
     private val vagaDeTeste = VagaAbertaDto(
         id = "vaga-1",
@@ -60,7 +76,7 @@ class KoinGrafoTest : KoinTest {
 
     @Test
     fun `grafo resolve todas as dependencias de rede, seguranca, notificacoes e features`() {
-        startKoin { modules(todosOsModulos) }
+        startKoin { modules(modulosDeTeste) }
 
         assertInstanceOf(ArmazenamentoDeSessaoEmMemoria::class.java, get<ArmazenamentoDeSessao>())
         assertNotNull(get<ClienteSupabase>())
@@ -78,7 +94,7 @@ class KoinGrafoTest : KoinTest {
 
     @Test
     fun `ClienteSupabase e um singleton compartilhado entre os servicos`() {
-        startKoin { modules(todosOsModulos) }
+        startKoin { modules(modulosDeTeste) }
 
         val primeiraResolucao = get<ClienteSupabase>()
         val segundaResolucao = get<ClienteSupabase>()

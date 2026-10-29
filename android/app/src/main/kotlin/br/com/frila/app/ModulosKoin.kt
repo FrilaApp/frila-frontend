@@ -81,7 +81,7 @@ val moduloFeatures = module {
     viewModel { EntradaViewModel(get()) }
     viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
     viewModel { CadastroViewModel() }
-    viewModel { FeedVagasViewModel(get(), get()) }
+    viewModel { FeedVagasViewModel(get(), get(), get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }
