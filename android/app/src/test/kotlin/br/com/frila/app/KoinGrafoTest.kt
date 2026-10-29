@@ -16,6 +16,7 @@ import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
+import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import io.mockk.mockk
@@ -88,6 +89,7 @@ class KoinGrafoTest : KoinTest {
         assertNotNull(get<EntradaViewModel>())
         assertNotNull(get<CadastroViewModel>())
         assertNotNull(get<FeedVagasViewModel>())
+        assertNotNull(get<PerfilViewModel>())
         assertNotNull(get<CodigoViewModel> { parametersOf("profissional@exemplo.com") })
         assertNotNull(get<DetalheVagaViewModel> { parametersOf(vagaDeTeste) })
     }

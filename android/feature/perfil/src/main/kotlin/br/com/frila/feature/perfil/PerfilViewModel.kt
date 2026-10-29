@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoPerfil
+import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.rede.TurnoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -22,6 +24,7 @@ import kotlinx.coroutines.launch
  */
 class PerfilViewModel(
     private val servicoPerfil: ServicoPerfil,
+    private val servicoTurnos: ServicoTurnos,
     private val armazenamentoDeSessao: ArmazenamentoDeSessao,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
@@ -36,12 +39,40 @@ class PerfilViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val perfil = servicoPerfil.obterMeuPerfilProfissional()
-                _estado.update { it.copy(status = StatusPerfil.SUCESSO, perfil = perfil) }
+                val resumoFinanceiro = carregarResumoFinanceiro()
+                _estado.update {
+                    it.copy(status = StatusPerfil.SUCESSO, perfil = perfil, resumoFinanceiro = resumoFinanceiro)
+                }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusPerfil.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
         }
     }
+
+    /**
+     * RF16: soma `valor_acordado_centavos` dos turnos `cumprida` (concluído) e `confirmada`
+     * (pendente), descartando `cancelada` (RN12). Falha de rede aqui não pode quebrar a tela de
+     * perfil inteira — degrada para [ResumoFinanceiroPerfil.VAZIO] e o perfil ainda carrega.
+     */
+    private suspend fun carregarResumoFinanceiro(): ResumoFinanceiroPerfil {
+        val turnos = try {
+            servicoTurnos.listarMeusTurnos()
+        } catch (_: Throwable) {
+            return ResumoFinanceiroPerfil.VAZIO
+        }
+
+        val cumpridos = turnos.filter { it.estado == "cumprida" }
+        val confirmados = turnos.filter { it.estado == "confirmada" }
+
+        return ResumoFinanceiroPerfil(
+            totalConcluidoCentavos = cumpridos.somaCentavos(),
+            totalPendenteCentavos = confirmados.somaCentavos(),
+            turnosCumpridosQtd = cumpridos.size,
+            turnosAgendadosQtd = confirmados.size,
+        )
+    }
+
+    private fun List<TurnoDto>.somaCentavos(): Long = sumOf { it.valorAcordadoCentavos }
 
     /** RN15: encerra a sessão local. Não chama a rede — logout é só limpar o que ficou no aparelho. */
     fun aoDeslogar() {

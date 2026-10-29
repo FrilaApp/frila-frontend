@@ -2,6 +2,7 @@ package br.com.frila.feature.perfil
 
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoPerfil
+import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -39,9 +40,55 @@ class PerfilViewModelTest {
         }
     """.trimIndent()
 
-    private fun viewModelComEngine(engine: MockEngine, armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true)): PerfilViewModel {
+    private fun turnoJson(id: String, estado: String, valorAcordadoCentavos: Long) = """
+        {
+          "id": "$id",
+          "posicao_id": "posicao-$id",
+          "vaga": {
+            "id": "vaga-$id",
+            "funcao": "garçom",
+            "local": "SQN 108",
+            "regiao_administrativa": "Asa Norte",
+            "inicio_em": "2026-11-01T21:00:00Z",
+            "fim_em": "2026-11-02T03:00:00Z",
+            "valor_centavos": $valorAcordadoCentavos
+          },
+          "contraparte": {
+            "id": "e1",
+            "tipo": "estabelecimento",
+            "nome": "Bar do Zé",
+            "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}
+          },
+          "contato_visivel_ate": "2026-11-09T03:00:00Z",
+          "a_caminho_em": null,
+          "checkin_em": null,
+          "checkin_tipo": null,
+          "checkin_distancia_m": null,
+          "checkin_confirmado_em": null,
+          "checkout_em": null,
+          "checkout_distancia_m": null,
+          "verificacao": "pendente",
+          "valor_acordado_centavos": $valorAcordadoCentavos,
+          "pode_avaliar": false,
+          "estado": "$estado",
+          "avaliacao": null,
+          "cancelamento": null
+        }
+    """.trimIndent()
+
+    private fun viewModelComEngine(
+        engine: MockEngine,
+        armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true),
+        engineTurnos: MockEngine = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+    ): PerfilViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
-        return PerfilViewModel(ServicoPerfil(cliente), armazenamento, escopo = CoroutineScope(Dispatchers.Default))
+        val clienteTurnos = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engineTurnos)
+        return PerfilViewModel(
+            servicoPerfil = ServicoPerfil(cliente),
+            servicoTurnos = ServicoTurnos(clienteTurnos),
+            armazenamentoDeSessao = armazenamento,
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
     }
 
     @Test
@@ -237,5 +284,72 @@ class PerfilViewModelTest {
         assertFalse(viewModel.estado.value.especialidadesSelecionadas.contains("Coquetelaria clássica"))
         assertTrue(viewModel.estado.value.especialidadesSelecionadas.contains("Vinhos e sommellerie"))
         assertEquals(1, viewModel.estado.value.especialidadesSelecionadas.size)
+    }
+
+    @Test
+    fun `resumoFinanceiro soma cumpridas e confirmadas descartando canceladas (RF16, RN12)`() = runBlocking {
+        val turnosJson = "[" + listOf(
+            turnoJson(id = "a", estado = "cumprida", valorAcordadoCentavos = 10_000L),
+            turnoJson(id = "b", estado = "cumprida", valorAcordadoCentavos = 15_000L),
+            turnoJson(id = "c", estado = "confirmada", valorAcordadoCentavos = 20_000L),
+            turnoJson(id = "d", estado = "cancelada", valorAcordadoCentavos = 99_999L),
+        ).joinToString(",") + "]"
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+            engineTurnos = MockEngine { respond(content = turnosJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+
+        viewModel.carregar().join()
+
+        val resumo = viewModel.estado.value.resumoFinanceiro
+        assertNotNull(resumo)
+        assertEquals(25_000L, resumo!!.totalConcluidoCentavos)
+        assertEquals(20_000L, resumo.totalPendenteCentavos)
+        assertEquals(45_000L, resumo.totalGeralCentavos)
+        assertEquals(2, resumo.turnosCumpridosQtd)
+        assertEquals(1, resumo.turnosAgendadosQtd)
+        // NumberFormat pt-BR usa espaço não quebrável entre "R$" e o valor (mesma ressalva de
+        // DinheiroTest) — comparar só o valor numérico evita depender desse detalhe de locale.
+        assertTrue(resumo.totalConcluidoFormatado.contains("250,00"))
+        assertTrue(resumo.totalPendenteFormatado.contains("200,00"))
+        assertTrue(resumo.totalGeralFormatado.contains("450,00"))
+    }
+
+    @Test
+    fun `resumoFinanceiro sem turnos tem temHistorico falso`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+            engineTurnos = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+
+        viewModel.carregar().join()
+
+        val resumo = viewModel.estado.value.resumoFinanceiro
+        assertNotNull(resumo)
+        assertFalse(resumo!!.temHistorico)
+        assertEquals(0L, resumo.totalGeralCentavos)
+    }
+
+    @Test
+    fun `falha em servicoTurnos nao quebra o carregamento do perfil, resumo cai para vazio`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+            engineTurnos = MockEngine {
+                respond(
+                    content = """{"code":"500","message":"erro interno"}""",
+                    status = HttpStatusCode.InternalServerError,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusPerfil.SUCESSO, viewModel.estado.value.status)
+        assertNotNull(viewModel.estado.value.perfil)
+        val resumo = viewModel.estado.value.resumoFinanceiro
+        assertNotNull(resumo)
+        assertFalse(resumo!!.temHistorico)
+        assertEquals(ResumoFinanceiroPerfil.VAZIO, resumo)
     }
 }
