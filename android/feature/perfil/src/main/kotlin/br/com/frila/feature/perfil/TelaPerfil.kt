@@ -95,6 +95,7 @@ fun TelaPerfil(
             StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                 funcoes = estado.perfil?.funcoes.orEmpty(),
                 reputacao = estado.perfil?.reputacao,
+                resumoFinanceiro = estado.resumoFinanceiro,
                 bio = estado.bio,
                 bioEmEdicao = estado.bioEmEdicao,
                 estaEditandoBio = estado.estaEditandoBio,
@@ -134,6 +135,7 @@ fun TelaPerfil(
 private fun ConteudoDoPerfil(
     funcoes: List<FuncaoDto>,
     reputacao: ReputacaoDto?,
+    resumoFinanceiro: ResumoFinanceiroPerfil?,
     bio: String,
     bioEmEdicao: String,
     estaEditandoBio: Boolean,
@@ -158,6 +160,7 @@ private fun ConteudoDoPerfil(
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
         BlocoDeReputacao(reputacao)
+        BlocoDeRemuneracoes(resumoFinanceiro)
         BlocoDeBioProfissional(
             bio = bio,
             bioEmEdicao = bioEmEdicao,
@@ -213,6 +216,50 @@ private fun BlocoDeReputacao(reputacao: ReputacaoDto?) {
 
 private fun formatarTaxa(taxa: Double?): String =
     if (taxa == null) "Sem histórico" else "${(taxa * 100).roundToInt()}%"
+
+/**
+ * RF16/RN09: resumo dos valores acordados diretamente entre profissional e estabelecimento.
+ * Nunca um saldo, carteira ou extrato mantido pelo app — o Frila não intermedia pagamento
+ * (Zero Escrow). Sem turnos cumpridos/agendados, mostra um texto neutro em vez de "R$ 0,00".
+ */
+@Composable
+private fun BlocoDeRemuneracoes(resumo: ResumoFinanceiroPerfil?) {
+    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Remunerações acordadas",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            text = "Valores combinados diretamente com os estabelecimentos (RN09)",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Column(
+            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+        ) {
+            if (resumo == null || !resumo.temHistorico) {
+                Text(
+                    text = "Nenhum turno realizado ou agendado ainda",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                Text(
+                    text = "Concluído: ${resumo.totalConcluidoFormatado} (${resumo.turnosCumpridosQtd} turnos cumpridos)",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = "Pendente: ${resumo.totalPendenteFormatado} (${resumo.turnosAgendadosQtd} turnos agendados)",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = "Total acumulado: ${resumo.totalGeralFormatado}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+    }
+}
 
 /** RF02: Biografia profissional com limite estrito de 280 caracteres e contador acessível. */
 @Composable

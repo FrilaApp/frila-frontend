@@ -86,7 +86,7 @@ val moduloFeatures = module {
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }
     viewModel { AvaliacaoViewModel(get()) }
-    viewModel { PerfilViewModel(get(), get()) }
+    viewModel { PerfilViewModel(get(), get(), get()) }
     viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }
 }
 
