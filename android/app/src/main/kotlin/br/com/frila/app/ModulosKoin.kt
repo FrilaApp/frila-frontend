@@ -19,6 +19,9 @@ import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
+import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltro
+import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
+import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroSharedPreferences
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
@@ -65,10 +68,19 @@ val moduloLocalizacao = module {
 }
 
 val moduloFeatures = module {
+    single<ArmazenamentoPreferenciasFiltro> {
+        getOrNull<Context>()
+            ?.let { ctx ->
+                ArmazenamentoPreferenciasFiltroSharedPreferences(
+                    ctx.getSharedPreferences("preferencias_filtros_vagas", Context.MODE_PRIVATE),
+                )
+            }
+            ?: ArmazenamentoPreferenciasFiltroEmMemoria()
+    }
     viewModel { EntradaViewModel(get()) }
     viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
     viewModel { CadastroViewModel() }
-    viewModel { FeedVagasViewModel(get()) }
+    viewModel { FeedVagasViewModel(get(), get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }

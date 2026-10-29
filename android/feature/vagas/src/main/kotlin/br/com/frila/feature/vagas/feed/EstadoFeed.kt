@@ -19,12 +19,31 @@ enum class FiltroPeriodo(val rotulo: String) {
     NOITE("Noite"),
 }
 
-/** Piso de remuneração escolhido pelo profissional no feed. */
+/** Piso de remuneração escolhido pelo profissional no feed (valor total do turno). */
 enum class FiltroRemuneracao(val minimoCentavos: Long?, val rotulo: String) {
     QUALQUER(null, "Qualquer"),
     CEM(10_000L, "R$ 100+"),
     CENTO_E_CINQUENTA(15_000L, "R$ 150+"),
     DUZENTOS(20_000L, "R$ 200+"),
+}
+
+/**
+ * Faixa de remuneração líquida por hora (RF05/RN01).
+ * Representa os limites em R$/h selecionados pelo profissional através do RangeSlider.
+ */
+data class FaixaRemuneracaoHora(
+    val minima: Float = LIMITE_MINIMO,
+    val maxima: Float = LIMITE_MAXIMO,
+    val ativa: Boolean = false,
+) {
+    val intervalo: ClosedFloatingPointRange<Float>
+        get() = minima..maxima
+
+    companion object {
+        const val LIMITE_MINIMO = 20f
+        const val LIMITE_MAXIMO = 150f
+        val PADRAO = FaixaRemuneracaoHora(minima = 25f, maxima = 100f, ativa = false)
+    }
 }
 
 /** Item já formatado para exibição no cartão do feed. */
@@ -48,6 +67,7 @@ data class EstadoFeed(
     val filtroFuncao: String? = null,
     val filtroRemuneracao: FiltroRemuneracao = FiltroRemuneracao.QUALQUER,
     val filtroPeriodo: FiltroPeriodo = FiltroPeriodo.QUALQUER,
+    val faixaRemuneracaoHora: FaixaRemuneracaoHora = FaixaRemuneracaoHora.PADRAO,
     val exibindoFiltrosAvancados: Boolean = false,
     val mensagemErro: String? = null,
     val atualizando: Boolean = false,
