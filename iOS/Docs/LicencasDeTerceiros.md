@@ -103,11 +103,11 @@ Todas as dependências externas são resolvidas estritamente pelo Swift Package 
 - **Resultado:** **Nenhum código copiado.**
 - **Conformidade:** 100% das dependências externas são consumidas via Swift Package Manager sob as revisões exatas registradas em `iOS/Package.resolved`. Não existem arquivos terceiros soltos no projeto.
 
-### 4.4 Ativos Gráficos do Aplicativo (`App.xcassets`)
-- **Auditoria:** Inspeção do catálogo de ativos `iOS/Resources/App.xcassets`.
-- **Resultado:** O catálogo contém apenas:
-  - `AppIcon.appiconset`: Ícone do aplicativo desenvolvido exclusivamente pelo time FrilaApp.
-  - `AccentColor.colorset`: Paleta de cores semânticas da identidade visual da marca.
+### 4.4 Ativos Gráficos do Aplicativo (`App.xcassets` e `AppIcon.icon`)
+- **Auditoria:** Inspeção do catálogo de ativos `iOS/Resources/App.xcassets` e do ícone `iOS/Resources/AppIcon.icon`.
+- **Resultado:**
+  - `AppIcon.icon`: Ícone do aplicativo desenvolvido exclusivamente pelo time FrilaApp. O F usa a fonte Prodigy Sans (SIL OFL 1.1), convertida em contorno.
+  - `App.xcassets/AccentColor.colorset`: Paleta de cores semânticas da identidade visual da marca.
 - **Conformidade:** Nenhum ativo visual pertencente a terceiros faz parte dos pacotes do aplicativo.
 
 ---
