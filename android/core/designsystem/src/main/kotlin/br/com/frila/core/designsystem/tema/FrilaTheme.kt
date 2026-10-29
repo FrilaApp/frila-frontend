@@ -42,6 +42,15 @@ internal val EsquemaEscuro = darkColorScheme(
     tertiary = FrilaCores.successDark,
 )
 
+/**
+ * Modo OLED (RNF10): só `background` vira preto puro. `surface`/`surfaceVariant` permanecem em
+ * `surfaceElevatedDark` (#1C1C1A) de propósito — é o contraste entre o preto puro do fundo e o
+ * cinza quase-preto dos cartões que dá a elevação visual; igualar os dois apagaria essa hierarquia.
+ */
+internal val EsquemaEscuroOled = EsquemaEscuro.copy(
+    background = FrilaCores.surfaceOled,
+)
+
 val ColorScheme.brandAccent: Color
     get() = if (primary == FrilaCores.brandPrimaryDark) {
         FrilaCores.brandAccentDark
@@ -83,11 +92,19 @@ internal fun ColorScheme.comCoresCriticasFrila(temaEscuro: Boolean): ColorScheme
     error = if (temaEscuro) FrilaCores.dangerDark else FrilaCores.dangerLight,
 )
 
-/** Tema raiz do app: esquema de cores claro/escuro automático pelo sistema, tipografia Frila. */
+/**
+ * Tema raiz do app: esquema de cores claro/escuro automático pelo sistema, tipografia Frila.
+ *
+ * `dynamicColor` (Material You, API 31+) gera o esquema a partir do papel de parede do aparelho
+ * e sempre aplica [comCoresCriticasFrila] por cima, para que marca e cores semânticas (perigo)
+ * nunca fiquem reféns da paleta extraída do usuário. `modoOled` (RNF10) só tem efeito no escuro
+ * — dynamic ou não — e troca só o `background` para preto puro.
+ */
 @Composable
 fun FrilaTheme(
     temaEscuro: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    modoOled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -97,7 +114,14 @@ fun FrilaTheme(
         } else {
             dynamicLightColorScheme(context)
         }
-        esquemaDinamico.comCoresCriticasFrila(temaEscuro)
+        val comCriticas = esquemaDinamico.comCoresCriticasFrila(temaEscuro)
+        if (temaEscuro && modoOled) {
+            comCriticas.copy(background = FrilaCores.surfaceOled)
+        } else {
+            comCriticas
+        }
+    } else if (temaEscuro && modoOled) {
+        EsquemaEscuroOled
     } else if (temaEscuro) {
         EsquemaEscuro
     } else {

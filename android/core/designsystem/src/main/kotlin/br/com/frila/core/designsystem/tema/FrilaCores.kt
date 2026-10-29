@@ -27,6 +27,10 @@ object FrilaCores {
     val surfaceElevatedLight = Color(0xFFFFFFFF)
     val surfaceElevatedDark = Color(0xFF1C1C1A)
 
+    // SurfaceOled: preto puro para o modo OLED (RNF10) — só o fundo (`background`); cartões
+    // continuam em surfaceElevatedDark para manter elevação visual sobre o preto puro.
+    val surfaceOled = Color(0xFF000000)
+
     val textPrimaryLight = Color(0xFF111110)
     val textPrimaryDark = Color(0xFFF5F4F0)
 
