@@ -284,3 +284,26 @@ data class ExclusaoDeContaDto(
     @SerialName("dados_apagados_ate") val dadosApagadosAte: String,
     @SerialName("turnos_cancelados") val turnosCancelados: Int,
 )
+
+/**
+ * Corpo de `POST /rest/v1/rpc/abrir_suporte` (RF12/RF23, UC14). Só a categoria normativa vai
+ * ao backend — nunca relato de texto livre nem foto (RN15).
+ */
+@Serializable
+data class AbrirSuporteDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("categoria") val categoria: String,
+    @SerialName("chave") val chave: String,
+)
+
+/**
+ * Resposta de `/rpc/abrir_suporte` (schema `Protocolo`, MEDIDO em
+ * `iOS/Contrato/openapi.yaml:4921`). `tipo` é sempre `"suporte"` para esta chamada.
+ */
+@Serializable
+data class ProtocoloDto(
+    @SerialName("ocorrencia_id") val ocorrenciaId: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("criada_em") val criadaEm: String,
+    @SerialName("prazo_resposta_ate") val prazoRespostaAte: String,
+)

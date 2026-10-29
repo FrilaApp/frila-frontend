@@ -363,4 +363,81 @@ class ServicoTurnosTest {
         assertEquals(CodigoErroAPI.CAMPO_INVALIDO, (excecao as ErroDaApi).codigo)
         assertEquals("motivo", excecao.detalhes)
     }
+
+    @Test
+    fun `abrirSuporte chama POST rpc abrir_suporte com o corpo certo e decodifica o protocolo`() = runTest {
+        var caminhoChamado: String? = null
+        var corpoChamado: String? = null
+        val engine = MockEngine { request ->
+            caminhoChamado = request.url.encodedPath
+            corpoChamado = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """
+                    {
+                      "ocorrencia_id": "6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88",
+                      "tipo": "suporte",
+                      "criada_em": "2026-10-08T14:00:00Z",
+                      "prazo_resposta_ate": "2026-10-15"
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val protocolo = servico.abrirSuporte(turnoId = "t-1", categoria = "seguranca", chave = "chave-1")
+
+        assertEquals("/rest/v1/rpc/abrir_suporte", caminhoChamado)
+        assertTrue(corpoChamado!!.contains("\"turno_id\":\"t-1\""))
+        assertTrue(corpoChamado!!.contains("\"categoria\":\"seguranca\""))
+        assertTrue(corpoChamado!!.contains("\"chave\":\"chave-1\""))
+        assertEquals("6f1c2a4e-2b7d-4c5e-9a1f-3d2e1c0b9a88", protocolo.ocorrenciaId)
+        assertEquals("suporte", protocolo.tipo)
+    }
+
+    @Test
+    fun `abrirSuporte com campo_invalido propaga o codigo de dominio`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"campo_invalido","message":"categoria fora do enum","details":"categoria"}""",
+                status = HttpStatusCode.UnprocessableEntity,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val excecao = runCatching {
+            servico.abrirSuporte(turnoId = "t-1", categoria = "invalida", chave = "chave-1")
+        }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.CAMPO_INVALIDO, (excecao as ErroDaApi).codigo)
+        assertEquals("categoria", excecao.detalhes)
+    }
+
+    @Test
+    fun `abrirSuporte com limite_excedido propaga o codigo de dominio`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"limite_excedido","message":"maximo de chamados diarios atingido"}""",
+                status = HttpStatusCode.TooManyRequests,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val excecao = runCatching {
+            servico.abrirSuporte(turnoId = "t-1", categoria = "outro", chave = "chave-1")
+        }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.LIMITE_EXCEDIDO, (excecao as ErroDaApi).codigo)
+    }
 }

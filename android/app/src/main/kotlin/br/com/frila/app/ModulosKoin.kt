@@ -27,6 +27,7 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -86,6 +87,7 @@ val moduloFeatures = module {
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }
     viewModel { AvaliacaoViewModel(get()) }
     viewModel { PerfilViewModel(get(), get()) }
+    viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }
 }
 
 val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures)
