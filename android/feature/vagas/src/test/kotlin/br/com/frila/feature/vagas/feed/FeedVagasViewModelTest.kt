@@ -1,5 +1,7 @@
 package br.com.frila.feature.vagas.feed
 
+import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import io.ktor.client.engine.mock.MockEngine
@@ -7,11 +9,14 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -53,13 +58,21 @@ class FeedVagasViewModelTest {
         }
     """.trimIndent()
 
+    private fun provedorSemCoordenada(): ProvedorDeLocalizacao {
+        val provedor = mockk<ProvedorDeLocalizacao>()
+        coEvery { provedor.obterCoordenadaAtual() } returns null
+        return provedor
+    }
+
     private fun viewModelComEngine(
         engine: MockEngine,
         preferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
+        provedorDeLocalizacao: ProvedorDeLocalizacao = provedorSemCoordenada(),
     ): FeedVagasViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         return FeedVagasViewModel(
             servicoVagas = ServicoVagas(cliente),
+            provedorDeLocalizacao = provedorDeLocalizacao,
             armazenamentoPreferencias = preferencias,
             escopo = CoroutineScope(Dispatchers.Default),
         )
@@ -595,5 +608,95 @@ class FeedVagasViewModelTest {
 
         assertEquals(FaixaRemuneracaoHora.PADRAO, viewModel.estado.value.faixaRemuneracaoHora)
         assertEquals(null, preferencias.obterFaixaRemuneracaoHora())
+    }
+
+    @Test
+    fun `filtro de distancia 25km exclui vaga acima do raio`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", distanciaKm = 20.0)}, ${vagaJson(id = "b", distanciaKm = 30.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.VINTE_E_CINCO_KM)
+
+        assertEquals(listOf("a"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `filtro de distancia 50km exclui vaga acima do raio`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", distanciaKm = 40.0)}, ${vagaJson(id = "b", distanciaKm = 60.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.CINQUENTA_KM)
+
+        assertEquals(listOf("a"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `carregar repassa coordenada atual ao ServicoVagas`() = runBlocking {
+        var latitudeRecebida: String? = null
+        var longitudeRecebida: String? = null
+        val provedor = mockk<ProvedorDeLocalizacao>()
+        coEvery { provedor.obterCoordenadaAtual() } returns Coordenada(latitude = -15.79, longitude = -47.88)
+        val viewModel = viewModelComEngine(
+            MockEngine { request ->
+                latitudeRecebida = request.url.parameters["latitude"]
+                longitudeRecebida = request.url.parameters["longitude"]
+                respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+            provedorDeLocalizacao = provedor,
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals("-15.79", latitudeRecebida)
+        assertEquals("-47.88", longitudeRecebida)
+    }
+
+    @Test
+    fun `carregar sem coordenada disponivel chama ServicoVagas sem latitude e longitude (fallback gracioso)`() = runBlocking {
+        var tinhaLatitude = true
+        val viewModel = viewModelComEngine(
+            MockEngine { request ->
+                tinhaLatitude = request.url.parameters.contains("latitude")
+                respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+            provedorDeLocalizacao = provedorSemCoordenada(),
+        )
+
+        viewModel.carregar().join()
+
+        assertTrue(!tinhaLatitude)
+        assertEquals(StatusFeed.VAZIO, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `carregar repassa distancia_max_km quando filtro de distancia esta ativo`() = runBlocking {
+        var distanciaMaxRecebida: String? = null
+        val viewModel = viewModelComEngine(
+            MockEngine { request ->
+                distanciaMaxRecebida = request.url.parameters["distancia_max_km"]
+                respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.VINTE_E_CINCO_KM)
+
+        viewModel.carregar().join()
+
+        assertEquals("25.0", distanciaMaxRecebida)
     }
 }

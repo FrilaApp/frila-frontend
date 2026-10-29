@@ -9,6 +9,8 @@ enum class FiltroDistancia(val limiteKm: Double?, val rotulo: String) {
     CINCO_KM(limiteKm = 5.0, rotulo = "5 km"),
     DEZ_KM(limiteKm = 10.0, rotulo = "10 km"),
     QUINZE_KM(limiteKm = 15.0, rotulo = "15 km"),
+    VINTE_E_CINCO_KM(limiteKm = 25.0, rotulo = "25 km"),
+    CINQUENTA_KM(limiteKm = 50.0, rotulo = "50 km"),
 }
 
 /** Período do dia calculado pelo horário de início da vaga em Brasília. */

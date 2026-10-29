@@ -13,10 +13,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaTheme
+import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Rule
@@ -39,8 +42,11 @@ class FiltrosAvancadosVagasTest {
             apiKey = "chave-teste",
             engine = MockEngine { respond("[]") },
         )
+        val provedorDeLocalizacao = mockk<ProvedorDeLocalizacao>()
+        coEvery { provedorDeLocalizacao.obterCoordenadaAtual() } returns null
         val viewModel = FeedVagasViewModel(
             ServicoVagas(cliente),
+            provedorDeLocalizacao = provedorDeLocalizacao,
             escopo = CoroutineScope(Dispatchers.Default),
         )
         compose.setContent {

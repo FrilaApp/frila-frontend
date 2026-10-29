@@ -1,6 +1,7 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.Coordenada
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -56,6 +57,71 @@ class ServicoVagasTest {
         assertEquals("garçom", vagas.first().funcao.nome)
         assertEquals(16_000L, vagas.first().valorCentavos)
         assertEquals(2, vagas.first().posicoesAbertas)
+    }
+
+    @Test
+    fun `listarVagasAbertas sem coordenada nao envia latitude longitude nem distancia_max_km`() = runTest {
+        var parametros: io.ktor.http.Parameters? = null
+        val engine = MockEngine { request ->
+            parametros = request.url.parameters
+            respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        servico.listarVagasAbertas()
+
+        assertTrue(parametros?.contains("latitude") == false)
+        assertTrue(parametros?.contains("longitude") == false)
+        assertTrue(parametros?.contains("distancia_max_km") == false)
+    }
+
+    @Test
+    fun `listarVagasAbertas com coordenada envia latitude e longitude na URL`() = runTest {
+        var parametros: io.ktor.http.Parameters? = null
+        val engine = MockEngine { request ->
+            parametros = request.url.parameters
+            respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        servico.listarVagasAbertas(coordenada = Coordenada(latitude = -15.79, longitude = -47.88))
+
+        assertEquals("-15.79", parametros?.get("latitude"))
+        assertEquals("-47.88", parametros?.get("longitude"))
+    }
+
+    @Test
+    fun `listarVagasAbertas com distanciaMaxKm envia distancia_max_km na URL`() = runTest {
+        var parametros: io.ktor.http.Parameters? = null
+        val engine = MockEngine { request ->
+            parametros = request.url.parameters
+            respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        servico.listarVagasAbertas(distanciaMaxKm = 25.0)
+
+        assertEquals("25.0", parametros?.get("distancia_max_km"))
+    }
+
+    @Test
+    fun `listarVagasAbertas com coordenada e distanciaMaxKm envia os tres parametros juntos`() = runTest {
+        var parametros: io.ktor.http.Parameters? = null
+        val engine = MockEngine { request ->
+            parametros = request.url.parameters
+            respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val servico = ServicoVagas(cliente)
+
+        servico.listarVagasAbertas(coordenada = Coordenada(latitude = -15.79, longitude = -47.88), distanciaMaxKm = 50.0)
+
+        assertEquals("-15.79", parametros?.get("latitude"))
+        assertEquals("-47.88", parametros?.get("longitude"))
+        assertEquals("50.0", parametros?.get("distancia_max_km"))
     }
 
     @Test
