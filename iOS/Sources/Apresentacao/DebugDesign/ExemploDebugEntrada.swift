@@ -6,7 +6,8 @@ private struct ExemploDebugEntrada: ViewModifier {
     private let registro = RegistroDebugDesign(
         id: "entrada",
         titulo: "Entrada",
-        variantes: ["EXEMPLO — normal", "EXEMPLO — marcador"],
+        tituloRaiz: "EXEMPLO — normal",
+        variantes: ["EXEMPLO — marcador"],
         decisoes: ["EXEMPLO — decisão demonstrativa, sem conteúdo de produto."]
     )
 
