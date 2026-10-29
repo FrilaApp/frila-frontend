@@ -87,6 +87,15 @@ fun TelaCadastro(
                 .semantics { erroNome?.let { error(it) } },
         )
 
+        if (erroNome != null) {
+            Text(
+                text = erroNome,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+            )
+        }
+
         OutlinedTextField(
             value = estado.cpf,
             onValueChange = viewModel::aoMudarCpf,
@@ -139,9 +148,9 @@ fun TelaCadastro(
             mensagemErro = erroNascimento,
         )
 
-        if (estado.nascimento != null && !estado.nascimentoValido) {
+        if (erroNascimento != null) {
             Text(
-                text = MENSAGEM_MENOR_DE_IDADE,
+                text = erroNascimento,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
@@ -175,7 +184,7 @@ fun TelaCadastro(
         }
 
         val erroGenerico = estado.erro?.takeUnless {
-            it == MENSAGEM_MENOR_DE_IDADE || it == erroCpf || it == erroTelefone
+            it == erroNome || it == erroCpf || it == erroTelefone || it == erroNascimento
         }
         if (erroGenerico != null) {
             Text(
