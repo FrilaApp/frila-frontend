@@ -97,8 +97,7 @@ private struct PainelDebugModifier: ViewModifier {
             .environment(\.contextoDebugDesign, contexto)
             .background {
                 DetectorDePressaoDeDoisDedos {
-                    guard !aberto else { return }
-                    alterarPainel(aberto: true)
+                    alterarPainel(aberto: !aberto)
                 }
                 .frame(width: 0, height: 0)
             }
