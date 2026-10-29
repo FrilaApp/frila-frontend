@@ -94,6 +94,15 @@ for arg in "$@" ${autenticacao[@]+"${autenticacao[@]}"}; do
   fi
 done
 
+# Assegura que nenhuma invocação no script contorne a função de guarda com o binário direto
+script_proprio="${BASH_SOURCE[0]:-$0}"
+if [[ -f "$script_proprio" ]]; then
+  chamadas_diretas=$(grep -nE '(^|[[:space:]])command[[:space:]]+xcodebuild' "$script_proprio" 2>/dev/null | grep -v 'command xcodebuild "\$@"' | grep -v '^[[:space:]]*#' | grep -v 'chamadas_diretas' || true)
+  if [[ -n "$chamadas_diretas" ]]; then
+    falhar "chamada direta ao xcodebuild detectada fora do wrapper (proibido na CI): $chamadas_diretas"
+  fi
+fi
+
 # Inspeciona variáveis de ambiente de compilação e assinatura
 for var_name in $(compgen -v | grep -iE '^(XCODE|BUILD|CODE_SIGN|PROVISIONING|FRILA|ASC|OTHER|EXTRA|ACTION)' 2>/dev/null || true); do
   val="${!var_name:-}"

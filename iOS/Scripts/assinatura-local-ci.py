@@ -105,14 +105,44 @@ def apagar(pasta):
     perfis_json = pasta / "perfis-instalados.json"
     if perfis_json.exists():
         try:
-            for caminho in json.loads(perfis_json.read_text()):
-                pathlib.Path(caminho).unlink(missing_ok=True)
-        except OSError as erro:
-            falhas.append(str(erro))
-    # Se security falhar, mantém o estado para uma nova tentativa de limpeza.
+            caminhos = json.loads(perfis_json.read_text())
+        except (json.JSONDecodeError, OSError):
+            caminhos = []
+        restantes = []
+        for caminho in caminhos:
+            p = pathlib.Path(caminho)
+            if p.exists():
+                try:
+                    p.unlink()
+                except OSError as erro:
+                    restantes.append(caminho)
+                    falhas.append(f"falha ao remover perfil {caminho}: {erro}")
+        try:
+            perfis_json.write_text(json.dumps(restantes))
+        except OSError:
+            pass
+    # Se security ou remoção de perfil falhar, mantém o estado para nova tentativa.
     if falhas:
         raise RuntimeError("; ".join(falhas))
     shutil.rmtree(pasta)
+
+
+def gravar_perfil_atomicamente(destino: pathlib.Path, dados: bytes) -> None:
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    temp = destino.with_name(f".{destino.name}.tmp")
+    try:
+        temp.write_bytes(dados)
+        os.replace(temp, destino)
+    except Exception:
+        try:
+            temp.unlink(missing_ok=True)
+        except OSError:
+            pass
+        try:
+            destino.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
 
 
 def importar_perfis(pasta, cert_sha256, equipe):
@@ -143,32 +173,37 @@ def importar_perfis(pasta, cert_sha256, equipe):
                                               pathlib.Path.home() / "Library" / "MobileDevice" / "Provisioning Profiles")).resolve()
     pasta_perfis.mkdir(parents=True, exist_ok=True)
 
-    manifesto_perfis = pasta / "perfis-instalados.json"
-    manifesto_perfis.write_text(json.dumps([]))
-
     uuid_app = plist_app["UUID"]
     nome_app = plist_app["Name"]
     uuid_notif = plist_notif["UUID"]
     nome_notif = plist_notif["Name"]
 
-    instalados = []
-    try:
-        destino_app = pasta_perfis / f"{uuid_app}.mobileprovision"
-        destino_app.write_bytes(dados_app)
-        instalados.append(str(destino_app))
-        manifesto_perfis.write_text(json.dumps(instalados))
+    destino_app = pasta_perfis / f"{uuid_app}.mobileprovision"
+    destino_notif = pasta_perfis / f"{uuid_notif}.mobileprovision"
+    alvos = [destino_app, destino_notif]
 
-        destino_notif = pasta_perfis / f"{uuid_notif}.mobileprovision"
-        destino_notif.write_bytes(dados_notif)
-        instalados.append(str(destino_notif))
-        manifesto_perfis.write_text(json.dumps(instalados))
-    except Exception:
-        for caminho in instalados:
-            try:
-                pathlib.Path(caminho).unlink(missing_ok=True)
-            except OSError:
-                pass
-        manifesto_perfis.write_text(json.dumps([]))
+    manifesto_perfis = pasta / "perfis-instalados.json"
+    manifesto_perfis.write_text(json.dumps([str(p) for p in alvos]))
+
+    try:
+        gravar_perfil_atomicamente(destino_app, dados_app)
+        gravar_perfil_atomicamente(destino_notif, dados_notif)
+    except Exception as erro:
+        restantes = []
+        falhas_remocao = []
+        for p in alvos:
+            for f in (p, p.with_name(f".{p.name}.tmp"), p.with_name(f"{p.name}.tmp")):
+                if f.exists():
+                    try:
+                        f.unlink()
+                    except OSError as err_unlink:
+                        caminho_str = str(f)
+                        if caminho_str not in restantes:
+                            restantes.append(caminho_str)
+                        falhas_remocao.append(f"{f}: {err_unlink}")
+        manifesto_perfis.write_text(json.dumps(restantes))
+        if restantes:
+            raise RuntimeError(f"falha na instalação de perfis e sobra no rollback ({'; '.join(falhas_remocao)})") from erro
         raise
 
     if "GITHUB_ENV" in os.environ:
