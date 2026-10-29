@@ -51,17 +51,18 @@ Owner ou Admin da organização `Frila'orgs`.
 
 ## 3. O que falta para o frila-prod funcionar ponta a ponta
 
-Estado em 11/10/2026, conforme [ExternalSetup](ExternalSetup.md) item 9 e a triagem.
+Atualizado em 28/10/2026 com base em comandos locais e execuções da CI (o estado preliminar de 11/10/2026 descrevia o ambiente vazio; a data de provisionamento em 26/10 é proposta no PR #540, ainda aberto: não verificado).
 
-| Item | Cartão | Responsável | Descrição |
-|---|---|---|---|
-| Migrações do banco | #76 (ambiente de produção) | Backend / Cauê | As 29+ migrações do `frila-dev` precisam ser aplicadas no `frila-prod` |
-| Auth (Supabase) | #76 | Backend / Cauê | Configuração do Supabase Auth com templates de e-mail, redirect URLs |
-| SMTP próprio | Cartão SMTP | Cauê | SPF, DKIM e DMARC do domínio `frilabr.com`; configuração no painel do Supabase |
-| FCM (Edge Function) | #76 | Backend | `service_role` e service account do FCM como segredo de Edge Function |
-| `pg_cron` | #76 / #207 | Backend | Agendador do despacho de turnos |
-| Esquema da tag → Prod | [CI](CI.md) | Cauê | No `testflight.yml`, trocar `ESQUEMA_DA_TAG: Frila-Beta` para `Frila-Prod` |
-| Dados de teste | #76 | Cauê | Catálogo e duas contas de revisão, nada mais |
+| Item | Cartão / Origem | Responsável | Estado em 28/10/2026 | Evidência / Como verificar |
+|---|---|---|---|---|
+| Migrações do banco | #76 (ambiente de produção) | Backend / Matheus / Cauê | **não verificado** (a probe `saude` respondeu HTTP 200 via curl em 28/10, o que não prova migrações nem tabelas no banco de produção). | `curl -s -i "$FRILA_SUPABASE_PROD_URL/functions/v1/saude"` respondeu `HTTP/2 200` com `{"ok":true,"status":"saudavel"}`; migrações aplicadas no banco de produção: **não verificado** (depende de conferência no banco de dados por Matheus/Cauê). |
+| Funções publicadas | RunbookProd §5 e §6 | Backend / Matheus | **não verificado** em produção (funções essenciais do contrato estão implementadas no repositório; `saude` respondeu HTTP 200, mas a execução das demais RPCs e Edge Functions em produção não foi verificada). | Resposta HTTP 200 na probe `saude`. As demais funções (`configuracao_do_app`, `meus_turnos`, `registrar_dispositivo`, `remover_dispositivo`, `despachar`, `enviar-push`) dependem de sessão e chamadas autenticadas em produção (depende de Matheus/Jotapê). |
+| Auth (Supabase) | #76 | Backend / Cauê | **não verificado** (templates, redirect URLs e envio real de OTP em produção dependem de teste no painel/aparelho por Cauê; SMTP próprio com Resend e remetente `verificacao@frilabr.com` registrado em 20/10 no Inventário §1). | Entrega real de e-mails em caixas de entrada no ambiente de produção: **não verificado** (depende de teste manual no painel/aparelho por Cauê). |
+| SMTP próprio | Cartão SMTP | Cauê | **não verificado** em produção (configuração registrada em 20/10/2026 com Resend, remetente `verificacao@frilabr.com`, no Inventário de Segredos §1). | Disparo e entrega contínua em produção: **não verificado** (depende de Cauê). |
+| FCM (Edge Function) | #76 | Backend / Cauê | **não verificado** (funções `registrar_dispositivo`, `remover_dispositivo` e `enviar-push` implementadas no repositório; segredos de produção e entrega real de push não verificados). | Entrega real de push a partir do console FCM do `frila-prod` a token de aparelho físico: **não verificado** (depende de envio por Cauê). |
+| `pg_cron` | #76 / #207 | Backend / Matheus | **não verificado** (job `reprocessar_despacho` e extensão `pg_cron` no banco de produção não verificados). | Ativação e histórico de execuções no painel SQL do Supabase de produção: **não verificado** (depende de Matheus/Cauê). |
+| Esquema da tag → Prod | [CI](CI.md) / PR #540 | Cauê | **pendente de merge do PR #540** (envio manual com esquema Frila-Prod feito com sucesso em 28/10 na CI run 40632099918; a troca do esquema da tag no `testflight.yml` aguarda o merge do #540, mantendo `ESQUEMA_DA_TAG: Frila-Beta` na main atual). | `gh run view 40632099918 -R FrilaApp/frila-frontend`: `workflow_dispatch` manual executado em 28/10/2026 enviou `Frila-Prod 0.5.3 (20261028.42414)` ao TestFlight. PR #540 aberto em `ci/testflight-prod`. |
+| Dados de teste / Demonstração | #76 / Cartões 5boVdM0t, RzllRo3o | Backend / Cauê | **não verificado** (o script `semear-vagas-demonstracao.sh` está implementado no repositório, mas sua execução em dev/prod não foi verificada e as variáveis `EMAIL_CONTRATANTE` e `ESTABELECIMENTO_BAR_DA_REVISAO` precisam existir no ambiente; o script `renovar-demonstracao.sh` descarta a saída de erro e não prova renovação remota). | Presença e execução real dos scripts com dados e contas no `frila-prod`: **não verificado** (depende de confirmação em produção por Cauê/Matheus). |
 
 ---
 
@@ -76,14 +77,16 @@ privacidade, ganchos de Debug, `aps-environment = production` e ATS.
 
 ### TestFlight (Prod)
 
-Quando o frila-prod tiver as migrações:
+O envio manual com o esquema `Frila-Prod` foi realizado com sucesso em 28/10/2026 (run 40632099918, versão 0.5.3); a troca automática do esquema disparado por tag aguarda o merge do PR #540 (a `main` atual mantém `ESQUEMA_DA_TAG: Frila-Beta`).
 
-1. No `testflight.yml`, ative `ESQUEMA_DA_TAG: Frila-Prod`.
+Quando o PR #540 for mesclado:
+
+1. No `testflight.yml`, o `ESQUEMA_DA_TAG: Frila-Prod` passa a vigorar para tags.
 2. Tag no `main`: `git tag -a v1.0.0 -m "Build 1.0" && git push origin v1.0.0`.
 3. Acompanhe em Actions > TestFlight. O job faz archive, assinatura, conferência, dSYMs no
    Crashlytics do frila-prod e envio ao App Store Connect.
 
-Disparo manual: Actions > TestFlight > Run workflow, escolha `Frila-Prod`.
+Disparo manual: Actions > TestFlight > Run workflow, escolha `Frila-Prod` (já validado na run 40632099918).
 
 ### Reproduzir localmente
 
@@ -254,17 +257,17 @@ O cartão #76 pede "alerta de teste chega ao time por e-mail". Opções a avalia
 
 ## 8. Checklist antes de liberar para produção
 
-- [ ] Migrações do `frila-dev` aplicadas no `frila-prod` (banco não está mais vazio).
-- [ ] Auth configurado no frila-prod (templates, redirect URLs, SMTP próprio com SPF/DKIM).
-- [ ] Edge Functions do FCM com `service_role` e service account como segredos.
-- [ ] `pg_cron` ativo para o despacho.
-- [ ] Catálogo e duas contas de revisão criados em produção; nenhum outro dado de teste.
-- [ ] `testflight.yml`: `ESQUEMA_DA_TAG` apontando para `Frila-Prod`.
-- [ ] Build Prod compilado, conferido pelo `conferir-release.sh` e enviado ao TestFlight.
-- [ ] Ensaio de falha no Crashlytics do frila-prod: falha aparece simbolizada.
-- [ ] Push de teste enviado pelo console FCM do frila-prod: notificação chega ao aparelho.
-- [ ] Código de entrada por e-mail chega na caixa de entrada (Gmail, iCloud, Outlook).
-- [ ] Alerta de teste configurado e chegando ao time por e-mail.
+- [ ] Migrações do `frila-dev` aplicadas no `frila-prod` (a probe `saude` respondeu `HTTP/2 200` em 28/10 via `curl -s -i "$FRILA_SUPABASE_PROD_URL/functions/v1/saude"`, mas a aplicação efetiva de migrações e tabelas em produção é **não verificado** — depende de Matheus/Cauê).
+- [ ] Auth configurado no frila-prod (templates e redirect URLs; SMTP configurado em 20/10 com Resend, mas entrega real de OTP em produção é **não verificado** — depende de Cauê).
+- [ ] Edge Functions do FCM com `service_role` e service account como segredos (funções implementadas no repositório; envio de push em produção é **não verificado** — depende de Cauê com aparelho físico).
+- [ ] `pg_cron` ativo para o despacho (agendamento no banco de produção é **não verificado** — depende de Cauê/Matheus no painel SQL do Supabase).
+- [ ] Catálogo e duas contas de revisão criados em produção (scripts implementados no repositório, mas execução em dev/prod é **não verificado** — depende de Cauê/Matheus).
+- [ ] `testflight.yml`: `ESQUEMA_DA_TAG` apontando para `Frila-Prod` (proposto no PR #540, ainda aberto; a `main` atual mantém `Frila-Beta` até o merge).
+- [x] Build Prod compilado e enviado ao TestFlight (comprovado por disparo manual no run 40632099918 em 28/10/2026: `Frila-Prod 0.5.3` enviado com sucesso ao App Store Connect; a execução do `conferir-release.sh` é invocada por `enviar-testflight.sh:202` antes do envio e o passo terminou em sucesso, embora o log da CI não imprima a conferência de forma destacada).
+- [ ] Ensaio de falha no Crashlytics do frila-prod: falha aparece simbolizada (não verificado — depende de ensaio no TestFlight por Cauê).
+- [ ] Push de teste enviado pelo console FCM do frila-prod: notificação chega ao aparelho (não verificado — depende de aparelho físico com Cauê).
+- [ ] Código de entrada por e-mail chega na caixa de entrada (Gmail, iCloud, Outlook) (não verificado — depende de Cauê).
+- [ ] Alerta de teste configurado e chegando ao time por e-mail (não verificado — depende de Cauê).
 
 ---
 
