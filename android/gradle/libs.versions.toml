@@ -18,6 +18,7 @@ navigationCompose = "2.8.3"
 activityCompose = "1.9.3"
 playServicesLocation = "21.3.0"
 securityCrypto = "1.1.0-alpha06"
+biometric = "1.2.0-alpha05"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
@@ -67,6 +68,7 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

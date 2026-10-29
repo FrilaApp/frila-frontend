@@ -93,6 +93,27 @@ class ArmazenamentoDeSessaoKeystoreTest {
     }
 
     @Test
+    fun `biometria comeca desativada e pode ser ativada e persiste entre instancias`() {
+        assertFalse(armazenamento.isBiometriaAtivada())
+
+        armazenamento.definirBiometriaAtivada(true)
+
+        assertTrue(armazenamento.isBiometriaAtivada())
+        assertTrue(novoArmazenamento().isBiometriaAtivada())
+    }
+
+    @Test
+    fun `limparSessao desativa a biometria RN15`() {
+        armazenamento.salvarSessao(sessaoCompleta)
+        armazenamento.definirBiometriaAtivada(true)
+        assertTrue(armazenamento.isBiometriaAtivada())
+
+        armazenamento.limparSessao()
+
+        assertFalse(armazenamento.isBiometriaAtivada())
+    }
+
+    @Test
     fun `koin com contexto seleciona armazenamento keystore`() {
         startKoin {
             androidContext(contexto)

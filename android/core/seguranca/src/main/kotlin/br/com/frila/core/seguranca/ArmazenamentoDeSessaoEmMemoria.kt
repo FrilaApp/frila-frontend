@@ -19,6 +19,7 @@ class ArmazenamentoDeSessaoEmMemoria : ArmazenamentoDeSessao {
 
     private val referencia = AtomicReference<Sessao?>(null)
     private val _sessao = MutableStateFlow<Sessao?>(null)
+    private val biometriaAtivada = AtomicReference(false)
 
     /** Observação reativa da sessão atual (`null` quando deslogado). */
     val sessaoObservavel: StateFlow<Sessao?> = _sessao.asStateFlow()
@@ -33,7 +34,14 @@ class ArmazenamentoDeSessaoEmMemoria : ArmazenamentoDeSessao {
     override fun limparSessao() {
         referencia.set(null)
         _sessao.value = null
+        biometriaAtivada.set(false)
     }
 
     override fun estaAutenticado(): Boolean = referencia.get() != null
+
+    override fun isBiometriaAtivada(): Boolean = biometriaAtivada.get()
+
+    override fun definirBiometriaAtivada(ativada: Boolean) {
+        biometriaAtivada.set(ativada)
+    }
 }

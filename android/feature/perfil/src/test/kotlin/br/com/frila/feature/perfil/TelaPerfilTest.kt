@@ -6,10 +6,13 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -25,11 +28,14 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -378,6 +384,121 @@ class TelaPerfilTest {
 
             rule.onNodeWithContentDescription("Foto de perfil do profissional").assertIsDisplayed()
             assertTrue(rule.onAllNodesWithContentDescription("Sem foto de perfil cadastrada").fetchSemanticsNodes().isEmpty())
+        }
+    }
+
+    @Test
+    fun toggleDeBiometriaDesabilitadoQuandoAparelhoNaoTemBiometriaDisponivel() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.SEM_HARDWARE },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").performScrollTo()
+                .assertIsDisplayed()
+                .assertIsOff()
+            rule.onNodeWithText("Este aparelho não tem biometria disponível.").performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun ativarBiometriaDisponivelExigeAutenticacaoAntesDeMarcarOToggle() {
+        runBlocking {
+            val armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true)
+            val viewModel = criarViewModel(armazenamento = armazenamento)
+            viewModel.carregar().join()
+            var sucessoChamado: (() -> Unit)? = null
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
+                        autenticarBiometria = { _, aoSucesso, _ -> sucessoChamado = aoSucesso },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").performScrollTo().assertIsOff()
+            rule.onNodeWithTag("toggle-biometria").performClick()
+            rule.waitForIdle()
+
+            // Confirmação biométrica ainda não respondeu — o toggle não liga por conta própria.
+            rule.onNodeWithTag("toggle-biometria").assertIsOff()
+
+            sucessoChamado?.invoke()
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").assertIsOn()
+        }
+    }
+
+    @Test
+    fun falhaNaAutenticacaoBiometricaMostraErroEMantemToggleDesligado() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
+                        autenticarBiometria = { _, _, aoErro -> aoErro("Autenticação cancelada") },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").assertIsOff()
+            rule.onNodeWithText("Autenticação cancelada").performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun desativarBiometriaNaoExigeAutenticacao() {
+        runBlocking {
+            val armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true)
+            every { armazenamento.isBiometriaAtivada() } returns true
+            val viewModel = criarViewModel(armazenamento = armazenamento)
+            viewModel.carregar().join()
+            var autenticarFoiChamado = false
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
+                        autenticarBiometria = { _, _, _ -> autenticarFoiChamado = true },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").performScrollTo().assertIsOn()
+            rule.onNodeWithTag("toggle-biometria").performClick()
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").assertIsOff()
+            assertFalse(autenticarFoiChamado)
+            verify(exactly = 1) { armazenamento.definirBiometriaAtivada(false) }
         }
     }
 }

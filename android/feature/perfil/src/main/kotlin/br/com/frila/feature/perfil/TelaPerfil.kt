@@ -1,5 +1,6 @@
 package br.com.frila.feature.perfil
 
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,12 +40,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -61,6 +66,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
@@ -85,9 +91,25 @@ fun TelaPerfil(
     viewModel: PerfilViewModel,
     modifier: Modifier = Modifier,
     aoDeslogar: () -> Unit = {},
+    /**
+     * Injetáveis para teste (RN15) — sem sensor físico/emulador não há como simular o hardware
+     * real, e o host do `createComposeRule()` não é um `FragmentActivity` (por isso o cast fica
+     * dentro do valor padrão, não em [TelaPerfil], e o teste nunca precisa de uma Activity real).
+     */
+    verificarDisponibilidadeBiometrica: (Context) -> DisponibilidadeBiometrica = AutenticadorBiometrico::verificarDisponibilidade,
+    autenticarBiometria: (Context, aoSucesso: () -> Unit, aoErro: (String) -> Unit) -> Unit = { ctx, aoSucesso, aoErro ->
+        val activity = ctx as? FragmentActivity
+        if (activity != null) {
+            AutenticadorBiometrico.autenticar(activity, aoSucesso, aoErro)
+        } else {
+            aoErro("Não foi possível abrir a autenticação biométrica.")
+        }
+    },
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
+    val disponibilidadeBiometrica = remember { verificarDisponibilidadeBiometrica(contexto) }
+    var mensagemErroBiometria by remember { mutableStateOf<String?>(null) }
 
     // RF03/RNF04: repõe o avatar persistido ao montar a tela — independente do carregamento de
     // rede em viewModel.carregar(). MEDIDO (Shisui, PR #590): sem isto o avatar desaparecia ao
@@ -160,6 +182,21 @@ fun TelaPerfil(
                     aoDeslogar()
                 },
                 aoAbrirExclusao = viewModel::abrirDialogoExclusao,
+                biometriaAtivada = estado.biometriaAtivada,
+                disponibilidadeBiometrica = disponibilidadeBiometrica,
+                mensagemErroBiometria = mensagemErroBiometria,
+                aoAlternarBiometria = { marcado ->
+                    if (!marcado) {
+                        mensagemErroBiometria = null
+                        viewModel.definirBiometriaAtivada(false)
+                    } else {
+                        autenticarBiometria(
+                            contexto,
+                            { mensagemErroBiometria = null; viewModel.definirBiometriaAtivada(true) },
+                            { erro -> mensagemErroBiometria = erro },
+                        )
+                    }
+                },
                 paddingValues = paddingInterno,
             )
         }
@@ -202,6 +239,10 @@ private fun ConteudoDoPerfil(
     aoAlternarEspecialidade: (String) -> Unit,
     aoDeslogar: () -> Unit,
     aoAbrirExclusao: () -> Unit,
+    biometriaAtivada: Boolean,
+    disponibilidadeBiometrica: DisponibilidadeBiometrica,
+    mensagemErroBiometria: String?,
+    aoAlternarBiometria: (Boolean) -> Unit,
     paddingValues: PaddingValues,
 ) {
     Column(
@@ -236,7 +277,14 @@ private fun ConteudoDoPerfil(
             aoAlternar = aoAlternarEspecialidade,
         )
         BlocoDeFuncoes(funcoes)
-        BlocoDeConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
+        BlocoDeConta(
+            aoDeslogar = aoDeslogar,
+            aoAbrirExclusao = aoAbrirExclusao,
+            biometriaAtivada = biometriaAtivada,
+            disponibilidadeBiometrica = disponibilidadeBiometrica,
+            mensagemErroBiometria = mensagemErroBiometria,
+            aoAlternarBiometria = aoAlternarBiometria,
+        )
     }
 }
 
@@ -593,13 +641,62 @@ private fun BlocoDeFuncoes(funcoes: List<FuncaoDto>) {
 }
 
 @Composable
-private fun BlocoDeConta(aoDeslogar: () -> Unit, aoAbrirExclusao: () -> Unit) {
+private fun BlocoDeConta(
+    aoDeslogar: () -> Unit,
+    aoAbrirExclusao: () -> Unit,
+    biometriaAtivada: Boolean,
+    disponibilidadeBiometrica: DisponibilidadeBiometrica,
+    mensagemErroBiometria: String?,
+    aoAlternarBiometria: (Boolean) -> Unit,
+) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Conta",
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.semantics { heading() },
         )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = FrilaEspacamento.pequeno)
+                .sizeIn(minHeight = FrilaMetricas.alvoMinimo),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Desbloqueio rápido por biometria",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = biometriaAtivada,
+                onCheckedChange = aoAlternarBiometria,
+                enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL,
+                modifier = Modifier
+                    .testTag("toggle-biometria")
+                    .semantics {
+                        contentDescription = "Desbloqueio rápido por biometria"
+                    },
+            )
+        }
+        if (disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
+            Text(
+                text = textoIndisponibilidadeBiometrica(disponibilidadeBiometrica),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (mensagemErroBiometria != null) {
+            Text(
+                text = mensagemErroBiometria,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                    error(mensagemErroBiometria)
+                },
+            )
+        }
         BotaoSecundario(
             texto = "Sair da conta",
             aoClicar = aoDeslogar,
@@ -611,6 +708,13 @@ private fun BlocoDeConta(aoDeslogar: () -> Unit, aoAbrirExclusao: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno),
         )
     }
+}
+
+private fun textoIndisponibilidadeBiometrica(disponibilidade: DisponibilidadeBiometrica): String = when (disponibilidade) {
+    DisponibilidadeBiometrica.SEM_HARDWARE -> "Este aparelho não tem biometria disponível."
+    DisponibilidadeBiometrica.HARDWARE_INDISPONIVEL -> "O sensor biométrico está indisponível agora."
+    DisponibilidadeBiometrica.NAO_CADASTRADA -> "Cadastre uma biometria ou PIN nas configurações do aparelho para ativar."
+    DisponibilidadeBiometrica.INDISPONIVEL, DisponibilidadeBiometrica.DISPONIVEL -> "Desbloqueio rápido indisponível neste aparelho."
 }
 
 /**

@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.play.services.location)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.biometric)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

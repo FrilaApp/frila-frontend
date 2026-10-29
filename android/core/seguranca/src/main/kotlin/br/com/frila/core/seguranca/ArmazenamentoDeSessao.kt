@@ -11,4 +11,8 @@ interface ArmazenamentoDeSessao {
     fun obterSessao(): Sessao?
     fun limparSessao()
     fun estaAutenticado(): Boolean
+
+    /** RN15: preferência de desbloqueio biométrico, sempre `false` sem sessão/após logout. */
+    fun isBiometriaAtivada(): Boolean
+    fun definirBiometriaAtivada(ativada: Boolean)
 }

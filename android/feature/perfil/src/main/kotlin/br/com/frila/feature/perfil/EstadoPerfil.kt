@@ -69,6 +69,8 @@ data class EstadoPerfil(
     val fotoLocalPath: String? = null,
     val statusFoto: StatusFotoPerfil = StatusFotoPerfil.OCIOSO,
     val mensagemErroFoto: String? = null,
+    /** RN15: desbloqueio rápido por biometria/credencial, lido de `ArmazenamentoDeSessao`. */
+    val biometriaAtivada: Boolean = false,
 ) {
     val caracteresRestantesBio: Int
         get() = LIMITE_MAXIMO_BIO - bioEmEdicao.length

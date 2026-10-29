@@ -88,4 +88,24 @@ class ArmazenamentoDeSessaoTest {
         assertTrue(armazenamento.estaAutenticado())
         assertTrue(sessaoFinal != null && sessaoFinal.accessToken.startsWith("access-"))
     }
+
+    @Test
+    fun `biometria comeca desativada e pode ser ativada`() {
+        assertFalse(armazenamento.isBiometriaAtivada())
+
+        armazenamento.definirBiometriaAtivada(true)
+
+        assertTrue(armazenamento.isBiometriaAtivada())
+    }
+
+    @Test
+    fun `limparSessao desativa a biometria RN15`() {
+        armazenamento.salvarSessao(sessaoDeTeste)
+        armazenamento.definirBiometriaAtivada(true)
+        assertTrue(armazenamento.isBiometriaAtivada())
+
+        armazenamento.limparSessao()
+
+        assertFalse(armazenamento.isBiometriaAtivada())
+    }
 }
