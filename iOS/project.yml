@@ -176,6 +176,8 @@ targets:
       - path: Sources/App
       - path: Resources/App.xcassets
         buildPhase: resources
+      - path: Resources/AppIcon.icon
+        buildPhase: resources
       - path: Resources/PrivacyInfo.xcprivacy
         buildPhase: resources
       - path: Resources/InfoPlist.xcstrings
