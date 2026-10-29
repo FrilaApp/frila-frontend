@@ -111,27 +111,33 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
 
 1. Confere a tag (no `main`, formato `vX.Y.Z`) ou as entradas do disparo manual, e calcula o número
    do build.
-2. Seleciona o Xcode 26.6, importa a identidade Apple Distribution em keychain temporário e prova
-   a assinatura estrita antes do archive. Restaura os pacotes SPM do cache da CI de PR, só para leitura.
+2. Seleciona o Xcode 26.6, importa a identidade Apple Distribution e os perfis de provisionamento App
+   Store dos dois alvos (`com.frila.org.app` e extensão `com.frila.org.app.notificationservice`) em
+   keychain temporário e pasta de perfis descartável, provando a assinatura estrita antes do archive.
+   Restaura os pacotes SPM do cache da CI de PR, só para leitura.
 3. Gera o `Secrets.xcconfig` e o `GoogleService-Info.plist` do ambiente: dev para o Beta, prod para o
    Prod.
 4. Grava a chave `.p8` num arquivo temporário com permissão 600.
 5. Roda o `Scripts/enviar-testflight.sh`:
-   1. **Archive** com a versão e o número do build, na assinatura automática de desenvolvimento do
-      projeto. Com `-allowProvisioningUpdates` e a chave, o xcodebuild cria o perfil e o certificado
-      de desenvolvimento que faltarem na máquina da CI. A assinatura ad hoc não serve: o Xcode exige
-      perfil para o app iOS (medido em 03/10).
-   2. **Export** para o App Store Connect com assinatura automática e a identidade Apple Distribution
-      importada. O Xcode obtém os perfis de distribuição compatíveis pela chave da API.
+   1. **Archive** com a versão e o número do build, com assinatura manual estrita (`CODE_SIGN_STYLE=Manual`,
+      `CODE_SIGN_IDENTITY="Apple Distribution"`, `DEVELOPMENT_TEAM=8B7F7G3Y2U` e `PROVISIONING_PROFILE_SPECIFIER`
+      apontando para os perfis instalados). O uso de `-allowProvisioningUpdates` é estritamente proibido:
+      em runners efêmeros, a assinatura automática criava um novo certificado Apple Development a cada execução
+      até esgotar a cota da conta (incidente de 29/10/2026, run 40931884226).
+   2. **Export** para o App Store Connect com assinatura manual (`signingStyle: manual`,
+      `signingCertificate: Apple Distribution` e o dicionário `provisioningProfiles` mapeando
+      `com.frila.org.app` e `com.frila.org.app.notificationservice` para os perfis importados).
    3. **Conferência** do app assinado: o `conferir-release.sh` (criptografia, privacidade, ganchos de
       Debug, `aps-environment` de produção) e `get-task-allow` falso. O diagnóstico verifica a assinatura
-      estrita do app, frameworks e extensão, o SHA-256 da identidade importada e os perfis correspondentes.
+      estrita do archive e do export (app, frameworks e extensão), o SHA-256 da identidade importada
+      e a integridade dos perfis.
    4. **Símbolos**: o dSYM do app e o dos quatro frameworks vão ao Crashlytics do ambiente, com duas
       tentativas. Se não subirem, o build não vai ao TestFlight. A Apple também recebe os símbolos
       (`uploadSymbols`).
-   5. **Envio**: um segundo export, com `destination: upload` e a mesma assinatura.
-6. Restaura a lista anterior de keychains e apaga a identidade temporária, a chave, os segredos,
-   o archive, o `.ipa` e o DerivedData, mesmo quando uma etapa falha.
+   5. **Envio**: um segundo export, com `destination: upload` autenticado pela chave API, sem recriar
+      ou atualizar certificados.
+6. Restaura a lista anterior de keychains e apaga a identidade temporária, os perfis instalados,
+   a chave, os segredos, o archive, o `.ipa` e o DerivedData, mesmo quando uma etapa falha.
    Nada vira artefato do Actions, porque o `.ipa` traz o plist do Firebase e a chave publicável do
    Supabase.
 
@@ -146,10 +152,48 @@ Regras do build:
 
 ### O que o Cauê faz uma vez
 
-Além dos três segredos da API abaixo, a assinatura exige `APPLE_DISTRIBUTION_CERT_P12_BASE64`
-(identidade Apple Distribution com chave privada, em base64) e `APPLE_DISTRIBUTION_CERT_P12_PASSWORD`.
+Além dos três segredos da API abaixo, a assinatura manual exige quatro segredos de identidade e provisionamento:
+- `APPLE_DISTRIBUTION_CERT_P12_BASE64`: identidade Apple Distribution com chave privada, em base64;
+- `APPLE_DISTRIBUTION_CERT_P12_PASSWORD`: senha do arquivo `.p12`;
+- `APPLE_PROVISIONING_PROFILE_APP_BASE64`: perfil de provisionamento App Store para `com.frila.org.app`, em base64 (`base64 -i Frila_AppStore.mobileprovision`);
+- `APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64`: perfil de provisionamento App Store para `com.frila.org.app.notificationservice`, em base64 (`base64 -i FrilaNotificationService_AppStore.mobileprovision`).
+
 Os valores ficam nos segredos do GitHub; nunca no repositório ou nos logs. O keychain temporário
-recebe permissão para o codesign e é removido no passo de limpeza `always()`.
+recebe permissão para o codesign e é removido no passo de limpeza `always()`, assim como os arquivos
+`.mobileprovision` instalados em `~/Library/MobileDevice/Provisioning Profiles/`.
+
+#### Por que perfis via segredos Base64 (Opção B) em vez de download dinâmico via API (Opção A)
+
+1. **Determinismo e velocidade offline:** A etapa de build e archive roda 100% isolada da rede, sem depender de chamadas à API da Apple durante a compilação.
+2. **Prevenção total de criação de certificados:** Na Opção A, qualquer descompasso entre perfil e certificado em tempo de execução poderia acionar regras automáticas do Xcode que tentam gerar certificados na nuvem. A Opção B é estritamente manual: se o perfil divergir ou expirar, a CI falha localmente antes de compilar o app, sem alterar nada na conta Apple.
+3. **Consistência de governança:** Segue exatamente o padrão já adotado com sucesso para a chave privada de distribuição (`APPLE_DISTRIBUTION_CERT_P12_BASE64`).
+
+#### Inventário de certificados e o que revogar na conta Apple
+
+Ao gerenciar a conta Apple em [developer.apple.com/account/resources/certificates/list](https://developer.apple.com/account/resources/certificates/list):
+
+- **NÃO REVOGAR:** O certificado `Apple Distribution` da equipe `8B7F7G3Y2U` cuja impressão digital pública SHA-256 seja `38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`. Este é o certificado de produção oficial vinculado aos segredos da CI. Revogá-lo invalida a identidade e impede a assinatura de novos builds.
+- **REVOGAR COM SEGURANÇA:** Todos os certificados temporários do tipo `Apple Development` ou `iOS Development` criados automaticamente pelas execuções passadas da CI (marcados como gerenciados por API / Xcode). São eles que acumularam e estouraram a cota da conta ("maximum number of certificates").
+
+#### Renovação de perfis
+
+Perfis de provisionamento da App Store têm validade padrão de 1 ano. Quando um perfil estiver prestes a expirar:
+1. No portal Apple Developer (Profiles), gere um novo perfil App Store para o bundle ID, associando ao certificado `Apple Distribution` existente.
+2. Baixe o arquivo `.mobileprovision`.
+3. Codifique em base64: `base64 -i PerfilNovo.mobileprovision | pbcopy`.
+4. Atualize o segredo no GitHub: `gh secret set APPLE_PROVISIONING_PROFILE_APP_BASE64 --repo FrilaApp/frila-frontend`.
+5. O script `assinatura-local-ci.py` confere automaticamente a validade, a equipe, o bundle ID e o vínculo com a chave de distribuição no pré-voo de cada execução.
+
+#### Passo a passo para destravar após o limite de certificados
+
+1. **Limpeza:** Cauê acessa a conta Apple e revoga os certificados `Apple Development` excedentes. Confirma que o certificado `Apple Distribution` (`38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`) permanece intacto.
+2. **Perfis:** Baixa os dois perfis de distribuição App Store (`com.frila.org.app` e `com.frila.org.app.notificationservice`).
+3. **Segredos:** Executa:
+   ```sh
+   gh secret set APPLE_PROVISIONING_PROFILE_APP_BASE64 --repo FrilaApp/frila-frontend < perfil_app.mobileprovision.b64
+   gh secret set APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64 --repo FrilaApp/frila-frontend < perfil_notif.mobileprovision.b64
+   ```
+4. **Validação:** Dispara um teste sem envio via Actions (`Actions > TestFlight > Run workflow`, desmarcando "Enviar ao TestFlight" — `enviar: false`). O workflow executará archive manual, export manual, conferência de release e envio de símbolos sem subir nada para os testadores externos.
 
 Regressão sem credenciais reais: `python3 iOS/Scripts/teste-assinatura-local-ci.py` e
 `python3 iOS/Scripts/teste-diagnosticar-assinatura.py`.
@@ -177,6 +221,10 @@ Regressão sem credenciais reais: `python3 iOS/Scripts/teste-assinatura-local-ci
    | `APP_STORE_CONNECT_API_KEY_ID` | o Key ID |
    | `APP_STORE_CONNECT_API_ISSUER_ID` | o Issuer ID |
    | `APP_STORE_CONNECT_API_KEY_P8` | o conteúdo do `.p8`, inteiro, com as linhas `BEGIN` e `END` |
+   | `APPLE_DISTRIBUTION_CERT_P12_BASE64` | certificado e chave privada Apple Distribution (.p12) em base64 |
+   | `APPLE_DISTRIBUTION_CERT_P12_PASSWORD` | senha do arquivo .p12 |
+   | `APPLE_PROVISIONING_PROFILE_APP_BASE64` | perfil App Store de com.frila.org.app em base64 |
+   | `APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64` | perfil App Store da extensão em base64 |
 
    O `.p8` pode ir direto do arquivo, sem passar pela tela:
    `gh secret set APP_STORE_CONNECT_API_KEY_P8 --repo FrilaApp/frila-frontend < AuthKey_XXXXXXXXXX.p8`.

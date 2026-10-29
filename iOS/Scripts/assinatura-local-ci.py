@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Importa a identidade em keychain descartável; credenciais só vêm do ambiente da CI."""
+"""Importa a identidade e perfis em ambiente descartável; credenciais só vêm do ambiente da CI."""
 import base64
+import datetime
 import hashlib
 import json
 import os
 import pathlib
+import plistlib
 import re
 import secrets
 import shlex
@@ -27,6 +29,56 @@ def mascarar(valor):
     print(f"::add-mask::{valor}", flush=True)
 
 
+def decodificar_perfil(b64_texto):
+    try:
+        dados_brutos = base64.b64decode("".join(b64_texto.split()), validate=True)
+    except ValueError:
+        raise RuntimeError("perfil não é base64 válido") from None
+    inicio = dados_brutos.find(b"<?xml")
+    fim = dados_brutos.find(b"</plist>")
+    if inicio == -1 or fim == -1:
+        raise RuntimeError("perfil não contém plist xml válida")
+    try:
+        plist = plistlib.loads(dados_brutos[inicio:fim + len(b"</plist>")])
+    except Exception as e:
+        raise RuntimeError(f"falha ao analisar plist do perfil: {e}") from None
+    return dados_brutos, plist
+
+
+def conferir_perfil(dados, cert_sha256, equipe, identificador):
+    """Confere o vínculo certificado/perfil; não imprime o conteúdo do perfil."""
+    erros = []
+    uuid = dados.get("UUID")
+    if not uuid or not isinstance(uuid, str):
+        erros.append("UUID ausente ou inválido no perfil")
+    nome = dados.get("Name")
+    if not nome or not isinstance(nome, str):
+        erros.append("Name ausente ou inválido no perfil")
+    certificados = [hashlib.sha256(c).hexdigest().lower() for c in dados.get("DeveloperCertificates", [])]
+    ent = dados.get("Entitlements", {})
+    if cert_sha256.lower() not in certificados:
+        erros.append("perfil não contém o certificado local importado")
+    if equipe not in dados.get("TeamIdentifier", []):
+        erros.append("perfil pertence a outra equipe")
+    if ent.get("application-identifier") != f"{equipe}.{identificador}":
+        erros.append("perfil não corresponde ao identificador do bundle")
+    if ent.get("get-task-allow") is not False:
+        erros.append("perfil permite depuração ou não declara get-task-allow=false")
+    if ent.get("aps-environment") not in (None, "production"):
+        erros.append("perfil usa ambiente de push diferente de production")
+    validade = dados.get("ExpirationDate")
+    if isinstance(validade, datetime.datetime):
+        if validade.tzinfo is None:
+            validade = validade.replace(tzinfo=datetime.timezone.utc)
+        else:
+            validade = validade.astimezone(datetime.timezone.utc)
+        if validade <= datetime.datetime.now(datetime.timezone.utc):
+            erros.append("perfil ausente de validade ou expirado")
+    else:
+        erros.append("perfil ausente de validade")
+    return erros
+
+
 def apagar(pasta):
     if pasta.parent != pathlib.Path(os.environ["RUNNER_TEMP"]).resolve() or not pasta.name.startswith("frila-assinatura-"):
         raise RuntimeError("pasta de assinatura fora do temporário permitido")
@@ -46,10 +98,67 @@ def apagar(pasta):
             executar("apagar keychain", "security", "delete-keychain", str(keychain))
         except RuntimeError as erro:
             falhas.append(str(erro))
+    perfis_json = pasta / "perfis-instalados.json"
+    if perfis_json.exists():
+        try:
+            for caminho in json.loads(perfis_json.read_text()):
+                pathlib.Path(caminho).unlink(missing_ok=True)
+        except OSError as erro:
+            falhas.append(str(erro))
     # Se security falhar, mantém o estado para uma nova tentativa de limpeza.
     if falhas:
         raise RuntimeError("; ".join(falhas))
     shutil.rmtree(pasta)
+
+
+def importar_perfis(pasta, cert_sha256, equipe):
+    bundle_app = os.environ.get("FRILA_BUNDLE_ID", "com.frila.org.app")
+    bundle_notif = os.environ.get("FRILA_NOTIFICATION_SERVICE_BUNDLE_ID", f"{bundle_app}.notificationservice")
+    nomes = ("APPLE_PROVISIONING_PROFILE_APP_BASE64", "APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64")
+
+    # Se nenhum perfil base64 foi fornecido:
+    if any(not os.environ.get(nome) for nome in nomes):
+        if os.environ.get("CI"):
+            raise RuntimeError("na CI faltam APPLE_PROVISIONING_PROFILE_APP_BASE64 e APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64 para assinatura manual")
+        return None, None
+
+    for nome in nomes:
+        mascarar(os.environ[nome])
+
+    dados_app, plist_app = decodificar_perfil(os.environ[nomes[0]])
+    erros_app = conferir_perfil(plist_app, cert_sha256, equipe, bundle_app)
+    if erros_app:
+        raise RuntimeError(f"perfil do app ({bundle_app}) inválido: {'; '.join(erros_app)}")
+
+    dados_notif, plist_notif = decodificar_perfil(os.environ[nomes[1]])
+    erros_notif = conferir_perfil(plist_notif, cert_sha256, equipe, bundle_notif)
+    if erros_notif:
+        raise RuntimeError(f"perfil da extensão ({bundle_notif}) inválido: {'; '.join(erros_notif)}")
+
+    pasta_perfis = pathlib.Path(os.environ.get("FRILA_PROFILES_DIR",
+                                              pathlib.Path.home() / "Library" / "MobileDevice" / "Provisioning Profiles")).resolve()
+    pasta_perfis.mkdir(parents=True, exist_ok=True)
+
+    uuid_app = plist_app["UUID"]
+    nome_app = plist_app["Name"]
+    destino_app = pasta_perfis / f"{uuid_app}.mobileprovision"
+    destino_app.write_bytes(dados_app)
+
+    uuid_notif = plist_notif["UUID"]
+    nome_notif = plist_notif["Name"]
+    destino_notif = pasta_perfis / f"{uuid_notif}.mobileprovision"
+    destino_notif.write_bytes(dados_notif)
+
+    (pasta / "perfis-instalados.json").write_text(json.dumps([str(destino_app), str(destino_notif)]))
+
+    if "GITHUB_ENV" in os.environ:
+        with open(os.environ["GITHUB_ENV"], "a") as ambiente:
+            ambiente.write(f"FRILA_PROVISIONING_PROFILE_APP={uuid_app}\n")
+            ambiente.write(f"FRILA_PROVISIONING_PROFILE_APP_NAME={nome_app}\n")
+            ambiente.write(f"FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE={uuid_notif}\n")
+            ambiente.write(f"FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_NAME={nome_notif}\n")
+
+    return uuid_app, uuid_notif
 
 
 def importar():
@@ -70,8 +179,9 @@ def importar():
     keychain = pasta / "distribuicao.keychain-db"
     try:
         # Registra a limpeza antes de alterar os keychains, inclusive em falha/cancelamento.
-        with open(os.environ["GITHUB_ENV"], "a") as ambiente:
-            ambiente.write(f"FRILA_KEYCHAIN_PATH={keychain}\n")
+        if "GITHUB_ENV" in os.environ:
+            with open(os.environ["GITHUB_ENV"], "a") as ambiente:
+                ambiente.write(f"FRILA_KEYCHAIN_PATH={keychain}\n")
         anteriores = shlex.split(executar("listar keychains", "security", "list-keychains", "-d", "user"))
         (pasta / "keychains-anteriores.json").write_text(json.dumps(anteriores))
         senha_keychain = secrets.token_hex(32)
@@ -112,8 +222,13 @@ def importar():
         # -R verifica o requisito passado; a verificação abaixo confere também o requisito designado.
         executar("verificar requisito designado", "codesign", "--verify", "--strict", str(binario))
         sha256 = hashlib.sha256(der).hexdigest()
-        with open(os.environ["GITHUB_ENV"], "a") as ambiente:
-            ambiente.write(f"FRILA_CERTIFICADO_DISTRIBUICAO_SHA256={sha256}\n")
+        if "GITHUB_ENV" in os.environ:
+            with open(os.environ["GITHUB_ENV"], "a") as ambiente:
+                ambiente.write(f"FRILA_CERTIFICADO_DISTRIBUICAO_SHA256={sha256}\n")
+
+        uuid_app, uuid_notif = importar_perfis(pasta, sha256, equipe)
+        if uuid_app and uuid_notif:
+            print(f"Perfis App Store instalados (App: {uuid_app}, Notificações: {uuid_notif}).")
         print(f"Identidade Apple Distribution da equipe {equipe} pronta; prova de assinatura estrita aprovada. SHA256={sha256}")
     except Exception:
         apagar(pasta)

@@ -81,8 +81,8 @@ O envio manual com o esquema `Frila-Prod` foi realizado com sucesso em 28/10/202
 
 1. No `testflight.yml`, a linha ativa é `ESQUEMA_DA_TAG: Frila-Prod` (tags passam a mandar o Frila-Prod).
 2. Tag no `main`: `git tag -a v1.0.0 -m "Build 1.0" && git push origin v1.0.0`.
-3. Acompanhe em Actions > TestFlight. O job faz archive, assinatura, conferência, dSYMs no
-   Crashlytics do frila-prod e envio ao App Store Connect.
+3. Acompanhe em Actions > TestFlight. O job faz archive manual (`CODE_SIGN_STYLE=Manual`, `Apple Distribution`), export manual com os perfis App Store, conferência de release, dSYMs no Crashlytics do frila-prod e envio ao App Store Connect.
+4. **Assinatura e certificados:** A CI usa estritamente assinatura manual e não passa `-allowProvisioningUpdates`. A criação automática de certificados na CI foi suspensa para evitar esgotamento da cota da conta Apple (incidente de 29/10/2026). O certificado permanente `Apple Distribution` da equipe `8B7F7G3Y2U` (SHA-256 `38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`) **NÃO** deve ser revogado; apenas certificados `Apple Development` temporários podem ser revogados no portal da Apple.
 
 Disparo manual: Actions > TestFlight > Run workflow, escolha `Frila-Prod` (já validado na run 40632099918).
 
@@ -261,6 +261,7 @@ O cartão #76 pede "alerta de teste chega ao time por e-mail". Opções a avalia
 - [ ] `pg_cron` ativo para o despacho (agendamento no banco de produção é **não verificado** — depende de Cauê/Matheus no painel SQL do Supabase).
 - [ ] Catálogo e duas contas de revisão criados em produção (scripts implementados no repositório, mas execução em dev/prod é **não verificado** — depende de Cauê/Matheus).
 - [x] `testflight.yml`: `ESQUEMA_DA_TAG` apontando para `Frila-Prod`.
+- [x] Assinatura manual na CI sem `-allowProvisioningUpdates`: perfis App Store em segredos Base64 e certificado permanente `Apple Distribution` (SHA256 `38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`) protegido contra revogação indevida.
 - [x] Build Prod compilado e enviado ao TestFlight (comprovado por disparo manual no run 40632099918 em 28/10/2026: `Frila-Prod 0.5.3` enviado com sucesso ao App Store Connect; a execução do `conferir-release.sh` é invocada por `enviar-testflight.sh:202` antes do envio e o passo terminou em sucesso, embora o log da CI não imprima a conferência de forma destacada).
 - [ ] Ensaio de falha no Crashlytics do frila-prod: falha aparece simbolizada (não verificado — depende de ensaio no TestFlight por Cauê).
 - [ ] Push de teste enviado pelo console FCM do frila-prod: notificação chega ao aparelho (não verificado — depende de aparelho físico com Cauê).
