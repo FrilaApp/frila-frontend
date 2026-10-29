@@ -21,7 +21,7 @@ entitlements() {
 
 # O caso bom usa um catálogo real: um plist com nome de ícone sem imagem deve falhar.
 mkdir -p "$TMPDIR_TESTE/catalogo"
-xcrun actool "$SCRIPT_DIR/../Resources/App.xcassets" \
+xcrun actool "$SCRIPT_DIR/../Resources/App.xcassets" "$SCRIPT_DIR/../Resources/AppIcon.icon" \
   --compile "$TMPDIR_TESTE/catalogo" --platform iphonesimulator \
   --minimum-deployment-target 17.0 --target-device iphone --app-icon AppIcon \
   --output-partial-info-plist "$TMPDIR_TESTE/icone.plist" >/dev/null

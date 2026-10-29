@@ -20,27 +20,14 @@ Documento de especificação técnica e auditoria dos assets de ícone e tela de
 
 ---
 
-## 2. Auditoria Estática do Asset Atual
+## 2. Asset Atual
 
-O repositório possui atualmente o asset de ícone provisório gerado no PR #146 via script auxiliar (`iOS/Scripts/gerar-icone-provisorio.swift`), que desenha sobre o tom da marca `BrandPrimary` (`#B57005`).
+O ícone atual é o **ícone alpha da build**: F da Prodigy Sans Black sobre blueprint azul, montado no Icon Composer. O azul é proposital, para marcar a build como versão de teste até o logo definitivo. A origem é `entregas/icone-build/FrilaTest.icon` em [fbtostadev/frila-branding-design](https://github.com/fbtostadev/frila-branding-design).
 
-### 2.1. Verificação via `sips`
-Execução da auditoria nos metadados do arquivo `iOS/Resources/App.xcassets/AppIcon.appiconset/AppIcon.png`:
-
-```bash
-sips -g pixelWidth -g pixelHeight -g hasAlpha iOS/Resources/App.xcassets/AppIcon.appiconset/AppIcon.png
-```
-
-**Resultado:**
-- `pixelWidth`: `1024` (em conformidade)
-- `pixelHeight`: `1024` (em conformidade)
-- `hasAlpha`: `no` (em conformidade — ausência de transparência confirmada)
-
-### 2.2. Configuração do Asset Catalog (`Contents.json`)
-Arquivo: `iOS/Resources/App.xcassets/AppIcon.appiconset/Contents.json`:
-```json
-{"images":[{"filename":"AppIcon.png","idiom":"universal","platform":"ios","size":"1024x1024"}],"info":{"author":"xcode","version":1}}
-```
+- Arquivo: `iOS/Resources/AppIcon.icon` (`icon.json` + `Assets/f.svg` e `Assets/grade.svg`), registrado nos recursos do alvo `Frila` em `project.yml`.
+- Não existe `AppIcon.appiconset`: dois ícones com o nome `AppIcon` entrariam em conflito.
+- O `actool` gera a partir do `.icon` as imagens das versões anteriores ao iOS 26 (o app suporta desde o iOS 17).
+- **Compatibilidade com o Xcode 26 da CI:** o `icon.json` não pode ter os campos que só o Icon Composer do Xcode 27 grava (`features`, `blur-material`, `refractivity`, `specular`) nem fill `automatic-gradient`; use fill `solid`. Com eles, o `actool` 26.6 quebra com "attempt to insert nil object".
 
 ---
 
@@ -62,20 +49,14 @@ As linhas 23 a 40 de `iOS/Scripts/conferir-release.sh` asseguram que o release e
 ## 4. Handoff de Design e Procedimento de Substituição
 
 ### 4.1. Dados Faltantes e Dependências
-- **Arte definitiva e camadas:** A arte final do ícone e os arquivos em camadas do Icon Composer (`.icon`) dependem da entrega final do designer (Fabrício) e da consolidação da votação do time registrada no cartão do Trello #169 ([MXqhHjWK](https://trello.com/c/MXqhHjWK)).
-- O aplicativo está apto para compilação e validação do TestFlight utilizando o asset provisório sem bloqueios técnicos.
+- **Arte definitiva:** o logo definitivo ainda não existe; depende do design (cartão do Trello #169, [MXqhHjWK](https://trello.com/c/MXqhHjWK)). Até lá, o app compila e vai para o TestFlight com o ícone alpha.
 
 ### 4.2. Procedimento para Atualização pelo Design
-Ao disponibilizar o arquivo definitivo:
-1. **Exportação:** Gerar arquivo PNG exatamente em **1024 × 1024 pixels**, espaço de cores sRGB/Display P3, sem canal alfa/transparência.
-2. **Substituição:** Substituir o arquivo em `iOS/Resources/App.xcassets/AppIcon.appiconset/AppIcon.png`.
-3. **Auditoria de canal alfa:**
+1. **Montagem:** montar o ícone no Icon Composer e salvar o `.icon`.
+2. **Substituição:** trocar o conteúdo de `iOS/Resources/AppIcon.icon`, mantendo o nome `AppIcon.icon`.
+3. **Compatibilidade:** remover do `icon.json` os campos listados na seção 2, até a CI usar o Xcode 27.
+4. **Verificação:**
    ```bash
-   sips -g pixelWidth -g pixelHeight -g hasAlpha iOS/Resources/App.xcassets/AppIcon.appiconset/AppIcon.png
-   ```
-   O resultado de `hasAlpha` deve obrigatoriamente ser `no`.
-4. **Verificação de textos e release:**
-   ```bash
-   iOS/Scripts/conferir-textos.sh
-   iOS/Scripts/conferir-release.sh <caminho-do-ipa>
+   iOS/Scripts/teste-conferir-release.sh
+   iOS/Scripts/conferir-release.sh <caminho-do-app>
    ```
