@@ -52,46 +52,92 @@ class CheckinViewModel(
     private val _estado = MutableStateFlow(EstadoCheckin())
     val estado: StateFlow<EstadoCheckin> = _estado.asStateFlow()
 
+    /**
+     * RN06/RN22: antes de tocar no GPS, confere permissão e se a localização do sistema está
+     * ativa. Qualquer uma faltando dispara um diálogo defensivo (nunca a API direto) — o
+     * profissional decide entre resolver a pendência ou seguir no modo manual pela ação
+     * [prosseguirCheckinManual].
+     */
     fun fazerCheckin(): Job {
         _estado.update { it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
+            if (!provedorDeLocalizacao.temPermissaoDeLocalizacao()) {
+                _estado.update {
+                    it.copy(status = StatusCheckin.OCIOSO, dialogoDefensivo = DialogoDefensivoLocalizacao.PERMISSAO_NEGADA)
+                }
+                return@launch
+            }
+            if (!provedorDeLocalizacao.isGpsAtivado()) {
+                _estado.update {
+                    it.copy(status = StatusCheckin.OCIOSO, dialogoDefensivo = DialogoDefensivoLocalizacao.GPS_DESLIGADO)
+                }
+                return@launch
+            }
+
             try {
                 val coordenadaAtual = provedorDeLocalizacao.obterCoordenadaAtual()
                 val distanciaMetros = calcularDistanciaMetros(coordenadaAtual, coordenadaDaVaga)
-                val agora = instanteAtual()
-
-                val resultado = servicoTurnos.fazerCheckin(
-                    turnoId = turnoId,
-                    distanciaMetros = distanciaMetros,
-                    registradoEm = agora.toString(),
-                )
-
-                val tipoVerificacao = if (resultado.verificacao == "verificado") {
-                    TipoVerificacaoCheckin.GEOLOCALIZADO
-                } else {
-                    TipoVerificacaoCheckin.MANUAL_PENDENTE
-                }
-
-                val comprovante = GeradorComprovanteCheckin.gerar(
-                    turnoId = turnoId,
-                    registradoEm = agora,
-                    tipoVerificacao = tipoVerificacao,
-                    coordenada = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) coordenadaAtual else null,
-                )
-
-                _estado.update {
-                    it.copy(
-                        status = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) {
-                            StatusCheckin.VERIFICADO
-                        } else {
-                            StatusCheckin.MANUAL_PENDENTE
-                        },
-                        comprovante = comprovante,
-                    )
-                }
+                registrarCheckin(distanciaMetros, coordenadaAtual)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
+        }
+    }
+
+    /**
+     * Ação do diálogo defensivo: o profissional opta por seguir sem GPS. Pula a leitura de
+     * coordenada e envia `distancia_m` nulo direto — o backend degrada para `manual`/`pendente`
+     * (RN06), igual ao caminho de falha silenciosa de [obterCoordenadaAtual].
+     */
+    fun prosseguirCheckinManual(): Job {
+        _estado.update {
+            it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null)
+        }
+        return escopoDeTrabalho.launch {
+            try {
+                registrarCheckin(distanciaMetros = null, coordenadaAtual = null)
+            } catch (erro: ErroDaApi) {
+                _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            }
+        }
+    }
+
+    /** `onDismissRequest` do diálogo defensivo: fecha sem registrar nada. */
+    fun dispensarDialogoDefensivo() {
+        _estado.update { it.copy(dialogoDefensivo = null, status = StatusCheckin.OCIOSO) }
+    }
+
+    private suspend fun registrarCheckin(distanciaMetros: Int?, coordenadaAtual: Coordenada?) {
+        val agora = instanteAtual()
+
+        val resultado = servicoTurnos.fazerCheckin(
+            turnoId = turnoId,
+            distanciaMetros = distanciaMetros,
+            registradoEm = agora.toString(),
+        )
+
+        val tipoVerificacao = if (resultado.verificacao == "verificado") {
+            TipoVerificacaoCheckin.GEOLOCALIZADO
+        } else {
+            TipoVerificacaoCheckin.MANUAL_PENDENTE
+        }
+
+        val comprovante = GeradorComprovanteCheckin.gerar(
+            turnoId = turnoId,
+            registradoEm = agora,
+            tipoVerificacao = tipoVerificacao,
+            coordenada = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) coordenadaAtual else null,
+        )
+
+        _estado.update {
+            it.copy(
+                status = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) {
+                    StatusCheckin.VERIFICADO
+                } else {
+                    StatusCheckin.MANUAL_PENDENTE
+                },
+                comprovante = comprovante,
+            )
         }
     }
 

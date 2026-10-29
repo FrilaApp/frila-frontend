@@ -3,6 +3,7 @@ package br.com.frila.core.localizacao
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.tasks.CancellationToken
 import io.mockk.every
@@ -11,6 +12,7 @@ import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class ProvedorDeLocalizacaoTest {
@@ -50,5 +52,49 @@ class ProvedorDeLocalizacaoTest {
         val provedor = ProvedorDeLocalizacaoFused(contexto, clienteFused)
 
         assert(provedor.temPermissaoDeLocalizacao())
+    }
+
+    @Test
+    fun `com GPS ou rede ativo, isGpsAtivado e verdadeiro`() {
+        val contexto = mockk<Context>()
+        val gerenciador = mockk<LocationManager>()
+        every { contexto.getSystemService(Context.LOCATION_SERVICE) } returns gerenciador
+        every { gerenciador.isProviderEnabled(LocationManager.GPS_PROVIDER) } returns true
+        every { gerenciador.isProviderEnabled(LocationManager.NETWORK_PROVIDER) } returns false
+        val provedor = ProvedorDeLocalizacaoFused(contexto, mockk<FusedLocationProviderClient>())
+
+        assertTrue(provedor.isGpsAtivado())
+    }
+
+    @Test
+    fun `com GPS e rede desligados, isGpsAtivado e falso`() {
+        val contexto = mockk<Context>()
+        val gerenciador = mockk<LocationManager>()
+        every { contexto.getSystemService(Context.LOCATION_SERVICE) } returns gerenciador
+        every { gerenciador.isProviderEnabled(LocationManager.GPS_PROVIDER) } returns false
+        every { gerenciador.isProviderEnabled(LocationManager.NETWORK_PROVIDER) } returns false
+        val provedor = ProvedorDeLocalizacaoFused(contexto, mockk<FusedLocationProviderClient>())
+
+        assertFalse(provedor.isGpsAtivado())
+    }
+
+    @Test
+    fun `sem LocationManager disponivel (getSystemService nulo), isGpsAtivado e falso sem lancar`() {
+        val contexto = mockk<Context>()
+        every { contexto.getSystemService(Context.LOCATION_SERVICE) } returns null
+        val provedor = ProvedorDeLocalizacaoFused(contexto, mockk<FusedLocationProviderClient>())
+
+        assertFalse(provedor.isGpsAtivado())
+    }
+
+    @Test
+    fun `quando isProviderEnabled lanca exececao, isGpsAtivado cai graciosamente para falso`() {
+        val contexto = mockk<Context>()
+        val gerenciador = mockk<LocationManager>()
+        every { contexto.getSystemService(Context.LOCATION_SERVICE) } returns gerenciador
+        every { gerenciador.isProviderEnabled(any()) } throws IllegalArgumentException("provedor desconhecido")
+        val provedor = ProvedorDeLocalizacaoFused(contexto, mockk<FusedLocationProviderClient>())
+
+        assertFalse(provedor.isGpsAtivado())
     }
 }

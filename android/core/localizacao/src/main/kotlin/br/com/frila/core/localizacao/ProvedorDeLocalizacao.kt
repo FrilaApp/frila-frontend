@@ -19,4 +19,11 @@ interface ProvedorDeLocalizacao {
 
     /** Verdadeiro se ao menos uma das permissões de localização (fina ou aproximada) foi concedida. */
     fun temPermissaoDeLocalizacao(): Boolean
+
+    /**
+     * Verdadeiro se o sistema tem ao menos um provedor de localização ativo (GPS ou rede).
+     * Independe de permissão: o app pode ter permissão concedida e o usuário ainda assim manter
+     * a localização do aparelho desligada (RN22) — tratamento defensivo, nunca lança exceção.
+     */
+    fun isGpsAtivado(): Boolean
 }

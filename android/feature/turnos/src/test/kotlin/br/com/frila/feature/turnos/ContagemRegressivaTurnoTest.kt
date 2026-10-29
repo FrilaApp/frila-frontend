@@ -166,6 +166,7 @@ class ContagemRegressivaTurnoTest {
         val provedorFalso = object : ProvedorDeLocalizacao {
             override suspend fun obterCoordenadaAtual(): Coordenada? = null
             override fun temPermissaoDeLocalizacao(): Boolean = false
+            override fun isGpsAtivado(): Boolean = false
         }
         return CheckinViewModel(
             turnoId = turnoId,
