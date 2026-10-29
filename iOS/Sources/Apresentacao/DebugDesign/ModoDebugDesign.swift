@@ -67,7 +67,6 @@ private struct PainelDebugModifier: ViewModifier {
     @State private var aberto = false
     @State private var progresso: CGFloat = 0
     @State private var tamanho: CGSize = .zero
-    @State private var areaSeguraSuperior: CGFloat = 0
     @State private var areaSeguraInferior: CGFloat = 0
     private let raioMoldura: CGFloat = 54
     private let folgaDesejada: CGFloat = 8
@@ -90,12 +89,10 @@ private struct PainelDebugModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .molduraDebug(progresso: progresso, reducao: reducao, areaSeguraSuperior: areaSeguraSuperior,
-                          areaSeguraInferior: areaSeguraInferior,
+            .molduraDebug(progresso: progresso, reducao: reducao, areaSeguraInferior: areaSeguraInferior,
                           raio: raioMoldura, reduzirMovimento: reduzirMovimento)
             .allowsHitTesting(!aberto)
             .onGeometryChange(for: CGSize.self) { $0.size } action: { tamanho = $0 }
-            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { areaSeguraSuperior = $0 }
             .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { areaSeguraInferior = $0 }
             .environment(\.contextoDebugDesign, contexto)
             .background {
@@ -200,12 +197,10 @@ private struct PainelDebugModifier: ViewModifier {
     }
 }
 private extension View {
-    func molduraDebug(progresso: CGFloat, reducao: CGFloat, areaSeguraSuperior: CGFloat,
-                      areaSeguraInferior: CGFloat,
+    func molduraDebug(progresso: CGFloat, reducao: CGFloat, areaSeguraInferior: CGFloat,
                       raio: CGFloat, reduzirMovimento: Bool) -> some View {
         self
-            .clipShape(FormaMolduraDebug(progresso: progresso, raio: raio,
-                                        superior: areaSeguraSuperior, inferior: areaSeguraInferior))
+            .clipShape(FormaMolduraDebug(progresso: progresso, raio: raio))
             .shadow(color: .black.opacity(0.06 * progresso), radius: 3, y: 3)
             .shadow(color: .black.opacity(0.06 * progresso), radius: 12, y: 12)
             .shadow(color: .black.opacity(0.06 * progresso), radius: 24, y: 24)
@@ -235,17 +230,13 @@ private extension View {
 private struct FormaMolduraDebug: Shape {
     var progresso: CGFloat
     let raio: CGFloat
-    let superior: CGFloat
-    let inferior: CGFloat
     var animatableData: CGFloat {
         get { progresso }
         set { progresso = newValue }
     }
 
     func path(in rect: CGRect) -> Path {
-        let area = CGRect(x: rect.minX, y: rect.minY - superior, width: rect.width,
-                          height: rect.height + superior + inferior)
-        return RoundedRectangle(cornerRadius: raio * progresso, style: .continuous).path(in: area)
+        RoundedRectangle(cornerRadius: raio * progresso, style: .continuous).path(in: rect)
     }
 }
 
