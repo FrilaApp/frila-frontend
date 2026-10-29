@@ -45,13 +45,14 @@ class MeusTurnosViewModel(
             try {
                 val turnos = servicoTurnos.listarMeusTurnos()
                 val agendados = turnos.filter { it.estado in ESTADOS_AGENDADOS }.map { it.paraItem() }
-                val historico = turnos.filter { it.estado in ESTADOS_HISTORICO }.map { it.paraItem() }
+                val historicoCompleto = turnos.filter { it.estado in ESTADOS_HISTORICO }.map { it.paraItem() }
 
                 _estado.update {
                     it.copy(
                         status = if (turnos.isEmpty()) StatusMeusTurnos.VAZIO else StatusMeusTurnos.SUCESSO,
                         agendados = agendados,
-                        historico = historico,
+                        historicoCompleto = historicoCompleto,
+                        paginaHistorico = 1,
                     )
                 }
             } catch (erro: ErroDaApi) {
@@ -61,6 +62,56 @@ class MeusTurnosViewModel(
     }
 
     fun tentarNovamente(): Job = carregar()
+
+    /**
+     * RF16: libera a próxima fatia de [TAMANHO_PAGINA_HISTORICO] itens do histórico já carregado
+     * em memória (o backend não tem `limit`/`offset`, MEDIDO em `20260924220000_meus_turnos.sql`
+     * — a paginação aqui é só sobre o que já chegou). Guard clause evita trabalho duplicado
+     * quando a lista já terminou ou uma página já está a caminho — o gatilho de scroll pode
+     * disparar várias vezes antes da UI recompor.
+     */
+    fun carregarMaisHistorico(): Job? {
+        val atual = _estado.value
+        if (!atual.temMaisHistorico || atual.carregandoMaisHistorico) return null
+
+        _estado.update { it.copy(carregandoMaisHistorico = true) }
+        return escopoDeTrabalho.launch {
+            _estado.update { it.copy(paginaHistorico = it.paginaHistorico + 1, carregandoMaisHistorico = false) }
+        }
+    }
+
+    /**
+     * Pull-to-refresh (RF16): busca a lista de novo na rede e reseta a paginação do histórico
+     * para a primeira página — o mesmo comportamento de abrir a tela do zero.
+     */
+    fun atualizar(): Job {
+        _estado.update { it.copy(atualizando = true, mensagemErro = null) }
+        return escopoDeTrabalho.launch {
+            try {
+                val turnos = servicoTurnos.listarMeusTurnos()
+                val agendados = turnos.filter { it.estado in ESTADOS_AGENDADOS }.map { it.paraItem() }
+                val historicoCompleto = turnos.filter { it.estado in ESTADOS_HISTORICO }.map { it.paraItem() }
+
+                _estado.update {
+                    it.copy(
+                        status = if (turnos.isEmpty()) StatusMeusTurnos.VAZIO else StatusMeusTurnos.SUCESSO,
+                        agendados = agendados,
+                        historicoCompleto = historicoCompleto,
+                        paginaHistorico = 1,
+                        mensagemErro = null,
+                    )
+                }
+            } catch (erro: ErroDaApi) {
+                _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                _estado.update { it.copy(mensagemErro = "Não foi possível atualizar seus turnos. Tente de novo em instantes.") }
+            } finally {
+                _estado.update { it.copy(atualizando = false) }
+            }
+        }
+    }
 
     fun aoSelecionarAba(aba: AbaDeTurnos) {
         _estado.update { it.copy(abaSelecionada = aba) }
@@ -116,7 +167,7 @@ class MeusTurnosViewModel(
                 _estado.update { atual ->
                     atual.copy(
                         agendados = atual.agendados.filterNot { it.turnoId == cancelado.turnoId },
-                        historico = listOf(cancelado) + atual.historico.filterNot { it.turnoId == cancelado.turnoId },
+                        historicoCompleto = listOf(cancelado) + atual.historicoCompleto.filterNot { it.turnoId == cancelado.turnoId },
                         cancelamento = null,
                         mensagemFeedback = if (resultado.falta) {
                             "Turno cancelado e registrado como falta."

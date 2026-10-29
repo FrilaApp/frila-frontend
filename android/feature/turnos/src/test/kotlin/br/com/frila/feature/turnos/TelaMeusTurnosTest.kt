@@ -3,11 +3,15 @@ package br.com.frila.feature.turnos
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.runtime.remember
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
@@ -20,6 +24,7 @@ import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -365,6 +370,117 @@ class TelaMeusTurnosTest {
             compose.waitForIdle()
 
             compose.onNodeWithText("Check-in manual, aguardando confirmação do contratante").assertIsDisplayed()
+        }
+    }
+
+    private fun jsonComHistorico(quantidade: Int): String =
+        "[" + (1..quantidade).joinToString(",") { turnoJson("h$it", "cumprida", "Garçom $it", "Bar do Zé") } + "]"
+
+    @Test
+    fun `aba Historico exibe itens concluidos com badge de status e valor em BRL`() {
+        runBlocking {
+            val json = "[${turnoJson("t1", "cumprida", "Garçom", "Bar do Zé")}]"
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    )
+                }
+            }
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Histórico").performClick()
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Garçom").assertIsDisplayed()
+            compose.onNodeWithText("Cumprido").assertIsDisplayed()
+            compose.onNodeWithText(Dinheiro(16_000L).formatado()).assertExists()
+        }
+    }
+
+    @Test
+    fun `aba Historico com mais de 10 itens inicia na primeira pagina e rolagem infinita libera o resto (RF16)`() {
+        runBlocking {
+            val viewModel = criarViewModel(jsonComHistorico(15))
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    )
+                }
+            }
+            compose.waitForIdle()
+            compose.onNodeWithText("Histórico").performClick()
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Garçom 1").assertIsDisplayed()
+            // Medido antes de rolar: a primeira composição (poucos itens visíveis no viewport)
+            // ainda não disparou o gatilho de fim de lista — só a primeira página está liberada.
+            assertEquals(10, viewModel.estado.value.historicoPaginado.size)
+            assertEquals(1, viewModel.estado.value.paginaHistorico)
+
+            // Rolar até o fim da primeira página aciona a rolagem infinita (RF16): o gatilho de
+            // "faltam 2 itens" detecta o fim da lista atual e carrega a página seguinte sozinho.
+            compose.onNodeWithTag("lista-de-turnos").performScrollToIndex(9)
+            compose.waitForIdle()
+
+            assertEquals(15, viewModel.estado.value.historicoPaginado.size)
+        }
+    }
+
+    @Test
+    fun `carregarMaisHistorico libera a segunda pagina na UI`() {
+        runBlocking {
+            val viewModel = criarViewModel(jsonComHistorico(15))
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    )
+                }
+            }
+            compose.waitForIdle()
+            compose.onNodeWithText("Histórico").performClick()
+            compose.waitForIdle()
+            assertEquals(10, viewModel.estado.value.historicoPaginado.size)
+
+            viewModel.carregarMaisHistorico()!!.join()
+            compose.waitForIdle()
+
+            assertEquals(15, viewModel.estado.value.historicoPaginado.size)
+            compose.onNodeWithTag("lista-de-turnos").performScrollToIndex(14)
+            compose.waitForIdle()
+            compose.onNodeWithText("Garçom 15").assertExists()
+        }
+    }
+
+    @Test
+    fun `tela de Meus Turnos expoe PullToRefreshBox com semantica acessivel`() {
+        runBlocking {
+            val viewModel = criarViewModel("[]")
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    )
+                }
+            }
+            compose.waitForIdle()
+
+            compose.onNodeWithContentDescription("Meus turnos").assertExists()
         }
     }
 }
