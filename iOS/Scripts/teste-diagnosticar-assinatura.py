@@ -113,6 +113,14 @@ class PerfilDistribuicaoTests(unittest.TestCase):
         del self.dados["Entitlements"]["aps-environment"]
         self.assertEqual(self.conferir(), [])
 
+    def test_perfil_ad_hoc_com_provisioned_devices_falha(self):
+        self.dados["ProvisionedDevices"] = ["device-1"]
+        self.assertTrue(any("perfil contém ProvisionedDevices" in err for err in self.conferir()))
+
+    def test_perfil_enterprise_falha(self):
+        self.dados["ProvisionsAllDevices"] = True
+        self.assertTrue(any("perfil corporativo/Enterprise" in err for err in self.conferir()))
+
 
 class CertificadoExportadoTests(unittest.TestCase):
     setUp = PerfilDistribuicaoTests.setUp
@@ -162,6 +170,19 @@ class CertificadoExportadoTests(unittest.TestCase):
         erro, saida = self.conferir_export(perfil_ausente=True)
         self.assertIn("envio ao TestFlight interrompido", erro)
         self.assertIn("perfil de distribuição ausente", saida)
+
+
+class MascararIdentidadeTests(unittest.TestCase):
+    def test_mascarar_nome_oculta_identidade_pessoal(self):
+        entrada = (
+            "Authority=Apple Distribution: Cauê Carneiro (8B7F7G3Y2U)\n"
+            "subject=CN=Apple Distribution: Cauê Carneiro (8B7F7G3Y2U), OU=8B7F7G3Y2U, O=Frila, C=BR"
+        )
+        esperado = (
+            "Authority=Apple Distribution: [PROTEGIDO] (8B7F7G3Y2U)\n"
+            "subject=CN=Apple Distribution: [PROTEGIDO] (8B7F7G3Y2U), OU=8B7F7G3Y2U, O=Frila, C=BR"
+        )
+        self.assertEqual(diagnostico.mascarar_nome(entrada), esperado)
 
 
 if __name__ == "__main__":

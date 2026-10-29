@@ -122,7 +122,7 @@ quem precisar reproduzir. Ele não mexe na CI de PR.
    1. **Archive** com a versão e o número do build, com assinatura manual estrita (`CODE_SIGN_STYLE=Manual`,
       `CODE_SIGN_IDENTITY="Apple Distribution"`, `DEVELOPMENT_TEAM=8B7F7G3Y2U` e `PROVISIONING_PROFILE_SPECIFIER`
       apontando para os perfis instalados). O uso de `-allowProvisioningUpdates` é estritamente proibido:
-      em runners efêmeros, a assinatura automática criava um novo certificado Apple Development a cada execução
+      em runners efêmeros, a assinatura automática criava certificados Apple Development via API em execuções de CI
       até esgotar a cota da conta (incidente de 29/10/2026, run 40931884226).
    2. **Export** para o App Store Connect com assinatura manual (`signingStyle: manual`,
       `signingCertificate: Apple Distribution` e o dicionário `provisioningProfiles` mapeando
@@ -168,12 +168,12 @@ recebe permissão para o codesign e é removido no passo de limpeza `always()`, 
 2. **Prevenção total de criação de certificados:** Na Opção A, qualquer descompasso entre perfil e certificado em tempo de execução poderia acionar regras automáticas do Xcode que tentam gerar certificados na nuvem. A Opção B é estritamente manual: se o perfil divergir ou expirar, a CI falha localmente antes de compilar o app, sem alterar nada na conta Apple.
 3. **Consistência de governança:** Segue exatamente o padrão já adotado com sucesso para a chave privada de distribuição (`APPLE_DISTRIBUTION_CERT_P12_BASE64`).
 
-#### Inventário de certificados e o que revogar na conta Apple
+#### Inventário de certificados e política de revogação na conta Apple
 
-Ao gerenciar a conta Apple em [developer.apple.com/account/resources/certificates/list](https://developer.apple.com/account/resources/certificates/list):
+A lista de certificados da conta Apple (conferida em 29/10/2026 em [developer.apple.com/account/resources/certificates/list](https://developer.apple.com/account/resources/certificates/list)) continha 16 certificados: 6 certificados de desenvolvimento com o nome pessoal do Cauê e 10 certificados do tipo `Apple Development` criados com o rótulo "Created via API" (gerados via chave de API da CI nas datas 07/10, 14/10, 21/10, 22/10 e 28/10, vários por dia), o que atingiu o teto da conta ("maximum number of certificates").
 
-- **NÃO REVOGAR:** O certificado `Apple Distribution` da equipe `8B7F7G3Y2U` cuja impressão digital pública SHA-256 seja `38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`. Este é o certificado de produção oficial vinculado aos segredos da CI. Revogá-lo invalida a identidade e impede a assinatura de novos builds.
-- **REVOGAR COM SEGURANÇA:** Todos os certificados temporários do tipo `Apple Development` ou `iOS Development` criados automaticamente pelas execuções passadas da CI (marcados como gerenciados por API / Xcode). São eles que acumularam e estouraram a cota da conta ("maximum number of certificates").
+- **NUNCA REVOGAR:** O certificado `Apple Distribution` da equipe `8B7F7G3Y2U` cuja impressão digital pública SHA-256 seja `38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`. Este é o certificado de produção oficial vinculado aos segredos da CI. Revogá-lo invalida a identidade de distribuição e impede a assinatura de novos builds do TestFlight.
+- **REVOGAÇÃO DE CERTIFICADOS DEVELOPMENT:** Revogar certificados do tipo `Apple Development` **não afeta** builds de TestFlight (que usam `Apple Distribution`). Contudo, revogar um certificado invalida qualquer perfil de provisionamento que o contenha. Portanto, a regra é estrita: **só revogue certificados que o inventário comprove terem sido "Created via API" e que não tenham nenhum perfil de desenvolvimento ativo em uso**. Os 10 certificados `Apple Development` "Created via API" acumulados foram revogados pelo Cauê em 29/10/2026 pelo portal da Apple, destravando a conta.
 
 #### Renovação de perfis
 
@@ -181,19 +181,21 @@ Perfis de provisionamento da App Store têm validade padrão de 1 ano. Quando um
 1. No portal Apple Developer (Profiles), gere um novo perfil App Store para o bundle ID, associando ao certificado `Apple Distribution` existente.
 2. Baixe o arquivo `.mobileprovision`.
 3. Codifique em base64: `base64 -i PerfilNovo.mobileprovision | pbcopy`.
-4. Atualize o segredo no GitHub: `gh secret set APPLE_PROVISIONING_PROFILE_APP_BASE64 --repo FrilaApp/frila-frontend`.
+4. Atualize o segredo correspondente no GitHub:
+   - Para o app: `gh secret set APPLE_PROVISIONING_PROFILE_APP_BASE64 --repo FrilaApp/frila-frontend`
+   - Para a extensão de notificações: `gh secret set APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64 --repo FrilaApp/frila-frontend`
 5. O script `assinatura-local-ci.py` confere automaticamente a validade, a equipe, o bundle ID e o vínculo com a chave de distribuição no pré-voo de cada execução.
 
 #### Passo a passo para destravar após o limite de certificados
 
-1. **Limpeza:** Cauê acessa a conta Apple e revoga os certificados `Apple Development` excedentes. Confirma que o certificado `Apple Distribution` (`38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`) permanece intacto.
-2. **Perfis:** Baixa os dois perfis de distribuição App Store (`com.frila.org.app` e `com.frila.org.app.notificationservice`).
-3. **Segredos:** Executa:
+1. **Limpeza comprovada:** O Cauê acessou o portal Apple em 29/10/2026 e revogou os 10 certificados `Apple Development` identificados como "Created via API" e sem perfis em uso, preservando os 6 certificados pessoais e mantendo intacto o certificado permanente `Apple Distribution` (`38e2bde028a40fd58ba637773890076dc42f7b2d50bde0f4499ff08cec5e9f28`).
+2. **Perfis App Store:** Cria ou baixa no portal os dois perfis de distribuição App Store (`com.frila.org.app` e `com.frila.org.app.notificationservice`), ambos vinculados ao certificado `Apple Distribution` acima.
+3. **Segredos no GitHub:** Executa:
    ```sh
    gh secret set APPLE_PROVISIONING_PROFILE_APP_BASE64 --repo FrilaApp/frila-frontend < perfil_app.mobileprovision.b64
    gh secret set APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64 --repo FrilaApp/frila-frontend < perfil_notif.mobileprovision.b64
    ```
-4. **Validação:** Dispara um teste sem envio via Actions (`Actions > TestFlight > Run workflow`, desmarcando "Enviar ao TestFlight" — `enviar: false`). O workflow executará archive manual, export manual, conferência de release e envio de símbolos sem subir nada para os testadores externos.
+4. **Validação:** Dispara um teste sem envio via Actions (`Actions > TestFlight > Run workflow`, desmarcando "Enviar ao TestFlight" — `enviar: false`), somente após autorização expressa. O workflow executará archive manual, export manual, conferência de release e envio de símbolos sem subir nada para os testadores externos.
 
 Regressão sem credenciais reais: `python3 iOS/Scripts/teste-assinatura-local-ci.py` e
 `python3 iOS/Scripts/teste-diagnosticar-assinatura.py`.

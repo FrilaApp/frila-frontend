@@ -64,6 +64,10 @@ def conferir_perfil(dados, cert_sha256, equipe, identificador):
         erros.append("perfil não corresponde ao identificador do bundle")
     if ent.get("get-task-allow") is not False:
         erros.append("perfil permite depuração ou não declara get-task-allow=false")
+    if dados.get("ProvisionedDevices") is not None:
+        erros.append("perfil contém ProvisionedDevices (perfil Ad Hoc ou Development; esperado perfil App Store)")
+    if dados.get("ProvisionsAllDevices") is True:
+        erros.append("perfil corporativo/Enterprise (ProvisionsAllDevices=true; esperado perfil App Store)")
     if ent.get("aps-environment") not in (None, "production"):
         erros.append("perfil usa ambiente de push diferente de production")
     validade = dados.get("ExpirationDate")
@@ -139,17 +143,33 @@ def importar_perfis(pasta, cert_sha256, equipe):
                                               pathlib.Path.home() / "Library" / "MobileDevice" / "Provisioning Profiles")).resolve()
     pasta_perfis.mkdir(parents=True, exist_ok=True)
 
+    manifesto_perfis = pasta / "perfis-instalados.json"
+    manifesto_perfis.write_text(json.dumps([]))
+
     uuid_app = plist_app["UUID"]
     nome_app = plist_app["Name"]
-    destino_app = pasta_perfis / f"{uuid_app}.mobileprovision"
-    destino_app.write_bytes(dados_app)
-
     uuid_notif = plist_notif["UUID"]
     nome_notif = plist_notif["Name"]
-    destino_notif = pasta_perfis / f"{uuid_notif}.mobileprovision"
-    destino_notif.write_bytes(dados_notif)
 
-    (pasta / "perfis-instalados.json").write_text(json.dumps([str(destino_app), str(destino_notif)]))
+    instalados = []
+    try:
+        destino_app = pasta_perfis / f"{uuid_app}.mobileprovision"
+        destino_app.write_bytes(dados_app)
+        instalados.append(str(destino_app))
+        manifesto_perfis.write_text(json.dumps(instalados))
+
+        destino_notif = pasta_perfis / f"{uuid_notif}.mobileprovision"
+        destino_notif.write_bytes(dados_notif)
+        instalados.append(str(destino_notif))
+        manifesto_perfis.write_text(json.dumps(instalados))
+    except Exception:
+        for caminho in instalados:
+            try:
+                pathlib.Path(caminho).unlink(missing_ok=True)
+            except OSError:
+                pass
+        manifesto_perfis.write_text(json.dumps([]))
+        raise
 
     if "GITHUB_ENV" in os.environ:
         with open(os.environ["GITHUB_ENV"], "a") as ambiente:
@@ -204,6 +224,11 @@ def importar():
         if len(pares) != 1 or not pares[0][1].startswith("Apple Distribution:") or not pares[0][1].endswith(f"({equipe})"):
             raise RuntimeError("o p12 deve conter uma única identidade Apple Distribution válida da equipe do projeto")
         identidade = pares[0][0].upper()
+        nome_identidade = pares[0][1]
+        mascarar(nome_identidade)
+        m_nome = re.search(r'Apple Distribution:\s*(.*?)\s*\([A-Z0-9]{10}\)', nome_identidade)
+        if m_nome and m_nome.group(1):
+            mascarar(m_nome.group(1).strip())
         certificados = executar("ler certificado público", "security", "find-certificate", "-a", "-p", str(keychain))
         ders = [ssl.PEM_cert_to_DER_cert(c) for c in re.findall(
             r"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----", certificados, re.S)]

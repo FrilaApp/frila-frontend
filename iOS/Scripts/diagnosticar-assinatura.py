@@ -17,6 +17,14 @@ def executar(*args):
     return resultado.returncode, resultado.stdout, resultado.stderr
 
 
+def mascarar_nome(texto):
+    texto = re.sub(r'(Authority=Apple Distribution:\s*)[^\n\r(]+?\s*(\([A-Z0-9]{10}\))',
+                   r'\1[PROTEGIDO] \2', texto)
+    texto = re.sub(r'(CN\s*=\s*Apple Distribution:\s*)[^\n\r(]+?\s*(\([A-Z0-9]{10}\))',
+                   r'\1[PROTEGIDO] \2', texto)
+    return texto
+
+
 def conferir_perfil(dados, certificado, equipe, identificador):
     """Confere o vínculo certificado/perfil; não imprime o conteúdo do perfil."""
     erros = []
@@ -30,6 +38,10 @@ def conferir_perfil(dados, certificado, equipe, identificador):
         erros.append("perfil não corresponde ao identificador do bundle")
     if ent.get("get-task-allow") is not False:
         erros.append("perfil permite depuração ou não declara get-task-allow=false")
+    if dados.get("ProvisionedDevices") is not None:
+        erros.append("perfil contém ProvisionedDevices (perfil Ad Hoc ou Development; esperado perfil App Store)")
+    if dados.get("ProvisionsAllDevices") is True:
+        erros.append("perfil corporativo/Enterprise (ProvisionsAllDevices=true; esperado perfil App Store)")
     if ent.get("aps-environment") not in (None, "production"):
         erros.append("perfil usa ambiente de push diferente de production")
     validade = dados.get("ExpirationDate")
@@ -60,7 +72,7 @@ def main():
                 print(f"codesign {' '.join(verificacao)}: status={codigo}")
                 if codigo != 0:
                     falhas += 1
-                print((saida + erro).decode(errors="replace").strip())
+                print(mascarar_nome((saida + erro).decode(errors="replace").strip()))
             sha256 = None
             with tempfile.TemporaryDirectory(prefix="frila-certificado-") as pasta:
                 prefixo = str(pathlib.Path(pasta) / "certificado-")
@@ -76,7 +88,7 @@ def main():
                                            "-noout", "-subject", "-issuer", "-dates", "-nameopt",
                                            "sep_multiline,utf8,-esc_msb")
                     texto = saida.decode(errors="replace")
-                    print(texto.strip())
+                    print(mascarar_nome(texto.strip()))
                     # Prova a comparação de CN sem alterar ou reassinar nenhum binário.
                     sujeito = texto.split("issuer=", 1)[0]
                     cn = next((linha.strip()[3:] for linha in sujeito.splitlines()

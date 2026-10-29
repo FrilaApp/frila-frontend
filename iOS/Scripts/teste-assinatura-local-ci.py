@@ -277,6 +277,66 @@ class AssinaturaLocalTests(unittest.TestCase):
         assinatura.apagar(keychain.parent)  # Não deve falhar
         self.assertFalse(keychain.parent.exists())
 
+    def test_falha_na_escrita_do_segundo_perfil_faz_rollback_do_primeiro_e_limpa(self):
+        uuid_app = "11111111-aaaa-bbbb-cccc-111111111111"
+        uuid_notif = "22222222-aaaa-bbbb-cccc-222222222222"
+        os.environ["APPLE_PROVISIONING_PROFILE_APP_BASE64"] = criar_perfil_ficticio(
+            uuid_app, "Frila App Store", "TESTE12345", "com.frila.org.app", self.der
+        )
+        os.environ["APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64"] = criar_perfil_ficticio(
+            uuid_notif, "Frila Notification Service", "TESTE12345", "com.frila.org.app.notificationservice", self.der
+        )
+        write_orig = pathlib.Path.write_bytes
+
+        def falha_segundo(path_obj, data):
+            if path_obj.name == f"{uuid_notif}.mobileprovision":
+                raise OSError("falha simulada no disco durante escrita do segundo perfil")
+            return write_orig(path_obj, data)
+
+        with mock.patch.object(pathlib.Path, "write_bytes", falha_segundo):
+            with self.assertRaisesRegex(OSError, "falha simulada no disco"):
+                assinatura.importar()
+
+        # O primeiro perfil não pode restar no sistema
+        self.assertFalse((self.pasta_perfis / f"{uuid_app}.mobileprovision").exists())
+        self.assertFalse((self.pasta_perfis / f"{uuid_notif}.mobileprovision").exists())
+        # A pasta temporária deve ter sido limpa
+        self.assertEqual(len(list(self.pasta.glob("frila-assinatura-*"))), 0)
+
+    def test_perfil_ad_hoc_com_provisioned_devices_recusado(self):
+        dados = {
+            "UUID": "uuid-adhoc", "Name": "Frila AdHoc", "TeamIdentifier": ["TESTE12345"],
+            "Entitlements": {"application-identifier": "TESTE12345.com.frila.org.app", "get-task-allow": False, "aps-environment": "production"},
+            "ExpirationDate": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30),
+            "DeveloperCertificates": [self.der],
+            "ProvisionedDevices": ["device-udid-1", "device-udid-2"],
+        }
+        xml = plistlib.dumps(dados)
+        envelope = b"CMS_SIMULADO\x00" + xml + b"\x00CMS_TRAILER"
+        os.environ["APPLE_PROVISIONING_PROFILE_APP_BASE64"] = base64.b64encode(envelope).decode()
+        os.environ["APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64"] = criar_perfil_ficticio(
+            "uuid-2", "Frila Notif", "TESTE12345", "com.frila.org.app.notificationservice", self.der
+        )
+        with self.assertRaisesRegex(RuntimeError, "ProvisionedDevices"):
+            assinatura.importar()
+
+    def test_perfil_enterprise_recusado(self):
+        dados = {
+            "UUID": "uuid-enterprise", "Name": "Frila Enterprise", "TeamIdentifier": ["TESTE12345"],
+            "Entitlements": {"application-identifier": "TESTE12345.com.frila.org.app", "get-task-allow": False, "aps-environment": "production"},
+            "ExpirationDate": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30),
+            "DeveloperCertificates": [self.der],
+            "ProvisionsAllDevices": True,
+        }
+        xml = plistlib.dumps(dados)
+        envelope = b"CMS_SIMULADO\x00" + xml + b"\x00CMS_TRAILER"
+        os.environ["APPLE_PROVISIONING_PROFILE_APP_BASE64"] = base64.b64encode(envelope).decode()
+        os.environ["APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64"] = criar_perfil_ficticio(
+            "uuid-2", "Frila Notif", "TESTE12345", "com.frila.org.app.notificationservice", self.der
+        )
+        with self.assertRaisesRegex(RuntimeError, "ProvisionsAllDevices"):
+            assinatura.importar()
+
 
 class ErrosSemCredenciaisTests(unittest.TestCase):
     def test_erro_de_subprocesso_nao_publica_argv_nem_saida_com_segredos(self):
@@ -287,6 +347,104 @@ class ErrosSemCredenciaisTests(unittest.TestCase):
                 assinatura.executar("importar p12", "security", "senha-ficticia")
         self.assertNotIn("senha-ficticia", str(erro.exception))
         self.assertNotIn("p12-ficticio", str(erro.exception))
+
+
+class GuardaEnviarTestflightTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="frila-teste-guarda-")
+        self.addCleanup(self.temp.cleanup)
+        self.pasta = pathlib.Path(self.temp.name)
+        (self.pasta / "iOS/project.yml").parent.mkdir(parents=True, exist_ok=True)
+        (self.pasta / "iOS/project.yml").write_text("    DEVELOPMENT_TEAM: TESTE12345\n")
+        (self.pasta / "iOS/Frila.xcodeproj").mkdir(exist_ok=True)
+        firebase = self.pasta / "iOS/Resources/Firebase/Prod"
+        firebase.mkdir(parents=True, exist_ok=True)
+        (firebase / "GoogleService-Info.plist").write_text("fixture sem credenciais")
+        self.authkey = self.pasta / "AuthKey.p8"
+        self.authkey.write_text("fixture sem chave")
+        self.bin = self.pasta / "bin"
+        self.bin.mkdir(exist_ok=True)
+        self.args_log = self.pasta / "args.json"
+        stub = self.bin / "xcodebuild"
+        stub.write_text(f'#!/usr/bin/env python3\nimport json, os, sys\nwith open("{self.args_log}", "w") as f:\n    json.dump(sys.argv[1:], f)\n')
+        stub.chmod(0o755)
+        formatter = self.bin / "xcbeautify"
+        formatter.write_text("#!/bin/bash\ncat\n")
+        formatter.chmod(0o755)
+        self.script_original = (pathlib.Path(__file__).parent / "enviar-testflight.sh").read_text()
+        self.script_base = self.script_original.split("\nAPP_ARQUIVADO=")[0] + "\nexit 0\n"
+
+    def rodar(self, script_texto=None, extra_env=None, args=None):
+        texto = script_texto if script_texto is not None else self.script_base
+        caminho_script = self.pasta / "iOS/Scripts/enviar-testflight.sh"
+        caminho_script.parent.mkdir(parents=True, exist_ok=True)
+        caminho_script.write_text(texto)
+        env = dict(os.environ,
+                   PATH=f"{self.bin}:{os.environ['PATH']}",
+                   CI="1",
+                   FRILA_CERTIFICADO_DISTRIBUICAO_SHA256="ficticio",
+                   ASC_KEY_PATH=str(self.authkey),
+                   ASC_KEY_ID="FICTICIO",
+                   ASC_ISSUER_ID="FICTICIO",
+                   FRILA_NUMERO_DO_BUILD="20261029.1",
+                   FRILA_PROVISIONING_PROFILE_APP="UUID-APP-FICTICIO",
+                   FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE="UUID-EXT-FICTICIA",
+                   FRILA_SAIDA=str(self.pasta / "saida"))
+        if extra_env:
+            env.update(extra_env)
+        cmd_args = args if args is not None else ["Frila-Prod", "0.5.4", "--sem-envio"]
+        return subprocess.run(["bash", str(caminho_script), *cmd_args],
+                              env=env, capture_output=True, text=True)
+
+    def test_baseline_archive_usa_manual_sem_allow_provisioning_updates(self):
+        res = self.rodar()
+        self.assertEqual(res.returncode, 0, f"falhou: {res.stderr}")
+        self.assertTrue(self.args_log.exists())
+        args = json.loads(self.args_log.read_text())
+        self.assertIn("archive", args)
+        self.assertIn("CODE_SIGN_STYLE=Manual", args)
+        self.assertNotIn("-allowProvisioningUpdates", args)
+
+    def test_mutante_flag_no_archive_falha_guarda(self):
+        mutante = self.script_base.replace("xcodebuild archive \\\n", "xcodebuild archive -allowProvisioningUpdates \\\n", 1)
+        self.assertNotEqual(mutante, self.script_base)
+        res = self.rodar(script_texto=mutante)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("-allowProvisioningUpdates", res.stderr)
+
+    def test_mutante_automatic_no_archive_falha_guarda(self):
+        mutante = self.script_base.replace("CODE_SIGN_STYLE=Manual", "CODE_SIGN_STYLE=Automatic", 1)
+        self.assertNotEqual(mutante, self.script_base)
+        res = self.rodar(script_texto=mutante)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("CODE_SIGN_STYLE=Automatic", res.stderr)
+
+    def test_mutante_omissao_de_manual_no_archive_falha_guarda(self):
+        mutante = self.script_base.replace("CODE_SIGN_STYLE=Manual", "# sem estilo", 1)
+        self.assertNotEqual(mutante, self.script_base)
+        res = self.rodar(script_texto=mutante)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("assinatura manual ausente", res.stderr)
+
+    def test_flag_em_autenticacao_falha_guarda(self):
+        mutante = self.script_base.replace(
+            "autenticacao=(-authenticationKeyPath",
+            "autenticacao=(-allowProvisioningUpdates -authenticationKeyPath", 1
+        )
+        self.assertNotEqual(mutante, self.script_base)
+        res = self.rodar(script_texto=mutante)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("-allowProvisioningUpdates", res.stderr)
+
+    def test_flag_em_variavel_ambiente_falha_guarda(self):
+        res = self.rodar(extra_env={"XCODEBUILD_EXTRA_ARGS": "-allowProvisioningUpdates"})
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("-allowProvisioningUpdates", res.stderr)
+
+    def test_flag_em_argumento_falha_guarda(self):
+        res = self.rodar(args=["Frila-Prod", "0.5.4", "-allowProvisioningUpdates", "--sem-envio"])
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("-allowProvisioningUpdates", res.stderr)
 
 
 if __name__ == "__main__":
