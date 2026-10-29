@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationManager
 import br.com.frila.core.dominio.modelo.Coordenada
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -24,6 +25,20 @@ class ProvedorDeLocalizacaoFused(
         val fina = contexto.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         val aproximada = contexto.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         return fina == PackageManager.PERMISSION_GRANTED || aproximada == PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
+     * Tratamento defensivo: `getSystemService` pode devolver nulo ou lançar em aparelhos
+     * customizados, e `isProviderEnabled` pode lançar `IllegalArgumentException` para um nome de
+     * provedor inesperado. Qualquer falha aqui é "GPS desligado", nunca um crash.
+     */
+    override fun isGpsAtivado(): Boolean = try {
+        val gerenciador = contexto.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        gerenciador?.let {
+            it.isProviderEnabled(LocationManager.GPS_PROVIDER) || it.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        } ?: false
+    } catch (_: Exception) {
+        false
     }
 
     /**

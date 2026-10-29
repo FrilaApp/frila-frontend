@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
@@ -59,6 +60,9 @@ import br.com.frila.core.designsystem.tema.FrilaRaios
 import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
+import br.com.frila.core.localizacao.abrirConfiguracoesComFallback
+import br.com.frila.core.localizacao.criarIntentConfiguracoesApp
+import br.com.frila.core.localizacao.criarIntentConfiguracoesGps
 
 /** Estados do turno em que o check-in ainda pode ser feito (RF13). */
 private const val ESTADO_CHECKIN_DISPONIVEL = "confirmada"
@@ -384,6 +388,47 @@ fun DialogoCancelamentoTurno(
     )
 }
 
+/**
+ * Diálogo defensivo (RN06/RN22): antes de tentar o check-in geolocalizado, explica a pendência
+ * (permissão ou GPS) e deixa claro que o check-in manual segue disponível, sem bloquear o toque.
+ */
+@Composable
+private fun DialogoDefensivoLocalizacao(
+    dialogo: DialogoDefensivoLocalizacao,
+    aoAbrirConfiguracoes: () -> Unit,
+    aoContinuarManual: () -> Unit,
+    aoDispensar: () -> Unit,
+) {
+    val (titulo, texto, textoBotaoPrimario) = when (dialogo) {
+        DialogoDefensivoLocalizacao.PERMISSAO_NEGADA -> Triple(
+            "Permissão de localização",
+            "Para confirmar sua presença automaticamente, o Frila precisa da sua localização no " +
+                "momento do check-in. Sem ela, você ainda pode registrar o check-in manual, que fica " +
+                "pendente até o contratante confirmar.",
+            "Abrir configurações",
+        )
+        DialogoDefensivoLocalizacao.GPS_DESLIGADO -> Triple(
+            "GPS desativado",
+            "A localização do seu aparelho está desativada. Ative-a para confirmar sua presença " +
+                "automaticamente, ou continue com o check-in manual, que fica pendente até o " +
+                "contratante confirmar.",
+            "Ativar GPS",
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = aoDispensar,
+        title = { Text(titulo, modifier = Modifier.semantics { heading() }) },
+        text = { Text(texto) },
+        confirmButton = {
+            BotaoPrimario(texto = textoBotaoPrimario, aoClicar = aoAbrirConfiguracoes)
+        },
+        dismissButton = {
+            BotaoSecundario(texto = "Continuar manual", aoClicar = aoContinuarManual)
+        },
+    )
+}
+
 /** RF15/RN11: avaliação binária de turno cumprido. Um voto por lado, sem nota, sem repetição. */
 @Composable
 private fun SecaoDeAvaliacao(turno: ItemTurno, aoAbrirAvaliacao: (turnoId: String) -> Unit) {
@@ -410,12 +455,28 @@ private fun SecaoDeCheckin(
 ) {
     val viewModel = criarCheckinViewModel(turno.turnoId)
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val contexto = LocalContext.current
 
     LaunchedEffect(estado.comprovante) {
         estado.comprovante?.let { aoExibirComprovante(it) }
     }
 
     val comprovanteAtivo = estado.comprovante ?: turno.comprovante
+
+    estado.dialogoDefensivo?.let { dialogo ->
+        DialogoDefensivoLocalizacao(
+            dialogo = dialogo,
+            aoAbrirConfiguracoes = {
+                val intent = when (dialogo) {
+                    DialogoDefensivoLocalizacao.PERMISSAO_NEGADA -> criarIntentConfiguracoesApp(contexto)
+                    DialogoDefensivoLocalizacao.GPS_DESLIGADO -> criarIntentConfiguracoesGps()
+                }
+                abrirConfiguracoesComFallback(contexto, intent)
+            },
+            aoContinuarManual = { viewModel.prosseguirCheckinManual() },
+            aoDispensar = { viewModel.dispensarDialogoDefensivo() },
+        )
+    }
 
     Column(
         modifier = Modifier.padding(top = FrilaEspacamento.pequeno),

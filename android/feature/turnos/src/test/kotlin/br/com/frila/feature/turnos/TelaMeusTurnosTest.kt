@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.remember
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
@@ -35,6 +36,7 @@ class TelaMeusTurnosTest {
     private val provedorDeLocalizacaoFalso = object : ProvedorDeLocalizacao {
         override suspend fun obterCoordenadaAtual(): Coordenada? = null
         override fun temPermissaoDeLocalizacao(): Boolean = false
+        override fun isGpsAtivado(): Boolean = false
     }
 
     private fun criarViewModel(respostaJson: String, status: HttpStatusCode = HttpStatusCode.OK): MeusTurnosViewModel {
@@ -55,19 +57,29 @@ class TelaMeusTurnosTest {
         )
     }
 
-    private fun criarCheckin(turnoId: String): CheckinViewModel {
-        val cliente = ClienteSupabase(
-            baseUrl = "https://frila.supabase.co",
-            apiKey = "chave-teste",
-            engine = MockEngine { respond("") },
-        )
+    private fun criarCheckin(
+        turnoId: String,
+        provedorDeLocalizacao: ProvedorDeLocalizacao = provedorDeLocalizacaoFalso,
+        engine: MockEngine = MockEngine { respond("") },
+    ): CheckinViewModel {
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         return CheckinViewModel(
             turnoId = turnoId,
             coordenadaDaVaga = null,
             servicoTurnos = ServicoTurnos(cliente),
-            provedorDeLocalizacao = provedorDeLocalizacaoFalso,
+            provedorDeLocalizacao = provedorDeLocalizacao,
         )
     }
+
+    private fun resultadoCheckinJson(tipo: String, verificacao: String) = """
+        {
+          "turno_id": "t1",
+          "tipo": "$tipo",
+          "verificacao": "$verificacao",
+          "registrado_em": "2026-11-01T21:05:00Z",
+          "distancia_m": null
+        }
+    """.trimIndent()
 
     private fun turnoJson(id: String, estado: String, funcao: String, estabelecimento: String) = """
         {
@@ -250,6 +262,109 @@ class TelaMeusTurnosTest {
             compose.onNodeWithText("Qual é o motivo?").assertIsDisplayed()
             compose.onNodeWithText("Confirmar cancelamento").assertIsDisplayed()
             compose.onNodeWithText("Voltar").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `sem permissao de localizacao, tocar em Fazer check-in exibe dialogo Permissao de localizacao`() {
+        runBlocking {
+            val json = "[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]"
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+            val provedor = object : ProvedorDeLocalizacao {
+                override suspend fun obterCoordenadaAtual(): Coordenada? = null
+                override fun temPermissaoDeLocalizacao(): Boolean = false
+                override fun isGpsAtivado(): Boolean = true
+            }
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId -> remember(turnoId) { criarCheckin(turnoId, provedorDeLocalizacao = provedor) } },
+                        relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                    )
+                }
+            }
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Fazer check-in").performClick()
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Permissão de localização").assertIsDisplayed()
+            compose.onNodeWithText("Abrir configurações").assertIsDisplayed().assertHasClickAction()
+            compose.onNodeWithText("Continuar manual").assertIsDisplayed().assertHasClickAction()
+        }
+    }
+
+    @Test
+    fun `com GPS desligado, tocar em Fazer check-in exibe dialogo GPS desativado`() {
+        runBlocking {
+            val json = "[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]"
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+            val provedor = object : ProvedorDeLocalizacao {
+                override suspend fun obterCoordenadaAtual(): Coordenada? = null
+                override fun temPermissaoDeLocalizacao(): Boolean = true
+                override fun isGpsAtivado(): Boolean = false
+            }
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId -> remember(turnoId) { criarCheckin(turnoId, provedorDeLocalizacao = provedor) } },
+                        relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                    )
+                }
+            }
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Fazer check-in").performClick()
+            compose.waitForIdle()
+
+            compose.onNodeWithText("GPS desativado").assertIsDisplayed()
+            compose.onNodeWithText("Ativar GPS").assertIsDisplayed().assertHasClickAction()
+            compose.onNodeWithText("Continuar manual").assertIsDisplayed().assertHasClickAction()
+        }
+    }
+
+    @Test
+    fun `tocar em Continuar manual no dialogo registra check-in manual pendente`() {
+        runBlocking {
+            val json = "[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]"
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+            val provedor = object : ProvedorDeLocalizacao {
+                override suspend fun obterCoordenadaAtual(): Coordenada? = null
+                override fun temPermissaoDeLocalizacao(): Boolean = false
+                override fun isGpsAtivado(): Boolean = true
+            }
+            val engine = MockEngine {
+                respond(
+                    content = resultadoCheckinJson(tipo = "manual", verificacao = "pendente"),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId -> remember(turnoId) { criarCheckin(turnoId, provedorDeLocalizacao = provedor, engine = engine) } },
+                        relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                    )
+                }
+            }
+            compose.waitForIdle()
+            compose.onNodeWithText("Fazer check-in").performClick()
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Continuar manual").performClick()
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Check-in manual, aguardando confirmação do contratante").assertIsDisplayed()
         }
     }
 }
