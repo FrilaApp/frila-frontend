@@ -7,6 +7,7 @@ struct RegistroDebugDesign {
     let id: String
     let titulo: String
     let tituloRaiz: String
+    let prefixoExibicao: String?
     let variantes: [String]
     let decisoes: [String]
 }
@@ -145,25 +146,33 @@ private struct PainelDebugModifier: ViewModifier {
             if let registro = contexto.registro, !registro.variantes.isEmpty {
                 Menu {
                     Section(registro.titulo) {
-                        Picker(selection: Binding<String?>(
-                            get: { contexto.selecao },
-                            set: { valor in
-                                contexto.selecao = valor
-                                contexto.selecionar?(valor)
+                        Button {
+                            contexto.selecao = nil
+                            contexto.selecionar?(nil)
+                        } label: {
+                            Label { Text(verbatim: registro.tituloRaiz).lineLimit(1) } icon: {
+                                Image(systemName: contexto.selecao == nil ? "circle.fill" : "circle")
                             }
-                        )) {
-                            Text(verbatim: registro.tituloRaiz).tag(String?.none)
-                            ForEach(registro.variantes, id: \.self) { variante in
-                                Label { Text(verbatim: variante) } icon: {
-                                    Image(systemName: "arrow.turn.down.right")
+                        }
+                        .accessibilityAddTraits(contexto.selecao == nil ? .isSelected : [])
+                        ForEach(registro.variantes, id: \.self) { variante in
+                            Button {
+                                contexto.selecao = variante
+                                contexto.selecionar?(variante)
+                            } label: {
+                                Label { Text(verbatim: variante).lineLimit(1) } icon: {
+                                    Image(systemName: contexto.selecao == variante
+                                          ? "checkmark.circle.fill" : "arrow.turn.down.right")
                                 }
-                                .tag(Optional(variante))
                             }
-                        } label: { Text(verbatim: registro.titulo) }
-                        .pickerStyle(.inline)
+                            .accessibilityAddTraits(contexto.selecao == variante ? .isSelected : [])
+                        }
                     }
                 } label: {
-                    Label { Text(verbatim: contexto.selecao ?? registro.tituloRaiz) } icon: {
+                    Label {
+                        Text(verbatim: [registro.prefixoExibicao, contexto.selecao ?? registro.tituloRaiz]
+                            .compactMap { $0 }.joined(separator: " — "))
+                    } icon: {
                         Image(systemName: "square.stack.3d.up")
                     }
                     .lineLimit(1)
