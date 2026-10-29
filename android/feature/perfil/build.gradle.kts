@@ -34,6 +34,9 @@ android {
             it.jvmArgs(
                 "--add-opens=java.base/java.lang=ALL-UNNAMED",
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-opens=java.base/java.net=ALL-UNNAMED",
+                "--add-opens=java.base/java.security=ALL-UNNAMED",
                 "--add-opens=java.base/java.text=ALL-UNNAMED",
                 "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
                 "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
@@ -48,6 +51,7 @@ dependencies {
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
+    implementation(libs.androidx.core.ktx)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

@@ -313,7 +313,30 @@ class PerfilViewModelTest {
         assertTrue(resumo.totalConcluidoFormatado.contains("250,00"))
         assertTrue(resumo.totalPendenteFormatado.contains("200,00"))
         assertTrue(resumo.totalGeralFormatado.contains("450,00"))
+        assertEquals(3, viewModel.estado.value.turnosExtrato.size)
     }
+
+    @Test
+    fun `exportarExtratoPdf devolve nulo se resumo nao possuir historico`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+            engineTurnos = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        viewModel.carregar().join()
+        assertEquals(false, viewModel.estado.value.resumoFinanceiro?.temHistorico)
+
+        val arquivo = viewModel.exportarExtratoPdf(java.io.File("/tmp"), "Teste")
+
+        assertEquals(null, arquivo)
+    }
+
+    // "exportarExtratoPdf gera arquivo fisico quando ha historico" (caminho feliz, que desenha o
+    // PDF via android.graphics.pdf.PdfDocument) NAO é coberto por teste automatizado nenhum nesta
+    // suíte — MEDIDO (achado do Shisui): Robolectric lança IllegalStateException em
+    // PdfDocument.startPage em qualquer sdk/GraphicsMode testado (33, 35, LEGACY, NATIVE), então
+    // esse caminho só roda de verdade em dispositivo/emulador real. GeradorExtratoPdfTest testa
+    // só a lógica pura e determinística — dividirEmPaginas, quebrarEmLinhas, nomeArquivo — que não
+    // depende de android.graphics.
 
     @Test
     fun `resumoFinanceiro sem turnos tem temHistorico falso`() = runBlocking {

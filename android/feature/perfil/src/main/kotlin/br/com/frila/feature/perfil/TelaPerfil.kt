@@ -32,8 +32,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -49,6 +51,7 @@ import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
+import androidx.core.content.FileProvider
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.ReputacaoDto
 import kotlin.math.roundToInt
@@ -68,6 +71,7 @@ fun TelaPerfil(
     aoDeslogar: () -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val contexto = LocalContext.current
 
     // RF25/UC16: a exclusão com sucesso expulsa a navegação do mesmo jeito que o logout —
     // a sessão local já foi limpa pelo ViewModel antes de chegar aqui.
@@ -96,6 +100,23 @@ fun TelaPerfil(
                 funcoes = estado.perfil?.funcoes.orEmpty(),
                 reputacao = estado.perfil?.reputacao,
                 resumoFinanceiro = estado.resumoFinanceiro,
+                aoExportarExtrato = {
+                    // DEDUZIDO: PerfilProfissionalDto não traz nome do profissional (só id,
+                    // usuario_id, funcoes, ponto_base, disponibilidades, reputacao — MEDIDO em
+                    // Dtos.kt:282-289). Sem esse campo no contrato, o cabeçalho do PDF usa um
+                    // rótulo neutro em vez de inventar uma fonte de nome fora de escopo.
+                    val arquivo = viewModel.exportarExtratoPdf(contexto.cacheDir, "Profissional")
+                    if (arquivo != null) {
+                        val uri = FileProvider.getUriForFile(contexto, "${contexto.packageName}.fileprovider", arquivo)
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/pdf"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            putExtra(Intent.EXTRA_SUBJECT, "Extrato de Remunerações Frila")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        contexto.startActivity(Intent.createChooser(intent, "Compartilhar extrato em PDF"))
+                    }
+                },
                 bio = estado.bio,
                 bioEmEdicao = estado.bioEmEdicao,
                 estaEditandoBio = estado.estaEditandoBio,
@@ -136,6 +157,7 @@ private fun ConteudoDoPerfil(
     funcoes: List<FuncaoDto>,
     reputacao: ReputacaoDto?,
     resumoFinanceiro: ResumoFinanceiroPerfil?,
+    aoExportarExtrato: () -> Unit,
     bio: String,
     bioEmEdicao: String,
     estaEditandoBio: Boolean,
@@ -160,7 +182,7 @@ private fun ConteudoDoPerfil(
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
     ) {
         BlocoDeReputacao(reputacao)
-        BlocoDeRemuneracoes(resumoFinanceiro)
+        BlocoDeRemuneracoes(resumoFinanceiro, aoExportarExtrato)
         BlocoDeBioProfissional(
             bio = bio,
             bioEmEdicao = bioEmEdicao,
@@ -223,7 +245,7 @@ private fun formatarTaxa(taxa: Double?): String =
  * (Zero Escrow). Sem turnos cumpridos/agendados, mostra um texto neutro em vez de "R$ 0,00".
  */
 @Composable
-private fun BlocoDeRemuneracoes(resumo: ResumoFinanceiroPerfil?) {
+private fun BlocoDeRemuneracoes(resumo: ResumoFinanceiroPerfil?, aoExportarExtrato: () -> Unit) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Remunerações acordadas",
@@ -255,6 +277,13 @@ private fun BlocoDeRemuneracoes(resumo: ResumoFinanceiroPerfil?) {
                 Text(
                     text = "Total acumulado: ${resumo.totalGeralFormatado}",
                     style = MaterialTheme.typography.bodyMedium,
+                )
+                BotaoSecundario(
+                    texto = "Exportar extrato em PDF",
+                    aoClicar = aoExportarExtrato,
+                    modifier = Modifier
+                        .padding(top = FrilaEspacamento.pequeno)
+                        .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
                 )
             }
         }
