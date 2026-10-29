@@ -331,8 +331,12 @@ class PerfilViewModelTest {
     }
 
     // "exportarExtratoPdf gera arquivo fisico quando ha historico" (caminho feliz, que desenha o
-    // PDF via android.graphics.pdf.PdfDocument) é coberto em GeradorExtratoPdfTest, que roda sob
-    // Robolectric — esta classe é JVM pura (JUnit5 Jupiter), sem o shadow do framework Android.
+    // PDF via android.graphics.pdf.PdfDocument) NAO é coberto por teste automatizado nenhum nesta
+    // suíte — MEDIDO (achado do Shisui): Robolectric lança IllegalStateException em
+    // PdfDocument.startPage em qualquer sdk/GraphicsMode testado (33, 35, LEGACY, NATIVE), então
+    // esse caminho só roda de verdade em dispositivo/emulador real. GeradorExtratoPdfTest testa
+    // só a lógica pura e determinística — dividirEmPaginas, quebrarEmLinhas, nomeArquivo — que não
+    // depende de android.graphics.
 
     @Test
     fun `resumoFinanceiro sem turnos tem temHistorico falso`() = runBlocking {
