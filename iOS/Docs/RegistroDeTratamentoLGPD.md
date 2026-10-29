@@ -82,10 +82,10 @@ Documento técnico elaborado em conformidade com o Artigo 37 da Lei Geral de Pro
    - **No app e no backend:** O perfil ainda informa `"Respondemos em até 5 dias úteis."`; `privado.prazo_de_resposta` ainda calcula o quinto dia útil. Os modelos transacionais também exigem alinhamento pelo backend, via cartão no Trello.
    - **Impacto:** A divergência documental de 24 horas foi removida. O alinhamento dos textos e do cálculo técnico de prazo permanece pendente; nenhum código do app ou backend foi alterado nesta missão.
 
-7. **E-mail de contato: resta `suporte@frila.app` em três lugares:**
-   - **Unificado:** a Política usa `privacidade@frilabr.com` (`privacidade.md:17,119,154`); no app, `EnderecosOficiais.swift:22` define `suporte@frilabr.com` e a tela de perfil aponta para a política web.
-   - **Ainda com `suporte@frila.app`:** `openapi.yaml:2954` (espelho do contrato, do backend), `AjudaESuporte.md:49` e `PlanoDoPiloto.md`.
-   - **Impacto:** o canal do titular está unificado no app; falta atualizar esses documentos e o contrato, via cartão no backend.
+7. **E-mail de contato: unificado em `suporte@frilabr.com`:**
+   - **Unificado:** a Política usa `privacidade@frilabr.com` (`privacidade.md:17,119,154`); no app, `EnderecosOficiais.swift:22` define `suporte@frilabr.com` e a tela de perfil aponta para a política web. Decisão do Cauê em 28/10/2026 fixou `suporte@frilabr.com` como canal oficial de suporte (o endereço anterior não recebe e-mail).
+   - **Contrato (`openapi.yaml:3032`):** resta atualizar no contrato do backend via processo de versionamento do contrato.
+   - **Impacto:** o canal do titular e de suporte está unificado no app e nos documentos em `suporte@frilabr.com`.
 
 ---
 
