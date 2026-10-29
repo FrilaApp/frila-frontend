@@ -1,6 +1,7 @@
 #if FRILA_DESIGN
 import SwiftUI
 import Observation
+import UIKit
 
 struct RegistroDebugDesign {
     let id: String
@@ -65,52 +66,25 @@ private struct PainelDebugModifier: ViewModifier {
     @State private var contexto = ContextoDebugDesign()
     @State private var aberto = false
     @State private var informacoes = false
-    @GestureState private var deslocamento: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
-    private let altura: CGFloat = 112
-    private let limiar: CGFloat = 40
-
-    private var progresso: CGFloat { aberto ? 1 : min(max(deslocamento / altura, 0), 1) }
 
     func body(content: Content) -> some View {
-        GeometryReader { geometria in
-            ZStack(alignment: .top) {
-                FrilaCor.superficie.ignoresSafeArea()
-                content
-                    .environment(\.contextoDebugDesign, contexto)
-                    .scaleEffect(1 - 0.035 * progresso, anchor: .bottom)
-                    .offset(y: altura * progresso)
-                    .clipShape(RoundedRectangle(cornerRadius: 16 * progresso))
-                cabecalho
-                    .frame(height: altura, alignment: .bottom)
-                    .offset(y: -altura * (1 - progresso))
-                    .opacity(progresso)
-                    .allowsHitTesting(aberto)
-                if !aberto {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .frame(width: 160, height: max(44, geometria.safeAreaInsets.top))
-                        .gesture(gesto)
-                        .padding(.top, 32)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-            }
-        }
-    }
-
-    private var gesto: some Gesture {
-        LongPressGesture(minimumDuration: 0.15, maximumDistance: 20)
-            .sequenced(before: DragGesture(minimumDistance: 1))
-            .updating($deslocamento) { valor, estado, _ in
-                if case let .second(true, arrasto?) = valor {
-                    estado = max(0, arrasto.translation.height)
-                }
-            }
-            .onEnded { valor in
-                if case let .second(true, arrasto?) = valor, arrasto.translation.height >= limiar {
+        content
+            .environment(\.contextoDebugDesign, contexto)
+            .background {
+                DetectorDePressaoDeDoisDedos {
+                    guard !aberto else { return }
                     withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.25), reduzir: reduzirMovimento)) {
                         aberto = true
                     }
+                }
+                .frame(width: 0, height: 0)
+            }
+            .overlay(alignment: .top) {
+                if aberto {
+                    cabecalho
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
     }
@@ -156,6 +130,69 @@ private struct PainelDebugModifier: ViewModifier {
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
         .background(FrilaCor.superficie)
+    }
+}
+private struct DetectorDePressaoDeDoisDedos: UIViewRepresentable {
+    let abrir: () -> Void
+
+    func makeCoordinator() -> Coordenador { Coordenador(abrir: abrir) }
+
+    func makeUIView(context: Context) -> AncoraDoGesto {
+        let ancora = AncoraDoGesto()
+        ancora.coordenador = context.coordinator
+        return ancora
+    }
+
+    func updateUIView(_ view: AncoraDoGesto, context: Context) {
+        context.coordinator.abrir = abrir
+    }
+
+    static func dismantleUIView(_ view: AncoraDoGesto, coordinator: Coordenador) {
+        coordinator.desligar()
+    }
+
+    final class Coordenador: NSObject, UIGestureRecognizerDelegate {
+        var abrir: () -> Void
+        private weak var janela: UIWindow?
+        private lazy var gesto: UILongPressGestureRecognizer = {
+            let gesto = UILongPressGestureRecognizer(target: self, action: #selector(reconheceu(_:)))
+            gesto.minimumPressDuration = 0.6
+            gesto.numberOfTouchesRequired = 2
+            gesto.cancelsTouchesInView = false
+            gesto.delegate = self
+            return gesto
+        }()
+
+        init(abrir: @escaping () -> Void) { self.abrir = abrir }
+
+        func ligar(_ janela: UIWindow?) {
+            guard self.janela !== janela else { return }
+            desligar()
+            self.janela = janela
+            janela?.addGestureRecognizer(gesto)
+        }
+
+        func desligar() {
+            janela?.removeGestureRecognizer(gesto)
+            janela = nil
+        }
+
+        @objc private func reconheceu(_ gesto: UILongPressGestureRecognizer) {
+            if gesto.state == .began { abrir() }
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
+        }
+    }
+
+    final class AncoraDoGesto: UIView {
+        weak var coordenador: Coordenador?
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            coordenador?.ligar(window)
+        }
     }
 }
 #endif
