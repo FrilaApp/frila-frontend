@@ -67,18 +67,30 @@ private struct PainelDebugModifier: ViewModifier {
     @State private var aberto = false
     @State private var progresso: CGFloat = 0
     @State private var tamanho: CGSize = .zero
+    @State private var areaSeguraInferior: CGFloat = 0
     private let raioMoldura: CGFloat = 54
-    private let alturaCabecalho: CGFloat = 76
+    private let folgaDesejada: CGFloat = 8
+    private let referenciaReducao: CGFloat = 38
+
+    private var reducao: CGFloat {
+        let altura = max(tamanho.height, referenciaReducao + tamanho.width / 2 + 1)
+        return min(referenciaReducao / (altura - tamanho.width / 2), 0.25)
+    }
+
+    private var alturaCabecalho: CGFloat {
+        min(44 + 2 * folgaDesejada, tamanho.height * reducao + areaSeguraInferior)
+    }
     @State private var informacoes = false
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(\.accessibilityReduceTransparency) private var reduzirTransparencia
 
     func body(content: Content) -> some View {
         content
-            .molduraDebug(progresso: progresso, tamanho: tamanho, alturaCabecalho: alturaCabecalho,
+            .molduraDebug(progresso: progresso, reducao: reducao, areaSeguraInferior: areaSeguraInferior,
                           raio: raioMoldura, reduzirMovimento: reduzirMovimento)
             .allowsHitTesting(!aberto)
             .onGeometryChange(for: CGSize.self) { $0.size } action: { tamanho = $0 }
+            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { areaSeguraInferior = $0 }
             .environment(\.contextoDebugDesign, contexto)
             .background {
                 DetectorDePressaoDeDoisDedos {
@@ -163,7 +175,6 @@ private struct PainelDebugModifier: ViewModifier {
         .font(FrilaTipo.chip)
         .foregroundStyle(FrilaCor.texto)
         .padding(.horizontal, FrilaEspaco.medio)
-        .padding(.bottom, FrilaEspaco.pequeno)
     }
 
     private func rotuloDoBotao(_ titulo: LocalizedStringKey, simbolo: String) -> some View {
@@ -173,21 +184,20 @@ private struct PainelDebugModifier: ViewModifier {
     }
 }
 private extension View {
-    func molduraDebug(progresso: CGFloat, tamanho: CGSize, alturaCabecalho: CGFloat,
+    func molduraDebug(progresso: CGFloat, reducao: CGFloat, areaSeguraInferior: CGFloat,
                       raio: CGFloat, reduzirMovimento: Bool) -> some View {
-        let largura = max(tamanho.width, 1)
-        let altura = max(tamanho.height, alturaCabecalho + largura / 2 + 1)
-        let reducao = min(alturaCabecalho / (altura - largura / 2), 0.25)
-        let margem = largura * reducao / 2
-        return self
+        self
             .clipShape(FormaMolduraDebug(progresso: progresso, raio: raio))
             .shadow(color: .black.opacity(0.06 * progresso), radius: 3, y: 3)
             .shadow(color: .black.opacity(0.06 * progresso), radius: 12, y: 12)
             .shadow(color: .black.opacity(0.06 * progresso), radius: 24, y: 24)
             .scaleEffect(1 - reducao * progresso, anchor: .bottom)
-            .offset(y: -margem * progresso)
+            .offset(y: areaSeguraInferior * progresso)
             .transaction { if reduzirMovimento { $0.animation = nil } }
-            .background(Color.black.opacity(progresso).ignoresSafeArea())
+            .background {
+                Color.black.ignoresSafeArea().opacity(progresso)
+                    .allowsHitTesting(false)
+            }
     }
 
     @ViewBuilder
