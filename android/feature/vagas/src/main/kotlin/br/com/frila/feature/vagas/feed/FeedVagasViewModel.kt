@@ -62,10 +62,10 @@ class FeedVagasViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
-                vagasCarregadas = servicoVagas.listarVagasAbertas(
-                    coordenada = coordenada,
-                    distanciaMaxKm = _estado.value.filtroDistancia.limiteKm,
-                )
+                // distanciaMaxKm fica de fora de propósito (achado bloqueante do Shisui): restringir no
+                // servidor impede ampliar o raio sem forçar um recarregamento — vagasCarregadas precisa
+                // conter todo o raio possível para que aplicarFiltros() seja reativo em qualquer chip.
+                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
                 aplicarFiltros()
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro)) }
@@ -85,10 +85,7 @@ class FeedVagasViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
-                vagasCarregadas = servicoVagas.listarVagasAbertas(
-                    coordenada = coordenada,
-                    distanciaMaxKm = _estado.value.filtroDistancia.limiteKm,
-                )
+                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
                 aplicarFiltros()
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }

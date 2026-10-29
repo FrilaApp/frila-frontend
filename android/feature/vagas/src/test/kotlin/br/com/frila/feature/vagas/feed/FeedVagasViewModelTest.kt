@@ -685,7 +685,10 @@ class FeedVagasViewModelTest {
     }
 
     @Test
-    fun `carregar repassa distancia_max_km quando filtro de distancia esta ativo`() = runBlocking {
+    fun `carregar nao restringe a chamada por distancia_max_km mesmo com filtro de distancia ativo`() = runBlocking {
+        // Achado bloqueante (Shisui): restringir no servidor por distancia_max_km impede ampliar o
+        // raio no cliente sem forcar um recarregamento. carregar() precisa buscar tudo e deixar o
+        // filtro reativo em aplicarFiltros() cuidar do raio.
         var distanciaMaxRecebida: String? = null
         val viewModel = viewModelComEngine(
             MockEngine { request ->
@@ -697,6 +700,92 @@ class FeedVagasViewModelTest {
 
         viewModel.carregar().join()
 
-        assertEquals("25.0", distanciaMaxRecebida)
+        assertEquals(null, distanciaMaxRecebida)
+    }
+
+    @Test
+    fun `ampliar o filtro de distancia revela vagas mais distantes sem recarregar (Shisui)`() = runBlocking {
+        // Repro exato do Shisui: mock do servidor respeita distancia_max_km de verdade. Se carregar()
+        // enviasse distancia_max_km=5, a vaga B (40km) nunca chegaria ao cliente e ampliar o chip
+        // para 50km continuaria preso em [A], igual ao bug reportado.
+        val viewModel = viewModelComEngine(
+            MockEngine { request ->
+                val distanciaMax = request.url.parameters["distancia_max_km"]?.toDouble()
+                val todas = listOf(
+                    vagaJson(id = "a", distanciaKm = 3.0) to 3.0,
+                    vagaJson(id = "b", distanciaKm = 40.0) to 40.0,
+                )
+                val visiveis = todas.filter { (_, distancia) -> distanciaMax == null || distancia <= distanciaMax }
+                respond(
+                    content = "[" + visiveis.joinToString(",") { it.first } + "]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.CINCO_KM)
+        viewModel.carregar().join()
+        assertEquals(listOf("a"), viewModel.estado.value.vagas.map { it.id })
+
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.CINQUENTA_KM)
+
+        assertEquals(listOf("a", "b"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `ampliar para Qualquer apos filtro estreito revela todas as vagas sem recarregar`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", distanciaKm = 3.0)}, ${vagaJson(id = "b", distanciaKm = 40.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.CINCO_KM)
+        viewModel.carregar().join()
+        assertEquals(1, viewModel.estado.value.vagas.size)
+
+        viewModel.aoSelecionarFiltroDistancia(FiltroDistancia.QUALQUER)
+
+        assertEquals(listOf("a", "b"), viewModel.estado.value.vagas.map { it.id })
+    }
+
+    @Test
+    fun `atualizar repassa coordenada atual ao ServicoVagas`() = runBlocking {
+        var latitudeRecebida: String? = null
+        var longitudeRecebida: String? = null
+        val provedor = mockk<ProvedorDeLocalizacao>()
+        coEvery { provedor.obterCoordenadaAtual() } returns Coordenada(latitude = -15.79, longitude = -47.88)
+        val viewModel = viewModelComEngine(
+            MockEngine { request ->
+                latitudeRecebida = request.url.parameters["latitude"]
+                longitudeRecebida = request.url.parameters["longitude"]
+                respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+            provedorDeLocalizacao = provedor,
+        )
+
+        viewModel.atualizar().join()
+
+        assertEquals("-15.79", latitudeRecebida)
+        assertEquals("-47.88", longitudeRecebida)
+    }
+
+    @Test
+    fun `atualizar sem coordenada disponivel chama ServicoVagas sem latitude e longitude (fallback gracioso)`() = runBlocking {
+        var tinhaLatitude = true
+        val viewModel = viewModelComEngine(
+            MockEngine { request ->
+                tinhaLatitude = request.url.parameters.contains("latitude")
+                respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+            provedorDeLocalizacao = provedorSemCoordenada(),
+        )
+
+        viewModel.atualizar().join()
+
+        assertTrue(!tinhaLatitude)
     }
 }
