@@ -89,8 +89,16 @@ fi
 # Guarda estrita: -allowProvisioningUpdates é expressamente proibido na CI
 # (evita criação indevida de certificados que estouram a cota da conta Apple).
 for arg in "$@" ${autenticacao[@]+"${autenticacao[@]}"}; do
-  if [[ "$arg" == "-allowProvisioningUpdates" ]]; then
+  if [[ "$arg" == *"-allowProvisioningUpdates"* ]]; then
     falhar "-allowProvisioningUpdates é proibido na CI (estoura o limite de certificados da conta Apple; use assinatura manual)"
+  fi
+done
+
+# Inspeciona variáveis de ambiente de compilação e assinatura
+for var_name in $(compgen -v | grep -iE '^(XCODE|BUILD|CODE_SIGN|PROVISIONING|FRILA|ASC|OTHER|EXTRA|ACTION)' 2>/dev/null || true); do
+  val="${!var_name:-}"
+  if [[ "$val" == *"-allowProvisioningUpdates"* ]]; then
+    falhar "-allowProvisioningUpdates detectado na variável de ambiente $var_name; proibido na CI"
   fi
 done
 
@@ -98,6 +106,34 @@ if [[ -n "${CI:-}" ]]; then
   [[ -n "${FRILA_PROVISIONING_PROFILE_APP:-}" && -n "${FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE:-}" ]] ||
     falhar "na CI a assinatura manual exige FRILA_PROVISIONING_PROFILE_APP e FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE (veja Docs/CI.md)"
 fi
+
+xcodebuild() {
+  # Guarda universal da CI: intercepta qualquer invocação de xcodebuild neste script
+  for arg in "$@"; do
+    if [[ "$arg" == *"-allowProvisioningUpdates"* ]]; then
+      falhar "-allowProvisioningUpdates detectado na chamada ao xcodebuild; expressamente proibido na CI"
+    fi
+  done
+  if [[ -n "${CI:-}" ]]; then
+    if [[ " $* " == *" archive "* ]]; then
+      local tem_manual=0
+      for arg in "$@"; do
+        if [[ "$arg" == *"CODE_SIGN_STYLE="* ]]; then
+          estilo="${arg#CODE_SIGN_STYLE=}"
+          if [[ "$estilo" == "Automatic" ]]; then
+            falhar "CODE_SIGN_STYLE=Automatic detectado no archive; na CI a assinatura deve ser estritamente Manual"
+          elif [[ "$estilo" == "Manual" ]]; then
+            tem_manual=1
+          fi
+        fi
+      done
+      if [[ "$tem_manual" -ne 1 ]]; then
+        falhar "assinatura manual ausente no archive da CI (esperado estilo Manual)"
+      fi
+    fi
+  fi
+  command xcodebuild "$@"
+}
 
 derived=()
 if [[ -n "${FRILA_DERIVED_DATA:-}" ]]; then
@@ -121,8 +157,8 @@ descricao="$ESQUEMA $VERSAO ($FRILA_NUMERO_DO_BUILD), $AMBIENTE"
 echo "Frila: $descricao"
 
 # 1. Archive, com a assinatura manual e a identidade Apple Distribution já importada no keychain.
-# Na CI não usamos -allowProvisioningUpdates nem assinatura automática: isso criava um certificado
-# Apple Development novo a cada runner efêmero até estourar a cota da conta Apple.
+# Na CI não usamos -allowProvisioningUpdates nem assinatura automática: isso acumulava certificados
+# Apple Development via API em runners efêmeros até estourar a cota da conta Apple.
 # CI=1 desliga a fase do Xcode que envia os símbolos ao Crashlytics: o envio é o passo 4 deste script.
 ajustes=(
   MARKETING_VERSION="$VERSAO"
@@ -229,7 +265,7 @@ ditto -x -k "$IPA" "$IPA_ABERTO"
 APP_ASSINADO="$IPA_ABERTO/Payload/Frila.app"
 # Diagnóstico do 90035: somente metadados públicos, antes do envio.
 date -u
-security find-identity -v -p codesigning
+security find-identity -v -p codesigning | sed -E 's/"Apple Distribution: [^"]+ \(([A-Z0-9]{10})\)"/"Apple Distribution: [PROTEGIDO] (\1)"/'
 certificado=()
 if [[ -n "${FRILA_CERTIFICADO_DISTRIBUICAO_SHA256:-}" ]]; then
   certificado=(--certificado-esperado "$FRILA_CERTIFICADO_DISTRIBUICAO_SHA256" --equipe "$EQUIPE")
