@@ -25,6 +25,8 @@ class ComprovanteCheckinTest {
         assertEquals(instante, comprovante.registradoEm)
         assertEquals(TipoVerificacaoCheckin.GEOLOCALIZADO, comprovante.tipoVerificacao)
         assertEquals("-15.794, -47.882", comprovante.coordenadasAproximadas)
+        assertEquals("CHK-9945BC73", comprovante.codigoAutenticacao)
+        assertEquals("27/10/2026 12:30:00", comprovante.horarioFormatado())
         assertTrue(comprovante.codigoAutenticacao.startsWith("CHK-"))
         assertEquals(12, comprovante.codigoAutenticacao.length) // CHK- (4) + 8 hex chars = 12
     }
