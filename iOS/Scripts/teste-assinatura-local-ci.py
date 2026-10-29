@@ -53,12 +53,15 @@ class AssinaturaLocalTests(unittest.TestCase):
         self.etapas = []
         self.falha = None
         env = {
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "HOME": os.environ.get("HOME", "/tmp"),
+            "TMPDIR": os.environ.get("TMPDIR", "/tmp"),
             "RUNNER_TEMP": str(self.pasta), "GITHUB_ENV": str(self.ambiente), "FRILA_EQUIPE": "TESTE12345",
             "FRILA_PROFILES_DIR": str(self.pasta_perfis),
             "APPLE_DISTRIBUTION_CERT_P12_BASE64": base64.b64encode(b"p12-ficticio").decode(),
             "APPLE_DISTRIBUTION_CERT_P12_PASSWORD": "senha-ficticia-nao-publicar",
         }
-        self.patch_env = mock.patch.dict(os.environ, env)
+        self.patch_env = mock.patch.dict(os.environ, env, clear=True)
         self.patch_env.start()
         self.addCleanup(self.patch_env.stop)
         self.umask = os.umask(0o077)
@@ -289,7 +292,7 @@ class AssinaturaLocalTests(unittest.TestCase):
         write_orig = pathlib.Path.write_bytes
 
         def falha_segundo(path_obj, data):
-            if path_obj.name == f"{uuid_notif}.mobileprovision":
+            if uuid_notif in path_obj.name:
                 raise OSError("falha simulada no disco durante escrita do segundo perfil")
             return write_orig(path_obj, data)
 
@@ -337,6 +340,68 @@ class AssinaturaLocalTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "ProvisionsAllDevices"):
             assinatura.importar()
 
+    def test_escrita_parcial_perfil_limpa_temporario_e_nao_deixa_orfao(self):
+        os.environ["APPLE_PROVISIONING_PROFILE_APP_BASE64"] = criar_perfil_ficticio(
+            "uuid-app", "Frila App", "TESTE12345", "com.frila.org.app", self.der
+        )
+        os.environ["APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64"] = criar_perfil_ficticio(
+            "uuid-notif", "Frila Notif", "TESTE12345", "com.frila.org.app.notificationservice", self.der
+        )
+        original_write_bytes = pathlib.Path.write_bytes
+
+        def falha_segundo_write(path_obj, data):
+            if "uuid-notif" in path_obj.name:
+                original_write_bytes(path_obj, data[:40])
+                raise OSError("falha simulada de I/O na escrita do segundo perfil")
+            return original_write_bytes(path_obj, data)
+
+        with mock.patch.object(pathlib.Path, "write_bytes", falha_segundo_write):
+            with self.assertRaises(OSError):
+                assinatura.importar()
+
+        keychain = self.keychain()
+        assinatura.apagar(keychain.parent)
+        remanescentes = list(self.pasta_perfis.glob("*.mobileprovision")) + list(self.pasta_perfis.glob("*.tmp"))
+        self.assertEqual(remanescentes, [], f"Arquivos órfãos encontrados: {remanescentes}")
+
+    def test_falha_transitoria_unlink_preserva_manifesto_e_limpa_no_always(self):
+        os.environ["APPLE_PROVISIONING_PROFILE_APP_BASE64"] = criar_perfil_ficticio(
+            "uuid-app", "Frila App", "TESTE12345", "com.frila.org.app", self.der
+        )
+        os.environ["APPLE_PROVISIONING_PROFILE_NOTIFICATION_SERVICE_BASE64"] = criar_perfil_ficticio(
+            "uuid-notif", "Frila Notif", "TESTE12345", "com.frila.org.app.notificationservice", self.der
+        )
+        original_write = pathlib.Path.write_bytes
+        original_unlink = pathlib.Path.unlink
+        falhas_unlink = True
+
+        def falhar_segunda_escrita(path_obj, data):
+            if "uuid-notif" in path_obj.name:
+                raise OSError("falha simulada na escrita da extensão")
+            return original_write(path_obj, data)
+
+        def unlink_com_falha_transitoria(path_obj, *args, **kwargs):
+            if "uuid-app" in path_obj.name and falhas_unlink:
+                raise OSError("falha transitória simulada no unlink")
+            return original_unlink(path_obj, *args, **kwargs)
+
+        with mock.patch.object(pathlib.Path, "write_bytes", falhar_segunda_escrita), \
+             mock.patch.object(pathlib.Path, "unlink", unlink_com_falha_transitoria):
+            with self.assertRaises(RuntimeError):
+                assinatura.importar()
+
+        keychain = self.keychain()
+        self.assertTrue(keychain.parent.exists())
+        manifesto = json.loads((keychain.parent / "perfis-instalados.json").read_text())
+        self.assertTrue(any("uuid-app" in item for item in manifesto), f"Manifesto: {manifesto}")
+
+        # Simula o passo de limpeza always() após cessar a falha transitória
+        falhas_unlink = False
+        assinatura.apagar(keychain.parent)
+        remanescentes = list(self.pasta_perfis.glob("*.mobileprovision"))
+        self.assertEqual(remanescentes, [], f"Arquivos restantes após always: {remanescentes}")
+        self.assertFalse(keychain.parent.exists())
+
 
 class ErrosSemCredenciaisTests(unittest.TestCase):
     def test_erro_de_subprocesso_nao_publica_argv_nem_saida_com_segredos(self):
@@ -366,7 +431,23 @@ class GuardaEnviarTestflightTests(unittest.TestCase):
         self.bin.mkdir(exist_ok=True)
         self.args_log = self.pasta / "args.json"
         stub = self.bin / "xcodebuild"
-        stub.write_text(f'#!/usr/bin/env python3\nimport json, os, sys\nwith open("{self.args_log}", "w") as f:\n    json.dump(sys.argv[1:], f)\n')
+        stub.write_text(f'''#!/usr/bin/env python3
+import json, os, sys, pathlib, plistlib
+with open("{self.args_log}", "w") as f:
+    json.dump(sys.argv[1:], f)
+if "archive" in sys.argv:
+    for i, arg in enumerate(sys.argv):
+        if arg == "-archivePath" and i + 1 < len(sys.argv):
+            app_dir = pathlib.Path(sys.argv[i + 1]) / "Products" / "Applications" / "Frila.app"
+            app_dir.mkdir(parents=True, exist_ok=True)
+            info = {{"CFBundleShortVersionString": "0.5.4", "CFBundleVersion": "20261029.1", "FRILA_ENVIRONMENT": "frila-prod"}}
+            with open(app_dir / "Info.plist", "wb") as fp:
+                plistlib.dump(info, fp)
+            ext_dir = app_dir / "PlugIns" / "FrilaNotificationService.appex"
+            ext_dir.mkdir(parents=True, exist_ok=True)
+            with open(ext_dir / "Info.plist", "wb") as fp:
+                plistlib.dump(info, fp)
+''')
         stub.chmod(0o755)
         formatter = self.bin / "xcbeautify"
         formatter.write_text("#!/bin/bash\ncat\n")
@@ -379,7 +460,9 @@ class GuardaEnviarTestflightTests(unittest.TestCase):
         caminho_script = self.pasta / "iOS/Scripts/enviar-testflight.sh"
         caminho_script.parent.mkdir(parents=True, exist_ok=True)
         caminho_script.write_text(texto)
-        env = dict(os.environ,
+        base_env = {k: v for k, v in os.environ.items()
+                    if not k.startswith(("APPLE_", "FRILA_", "ASC_"))}
+        env = dict(base_env,
                    PATH=f"{self.bin}:{os.environ['PATH']}",
                    CI="1",
                    FRILA_CERTIFICADO_DISTRIBUICAO_SHA256="ficticio",
@@ -443,6 +526,30 @@ class GuardaEnviarTestflightTests(unittest.TestCase):
 
     def test_flag_em_argumento_falha_guarda(self):
         res = self.rodar(args=["Frila-Prod", "0.5.4", "-allowProvisioningUpdates", "--sem-envio"])
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("-allowProvisioningUpdates", res.stderr)
+
+    def test_mutante_command_xcodebuild_falha_guarda(self):
+        mutante = self.script_base.replace("xcodebuild archive \\\n", "command xcodebuild archive \\\n", 1)
+        self.assertNotEqual(mutante, self.script_base)
+        res = self.rodar(script_texto=mutante)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("command xcodebuild", res.stderr)
+
+    def test_mutante_export_com_command_xcodebuild_falha_guarda(self):
+        mutante = self.script_original.replace('xcodebuild -exportArchive "${args[@]}"',
+                                               'command xcodebuild -exportArchive "${args[@]}"', 1)
+        self.assertNotEqual(mutante, self.script_original)
+        res = self.rodar(script_texto=mutante)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("command xcodebuild", res.stderr)
+
+    def test_mutante_export_com_allow_provisioning_updates_falha_guarda(self):
+        mutante = self.script_original.replace('xcodebuild -exportArchive "${args[@]}"',
+                                               'xcodebuild -exportArchive -allowProvisioningUpdates "${args[@]}"', 1)
+        self.assertNotEqual(mutante, self.script_original)
+        script_com_export = mutante.split('\nIPA=')[0] + '\nexit 0\n'
+        res = self.rodar(script_texto=script_com_export)
         self.assertNotEqual(res.returncode, 0)
         self.assertIn("-allowProvisioningUpdates", res.stderr)
 
