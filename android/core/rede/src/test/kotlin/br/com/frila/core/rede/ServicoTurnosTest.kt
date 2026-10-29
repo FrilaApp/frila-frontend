@@ -16,18 +16,42 @@ class ServicoTurnosTest {
 
     private val turnoJson = """
         {
-          "turno_id": "11111111-1111-1111-1111-111111111111",
-          "vaga_id": "22222222-2222-2222-2222-222222222222",
+          "id": "11111111-1111-1111-1111-111111111111",
           "posicao_id": "33333333-3333-3333-3333-333333333333",
-          "funcao": {"id": "f1", "nome": "garçom", "categoria": "Salão"},
-          "contraparte": {
-            "id": "e1", "tipo": "estabelecimento", "nome": "Bar do Zé",
-            "reputacao": {"positivas": 7, "total": 7, "turnos_considerados": 7, "turnos_realizados": 7}
+          "vaga": {
+            "id": "22222222-2222-2222-2222-222222222222",
+            "funcao": "garçom",
+            "local": "CLS 405 Bloco C",
+            "regiao_administrativa": "Plano Piloto",
+            "inicio_em": "2026-11-01T21:00:00Z",
+            "fim_em": "2026-11-02T03:00:00Z",
+            "valor_centavos": 16000
           },
-          "inicio_em": "2026-11-01T21:00:00Z",
-          "fim_em": "2026-11-02T03:00:00Z",
-          "valor_centavos": 16000,
-          "estado": "confirmada"
+          "contraparte": {
+            "id": "e1",
+            "tipo": "estabelecimento",
+            "nome": "Bar do Zé",
+            "reputacao": {
+              "positivas": 7,
+              "total": 7,
+              "turnos_considerados": 7,
+              "turnos_realizados": 7
+            }
+          },
+          "contato_visivel_ate": "2026-11-09T03:00:00Z",
+          "a_caminho_em": null,
+          "checkin_em": null,
+          "checkin_tipo": null,
+          "checkin_distancia_m": null,
+          "checkin_confirmado_em": null,
+          "checkout_em": null,
+          "checkout_distancia_m": null,
+          "verificacao": "pendente",
+          "valor_acordado_centavos": 16000,
+          "pode_avaliar": false,
+          "estado": "confirmada",
+          "avaliacao": null,
+          "cancelamento": null
         }
     """.trimIndent()
 
@@ -50,14 +74,60 @@ class ServicoTurnosTest {
         assertEquals("/rest/v1/rpc/meus_turnos", caminhoChamado)
         assertEquals(1, turnos.size)
         assertEquals("confirmada", turnos.first().estado)
-        assertEquals("garçom", turnos.first().funcao.nome)
+        assertEquals("garçom", turnos.first().vaga.funcao)
+        assertEquals(16000L, turnos.first().valorAcordadoCentavos)
+        assertEquals("11111111-1111-1111-1111-111111111111", turnos.first().id)
     }
 
     @Test
     fun `turno cancelado (RN12) continua na lista, nao e filtrado pelo servico`() = runTest {
+        val jsonCancelado = """
+            {
+              "id": "11111111-1111-1111-1111-111111111111",
+              "posicao_id": "33333333-3333-3333-3333-333333333333",
+              "vaga": {
+                "id": "22222222-2222-2222-2222-222222222222",
+                "funcao": "garçom",
+                "local": "CLS 405 Bloco C",
+                "regiao_administrativa": "Plano Piloto",
+                "inicio_em": "2026-11-01T21:00:00Z",
+                "fim_em": "2026-11-02T03:00:00Z",
+                "valor_centavos": 16000
+              },
+              "contraparte": {
+                "id": "e1",
+                "tipo": "estabelecimento",
+                "nome": "Bar do Zé",
+                "reputacao": {
+                  "positivas": 7,
+                  "total": 7,
+                  "turnos_considerados": 7,
+                  "turnos_realizados": 7
+                }
+              },
+              "contato_visivel_ate": "2026-11-09T03:00:00Z",
+              "a_caminho_em": null,
+              "checkin_em": null,
+              "checkin_tipo": null,
+              "checkin_distancia_m": null,
+              "checkin_confirmado_em": null,
+              "checkout_em": null,
+              "checkout_distancia_m": null,
+              "verificacao": "pendente",
+              "valor_acordado_centavos": 16000,
+              "pode_avaliar": false,
+              "estado": "cancelada",
+              "avaliacao": null,
+              "cancelamento": {
+                "causa": "estabelecimento",
+                "falta": false,
+                "cancelada_em": "2026-11-01T15:00:00Z"
+              }
+            }
+        """.trimIndent()
         val engine = MockEngine {
             respond(
-                content = """[${turnoJson.replace("\"confirmada\"", "\"cancelada\"")}]""",
+                content = "[$jsonCancelado]",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
@@ -69,6 +139,8 @@ class ServicoTurnosTest {
 
         assertEquals(1, turnos.size)
         assertEquals("cancelada", turnos.first().estado)
+        assertEquals("estabelecimento", turnos.first().cancelamento?.causa)
+        assertEquals(false, turnos.first().cancelamento?.falta)
     }
 
     @Test
@@ -81,8 +153,9 @@ class ServicoTurnosTest {
 
         val turno = servico.listarMeusTurnos().first()
 
-        assertNull(turno.checkin)
+        assertNull(turno.checkinEm)
         assertNull(turno.avaliacao)
+        assertNull(turno.cancelamento)
     }
 
     @Test

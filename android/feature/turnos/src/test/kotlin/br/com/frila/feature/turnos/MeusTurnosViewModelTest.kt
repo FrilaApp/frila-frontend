@@ -28,18 +28,37 @@ class MeusTurnosViewModelTest {
 
     private fun turnoJson(id: String, estado: String) = """
         {
-          "turno_id": "$id",
-          "vaga_id": "vaga-$id",
+          "id": "$id",
           "posicao_id": "posicao-$id",
-          "funcao": {"id": "f1", "nome": "garçom", "categoria": "Salão"},
+          "vaga": {
+            "id": "vaga-$id",
+            "funcao": "garçom",
+            "local": "CLS 405 Bloco C",
+            "regiao_administrativa": "Plano Piloto",
+            "inicio_em": "2026-11-01T21:00:00Z",
+            "fim_em": "2026-11-02T03:00:00Z",
+            "valor_centavos": 16000
+          },
           "contraparte": {
-            "id": "e1", "tipo": "estabelecimento", "nome": "Bar do Zé",
+            "id": "e1",
+            "tipo": "estabelecimento",
+            "nome": "Bar do Zé",
             "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}
           },
-          "inicio_em": "2026-11-01T21:00:00Z",
-          "fim_em": "2026-11-02T03:00:00Z",
-          "valor_centavos": 16000,
-          "estado": "$estado"
+          "contato_visivel_ate": "2026-11-09T03:00:00Z",
+          "a_caminho_em": null,
+          "checkin_em": null,
+          "checkin_tipo": null,
+          "checkin_distancia_m": null,
+          "checkin_confirmado_em": null,
+          "checkout_em": null,
+          "checkout_distancia_m": null,
+          "verificacao": "pendente",
+          "valor_acordado_centavos": 16000,
+          "pode_avaliar": false,
+          "estado": "$estado",
+          "avaliacao": null,
+          "cancelamento": null
         }
     """.trimIndent()
 
@@ -272,22 +291,37 @@ class MeusTurnosViewModelTest {
     fun `turno com checkin existente mapeia comprovante preservando codigo verificador e status`() = runBlocking {
         val jsonTurnoComCheckin = """
             {
-              "turno_id": "turno-chk-1",
-              "vaga_id": "vaga-1",
+              "id": "turno-chk-1",
               "posicao_id": "posicao-1",
-              "funcao": {"id": "f1", "nome": "garçom", "categoria": "Salão"},
+              "vaga": {
+                "id": "vaga-1",
+                "funcao": "garçom",
+                "local": "CLS 405 Bloco C",
+                "regiao_administrativa": "Plano Piloto",
+                "inicio_em": "2026-11-01T21:00:00Z",
+                "fim_em": "2026-11-02T03:00:00Z",
+                "valor_centavos": 16000
+              },
               "contraparte": {
-                "id": "e1", "tipo": "estabelecimento", "nome": "Bar do Zé",
+                "id": "e1",
+                "tipo": "estabelecimento",
+                "nome": "Bar do Zé",
                 "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}
               },
-              "inicio_em": "2026-11-01T21:00:00Z",
-              "fim_em": "2026-11-02T03:00:00Z",
-              "valor_centavos": 16000,
+              "contato_visivel_ate": "2026-11-09T03:00:00Z",
+              "a_caminho_em": "2026-11-01T20:30:00Z",
+              "checkin_em": "2026-11-01T20:55:00Z",
+              "checkin_tipo": "geolocalizado",
+              "checkin_distancia_m": 85,
+              "checkin_confirmado_em": "2026-11-01T20:55:05Z",
+              "checkout_em": null,
+              "checkout_distancia_m": null,
+              "verificacao": "verificado",
+              "valor_acordado_centavos": 16000,
+              "pode_avaliar": false,
               "estado": "confirmada",
-              "checkin": {
-                "feito_em": "2026-11-01T20:55:00Z",
-                "distancia_metros": 85.0
-              }
+              "avaliacao": null,
+              "cancelamento": null
             }
         """.trimIndent()
 
