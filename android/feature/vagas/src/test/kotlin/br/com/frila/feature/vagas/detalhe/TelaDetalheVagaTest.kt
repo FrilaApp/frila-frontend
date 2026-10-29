@@ -1,5 +1,9 @@
 package br.com.frila.feature.vagas.detalhe
 
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -161,8 +165,10 @@ class TelaDetalheVagaTest {
             viewModel.candidatar().join()
             compose.waitForIdle()
 
-            // Mensagem de sucesso
-            compose.onNodeWithText("Candidatura confirmada! Confira o contato abaixo.").assertExists()
+            // Mensagem de sucesso com LiveRegionMode.Polite para TalkBack
+            compose.onNodeWithText("Candidatura confirmada! Confira o contato abaixo.")
+                .assertExists()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
 
             // Contato confirmado visível
             compose.onNodeWithText("Contato confirmado").assertExists()
@@ -198,7 +204,9 @@ class TelaDetalheVagaTest {
             viewModel.candidatar().join()
             compose.waitForIdle()
 
-            compose.onNodeWithText("Candidatura enviada. Aguarde a escolha do contratante.").assertExists()
+            compose.onNodeWithText("Candidatura enviada. Aguarde a escolha do contratante.")
+                .assertExists()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
             compose.onNodeWithText("Candidatura enviada").assertExists().assertIsNotEnabled()
         }
     }
@@ -224,7 +232,9 @@ class TelaDetalheVagaTest {
             viewModel.candidatar().join()
             compose.waitForIdle()
 
-            compose.onNodeWithText("Que pena, a vaga acabou de ser preenchida.").assertExists()
+            compose.onNodeWithText("Que pena, a vaga acabou de ser preenchida.")
+                .assertExists()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
             compose.onNodeWithText("Candidatar-se").assertExists().assertIsEnabled()
         }
     }
