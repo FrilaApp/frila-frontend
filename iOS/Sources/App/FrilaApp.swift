@@ -85,6 +85,9 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
+            #if FRILA_DESIGN
+            .modoDebugDesign()
+            #endif
             #if DEBUG
             .preferredColorScheme(Self.esquemaDeCorDosArgumentos)
             #endif

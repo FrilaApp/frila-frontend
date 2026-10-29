@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "Variantes": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Variantes"
+          }
+        }
+      }
+    },
+    "Informações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informações"
+          }
+        }
+      }
+    },
     "Sair da conta?": {
       "extractionState": "manual",
       "localizations": {
