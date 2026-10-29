@@ -68,7 +68,7 @@ private struct PainelDebugModifier: ViewModifier {
     @GestureState private var deslocamento: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     private let altura: CGFloat = 112
-    private let limiar: CGFloat = 70
+    private let limiar: CGFloat = 40
 
     private var progresso: CGFloat { aberto ? 1 : min(max(deslocamento / altura, 0), 1) }
 
@@ -91,6 +91,7 @@ private struct PainelDebugModifier: ViewModifier {
                         .contentShape(Rectangle())
                         .frame(width: 160, height: max(44, geometria.safeAreaInsets.top))
                         .gesture(gesto)
+                        .padding(.top, 32)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
