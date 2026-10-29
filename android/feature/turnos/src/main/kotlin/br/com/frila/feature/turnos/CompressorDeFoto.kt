@@ -22,16 +22,18 @@ object CompressorDeFoto {
 
     /**
      * Potência de 2 que, aplicada como `inSampleSize`, deixa o maior lado da imagem decodificada
-     * no máximo em [ladoMaximo]px — aparelhos de 2GB de RAM não decodificam a imagem original
-     * inteira antes de reduzir (RNF04). `1` (sem subamostragem) quando a imagem já é pequena.
+     * **no máximo** em [ladoMaximo]px — aparelhos de 2GB de RAM não decodificam a imagem
+     * original inteira antes de reduzir (RNF04). `1` (sem subamostragem) quando a imagem já é
+     * pequena. Dobra enquanto `maiorLado / inSampleSize` ainda ultrapassa o limite — não só
+     * enquanto a metade ainda caberia em outra rodada, que deixava o resultado final entre
+     * [ladoMaximo] e `2 * ladoMaximo - 1`, acima do teto (achado do portão de revisão).
      */
     fun calcularInSampleSize(largura: Int, altura: Int, ladoMaximo: Int = LADO_MAXIMO_PX): Int {
         if (largura <= 0 || altura <= 0) return 1
         var inSampleSize = 1
-        var maiorLado = maxOf(largura, altura)
-        while (maiorLado / 2 >= ladoMaximo) {
+        val maiorLado = maxOf(largura, altura)
+        while (maiorLado / inSampleSize > ladoMaximo) {
             inSampleSize *= 2
-            maiorLado /= 2
         }
         return inSampleSize
     }

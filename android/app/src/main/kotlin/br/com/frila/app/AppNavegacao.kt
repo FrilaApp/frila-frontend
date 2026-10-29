@@ -165,8 +165,44 @@ fun AppNavegacao(
         ) { entrada ->
             val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
             val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
+            val contexto = androidx.compose.ui.platform.LocalContext.current
+
+            val seletorDeFoto = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
+            ) { uriOriginal ->
+                if (uriOriginal != null) {
+                    val arquivoComprimido = br.com.frila.feature.turnos.CompressorDeFoto.comprimir(contexto, uriOriginal)
+                    val uriComprimida = androidx.core.content.FileProvider.getUriForFile(
+                        contexto,
+                        "${contexto.packageName}.fileprovider",
+                        arquivoComprimido,
+                    )
+                    viewModel.anexarFoto(uriComprimida.toString())
+                }
+            }
+
             TelaOcorrencia(
                 viewModel = viewModel,
+                aoSelecionarFoto = {
+                    seletorDeFoto.launch(
+                        androidx.activity.result.PickVisualMediaRequest(
+                            androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                        ),
+                    )
+                },
+                aoAbrirEmailDeSuporte = { protocoloCurto ->
+                    val estadoAtual = viewModel.estado.value
+                    val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                        data = android.net.Uri.parse("mailto:suporte@frila.app")
+                        putExtra(android.content.Intent.EXTRA_SUBJECT, "[Protocolo $protocoloCurto] Ocorrência no Turno $turnoId")
+                        putExtra(android.content.Intent.EXTRA_TEXT, estadoAtual.relato)
+                        estadoAtual.anexoUri?.let { uriAnexo ->
+                            putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(uriAnexo))
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                    }
+                    contexto.startActivity(intent)
+                },
                 aoVoltar = { navController.popBackStack() },
             )
         }
