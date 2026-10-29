@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -27,6 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -252,6 +254,28 @@ class TelaPerfilTest {
 
             rule.onNodeWithText("Remunerações acordadas").performScrollTo().assertIsDisplayed()
             rule.onNodeWithText("Nenhum turno realizado ou agendado ainda").performScrollTo().assertIsDisplayed()
+            assertTrue(rule.onAllNodesWithText("Exportar extrato em PDF").fetchSemanticsNodes().isEmpty())
+        }
+    }
+
+    @Test
+    fun botaoExportarExtratoApareceComAlvoMinimoQuandoHaHistorico() {
+        runBlocking {
+            val turnosJson = "[${turnoJson(id = "a", estado = "cumprida", valorAcordadoCentavos = 16_000L)}]"
+            val viewModel = criarViewModel(respostaTurnosJson = turnosJson)
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Exportar extrato em PDF")
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         }
     }
 }

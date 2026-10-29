@@ -3,6 +3,7 @@ package br.com.frila.feature.perfil
 import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.rede.ExclusaoDeContaDto
 import br.com.frila.core.rede.PerfilProfissionalDto
+import br.com.frila.core.rede.TurnoDto
 
 /** Status da tela de perfil. */
 enum class StatusPerfil { CARREGANDO, SUCESSO, ERRO }
@@ -47,6 +48,8 @@ data class EstadoPerfil(
     val perfil: PerfilProfissionalDto? = null,
     val mensagemErro: String? = null,
     val resumoFinanceiro: ResumoFinanceiroPerfil? = null,
+    /** RF16/RNF10: turnos usados para montar o extrato em PDF (mesma lista de [resumoFinanceiro]). */
+    val turnosExtrato: List<TurnoDto> = emptyList(),
     val statusExclusao: StatusExclusao = StatusExclusao.OCIOSO,
     val mensagemErroExclusao: String? = null,
     val resultadoExclusao: ExclusaoDeContaDto? = null,

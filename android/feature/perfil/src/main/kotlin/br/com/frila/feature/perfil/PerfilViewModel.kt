@@ -8,6 +8,7 @@ import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.TurnoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,9 +40,14 @@ class PerfilViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val perfil = servicoPerfil.obterMeuPerfilProfissional()
-                val resumoFinanceiro = carregarResumoFinanceiro()
+                val (resumoFinanceiro, turnosExtrato) = carregarDadosFinanceiros()
                 _estado.update {
-                    it.copy(status = StatusPerfil.SUCESSO, perfil = perfil, resumoFinanceiro = resumoFinanceiro)
+                    it.copy(
+                        status = StatusPerfil.SUCESSO,
+                        perfil = perfil,
+                        resumoFinanceiro = resumoFinanceiro,
+                        turnosExtrato = turnosExtrato,
+                    )
                 }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusPerfil.ERRO, mensagemErro = mensagemDeErro(erro)) }
@@ -52,27 +58,49 @@ class PerfilViewModel(
     /**
      * RF16: soma `valor_acordado_centavos` dos turnos `cumprida` (concluído) e `confirmada`
      * (pendente), descartando `cancelada` (RN12). Falha de rede aqui não pode quebrar a tela de
-     * perfil inteira — degrada para [ResumoFinanceiroPerfil.VAZIO] e o perfil ainda carrega.
+     * perfil inteira — degrada para [ResumoFinanceiroPerfil.VAZIO] e lista vazia, e o perfil
+     * ainda carrega. Devolve os turnos junto porque o extrato em PDF (RF16/RNF10) precisa da
+     * mesma lista para montar a tabela.
      */
-    private suspend fun carregarResumoFinanceiro(): ResumoFinanceiroPerfil {
+    private suspend fun carregarDadosFinanceiros(): Pair<ResumoFinanceiroPerfil, List<TurnoDto>> {
         val turnos = try {
             servicoTurnos.listarMeusTurnos()
         } catch (_: Throwable) {
-            return ResumoFinanceiroPerfil.VAZIO
+            return ResumoFinanceiroPerfil.VAZIO to emptyList()
         }
 
         val cumpridos = turnos.filter { it.estado == "cumprida" }
         val confirmados = turnos.filter { it.estado == "confirmada" }
+        val turnosParaExtrato = cumpridos + confirmados
 
-        return ResumoFinanceiroPerfil(
+        val resumo = ResumoFinanceiroPerfil(
             totalConcluidoCentavos = cumpridos.somaCentavos(),
             totalPendenteCentavos = confirmados.somaCentavos(),
             turnosCumpridosQtd = cumpridos.size,
             turnosAgendadosQtd = confirmados.size,
         )
+        return resumo to turnosParaExtrato
     }
 
     private fun List<TurnoDto>.somaCentavos(): Long = sumOf { it.valorAcordadoCentavos }
+
+    /**
+     * RF16/RNF10: gera o extrato em PDF com o resumo e os turnos já carregados. Guard clause:
+     * sem histórico (nenhum turno cumprido/agendado), não há o que exportar — devolve `null`
+     * sem tentar desenhar uma página vazia.
+     */
+    fun exportarExtratoPdf(diretorioCache: File, nomeProfissional: String): File? {
+        val resumo = _estado.value.resumoFinanceiro ?: return null
+        if (!resumo.temHistorico) return null
+
+        val pasta = File(diretorioCache, "extratos").apply { mkdirs() }
+        return GeradorExtratoPdf.gerar(
+            diretorioSaida = pasta,
+            resumo = resumo,
+            turnos = _estado.value.turnosExtrato,
+            nomeProfissional = nomeProfissional,
+        )
+    }
 
     /** RN15: encerra a sessão local. Não chama a rede — logout é só limpar o que ficou no aparelho. */
     fun aoDeslogar() {
