@@ -85,7 +85,10 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
         problemas.append(contentsOf: auditarTextoCortado(em: app, etapa: "topo"))
 
         var alcancouFim = false
-        for _ in 0..<20 {
+        var ultimaAssinatura = ""
+        let tetoDeSeguranca = 60
+
+        for _ in 0..<tetoDeSeguranca {
             let controles = app.buttons.allElementsBoundByIndex + app.textFields.allElementsBoundByIndex
             for controle in controles {
                 guard controle.exists else { continue }
@@ -117,7 +120,22 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
                 alcancouFim = true
                 break
             }
+
+            let assinaturaAtual = controles
+                .filter { $0.exists && janela.intersects($0.frame) }
+                .map { "\($0.identifier)_\(Int($0.frame.origin.y))" }
+                .joined(separator: ";")
+            if !assinaturaAtual.isEmpty && assinaturaAtual == ultimaAssinatura {
+                // A tela não moveu após rolagem (atingiu o limite inferior de rolagem)
+                break
+            }
+            ultimaAssinatura = assinaturaAtual
+
             app.swipeUp()
+        }
+
+        if fim.exists && !fim.isHittable {
+            trazerParaATela(fim, em: app, tentativas: 4)
         }
 
         XCTAssertTrue(alcancouFim || fim.isHittable, "o percurso não alcançou o fim do catálogo")
@@ -236,8 +254,12 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
     func testCapturasDoCatalogoEmAX5() {
         let app = abrirCatalogo(tamanho: Self.ax5)
         let fim = app.buttons["abrir-licencas"]
-        // 20 passos: o catálogo ganhou Paleta, Tipografia, Botões e Chips do Estúdio na Fase 2 do Hi-Fi
-        for indice in 0..<20 {
+        let janela = app.windows.firstMatch.frame
+        let tetoDeSeguranca = 60
+        var alcancouFim = false
+        var ultimaAssinatura = ""
+
+        for indice in 0..<tetoDeSeguranca {
             if !Self.naCI {
                 let opcoes = XCTExpectedFailure.Options()
                 opcoes.isStrict = false
@@ -248,12 +270,27 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
                     self.add(captura)
                 }
             }
-            if fim.exists && fim.isHittable { break }
+            if fim.exists && fim.isHittable {
+                alcancouFim = true
+                break
+            }
+
+            let controles = app.buttons.allElementsBoundByIndex + app.textFields.allElementsBoundByIndex
+            let assinaturaAtual = controles
+                .filter { $0.exists && janela.intersects($0.frame) }
+                .map { "\($0.identifier)_\(Int($0.frame.origin.y))" }
+                .joined(separator: ";")
+            if !assinaturaAtual.isEmpty && assinaturaAtual == ultimaAssinatura {
+                // A tela não moveu após rolagem (atingiu o limite inferior de rolagem)
+                break
+            }
+            ultimaAssinatura = assinaturaAtual
+
             app.swipeUp()
         }
         if fim.exists && !fim.isHittable {
             trazerParaATela(fim, em: app, tentativas: 4)
         }
-        XCTAssertTrue(fim.isHittable, "o percurso em AX5 não alcançou o fim do catálogo")
+        XCTAssertTrue(alcancouFim || fim.isHittable, "o percurso em AX5 não alcançou o fim do catálogo")
     }
 }
