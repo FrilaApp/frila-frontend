@@ -22,9 +22,20 @@ import java.io.FileOutputStream
 object CompressorDeFotoPerfil {
     const val LADO_MAXIMO_PX = 512
     const val QUALIDADE_JPEG = 80
-    const val NOME_ARQUIVO_AVATAR = "avatar_perfil.jpg"
+    const val PREFIXO_ARQUIVO_AVATAR = "avatar_perfil_"
+    const val NOME_ARQUIVO_TEMPORARIO = "avatar_perfil.tmp"
 
     data class RecorteQuadrado(val origemX: Int, val origemY: Int, val lado: Int)
+
+    /**
+     * Avatar persistido mais recente em `filesDir`, ou `null` sem nenhum salvo. MEDIDO (Shisui,
+     * PR #590): sem isto, [PerfilViewModel.carregar] nunca repunha `fotoLocalPath` e o avatar
+     * desaparecia ao reabrir o app/tela.
+     */
+    fun avatarExistente(contexto: Context): File? =
+        contexto.filesDir
+            .listFiles { arquivo -> arquivo.isFile && arquivo.name.startsWith(PREFIXO_ARQUIVO_AVATAR) }
+            ?.maxByOrNull { it.lastModified() }
 
     /** Ver doc idêntica em `CompressorDeFoto.calcularInSampleSize`. */
     fun calcularInSampleSize(largura: Int, altura: Int, ladoMaximo: Int = LADO_MAXIMO_PX): Int {
@@ -52,10 +63,20 @@ object CompressorDeFotoPerfil {
     }
 
     /**
-     * Decodifica [uriOrigem] já subamostrada, recorta 1:1 centralizado, recomprime em JPEG a
-     * [QUALIDADE_JPEG]% e grava em [NOME_ARQUIVO_AVATAR] dentro de `filesDir`. Sobrescreve o
-     * avatar anterior — só existe um avatar por profissional. Lança [IllegalStateException] se a
-     * imagem não puder ser decodificada; quem chama decide como tratar (rollback no ViewModel).
+     * Decodifica [uriOrigem] já subamostrada, recorta 1:1 centralizado, garante o teto exato de
+     * [LADO_MAXIMO_PX] (MEDIDO, Shisui PR #590: a subamostragem por potência de 2 sozinha deixava
+     * o lado final entre 512 e 1023px — `Bitmap.createScaledBitmap` fecha essa lacuna) e
+     * recomprime em JPEG a [QUALIDADE_JPEG]%.
+     *
+     * Grava primeiro em [NOME_ARQUIVO_TEMPORARIO] e só promove ao nome final
+     * (`${PREFIXO_ARQUIVO_AVATAR}<timestamp>.jpg`) depois que a gravação termina sem erro —
+     * se a gravação falhar no meio, o avatar anterior continua intacto (gravação atômica, item
+     * não-bloqueante do Shisui). O nome final leva timestamp para que `fotoLocalPath` mude a cada
+     * troca de foto — MEDIDO (Shisui): com nome fixo, duas trocas seguidas geravam o mesmo
+     * caminho e a UI nunca recompunha a imagem. Avatares antigos são apagados após a promoção.
+     *
+     * Lança [IllegalStateException] se a imagem não puder ser decodificada; quem chama decide
+     * como tratar (rollback no ViewModel).
      */
     fun comprimir(contexto: Context, uriOrigem: Uri): File {
         val limites = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -77,15 +98,31 @@ object CompressorDeFotoPerfil {
             Bitmap.createBitmap(bitmapOriginal, recorte.origemX, recorte.origemY, recorte.lado, recorte.lado)
         }
 
-        val arquivo = File(contexto.filesDir, NOME_ARQUIVO_AVATAR)
+        val bitmapFinal = if (bitmapRecortado.width > LADO_MAXIMO_PX || bitmapRecortado.height > LADO_MAXIMO_PX) {
+            Bitmap.createScaledBitmap(bitmapRecortado, LADO_MAXIMO_PX, LADO_MAXIMO_PX, true)
+        } else {
+            bitmapRecortado
+        }
+
+        val arquivoTemporario = File(contexto.filesDir, NOME_ARQUIVO_TEMPORARIO)
         try {
-            FileOutputStream(arquivo).use { saida ->
-                bitmapRecortado.compress(Bitmap.CompressFormat.JPEG, QUALIDADE_JPEG, saida)
+            FileOutputStream(arquivoTemporario).use { saida ->
+                bitmapFinal.compress(Bitmap.CompressFormat.JPEG, QUALIDADE_JPEG, saida)
             }
         } finally {
+            if (bitmapFinal !== bitmapRecortado) bitmapFinal.recycle()
             if (bitmapRecortado !== bitmapOriginal) bitmapRecortado.recycle()
             bitmapOriginal.recycle()
         }
-        return arquivo
+
+        val arquivoFinal = File(contexto.filesDir, "$PREFIXO_ARQUIVO_AVATAR${System.currentTimeMillis()}.jpg")
+        if (!arquivoTemporario.renameTo(arquivoFinal)) {
+            throw IllegalStateException("Não foi possível salvar a foto de perfil comprimida.")
+        }
+        contexto.filesDir
+            .listFiles { arquivo -> arquivo.isFile && arquivo.name.startsWith(PREFIXO_ARQUIVO_AVATAR) && arquivo != arquivoFinal }
+            ?.forEach { it.delete() }
+
+        return arquivoFinal
     }
 }

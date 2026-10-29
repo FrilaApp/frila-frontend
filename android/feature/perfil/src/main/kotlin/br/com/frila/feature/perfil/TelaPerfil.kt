@@ -89,6 +89,13 @@ fun TelaPerfil(
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
 
+    // RF03/RNF04: repõe o avatar persistido ao montar a tela — independente do carregamento de
+    // rede em viewModel.carregar(). MEDIDO (Shisui, PR #590): sem isto o avatar desaparecia ao
+    // reabrir o app/tela.
+    LaunchedEffect(Unit) {
+        viewModel.carregarAvatarSalvo(contexto)
+    }
+
     // RF25/UC16: a exclusão com sucesso expulsa a navegação do mesmo jeito que o logout —
     // a sessão local já foi limpa pelo ViewModel antes de chegar aqui.
     LaunchedEffect(estado.statusExclusao) {

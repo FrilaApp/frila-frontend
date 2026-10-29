@@ -66,6 +66,7 @@ class TelaPerfilTest {
         comprimirFoto: (android.content.Context, android.net.Uri) -> java.io.File = { _, _ ->
             throw IllegalStateException("comprimirFoto não configurado neste teste")
         },
+        obterAvatarSalvo: (android.content.Context) -> java.io.File? = { null },
     ): PerfilViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -95,6 +96,7 @@ class TelaPerfilTest {
             armazenamentoDeSessao = armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
             comprimirFoto = comprimirFoto,
+            obterAvatarSalvo = obterAvatarSalvo,
         )
     }
 
@@ -351,6 +353,31 @@ class TelaPerfilTest {
 
             rule.onNodeWithText("Não foi possível processar a foto. Tente outra imagem.").assertIsDisplayed()
             rule.onNodeWithContentDescription("Sem foto de perfil cadastrada").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun avatarSalvoEmDiscoApareceAoAbrirATelaSemPrecisarSelecionarDeNovo() {
+        runBlocking {
+            val arquivoAvatar = kotlin.io.path.createTempFile(prefix = "avatar", suffix = ".jpg").toFile()
+            android.graphics.Bitmap.createBitmap(10, 10, android.graphics.Bitmap.Config.ARGB_8888)
+                .compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, arquivoAvatar.outputStream())
+
+            // MEDIDO (Shisui, PR #590): o bug era o avatar desaparecer ao reabrir a tela porque
+            // nada lia o filesDir na montagem. Aqui obterAvatarSalvo simula um avatar já
+            // persistido de uma sessão anterior — selecionarFoto nunca é chamado.
+            val viewModel = criarViewModel(obterAvatarSalvo = { arquivoAvatar })
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithContentDescription("Foto de perfil do profissional").assertIsDisplayed()
+            assertTrue(rule.onAllNodesWithContentDescription("Sem foto de perfil cadastrada").fetchSemanticsNodes().isEmpty())
         }
     }
 }

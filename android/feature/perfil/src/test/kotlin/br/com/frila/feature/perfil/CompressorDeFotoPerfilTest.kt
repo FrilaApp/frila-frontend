@@ -18,11 +18,14 @@ class CompressorDeFotoPerfilTest {
     }
 
     @Test
-    fun `imagem grande e subamostrada para o maior lado nao passar de 512px`() {
+    fun `imagem grande e subamostrada por potencia de 2 - sozinho nao garante o teto de 512px`() {
         // 8000x6000: 8000/2=4000>=512 -> fator 2, lado 4000
         // 4000/2=2000>=512 -> fator 4, lado 2000
         // 2000/2=1000>=512 -> fator 8, lado 1000
-        // 1000/2=500<512 -> para. fator final 8.
+        // 1000/2=500<512 -> para. fator final 8, lado final 1000 (> 512!).
+        // MEDIDO (Shisui, PR #590): sem um passo final de escala exata, o resultado real fica
+        // entre 512 e 1023px. calcularInSampleSize só reduz por potência de 2; quem garante o
+        // teto de 512px é CompressorDeFotoPerfil.comprimir() aplicando createScaledBitmap depois.
         val fator = CompressorDeFotoPerfil.calcularInSampleSize(largura = 8000, altura = 6000)
         assertEquals(8, fator)
     }

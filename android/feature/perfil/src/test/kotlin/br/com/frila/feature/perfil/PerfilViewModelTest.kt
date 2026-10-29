@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -377,6 +378,7 @@ class PerfilViewModelTest {
     }
 
     private fun viewModelComCompressor(
+        obterAvatarSalvo: (android.content.Context) -> java.io.File? = { null },
         comprimirFoto: (android.content.Context, android.net.Uri) -> java.io.File,
     ): PerfilViewModel {
         val engineVazio = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) }
@@ -387,6 +389,7 @@ class PerfilViewModelTest {
             armazenamentoDeSessao = mockk(relaxed = true),
             escopo = CoroutineScope(Dispatchers.Default),
             comprimirFoto = comprimirFoto,
+            obterAvatarSalvo = obterAvatarSalvo,
         )
     }
 
@@ -420,5 +423,45 @@ class PerfilViewModelTest {
         assertNotNull(viewModel.estado.value.mensagemErroFoto)
         // Rollback: avatar anterior continua valendo, a falha não apaga a referência que funcionava.
         assertEquals(arquivoAnterior.absolutePath, viewModel.estado.value.fotoLocalPath)
+    }
+
+    @Test
+    fun `duas trocas seguidas de foto atualizam fotoLocalPath nas duas vezes`() = runBlocking {
+        val primeiroArquivo = java.io.File("/caminho/falso/avatar_perfil_1.jpg")
+        val segundoArquivo = java.io.File("/caminho/falso/avatar_perfil_2.jpg")
+        var chamadas = 0
+        val viewModel = viewModelComCompressor { _, _ ->
+            chamadas++
+            if (chamadas == 1) primeiroArquivo else segundoArquivo
+        }
+
+        viewModel.selecionarFoto(mockk(relaxed = true), mockk(relaxed = true)).join()
+        assertEquals(primeiroArquivo.absolutePath, viewModel.estado.value.fotoLocalPath)
+
+        viewModel.selecionarFoto(mockk(relaxed = true), mockk(relaxed = true)).join()
+        assertEquals(segundoArquivo.absolutePath, viewModel.estado.value.fotoLocalPath)
+        assertNotEquals(primeiroArquivo.absolutePath, viewModel.estado.value.fotoLocalPath)
+    }
+
+    @Test
+    fun `carregarAvatarSalvo sem avatar em disco nao altera fotoLocalPath`() = runBlocking {
+        val viewModel = viewModelComCompressor(comprimirFoto = { _, _ -> error("não usado neste teste") }, obterAvatarSalvo = { null })
+
+        viewModel.carregarAvatarSalvo(mockk(relaxed = true)).join()
+
+        assertEquals(null, viewModel.estado.value.fotoLocalPath)
+    }
+
+    @Test
+    fun `carregarAvatarSalvo com avatar em disco preenche fotoLocalPath ao reabrir a tela`() = runBlocking {
+        val arquivoSalvo = java.io.File("/caminho/falso/avatar_perfil_antigo.jpg")
+        val viewModel = viewModelComCompressor(
+            comprimirFoto = { _, _ -> error("não usado neste teste") },
+            obterAvatarSalvo = { arquivoSalvo },
+        )
+
+        viewModel.carregarAvatarSalvo(mockk(relaxed = true)).join()
+
+        assertEquals(arquivoSalvo.absolutePath, viewModel.estado.value.fotoLocalPath)
     }
 }
