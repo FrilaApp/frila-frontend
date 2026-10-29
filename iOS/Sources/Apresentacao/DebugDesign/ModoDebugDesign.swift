@@ -65,31 +65,44 @@ public extension View {
 private struct PainelDebugModifier: ViewModifier {
     @State private var contexto = ContextoDebugDesign()
     @State private var aberto = false
+    @State private var progresso: CGFloat = 0
+    @State private var tamanho: CGSize = .zero
+    private let raioMoldura: CGFloat = 54
+    private let alturaCabecalho: CGFloat = 76
     @State private var informacoes = false
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(\.accessibilityReduceTransparency) private var reduzirTransparencia
 
     func body(content: Content) -> some View {
         content
-            .molduraDebug(aberto: aberto)
+            .molduraDebug(progresso: progresso, tamanho: tamanho, alturaCabecalho: alturaCabecalho,
+                          raio: raioMoldura, reduzirMovimento: reduzirMovimento)
+            .allowsHitTesting(!aberto)
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { tamanho = $0 }
             .environment(\.contextoDebugDesign, contexto)
             .background {
                 DetectorDePressaoDeDoisDedos {
                     guard !aberto else { return }
-                    withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.25), reduzir: reduzirMovimento)) {
-                        aberto = true
-                    }
+                    alterarPainel(aberto: true)
                 }
                 .frame(width: 0, height: 0)
             }
             .overlay(alignment: .top) {
-                if aberto {
-                    cabecalho
-                        .environment(\.colorScheme, .dark)
-                        .padding(.top, 8)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
+                cabecalho
+                    .environment(\.colorScheme, .dark)
+                    .frame(height: alturaCabecalho, alignment: .center)
+                    .opacity(progresso)
+                    .offset(y: reduzirMovimento ? 0 : -alturaCabecalho * (1 - progresso))
+                    .allowsHitTesting(aberto)
             }
+    }
+
+    private func alterarPainel(aberto novoValor: Bool) {
+        aberto = novoValor
+        // A geometria não anima com Reduzir Movimento; a opacidade ainda dissolve.
+        withAnimation(FrilaMovimento.animacao(.timingCurve(0.2, 0, 0, 1, duration: 0.45), reduzir: false)) {
+            progresso = novoValor ? 1 : 0
+        }
     }
 
     @ViewBuilder
@@ -140,9 +153,7 @@ private struct PainelDebugModifier: ViewModifier {
                 }
             }
             Button {
-                withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.25), reduzir: reduzirMovimento)) {
-                    aberto = false
-                }
+                alterarPainel(aberto: false)
             } label: {
                 Image(systemName: "xmark").frame(width: 44, height: 44)
                     .vidroDebug(reduzirTransparencia: reduzirTransparencia)
@@ -162,21 +173,21 @@ private struct PainelDebugModifier: ViewModifier {
     }
 }
 private extension View {
-    @ViewBuilder
-    func molduraDebug(aberto: Bool) -> some View {
-        if aberto {
-            self
-                .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-                .shadow(color: .black.opacity(0.06), radius: 3, y: 3)
-                .shadow(color: .black.opacity(0.06), radius: 12, y: 12)
-                .shadow(color: .black.opacity(0.06), radius: 24, y: 24)
-                .scaleEffect(0.93, anchor: .bottom)
-                .padding(.bottom, 8)
-                .allowsHitTesting(false)
-                .background(Color.black.ignoresSafeArea())
-        } else {
-            self
-        }
+    func molduraDebug(progresso: CGFloat, tamanho: CGSize, alturaCabecalho: CGFloat,
+                      raio: CGFloat, reduzirMovimento: Bool) -> some View {
+        let largura = max(tamanho.width, 1)
+        let altura = max(tamanho.height, alturaCabecalho + largura / 2 + 1)
+        let reducao = min(alturaCabecalho / (altura - largura / 2), 0.25)
+        let margem = largura * reducao / 2
+        return self
+            .clipShape(FormaMolduraDebug(progresso: progresso, raio: raio))
+            .shadow(color: .black.opacity(0.06 * progresso), radius: 3, y: 3)
+            .shadow(color: .black.opacity(0.06 * progresso), radius: 12, y: 12)
+            .shadow(color: .black.opacity(0.06 * progresso), radius: 24, y: 24)
+            .scaleEffect(1 - reducao * progresso, anchor: .bottom)
+            .offset(y: -margem * progresso)
+            .transaction { if reduzirMovimento { $0.animation = nil } }
+            .background(Color.black.opacity(progresso).ignoresSafeArea())
     }
 
     @ViewBuilder
@@ -186,6 +197,20 @@ private extension View {
         } else {
             self.background(FrilaCor.superficie, in: Capsule())
         }
+    }
+}
+
+private struct FormaMolduraDebug: Shape {
+    var progresso: CGFloat
+    let raio: CGFloat
+    var animatableData: CGFloat {
+        get { progresso }
+        set { progresso = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let area = progresso <= 0 ? rect.insetBy(dx: -1000, dy: -1000) : rect
+        return RoundedRectangle(cornerRadius: raio * progresso, style: .continuous).path(in: area)
     }
 }
 
