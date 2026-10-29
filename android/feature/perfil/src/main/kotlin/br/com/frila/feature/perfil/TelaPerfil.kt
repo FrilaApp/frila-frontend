@@ -34,10 +34,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -336,11 +339,7 @@ private fun BlocoDeEspecialidades(
                     modifier = Modifier
                         .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
                         .semantics {
-                            contentDescription = if (selecionada) {
-                                "$especialidade, selecionada"
-                            } else {
-                                "$especialidade, não selecionada"
-                            }
+                            stateDescription = if (selecionada) "selecionada" else "não selecionada"
                         },
                 )
             }
@@ -503,7 +502,13 @@ private fun DialogoErroExclusao(mensagem: String?, aoFechar: () -> Unit) {
         },
         text = {
             val textoErro = mensagem ?: "Tente de novo em instantes."
-            Text(textoErro, modifier = Modifier.semantics { error(textoErro) })
+            Text(
+                text = textoErro,
+                modifier = Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                    error(textoErro)
+                },
+            )
         },
         confirmButton = {
             TextButton(
@@ -538,11 +543,15 @@ private fun Erro(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
     ) {
+        val textoErro = mensagem ?: "Não foi possível carregar seu perfil."
         Text(
-            text = mensagem ?: "Não foi possível carregar seu perfil.",
+            text = textoErro,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { error(mensagem ?: "Não foi possível carregar seu perfil.") },
+            modifier = Modifier.semantics {
+                liveRegion = LiveRegionMode.Assertive
+                error(textoErro)
+            },
         )
         BotaoSecundario(texto = "Tentar novamente", aoClicar = aoTentarNovamente)
     }
