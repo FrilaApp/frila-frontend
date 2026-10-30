@@ -45,6 +45,8 @@ class CheckinViewModel(
     private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val instanteAtual: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
+    /** RNF04 (RN06, cartão Uu04zAt4): remove o alerta de aproximação assim que o check-in é feito. */
+    private val monitorizador: MonitorizadorDeTurnosProximos? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -115,6 +117,11 @@ class CheckinViewModel(
             distanciaMetros = distanciaMetros,
             registradoEm = agora.toString(),
         )
+
+        // RNF04: o alerta de aproximação não serve mais depois do check-in confirmado. Só
+        // depois do sucesso da chamada de rede — se ela falhar, o alerta não deve ser perdido
+        // antes da hora (MEDIDO/ressalva do Shisui, PR #598).
+        monitorizador?.removerAlerta(turnoId)
 
         val tipoVerificacao = if (resultado.verificacao == "verificado") {
             TipoVerificacaoCheckin.GEOLOCALIZADO

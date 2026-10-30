@@ -29,8 +29,12 @@ android {
 
 dependencies {
     implementation(project(":core:dominio"))
+    // RN06/RF06: GeofenceAlertaReceiver precisa consultar a preferência de canal antes de notificar.
+    implementation(project(":core:notificacoes"))
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.koin.core)
 
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)

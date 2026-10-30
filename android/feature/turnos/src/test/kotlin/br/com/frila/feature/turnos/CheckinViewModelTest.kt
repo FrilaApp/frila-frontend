@@ -13,6 +13,7 @@ import io.ktor.http.headersOf
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -52,12 +53,14 @@ class CheckinViewModelTest {
     private fun criarViewModel(
         provedorDeLocalizacao: ProvedorDeLocalizacao,
         servicoTurnos: ServicoTurnos,
+        monitorizador: MonitorizadorDeTurnosProximos? = null,
     ): CheckinViewModel = CheckinViewModel(
         turnoId = turnoId,
         coordenadaDaVaga = coordenadaDaVaga,
         servicoTurnos = servicoTurnos,
         provedorDeLocalizacao = provedorDeLocalizacao,
         escopo = CoroutineScope(Dispatchers.Default),
+        monitorizador = monitorizador,
     )
 
     /** Cenário padrão: permissão concedida e GPS ativo — testes defensivos stubam explicitamente. */
@@ -83,6 +86,34 @@ class CheckinViewModelTest {
         assertEquals(TipoVerificacaoCheckin.GEOLOCALIZADO, comprovante!!.tipoVerificacao)
         assertTrue(comprovante.codigoAutenticacao.startsWith("CHK-"))
         assertNotNull(comprovante.coordenadasAproximadas)
+    }
+
+    @Test
+    fun `checkin bem sucedido remove o alerta de aproximacao do turno (RNF04)`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaProxima)
+        val servico = servicoComResposta(resultadoJson(tipo = "geolocalizado", verificacao = "verificado", distanciaM = "111"))
+        val monitorizador = mockk<MonitorizadorDeTurnosProximos>(relaxed = true)
+        val viewModel = criarViewModel(provedor, servico, monitorizador)
+
+        viewModel.fazerCheckin().join()
+
+        verify(exactly = 1) { monitorizador.removerAlerta(turnoId) }
+    }
+
+    @Test
+    fun `falha de rede no checkin nao remove o alerta de aproximacao`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaProxima)
+        val servico = servicoComResposta(
+            json = """{"code":"fora_da_janela","message":"toque fora da janela do turno"}""",
+            status = HttpStatusCode.UnprocessableEntity,
+        )
+        val monitorizador = mockk<MonitorizadorDeTurnosProximos>(relaxed = true)
+        val viewModel = criarViewModel(provedor, servico, monitorizador)
+
+        viewModel.fazerCheckin().join()
+
+        assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status)
+        verify(exactly = 0) { monitorizador.removerAlerta(any()) }
     }
 
     @Test

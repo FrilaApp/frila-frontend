@@ -8,6 +8,8 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.mockk.mockk
+import io.mockk.verify
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -65,12 +67,14 @@ class MeusTurnosViewModelTest {
     private fun viewModelComEngine(
         engine: MockEngine,
         relogio: Clock = Clock.systemUTC(),
+        monitorizador: MonitorizadorDeTurnosProximos? = null,
     ): MeusTurnosViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         return MeusTurnosViewModel(
             ServicoTurnos(cliente),
             relogio = relogio,
             escopo = CoroutineScope(Dispatchers.Default),
+            monitorizador = monitorizador,
         )
     }
 
@@ -256,6 +260,34 @@ class MeusTurnosViewModelTest {
         assertEquals("cancelada", viewModel.estado.value.historicoCompleto.first().estado)
         assertEquals("Turno cancelado e registrado como falta.", viewModel.estado.value.mensagemFeedback)
         assertEquals(null, viewModel.estado.value.cancelamento)
+    }
+
+    @Test
+    fun `cancelamento bem sucedido remove o alerta de aproximacao do turno (RNF04)`() = runBlocking {
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("meus_turnos")) {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")} ]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            } else {
+                respond(
+                    content = """{"posicao_id":"posicao-a","falta":false,"reaberta":true,"nova_posicao_id":"nova-a"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+        }
+        val monitorizador = mockk<MonitorizadorDeTurnosProximos>(relaxed = true)
+        val viewModel = viewModelComEngine(engine, monitorizador = monitorizador)
+        viewModel.carregar().join()
+        viewModel.abrirCancelamento(viewModel.estado.value.agendados.first())
+        viewModel.selecionarMotivo(MotivoCancelamento.SAUDE)
+
+        viewModel.confirmarCancelamento()!!.join()
+
+        verify(exactly = 1) { monitorizador.removerAlerta("a") }
     }
 
     @Test
