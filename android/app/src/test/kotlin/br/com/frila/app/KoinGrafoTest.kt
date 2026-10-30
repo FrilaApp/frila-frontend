@@ -1,5 +1,7 @@
 package br.com.frila.app
 
+import br.com.frila.core.notificacoes.GerenciadorDeCanais
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.FuncaoDto
@@ -23,6 +25,8 @@ import io.mockk.mockk
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -103,5 +107,30 @@ class KoinGrafoTest : KoinTest {
 
         assertNotNull(primeiraResolucao)
         org.junit.jupiter.api.Assertions.assertSame(primeiraResolucao, segundaResolucao)
+    }
+
+    @Test
+    fun `GerenciadorPreferenciasNotificacao e o mesmo singleton para PerfilViewModel e ProcessadorDePush`() {
+        // MEDIDO (Shisui, PR #596, bloqueante): PerfilViewModel estava registrado com 3
+        // argumentos no Koin, caindo no default GerenciadorPreferenciasNotificacaoEmMemoria()
+        // criado dentro do ViewModel — uma instância DIFERENTE da que ProcessadorDePush recebia
+        // do grafo. Desligar o switch na tela nunca chegava ao push real nem persistia.
+        startKoin { modules(modulosDeTeste) }
+
+        val doGrafo = get<GerenciadorPreferenciasNotificacao>()
+        val viewModel = get<PerfilViewModel>()
+
+        viewModel.definirNotificacaoAtivada(GerenciadorDeCanais.CANAL_TURNOS, false)
+
+        assertFalse(doGrafo.estaAtivado(GerenciadorDeCanais.CANAL_TURNOS)) {
+            "PerfilViewModel e o grafo Koin devem compartilhar a MESMA instância de " +
+                "GerenciadorPreferenciasNotificacao — senão o switch na tela nunca silencia o push real."
+        }
+
+        val processador = get<ProcessadorDePush>()
+        val resultado = processador.processar(mapOf("tipo" to "checkin"))
+        assertTrue(resultado.silenciada) {
+            "ProcessadorDePush deveria ver o canal_turnos desativado pelo mesmo gerenciador usado no PerfilViewModel."
+        }
     }
 }
