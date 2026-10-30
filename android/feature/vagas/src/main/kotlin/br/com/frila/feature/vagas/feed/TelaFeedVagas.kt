@@ -7,18 +7,19 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -35,16 +36,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.FrilaSkeleton
 import br.com.frila.core.designsystem.componentes.semanticaDeFiltro
+import br.com.frila.core.designsystem.tema.FrilaRaios
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import kotlin.math.roundToInt
@@ -101,7 +107,7 @@ fun TelaFeedVagas(
                 LinhaDeFiltros(estado = estado, viewModel = viewModel)
 
                 when (estado.status) {
-                    StatusFeed.CARREGANDO -> CarregandoFeed()
+                    StatusFeed.CARREGANDO -> SkeletonFeedVagas()
                     StatusFeed.ERRO -> ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
                     StatusFeed.VAZIO -> VazioFeed(textoBusca = estado.textoBusca)
                     StatusFeed.SUCESSO -> ListaDeVagas(vagas = estado.vagas, aoAbrirDetalhe = aoAbrirDetalhe)
@@ -375,10 +381,35 @@ private fun ListaDeVagas(vagas: List<ItemVaga>, aoAbrirDetalhe: (String) -> Unit
     }
 }
 
+/**
+ * RNF10/RNF04: skeleton do feed enquanto carrega, em vez de um spinner genérico sem geometria.
+ * Replica os 4 cartões de [CartaoVaga] (título, estabelecimento, horário, valor+distância) para
+ * já indicar o formato do conteúdo que está vindo. Container único com `liveRegion` — os ossos
+ * individuais ([FrilaSkeleton]) são `clearAndSetSemantics {}`, então o TalkBack anuncia só isto,
+ * uma vez, em vez de uma vez por osso (MEDIDO, Byakugan: 16 anúncios antes desta correção).
+ */
 @Composable
-private fun CarregandoFeed() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+private fun SkeletonFeedVagas(quantidade: Int = 4) {
+    LazyColumn(
+        contentPadding = PaddingValues(FrilaEspacamento.medio),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+        modifier = Modifier
+            .fillMaxSize()
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Carregando lista de vagas..."
+            },
+    ) {
+        items(quantidade) {
+            CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto)) {
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.6f).height(20.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.8f).height(16.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.45f).height(14.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.45f).height(14.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
+                }
+            }
+        }
     }
 }
 

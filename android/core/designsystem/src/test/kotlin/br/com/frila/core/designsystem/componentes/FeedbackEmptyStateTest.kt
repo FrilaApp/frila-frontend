@@ -121,15 +121,18 @@ class FeedbackEmptyStateTest {
     }
 
     @Test
-    fun `FrilaSkeleton e FrilaCartaoSkeleton expõem acessibilidade de carregamento`() {
+    fun `FrilaSkeleton e FrilaCartaoSkeleton nao poluem o TalkBack com anuncio redundante por osso`() {
+        // MEDIDO (Byakugan/Shisui, M3HqvqQp): antes, cada osso anunciava "Carregando conteúdo" —
+        // numa lista de 4 cartões com 4 ossos, o TalkBack anunciava 16 vezes. Agora os ossos são
+        // puramente decorativos (clearAndSetSemantics {}); quem anuncia uma vez é o container
+        // pai da lista (SkeletonFeedVagas/SkeletonMeusTurnos, testados em :feature:vagas/:turnos).
         compose.setContent {
             FrilaTheme {
                 FrilaCartaoSkeleton()
             }
         }
 
-        // Cada item skeleton dentro do cartão expõe "Carregando conteúdo"
         compose.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Carregando conteúdo")))
-            .assertCountEquals(3)
+            .assertCountEquals(0)
     }
 }

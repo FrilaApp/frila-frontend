@@ -1,5 +1,9 @@
 package br.com.frila.feature.turnos
 
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -482,5 +486,43 @@ class TelaMeusTurnosTest {
 
             compose.onNodeWithContentDescription("Meus turnos").assertExists()
         }
+    }
+
+    @Test
+    fun `durante o carregamento exibe skeleton anunciado uma unica vez (RNF10)`() {
+        // Sem chamar carregar(), o estado default do MeusTurnosViewModel fica em CARREGANDO —
+        // MEDIDO em EstadoMeusTurnos.kt:57.
+        val viewModel = criarViewModel("[]")
+
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Carregando turnos...").assertIsDisplayed()
+    }
+
+    @Test
+    fun `skeleton do carregamento anuncia como liveRegion Polite (RNF10)`() {
+        // MEDIDO (Shisui, PR #594, bloqueante 1): sabotagem removendo liveRegion sobreviveu.
+        val viewModel = criarViewModel("[]")
+
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Carregando turnos...")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
     }
 }
