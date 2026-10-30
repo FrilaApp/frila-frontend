@@ -402,6 +402,28 @@ class ClienteSupabaseTest {
     }
 
     @Test
+    fun `retry de GET por excecao de rede para quando a conectividade cai no meio da requisicao`() = runTest {
+        // Mesmo cenário do teste acima, mas pelo caminho de retryOnExceptionIf (exceção de rede
+        // crua do engine, ex. ConnectTimeoutException) em vez de retryIf (resposta HTTP 503) —
+        // ressalva do Shisui, PR #604: o guard de conectividade em retryOnExceptionIf tinha
+        // mutante sobrevivente por falta deste teste.
+        val tentativas = AtomicInteger(0)
+        val monitor = MonitorDeConectividadeFalso(statusInicial = StatusConectividade.CONECTADO)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            monitor.definirStatus(StatusConectividade.SEM_CONEXAO)
+            throw ConnectTimeoutException("timeout", null)
+        }
+        val cliente = clienteCom(engine, monitor)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(1, tentativas.get()) { "retry por excecao não deveria ocorrer com a conectividade caída" }
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+    }
+
+    @Test
     fun `CancellationException nunca e convertida em ErroDaApi e propaga intacta`() = runTest {
         val engine = MockEngine { throw kotlinx.coroutines.CancellationException("cancelado") }
         val cliente = clienteCom(engine)

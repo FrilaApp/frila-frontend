@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
@@ -102,7 +102,11 @@ fun AppNavegacao(
         onDispose { navController.removeOnDestinationChangedListener(listener) }
     }
 
-    val statusConectividade by monitorDeConectividade.status.collectAsState()
+    // RNF04 (bloqueante do Shisui, PR #604): collectAsState() não é lifecycle-aware — a
+    // composição ficava viva com a Activity parada, então o StateFlow nunca perdia assinante e
+    // o callback do ConnectivityManager nunca era desregistrado em segundo plano (MEDIDO:
+    // dumpsys connectivity continuava mostrando os registros depois de +15s/+24s em background).
+    val statusConectividade by monitorDeConectividade.status.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(navController = navController, startDestination = destinoInicial) {

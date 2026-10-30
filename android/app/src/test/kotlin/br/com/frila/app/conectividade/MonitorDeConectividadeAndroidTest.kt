@@ -2,21 +2,29 @@ package br.com.frila.app.conectividade
 
 import android.app.Application
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
 import br.com.frila.core.rede.StatusConectividade
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.jvm.isAccessible
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
@@ -75,6 +83,42 @@ class MonitorDeConectividadeAndroidTest {
     fun `validated sem internet resulta em SEM_CONEXAO`() {
         val capacidades = capacidadesCom(internet = false, validated = true)
         assertEquals(StatusConectividade.SEM_CONEXAO, chamarStatusDeCapacidades(capacidades))
+    }
+
+    // Ressalva CallbackFlow do Shisui (PR #604): exercita de verdade o callback registrado no
+    // ConnectivityManager simulado do Robolectric — onCapabilitiesChanged/onLost mudando o
+    // StateFlow de produção, e unregisterNetworkCallback acontecendo ao cancelar o escopo após
+    // o timeout de WhileSubscribed(5_000L) (RNF04).
+    @Test
+    fun `callback registrado reage a onCapabilitiesChanged e onLost, e e desregistrado apos o timeout do escopo`() = kotlinx.coroutines.test.runTest {
+        val gerenciador = contexto.getSystemService(ConnectivityManager::class.java)
+        val shadow = Shadows.shadowOf(gerenciador)
+        val escopoDoMonitor = kotlinx.coroutines.CoroutineScope(coroutineContext + kotlinx.coroutines.Job())
+        val monitor = MonitorDeConectividadeAndroid(contexto, escopoDoMonitor)
+
+        val coletor = launch { monitor.status.collect { } }
+        advanceUntilIdle()
+
+        assertTrue("callback deveria estar registrado enquanto há assinante", shadow.networkCallbacks.isNotEmpty())
+        val callback = shadow.networkCallbacks.first()
+        val rede = mockk<Network>(relaxed = true)
+
+        callback.onCapabilitiesChanged(rede, capacidadesCom(internet = true, validated = true))
+        advanceUntilIdle()
+        assertEquals(StatusConectividade.CONECTADO, monitor.status.value)
+
+        callback.onLost(rede)
+        advanceUntilIdle()
+        assertEquals(StatusConectividade.SEM_CONEXAO, monitor.status.value)
+
+        coletor.cancel()
+        advanceTimeBy(5_001L)
+        advanceUntilIdle()
+        assertTrue(
+            "unregisterNetworkCallback deveria ter sido chamado após o timeout de WhileSubscribed(5s)",
+            shadow.networkCallbacks.isEmpty(),
+        )
+        escopoDoMonitor.cancel()
     }
 
     private fun capacidadesCom(internet: Boolean, validated: Boolean): NetworkCapabilities {
