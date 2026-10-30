@@ -205,4 +205,23 @@ class TelaFeedVagasTest {
             assertEquals("", viewModel.estado.value.textoBusca)
         }
     }
+
+    @Test
+    fun `durante o carregamento exibe skeleton anunciado uma unica vez (RNF10)`() {
+        // Sem chamar carregar(), o estado default do FeedVagasViewModel fica em CARREGANDO —
+        // MEDIDO em EstadoFeed.kt:64.
+        val viewModel = criarViewModel()
+
+        compose.setContent {
+            FrilaTheme {
+                TelaFeedVagas(
+                    viewModel = viewModel,
+                    aoAbrirDetalhe = {},
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Carregando lista de vagas...").assertIsDisplayed()
+    }
 }

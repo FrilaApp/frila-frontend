@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,9 +45,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -56,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.FrilaSkeleton
 import java.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -150,7 +154,7 @@ fun TelaMeusTurnos(
             }
 
             when (estado.status) {
-                StatusMeusTurnos.CARREGANDO -> Carregando()
+                StatusMeusTurnos.CARREGANDO -> SkeletonMeusTurnos()
                 StatusMeusTurnos.ERRO -> Erro(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
                 StatusMeusTurnos.VAZIO -> Vazio()
                 StatusMeusTurnos.SUCESSO -> ListaDeTurnos(
@@ -609,13 +613,34 @@ private fun rotuloDeEstado(estado: String): String = when (estado) {
     else -> estado
 }
 
+/**
+ * RNF10/RNF04: skeleton da lista de turnos enquanto carrega. Replica os cards de
+ * [CartaoVaga] usados em [ListaDeTurnos] (função, estabelecimento, data/horário, valor+badge).
+ * Container único com `liveRegion` — os ossos individuais ([FrilaSkeleton]) são
+ * `clearAndSetSemantics {}`, então o TalkBack anuncia só isto, uma vez.
+ */
 @Composable
-private fun Carregando() {
-    Box(
-        modifier = Modifier.fillMaxSize().heightIn(FrilaMetricas.alvoMinimo),
-        contentAlignment = Alignment.Center,
+private fun SkeletonMeusTurnos(quantidade: Int = 3) {
+    LazyColumn(
+        contentPadding = PaddingValues(FrilaEspacamento.medio),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+        modifier = Modifier
+            .fillMaxSize()
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Carregando turnos..."
+            },
     ) {
-        CircularProgressIndicator()
+        items(quantidade) {
+            CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto)) {
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.55f).height(20.dp))
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.8f).height(16.dp))
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.5f).height(14.dp))
+                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.35f).height(14.dp))
+                }
+            }
+        }
     }
 }
 

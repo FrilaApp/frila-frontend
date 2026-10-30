@@ -1,12 +1,12 @@
 package br.com.frila.core.designsystem.componentes
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import android.provider.Settings
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,11 +18,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaCores
@@ -30,7 +36,26 @@ import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaRaios
 
 /**
- * Componente base de esqueleto (skeleton loading) para feedback de carregamento suave (RNF10/RNF04).
+ * `true` quando o sistema permite animação (padrão), `false` quando o usuário desligou
+ * animações em Opções do desenvolvedor/Acessibilidade (`Settings.Global.ANIMATOR_DURATION_SCALE
+ * == 0`). RNF10: nesse caso o skeleton fica estático em vez de forçar o shimmer — "Reduzir
+ * movimento" é uma preferência de acessibilidade, não só uma opção de performance.
+ */
+@Composable
+private fun animacoesAtivadas(): Boolean {
+    val contexto = LocalContext.current
+    return remember {
+        val escala = Settings.Global.getFloat(contexto.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        escala != 0f
+    }
+}
+
+/**
+ * Componente base de esqueleto (skeleton loading) para feedback de carregamento suave
+ * (RNF10/RNF04). Shimmer leve: gradiente linear de 3 cores animado por `rememberInfiniteTransition`
+ * (1500ms, [LinearEasing]) — mais barato que recompor `Brush` a cada frame porque o gradiente é
+ * `remember`ado e só a posição (`Float`) muda; o desenho usa `drawWithCache` para não precisar de
+ * `onGloballyPositioned` (que forçaria recomposição extra a cada mudança de tamanho).
  */
 @Composable
 fun FrilaSkeleton(
@@ -38,23 +63,50 @@ fun FrilaSkeleton(
     shape: Shape = RoundedCornerShape(FrilaRaios.pequeno),
 ) {
     val escuro = isSystemInDarkTheme()
-    val corBase = if (escuro) Color(0xFF2C2C2A) else Color(0xFFE2E2DE)
+    val cores = remember(escuro) {
+        val base = if (escuro) Color(0xFF2C2C2A) else Color(0xFFE2E2DE)
+        // Destaque especular (paridade com iOS FrilaSkeleton.swift:154): claro = branco 42%,
+        // escuro/OLED = branco 9% (evita glare num fundo quase preto) — DEDUZIDO do swift.
+        val destaque = lerp(base, Color.White, if (escuro) 0.09f else 0.42f)
+        listOf(base, destaque, base)
+    }
+    val ativo = animacoesAtivadas()
 
-    val transicao = rememberInfiniteTransition(label = "FrilaSkeletonPulse")
-    val alphaAnimado by transicao.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 0.9f,
+    if (!ativo) {
+        Box(
+            modifier = modifier
+                .clip(shape)
+                .drawWithCache { onDrawBehind { drawRect(cores.first(), size = size) } }
+                .clearAndSetSemantics {},
+        )
+        return
+    }
+
+    val transicao = rememberInfiniteTransition(label = "FrilaSkeletonShimmer")
+    val deslocamento by transicao.animateFloat(
+        initialValue = -1f,
+        targetValue = 2f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
+            animation = tween(durationMillis = 1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
         ),
-        label = "FrilaSkeletonAlpha",
+        label = "FrilaSkeletonOffset",
     )
 
     Box(
         modifier = modifier
-            .background(color = corBase.copy(alpha = alphaAnimado), shape = shape)
-            .semantics { contentDescription = "Carregando conteúdo" },
+            .clip(shape)
+            .drawWithCache {
+                val largura = size.width
+                val x = deslocamento * largura
+                val pincel = Brush.linearGradient(
+                    colors = cores,
+                    start = Offset(x - largura, 0f),
+                    end = Offset(x + largura, 0f),
+                )
+                onDrawBehind { drawRect(brush = pincel, size = size) }
+            }
+            .clearAndSetSemantics {},
     )
 }
 

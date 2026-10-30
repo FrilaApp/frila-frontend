@@ -483,4 +483,23 @@ class TelaMeusTurnosTest {
             compose.onNodeWithContentDescription("Meus turnos").assertExists()
         }
     }
+
+    @Test
+    fun `durante o carregamento exibe skeleton anunciado uma unica vez (RNF10)`() {
+        // Sem chamar carregar(), o estado default do MeusTurnosViewModel fica em CARREGANDO —
+        // MEDIDO em EstadoMeusTurnos.kt:57.
+        val viewModel = criarViewModel("[]")
+
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Carregando turnos...").assertIsDisplayed()
+    }
 }
