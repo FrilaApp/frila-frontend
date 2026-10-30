@@ -31,6 +31,7 @@ dependencies {
     implementation(project(":core:dominio"))
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.core.ktx)
 
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)

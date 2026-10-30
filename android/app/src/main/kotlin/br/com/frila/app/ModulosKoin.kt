@@ -3,6 +3,9 @@ package br.com.frila.app
 import android.content.Context
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
+import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosNulo
+import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosReal
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
@@ -30,6 +33,7 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -71,9 +75,17 @@ val moduloNotificacoes = module {
     single { ProcessadorDePush(get(), get()) }
 }
 
-/** Leitura de localização sob demanda para o check-in presencial (RF13/RN06/RN22). */
+/**
+ * Leitura de localização sob demanda para o check-in presencial (RF13/RN06/RN22), e geofencing
+ * passivo de aproximação de turno (RN06/RNF04, cartão Uu04zAt4).
+ */
 val moduloLocalizacao = module {
     single<ProvedorDeLocalizacao> { ProvedorDeLocalizacaoFused(get()) }
+    single<GerenciadorGeofencingTurnos> {
+        getOrNull<Context>()
+            ?.let(::GerenciadorGeofencingTurnosReal)
+            ?: GerenciadorGeofencingTurnosNulo()
+    }
 }
 
 val moduloFeatures = module {
@@ -91,8 +103,11 @@ val moduloFeatures = module {
     viewModel { CadastroViewModel() }
     viewModel { FeedVagasViewModel(get(), get(), get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
-    viewModel { MeusTurnosViewModel(get()) }
-    viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) -> CheckinViewModel(turnoId, coordenadaDaVaga, get(), get()) }
+    single { MonitorizadorDeTurnosProximos(get()) }
+    viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }
+    viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
+        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), monitorizador = get())
+    }
     viewModel { AvaliacaoViewModel(get()) }
     viewModel { PerfilViewModel(get(), get(), get(), preferenciasNotificacao = get()) }
     viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }

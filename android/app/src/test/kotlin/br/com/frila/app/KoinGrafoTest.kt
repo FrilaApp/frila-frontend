@@ -17,8 +17,12 @@ import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
+import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.turnos.CheckinViewModel
+import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import io.mockk.mockk
@@ -48,6 +52,7 @@ import org.koin.test.get
  */
 private val moduloLocalizacaoFalso = module {
     single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
+    single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
 }
 
 class KoinGrafoTest : KoinTest {
@@ -94,8 +99,11 @@ class KoinGrafoTest : KoinTest {
         assertNotNull(get<CadastroViewModel>())
         assertNotNull(get<FeedVagasViewModel>())
         assertNotNull(get<PerfilViewModel>())
+        assertNotNull(get<MonitorizadorDeTurnosProximos>())
+        assertNotNull(get<MeusTurnosViewModel>())
         assertNotNull(get<CodigoViewModel> { parametersOf("profissional@exemplo.com") })
         assertNotNull(get<DetalheVagaViewModel> { parametersOf(vagaDeTeste) })
+        assertNotNull(get<CheckinViewModel> { parametersOf("turno-1", null) })
     }
 
     @Test

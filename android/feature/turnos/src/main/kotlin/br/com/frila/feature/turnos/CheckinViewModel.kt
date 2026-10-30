@@ -45,6 +45,8 @@ class CheckinViewModel(
     private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val instanteAtual: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
+    /** RNF04 (RN06, cartão Uu04zAt4): remove o alerta de aproximação assim que o check-in é feito. */
+    private val monitorizador: MonitorizadorDeTurnosProximos? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -109,6 +111,8 @@ class CheckinViewModel(
 
     private suspend fun registrarCheckin(distanciaMetros: Int?, coordenadaAtual: Coordenada?) {
         val agora = instanteAtual()
+        // RNF04: o alerta de aproximação não serve mais depois do toque de check-in.
+        monitorizador?.removerAlerta(turnoId)
 
         val resultado = servicoTurnos.fazerCheckin(
             turnoId = turnoId,
