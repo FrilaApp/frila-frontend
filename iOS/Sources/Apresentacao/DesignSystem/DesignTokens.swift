@@ -98,9 +98,26 @@ public enum FrilaMetrica {
 /// das perguntas e respostas dos formulários (`FrilaFormType`); valores monetários usam Jost 600 (LOG-016).
 public enum FrilaTipo {
     /// LOG-016: Jost 600; preserva a curva de tamanho de texto dos papéis nativos.
-    public static func fonteValor(tamanho: CGFloat) -> Font {
+    public static func fonteValor(tamanho: CGFloat, peso: Font.Weight = .semibold) -> Font {
         FontesFrila.registrar()
-        return Font.custom("JostRoman-SemiBold", size: tamanho, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho).textStyle)
+        return Font.custom(nomeFonteValor(peso), size: tamanho, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho).textStyle)
+    }
+
+    private static func nomeFonteValor(_ peso: Font.Weight) -> String {
+        peso == .bold ? "JostRoman-Bold" : "JostRoman-SemiBold"
+    }
+
+    /// Tinta real dos três trechos sobre a mesma linha de base, sem a entrelinha da fonte.
+    static func tintaValor(_ partes: FrilaPartesValor, tamanho: CGFloat, peso: Font.Weight) -> CGRect {
+        FontesFrila.registrar()
+        var limites = CGRect.null
+        for (texto, proporcao) in [(partes.moeda, 0.65), (partes.inteiro, 1.0), (partes.centavos, 0.725)] where !texto.isEmpty {
+            let fonte = CTFontCreateWithName(nomeFonteValor(peso) as CFString, tamanho * proporcao, nil)
+            let linha = CTLineCreateWithAttributedString(NSAttributedString(string: texto,
+                attributes: [NSAttributedString.Key(kCTFontAttributeName as String): fonte]))
+            limites = limites.union(CTLineGetBoundsWithOptions(linha, [.useGlyphPathBounds]))
+        }
+        return limites.isNull ? .zero : limites
     }
 
     /// Título da tela fora da barra: display 32 heavy, tracking −0.8 (`FrilaTypography.display`).

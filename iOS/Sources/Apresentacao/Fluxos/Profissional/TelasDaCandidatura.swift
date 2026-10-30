@@ -43,18 +43,9 @@ public struct AreaDeCandidatura: View {
                     avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
 
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(spacing: FrilaEspaco.medio) {
-                        precoView
-                        botaoView
-                            .frame(maxWidth: .infinity)
-                    }
-                } else {
-                    VStack(spacing: FrilaEspaco.compacto) {
-                        precoView
-                        botaoView
-                            .frame(maxWidth: .infinity)
-                    }
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    precoView
+                    botaoView.frame(maxWidth: .infinity)
                 }
 
                 if quadro == nil, let aviso, aviso.id != Self.idDaRetirada {
@@ -67,19 +58,46 @@ public struct AreaDeCandidatura: View {
         .onDisappear { quadro?.publicar(nil, de: Self.donoDosAvisos) }
     }
 
+    @ViewBuilder
     private var precoView: some View {
-        let formatador = FormatadorFrila()
-        return VStack(spacing: FrilaEspaco.fio) {
-            FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
-                          leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 52)
-                .accessibilityIdentifier("candidatura-valor")
-            Text(verbatim: apoioPreco)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+        if dynamicTypeSize.isAccessibilitySize {
+            precoEmColuna
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: FrilaEspaco.compacto) {
+                    valorDoRodape
+                    Spacer(minLength: 0)
+                    apoioDoRodape
+                        .multilineTextAlignment(.trailing)
+                        .frame(idealWidth: 128, alignment: .trailing)
+                        .fixedSize(horizontal: true, vertical: true)
+                }
+                precoEmColuna
+            }
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private var valorDoRodape: some View {
+        let formatador = FormatadorFrila()
+        return FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
+                             leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 52,
+                             peso: .bold, compactarAltura: true)
+            .accessibilityIdentifier("candidatura-valor")
+    }
+
+    private var apoioDoRodape: some View {
+        Text(verbatim: apoioPreco)
+            .font(FrilaTipo.nota)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var precoEmColuna: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+            valorDoRodape
+            apoioDoRodape.multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 

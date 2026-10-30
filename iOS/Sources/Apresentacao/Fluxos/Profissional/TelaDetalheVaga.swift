@@ -613,7 +613,7 @@ private struct BarraInferiorDoDetalhe<Rodape: View>: ViewModifier {
                 content.safeAreaBar(edge: .bottom) {
                     rodape()
                         .padding(.horizontal, FrilaEspaco.medio)
-                        .padding(.vertical, FrilaEspaco.compacto)
+                        .padding(.vertical, FrilaEspaco.pequeno)
                 }
             } else {
                 content.safeAreaInset(edge: .bottom, spacing: 0) {
@@ -624,7 +624,7 @@ private struct BarraInferiorDoDetalhe<Rodape: View>: ViewModifier {
                             .accessibilityHidden(true)
                         rodape()
                             .padding(.horizontal, FrilaEspaco.medio)
-                            .padding(.vertical, FrilaEspaco.compacto)
+                            .padding(.vertical, FrilaEspaco.pequeno)
                     }
                     .background(.regularMaterial)
                 }
