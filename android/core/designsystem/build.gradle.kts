@@ -58,6 +58,10 @@ dependencies {
 
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
+    // MEDIDO (Hinata): debugImplementation(libs.compose.ui.test.manifest) não é visto pela
+    // variante releaseUnitTest — sem o manifesto de teste do Compose, createComposeRule() quebra
+    // só em :core:designsystem:testReleaseUnitTest (25 falhas pré-existentes).
+    testImplementation(libs.compose.ui.test.manifest)
     testImplementation(libs.junit4)
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)

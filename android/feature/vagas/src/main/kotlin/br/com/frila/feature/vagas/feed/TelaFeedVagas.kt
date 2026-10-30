@@ -25,7 +25,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
@@ -47,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
 import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.componentes.FrilaSkeleton
 import br.com.frila.core.designsystem.componentes.semanticaDeFiltro
@@ -269,7 +269,7 @@ fun FiltrosAvancadosVagas(
     aoLimpar: () -> Unit,
     aoFechar: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = aoFechar) {
+    FrilaBottomSheet(onDismissRequest = aoFechar, titulo = "Filtros avançados") {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -280,12 +280,6 @@ fun FiltrosAvancadosVagas(
                 ),
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
         ) {
-            Text(
-                text = "Filtros avançados",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-
             // RF05/RN01: RangeSlider para faixa de remuneração líquida por hora
             val minFormatado = faixaRemuneracaoHora.minima.roundToInt()
             val maxFormatado = faixaRemuneracaoHora.maxima.roundToInt()
