@@ -3672,6 +3672,16 @@
         }
       }
     },
+    "Vaga de %@ no %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga de %@ no %@"
+          }
+        }
+      }
+    },
     "Vaga nova na sua função e na sua região": {
       "localizations": {
         "pt-BR": {
@@ -8928,6 +8938,16 @@
         }
       }
     },
+    "Sem avaliações": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem avaliações"
+          }
+        }
+      }
+    },
     "Sem conexão": {
       "localizations": {
         "pt-BR": {
@@ -10374,6 +10394,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver tudo (%lld)"
+          }
+        }
+      }
+    },
+    "trabalhariam lá de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "trabalhariam lá de novo"
           }
         }
       }

@@ -76,6 +76,15 @@ enum TextosDoProfissional {
     }
 
     enum Detalhe {
+        static let legendaReputacaoNoHeader = String(localized: "trabalhariam lá de novo", bundle: bundleApresentacao)
+        static let semAvaliacoesNoHeader = String(localized: "Sem avaliações", bundle: bundleApresentacao)
+        static func contextoDoHeader(funcao: String, bairro: String) -> String {
+            let funcao = funcao.lowercased(with: Locale(identifier: "pt_BR"))
+            if bairro.isEmpty {
+                return String(localized: "Vaga de \(funcao)", bundle: bundleApresentacao)
+            }
+            return String(localized: "Vaga de \(funcao) no \(bairro)", bundle: bundleApresentacao)
+        }
         static let titulo = String(localized: "Detalhe da vaga", bundle: bundleApresentacao)
         static let quando = String(localized: "Quando", bundle: bundleApresentacao)
         static let horario = String(localized: "Horário", bundle: bundleApresentacao)

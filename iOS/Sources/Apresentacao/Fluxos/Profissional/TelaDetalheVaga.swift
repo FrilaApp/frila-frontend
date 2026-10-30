@@ -40,12 +40,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Bindable private var viewModel: DetalheVagaViewModel
     @State private var avisosDaAcao = AvisosDoDetalhe()
-    @State private var tituloNavegacaoVisivel = false
-    @State private var alturaDaPlaca: CGFloat = 0
     @State private var navegarParaPerfil = false
     private let acao: (Vaga) -> Acao
     private static var idDosAvisos: String { "avisos-da-acao" }
@@ -123,16 +120,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
             }
             .padding(FrilaEspaco.medio)
         }
-        .coordinateSpace(name: "rolagemDetalhe")
-        .modifier(MonitoramentoRolagemPlaca(
-            alturaDaPlaca: alturaDaPlaca,
-            visivel: $tituloNavegacaoVisivel
-        ))
-        .onPreferenceChange(AlturaDaPlacaPreferenceKey.self) { altura in
-            if alturaDaPlaca != altura {
-                alturaDaPlaca = altura
-            }
-        }
         .accessibilityIdentifier("tela-detalhe-vaga")
         .modifier(BarraInferiorDoDetalhe(ativo: rodapeAtivo) {
             if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
@@ -142,18 +129,20 @@ public struct TelaDetalheVaga<Acao: View>: View {
         })
         .background(FrilaCor.fundo)
         .toolbar(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .modifier(BarraSuperiorDoDetalhe {
+            Group {
                 if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
-                    FrilaTituloNavegacaoVaga(
-                        funcao: vaga.funcao.nome,
-                        estabelecimento: vaga.estabelecimento.nome,
-                        visivel: tituloNavegacaoVisivel
-                    )
-                    .frame(width: 240, alignment: .leading)
+                    cabecalhoEstabelecimento(vaga)
+                } else {
+                    Text(verbatim: TextosDoProfissional.Detalhe.titulo)
+                        .font(FrilaTipo.tituloDoCartao)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                 }
             }
-        }
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.vertical, FrilaEspaco.compacto)
+        })
         .navigationDestination(isPresented: $navegarParaPerfil) {
             if let api = viewModel.api, case let .carregado(vaga) = viewModel.estado {
                 TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
@@ -305,10 +294,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
     @ViewBuilder
     private func conteudo(_ vaga: Vaga) -> some View {
-        placaVaga(vaga)
-
-        cabecalhoEstabelecimento(vaga)
-
         resumoVaga(vaga)
 
         notasResumo(vaga)
@@ -335,58 +320,99 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
     }
 
-    private func placaVaga(_ vaga: Vaga) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: vaga.estabelecimento.nome)
-                .font(FrilaTipo.resumo)
-                .textCase(.uppercase)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityLabel(Text(verbatim: vaga.estabelecimento.nome))
-            Text(verbatim: vaga.funcao.nome)
-                .font(FrilaTipo.tituloDoDetalhe)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            GeometryReader { geo in
-                Color.clear
-                    .preference(
-                        key: AlturaDaPlacaPreferenceKey.self,
-                        value: geo.size.height
-                    )
-                    .preference(
-                        key: PosicaoPlacaPreferenceKey.self,
-                        value: geo.frame(in: .named("rolagemDetalhe")).maxY
-                    )
-            }
-        )
-    }
-
     @ViewBuilder
     private func cabecalhoEstabelecimento(_ vaga: Vaga) -> some View {
         let reputacao = vaga.estabelecimento.reputacao
-        let avaliacao: String? = reputacao.semHistorico
-            ? nil
-            : TextosDoProfissional.Detalhe.reputacaoContagem(positivas: reputacao.positivas, total: reputacao.total)
-        let localizacao = vaga.regiaoAdministrativa.isEmpty ? nil : vaga.regiaoAdministrativa
+        let contexto = TextosDoProfissional.Detalhe.contextoDoHeader(
+            funcao: vaga.funcao.nome, bairro: vaga.regiaoAdministrativa
+        )
+        let conteudo = VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: vaga.estabelecimento.nome)
+                        .font(FrilaTipo.tituloDoDetalhe)
+                        .foregroundStyle(FrilaCor.texto)
+                        .lineLimit(2)
+                    Text(verbatim: contexto)
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(verbatim: monograma(vaga.estabelecimento.nome))
+                    .font(FrilaTipo.resumo.weight(.bold))
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+                    .background(FrilaCor.superficie, in: Circle())
+                    .overlay(Circle().strokeBorder(FrilaCor.borda, lineWidth: 1.5))
+                    .accessibilityHidden(true)
+            }
+            reputacaoNoHeader(reputacao)
+        }
+        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+        .contentShape(Rectangle())
+        let rotulo = [vaga.estabelecimento.nome, contexto,
+                      TextosDoProfissional.reputacaoDoEstabelecimento(reputacao)].joined(separator: ". ")
 
         if viewModel.api != nil {
-            FrilaCabecalhoEstabelecimento(
-                nome: vaga.estabelecimento.nome,
-                localizacao: localizacao,
-                avaliacao: avaliacao,
-                acao: { navegarParaPerfil = true }
-            )
+            Button {
+                guard !navegarParaPerfil else { return }
+                navegarParaPerfil = true
+            } label: { conteudo }
+            .buttonStyle(EstiloBotaoTatil(scale: 0.98))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: rotulo))
+            .accessibilityHint(Text("Ver perfil público", bundle: bundleApresentacao))
+            .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("abrir-perfil-estabelecimento")
         } else {
-            FrilaCabecalhoEstabelecimento(
-                nome: vaga.estabelecimento.nome,
-                localizacao: localizacao,
-                avaliacao: avaliacao,
-                acao: nil
-            )
+            conteudo
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: rotulo))
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("abrir-perfil-estabelecimento")
         }
+    }
+
+    @ViewBuilder
+    private func reputacaoNoHeader(_ reputacao: Reputacao) -> some View {
+        if reputacao.semHistorico {
+            Text(verbatim: TextosDoProfissional.Detalhe.semAvaliacoesNoHeader)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        } else {
+            let contagemEFila = HStack(spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: TextosDoProfissional.Detalhe.reputacaoContagem(
+                    positivas: reputacao.positivas, total: reputacao.total
+                ))
+                .font(FrilaTipo.resumo)
+                .foregroundStyle(FrilaCor.texto)
+                FilaDeReputacaoDoDetalhe(reputacao: reputacao)
+            }
+            let legenda = Text(verbatim: TextosDoProfissional.Detalhe.legendaReputacaoNoHeader)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: FrilaEspaco.compacto) {
+                    contagemEFila.fixedSize()
+                    Spacer(minLength: 0)
+                    legenda.fixedSize()
+                }
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    contagemEFila
+                    legenda
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private func monograma(_ nome: String) -> String {
+        let palavras = nome.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation })
+        return (palavras.count > 1
+            ? palavras.prefix(2).map { String($0.prefix(1)) }.joined()
+            : String(palavras.first?.prefix(2) ?? "")).uppercased()
     }
 
     private func resumoVaga(_ vaga: Vaga) -> some View {
@@ -637,44 +663,57 @@ extension TelaDetalheVaga where Acao == EmptyView {
     }
 }
 
-private struct AlturaDaPlacaPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-private struct MonitoramentoRolagemPlaca: ViewModifier {
-    let alturaDaPlaca: CGFloat
-    @Binding var visivel: Bool
+private struct BarraSuperiorDoDetalhe<Cabecalho: View>: ViewModifier {
+    @ViewBuilder let cabecalho: () -> Cabecalho
 
     func body(content: Content) -> some View {
-        if #available(iOS 18.0, macOS 15.0, *) {
-            content
-                .onScrollGeometryChange(for: Bool.self) { geo in
-                    let offset = max(0, geo.visibleRect.minY + geo.contentInsets.top)
-                    let limiar = max(alturaDaPlaca + FrilaEspaco.medio, 44)
-                    return offset >= limiar
-                } action: { _, saiuDeVista in
-                    if visivel != saiuDeVista {
-                        visivel = saiuDeVista
-                    }
-                }
+        if #available(iOS 26, *) {
+            content.safeAreaBar(edge: .top, spacing: 0) { bloco }
         } else {
-            content
-                .onPreferenceChange(PosicaoPlacaPreferenceKey.self) { maxY in
-                    let saiuDeVista = maxY <= 0
-                    if visivel != saiuDeVista {
-                        visivel = saiuDeVista
-                    }
-                }
+            content.safeAreaInset(edge: .top, spacing: 0) {
+                bloco.background(.regularMaterial)
+            }
         }
     }
+
+    private var bloco: some View {
+        VStack(spacing: 0) {
+            cabecalho()
+            Rectangle().fill(FrilaCor.divisoria).frame(height: 1)
+                .accessibilityHidden(true)
+        }
+    }
+
 }
 
-private struct PosicaoPlacaPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat = .greatestFiniteMagnitude
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
+/// Cinco posições mostram a proporção binária; a contagem preserva o tamanho da amostra.
+private struct FilaDeReputacaoDoDetalhe: View {
+    let reputacao: Reputacao
+    private let diametros: [CGFloat] = [24, 22, 20, 18, 16]
+
+    var body: some View {
+        let proporcao = reputacao.total > 0
+            ? min(1, max(0, Double(reputacao.positivas) / Double(reputacao.total))) : 0
+        HStack(spacing: -FrilaEspaco.minimo) {
+            ForEach(diametros.indices, id: \.self) { indice in
+                let diametro = diametros[indice]
+                let carga = min(1, max(0, proporcao * 5 - Double(indice)))
+                ZStack {
+                    Circle().stroke(lineWidth: 4).blendMode(.destinationOut)
+                    Circle().fill(FrilaCor.superficie)
+                    Circle().fill(FrilaCor.texto.opacity(0.3))
+                        .mask(alignment: .leading) {
+                            Rectangle().frame(width: diametro * carga)
+                        }
+                    Image(systemName: carga == 0 ? "hand.thumbsup" : "hand.thumbsup.fill")
+                        .font(FrilaTipo.microRotulo)
+                        .foregroundStyle(FrilaCor.texto)
+                }
+                .frame(width: diametro, height: diametro)
+                .zIndex(Double(diametros.count - indice))
+            }
+        }
+        .compositingGroup()
+        .accessibilityHidden(true)
     }
 }
