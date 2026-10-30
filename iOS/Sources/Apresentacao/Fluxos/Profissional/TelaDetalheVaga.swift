@@ -432,14 +432,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 ? TextosDoProfissional.Detalhe.notaUrgencia
                 : TextosDoProfissional.Detalhe.notaSelecao
             )
-            .font(FrilaTipo.nota)
+            .font(FrilaTipo.meta)
             .foregroundStyle(FrilaCor.textoSecundario)
 
             Text(verbatim: TextosDoProfissional.Detalhe.valorIntegral)
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
-        .padding(.horizontal, FrilaEspaco.minimo)
     }
 
     private func cartaoInclusos(_ vaga: Vaga) -> some View {
@@ -449,7 +448,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 .textCase(.uppercase)
                 .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
-                .padding(.horizontal, FrilaEspaco.minimo)
                 .accessibilityAddTraits(.isHeader)
 
             FrilaListaInclusos(itens: itensInclusos(da: vaga))
@@ -549,12 +547,12 @@ public struct TelaDetalheVaga<Acao: View>: View {
     private func avisoRN10View(_ vaga: Vaga) -> some View {
         HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
             Image(systemName: "phone")
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.texto)
                 .frame(width: 16, height: 16, alignment: .top)
                 .accessibilityHidden(true)
             Text(verbatim: avisoRN10(vaga))
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.texto)
         }
         .accessibilityElement(children: .combine)
