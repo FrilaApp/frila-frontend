@@ -358,11 +358,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
             }
             .id(Self.idDosAvisos)
         }
-
-        if let api = viewModel.api {
-            AcoesDeSeguranca(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
-                .id(vaga.estabelecimento.id)
-        }
     }
 
     private var migrarNome: Bool {
