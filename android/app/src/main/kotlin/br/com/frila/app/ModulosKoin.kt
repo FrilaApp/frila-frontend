@@ -2,6 +2,7 @@ package br.com.frila.app
 
 import android.content.Context
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
+import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosNulo
@@ -21,6 +22,8 @@ import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
+import br.com.frila.core.seguranca.LeitorDeAmbiente
+import br.com.frila.core.seguranca.LeitorDeAmbienteNulo
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
@@ -48,6 +51,12 @@ val moduloSeguranca = module {
         getOrNull<Context>()
             ?.let(::ArmazenamentoDeSessaoKeystore)
             ?: ArmazenamentoDeSessaoEmMemoria()
+    }
+    /** RN15 (cartão Cdv0sS5w): leitura do ambiente para VerificadorDeIntegridade. */
+    single<LeitorDeAmbiente> {
+        getOrNull<Context>()
+            ?.let(::LeitorDeAmbienteAndroid)
+            ?: LeitorDeAmbienteNulo()
     }
 }
 
