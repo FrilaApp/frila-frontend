@@ -3672,12 +3672,12 @@
         }
       }
     },
-    "Vaga de %@ no %@": {
+    "Vaga de %@, %@": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vaga de %@ no %@"
+            "value": "Vaga de %@, %@"
           }
         }
       }
