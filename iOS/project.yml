@@ -64,6 +64,9 @@ targets:
   FrilaDominio:
     type: framework
     platform: iOS
+    scheme:
+      management:
+        isShown: false
     sources:
       - path: Sources/Dominio
       # Manifesto de privacidade de cada framework que usa UserDefaults (#96): a Apple pede o
@@ -79,6 +82,9 @@ targets:
   FrilaDados:
     type: framework
     platform: iOS
+    scheme:
+      management:
+        isShown: false
     sources:
       - path: Sources/Dados
       - path: Resources/Fixtures
@@ -98,6 +104,9 @@ targets:
   FrilaApresentacao:
     type: framework
     platform: iOS
+    scheme:
+      management:
+        isShown: false
     sources:
       - path: Sources/Apresentacao
       - path: Resources/DesignSystem.xcassets
@@ -121,6 +130,9 @@ targets:
   FrilaInfraestrutura:
     type: framework
     platform: iOS
+    scheme:
+      management:
+        isShown: false
     sources:
       - path: Sources/Infraestrutura
       - path: Resources/Frameworks/PrivacyInfo.xcprivacy
@@ -147,6 +159,9 @@ targets:
   FrilaNotificationService:
     type: app-extension
     platform: iOS
+    scheme:
+      management:
+        isShown: false
     sources:
       - path: Sources/NotificationService
       # Manifesto próprio da extensão (só UserDefaults do App Group, motivo 1C8F.1): a Apple pede o
