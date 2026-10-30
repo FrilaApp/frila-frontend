@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// Superelipse de expoente 4 no perímetro inteiro, sem trechos retos.
+/// Pílula com pontas de superelipse suaves, próximas da cápsula original.
 struct FormaDoBotaoFrila: Shape {
     func path(in rect: CGRect) -> Path {
-        let alcance = rect.width / 2
+        let alcance = min(rect.height * 0.6, rect.width / 2)
         let meiaAltura = rect.height / 2
-        let expoente: CGFloat = 4
+        let expoente: CGFloat = 2.2
         let amostras = 64
         var caminho = Path()
         caminho.move(to: CGPoint(x: rect.minX + alcance, y: rect.minY))
+        caminho.addLine(to: CGPoint(x: rect.maxX - alcance, y: rect.minY))
 
         // Cada quadrante segue |x/a|^n + |y/b|^n = 1.
         // Quadráticas entre pontos médios suavizam a aproximação sem ultrapassá-la.
@@ -32,10 +33,11 @@ struct FormaDoBotaoFrila: Shape {
             caminho.addQuadCurve(to: pontos[amostras], control: pontos[amostras])
         }
 
-        quadrante(centroX: rect.midX, inicio: -.pi / 2)
-        quadrante(centroX: rect.midX, inicio: 0)
-        quadrante(centroX: rect.midX, inicio: .pi / 2)
-        quadrante(centroX: rect.midX, inicio: .pi)
+        quadrante(centroX: rect.maxX - alcance, inicio: -.pi / 2)
+        quadrante(centroX: rect.maxX - alcance, inicio: 0)
+        caminho.addLine(to: CGPoint(x: rect.minX + alcance, y: rect.maxY))
+        quadrante(centroX: rect.minX + alcance, inicio: .pi / 2)
+        quadrante(centroX: rect.minX + alcance, inicio: .pi)
         caminho.closeSubpath()
         return caminho
     }
