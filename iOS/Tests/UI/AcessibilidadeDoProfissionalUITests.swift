@@ -106,18 +106,14 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
     // MARK: - 4. Detalhe da Vaga
 
-    func testDetalheDaVagaAlvosEDenunciarBloquear() {
+    func testDetalheDaVagaAlvosSemDenunciarBloquear() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_VAGA_ID", "40000000-0000-0000-0000-000000000001"]
         app.launch()
 
-        let denunciar = app.buttons["denunciar"]
-        XCTAssertTrue(denunciar.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(denunciar.frame.height)
-
-        let bloquear = app.buttons["bloquear"]
-        XCTAssertTrue(bloquear.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(bloquear.frame.height)
+        // Denunciar e Bloquear moram só no perfil do estabelecimento (decisão de 30/10/2026).
+        XCTAssertFalse(app.buttons["denunciar"].exists)
+        XCTAssertFalse(app.buttons["bloquear"].exists)
 
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
