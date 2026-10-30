@@ -149,6 +149,7 @@ Regras do build:
   (`manageAppVersionAndBuildNumber` desligado).
 - **Criptografia:** o `Info.plist` declara `ITSAppUsesNonExemptEncryption` como `false`, conferido
   pelo `conferir-release.sh`. Por isso o build não pede a resposta manual sobre criptografia.
+- **Build de Design:** o esquema `Frila-Design` é sempre só interno (`testFlightInternalTestingOnly = true`), nunca chega a testadores externos nem à produção.
 
 ### O que o Cauê faz uma vez
 
@@ -376,7 +377,7 @@ ASC_KEY_PATH=~/caminho/AuthKey.p8 ASC_KEY_ID=... ASC_ISSUER_ID=... \
 
 Sem as três variáveis `ASC_*`, o script usa a conta logada no Xcode da máquina. Sem `--sem-envio`,
 ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio; com
-`FRILA_MEDICAO=1`, o build de medição.
+`FRILA_MEDICAO=1`, o build de medição. Build de Design (`Frila-Design`) é sempre só interno.
 
 ### Validação e próximo envio
 

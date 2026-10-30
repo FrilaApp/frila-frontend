@@ -2,7 +2,7 @@
 # Arquiva, assina, confere e manda o Frila ao TestFlight (#203). É o mesmo caminho na CI
 # (.github/workflows/testflight.yml) e na máquina de quem precisar reproduzir o envio.
 #
-# Uso: Scripts/enviar-testflight.sh <Frila-Beta|Frila-Prod> <versão X.Y.Z> [--sem-envio]
+# Uso: Scripts/enviar-testflight.sh <Frila-Beta|Frila-Prod|Frila-Design> <versão X.Y.Z> [--sem-envio]
 #
 #   --sem-envio   para depois da conferência e dos símbolos: o .ipa assinado fica em
 #                 $FRILA_SAIDA/exportado e nada vai ao App Store Connect.
@@ -33,7 +33,7 @@ falhar() {
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-[[ $# -ge 2 ]] || falhar "uso: $0 <Frila-Beta|Frila-Prod> <versão X.Y.Z> [--sem-envio]"
+[[ $# -ge 2 ]] || falhar "uso: $0 <Frila-Beta|Frila-Prod|Frila-Design> <versão X.Y.Z> [--sem-envio]"
 ESQUEMA="$1"
 VERSAO="$2"
 shift 2
@@ -48,7 +48,7 @@ done
 case "$ESQUEMA" in
   Frila-Beta|Frila-Design) AMBIENTE=frila-dev; AMBIENTE_FIREBASE=Dev ;;
   Frila-Prod) AMBIENTE=frila-prod; AMBIENTE_FIREBASE=Prod ;;
-  *) falhar "o esquema deve ser Frila-Beta ou Frila-Prod (recebido: $ESQUEMA)" ;;
+  *) falhar "o esquema deve ser Frila-Beta, Frila-Prod ou Frila-Design (recebido: $ESQUEMA)" ;;
 esac
 [[ "$VERSAO" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || falhar "a versão deve ter o formato X.Y.Z (recebido: $VERSAO)"
 
@@ -225,7 +225,7 @@ lido_da_extensao() { /usr/libexec/PlistBuddy -c "Print :$1" "$EXTENSAO_ARQUIVADA
 
 opcoes_de_exportacao() {
   local destino="$1" plist="$SAIDA/ExportOptions-$1.plist" so_interno=NO
-  [[ "$ENSAIO" == 0 && "$MEDICAO" == 0 ]] || so_interno=YES
+  [[ "$ENSAIO" == 0 && "$MEDICAO" == 0 && "$ESQUEMA" != "Frila-Design" ]] || so_interno=YES
   rm -f "$plist"
   plutil -create xml1 "$plist"
   plutil -insert method -string app-store-connect "$plist"
@@ -234,7 +234,7 @@ opcoes_de_exportacao() {
   # O número do build é o deste script; o Xcode não pode trocá-lo no envio.
   plutil -insert manageAppVersionAndBuildNumber -bool NO "$plist"
   plutil -insert uploadSymbols -bool YES "$plist"
-  # Os builds de ensaio e de medição nunca chegam a testador externo nem à App Store.
+  # Os builds de ensaio, de medição e de design nunca chegam a testador externo nem à App Store.
   plutil -insert testFlightInternalTestingOnly -bool "$so_interno" "$plist"
 
   if [[ -n "${FRILA_PROVISIONING_PROFILE_APP:-}" && -n "${FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE:-}" ]]; then
