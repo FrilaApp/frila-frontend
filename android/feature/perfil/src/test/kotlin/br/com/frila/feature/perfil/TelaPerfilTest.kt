@@ -74,6 +74,8 @@ class TelaPerfilTest {
             throw IllegalStateException("comprimirFoto não configurado neste teste")
         },
         obterAvatarSalvo: (android.content.Context) -> java.io.File? = { null },
+        preferenciasNotificacao: br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao =
+            br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria(),
     ): PerfilViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -104,6 +106,7 @@ class TelaPerfilTest {
             escopo = CoroutineScope(Dispatchers.Default),
             comprimirFoto = comprimirFoto,
             obterAvatarSalvo = obterAvatarSalvo,
+            preferenciasNotificacao = preferenciasNotificacao,
         )
     }
 
@@ -531,6 +534,43 @@ class TelaPerfilTest {
 
             rule.onNodeWithTag("toggle-biometria").assertIsOff()
             verify(exactly = 1) { armazenamento.definirBiometriaAtivada(false) }
+        }
+    }
+
+    @Test
+    fun switchesDeNotificacaoRenderizamEAtualizamAPreferencia() {
+        runBlocking {
+            val preferencias = br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria()
+            val viewModel = criarViewModel(preferenciasNotificacao = preferencias)
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                }
+            }
+            rule.waitForIdle()
+
+            val linhaUrgencia = rule.onNodeWithTag("toggle-notificacao-canal_urgencia").performScrollTo()
+            linhaUrgencia.assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    androidx.compose.ui.semantics.SemanticsProperties.StateDescription,
+                    "ativado",
+                ),
+            )
+
+            linhaUrgencia.performClick()
+            rule.waitForIdle()
+
+            assertFalse(
+                preferencias.estaAtivado(br.com.frila.core.notificacoes.GerenciadorDeCanais.CANAL_URGENCIA),
+            )
+            linhaUrgencia.assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    androidx.compose.ui.semantics.SemanticsProperties.StateDescription,
+                    "desativado",
+                ),
+            )
         }
     }
 }

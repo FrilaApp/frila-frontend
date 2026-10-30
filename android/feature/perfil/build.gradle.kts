@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:notificacoes"))
     implementation(libs.androidx.core.ktx)
 
     implementation(platform(libs.compose.bom))

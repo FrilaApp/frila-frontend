@@ -1,5 +1,8 @@
 package br.com.frila.feature.perfil
 
+import br.com.frila.core.notificacoes.GerenciadorDeCanais
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
@@ -82,6 +85,7 @@ class PerfilViewModelTest {
         engine: MockEngine,
         armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true),
         engineTurnos: MockEngine = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        preferenciasNotificacao: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
     ): PerfilViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val clienteTurnos = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engineTurnos)
@@ -90,6 +94,7 @@ class PerfilViewModelTest {
             servicoTurnos = ServicoTurnos(clienteTurnos),
             armazenamentoDeSessao = armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
+            preferenciasNotificacao = preferenciasNotificacao,
         )
     }
 
@@ -495,5 +500,37 @@ class PerfilViewModelTest {
 
         verify(exactly = 1) { armazenamento.definirBiometriaAtivada(false) }
         assertFalse(viewModel.estado.value.biometriaAtivada)
+    }
+
+    @Test
+    fun `carregar le as preferencias de notificacao dos 3 canais`() = runBlocking {
+        val preferencias = GerenciadorPreferenciasNotificacaoEmMemoria()
+        preferencias.definirAtivado(GerenciadorDeCanais.CANAL_TURNOS, false)
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+            preferenciasNotificacao = preferencias,
+        )
+
+        viewModel.carregar().join()
+
+        assertTrue(viewModel.estado.value.notificacaoUrgenciaAtivada)
+        assertFalse(viewModel.estado.value.notificacaoTurnosAtivada)
+        assertTrue(viewModel.estado.value.notificacaoSistemaAtivada)
+    }
+
+    @Test
+    fun `definirNotificacaoAtivada persiste e atualiza o canal certo sem afetar os outros`() {
+        val preferencias = GerenciadorPreferenciasNotificacaoEmMemoria()
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) },
+            preferenciasNotificacao = preferencias,
+        )
+
+        viewModel.definirNotificacaoAtivada(GerenciadorDeCanais.CANAL_URGENCIA, false)
+
+        assertFalse(viewModel.estado.value.notificacaoUrgenciaAtivada)
+        assertTrue(viewModel.estado.value.notificacaoTurnosAtivada)
+        assertTrue(viewModel.estado.value.notificacaoSistemaAtivada)
+        assertFalse(preferencias.estaAtivado(GerenciadorDeCanais.CANAL_URGENCIA))
     }
 }

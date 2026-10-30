@@ -36,6 +36,8 @@ data class NotificacaoParaExibir(
     val vagaId: String?,
     /** `true` quando o conteúdo original foi trocado pela mensagem genérica (RN15). */
     val neutralizada: Boolean,
+    /** RF06: canal desativado pelo usuário — quem exibe não deve chamar `notify()`. */
+    val silenciada: Boolean = false,
 )
 
 /**
@@ -45,6 +47,7 @@ data class NotificacaoParaExibir(
  */
 class ProcessadorDePush(
     private val armazenamentoDeSessao: ArmazenamentoDeSessao,
+    private val preferenciasNotificacao: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
 ) {
     fun processar(payload: Map<String, String>): NotificacaoParaExibir {
         val dados = DadosDoPush.doPayload(payload)
@@ -56,21 +59,25 @@ class ProcessadorDePush(
         )
 
         if (!devePermitirOriginal) {
+            val canal = GerenciadorDeCanais.CANAL_SISTEMA
             return NotificacaoParaExibir(
-                canal = GerenciadorDeCanais.CANAL_SISTEMA,
+                canal = canal,
                 titulo = "Frila",
                 corpo = ValidadorIsolamentoConta.MENSAGEM_NEUTRALIZADA,
                 vagaId = null,
                 neutralizada = true,
+                silenciada = !preferenciasNotificacao.estaAtivado(canal),
             )
         }
 
+        val canal = canalParaTipo(dados.tipo)
         return NotificacaoParaExibir(
-            canal = canalParaTipo(dados.tipo),
+            canal = canal,
             titulo = dados.titulo ?: "Frila",
             corpo = dados.corpo ?: "",
             vagaId = dados.vagaId,
             neutralizada = false,
+            silenciada = !preferenciasNotificacao.estaAtivado(canal),
         )
     }
 

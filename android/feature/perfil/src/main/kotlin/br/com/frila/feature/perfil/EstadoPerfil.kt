@@ -71,6 +71,10 @@ data class EstadoPerfil(
     val mensagemErroFoto: String? = null,
     /** RN15: desbloqueio rápido por biometria/credencial, lido de `ArmazenamentoDeSessao`. */
     val biometriaAtivada: Boolean = false,
+    /** RF06: preferências locais de notificação por canal, padrão todas ativadas. */
+    val notificacaoUrgenciaAtivada: Boolean = true,
+    val notificacaoTurnosAtivada: Boolean = true,
+    val notificacaoSistemaAtivada: Boolean = true,
 ) {
     val caracteresRestantesBio: Int
         get() = LIMITE_MAXIMO_BIO - bioEmEdicao.length
