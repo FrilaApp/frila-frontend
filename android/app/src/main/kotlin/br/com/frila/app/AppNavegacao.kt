@@ -1,13 +1,26 @@
 package br.com.frila.app
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.designsystem.componentes.AvisoFrila
+import br.com.frila.core.designsystem.componentes.TomAviso
+import br.com.frila.core.rede.MonitorDeConectividade
+import br.com.frila.core.rede.StatusConectividade
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
@@ -73,6 +86,7 @@ fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao): String = when {
 @Composable
 fun AppNavegacao(
     armazenamentoDeSessao: ArmazenamentoDeSessao = koinInject(),
+    monitorDeConectividade: MonitorDeConectividade = koinInject(),
     navController: NavHostController = rememberNavController(),
 ) {
     val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
@@ -88,135 +102,160 @@ fun AppNavegacao(
         onDispose { navController.removeOnDestinationChangedListener(listener) }
     }
 
-    NavHost(navController = navController, startDestination = destinoInicial) {
-        composable(Rotas.ENTRADA) {
-            val viewModel: EntradaViewModel = koinViewModel()
-            TelaEntrada(
-                viewModel = viewModel,
-                aoReceberCodigo = {
-                    navController.navigate(Rotas.codigo(viewModel.estado.value.email))
-                },
-            )
-        }
+    val statusConectividade by monitorDeConectividade.status.collectAsState()
 
-        composable(Rotas.CODIGO) { entrada ->
-            val email = entrada.arguments?.getString("email").orEmpty()
-            val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email) })
-            TelaCodigo(
-                viewModel = viewModel,
-                aoAutenticar = {
-                    navController.navigate(Rotas.CADASTRO) {
-                        popUpTo(Rotas.ENTRADA) { inclusive = true }
-                    }
-                },
-            )
-        }
-
-        composable(Rotas.CADASTRO) {
-            val viewModel: CadastroViewModel = koinViewModel()
-            TelaCadastro(
-                viewModel = viewModel,
-                aoConcluir = {
-                    navController.navigate(Rotas.FEED) {
-                        popUpTo(Rotas.CADASTRO) { inclusive = true }
-                    }
-                },
-            )
-        }
-
-        composable(Rotas.FEED) {
-            val viewModel: FeedVagasViewModel = koinViewModel()
-            TelaFeedVagas(
-                viewModel = viewModel,
-                aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
-                aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
-            )
-        }
-
-        composable(
-            route = Rotas.DETALHE,
-            deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.DETALHE_VAGA }),
-        ) { entrada ->
-            val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
-            val feedAnterior = navController.previousBackStackEntry?.let {
-                koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(navController = navController, startDestination = destinoInicial) {
+            composable(Rotas.ENTRADA) {
+                val viewModel: EntradaViewModel = koinViewModel()
+                TelaEntrada(
+                    viewModel = viewModel,
+                    aoReceberCodigo = {
+                        navController.navigate(Rotas.codigo(viewModel.estado.value.email))
+                    },
+                )
             }
-            val vaga: VagaAbertaDto? = feedAnterior?.encontrarVagaPorId(vagaId)
 
-            if (vaga != null) {
-                val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(vaga) })
-                TelaDetalheVaga(viewModel = viewModel)
+            composable(Rotas.CODIGO) { entrada ->
+                val email = entrada.arguments?.getString("email").orEmpty()
+                val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email) })
+                TelaCodigo(
+                    viewModel = viewModel,
+                    aoAutenticar = {
+                        navController.navigate(Rotas.CADASTRO) {
+                            popUpTo(Rotas.ENTRADA) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
+            composable(Rotas.CADASTRO) {
+                val viewModel: CadastroViewModel = koinViewModel()
+                TelaCadastro(
+                    viewModel = viewModel,
+                    aoConcluir = {
+                        navController.navigate(Rotas.FEED) {
+                            popUpTo(Rotas.CADASTRO) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
+            composable(Rotas.FEED) {
+                val viewModel: FeedVagasViewModel = koinViewModel()
+                TelaFeedVagas(
+                    viewModel = viewModel,
+                    aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
+                    aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
+                )
+            }
+
+            composable(
+                route = Rotas.DETALHE,
+                deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.DETALHE_VAGA }),
+            ) { entrada ->
+                val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                val feedAnterior = navController.previousBackStackEntry?.let {
+                    koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
+                }
+                val vaga: VagaAbertaDto? = feedAnterior?.encontrarVagaPorId(vagaId)
+
+                if (vaga != null) {
+                    val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(vaga) })
+                    TelaDetalheVaga(viewModel = viewModel)
+                }
+            }
+
+            composable(
+                route = Rotas.MEUS_TURNOS,
+                deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.MEUS_TURNOS }),
+            ) {
+                val viewModel: MeusTurnosViewModel = koinViewModel()
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turnoId ->
+                        // Contrato de `/rpc/meus_turnos` ainda não traz a coordenada da vaga
+                        // (schema `VagaResumo`), só `local`/`regiao_administrativa` em texto — por
+                        // ora o check-in sempre degrada para o caminho "sem localização" (manual
+                        // pendente, RN06), até o backend expor a coordenada aqui.
+                        koinViewModel(parameters = { parametersOf(turnoId, null) })
+                    },
+                    aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
+                )
+            }
+
+            composable(Rotas.AVALIACAO) { entrada ->
+                val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                val viewModel: AvaliacaoViewModel = koinViewModel()
+                TelaAvaliacao(
+                    turnoId = turnoId,
+                    viewModel = viewModel,
+                    aoVoltar = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = Rotas.OCORRENCIA,
+                deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.SUPORTE }),
+            ) { entrada ->
+                val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
+                TelaOcorrencia(
+                    viewModel = viewModel,
+                    aoVoltar = { navController.popBackStack() },
+                )
+            }
+
+            composable(Rotas.DESBLOQUEIO) {
+                TelaDesbloqueioBiometrico(
+                    aoDesbloquear = {
+                        val destino = guardaBiometrico.aoDesbloquearComSucesso()
+                        navController.navigate(destino) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    aoEntrarComOutraConta = {
+                        guardaBiometrico.liberarAposLimparSessao()
+                        navController.navigate(Rotas.ENTRADA) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
+            composable(Rotas.PERFIL) {
+                val viewModel: PerfilViewModel = koinViewModel()
+                TelaPerfil(
+                    viewModel = viewModel,
+                    aoDeslogar = {
+                        guardaBiometrico.liberarAposLimparSessao()
+                        navController.navigate(Rotas.ENTRADA) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                )
             }
         }
 
-        composable(
-            route = Rotas.MEUS_TURNOS,
-            deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.MEUS_TURNOS }),
-        ) {
-            val viewModel: MeusTurnosViewModel = koinViewModel()
-            TelaMeusTurnos(
-                viewModel = viewModel,
-                criarCheckinViewModel = { turnoId ->
-                    // Contrato de `/rpc/meus_turnos` ainda não traz a coordenada da vaga
-                    // (schema `VagaResumo`), só `local`/`regiao_administrativa` em texto — por
-                    // ora o check-in sempre degrada para o caminho "sem localização" (manual
-                    // pendente, RN06), até o backend expor a coordenada aqui.
-                    koinViewModel(parameters = { parametersOf(turnoId, null) })
-                },
-                aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
-            )
-        }
+        // RNF01 (cartão 9Q0sJIzW): banner flutuante centralizado sobre o NavHost — nunca dentro
+        // de uma tela de feature individual (escopo explícito do cartão).
+        BannerDeConectividade(
+            status = statusConectividade,
+            modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
+        )
+    }
+}
 
-        composable(Rotas.AVALIACAO) { entrada ->
-            val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
-            val viewModel: AvaliacaoViewModel = koinViewModel()
-            TelaAvaliacao(
-                turnoId = turnoId,
-                viewModel = viewModel,
-                aoVoltar = { navController.popBackStack() },
-            )
-        }
-
-        composable(
-            route = Rotas.OCORRENCIA,
-            deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.SUPORTE }),
-        ) { entrada ->
-            val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
-            val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
-            TelaOcorrencia(
-                viewModel = viewModel,
-                aoVoltar = { navController.popBackStack() },
-            )
-        }
-
-        composable(Rotas.DESBLOQUEIO) {
-            TelaDesbloqueioBiometrico(
-                aoDesbloquear = {
-                    val destino = guardaBiometrico.aoDesbloquearComSucesso()
-                    navController.navigate(destino) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-                aoEntrarComOutraConta = {
-                    guardaBiometrico.liberarAposLimparSessao()
-                    navController.navigate(Rotas.ENTRADA) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-            )
-        }
-
-        composable(Rotas.PERFIL) {
-            val viewModel: PerfilViewModel = koinViewModel()
-            TelaPerfil(
-                viewModel = viewModel,
-                aoDeslogar = {
-                    guardaBiometrico.liberarAposLimparSessao()
-                    navController.navigate(Rotas.ENTRADA) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-            )
-        }
+/** Extraído para ser testável sozinho, sem montar o grafo Koin/NavHost completo. */
+@Composable
+fun BannerDeConectividade(status: StatusConectividade, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = status == StatusConectividade.SEM_CONEXAO,
+        modifier = modifier,
+    ) {
+        AvisoFrila(
+            tom = TomAviso.ALERTA,
+            mensagem = "Sem conexão com a internet. Verifique sua rede.",
+        )
     }
 }

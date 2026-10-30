@@ -4,6 +4,8 @@ import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.MonitorDeConectividade
+import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.InclusosDto
 import br.com.frila.core.rede.PerfilPublicoDto
@@ -95,6 +97,7 @@ class KoinGrafoTest : KoinTest {
 
         assertInstanceOf(ArmazenamentoDeSessaoEmMemoria::class.java, get<ArmazenamentoDeSessao>())
         assertInstanceOf(LeitorDeAmbienteNulo::class.java, get<LeitorDeAmbiente>())
+        assertInstanceOf(MonitorDeConectividadeFalso::class.java, get<MonitorDeConectividade>())
         assertNotNull(get<ClienteSupabase>())
         assertNotNull(get<ServicoAutenticacao>())
         assertNotNull(get<ServicoVagas>())

@@ -13,6 +13,7 @@ import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.RefreshTokensParams
@@ -60,6 +61,8 @@ class ClienteSupabase(
     private val apiKey: String,
     private val provedorDeToken: ProvedorDeToken = ProvedorDeToken { null },
     private val armazenamentoDeSessao: ArmazenamentoDeSessao? = null,
+    /** RNF01/RNF04: fail-fast pré-voo e interrupção de retry quando a conectividade cai. */
+    private val monitorDeConectividade: MonitorDeConectividade? = null,
     engine: HttpClientEngine? = null,
     json: Json = jsonFrila,
 ) {
@@ -71,6 +74,23 @@ class ClienteSupabase(
 
     private fun HttpClientConfig<*>.configurar(json: Json) {
         install(ContentNegotiation) { json(json) }
+        // RNF01/RNF04: fail-fast pré-voo — se já sabemos que estamos offline, aborta em 0ms
+        // sem tentar o engine, sem esperar timeout nem acionar retry. `onRequest` roda antes de
+        // qualquer I/O de verdade (fase `Before` do pipeline de envio).
+        install(
+            createClientPlugin("FailFastSemConectividade") {
+                onRequest { _, _ ->
+                    if (monitorDeConectividade?.estaConectado == false) {
+                        throw ErroDaApi(
+                            codigo = CodigoErroAPI.SEM_REDE,
+                            codigoOriginal = "sem_rede",
+                            detalhes = null,
+                            mensagemCrua = "Sem conexão com a internet",
+                        )
+                    }
+                }
+            },
+        )
         install(Auth) {
             bearer {
                 loadTokens {
@@ -96,10 +116,14 @@ class ClienteSupabase(
             // (POST de candidatar, fazer_checkin, avaliar, cancelar, excluir-conta, ...) nunca
             // podem ser retentadas automaticamente — duplicaria o efeito colateral no backend.
             retryIf { requisicao, resposta ->
-                requisicao.method == HttpMethod.Get && resposta.status.value in STATUS_TRANSITORIOS
+                requisicao.method == HttpMethod.Get &&
+                    resposta.status.value in STATUS_TRANSITORIOS &&
+                    monitorDeConectividade?.estaConectado != false
             }
             retryOnExceptionIf { requisicao, causa ->
-                requisicao.method == HttpMethod.Get && causa.isFalhaTransitoriaDeRede()
+                requisicao.method == HttpMethod.Get &&
+                    causa.isFalhaTransitoriaDeRede() &&
+                    monitorDeConectividade?.estaConectado != false
             }
         }
         // RNF01: converte falhas de conectividade (sem resposta HTTP nenhuma) em ErroDaApi

@@ -1,6 +1,7 @@
 package br.com.frila.app
 
 import android.content.Context
+import br.com.frila.app.conectividade.MonitorDeConectividadeAndroid
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
@@ -14,6 +15,8 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemori
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.MonitorDeConectividade
+import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
@@ -61,11 +64,18 @@ val moduloSeguranca = module {
 }
 
 val moduloRede = module {
+    /** RNF01 (cartão 9Q0sJIzW): fallback inerte (sempre CONECTADO) fora de um Context Android real. */
+    single<MonitorDeConectividade> {
+        getOrNull<Context>()
+            ?.let(::MonitorDeConectividadeAndroid)
+            ?: MonitorDeConectividadeFalso()
+    }
     single {
         ClienteSupabase(
             baseUrl = SUPABASE_URL,
             apiKey = SUPABASE_ANON_KEY,
             armazenamentoDeSessao = get(),
+            monitorDeConectividade = get(),
         )
     }
     single { ServicoAutenticacao(get()) }
