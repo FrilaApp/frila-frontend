@@ -43,21 +43,21 @@ public struct AreaDeCandidatura: View {
                     avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
 
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        precoView
-                        botaoView
-                            .frame(maxWidth: .infinity)
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                            precoView
+                            apoioView
+                        }
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.medio) {
+                            precoView
+                            apoioView
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                        }
                     }
-                } else {
-                    HStack(alignment: .center, spacing: FrilaEspaco.medio) {
-                        precoView
-                            .layoutPriority(0)
-                        Spacer(minLength: FrilaEspaco.pequeno)
-                        botaoView
-                            .frame(minWidth: 160)
-                            .layoutPriority(1)
-                    }
+                    botaoView
                 }
 
                 if quadro == nil, let aviso, aviso.id != Self.idDaRetirada {
@@ -72,18 +72,17 @@ public struct AreaDeCandidatura: View {
 
     private var precoView: some View {
         let formatador = FormatadorFrila()
-        return VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
-                          leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 26)
-            Text(verbatim: apoioPreco)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.8)
-                .layoutPriority(0)
-        }
-        .accessibilityElement(children: .combine)
+        return FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
+                             leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 40)
+            .accessibilityIdentifier("valor-da-candidatura")
+    }
+
+    private var apoioView: some View {
+        Text(verbatim: apoioPreco)
+            .font(FrilaTipo.nota)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var calendarioSp: Calendar {
@@ -135,11 +134,11 @@ public struct AreaDeCandidatura: View {
                         .tint(FrilaCor.textoSecundario)
                 }
                 Text(verbatim: tituloDoBotao)
-                    .font(FrilaTipo.botao)
+                    .font(FrilaTypography.sans(size: 20, weight: .bold))
                     .lineLimit(1)
             }
             .padding(.horizontal, FrilaEspaco.grande)
-            .frame(minHeight: FrilaMetrica.alturaDoCampo)
+            .frame(maxWidth: .infinity, minHeight: 56)
             .foregroundStyle(desabilitado ? FrilaCor.textoSecundario : (usaCorMarca ? FrilaCor.sobreSelecao : FrilaCor.sobrePrimaria))
             .background(desabilitado ? FrilaCor.controle : (usaCorMarca ? FrilaCor.marca : FrilaCor.primaria), in: Capsule())
             .contentShape(Capsule())
