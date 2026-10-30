@@ -7,6 +7,11 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
@@ -20,11 +25,14 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import java.io.IOException
+import java.net.UnknownHostException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.CancellationException
@@ -76,8 +84,40 @@ class ClienteSupabase(
         }
         install(Logging) { level = LogLevel.INFO }
         install(HttpTimeout) {
+            connectTimeoutMillis = TIMEOUT_CONEXAO_MS
             requestTimeoutMillis = TIMEOUT_REQUISICAO_MS
             socketTimeoutMillis = TIMEOUT_SOCKET_MS
+        }
+        install(HttpRequestRetry) {
+            maxRetries = MAX_TENTATIVAS_RETRY
+            exponentialDelay(base = 2.0, maxDelayMs = RETRY_DELAY_MAXIMO_MS, randomizationMs = RETRY_JITTER_MS)
+
+            // RNF01 + idempotência estrita: só GET (leitura) pode retentar sozinho. Mutações
+            // (POST de candidatar, fazer_checkin, avaliar, cancelar, excluir-conta, ...) nunca
+            // podem ser retentadas automaticamente — duplicaria o efeito colateral no backend.
+            retryIf { requisicao, resposta ->
+                requisicao.method == HttpMethod.Get && resposta.status.value in STATUS_TRANSITORIOS
+            }
+            retryOnExceptionIf { requisicao, causa ->
+                requisicao.method == HttpMethod.Get && causa.isFalhaTransitoriaDeRede()
+            }
+        }
+        // RNF01: converte falhas de conectividade (sem resposta HTTP nenhuma) em ErroDaApi
+        // com CodigoErroAPI.SEM_REDE, a mesma exceção que os ViewModels já tratam para
+        // mensagem amigável (ex.: PerfilViewModel.mensagemDeErro) — sem isto, essas exceções
+        // cruas do Ktor/JVM derrubavam a tela em vez de cair no `catch (erro: ErroDaApi)`.
+        HttpResponseValidator {
+            handleResponseExceptionWithRequest { causa, _ ->
+                if (causa is CancellationException) return@handleResponseExceptionWithRequest
+                if (causa.isFalhaTransitoriaDeRede()) {
+                    throw ErroDaApi(
+                        codigo = CodigoErroAPI.SEM_REDE,
+                        codigoOriginal = "sem_rede",
+                        detalhes = null,
+                        mensagemCrua = causa.message ?: "Falha de conectividade",
+                    )
+                }
+            }
         }
         defaultRequest {
             header("apikey", apiKey)
@@ -148,8 +188,20 @@ class ClienteSupabase(
     }
 
     companion object {
+        const val TIMEOUT_CONEXAO_MS = 10_000L
         const val TIMEOUT_REQUISICAO_MS = 15_000L
-        const val TIMEOUT_SOCKET_MS = 60_000L
+        const val TIMEOUT_SOCKET_MS = 30_000L
+        const val MAX_TENTATIVAS_RETRY = 3
+        const val RETRY_DELAY_MAXIMO_MS = 4_000L
+        const val RETRY_JITTER_MS = 500L
+
+        /** HTTP 502/503/504: falha transitória do servidor/proxy, não do pedido em si (RNF01). */
+        val STATUS_TRANSITORIOS = setOf(
+            HttpStatusCode.BadGateway.value,
+            HttpStatusCode.ServiceUnavailable.value,
+            HttpStatusCode.GatewayTimeout.value,
+        )
+
         private const val CAMINHO_RENOVACAO = "/auth/v1/token?grant_type=refresh_token"
 
         val jsonFrila: Json = Json {
@@ -188,6 +240,23 @@ private fun Sessao.paraBearerTokens(): BearerTokens = BearerTokens(
     accessToken = accessToken,
     refreshToken = refreshToken,
 )
+
+/**
+ * Falha de conectividade/timeout transitória (RNF01): nunca inclui [CancellationException] —
+ * essa precisa propagar intacta para a coroutine ser cancelada normalmente, não virar erro de
+ * rede. Tipos cobertos: timeout de conexão/socket/requisição, host inalcançável e falhas de IO
+ * genéricas do engine (conexão caiu no meio, etc.).
+ */
+private fun Throwable.isFalhaTransitoriaDeRede(): Boolean = when (this) {
+    is CancellationException -> false
+    is ConnectTimeoutException,
+    is SocketTimeoutException,
+    is HttpRequestTimeoutException,
+    is UnknownHostException,
+    is IOException,
+    -> true
+    else -> false
+}
 
 private fun SessaoDto.paraSessao(vinculoId: String?): Sessao = Sessao(
     accessToken = accessToken,
