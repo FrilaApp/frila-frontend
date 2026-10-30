@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -97,14 +98,22 @@ fun FrilaSkeleton(
         modifier = modifier
             .clip(shape)
             .drawWithCache {
+                // MEDIDO (Shisui, PR #594, bloqueante 2): ler `deslocamento` (o Float animado)
+                // aqui dentro invalidava o cache a cada frame — 53 recriações de Brush em 3s
+                // por osso. O bloco de `drawWithCache` só lê `size`/`cores`, então o Brush é
+                // montado uma vez por mudança de tamanho; o frame a frame só desloca o canvas
+                // (`translate`) antes de pintar o mesmo Brush já pronto — sem alocar nada novo.
                 val largura = size.width
-                val x = deslocamento * largura
                 val pincel = Brush.linearGradient(
                     colors = cores,
-                    start = Offset(x - largura, 0f),
-                    end = Offset(x + largura, 0f),
+                    start = Offset(-largura, 0f),
+                    end = Offset(largura, 0f),
                 )
-                onDrawBehind { drawRect(brush = pincel, size = size) }
+                onDrawBehind {
+                    translate(left = deslocamento * largura) {
+                        drawRect(brush = pincel, size = size)
+                    }
+                }
             }
             .clearAndSetSemantics {},
     )

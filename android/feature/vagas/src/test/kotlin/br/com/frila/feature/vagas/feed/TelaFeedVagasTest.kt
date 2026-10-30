@@ -1,5 +1,9 @@
 package br.com.frila.feature.vagas.feed
 
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -223,5 +227,26 @@ class TelaFeedVagasTest {
         compose.waitForIdle()
 
         compose.onNodeWithContentDescription("Carregando lista de vagas...").assertIsDisplayed()
+    }
+
+    @Test
+    fun `skeleton do carregamento anuncia como liveRegion Polite (RNF10)`() {
+        // MEDIDO (Shisui, PR #594, bloqueante 1): sabotagem removendo liveRegion sobreviveu —
+        // sem esta asserção explícita, nada provava que o container usa LiveRegionMode.Polite
+        // (e não, por exemplo, Assertive, que interrompe o que o TalkBack já estava lendo).
+        val viewModel = criarViewModel()
+
+        compose.setContent {
+            FrilaTheme {
+                TelaFeedVagas(
+                    viewModel = viewModel,
+                    aoAbrirDetalhe = {},
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Carregando lista de vagas...")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
     }
 }
