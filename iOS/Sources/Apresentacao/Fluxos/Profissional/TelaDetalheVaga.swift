@@ -112,6 +112,14 @@ public struct TelaDetalheVaga<Acao: View>: View {
                             Color.clear.preference(key: AlturaDoCabecalho.self, value: geometria.size.height)
                         }
                     }
+                    // Presa ao bloco: acompanha a rolagem e o bounce, sem flutuar sobre o conteúdo.
+                    .overlay(alignment: .bottom) {
+                        BordaInferiorDoHeader()
+                            .frame(height: 8)
+                            .offset(y: 8)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                     switch viewModel.estado {
@@ -141,7 +149,9 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .coordinateSpace(name: "conteudo-do-detalhe")
         }
         .coordinateSpace(name: "rolagem-do-detalhe")
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rolagemDoCabecalho.largura = $0 }
         .modifier(MonitoramentoDoCabecalho(rolagem: rolagemDoCabecalho))
+        .modifier(BordaNativaDaBarra(rolagem: rolagemDoCabecalho, ativa: rodapeAtivo))
         .onPreferenceChange(AlturaDoCabecalho.self) { rolagemDoCabecalho.altura = $0 }
         .accessibilityIdentifier("tela-detalhe-vaga")
         .modifier(BarraInferiorDoDetalhe(ativo: rodapeAtivo) {
@@ -162,10 +172,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .toolbar {
             if case let .carregado(vaga) = viewModel.estado, rodapeAtivo {
                 if #available(iOS 26, *) {
-                    ToolbarItem(placement: .principal) { compactoDoCabecalho(vaga) }
+                    ToolbarItem(placement: .principal) { nomeCompacto(vaga) }
+                        .sharedBackgroundVisibility(.hidden)
+                    ToolbarItem(placement: .topBarTrailing) { reputacaoCompacta(vaga) }
                         .sharedBackgroundVisibility(.hidden)
                 } else {
-                    ToolbarItem(placement: .principal) { compactoDoCabecalho(vaga) }
+                    ToolbarItem(placement: .principal) { nomeCompacto(vaga) }
+                    ToolbarItem(placement: .topBarTrailing) { reputacaoCompacta(vaga) }
                 }
             }
         }
@@ -449,43 +462,74 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
     }
 
-    private func compactoDoCabecalho(_ vaga: Vaga) -> some View {
+    private func nomeCompacto(_ vaga: Vaga) -> some View {
+        botaoCompacto(identificador: "abrir-perfil-compacto", vaga: vaga) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: vaga.estabelecimento.nome)
+                    .font(FrilaTipo.resumo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .lineLimit(1)
+                    .background {
+                        GeometryReader { geometria in
+                            Color.clear.preference(key: NomeCompactoDoDetalhe.self,
+                                                   value: geometria.frame(in: .global))
+                        }
+                    }
+                    .onPreferenceChange(NomeCompactoDoDetalhe.self) { rolagemDoCabecalho.nomeCompacto = $0 }
+                Text(verbatim: TextosDoProfissional.Detalhe.contextoDoHeader(
+                    funcao: vaga.funcao.nome, bairro: vaga.regiaoAdministrativa))
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .lineLimit(1)
+            }
+            // Da borda do voltar (x=72) até 12 pt antes da reputação, que ocupa 67 pt na margem de 16 pt.
+            .frame(width: rolagemDoCabecalho.largura > 0 ? rolagemDoCabecalho.largura - 167 : nil, alignment: .leading)
+        }
+    }
+
+    private func reputacaoCompacta(_ vaga: Vaga) -> some View {
+        let reputacao = vaga.estabelecimento.reputacao
+        return botaoCompacto(identificador: "abrir-perfil-compacto-reputacao", vaga: vaga) {
+            if reputacao.semHistorico {
+                Text(verbatim: TextosDoProfissional.Detalhe.semAvaliacoesNoHeader)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize()
+            } else {
+                VStack(alignment: .trailing, spacing: FrilaEspaco.fio) {
+                    FilaDeReputacaoDoDetalhe(reputacao: reputacao, escala: 0.8)
+                    Text(verbatim: TextosDoProfissional.Detalhe.reputacaoContagem(
+                        positivas: reputacao.positivas, total: reputacao.total))
+                        .font(FrilaTipo.nota.weight(.semibold))
+                        .foregroundStyle(FrilaCor.texto)
+                        .lineLimit(1)
+                }
+                .fixedSize()
+            }
+        }
+    }
+
+    private func botaoCompacto<Rotulo: View>(identificador: String, vaga: Vaga,
+                                             @ViewBuilder rotulo: @escaping () -> Rotulo) -> some View {
         ReacaoDoCabecalho(rolagem: rolagemDoCabecalho) { progresso in
             Button {
                 guard viewModel.api != nil, !navegarParaPerfil else { return }
                 navegarParaPerfil = true
             } label: {
-                VStack(spacing: 0) {
-                    Text(verbatim: vaga.estabelecimento.nome)
-                        .font(FrilaTipo.corpo.weight(.semibold))
-                        .lineLimit(1)
-                        .background {
-                            GeometryReader { geometria in
-                                Color.clear.preference(key: NomeCompactoDoDetalhe.self,
-                                                       value: geometria.frame(in: .global))
-                            }
-                        }
-                        .onPreferenceChange(NomeCompactoDoDetalhe.self) { rolagemDoCabecalho.nomeCompacto = $0 }
-                    Text(verbatim: vaga.estabelecimento.reputacao.semHistorico
-                         ? TextosDoProfissional.Detalhe.semAvaliacoesNoHeader
-                         : TextosDoProfissional.Detalhe.reputacaoContagem(
-                            positivas: vaga.estabelecimento.reputacao.positivas,
-                            total: vaga.estabelecimento.reputacao.total))
-                        .font(FrilaTipo.meta)
-                        .lineLimit(1)
-                }
-                .foregroundStyle(FrilaCor.texto)
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
+                rotulo()
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .opacity(max(0, min(1, (progresso - 0.65) / 0.35)))
             .allowsHitTesting(progresso >= 0.5)
             .accessibilityHidden(progresso < 0.5)
             .accessibilityLabel(Text(verbatim: vaga.estabelecimento.nome + ". "
+                                    + TextosDoProfissional.Detalhe.contextoDoHeader(
+                                        funcao: vaga.funcao.nome, bairro: vaga.regiaoAdministrativa) + ". "
                                     + TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao)))
             .accessibilityHint(Text("Ver perfil público", bundle: bundleApresentacao))
-            .accessibilityIdentifier("abrir-perfil-compacto")
+            .accessibilityIdentifier(identificador)
         }
     }
 
@@ -739,6 +783,7 @@ extension TelaDetalheVaga where Acao == EmptyView {
 @MainActor @Observable
 private final class RolagemDoCabecalho {
     var altura: CGFloat = 0
+    var largura: CGFloat = 0
     var offset: CGFloat = 0
     var nomeExpandido: CGRect = .zero
     var nomeCompacto: CGRect = .zero
@@ -780,12 +825,25 @@ private struct MonitoramentoDoCabecalho: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
         if #available(iOS 18, *) {
             content.onScrollGeometryChange(for: CGFloat.self) { geometria in
-                max(0, geometria.contentOffset.y + geometria.contentInsets.top)
+                geometria.contentOffset.y + geometria.contentInsets.top
             } action: { _, offset in
                 rolagem.offset = offset
             }
         } else {
-            content.onPreferenceChange(PosicaoDoCabecalho.self) { rolagem.offset = max(0, -$0) }
+            content.onPreferenceChange(PosicaoDoCabecalho.self) { rolagem.offset = -$0 }
+        }
+    }
+}
+
+/// O efeito nativo da barra só entra quando há conteúdo sob ela; antes disso, a borda é a do bloco.
+private struct BordaNativaDaBarra: ViewModifier {
+    let rolagem: RolagemDoCabecalho
+    let ativa: Bool
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.scrollEdgeEffectHidden(ativa && rolagem.progresso < 1, for: .top)
+        } else {
+            content
         }
     }
 }
@@ -795,9 +853,10 @@ private struct SombraDoCabecalho: View {
     var body: some View {
         Color.clear.frame(height: 0)
             .overlay(alignment: .top) {
+                // Só assume a borda quando o bloco, com a própria sombra, chega à barra.
                 BordaInferiorDoHeader()
                     .frame(height: 8)
-                    .offset(y: max(0, rolagem.altura - rolagem.offset))
+                    .opacity(rolagem.altura > 0 && rolagem.offset >= rolagem.altura ? 1 : 0)
             }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -831,13 +890,17 @@ private struct NomeMigranteDoDetalhe: View {
                 let destino = rolagem.nomeCompacto.offsetBy(dx: -geometria.frame(in: .global).minX,
                                                           dy: -geometria.frame(in: .global).minY)
                 let escala = 1 + (destino.height / origem.height - 1) * trajeto
+                // O avanço horizontal termina antes da subida, para não cruzar o voltar.
+                let avanco = min(1, trajeto / 0.6)
+                // No bounce do topo, o conteúdo desce e o nome acompanha.
+                let bounce = max(0, -rolagem.offset)
                 Text(verbatim: nome)
                     .font(FrilaTipo.tituloDoDetalhe)
                     .foregroundStyle(FrilaCor.texto)
                     .frame(width: origem.width, height: origem.height, alignment: .leading)
                     .scaleEffect(escala)
-                    .position(x: origem.midX + (destino.midX - origem.midX) * trajeto,
-                              y: origem.midY + (destino.midY - origem.midY) * trajeto)
+                    .position(x: origem.midX + (destino.midX - origem.midX) * avanco,
+                              y: origem.midY + (destino.midY - origem.midY) * trajeto + bounce)
                     .opacity(1 - max(0, min(1, (p - 0.65) / 0.35)))
             }
         }
@@ -877,14 +940,15 @@ private struct BordaInferiorDoHeader: View {
 /// Cinco posições mostram a proporção binária; a contagem preserva o tamanho da amostra.
 private struct FilaDeReputacaoDoDetalhe: View {
     let reputacao: Reputacao
+    var escala: CGFloat = 1
     private let diametros: [CGFloat] = [24, 22, 20, 18, 16]
 
     var body: some View {
         let proporcao = reputacao.total > 0
             ? min(1, max(0, Double(reputacao.positivas) / Double(reputacao.total))) : 0
-        HStack(spacing: -FrilaEspaco.minimo) {
+        HStack(spacing: -FrilaEspaco.minimo * escala) {
             ForEach(diametros.indices, id: \.self) { indice in
-                let diametro = diametros[indice]
+                let diametro = diametros[indice] * escala
                 let carga = min(1, max(0, proporcao * 5 - Double(indice)))
                 ZStack {
                     Circle().stroke(lineWidth: 4).blendMode(.destinationOut)
@@ -896,6 +960,7 @@ private struct FilaDeReputacaoDoDetalhe: View {
                     Image(systemName: carga == 0 ? "hand.thumbsup" : "hand.thumbsup.fill")
                         .font(FrilaTipo.microRotulo)
                         .foregroundStyle(FrilaCor.texto)
+                        .scaleEffect(escala)
                 }
                 .frame(width: diametro, height: diametro)
                 .zIndex(Double(diametros.count - indice))
