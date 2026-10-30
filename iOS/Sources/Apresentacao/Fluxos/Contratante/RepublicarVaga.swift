@@ -386,19 +386,18 @@ public struct TelaRepublicarVaga: View {
                 VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: viewModel.vagaOriginal.vaga.funcao)
                         .font(FrilaTipo.resumo)
-                    Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor))
-                        .font(FrilaTipo.preco.monospacedDigit())
+                    FrilaPriceTag(texto: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor), leitura: formatador.dinheiroFalado(viewModel.vagaOriginal.vaga.valor), tamanho: 18)
                 }
             } else {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(FrilaTipo.resumo)
                         Spacer(minLength: FrilaEspaco.pequeno)
-                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(FrilaTipo.preco.monospacedDigit())
+                        FrilaPriceTag(texto: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor), leitura: formatador.dinheiroFalado(viewModel.vagaOriginal.vaga.valor), tamanho: 18)
                     }
                     VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                         Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(FrilaTipo.resumo)
-                        Text(verbatim: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor)).font(FrilaTipo.preco.monospacedDigit())
+                        FrilaPriceTag(texto: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor), leitura: formatador.dinheiroFalado(viewModel.vagaOriginal.vaga.valor), tamanho: 18)
                     }
                 }
             }

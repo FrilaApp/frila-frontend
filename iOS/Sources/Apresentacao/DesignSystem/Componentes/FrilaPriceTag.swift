@@ -1,15 +1,8 @@
 import SwiftUI
 
-// MARK: - CANONICAL UNIFIED COMPONENT: FrilaPriceTag
-
-/// Canonical price display: the amount in the paradigm's hero metric, followed by a
-/// smaller muted unit ("/h") on the same first baseline, with an optional estimate line.
-///
-/// - Digits are proportional (static value), formatted in BRL with the fixed `pt_BR`
-///   locale through `FrilaMoney`.
-/// - The price never wraps: `lineLimit(1)`, horizontal `fixedSize` and `layoutPriority(1)`
-///   make neighbours (titles, spacers) yield first, so "R$ 140/" + "h" cannot split.
-/// - VoiceOver reads one element with the unit spelled out ("R$ 140 por hora, estimado R$ 33.600").
+/// Valor canônico do LOG-016: Jost 600, moeda na marca e centavos menores.
+/// Preserva o formatador da superfície e a leitura em um elemento só.
+/// O preço não quebra linha e mantém a linha de base entre moeda, inteiro e centavos.
 public struct FrilaPriceTag: View {
     public let amount: Int
     /// `nil` renders a plain total with no unit.
@@ -17,6 +10,23 @@ public struct FrilaPriceTag: View {
     public let estimate: Int?
     public let paradigm: FrilaTypographyParadigm
     public let isDark: Bool
+    @Environment(\.colorScheme) private var esquema
+    private var textoFormatado: String?
+    private var leituraFormatada: String?
+    private var tamanho: CGFloat?
+    private var temaExplicito = true
+
+    /// Recebe o formatador da superfície, preservando centavos e leitura falada.
+    public init(texto: String, leitura: String? = nil, tamanho: CGFloat = 22, isDark: Bool? = nil) {
+        self.init(amount: 0, unit: nil, isDark: isDark ?? false)
+        textoFormatado = texto
+        leituraFormatada = leitura ?? texto
+        self.tamanho = tamanho
+        temaExplicito = isDark != nil
+    }
+
+    private var escuro: Bool { temaExplicito ? isDark : esquema == .dark }
+    private var tamanhoInteiro: CGFloat { tamanho ?? valueSpec.size }
 
     public init(
         amount: Int,
@@ -35,21 +45,17 @@ public struct FrilaPriceTag: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaGeometry.priceEstimateSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: FrilaGeometry.priceUnitSpacing) {
-                Text(verbatim: valueText)
-                    .frilaType(valueSpec)
-                    .foregroundStyle(FrilaColor.dynamicTextPrimary(isDark: isDark))
+                composicao(valueText)
 
                 if let unitText {
                     Text(verbatim: unitText)
                         .font(FrilaTypography.captionMedium)
-                        .foregroundStyle(FrilaColor.dynamicTextMuted(isDark: isDark))
+                        .foregroundStyle(FrilaColor.dynamicTextMuted(isDark: escuro))
                 }
             }
 
             if let estimateText {
-                Text(verbatim: estimateText)
-                    .font(FrilaTypography.captionMedium)
-                    .foregroundStyle(FrilaColor.dynamicTextMuted(isDark: isDark))
+                FrilaPriceTag(texto: estimateText, tamanho: 13, isDark: escuro)
             }
         }
         .lineLimit(1)
@@ -59,6 +65,35 @@ public struct FrilaPriceTag: View {
         .accessibilityLabel(Text(verbatim: spokenLabel))
     }
 
+    private func composicao(_ texto: String) -> some View {
+        let partes = FrilaPartesValor(texto)
+        return HStack(alignment: .firstTextBaseline, spacing: 0) {
+            if !partes.prefixo.isEmpty {
+                Text(verbatim: partes.prefixo).font(FrilaTypography.captionMedium)
+            }
+            if !partes.moeda.isEmpty {
+                Text(verbatim: partes.moeda)
+                    .font(FrilaTipo.fonteValor(tamanho: tamanhoInteiro * 0.65))
+                    .tracking(-tamanhoInteiro * 0.65 * 0.04)
+                    .foregroundStyle(FrilaColor.dynamicBrandAccent(isDark: escuro))
+                    .padding(.trailing, 1)
+            }
+            Text(verbatim: partes.inteiro)
+                .font(FrilaTipo.fonteValor(tamanho: tamanhoInteiro))
+                .tracking(-tamanhoInteiro * 0.055)
+            if !partes.centavos.isEmpty {
+                Text(verbatim: partes.centavos)
+                    .font(FrilaTipo.fonteValor(tamanho: tamanhoInteiro * 0.725))
+                    .tracking(-tamanhoInteiro * 0.725 * 0.04)
+                    .padding(.leading, -1)
+            }
+            if !partes.sufixo.isEmpty {
+                Text(verbatim: partes.sufixo).font(FrilaTypography.captionMedium)
+            }
+        }
+        .foregroundStyle(FrilaColor.dynamicTextPrimary(isDark: escuro))
+    }
+
     // MARK: - Derived content (internal for tests)
 
     var valueSpec: FrilaTypeSpec {
@@ -66,7 +101,7 @@ public struct FrilaPriceTag: View {
     }
 
     var valueText: String {
-        FrilaMoney.total(amount)
+        textoFormatado ?? FrilaMoney.total(amount)
     }
 
     var unitText: String? {
@@ -78,6 +113,7 @@ public struct FrilaPriceTag: View {
     }
 
     var spokenLabel: String {
+        if let leituraFormatada { return leituraFormatada }
         var label = FrilaMoney.spoken(reais: amount, por: unit?.spokenName)
         if let estimate {
             label += ", estimado \(FrilaMoney.spoken(reais: estimate))"

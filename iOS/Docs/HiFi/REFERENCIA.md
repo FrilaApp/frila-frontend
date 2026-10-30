@@ -106,7 +106,7 @@ Fonte: R §3.2b/§3.4 e primitivas referenciadas; V distingue cinco paradigmas, 
 | Métricas editoriais | Specs em `FrilaTypography` importada | `metricHeroSpec` 44 é outro papel; R limita `metricMonumentalSpec` a 38 e `metricCardBigSpec` a 34. Não importar 92/64 do documento de merge como regra vigente |
 | Paradigmas alternativos | `FrilaTypographyParadigm` importado | Sem seletor equivalente em `FrilaTipo`; escolha contextual exige Log, não é lacuna de fonte a preencher por gosto |
 
-Escala geral nativa Minor Third: 11, 13, 15, 18, 22, 26 e 32 pt. Formulário editorial usa explicitamente 26/17/15/13/11. Dynamic Type deve acompanhar cada papel; não transformar tamanhos nominais em frames fixos que cortam texto. SF Pro para dinheiro; `FrilaMoney`/`FrilaPriceTag` com VoiceOver por extenso, inclusive unidade.
+Escala geral nativa Minor Third: 11, 13, 15, 18, 22, 26 e 32 pt. Formulário editorial usa explicitamente 26/17/15/13/11. Dynamic Type deve acompanhar cada papel; não transformar tamanhos nominais em frames fixos que cortam texto. Jost 600 para dinheiro pelo `FrilaPriceTag` (LOG-016); `FrilaMoney`/`FrilaPriceTag` com VoiceOver por extenso, inclusive unidade.
 
 | FrilaLowPhase | frila-frontend | Correspondência / ausência |
 |---|---|---|
