@@ -71,7 +71,7 @@ public struct AreaDeCandidatura: View {
         let formatador = FormatadorFrila()
         return VStack(spacing: FrilaEspaco.fio) {
             FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
-                          leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 40)
+                          leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 52)
                 .accessibilityIdentifier("candidatura-valor")
             Text(verbatim: apoioPreco)
                 .font(FrilaTipo.nota)
