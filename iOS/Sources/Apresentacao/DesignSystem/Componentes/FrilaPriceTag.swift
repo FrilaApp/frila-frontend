@@ -17,7 +17,9 @@ public struct FrilaPriceTag: View {
     private var temaExplicito = true
     private var peso: Font.Weight = .semibold
     private var compactarAltura = false
-    @ScaledMetric(relativeTo: .largeTitle) private var escalaTinta: CGFloat = 1
+    @ScaledMetric private var tintaInteiro: CGFloat = 22
+    @ScaledMetric private var tintaMoeda: CGFloat = 14.3
+    @ScaledMetric private var tintaCentavos: CGFloat = 15.95
 
     /// Recebe o formatador da superfície, preservando centavos e leitura falada.
     public init(texto: String, leitura: String? = nil, tamanho: CGFloat = 22, isDark: Bool? = nil,
@@ -29,6 +31,9 @@ public struct FrilaPriceTag: View {
         temaExplicito = isDark != nil
         self.peso = peso
         self.compactarAltura = compactarAltura
+        _tintaInteiro = ScaledMetric(wrappedValue: tamanho, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho).textStyle)
+        _tintaMoeda = ScaledMetric(wrappedValue: tamanho * 0.65, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho * 0.65).textStyle)
+        _tintaCentavos = ScaledMetric(wrappedValue: tamanho * 0.725, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho * 0.725).textStyle)
     }
 
     private var escuro: Bool { temaExplicito ? isDark : esquema == .dark }
@@ -74,8 +79,9 @@ public struct FrilaPriceTag: View {
     @ViewBuilder
     private var valorPrincipal: some View {
         if compactarAltura {
-            // Uso local de 52 pt: inteiro, moeda e centavos escalam por largeTitle.
-            let tinta = FrilaTipo.tintaValor(FrilaPartesValor(valueText), tamanho: tamanhoInteiro * escalaTinta, peso: peso)
+            // Cada trecho acompanha a mesma curva de Dynamic Type usada em sua Font.custom.
+            let tinta = FrilaTipo.tintaValor(FrilaPartesValor(valueText),
+                tamanhos: (tintaMoeda, tintaInteiro, tintaCentavos), peso: peso)
             CaixaTintaValor(acima: max(0, tinta.maxY) + 1, abaixo: max(0, -tinta.minY) + 1) {
                 composicao(valueText)
             }

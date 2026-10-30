@@ -64,12 +64,11 @@ public struct AreaDeCandidatura: View {
             precoEmColuna
         } else {
             ViewThatFits(in: .horizontal) {
-                HStack(alignment: .center, spacing: FrilaEspaco.compacto) {
+                HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.compacto) {
                     valorDoRodape
                     Spacer(minLength: 0)
                     apoioDoRodape
                         .multilineTextAlignment(.trailing)
-                        .frame(idealWidth: 128, alignment: .trailing)
                         .fixedSize(horizontal: true, vertical: true)
                 }
                 precoEmColuna
@@ -80,7 +79,7 @@ public struct AreaDeCandidatura: View {
     private var valorDoRodape: some View {
         let formatador = FormatadorFrila()
         return FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
-                             leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 52,
+                             leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: FrilaTypeScaleStep.display.pointSize,
                              peso: .bold, compactarAltura: true)
             .accessibilityIdentifier("candidatura-valor")
     }
@@ -117,7 +116,7 @@ public struct AreaDeCandidatura: View {
                         .tint(FrilaCor.textoSecundario)
                 }
                 Text(verbatim: tituloDoBotao)
-                    .font(FrilaTypography.sans(size: 20, weight: .bold))
+                    .font(FrilaTipo.botao)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .multilineTextAlignment(.center)
             }

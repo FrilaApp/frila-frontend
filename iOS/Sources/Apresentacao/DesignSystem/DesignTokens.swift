@@ -108,11 +108,11 @@ public enum FrilaTipo {
     }
 
     /// Tinta real dos três trechos sobre a mesma linha de base, sem a entrelinha da fonte.
-    static func tintaValor(_ partes: FrilaPartesValor, tamanho: CGFloat, peso: Font.Weight) -> CGRect {
+    static func tintaValor(_ partes: FrilaPartesValor, tamanhos: (moeda: CGFloat, inteiro: CGFloat, centavos: CGFloat), peso: Font.Weight) -> CGRect {
         FontesFrila.registrar()
         var limites = CGRect.null
-        for (texto, proporcao) in [(partes.moeda, 0.65), (partes.inteiro, 1.0), (partes.centavos, 0.725)] where !texto.isEmpty {
-            let fonte = CTFontCreateWithName(nomeFonteValor(peso) as CFString, tamanho * proporcao, nil)
+        for (texto, tamanho) in [(partes.moeda, tamanhos.moeda), (partes.inteiro, tamanhos.inteiro), (partes.centavos, tamanhos.centavos)] where !texto.isEmpty {
+            let fonte = CTFontCreateWithName(nomeFonteValor(peso) as CFString, tamanho, nil)
             let linha = CTLineCreateWithAttributedString(NSAttributedString(string: texto,
                 attributes: [NSAttributedString.Key(kCTFontAttributeName as String): fonte]))
             limites = limites.union(CTLineGetBoundsWithOptions(linha, [.useGlyphPathBounds]))
