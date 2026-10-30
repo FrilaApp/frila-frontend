@@ -9,6 +9,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
@@ -463,5 +464,36 @@ class PerfilViewModelTest {
         viewModel.carregarAvatarSalvo(mockk(relaxed = true)).join()
 
         assertEquals(arquivoSalvo.absolutePath, viewModel.estado.value.fotoLocalPath)
+    }
+
+    @Test
+    fun `carregar le a preferencia de biometria de ArmazenamentoDeSessao`() = runBlocking {
+        val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+        every { armazenamento.isBiometriaAtivada() } returns true
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+            armazenamento,
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusPerfil.SUCESSO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.biometriaAtivada)
+    }
+
+    @Test
+    fun `definirBiometriaAtivada persiste em ArmazenamentoDeSessao e atualiza o estado`() {
+        val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+        val viewModel = viewModelComEngine(MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK) }, armazenamento)
+
+        viewModel.definirBiometriaAtivada(true)
+
+        verify(exactly = 1) { armazenamento.definirBiometriaAtivada(true) }
+        assertTrue(viewModel.estado.value.biometriaAtivada)
+
+        viewModel.definirBiometriaAtivada(false)
+
+        verify(exactly = 1) { armazenamento.definirBiometriaAtivada(false) }
+        assertFalse(viewModel.estado.value.biometriaAtivada)
     }
 }

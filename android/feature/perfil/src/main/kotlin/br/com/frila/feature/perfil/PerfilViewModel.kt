@@ -55,6 +55,7 @@ class PerfilViewModel(
                         perfil = perfil,
                         resumoFinanceiro = resumoFinanceiro,
                         turnosExtrato = turnosExtrato,
+                        biometriaAtivada = armazenamentoDeSessao.isBiometriaAtivada(),
                     )
                 }
             } catch (erro: ErroDaApi) {
@@ -108,6 +109,17 @@ class PerfilViewModel(
             turnos = _estado.value.turnosExtrato,
             nomeProfissional = nomeProfissional,
         )
+    }
+
+    /**
+     * RN15: ativa/desativa o desbloqueio rápido. A confirmação biométrica em si (RN15, exigir
+     * que o profissional prove que consegue se autenticar antes de ligar a flag) é
+     * responsabilidade da UI ([AutenticadorBiometrico]) — este método só persiste a decisão já
+     * tomada. `limparSessao()` em [ArmazenamentoDeSessao] já zera esta flag no logout.
+     */
+    fun definirBiometriaAtivada(ativada: Boolean) {
+        armazenamentoDeSessao.definirBiometriaAtivada(ativada)
+        _estado.update { it.copy(biometriaAtivada = ativada) }
     }
 
     /**

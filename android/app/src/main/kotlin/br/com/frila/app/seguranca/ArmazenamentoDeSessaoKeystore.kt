@@ -74,6 +74,24 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
 
     override fun estaAutenticado(): Boolean = obterSessao() != null
 
+    /**
+     * RN15: a flag vive na mesma `EncryptedSharedPreferences` da sessão (`sessao_segura`) —
+     * protegida pelo mesmo AES-256-GCM via Keystore, isenta de backup/extração (ver
+     * `data_extraction_rules.xml`/`backup_rules.xml`), e zerada por tabela por `limparSessao()`
+     * (`prefs.edit().clear()`), sem precisar de lógica extra aqui.
+     */
+    override fun isBiometriaAtivada(): Boolean = synchronized(bloqueio) {
+        val prefs = obterPreferenciasOuNull() ?: return@synchronized false
+        executarComRecuperacao { prefs.getBoolean(CHAVE_BIOMETRIA_ATIVADA, false) } ?: false
+    }
+
+    override fun definirBiometriaAtivada(ativada: Boolean) {
+        synchronized(bloqueio) {
+            val prefs = obterPreferenciasOuNull() ?: return@synchronized
+            executarComRecuperacao { prefs.edit().putBoolean(CHAVE_BIOMETRIA_ATIVADA, ativada).commit() }
+        }
+    }
+
     private fun obterPreferenciasOuNull(): SharedPreferences? {
         preferencias?.let { return it }
 
@@ -111,6 +129,7 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
         const val CHAVE_TOKEN_TYPE = "token_type"
         const val CHAVE_EXPIRES_IN = "expires_in"
         const val CHAVE_VINCULO_ID = "vinculo_id"
+        const val CHAVE_BIOMETRIA_ATIVADA = "biometria_ativada"
 
         fun criarPreferenciasCriptografadas(contexto: Context): SharedPreferences {
             val masterKey = MasterKey.Builder(contexto)
