@@ -1,5 +1,48 @@
 import SwiftUI
 
+/// Superelipse de expoente 2,5: pontas amplas com tangência suave nas retas.
+struct FormaDoBotaoFrila: Shape {
+    func path(in rect: CGRect) -> Path {
+        let alcance = min(rect.height, rect.width / 2)
+        let meiaAltura = rect.height / 2
+        let expoente: CGFloat = 2.5
+        let amostras = 64
+        var caminho = Path()
+        caminho.move(to: CGPoint(x: rect.minX + alcance, y: rect.minY))
+        caminho.addLine(to: CGPoint(x: rect.maxX - alcance, y: rect.minY))
+
+        // Cada quadrante segue |x/a|^n + |y/b|^n = 1.
+        // Quadráticas entre pontos médios suavizam a aproximação sem ultrapassá-la.
+        func quadrante(centroX: CGFloat, inicio: CGFloat) {
+            var pontos: [CGPoint] = []
+            for indice in 0...amostras {
+                let angulo = inicio + CGFloat(indice) / CGFloat(amostras) * .pi / 2
+                let cosseno = cos(angulo)
+                let seno = sin(angulo)
+                pontos.append(CGPoint(
+                    x: centroX + alcance * (cosseno < 0 ? -1 : 1) * pow(abs(cosseno), 2 / expoente),
+                    y: rect.midY + meiaAltura * (seno < 0 ? -1 : 1) * pow(abs(seno), 2 / expoente)
+                ))
+            }
+            for indice in 0..<amostras {
+                let ponto = pontos[indice]
+                let proximo = pontos[indice + 1]
+                let meio = CGPoint(x: (ponto.x + proximo.x) / 2, y: (ponto.y + proximo.y) / 2)
+                caminho.addQuadCurve(to: meio, control: ponto)
+            }
+            caminho.addQuadCurve(to: pontos[amostras], control: pontos[amostras])
+        }
+
+        quadrante(centroX: rect.maxX - alcance, inicio: -.pi / 2)
+        quadrante(centroX: rect.maxX - alcance, inicio: 0)
+        caminho.addLine(to: CGPoint(x: rect.minX + alcance, y: rect.maxY))
+        quadrante(centroX: rect.minX + alcance, inicio: .pi / 2)
+        quadrante(centroX: rect.minX + alcance, inicio: .pi)
+        caminho.closeSubpath()
+        return caminho
+    }
+}
+
 // MARK: - Core Button Style Definitions
 public enum FrilaButtonStyleVariant {
     case primary
@@ -43,7 +86,7 @@ public struct FrilaPillButtonStyle: ButtonStyle {
             .clipShape(FrilaButton.formato)
             .overlay(borderOverlay())
             .frame(minHeight: FrilaGeometry.hitboxMinimum)
-            .contentShape(Rectangle())
+            .contentShape(FrilaButton.formato)
             .scaleEffect(reduceMotion ? 1.0 : (configuration.isPressed ? 0.97 : 1.0))
             .animation(
                 FrilaMovimento.animacao(.interpolatingSpring(stiffness: 350, damping: 25), reduzir: reduceMotion),
@@ -249,8 +292,8 @@ public enum FrilaButtonIconPosition: Sendable {
 /// and better-layout (asymmetric spacing resilience).
 public struct FrilaButton: View {
     /// Curva contínua compartilhada pelos botões de ação, inclusive a candidatura.
-    static var formato: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
+    static var formato: FormaDoBotaoFrila {
+        FormaDoBotaoFrila()
     }
 
     public let title: String
@@ -338,7 +381,7 @@ public struct FrilaButton: View {
             .clipShape(Self.formato)
             .overlay(buttonBorder)
             .frame(minHeight: FrilaGeometry.hitboxMinimum)
-            .contentShape(Rectangle())
+            .contentShape(FrilaButton.formato)
         }
         .buttonStyle(FrilaHapticBounceButtonStyle(reduceMotion: reduceMotion))
         .disabled(isLoading)
