@@ -20,11 +20,12 @@ import org.junit.jupiter.api.Test
 
 class ClienteSupabaseTest {
 
-    private fun clienteCom(engine: MockEngine) = ClienteSupabase(
+    private fun clienteCom(engine: MockEngine, monitorDeConectividade: MonitorDeConectividade? = null) = ClienteSupabase(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-anonima-de-teste",
         provedorDeToken = ProvedorDeToken { "token-de-sessao-123" },
         engine = engine,
+        monitorDeConectividade = monitorDeConectividade,
     )
 
     @Test
@@ -340,6 +341,86 @@ class ClienteSupabaseTest {
         runCatching { cliente.http.post(cliente.urlRpc("candidatar")) }
 
         assertEquals(1, tentativas.get())
+    }
+
+    // RNF01/RNF04: fail-fast pré-voo quando o monitor de conectividade já sabe que está offline.
+
+    @Test
+    fun `sem conexao conhecida aborta a requisicao sem tocar o engine`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            respond(content = "{}", status = HttpStatusCode.OK)
+        }
+        val monitor = MonitorDeConectividadeFalso(statusInicial = StatusConectividade.SEM_CONEXAO)
+        val cliente = clienteCom(engine, monitor)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+        assertEquals(0, tentativas.get()) { "o engine não deveria ser chamado: fail-fast é 0ms, sem tentar a rede" }
+    }
+
+    @Test
+    fun `conexao conhecida como ativa nao interfere na requisicao normal`() = runTest {
+        val engine = MockEngine { respond(content = "{}", status = HttpStatusCode.OK) }
+        val monitor = MonitorDeConectividadeFalso(statusInicial = StatusConectividade.CONECTADO)
+        val cliente = clienteCom(engine, monitor)
+
+        val resposta = cliente.http.get(cliente.urlRpc("vagas_abertas"))
+
+        assertEquals(HttpStatusCode.OK, resposta.status)
+    }
+
+    @Test
+    fun `monitor nulo preserva o comportamento padrao sem fail-fast`() = runTest {
+        val engine = MockEngine { respond(content = "{}", status = HttpStatusCode.OK) }
+        val cliente = clienteCom(engine, monitorDeConectividade = null)
+
+        val resposta = cliente.http.get(cliente.urlRpc("vagas_abertas"))
+
+        assertEquals(HttpStatusCode.OK, resposta.status)
+    }
+
+    @Test
+    fun `retry de GET para quando a conectividade cai no meio da requisicao`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val monitor = MonitorDeConectividadeFalso(statusInicial = StatusConectividade.CONECTADO)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            // A primeira tentativa já derruba a conectividade, simulando a rede caindo
+            // no meio da chamada — o retry automático não deve nem tentar de novo.
+            monitor.definirStatus(StatusConectividade.SEM_CONEXAO)
+            respond(content = "", status = HttpStatusCode.ServiceUnavailable)
+        }
+        val cliente = clienteCom(engine, monitor)
+
+        runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+
+        assertEquals(1, tentativas.get()) { "retry não deveria ocorrer com a conectividade caída" }
+    }
+
+    @Test
+    fun `retry de GET por excecao de rede para quando a conectividade cai no meio da requisicao`() = runTest {
+        // Mesmo cenário do teste acima, mas pelo caminho de retryOnExceptionIf (exceção de rede
+        // crua do engine, ex. ConnectTimeoutException) em vez de retryIf (resposta HTTP 503) —
+        // ressalva do Shisui, PR #604: o guard de conectividade em retryOnExceptionIf tinha
+        // mutante sobrevivente por falta deste teste.
+        val tentativas = AtomicInteger(0)
+        val monitor = MonitorDeConectividadeFalso(statusInicial = StatusConectividade.CONECTADO)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            monitor.definirStatus(StatusConectividade.SEM_CONEXAO)
+            throw ConnectTimeoutException("timeout", null)
+        }
+        val cliente = clienteCom(engine, monitor)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(1, tentativas.get()) { "retry por excecao não deveria ocorrer com a conectividade caída" }
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
     }
 
     @Test
