@@ -1,6 +1,7 @@
 package br.com.frila.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.navDeepLink
@@ -75,6 +76,17 @@ fun AppNavegacao(
     navController: NavHostController = rememberNavController(),
 ) {
     val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
+    // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
+    // frila://meus_turnos, frila://suporte) que chega direto numa rota autenticada sem passar
+    // pela decisão de abertura (MEDIDO, Shisui PR #591). Ver GuardaBiometrico.
+    val guardaBiometrico = remember(armazenamentoDeSessao) {
+        GuardaBiometrico(sessaoDesbloqueadaInicial = !armazenamentoDeSessao.isBiometriaAtivada())
+    }
+
+    DisposableEffect(navController, guardaBiometrico) {
+        val listener = instalarGuardaBiometrico(navController, guardaBiometrico)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
 
     NavHost(navController = navController, startDestination = destinoInicial) {
         composable(Rotas.ENTRADA) {
@@ -180,11 +192,13 @@ fun AppNavegacao(
         composable(Rotas.DESBLOQUEIO) {
             TelaDesbloqueioBiometrico(
                 aoDesbloquear = {
-                    navController.navigate(Rotas.FEED) {
+                    val destino = guardaBiometrico.aoDesbloquearComSucesso()
+                    navController.navigate(destino) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
                 aoEntrarComOutraConta = {
+                    guardaBiometrico.liberarAposLimparSessao()
                     navController.navigate(Rotas.ENTRADA) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -197,6 +211,7 @@ fun AppNavegacao(
             TelaPerfil(
                 viewModel = viewModel,
                 aoDeslogar = {
+                    guardaBiometrico.liberarAposLimparSessao()
                     navController.navigate(Rotas.ENTRADA) {
                         popUpTo(0) { inclusive = true }
                     }

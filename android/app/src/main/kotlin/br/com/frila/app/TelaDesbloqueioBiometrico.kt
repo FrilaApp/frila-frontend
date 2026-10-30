@@ -26,9 +26,12 @@ import org.koin.compose.koinInject
 
 /**
  * Gate real de desbloqueio de sessão (RN15) quando `isBiometriaAtivada()` está ligada
- * ([rotaInicial]/[Rotas.DESBLOQUEIO]). Sucesso navega ao feed sem tocar na sessão; falha ou
- * "Entrar com outra conta" chama [ArmazenamentoDeSessao.limparSessao] e volta para a entrada —
- * nunca deixa a sessão anterior acessível sem confirmação biométrica válida.
+ * ([rotaInicial]/[Rotas.DESBLOQUEIO], ou interceptado por [GuardaBiometrico] num deep link).
+ * Sucesso chama [aoDesbloquear] sem tocar na sessão. Falha na autenticação NÃO chama
+ * [aoDesbloquear] e mantém o botão "Desbloquear" para tentar de novo — a sessão continua
+ * intacta, só não navega. Só "Entrar com outra conta" chama [ArmazenamentoDeSessao.limparSessao]
+ * e devolve a navegação para a entrada: nunca deixa a sessão anterior acessível sem confirmação
+ * biométrica válida, mas também nunca a descarta por uma falha isolada do sensor.
  */
 @Composable
 fun TelaDesbloqueioBiometrico(

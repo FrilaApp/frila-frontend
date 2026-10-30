@@ -52,14 +52,17 @@ class TelaDesbloqueioBiometricoTest {
     }
 
     @Test
-    fun falhaNaAutenticacaoMostraErroEBotaoDeTentarDeNovo() {
+    fun falhaNaAutenticacaoMostraErroEBotaoDeTentarDeNovoSemDesbloquear() {
         val armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true)
+        // MEDIDO (Shisui, PR #591, não-bloqueante 1): mutação sobrevivente — sem esta asserção
+        // negativa, nada provava que aoDesbloquear() fica de fora do caminho de erro.
+        var desbloqueouChamado = false
 
         rule.setContent {
             FrilaTheme {
                 TelaDesbloqueioBiometrico(
                     armazenamentoDeSessao = armazenamento,
-                    aoDesbloquear = {},
+                    aoDesbloquear = { desbloqueouChamado = true },
                     aoEntrarComOutraConta = {},
                     verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
                     autenticarBiometria = { _, _, aoErro -> aoErro("Não foi possível confirmar sua identidade.") },
@@ -70,6 +73,8 @@ class TelaDesbloqueioBiometricoTest {
 
         rule.onNodeWithText("Não foi possível confirmar sua identidade.").assertIsDisplayed()
         rule.onNodeWithText("Desbloquear").assertIsDisplayed()
+        assertTrue(!desbloqueouChamado)
+        verify(exactly = 0) { armazenamento.limparSessao() }
     }
 
     @Test
