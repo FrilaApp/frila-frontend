@@ -179,6 +179,12 @@ class FeedVagasViewModel(
         aplicarFiltros()
     }
 
+    /** RF10/RNF04: reordena 100% em memória sobre [vagasCarregadas] — 0 requisições HTTP. */
+    fun aoSelecionarOrdenacao(opcao: OpcaoOrdenacaoVagas) {
+        _estado.update { it.copy(opcaoOrdenacao = opcao) }
+        aplicarFiltros()
+    }
+
     fun aoLimparFiltrosAvancados() {
         armazenamentoPreferencias.limparFaixaRemuneracaoHora()
         _estado.update {
@@ -222,7 +228,7 @@ class FeedVagasViewModel(
                 }
             }
             .filter { vaga -> filtroAtual.filtroPeriodo.aceita(vaga.inicioEm) }
-            .sortedBy { it.distanciaKm }
+            .sortedWith(comparadorPara(filtroAtual.opcaoOrdenacao))
             .map { it.paraItem() }
 
         val funcoesDisponiveis = vagasCarregadas.map { it.funcao.nome }.distinct().sorted()
@@ -240,6 +246,17 @@ class FeedVagasViewModel(
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível carregar as vagas. Tente de novo em instantes."
     }
+}
+
+/**
+ * RF10: desempate cruzado — cada ordenação quebra empates pela outra dimensão, nunca por ordem
+ * de chegada arbitrária.
+ */
+private fun comparadorPara(opcao: OpcaoOrdenacaoVagas): Comparator<VagaAbertaDto> = when (opcao) {
+    OpcaoOrdenacaoVagas.MENOR_DISTANCIA ->
+        compareBy<VagaAbertaDto> { it.distanciaKm }.thenByDescending { it.valorCentavos }
+    OpcaoOrdenacaoVagas.MAIOR_VALOR ->
+        compareByDescending<VagaAbertaDto> { it.valorCentavos }.thenBy { it.distanciaKm }
 }
 
 /**

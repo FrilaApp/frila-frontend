@@ -261,7 +261,7 @@ class FeedVagasViewModelTest {
 
         viewModel.aoSelecionarFiltroRemuneracao(FiltroRemuneracao.CEM)
 
-        assertEquals(listOf("b", "c"), viewModel.estado.value.vagas.map { it.id })
+        assertEquals(listOf("c", "b"), viewModel.estado.value.vagas.map { it.id })
     }
 
     @Test
@@ -536,8 +536,7 @@ class FeedVagasViewModelTest {
 
         // Vaga A (R$ 20/h) deve ser excluída por estar abaixo do mínimo (R$ 25/h)
         val vagasFiltradas = viewModel.estado.value.vagas.map { it.id }
-        assertEquals(listOf("a", "b", "c").filter { it != "a" }, vagasFiltradas)
-        assertEquals(listOf("b", "c"), vagasFiltradas)
+        assertEquals(listOf("c", "b"), vagasFiltradas)
     }
 
     @Test
@@ -787,5 +786,145 @@ class FeedVagasViewModelTest {
         viewModel.atualizar().join()
 
         assertTrue(!tinhaLatitude)
+    }
+
+    // RF10/RNF04: ordenação flexível do feed por maior valor e menor distância.
+
+    @Test
+    fun `vagas inicializam ordenadas por menor distancia (padrao RF10)`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "longe", distanciaKm = 8.0)}, ${vagaJson(id = "perto", distanciaKm = 2.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(OpcaoOrdenacaoVagas.MENOR_DISTANCIA, viewModel.estado.value.opcaoOrdenacao)
+        assertEquals("perto", viewModel.estado.value.vagas[0].id)
+        assertEquals("longe", viewModel.estado.value.vagas[1].id)
+    }
+
+    @Test
+    fun `ao selecionar maior valor ordena do maior para o menor valorCentavos`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "barato", valorCentavos = 10_000L)}, ${vagaJson(id = "caro", valorCentavos = 30_000L)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoSelecionarOrdenacao(OpcaoOrdenacaoVagas.MAIOR_VALOR)
+
+        assertEquals(OpcaoOrdenacaoVagas.MAIOR_VALOR, viewModel.estado.value.opcaoOrdenacao)
+        assertEquals("caro", viewModel.estado.value.vagas[0].id)
+        assertEquals("barato", viewModel.estado.value.vagas[1].id)
+    }
+
+    @Test
+    fun `ordenar por maior valor desempata por menor distancia`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "longe", valorCentavos = 20_000L, distanciaKm = 9.0)}, " +
+                        "${vagaJson(id = "perto", valorCentavos = 20_000L, distanciaKm = 1.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.aoSelecionarOrdenacao(OpcaoOrdenacaoVagas.MAIOR_VALOR)
+
+        assertEquals("perto", viewModel.estado.value.vagas[0].id)
+        assertEquals("longe", viewModel.estado.value.vagas[1].id)
+    }
+
+    @Test
+    fun `ordenar por menor distancia desempata por maior valor`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "barato", distanciaKm = 3.0, valorCentavos = 10_000L)}, " +
+                        "${vagaJson(id = "caro", distanciaKm = 3.0, valorCentavos = 25_000L)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals("caro", viewModel.estado.value.vagas[0].id)
+        assertEquals("barato", viewModel.estado.value.vagas[1].id)
+    }
+
+    @Test
+    fun `alternar ordenacao nao dispara nova chamada HTTP (RNF04)`() = runBlocking {
+        val chamadas = java.util.concurrent.atomic.AtomicInteger(0)
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamadas.incrementAndGet()
+                respond(
+                    content = "[${vagaJson(id = "a")}, ${vagaJson(id = "b", distanciaKm = 9.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+        assertEquals(1, chamadas.get())
+
+        viewModel.aoSelecionarOrdenacao(OpcaoOrdenacaoVagas.MAIOR_VALOR)
+        viewModel.aoSelecionarOrdenacao(OpcaoOrdenacaoVagas.MENOR_DISTANCIA)
+
+        assertEquals(1, chamadas.get()) { "trocar a ordenação não deveria chamar a rede de novo" }
+    }
+
+    @Test
+    fun `busca textual e filtros mantem a ordenacao selecionada`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a", funcao = "garçom")}, ${vagaJson(id = "b", funcao = "garçom", distanciaKm = 9.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+        viewModel.aoSelecionarOrdenacao(OpcaoOrdenacaoVagas.MAIOR_VALOR)
+
+        viewModel.aoAlterarTextoBusca("gar")
+
+        assertEquals(OpcaoOrdenacaoVagas.MAIOR_VALOR, viewModel.estado.value.opcaoOrdenacao)
+    }
+
+    @Test
+    fun `pull-to-refresh mantem a preferencia de ordenacao`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${vagaJson(id = "a")}, ${vagaJson(id = "b", distanciaKm = 9.0)}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.carregar().join()
+        viewModel.aoSelecionarOrdenacao(OpcaoOrdenacaoVagas.MAIOR_VALOR)
+
+        viewModel.atualizar().join()
+
+        assertEquals(OpcaoOrdenacaoVagas.MAIOR_VALOR, viewModel.estado.value.opcaoOrdenacao)
     }
 }

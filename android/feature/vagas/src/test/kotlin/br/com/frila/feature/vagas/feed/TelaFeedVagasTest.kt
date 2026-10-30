@@ -5,12 +5,15 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
@@ -34,7 +37,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+// RF10: a nova linha de chips "Ordenar por:" aumenta a altura de LinhaDeFiltros — qualifiers
+// maior evita que conteúdo abaixo (erro/lista) saia da janela virtual pequena padrão do
+// Robolectric, sem mudar nada da tela de verdade (viewport maior, não layout diferente).
+@Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class TelaFeedVagasTest {
 
     @get:Rule
@@ -248,5 +254,64 @@ class TelaFeedVagasTest {
 
         compose.onNodeWithContentDescription("Carregando lista de vagas...")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    }
+
+    // RF10/RNF10: ordenação flexível do feed — chips visíveis e acessíveis.
+
+    @Test
+    fun `chips de ordenacao sao visiveis com alvo minimo de 48dp`() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                "[${vagaJson(id = "a")}, ${vagaJson(id = "b", distanciaKm = 9.0)}]",
+            )
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {})
+                }
+            }
+            compose.waitForIdle()
+
+            compose.onNodeWithText("Menor distância")
+                .assertIsDisplayed()
+                .assertWidthIsAtLeast(48.dp)
+                .assertHeightIsAtLeast(48.dp)
+            compose.onNodeWithText("Maior valor")
+                .assertIsDisplayed()
+                .assertWidthIsAtLeast(48.dp)
+                .assertHeightIsAtLeast(48.dp)
+        }
+    }
+
+    @Test
+    fun `selecionar Maior valor reordena a lista e atualiza o estado semantico do chip`() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                "[${vagaJson(id = "a", funcao = "barato", valorCentavos = 10_000L, distanciaKm = 2.0)}, " +
+                    "${vagaJson(id = "b", funcao = "caro", valorCentavos = 30_000L, distanciaKm = 8.0)}]",
+            )
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {})
+                }
+            }
+            compose.waitForIdle()
+
+            // Padrão (menor distância): "barato" (2km) vem primeiro.
+            assertEquals("barato", viewModel.estado.value.vagas.first().funcaoNome)
+
+            compose.onNodeWithText("Maior valor").performClick()
+            compose.waitForIdle()
+
+            // "caro" (R$ 300) agora vem primeiro.
+            assertEquals("caro", viewModel.estado.value.vagas.first().funcaoNome)
+            compose.onNodeWithText("Maior valor")
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "selecionado"))
+            compose.onNodeWithText("Menor distância")
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "não selecionado"))
+        }
     }
 }

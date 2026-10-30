@@ -3,6 +3,16 @@ package br.com.frila.feature.vagas.feed
 /** Status da tela do feed de vagas abertas. */
 enum class StatusFeed { CARREGANDO, SUCESSO, VAZIO, ERRO }
 
+/**
+ * Ordenação flexível do feed (RF10). Roda 100% em memória sobre as vagas já carregadas — nunca
+ * dispara nova requisição ao backend (RNF04). Cada opção desempata pela outra dimensão: menor
+ * distância desempata por maior valor, maior valor desempata por menor distância.
+ */
+enum class OpcaoOrdenacaoVagas(val rotulo: String) {
+    MENOR_DISTANCIA("Menor distância"),
+    MAIOR_VALOR("Maior valor"),
+}
+
 /** Filtro de distância máxima do profissional até a vaga (sem relação com o limite de 15km de RN06/RN21 — este é escolhido pelo usuário na busca, não uma regra de elegibilidade). */
 enum class FiltroDistancia(val limiteKm: Double?, val rotulo: String) {
     QUALQUER(limiteKm = null, rotulo = "Qualquer"),
@@ -70,6 +80,7 @@ data class EstadoFeed(
     val filtroRemuneracao: FiltroRemuneracao = FiltroRemuneracao.QUALQUER,
     val filtroPeriodo: FiltroPeriodo = FiltroPeriodo.QUALQUER,
     val faixaRemuneracaoHora: FaixaRemuneracaoHora = FaixaRemuneracaoHora.PADRAO,
+    val opcaoOrdenacao: OpcaoOrdenacaoVagas = OpcaoOrdenacaoVagas.MENOR_DISTANCIA,
     val exibindoFiltrosAvancados: Boolean = false,
     val mensagemErro: String? = null,
     val atualizando: Boolean = false,

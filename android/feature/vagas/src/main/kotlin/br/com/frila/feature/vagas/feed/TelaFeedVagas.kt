@@ -199,7 +199,26 @@ private fun LinhaDeFiltros(estado: EstadoFeed, viewModel: FeedVagasViewModel) {
             Text("Filtros")
         }
 
+        Text(
+            text = "Ordenar por:",
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+        )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
+            items(OpcaoOrdenacaoVagas.entries.toList()) { opcao ->
+                FilterChip(
+                    selected = estado.opcaoOrdenacao == opcao,
+                    onClick = { viewModel.aoSelecionarOrdenacao(opcao) },
+                    label = { Text(opcao.rotulo) },
+                    modifier = Modifier.semanticaDeFiltro(estado.opcaoOrdenacao == opcao),
+                )
+            }
+        }
+
+        LazyRow(
+            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+        ) {
             items(FiltroDistancia.entries.toList()) { filtro ->
                 FilterChip(
                     selected = estado.filtroDistancia == filtro,
