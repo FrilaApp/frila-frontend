@@ -104,14 +104,24 @@ fun FrilaSkeleton(
                 // montado uma vez por mudança de tamanho; o frame a frame só desloca o canvas
                 // (`translate`) antes de pintar o mesmo Brush já pronto — sem alocar nada novo.
                 val largura = size.width
+                val corBase = cores.first()
                 val pincel = Brush.linearGradient(
                     colors = cores,
                     start = Offset(-largura, 0f),
                     end = Offset(largura, 0f),
                 )
                 onDrawBehind {
-                    translate(left = deslocamento * largura) {
-                        drawRect(brush = pincel, size = size)
+                    // MEDIDO (Shisui, PR #594, regressão visual): transladar só o retângulo
+                    // deixava parte do osso sem cobertura em 26/26 frames medidos (chegando a
+                    // 100% transparente). Correção: 1) pinta o fundo sólido sempre, cobrindo
+                    // 100% do osso em qualquer frame; 2) desenha o gradiente com
+                    // contra-translação (`topLeft = -x` dentro de `translate(left = x)`) — o
+                    // retângulo do gradiente volta a cobrir exatamente (0,0,size), e só o shader
+                    // do Brush (que carrega a transformação do canvas) deslisa visualmente.
+                    drawRect(color = corBase, size = size)
+                    val x = deslocamento * largura
+                    translate(left = x) {
+                        drawRect(brush = pincel, topLeft = Offset(-x, 0f), size = size)
                     }
                 }
             }
