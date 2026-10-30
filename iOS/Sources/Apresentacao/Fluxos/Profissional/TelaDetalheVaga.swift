@@ -951,8 +951,8 @@ private struct FilaDeReputacaoDoDetalhe: View {
                 let diametro = diametros[indice] * escala
                 let carga = min(1, max(0, proporcao * 5 - Double(indice)))
                 ZStack {
-                    Circle().stroke(lineWidth: 4).blendMode(.destinationOut)
-                    Circle().fill(FrilaCor.superficie)
+                    Circle().stroke(lineWidth: 4 * escala).blendMode(.destinationOut)
+                    Circle().fill(FrilaCor.controle)
                     Circle().fill(FrilaCor.texto.opacity(0.3))
                         .mask(alignment: .leading) {
                             Rectangle().frame(width: diametro * carga)
