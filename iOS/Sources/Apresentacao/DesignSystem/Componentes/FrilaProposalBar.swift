@@ -214,8 +214,8 @@ public struct FrilaProposalBar: View {
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: expandirLargura ? .infinity : nil, minHeight: FrilaMetrica.alturaDoCampo)
             .foregroundStyle(FrilaCor.sobrePrimaria)
-            .background(FrilaCor.primaria, in: Capsule())
-            .contentShape(Capsule())
+            .background(FrilaCor.primaria, in: FrilaButton.formato)
+            .contentShape(FrilaButton.formato)
         }
         .buttonStyle(.tatil)
         .disabled(isSubmitting)

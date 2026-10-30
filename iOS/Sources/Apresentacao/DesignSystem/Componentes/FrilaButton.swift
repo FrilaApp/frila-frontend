@@ -40,7 +40,7 @@ public struct FrilaPillButtonStyle: ButtonStyle {
             .frame(height: visualHeight)
             .background(backgroundColor(isPressed: configuration.isPressed))
             .foregroundColor(foregroundColor)
-            .clipShape(Capsule())
+            .clipShape(FrilaButton.formato)
             .overlay(borderOverlay())
             .frame(minHeight: FrilaGeometry.hitboxMinimum)
             .contentShape(Rectangle())
@@ -112,12 +112,12 @@ public struct FrilaPillButtonStyle: ButtonStyle {
     @ViewBuilder
     private func borderOverlay() -> some View {
         if variant == .outline {
-            Capsule()
+            FrilaButton.formato
                 .stroke(FrilaColor.dynamicBorder(isDark: isDark), lineWidth: 1)
         } else if variant == .glass {
             let topWhite = isDark ? 0.40 : 0.80
             let bottomTint = isDark ? Color.white.opacity(0.08) : Color.black.opacity(0.08)
-            Capsule()
+            FrilaButton.formato
                 .stroke(
                     LinearGradient(
                         colors: [Color.white.opacity(topWhite), bottomTint],
@@ -248,6 +248,11 @@ public enum FrilaButtonIconPosition: Sendable {
 /// Incorporates better-ui spring physics (scale 0.96), better-accessibility (44pt hitbox & VoiceOver),
 /// and better-layout (asymmetric spacing resilience).
 public struct FrilaButton: View {
+    /// Curva contínua compartilhada pelos botões de ação, inclusive a candidatura.
+    static var formato: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+    }
+
     public let title: String
     public let icon: String?
     public let variant: FrilaButtonVariant
@@ -330,7 +335,7 @@ public struct FrilaButton: View {
             .frame(height: visualHeight)
             .background(buttonBackground)
             .foregroundColor(buttonForeground)
-            .clipShape(Capsule())
+            .clipShape(Self.formato)
             .overlay(buttonBorder)
             .frame(minHeight: FrilaGeometry.hitboxMinimum)
             .contentShape(Rectangle())
@@ -420,9 +425,9 @@ public struct FrilaButton: View {
     @ViewBuilder
     private var buttonBorder: some View {
         if variant == .outline {
-            Capsule().stroke(FrilaColor.dynamicBorder(isDark: isDark), lineWidth: 1)
+            Self.formato.stroke(FrilaColor.dynamicBorder(isDark: isDark), lineWidth: 1)
         } else if variant == .glass {
-            Capsule().stroke(
+            Self.formato.stroke(
                 LinearGradient(
                     colors: [Color.white.opacity(0.8), Color.black.opacity(0.08)],
                     startPoint: .top,

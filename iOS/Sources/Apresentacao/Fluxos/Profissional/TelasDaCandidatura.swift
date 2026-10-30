@@ -106,8 +106,8 @@ public struct AreaDeCandidatura: View {
             .padding(.horizontal, FrilaEspaco.grande)
             .frame(maxWidth: .infinity, minHeight: 56)
             .foregroundStyle(desabilitado ? FrilaCor.textoSecundario : (usaCorMarca ? FrilaCor.sobreSelecao : FrilaCor.sobrePrimaria))
-            .background(desabilitado ? FrilaCor.controle : (usaCorMarca ? FrilaCor.marca : FrilaCor.primaria), in: Capsule())
-            .contentShape(Capsule())
+            .background(desabilitado ? FrilaCor.controle : (usaCorMarca ? FrilaCor.marca : FrilaCor.primaria), in: FrilaButton.formato)
+            .contentShape(FrilaButton.formato)
         }
         .buttonStyle(.tatil)
         .disabled(desabilitado)
