@@ -6,6 +6,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -498,6 +499,37 @@ class TelaPerfilTest {
 
             rule.onNodeWithTag("toggle-biometria").assertIsOff()
             assertFalse(autenticarFoiChamado)
+            verify(exactly = 1) { armazenamento.definirBiometriaAtivada(false) }
+        }
+    }
+
+    @Test
+    fun toggleAtivadoComHardwareIndisponivelPodeSerDesligado() {
+        runBlocking {
+            // MEDIDO (Shisui, PR #591): se o usuário ativou a biometria e depois o sensor ficou
+            // indisponível (ou removeu o PIN), o switch não pode ficar ON e travado — ele tem que
+            // poder desligar sempre, mesmo sem hardware disponível.
+            val armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true)
+            every { armazenamento.isBiometriaAtivada() } returns true
+            val viewModel = criarViewModel(armazenamento = armazenamento)
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.HARDWARE_INDISPONIVEL },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").performScrollTo().assertIsEnabled().assertIsOn()
+            rule.onNodeWithTag("toggle-biometria").performClick()
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("toggle-biometria").assertIsOff()
             verify(exactly = 1) { armazenamento.definirBiometriaAtivada(false) }
         }
     }

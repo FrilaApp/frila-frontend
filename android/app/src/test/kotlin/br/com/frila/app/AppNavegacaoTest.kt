@@ -9,11 +9,21 @@ import org.junit.jupiter.api.Test
 class AppNavegacaoTest {
 
     @Test
-    fun `com sessao ativa a rota inicial e FEED`() {
+    fun `com sessao ativa e biometria desativada a rota inicial e FEED`() {
         val armazenamento = mockk<ArmazenamentoDeSessao>()
         every { armazenamento.estaAutenticado() } returns true
+        every { armazenamento.isBiometriaAtivada() } returns false
 
         assertEquals(Rotas.FEED, rotaInicial(armazenamento))
+    }
+
+    @Test
+    fun `com sessao ativa e biometria ativada a rota inicial e DESBLOQUEIO RN15`() {
+        val armazenamento = mockk<ArmazenamentoDeSessao>()
+        every { armazenamento.estaAutenticado() } returns true
+        every { armazenamento.isBiometriaAtivada() } returns true
+
+        assertEquals(Rotas.DESBLOQUEIO, rotaInicial(armazenamento))
     }
 
     @Test

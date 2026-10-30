@@ -42,6 +42,7 @@ object Rotas {
     const val AVALIACAO = "avaliacao/{turnoId}"
     const val PERFIL = "perfil"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
+    const val DESBLOQUEIO = "desbloqueio"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -56,12 +57,17 @@ object DeepLinks {
 }
 
 /**
- * Rota inicial: [Rotas.FEED] se já há sessão válida em [ArmazenamentoDeSessao], senão
- * [Rotas.ENTRADA]. É a mesma regra que decide se o app mostra login ou o feed direto na
- * abertura — ver `AppNavegacaoTest`.
+ * Rota inicial (RN15): sem sessão válida vai para [Rotas.ENTRADA]; com sessão válida e
+ * desbloqueio rápido ativado (RN15), passa primeiro por [Rotas.DESBLOQUEIO] em vez de abrir o
+ * feed direto — é o gate real da flag `isBiometriaAtivada()`, não só a pintura do toggle no
+ * perfil (MEDIDO, Shisui PR #591: antes desta correção nada consumia a flag na inicialização).
+ * Sem biometria ativada, vai direto para [Rotas.FEED] — ver `AppNavegacaoTest`.
  */
-fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao): String =
-    if (armazenamentoDeSessao.estaAutenticado()) Rotas.FEED else Rotas.ENTRADA
+fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao): String = when {
+    !armazenamentoDeSessao.estaAutenticado() -> Rotas.ENTRADA
+    armazenamentoDeSessao.isBiometriaAtivada() -> Rotas.DESBLOQUEIO
+    else -> Rotas.FEED
+}
 
 @Composable
 fun AppNavegacao(
@@ -168,6 +174,21 @@ fun AppNavegacao(
             TelaOcorrencia(
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
+            )
+        }
+
+        composable(Rotas.DESBLOQUEIO) {
+            TelaDesbloqueioBiometrico(
+                aoDesbloquear = {
+                    navController.navigate(Rotas.FEED) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                aoEntrarComOutraConta = {
+                    navController.navigate(Rotas.ENTRADA) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
 

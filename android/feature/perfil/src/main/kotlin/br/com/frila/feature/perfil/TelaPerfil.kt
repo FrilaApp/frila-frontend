@@ -671,7 +671,9 @@ private fun BlocoDeConta(
             Switch(
                 checked = biometriaAtivada,
                 onCheckedChange = aoAlternarBiometria,
-                enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL,
+                // MEDIDO (Shisui, PR #591): desligar precisa ser sempre possível, mesmo se o
+                // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
+                enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
                 modifier = Modifier
                     .testTag("toggle-biometria")
                     .semantics {
