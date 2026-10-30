@@ -321,26 +321,17 @@ public struct TelaDetalheVaga<Acao: View>: View {
             funcao: vaga.funcao.nome, bairro: vaga.regiaoAdministrativa
         )
         let conteudo = VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: vaga.estabelecimento.nome)
-                        .font(FrilaTipo.tituloDoDetalhe)
-                        .foregroundStyle(FrilaCor.texto)
-                        .lineLimit(2)
-                    Text(verbatim: contexto)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Text(verbatim: monograma(vaga.estabelecimento.nome))
-                    .font(FrilaTipo.resumo.weight(.bold))
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                Text(verbatim: vaga.estabelecimento.nome)
+                    .font(FrilaTipo.tituloDoDetalhe)
                     .foregroundStyle(FrilaCor.texto)
-                    .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
-                    .background(FrilaCor.superficie, in: Circle())
-                    .overlay(Circle().strokeBorder(FrilaCor.borda, lineWidth: 1.5))
-                    .accessibilityHidden(true)
+                    .lineLimit(2)
+                Text(verbatim: contexto)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
             reputacaoNoHeader(reputacao)
         }
         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
@@ -400,13 +391,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 }
             }
         }
-    }
-
-    private func monograma(_ nome: String) -> String {
-        let palavras = nome.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation })
-        return (palavras.count > 1
-            ? palavras.prefix(2).map { String($0.prefix(1)) }.joined()
-            : String(palavras.first?.prefix(2) ?? "")).uppercased()
     }
 
     private func resumoVaga(_ vaga: Vaga) -> some View {
@@ -676,13 +660,43 @@ private struct BarraSuperiorDoDetalhe<Cabecalho: View>: ViewModifier {
     }
 
     private var bloco: some View {
-        VStack(spacing: 0) {
-            cabecalho()
-            Rectangle().fill(FrilaCor.divisoria).frame(height: 1)
-                .accessibilityHidden(true)
+        cabecalho()
+            .overlay(alignment: .bottom) {
+                BordaInferiorDoHeader()
+                    .frame(height: 8)
+                    .offset(y: 8)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+    }
+}
+
+/// Beautiful sm restrito à borda: o emissor fica acima do recorte, sem sombrear os textos.
+private struct BordaInferiorDoHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
+    // Neutro da referência aprovada, privado a este único uso.
+    private let contato = Color(.sRGB, red: 25.0 / 255, green: 28.0 / 255, blue: 33.0 / 255)
+
+    var body: some View {
+        GeometryReader { geometria in
+            ZStack(alignment: .topLeading) {
+                if colorScheme == .dark {
+                    Rectangle().fill(FrilaCor.divisoria).frame(height: 1)
+                } else {
+                    // Spread −1 pt: emissor recuado nas laterais e com base em y=−1.
+                    Rectangle().fill(.black)
+                        .frame(width: max(0, geometria.size.width - 2), height: 16)
+                        .shadow(color: .black.opacity(0.1), radius: 1.5, x: 0, y: 2)
+                        .offset(x: 1, y: -17)
+                    // Contato sem blur (y=1) e porção inferior do anel de 1 pt.
+                    Rectangle().fill(contato.opacity(0.02)).frame(height: 1)
+                    Rectangle().fill(contato.opacity(0.08)).frame(height: 1)
+                }
+            }
+            .frame(width: geometria.size.width, height: geometria.size.height, alignment: .topLeading)
+            .clipped()
         }
     }
-
 }
 
 /// Cinco posições mostram a proporção binária; a contagem preserva o tamanho da amostra.
