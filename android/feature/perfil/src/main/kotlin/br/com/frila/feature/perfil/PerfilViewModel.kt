@@ -9,6 +9,9 @@ import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.TurnoDto
+import br.com.frila.core.notificacoes.GerenciadorDeCanais
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -36,6 +39,7 @@ class PerfilViewModel(
     /** RF03/RNF04: injetável para teste de JVM sem decodificar bitmap real (Robolectric só na tela). */
     private val comprimirFoto: (Context, Uri) -> File = CompressorDeFotoPerfil::comprimir,
     private val obterAvatarSalvo: (Context) -> File? = CompressorDeFotoPerfil::avatarExistente,
+    private val preferenciasNotificacao: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -56,6 +60,9 @@ class PerfilViewModel(
                         resumoFinanceiro = resumoFinanceiro,
                         turnosExtrato = turnosExtrato,
                         biometriaAtivada = armazenamentoDeSessao.isBiometriaAtivada(),
+                        notificacaoUrgenciaAtivada = preferenciasNotificacao.estaAtivado(GerenciadorDeCanais.CANAL_URGENCIA),
+                        notificacaoTurnosAtivada = preferenciasNotificacao.estaAtivado(GerenciadorDeCanais.CANAL_TURNOS),
+                        notificacaoSistemaAtivada = preferenciasNotificacao.estaAtivado(GerenciadorDeCanais.CANAL_SISTEMA),
                     )
                 }
             } catch (erro: ErroDaApi) {
@@ -120,6 +127,19 @@ class PerfilViewModel(
     fun definirBiometriaAtivada(ativada: Boolean) {
         armazenamentoDeSessao.definirBiometriaAtivada(ativada)
         _estado.update { it.copy(biometriaAtivada = ativada) }
+    }
+
+    /** RF06: ativa/desativa a notificação de um canal específico, persistindo localmente. */
+    fun definirNotificacaoAtivada(canal: String, ativado: Boolean) {
+        preferenciasNotificacao.definirAtivado(canal, ativado)
+        _estado.update {
+            when (canal) {
+                GerenciadorDeCanais.CANAL_URGENCIA -> it.copy(notificacaoUrgenciaAtivada = ativado)
+                GerenciadorDeCanais.CANAL_TURNOS -> it.copy(notificacaoTurnosAtivada = ativado)
+                GerenciadorDeCanais.CANAL_SISTEMA -> it.copy(notificacaoSistemaAtivada = ativado)
+                else -> it
+            }
+        }
     }
 
     /**

@@ -27,10 +27,13 @@ class ProcessadorDePushTest {
         vinculoId = vinculoId,
     )
 
-    private fun processadorComSessao(sessao: Sessao?): ProcessadorDePush {
+    private fun processadorComSessao(
+        sessao: Sessao?,
+        preferencias: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
+    ): ProcessadorDePush {
         val armazenamento = mockk<ArmazenamentoDeSessao>()
         every { armazenamento.obterSessao() } returns sessao
-        return ProcessadorDePush(armazenamento)
+        return ProcessadorDePush(armazenamento, preferencias)
     }
 
     @Test
@@ -133,5 +136,25 @@ class ProcessadorDePushTest {
         val resultado = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "vaga_id" to "vaga-123"))
 
         assertEquals("vaga-123", resultado.vagaId)
+    }
+
+    @Test
+    fun `canal desativado pelo usuario marca a notificacao como silenciada (RF06)`() {
+        val preferencias = GerenciadorPreferenciasNotificacaoEmMemoria()
+        preferencias.definirAtivado(GerenciadorDeCanais.CANAL_TURNOS, false)
+        val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"), preferencias)
+
+        val resultado = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "tipo" to "checkin"))
+
+        assertTrue(resultado.silenciada)
+    }
+
+    @Test
+    fun `canal ativado pelo usuario nao marca a notificacao como silenciada`() {
+        val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
+
+        val resultado = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "tipo" to "vaga_urgente"))
+
+        assertFalse(resultado.silenciada)
     }
 }

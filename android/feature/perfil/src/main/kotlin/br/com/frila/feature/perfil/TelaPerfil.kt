@@ -50,6 +50,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import android.content.Intent
+import android.provider.Settings
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,7 +64,10 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.stateDescription
+import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
@@ -197,6 +201,10 @@ fun TelaPerfil(
                         )
                     }
                 },
+                notificacaoUrgenciaAtivada = estado.notificacaoUrgenciaAtivada,
+                notificacaoTurnosAtivada = estado.notificacaoTurnosAtivada,
+                notificacaoSistemaAtivada = estado.notificacaoSistemaAtivada,
+                aoAlternarNotificacao = viewModel::definirNotificacaoAtivada,
                 paddingValues = paddingInterno,
             )
         }
@@ -243,6 +251,10 @@ private fun ConteudoDoPerfil(
     disponibilidadeBiometrica: DisponibilidadeBiometrica,
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
+    notificacaoUrgenciaAtivada: Boolean,
+    notificacaoTurnosAtivada: Boolean,
+    notificacaoSistemaAtivada: Boolean,
+    aoAlternarNotificacao: (canal: String, ativado: Boolean) -> Unit,
     paddingValues: PaddingValues,
 ) {
     Column(
@@ -277,6 +289,12 @@ private fun ConteudoDoPerfil(
             aoAlternar = aoAlternarEspecialidade,
         )
         BlocoDeFuncoes(funcoes)
+        BlocoDeNotificacoes(
+            urgenciaAtivada = notificacaoUrgenciaAtivada,
+            turnosAtivada = notificacaoTurnosAtivada,
+            sistemaAtivada = notificacaoSistemaAtivada,
+            aoAlternar = aoAlternarNotificacao,
+        )
         BlocoDeConta(
             aoDeslogar = aoDeslogar,
             aoAbrirExclusao = aoAbrirExclusao,
@@ -285,6 +303,70 @@ private fun ConteudoDoPerfil(
             mensagemErroBiometria = mensagemErroBiometria,
             aoAlternarBiometria = aoAlternarBiometria,
         )
+    }
+}
+
+/**
+ * RF06: preferências locais de notificação por canal (vagas urgentes, turnos, geral), mais o
+ * atalho para as configurações de notificação do sistema (Android 13+ controla a permissão
+ * `POST_NOTIFICATIONS` lá fora do app). Cada linha é toggleable inteira — não só o Switch — e
+ * leva `stateDescription` para o leitor de tela anunciar "ativado"/"desativado".
+ */
+@Composable
+private fun BlocoDeNotificacoes(
+    urgenciaAtivada: Boolean,
+    turnosAtivada: Boolean,
+    sistemaAtivada: Boolean,
+    aoAlternar: (canal: String, ativado: Boolean) -> Unit,
+) {
+    val contexto = LocalContext.current
+    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Notificações",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
+        LinhaDeNotificacao("Vagas urgentes", GerenciadorDeCanais.CANAL_URGENCIA, urgenciaAtivada, aoAlternar)
+        LinhaDeNotificacao("Turnos", GerenciadorDeCanais.CANAL_TURNOS, turnosAtivada, aoAlternar)
+        LinhaDeNotificacao("Geral", GerenciadorDeCanais.CANAL_SISTEMA, sistemaAtivada, aoAlternar)
+        BotaoSecundario(
+            texto = "Configurações de notificação do sistema",
+            aoClicar = {
+                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, contexto.packageName)
+                contexto.startActivity(intent)
+            },
+            modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno),
+        )
+    }
+}
+
+@Composable
+private fun LinhaDeNotificacao(
+    rotulo: String,
+    canal: String,
+    ativada: Boolean,
+    aoAlternar: (canal: String, ativado: Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = FrilaEspacamento.pequeno)
+            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
+            .toggleable(
+                value = ativada,
+                role = Role.Switch,
+                onValueChange = { novoValor -> aoAlternar(canal, novoValor) },
+            )
+            .testTag("toggle-notificacao-$canal")
+            .semantics {
+                stateDescription = if (ativada) "ativado" else "desativado"
+            },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = rotulo, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Switch(checked = ativada, onCheckedChange = null)
     }
 }
 

@@ -5,6 +5,9 @@ import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
+import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoAutenticacao
@@ -60,7 +63,12 @@ val moduloRede = module {
 }
 
 val moduloNotificacoes = module {
-    single { ProcessadorDePush(get()) }
+    single<GerenciadorPreferenciasNotificacao> {
+        getOrNull<Context>()
+            ?.let(::GerenciadorPreferenciasNotificacaoSharedPrefs)
+            ?: GerenciadorPreferenciasNotificacaoEmMemoria()
+    }
+    single { ProcessadorDePush(get(), get()) }
 }
 
 /** Leitura de localização sob demanda para o check-in presencial (RF13/RN06/RN22). */

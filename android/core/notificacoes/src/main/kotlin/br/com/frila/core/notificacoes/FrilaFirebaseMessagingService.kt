@@ -52,6 +52,9 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
     }
 
     private fun exibir(notificacao: NotificacaoParaExibir) {
+        // RF06: canal desativado pelo usuário nas preferências locais — não notifica.
+        if (notificacao.silenciada) return
+
         val builder = NotificationCompat.Builder(this, notificacao.canal)
             .setContentTitle(notificacao.titulo)
             .setContentText(notificacao.corpo)
