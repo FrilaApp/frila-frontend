@@ -42,5 +42,6 @@ final class BarraAceitarTurnoUITests: XCTestCase {
         XCTAssertGreaterThan(alturaDoValor, 45)
         XCTAssertGreaterThan(alturaDoValor, titulo.frame.height + 8)
         print("LOG-018 composição: tela=\(tela), preço=\(preco.frame), valor sem apoio=\(alturaDoValor), título=\(titulo.frame), botão=\(botao.frame)")
+        print("LOG-018 área útil: navegação=\(app.navigationBars.firstMatch.frame), rolagem=\(app.scrollViews.firstMatch.frame)")
     }
 }
