@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -100,18 +101,22 @@ class FrilaBottomSheetTest {
     }
 
     @Test
-    fun `drag handle decorativo nao expoe contentDescription nem fica no caminho do botao fechar`() {
+    fun `drag handle decorativo nao expoe nenhuma semantica propria ao TalkBack`() {
+        // MEDIDO (Shisui, PR #605, bloqueante): a versão anterior deste teste só checava a
+        // ausência do texto "Fechar" — verdadeiro mesmo SEM clearAndSetSemantics (mutantes S3:
+        // clearAndSetSemantics removido, e S3b: contentDescription "Alça" no lugar sobreviviam,
+        // porque nenhum dos dois produz um nó com contentDescription igual a "Fechar"). A árvore
+        // de semântica inteira do handle (useUnmergedTree, para não herdar nada de fora) precisa
+        // não ter ContentDescription nem Role nenhum — essa é a prova de "sem ruído no TalkBack".
         compose.setContent {
             FrilaTheme {
                 FrilaDragHandle()
             }
         }
 
-        // Decorativo: clearAndSetSemantics { } remove a semântica própria. A prova direta de
-        // "nenhuma semântica" fica no teste de mutação (reverter o clearAndSetSemantics faz o
-        // próprio onNodeWithContentDescription("Fechar") acima mudar de comportamento quando
-        // combinado ao sheet completo); aqui garantimos que o handle isolado não expõe nenhum
-        // texto nem contentDescription usados pelos outros testes.
-        compose.onNodeWithContentDescription("Fechar").assertDoesNotExist()
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription), useUnmergedTree = true)
+            .assertCountEquals(0)
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Role), useUnmergedTree = true)
+            .assertCountEquals(0)
     }
 }
