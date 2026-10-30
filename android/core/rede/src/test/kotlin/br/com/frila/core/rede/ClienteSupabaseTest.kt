@@ -3,13 +3,19 @@ package br.com.frila.core.rede
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import java.net.UnknownHostException
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class ClienteSupabaseTest {
@@ -176,5 +182,173 @@ class ClienteSupabaseTest {
 
         assertEquals(CodigoErroAPI.DESCONHECIDO, erro?.codigo)
         assertEquals("um_codigo_que_ainda_nao_existe", erro?.codigoOriginal)
+    }
+
+    // RNF01/RNF04: timeout adaptativo + retry exponencial para leitura, nunca para mutação.
+
+    @Test
+    fun `GET com 503 nas duas primeiras tentativas e sucesso na terceira retenta automaticamente`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            if (tentativas.incrementAndGet() < 3) {
+                respond(content = "", status = HttpStatusCode.ServiceUnavailable)
+            } else {
+                respond(
+                    content = """{"id":"f1","nome":"garçom","categoria":"Salão"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+        }
+        val cliente = clienteCom(engine)
+
+        val resposta = cliente.http.get(cliente.urlRpc("vagas_abertas"))
+
+        assertEquals(3, tentativas.get())
+        assertEquals(HttpStatusCode.OK, resposta.status)
+    }
+
+    @Test
+    fun `POST com 503 nunca e retentado - mutacao critica nao pode duplicar efeito`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            respond(content = "", status = HttpStatusCode.ServiceUnavailable)
+        }
+        val cliente = clienteCom(engine)
+
+        cliente.http.post(cliente.urlRpc("candidatar"))
+
+        assertEquals(1, tentativas.get())
+    }
+
+    @Test
+    fun `GET com 400 nao e retentado`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            respond(
+                content = """{"code":"campo_invalido","message":"erro"}""",
+                status = HttpStatusCode.BadRequest,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val cliente = clienteCom(engine)
+
+        cliente.http.get(cliente.urlRpc("vagas_abertas"))
+
+        assertEquals(1, tentativas.get())
+    }
+
+    @Test
+    fun `GET com 401 nao e retentado`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            respond(content = """{"code":"nao_autenticado","message":"erro"}""", status = HttpStatusCode.Unauthorized)
+        }
+        val cliente = clienteCom(engine)
+
+        cliente.http.get(cliente.urlRpc("minha_conta"))
+
+        assertEquals(1, tentativas.get())
+    }
+
+    @Test
+    fun `GET com 422 nao e retentado`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            respond(content = """{"code":"perfil_incompativel","message":"erro"}""", status = HttpStatusCode.UnprocessableEntity)
+        }
+        val cliente = clienteCom(engine)
+
+        cliente.http.get(cliente.urlRpc("vagas_abertas"))
+
+        assertEquals(1, tentativas.get())
+    }
+
+    @Test
+    fun `ConnectTimeoutException e convertida em ErroDaApi SEM_REDE sem derrubar o app`() = runTest {
+        val engine = MockEngine { throw ConnectTimeoutException("sem rota para o host", null) }
+        val cliente = clienteCom(engine)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+    }
+
+    @Test
+    fun `SocketTimeoutException e convertida em ErroDaApi SEM_REDE sem derrubar o app`() = runTest {
+        val engine = MockEngine { throw io.ktor.client.network.sockets.SocketTimeoutException("conexão caiu", null) }
+        val cliente = clienteCom(engine)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+    }
+
+    @Test
+    fun `HttpRequestTimeoutException e convertida em ErroDaApi SEM_REDE sem derrubar o app`() = runTest {
+        val engine = MockEngine { request -> throw HttpRequestTimeoutException(request) }
+        val cliente = clienteCom(engine)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+    }
+
+    @Test
+    fun `UnknownHostException e convertida em ErroDaApi SEM_REDE sem derrubar o app`() = runTest {
+        val engine = MockEngine { throw UnknownHostException("frila.supabase.co") }
+        val cliente = clienteCom(engine)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+    }
+
+    @Test
+    fun `falha de conectividade tambem e retentada em GET - esgota as tentativas e converte em SEM_REDE`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            throw ConnectTimeoutException("timeout", null)
+        }
+        val cliente = clienteCom(engine)
+
+        val erro = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }
+            .exceptionOrNull() as? ErroDaApi
+
+        assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+        assertEquals(4, tentativas.get()) // 1 tentativa original + 3 retries
+    }
+
+    @Test
+    fun `falha de conectividade em POST nao e retentada`() = runTest {
+        val tentativas = AtomicInteger(0)
+        val engine = MockEngine {
+            tentativas.incrementAndGet()
+            throw ConnectTimeoutException("timeout", null)
+        }
+        val cliente = clienteCom(engine)
+
+        runCatching { cliente.http.post(cliente.urlRpc("candidatar")) }
+
+        assertEquals(1, tentativas.get())
+    }
+
+    @Test
+    fun `CancellationException nunca e convertida em ErroDaApi e propaga intacta`() = runTest {
+        val engine = MockEngine { throw kotlinx.coroutines.CancellationException("cancelado") }
+        val cliente = clienteCom(engine)
+
+        val excecao = runCatching { cliente.http.get(cliente.urlRpc("vagas_abertas")) }.exceptionOrNull()
+
+        assertTrue(excecao is kotlinx.coroutines.CancellationException)
     }
 }
