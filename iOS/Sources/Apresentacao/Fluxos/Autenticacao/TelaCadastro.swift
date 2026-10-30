@@ -299,7 +299,7 @@ public struct TelaCadastro: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityLabel(Text(verbatim: "\(titulo). \(descricao)"))
         .accessibilityValue(selecionado ? String(localized: "Selecionado", bundle: bundleApresentacao) : String(localized: "Não selecionado", bundle: bundleApresentacao))
         .accessibilityAddTraits(selecionado ? [.isSelected] : [])
         .accessibilityIdentifier(identificador)

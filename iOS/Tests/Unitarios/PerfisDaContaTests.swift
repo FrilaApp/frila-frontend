@@ -125,6 +125,10 @@ struct PerfisDaContaTests {
         let padrao = EnderecosOficiais.padrao
         #expect(codigoCadastro.contains(padrao.termosDeUso.absoluteString), "TelaCadastro deve conter o endereço oficial de termos")
         #expect(codigoCadastro.contains(padrao.politicaDePrivacidade.absoluteString), "TelaCadastro deve conter o endereço oficial de privacidade")
+        #expect(
+            codigoCadastro.contains(#".accessibilityLabel(Text(verbatim: "\(titulo). \(descricao)"))"#),
+            "TelaCadastro deve anunciar título e descrição do perfil para o VoiceOver"
+        )
 
         let caminhoCatalogo = raiz.appending(path: "Resources/Localizable.xcstrings")
         let conteudoCatalogo = try String(contentsOf: caminhoCatalogo, encoding: .utf8)
