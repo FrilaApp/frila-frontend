@@ -44,6 +44,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
     @Bindable private var viewModel: DetalheVagaViewModel
     @State private var avisosDaAcao = AvisosDoDetalhe()
     @State private var navegarParaPerfil = false
+    @State private var rolagemDoCabecalho = RolagemDoCabecalho()
     private let acao: (Vaga) -> Acao
     private static var idDosAvisos: String { "avisos-da-acao" }
 
@@ -98,28 +99,48 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
     private var corpo: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                switch viewModel.estado {
-                case .carregando:
-                    estadoCarregandoView
-                case let .carregado(vaga):
-                    if bloqueios.contem(vaga.estabelecimento) {
+            VStack(spacing: 0) {
+                if case let .carregado(vaga) = viewModel.estado, rodapeAtivo {
+                    ReacaoDoCabecalho(rolagem: rolagemDoCabecalho) { progresso in
+                        cabecalhoEstabelecimento(vaga, progresso: progresso)
+                    }
+                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.vertical, FrilaEspaco.compacto)
+                    .background {
+                        GeometryReader { geometria in
+                            Color.clear.preference(key: AlturaDoCabecalho.self, value: geometria.size.height)
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                    switch viewModel.estado {
+                    case .carregando:
+                        estadoCarregandoView
+                    case let .carregado(vaga):
+                        if bloqueios.contem(vaga.estabelecimento) {
+                            AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
+                                .accessibilityIdentifier("detalhe-nao-encontrada")
+                        } else {
+                            conteudo(vaga)
+                        }
+                    case .naoEncontrada:
                         AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
                             .accessibilityIdentifier("detalhe-nao-encontrada")
-                    } else {
-                        conteudo(vaga)
+                    case .falha(.semConexao):
+                        estadoSemConexaoView
+                    case .falha:
+                        estadoErroView
                     }
-                case .naoEncontrada:
-                    AvisoFrila(verbatim: TextosDoProfissional.Detalhe.naoEncontrada, tom: .alerta)
-                        .accessibilityIdentifier("detalhe-nao-encontrada")
-                case .falha(.semConexao):
-                    estadoSemConexaoView
-                case .falha:
-                    estadoErroView
                 }
+                .padding(FrilaEspaco.medio)
             }
-            .padding(FrilaEspaco.medio)
+            .background {
+                MarcadorDoCabecalho()
+            }
         }
+        .coordinateSpace(name: "rolagem-do-detalhe")
+        .modifier(MonitoramentoDoCabecalho(rolagem: rolagemDoCabecalho))
+        .onPreferenceChange(AlturaDoCabecalho.self) { rolagemDoCabecalho.altura = $0 }
         .accessibilityIdentifier("tela-detalhe-vaga")
         .modifier(BarraInferiorDoDetalhe(ativo: rodapeAtivo) {
             if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
@@ -130,13 +151,22 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .background(FrilaCor.fundo)
         .toolbar(.hidden, for: .tabBar)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .modifier(BarraSuperiorDoDetalhe(ativo: rodapeAtivo) {
-            if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
-                cabecalhoEstabelecimento(vaga)
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .padding(.vertical, FrilaEspaco.compacto)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if rodapeAtivo {
+                SombraDoCabecalho(rolagem: rolagemDoCabecalho)
+                    .frame(height: 0)
             }
-        })
+        }
+        .toolbar {
+            if case let .carregado(vaga) = viewModel.estado, rodapeAtivo {
+                if #available(iOS 26, *) {
+                    ToolbarItem(placement: .principal) { compactoDoCabecalho(vaga) }
+                        .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .principal) { compactoDoCabecalho(vaga) }
+                }
+            }
+        }
         .navigationDestination(isPresented: $navegarParaPerfil) {
             if let api = viewModel.api, case let .carregado(vaga) = viewModel.estado {
                 TelaPerfilPublico(perfil: vaga.estabelecimento, api: api, bloqueios: bloqueios)
@@ -315,7 +345,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
     }
 
     @ViewBuilder
-    private func cabecalhoEstabelecimento(_ vaga: Vaga) -> some View {
+    private func cabecalhoEstabelecimento(_ vaga: Vaga, progresso: CGFloat) -> some View {
         let reputacao = vaga.estabelecimento.reputacao
         let contexto = TextosDoProfissional.Detalhe.contextoDoHeader(
             funcao: vaga.funcao.nome, bairro: vaga.regiaoAdministrativa
@@ -325,14 +355,16 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 Text(verbatim: vaga.estabelecimento.nome)
                     .font(FrilaTipo.tituloDoDetalhe)
                     .foregroundStyle(FrilaCor.texto)
-                    .lineLimit(2)
+                    .opacity(1 - progresso)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: contexto)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .opacity(max(0, 1 - progresso / 0.4))
             }
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            reputacaoNoHeader(reputacao)
+            reputacaoNoHeader(reputacao, progresso: progresso)
         }
         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
         .contentShape(Rectangle())
@@ -350,17 +382,19 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .accessibilityHint(Text("Ver perfil público", bundle: bundleApresentacao))
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("abrir-perfil-estabelecimento")
+            .accessibilityHidden(progresso >= 0.5)
         } else {
             conteudo
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(verbatim: rotulo))
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("abrir-perfil-estabelecimento")
+            .accessibilityHidden(progresso >= 0.5)
         }
     }
 
     @ViewBuilder
-    private func reputacaoNoHeader(_ reputacao: Reputacao) -> some View {
+    private func reputacaoNoHeader(_ reputacao: Reputacao, progresso: CGFloat) -> some View {
         if reputacao.semHistorico {
             Text(verbatim: TextosDoProfissional.Detalhe.semAvaliacoesNoHeader)
                 .font(FrilaTipo.meta)
@@ -372,11 +406,14 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 ))
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
+                .opacity(max(0, min(1, (1 - progresso) / 0.65)))
                 FilaDeReputacaoDoDetalhe(reputacao: reputacao)
+                    .opacity(max(0, min(1, (0.65 - progresso) / 0.45)))
             }
             let legenda = Text(verbatim: TextosDoProfissional.Detalhe.legendaReputacaoNoHeader)
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .opacity(max(0, 1 - progresso / 0.4))
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: FrilaEspaco.compacto) {
                     contagemEFila.fixedSize()
@@ -390,6 +427,39 @@ public struct TelaDetalheVaga<Acao: View>: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
+        }
+    }
+
+    private func compactoDoCabecalho(_ vaga: Vaga) -> some View {
+        ReacaoDoCabecalho(rolagem: rolagemDoCabecalho) { progresso in
+            Button {
+                guard viewModel.api != nil, !navegarParaPerfil else { return }
+                navegarParaPerfil = true
+            } label: {
+                VStack(spacing: 0) {
+                    Text(verbatim: vaga.estabelecimento.nome)
+                        .font(FrilaTipo.corpo.weight(.semibold))
+                        .lineLimit(1)
+                    Text(verbatim: vaga.estabelecimento.reputacao.semHistorico
+                         ? TextosDoProfissional.Detalhe.semAvaliacoesNoHeader
+                         : TextosDoProfissional.Detalhe.reputacaoContagem(
+                            positivas: vaga.estabelecimento.reputacao.positivas,
+                            total: vaga.estabelecimento.reputacao.total))
+                        .font(FrilaTipo.meta)
+                        .lineLimit(1)
+                }
+                .foregroundStyle(FrilaCor.texto)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .opacity(max(0, min(1, (progresso - 0.65) / 0.35)))
+            .allowsHitTesting(progresso >= 0.5)
+            .accessibilityHidden(progresso < 0.5)
+            .accessibilityLabel(Text(verbatim: vaga.estabelecimento.nome + ". "
+                                    + TextosDoProfissional.reputacaoDoEstabelecimento(vaga.estabelecimento.reputacao)))
+            .accessibilityHint(Text("Ver perfil público", bundle: bundleApresentacao))
+            .accessibilityIdentifier("abrir-perfil-compacto")
         }
     }
 
@@ -639,33 +709,66 @@ extension TelaDetalheVaga where Acao == EmptyView {
     }
 }
 
-private struct BarraSuperiorDoDetalhe<Cabecalho: View>: ViewModifier {
-    let ativo: Bool
-    @ViewBuilder let cabecalho: () -> Cabecalho
+/// A geometria do conteúdo não depende deste progresso: nenhum inset muda durante o scroll.
+@MainActor @Observable
+private final class RolagemDoCabecalho {
+    var altura: CGFloat = 0
+    var offset: CGFloat = 0
+    var progresso: CGFloat { altura > 0 ? min(1, max(0, offset / altura)) : 0 }
+}
 
-    func body(content: Content) -> some View {
-        if ativo {
-            if #available(iOS 26, *) {
-                content.safeAreaBar(edge: .top, spacing: 0) { bloco }
-            } else {
-                content.safeAreaInset(edge: .top, spacing: 0) {
-                    bloco.background(.regularMaterial)
-                }
-            }
+private struct ReacaoDoCabecalho<Conteudo: View>: View {
+    let rolagem: RolagemDoCabecalho
+    @ViewBuilder let conteudo: (CGFloat) -> Conteudo
+    var body: some View { conteudo(rolagem.progresso) }
+}
+
+private struct AlturaDoCabecalho: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+private struct PosicaoDoCabecalho: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
+private struct MarcadorDoCabecalho: View {
+    @ViewBuilder var body: some View {
+        if #available(iOS 18, *) {
+            Color.clear
         } else {
-            content
+            GeometryReader { geometria in
+                Color.clear.preference(key: PosicaoDoCabecalho.self,
+                                       value: geometria.frame(in: .named("rolagem-do-detalhe")).minY)
+            }
         }
     }
+}
 
-    private var bloco: some View {
-        cabecalho()
-            .overlay(alignment: .bottom) {
-                BordaInferiorDoHeader()
-                    .frame(height: 8)
-                    .offset(y: 8)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+private struct MonitoramentoDoCabecalho: ViewModifier {
+    let rolagem: RolagemDoCabecalho
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(iOS 18, *) {
+            content.onScrollGeometryChange(for: CGFloat.self) { geometria in
+                max(0, geometria.contentOffset.y + geometria.contentInsets.top)
+            } action: { _, offset in
+                rolagem.offset = offset
             }
+        } else {
+            content.onPreferenceChange(PosicaoDoCabecalho.self) { rolagem.offset = max(0, -$0) }
+        }
+    }
+}
+
+private struct SombraDoCabecalho: View {
+    let rolagem: RolagemDoCabecalho
+    var body: some View {
+        BordaInferiorDoHeader()
+            .frame(height: 8)
+            .offset(y: max(0, rolagem.altura - rolagem.offset))
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
 
