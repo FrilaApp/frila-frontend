@@ -41,6 +41,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @Bindable private var viewModel: DetalheVagaViewModel
     @State private var avisosDaAcao = AvisosDoDetalhe()
     @State private var navegarParaPerfil = false
@@ -137,6 +138,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
             .background {
                 MarcadorDoCabecalho()
             }
+            .coordinateSpace(name: "conteudo-do-detalhe")
         }
         .coordinateSpace(name: "rolagem-do-detalhe")
         .modifier(MonitoramentoDoCabecalho(rolagem: rolagemDoCabecalho))
@@ -174,6 +176,11 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
         .navigationTitle(Text(verbatim: tituloDaNavegacao))
         .navigationBarTitleDisplayMode(.inline)
+        .overlay {
+            if case let .carregado(vaga) = viewModel.estado, rodapeAtivo {
+                NomeMigranteDoDetalhe(nome: vaga.estabelecimento.nome, rolagem: rolagemDoCabecalho)
+            }
+        }
         .task { await medirAbertura(.detalheDaVaga, carregar: viewModel.carregar, pronto: detalheNaTela) }
     }
 
@@ -344,6 +351,10 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
     }
 
+    private var migrarNome: Bool {
+        !reduzirMovimento && !tamanhoDoTexto.isAccessibilitySize && rolagemDoCabecalho.podeMigrar
+    }
+
     @ViewBuilder
     private func cabecalhoEstabelecimento(_ vaga: Vaga, progresso: CGFloat) -> some View {
         let reputacao = vaga.estabelecimento.reputacao
@@ -355,8 +366,15 @@ public struct TelaDetalheVaga<Acao: View>: View {
                 Text(verbatim: vaga.estabelecimento.nome)
                     .font(FrilaTipo.tituloDoDetalhe)
                     .foregroundStyle(FrilaCor.texto)
-                    .opacity(1 - progresso)
+                    .opacity(migrarNome ? 0 : 1 - progresso)
                     .fixedSize(horizontal: false, vertical: true)
+                    .background {
+                        GeometryReader { geometria in
+                            Color.clear.preference(key: NomeExpandidoDoDetalhe.self,
+                                value: geometria.frame(in: .named("conteudo-do-detalhe")))
+                        }
+                    }
+                    .onPreferenceChange(NomeExpandidoDoDetalhe.self) { rolagemDoCabecalho.nomeExpandido = $0 }
                 Text(verbatim: contexto)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
@@ -399,6 +417,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
             Text(verbatim: TextosDoProfissional.Detalhe.semAvaliacoesNoHeader)
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .opacity(1 - progresso)
         } else {
             let contagemEFila = HStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Detalhe.reputacaoContagem(
@@ -440,6 +459,13 @@ public struct TelaDetalheVaga<Acao: View>: View {
                     Text(verbatim: vaga.estabelecimento.nome)
                         .font(FrilaTipo.corpo.weight(.semibold))
                         .lineLimit(1)
+                        .background {
+                            GeometryReader { geometria in
+                                Color.clear.preference(key: NomeCompactoDoDetalhe.self,
+                                                       value: geometria.frame(in: .global))
+                            }
+                        }
+                        .onPreferenceChange(NomeCompactoDoDetalhe.self) { rolagemDoCabecalho.nomeCompacto = $0 }
                     Text(verbatim: vaga.estabelecimento.reputacao.semHistorico
                          ? TextosDoProfissional.Detalhe.semAvaliacoesNoHeader
                          : TextosDoProfissional.Detalhe.reputacaoContagem(
@@ -714,6 +740,9 @@ extension TelaDetalheVaga where Acao == EmptyView {
 private final class RolagemDoCabecalho {
     var altura: CGFloat = 0
     var offset: CGFloat = 0
+    var nomeExpandido: CGRect = .zero
+    var nomeCompacto: CGRect = .zero
+    var podeMigrar: Bool { !nomeExpandido.isEmpty && !nomeCompacto.isEmpty }
     var progresso: CGFloat { altura > 0 ? min(1, max(0, offset / altura)) : 0 }
 }
 
@@ -764,11 +793,56 @@ private struct MonitoramentoDoCabecalho: ViewModifier {
 private struct SombraDoCabecalho: View {
     let rolagem: RolagemDoCabecalho
     var body: some View {
-        BordaInferiorDoHeader()
-            .frame(height: 8)
-            .offset(y: max(0, rolagem.altura - rolagem.offset))
+        Color.clear.frame(height: 0)
+            .overlay(alignment: .top) {
+                BordaInferiorDoHeader()
+                    .frame(height: 8)
+                    .offset(y: max(0, rolagem.altura - rolagem.offset))
+            }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+    }
+}
+
+private struct NomeExpandidoDoDetalhe: PreferenceKey {
+    static let defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
+}
+
+private struct NomeCompactoDoDetalhe: PreferenceKey {
+    static let defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
+}
+
+/// Apenas tinta: botões e gesto continuam no ScrollView e na toolbar nativa.
+private struct NomeMigranteDoDetalhe: View {
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
+    let nome: String
+    let rolagem: RolagemDoCabecalho
+
+    var body: some View {
+        GeometryReader { geometria in
+            if rolagem.podeMigrar, !reduzirMovimento, !tamanhoDoTexto.isAccessibilitySize {
+                let p = rolagem.progresso
+                // Chega antes de revelar a contagem: a troca de fonte ocorre no mesmo frame.
+                let trajeto = min(1, p / 0.65)
+                let origem = rolagem.nomeExpandido
+                let destino = rolagem.nomeCompacto.offsetBy(dx: -geometria.frame(in: .global).minX,
+                                                          dy: -geometria.frame(in: .global).minY)
+                let escala = 1 + (destino.height / origem.height - 1) * trajeto
+                Text(verbatim: nome)
+                    .font(FrilaTipo.tituloDoDetalhe)
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(width: origem.width, height: origem.height, alignment: .leading)
+                    .scaleEffect(escala)
+                    .position(x: origem.midX + (destino.midX - origem.midX) * trajeto,
+                              y: origem.midY + (destino.midY - origem.midY) * trajeto)
+                    .opacity(1 - max(0, min(1, (p - 0.65) / 0.35)))
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
