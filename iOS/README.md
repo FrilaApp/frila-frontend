@@ -297,7 +297,9 @@ No esquema local, passe `-FRILA_SCENARIO` seguido de `success`, `primeiro-acesso
 
 ## Fonte Bricolage Grotesque (OFL 1.1)
 
-A única fonte de terceiros do app é a Bricolage Grotesque (Regular, Medium, Bold e ExtraBold), em `iOS/Resources/Fonts`, registrada no processo por `FontesFrila` ao primeiro uso. A licença é a SIL Open Font License 1.1 e está em `iOS/Resources/Fonts/BricolageGrotesque-OFL.txt`: pode ser embutida e distribuída com o app, não pode ser vendida sozinha, e a licença acompanha qualquer redistribuição. Inventário em [Docs/LicencasDeTerceiros.md](Docs/LicencasDeTerceiros.md), seção 4.1.
+A Bricolage Grotesque (Regular, Medium, Bold e ExtraBold) está em `iOS/Resources/Fonts`, registrada no processo por `FontesFrila` ao primeiro uso. A licença é a SIL Open Font License 1.1 e está em `iOS/Resources/Fonts/BricolageGrotesque-OFL.txt`: pode ser embutida e distribuída com o app, não pode ser vendida sozinha, e a licença acompanha qualquer redistribuição. Inventário em [Docs/LicencasDeTerceiros.md](Docs/LicencasDeTerceiros.md), seção 4.1.
+
+Jost 3.710, usada no valor pelo LOG-016, também está em `Resources/Fonts`, com `Jost-OFL.txt` (OFL-1.1).
 
 ## Licenças de terceiros (#178)
 
@@ -312,7 +314,7 @@ Scripts/gerar-licencas.py --checkouts <pasta>/SourcePackages/checkouts
 ```
 
 - **De onde vem o texto.** Do arquivo de licença na raiz de cada checkout do SPM, copiado como está; o `NOTICE`, quando o pacote traz um, entra junto.
-- **O que entra.** Todos os pacotes do `Package.resolved`, inclusive os que o Firebase declara e o app não liga.
+- **O que entra.** Todos os pacotes do `Package.resolved`, inclusive os que o Firebase declara e o app não liga, e as fontes da lista `FONTES_EMBUTIDAS` em `gerar-licencas.py` (Jost). Para fontes, o texto vem de `Resources/Fonts` e a revisão é o SHA-256 do arquivo TTF.
 - **Erro, e não entrada vazia.** Pacote sem arquivo de licença, checkout em revisão diferente da do `Package.resolved` ou licença de tipo que o script não reconhece interrompem a geração.
 - **Guarda.** `LicencasTests` falha se um pacote do `Package.resolved` ficar sem entrada, se a entrada for de outra revisão ou se sobrar entrada de pacote que saiu.
 - **Limite.** Licenças de código de terceiros embutido dentro de um pacote (pastas `third_party`) só aparecem quando o próprio pacote as reproduz no arquivo de licença da raiz, como faz o GoogleUtilities.
