@@ -43,6 +43,9 @@ android {
 
     buildFeatures {
         compose = true
+        // RN15 (cartão Cdv0sS5w): LeitorDeAmbienteAndroid lê BuildConfig.DEBUG para tolerar
+        // assinatura divergente em build local de desenvolvimento.
+        buildConfig = true
     }
 
     if (temKeystoreDeRelease) {

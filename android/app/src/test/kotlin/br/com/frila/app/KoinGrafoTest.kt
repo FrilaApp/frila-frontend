@@ -14,6 +14,8 @@ import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
+import br.com.frila.core.seguranca.LeitorDeAmbiente
+import br.com.frila.core.seguranca.LeitorDeAmbienteNulo
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
@@ -92,6 +94,7 @@ class KoinGrafoTest : KoinTest {
         startKoin { modules(modulosDeTeste) }
 
         assertInstanceOf(ArmazenamentoDeSessaoEmMemoria::class.java, get<ArmazenamentoDeSessao>())
+        assertInstanceOf(LeitorDeAmbienteNulo::class.java, get<LeitorDeAmbiente>())
         assertNotNull(get<ClienteSupabase>())
         assertNotNull(get<ServicoAutenticacao>())
         assertNotNull(get<ServicoVagas>())
