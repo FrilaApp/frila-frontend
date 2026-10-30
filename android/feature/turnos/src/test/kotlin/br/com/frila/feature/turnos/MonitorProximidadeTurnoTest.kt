@@ -62,6 +62,18 @@ class MonitorProximidadeTurnoTest {
     }
 
     @Test
+    fun `ativa monitoramento exatamente no limite de 2 horas`() {
+        val turno = turnoDeTeste(inicioEm = "2026-11-01T21:00:00Z")
+        assertTrue(MonitorProximidadeTurno.deveAtivarMonitoramento(turno, agora))
+    }
+
+    @Test
+    fun `nao ativa monitoramento 1 segundo acima do limite de 2 horas`() {
+        val turno = turnoDeTeste(inicioEm = "2026-11-01T21:00:01Z")
+        assertFalse(MonitorProximidadeTurno.deveAtivarMonitoramento(turno, agora))
+    }
+
+    @Test
     fun `nao ativa monitoramento quando turno esta cancelado`() {
         val turno = turnoDeTeste(inicioEm = "2026-11-01T20:30:00Z", estado = "cancelada")
         assertFalse(MonitorProximidadeTurno.deveAtivarMonitoramento(turno, agora))

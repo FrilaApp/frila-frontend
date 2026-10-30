@@ -103,7 +103,7 @@ val moduloFeatures = module {
     viewModel { CadastroViewModel() }
     viewModel { FeedVagasViewModel(get(), get(), get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
-    single { MonitorizadorDeTurnosProximos(get()) }
+    single { MonitorizadorDeTurnosProximos(gerenciadorGeofencing = get(), preferenciasNotificacao = get()) }
     viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
         CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), monitorizador = get())

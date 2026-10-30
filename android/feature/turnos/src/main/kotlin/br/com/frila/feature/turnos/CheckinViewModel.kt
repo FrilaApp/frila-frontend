@@ -111,14 +111,17 @@ class CheckinViewModel(
 
     private suspend fun registrarCheckin(distanciaMetros: Int?, coordenadaAtual: Coordenada?) {
         val agora = instanteAtual()
-        // RNF04: o alerta de aproximação não serve mais depois do toque de check-in.
-        monitorizador?.removerAlerta(turnoId)
 
         val resultado = servicoTurnos.fazerCheckin(
             turnoId = turnoId,
             distanciaMetros = distanciaMetros,
             registradoEm = agora.toString(),
         )
+
+        // RNF04: o alerta de aproximação não serve mais depois do check-in confirmado. Só
+        // depois do sucesso da chamada de rede — se ela falhar, o alerta não deve ser perdido
+        // antes da hora (MEDIDO/ressalva do Shisui, PR #598).
+        monitorizador?.removerAlerta(turnoId)
 
         val tipoVerificacao = if (resultado.verificacao == "verificado") {
             TipoVerificacaoCheckin.GEOLOCALIZADO
