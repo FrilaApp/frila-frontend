@@ -6,6 +6,9 @@ on:
       - "iOS/**"
       - "!iOS/**/*.md"
       - "!iOS/Docs/**"
+      - "iOS/Docs/Push.md"
+      - "iOS/Docs/TextosDeNotificacao.md"
+      - "iOS/Docs/Acessibilidade.md"
       - ".github/workflows/ios.yml"
   schedule:
     - cron: "0 6 * * *"
