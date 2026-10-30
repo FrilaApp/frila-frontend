@@ -130,18 +130,12 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .background(FrilaCor.fundo)
         .toolbar(.hidden, for: .tabBar)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .modifier(BarraSuperiorDoDetalhe {
-            Group {
-                if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
-                    cabecalhoEstabelecimento(vaga)
-                } else {
-                    Text(verbatim: TextosDoProfissional.Detalhe.titulo)
-                        .font(FrilaTipo.tituloDoCartao)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                }
+        .modifier(BarraSuperiorDoDetalhe(ativo: rodapeAtivo) {
+            if case let .carregado(vaga) = viewModel.estado, !bloqueios.contem(vaga.estabelecimento) {
+                cabecalhoEstabelecimento(vaga)
+                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.vertical, FrilaEspaco.compacto)
             }
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.compacto)
         })
         .navigationDestination(isPresented: $navegarParaPerfil) {
             if let api = viewModel.api, case let .carregado(vaga) = viewModel.estado {
@@ -664,15 +658,20 @@ extension TelaDetalheVaga where Acao == EmptyView {
 }
 
 private struct BarraSuperiorDoDetalhe<Cabecalho: View>: ViewModifier {
+    let ativo: Bool
     @ViewBuilder let cabecalho: () -> Cabecalho
 
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.safeAreaBar(edge: .top, spacing: 0) { bloco }
-        } else {
-            content.safeAreaInset(edge: .top, spacing: 0) {
-                bloco.background(.regularMaterial)
+        if ativo {
+            if #available(iOS 26, *) {
+                content.safeAreaBar(edge: .top, spacing: 0) { bloco }
+            } else {
+                content.safeAreaInset(edge: .top, spacing: 0) {
+                    bloco.background(.regularMaterial)
+                }
             }
+        } else {
+            content
         }
     }
 

@@ -83,7 +83,7 @@ enum TextosDoProfissional {
             if bairro.isEmpty {
                 return String(localized: "Vaga de \(funcao)", bundle: bundleApresentacao)
             }
-            return String(localized: "Vaga de \(funcao) no \(bairro)", bundle: bundleApresentacao)
+            return String(localized: "Vaga de \(funcao), \(bairro)", bundle: bundleApresentacao)
         }
         static let titulo = String(localized: "Detalhe da vaga", bundle: bundleApresentacao)
         static let quando = String(localized: "Quando", bundle: bundleApresentacao)
