@@ -77,14 +77,72 @@ PLIST_FIREBASE="$RAIZ/Resources/Firebase/$AMBIENTE_FIREBASE/GoogleService-Info.p
 [[ -f "$PLIST_FIREBASE" ]] ||
   falhar "falta o GoogleService-Info.plist de $AMBIENTE_FIREBASE: sem ele o build não tem Crashlytics. Rode Scripts/inject-firebase-config.sh"
 
-autenticacao=(-allowProvisioningUpdates)
+autenticacao=()
 if [[ -n "${ASC_KEY_PATH:-}${ASC_KEY_ID:-}${ASC_ISSUER_ID:-}" ]]; then
   [[ -f "${ASC_KEY_PATH:-}" && -n "${ASC_KEY_ID:-}" && -n "${ASC_ISSUER_ID:-}" ]] ||
     falhar "a chave da App Store Connect API precisa das três variáveis: ASC_KEY_PATH (arquivo .p8), ASC_KEY_ID e ASC_ISSUER_ID"
-  autenticacao+=(-authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+  autenticacao=(-authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
 elif [[ -n "${CI:-}" ]]; then
   falhar "na CI o envio exige a chave da App Store Connect API (ASC_KEY_PATH, ASC_KEY_ID e ASC_ISSUER_ID)"
 fi
+
+# Guarda estrita: -allowProvisioningUpdates é expressamente proibido na CI
+# (evita criação indevida de certificados que estouram a cota da conta Apple).
+for arg in "$@" ${autenticacao[@]+"${autenticacao[@]}"}; do
+  if [[ "$arg" == *"-allowProvisioningUpdates"* ]]; then
+    falhar "-allowProvisioningUpdates é proibido na CI (estoura o limite de certificados da conta Apple; use assinatura manual)"
+  fi
+done
+
+# Assegura que nenhuma invocação no script contorne a função de guarda com o binário direto
+script_proprio="${BASH_SOURCE[0]:-$0}"
+if [[ -f "$script_proprio" ]]; then
+  chamadas_diretas=$(grep -nE '(^|[[:space:]])command[[:space:]]+xcodebuild' "$script_proprio" 2>/dev/null | grep -v 'command xcodebuild "\$@"' | grep -v '^[[:space:]]*#' | grep -v 'chamadas_diretas' || true)
+  if [[ -n "$chamadas_diretas" ]]; then
+    falhar "chamada direta ao xcodebuild detectada fora do wrapper (proibido na CI): $chamadas_diretas"
+  fi
+fi
+
+# Inspeciona variáveis de ambiente de compilação e assinatura
+for var_name in $(compgen -v | grep -iE '^(XCODE|BUILD|CODE_SIGN|PROVISIONING|FRILA|ASC|OTHER|EXTRA|ACTION)' 2>/dev/null || true); do
+  val="${!var_name:-}"
+  if [[ "$val" == *"-allowProvisioningUpdates"* ]]; then
+    falhar "-allowProvisioningUpdates detectado na variável de ambiente $var_name; proibido na CI"
+  fi
+done
+
+if [[ -n "${CI:-}" ]]; then
+  [[ -n "${FRILA_PROVISIONING_PROFILE_APP:-}" && -n "${FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE:-}" ]] ||
+    falhar "na CI a assinatura manual exige FRILA_PROVISIONING_PROFILE_APP e FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE (veja Docs/CI.md)"
+fi
+
+xcodebuild() {
+  # Guarda universal da CI: intercepta qualquer invocação de xcodebuild neste script
+  for arg in "$@"; do
+    if [[ "$arg" == *"-allowProvisioningUpdates"* ]]; then
+      falhar "-allowProvisioningUpdates detectado na chamada ao xcodebuild; expressamente proibido na CI"
+    fi
+  done
+  if [[ -n "${CI:-}" ]]; then
+    if [[ " $* " == *" archive "* ]]; then
+      local tem_manual=0
+      for arg in "$@"; do
+        if [[ "$arg" == *"CODE_SIGN_STYLE="* ]]; then
+          estilo="${arg#CODE_SIGN_STYLE=}"
+          if [[ "$estilo" == "Automatic" ]]; then
+            falhar "CODE_SIGN_STYLE=Automatic detectado no archive; na CI a assinatura deve ser estritamente Manual"
+          elif [[ "$estilo" == "Manual" ]]; then
+            tem_manual=1
+          fi
+        fi
+      done
+      if [[ "$tem_manual" -ne 1 ]]; then
+        falhar "assinatura manual ausente no archive da CI (esperado estilo Manual)"
+      fi
+    fi
+  fi
+  command xcodebuild "$@"
+}
 
 derived=()
 if [[ -n "${FRILA_DERIVED_DATA:-}" ]]; then
@@ -107,14 +165,25 @@ descricao="$ESQUEMA $VERSAO ($FRILA_NUMERO_DO_BUILD), $AMBIENTE"
 [[ "$MEDICAO" == 0 ]] || descricao="$descricao, medição"
 echo "Frila: $descricao"
 
-# 1. Archive, com a assinatura automática de desenvolvimento do projeto. Com
-# -allowProvisioningUpdates o xcodebuild cria o que faltar (perfil e certificado), pela chave da API
-# ou pela conta do Xcode. A assinatura ad hoc não serve: o Xcode exige perfil para o app iOS.
+# 1. Archive, com a assinatura manual e a identidade Apple Distribution já importada no keychain.
+# Na CI não usamos -allowProvisioningUpdates nem assinatura automática: isso acumulava certificados
+# Apple Development via API em runners efêmeros até estourar a cota da conta Apple.
 # CI=1 desliga a fase do Xcode que envia os símbolos ao Crashlytics: o envio é o passo 4 deste script.
 ajustes=(
   MARKETING_VERSION="$VERSAO"
   CURRENT_PROJECT_VERSION="$FRILA_NUMERO_DO_BUILD"
 )
+if [[ -n "${FRILA_PROVISIONING_PROFILE_APP:-}" && -n "${FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE:-}" ]]; then
+  ajustes+=(
+    CODE_SIGN_STYLE=Manual
+    'CODE_SIGN_IDENTITY=Apple Distribution'
+    DEVELOPMENT_TEAM="$EQUIPE"
+    FRILA_PROVISIONING_PROFILE_APP="$FRILA_PROVISIONING_PROFILE_APP"
+    FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE="$FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE"
+  )
+elif [[ -n "${CI:-}" ]]; then
+  falhar "na CI o archive exige assinatura manual com FRILA_PROVISIONING_PROFILE_APP e FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE"
+fi
 condicoes=''
 [[ "$ENSAIO" == 0 ]] || condicoes+=' FRILA_ENSAIO_FALHA'
 [[ "$MEDICAO" == 0 ]] || condicoes+=' FRILA_MEDICAO'
@@ -136,7 +205,6 @@ CI="${CI:-1}" xcodebuild archive \
   ${derived[@]+"${derived[@]}"} \
   -disableAutomaticPackageResolution \
   -onlyUsePackageVersionsFromResolvedFile \
-  "${autenticacao[@]}" \
   "${ajustes[@]}" | formatar
 
 APP_ARQUIVADO="$ARCHIVE/Products/Applications/Frila.app"
@@ -162,22 +230,37 @@ opcoes_de_exportacao() {
   plutil -create xml1 "$plist"
   plutil -insert method -string app-store-connect "$plist"
   plutil -insert destination -string "$destino" "$plist"
-  plutil -insert signingStyle -string automatic "$plist"
   plutil -insert teamID -string "$EQUIPE" "$plist"
   # O número do build é o deste script; o Xcode não pode trocá-lo no envio.
   plutil -insert manageAppVersionAndBuildNumber -bool NO "$plist"
   plutil -insert uploadSymbols -bool YES "$plist"
   # Os builds de ensaio e de medição nunca chegam a testador externo nem à App Store.
   plutil -insert testFlightInternalTestingOnly -bool "$so_interno" "$plist"
+
+  if [[ -n "${FRILA_PROVISIONING_PROFILE_APP:-}" && -n "${FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE:-}" ]]; then
+    plutil -insert signingStyle -string manual "$plist"
+    plutil -insert signingCertificate -string "Apple Distribution" "$plist"
+    plutil -insert provisioningProfiles -dictionary "$plist"
+    plutil -insert 'provisioningProfiles.com\.frila\.org\.app' -string "$FRILA_PROVISIONING_PROFILE_APP" "$plist"
+    plutil -insert 'provisioningProfiles.com\.frila\.org\.app\.notificationservice' -string "$FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE" "$plist"
+  else
+    [[ -z "${CI:-}" ]] || falhar "na CI a exportação exige FRILA_PROVISIONING_PROFILE_APP e FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE"
+    plutil -insert signingStyle -string automatic "$plist"
+  fi
+
   printf '%s\n' "$plist"
 }
 
 exportar() {
-  xcodebuild -exportArchive \
-    -archivePath "$ARCHIVE" \
-    -exportPath "$2" \
-    -exportOptionsPlist "$(opcoes_de_exportacao "$1")" \
-    "${autenticacao[@]}" | formatar
+  local args=(
+    -archivePath "$ARCHIVE"
+    -exportPath "$2"
+    -exportOptionsPlist "$(opcoes_de_exportacao "$1")"
+  )
+  if [[ "$1" == "upload" ]]; then
+    args+=(${autenticacao[@]+"${autenticacao[@]}"})
+  fi
+  xcodebuild -exportArchive "${args[@]}" | formatar
 }
 
 # 2. Export local, com a mesma assinatura que vai ao App Store Connect.
@@ -191,12 +274,12 @@ ditto -x -k "$IPA" "$IPA_ABERTO"
 APP_ASSINADO="$IPA_ABERTO/Payload/Frila.app"
 # Diagnóstico do 90035: somente metadados públicos, antes do envio.
 date -u
-security find-identity -v -p codesigning
-python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" "$APP_ARQUIVADO"
+security find-identity -v -p codesigning | sed -E 's/"Apple Distribution: [^"]+ \(([A-Z0-9]{10})\)"/"Apple Distribution: [PROTEGIDO] (\1)"/'
 certificado=()
 if [[ -n "${FRILA_CERTIFICADO_DISTRIBUICAO_SHA256:-}" ]]; then
   certificado=(--certificado-esperado "$FRILA_CERTIFICADO_DISTRIBUICAO_SHA256" --equipe "$EQUIPE")
 fi
+python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" ${certificado[@]+"${certificado[@]}"} "$APP_ARQUIVADO"
 python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" ${certificado[@]+"${certificado[@]}"} "$APP_ASSINADO"
 
 FRILA_ENSAIO_FALHA="$ENSAIO" FRILA_MEDICAO="$MEDICAO" "$RAIZ/Scripts/conferir-release.sh" "$APP_ASSINADO"
