@@ -8,6 +8,20 @@ import FrilaDominio
 
 enum TextosDoProfissional {
     enum Lista {
+        static func dataEJanela(_ data: String, _ janela: String) -> String {
+            String(localized: "\(data), \(janela)", bundle: bundleApresentacao)
+        }
+        static func posicoes(_ quantidade: Int, modo: ModoPreenchimento) -> String {
+            if modo == .urgencia {
+                return quantidade == 1
+                    ? String(localized: "1 posição aberta, confirmação imediata se elegível", bundle: bundleApresentacao)
+                    : String(localized: "\(quantidade) posições abertas, confirmação imediata se elegível", bundle: bundleApresentacao)
+            }
+            return quantidade == 1
+                ? String(localized: "1 posição aberta, a casa escolhe", bundle: bundleApresentacao)
+                : String(localized: "\(quantidade) posições abertas, a casa escolhe", bundle: bundleApresentacao)
+        }
+
         static let titulo = String(localized: "Vagas no DF", bundle: bundleApresentacao)
         static let filtroFuncao = String(localized: "Função", bundle: bundleApresentacao)
         static let qualquerFuncao = String(localized: "Qualquer função", bundle: bundleApresentacao)
