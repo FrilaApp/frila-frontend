@@ -43,56 +43,6 @@ public struct FrilaTituloNavegacaoVaga: View {
     }
 }
 
-/// Prévia geométrica SwiftUI neutra e genérica que remete a mapa/região,
-/// sem coordenadas falsas, sem snapshot MapKit e sem sugerir precisão geográfica (LOG-010).
-private struct PreviaMapaGenerica: View {
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous)
-                .fill(FrilaCor.controle)
-
-            GeometryReader { geo in
-                let w = geo.size.width
-                let h = geo.size.height
-
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: h * 0.72))
-                    path.addLine(to: CGPoint(x: w, y: h * 0.24))
-
-                    path.move(to: CGPoint(x: w * 0.22, y: 0))
-                    path.addLine(to: CGPoint(x: w * 0.52, y: h))
-
-                    path.move(to: CGPoint(x: w * 0.54, y: 0))
-                    path.addLine(to: CGPoint(x: w * 0.84, y: h))
-
-                    path.move(to: CGPoint(x: 0, y: h * 0.44))
-                    path.addLine(to: CGPoint(x: w, y: h * 0.52))
-                }
-                .stroke(FrilaCor.divisoria, lineWidth: 2)
-
-                let ponto = CGPoint(x: w * 0.48, y: h * 0.42)
-                Circle()
-                    .fill(FrilaCor.marca.opacity(0.18))
-                    .frame(width: 20, height: 20)
-                    .position(ponto)
-
-                Circle()
-                    .fill(FrilaCor.marca)
-                    .frame(width: 8, height: 8)
-                    .overlay(Circle().stroke(FrilaCor.fundo, lineWidth: 1.5))
-                    .position(ponto)
-            }
-        }
-        .frame(height: 72)
-        .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous)
-                .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous))
-        .accessibilityHidden(true)
-    }
-}
-
 /// Card consolidado com dados da vaga, lotação, contagem do turno e localização integrada (LOG-010, refino r2 e ponto #24).
 /// Organizado por proximidade e unidade da Gestalt em três grupos verticais sem divisores:
 /// (1) Tempo: Quando e Horário lado a lado em colunas flexíveis iguais com FrilaContagemTurno imediatamente abaixo;
@@ -229,24 +179,7 @@ public struct FrilaResumoVaga: View {
             }
             .accessibilityElement(children: .combine)
 
-            PreviaMapaGenerica()
-
-            Button(action: abrirMapa) {
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    Image(systemName: "map")
-                        .font(FrilaTipo.nota)
-                        .accessibilityHidden(true)
-                    Text("Abrir no mapa", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botaoPadrao)
-                }
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                .foregroundStyle(FrilaCor.texto)
-                .background(FrilaCor.fundo, in: Capsule())
-                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                .contentShape(Capsule())
-            }
-            .buttonStyle(.tatil)
-            .accessibilityIdentifier("abrir-no-mapa")
+            FrilaMapaComAcao(abrirMapa: abrirMapa)
         }
     }
 

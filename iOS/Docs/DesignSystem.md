@@ -40,6 +40,9 @@ ficam em `Docs/Enxertos/FrilaLowPhase/` (`DESIGN.md`, `REGRAS-DE-DESIGN.md`, `de
 - Espaçamento (`FrilaEspaco`): 2, 4, 8, 12, 14, 16, 24 e 32 pt (`FrilaGeometry.space…`).
 - Raios (`FrilaRaio` ↔ `FrilaGeometry`): 8 aninhado, 14 campo (`entrada`), 16 cartão e aviso (`cartao`),
   24 folha. Botões, chips e pílulas são sempre `Capsule` (G6), com 32/44/52 pt de altura.
+- Exceção decidida em 30/10/2026: `FrilaMapaComAcao` une a prévia decorativa e o botão "Abrir no mapa"
+  em um só contorno arredondado. O botão tem topo reto na junção e fundo escuro com texto e ícone brancos
+  nos dois modos; sua área de toque mantém pelo menos 44 pt de altura.
 - Alvo interativo mínimo: 44 × 44 pt (`FrilaMetrica.alvoMinimo`, `FrilaGeometry.hitboxMinimum`).
 - Tipografia (`FrilaTipo` ↔ `FrilaTypography`/`FrilaFormType`): SF Pro pelos estilos semânticos, com Dynamic Type.
   Bricolage Grotesque só nas perguntas e respostas dos formulários (`pergunta`, `respostaEscolhida`,
