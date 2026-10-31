@@ -103,9 +103,8 @@ struct TurnosLogicaPuraTests {
 
     @Test("FrilaMoney formata valores inteiros, taxas, estimativas e horas semanais")
     func frilaMoneyFormatacaoBasica() {
-        // Reais inteiros
-        #expect(FrilaMoney.total(33600).contains("33.600"))
-        #expect(FrilaMoney.total(33600).contains("R$"))
+        // Reais inteiros com símbolo BRL completo e formatação exata de milhar
+        #expect(normalizarMoeda(FrilaMoney.total(33600)) == "R$ 33.600")
 
         // Taxa com unidade e sufixo canônico
         #expect(FrilaMoney.RateUnit.hour.suffix == "/h")
@@ -118,13 +117,11 @@ struct TurnosLogicaPuraTests {
         #expect(FrilaMoney.RateUnit.month.spokenName == "mês")
 
         let taxa = FrilaMoney.rate(160, per: .hour)
-        #expect(taxa.contains("160"))
-        #expect(taxa.hasSuffix("/h"))
+        #expect(normalizarMoeda(taxa) == "R$ 160/h")
 
-        // Estimativa
+        // Estimativa com prefixo e valor BRL exato
         let estimativa = FrilaMoney.estimate(1200)
-        #expect(estimativa.hasPrefix("Est. "))
-        #expect(estimativa.contains("1.200"))
+        #expect(normalizarMoeda(estimativa) == "Est. R$ 1.200")
 
         // Horas semanais
         #expect(FrilaMoney.weeklyHours(40) == "40 h/sem")
@@ -133,19 +130,26 @@ struct TurnosLogicaPuraTests {
 
     @Test("FrilaMoney trata centavos suprimindo zeros quando exato e formatando campos")
     func frilaMoneyCentavosECampos() {
-        // Centavos redondos omitem fração decimal
-        let valorRedondo = FrilaMoney.total(cents: 28_000)
-        #expect(valorRedondo.contains("280"))
-        #expect(!valorRedondo.contains(",00"))
+        // Centavos redondos omitem fração decimal e exigem saída BRL exata
+        #expect(normalizarMoeda(FrilaMoney.total(cents: 28_000)) == "R$ 280")
 
-        // Centavos fracionados incluem 2 casas decimais com vírgula pt-BR
-        let valorFracionado = FrilaMoney.total(cents: 28_050)
-        #expect(valorFracionado.contains("280,50"))
+        // Centavos fracionados incluem 2 casas decimais com vírgula pt-BR e moeda BRL
+        #expect(normalizarMoeda(FrilaMoney.total(cents: 28_050)) == "R$ 280,50")
 
         // Dígitos de campo sem o símbolo monetário
         #expect(FrilaMoney.fieldDigits(cents: 14_000) == "140,00")
         #expect(FrilaMoney.fieldDigits(cents: 14_075) == "140,75")
         #expect(FrilaMoney.fieldDigits(cents: 50) == "0,50")
+    }
+
+    // MARK: - Auxiliares
+
+    /// Normaliza variações de espaço em branco Unicode (NBSP \u{00A0} e NNBSP \u{202F})
+    /// geradas por formatadores monetários de Foundation entre o símbolo de moeda e os dígitos.
+    private func normalizarMoeda(_ texto: String) -> String {
+        texto
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+            .replacingOccurrences(of: "\u{202F}", with: " ")
     }
 
     // MARK: - 4. FrilaShiftCalendar
