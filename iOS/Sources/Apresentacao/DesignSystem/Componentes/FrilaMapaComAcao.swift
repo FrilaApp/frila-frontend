@@ -27,7 +27,7 @@ public struct FrilaMapaComAcao: View {
                 .background(FrilaColor.mapActionBackground)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.tatil)
+            .buttonStyle(.tatil(scale: 1))
             .accessibilityIdentifier("abrir-no-mapa")
         }
         .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous))
