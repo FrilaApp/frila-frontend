@@ -14,7 +14,7 @@ O controlador responsável pelas decisões sobre o tratamento dos seus dados pes
 
 - **Responsável:** Cauê Carneiro Crillanovick, pessoa física, responsável pelo projeto Frila (projeto de estudantes)
 - **Localidade:** Brasília/DF
-- **Canal do titular de dados e do suporte:** `privacidade@frilabr.com`
+- **Canal do titular de dados e do suporte:** `suporte@frilabr.com`
 
 ---
 
@@ -116,7 +116,7 @@ Você é o titular soberano dos seus dados pessoais. A qualquer momento, você p
 ### Como solicitar pelo canal de atendimento
 Para exercer qualquer direito que não deseje realizar diretamente pelo aplicativo, basta enviar um e-mail para nosso canal oficial:
 
-- **Canal do titular de dados e do suporte:** `privacidade@frilabr.com`
+- **Canal do titular de dados e do suporte:** `suporte@frilabr.com`
 - **Prazo de atendimento:** As solicitações do titular são atendidas por esse canal, o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. A resposta formal a pedidos de confirmação e acesso observa o Art. 19, inciso II, da LGPD.
 
 ---
@@ -136,7 +136,7 @@ O Frila é um serviço de intermediação de turnos de trabalho voltado **exclus
 Mantemos um Plano de Resposta a Incidentes documentado. Na remota hipótese de ocorrer qualquer incidente de segurança que possa acarretar risco ou dano relevante aos seus direitos e liberdades individuais:
 
 1. Adotaremos imediatamente medidas técnicas de contenção e isolamento do componente afetado.
-2. Notificaremos a **Autoridade Nacional de Proteção de Dados (ANPD)** em até 3 dias úteis do conhecimento do incidente, como pede a Resolução CD/ANPD nº 15/2024, prestando todas as informações técnicas cabíveis.
+2. Notificaremos a **Autoridade Nacional de Proteção de Dados (ANPD)** em até 3 dias úteis da ciência de que o incidente afetou dados pessoais, como prevê o Regulamento anexo à Resolução CD/ANPD nº 15/2024, prestando todas as informações técnicas cabíveis.
 3. No mesmo prazo, comunicaremos individualmente os titulares afetados por meio do e-mail cadastrado, informando a natureza do evento, os dados potencialmente envolvidos e as medidas de proteção recomendadas, em conformidade com o **Art. 48 da LGPD**.
 
 ---
@@ -151,5 +151,5 @@ Poderemos atualizar esta Política de Privacidade periodicamente para refletir m
 
 Caso você tenha qualquer dúvida sobre esta política, sobre como tratamos seus dados pessoais ou deseje encaminhar uma solicitação como titular de dados, entre em contato pelo e-mail:
 
-- **Canal de Privacidade:** `privacidade@frilabr.com`
+- **Canal de Privacidade e Suporte:** `suporte@frilabr.com`
 - Você também tem o direito de peticionar perante a **Autoridade Nacional de Proteção de Dados (ANPD)** por meio dos canais oficiais em `https://www.gov.br/anpd/`.
