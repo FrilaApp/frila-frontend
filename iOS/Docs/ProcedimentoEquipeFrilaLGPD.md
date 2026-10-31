@@ -14,7 +14,7 @@ Documento normativo e operacional de privacidade e proteção de dados para o gr
 1. **Definição:** O grupo **Equipe Frila** é o grupo interno oficial de homologação no TestFlight, composto estritamente pelos integrantes e colaboradores diretos do projeto Frila.
 2. **Finalidade:** Homologação técnica antecipada, testes de regressão, validação de interface e controle de qualidade dos builds gerados pela branch `main` antes da liberação ao público externo (Art. 7º, V e IX da LGPD).
 3. **Distinção do Grupo Externo:**
-   - **Grupo Interno ("Equipe Frila"):** Limite técnico da Apple de até 100 testadores internos, com composição operacional restrita atualmente a **5 membros autorizados** da equipe, com acesso automático a todos os builds (`hasAccessToAllBuilds=true`), sem necessidade de submissão à revisão beta pela Apple (Beta App Review).
+   - **Grupo Interno ("Equipe Frila"):** Limite técnico da Apple de até 100 testadores internos, com composição restrita à equipe definida pelos administradores, com acesso automático a todos os builds (`hasAccessToAllBuilds=true`), sem necessidade de submissão à revisão beta pela Apple (Beta App Review).
    - **Grupo Externo ("Testadores Frila"):** Grupo aberto com link público limitado a 1.000 testadores voluntários (`GrupoExternoTestFlight.md`), com primeiro build de cada versão exigindo obrigatoriamente aprovação prévia em revisão beta pela Apple (builds subsequentes da mesma versão entram sem nova revisão completa) e aceitação dos Termos de Uso padrão do TestFlight.
 
 ---
