@@ -486,7 +486,7 @@ public struct CartaoVaga: View {
 
     private var valor: some View {
         VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: FrilaEspaco.fio) {
-            Text(verbatim: formatador.dinheiro(vaga.valor)).font(FrilaTipo.preco).monospacedDigit()
+            FrilaPriceTag(texto: formatador.dinheiro(vaga.valor), leitura: rotuloAcessibilidadeValor, tamanho: 18)
             Text("por pessoa", bundle: bundleApresentacao).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
         }
         .accessibilityElement(children: .combine)

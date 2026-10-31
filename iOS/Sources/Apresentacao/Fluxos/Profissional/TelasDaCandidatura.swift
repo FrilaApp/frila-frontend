@@ -73,12 +73,8 @@ public struct AreaDeCandidatura: View {
     private var precoView: some View {
         let formatador = FormatadorFrila()
         return VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: formatador.dinheiro(viewModel.vaga.valor))
-                .font(FrilaTipo.preco)
-                .monospacedDigit()
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(1)
-                .layoutPriority(1)
+            FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
+                          leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 26)
             Text(verbatim: apoioPreco)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
@@ -394,8 +390,7 @@ public struct TelaResultadoDaCandidatura: View {
                 }
 
                 HStack(spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: formatador.dinheiro(vaga.valor))
-                        .monospacedDigit()
+                    FrilaPriceTag(texto: formatador.dinheiro(vaga.valor), leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
                     Text(verbatim: TextosDoProfissional.Detalhe.porPessoa)
                 }
                 .font(FrilaTipo.meta)
@@ -414,10 +409,11 @@ public struct TelaResultadoDaCandidatura: View {
             Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
-            Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
-                .font(FrilaTipo.meta)
-                .monospacedDigit()
-                .foregroundStyle(FrilaCor.textoSecundario)
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: formatador.intervalo(vaga.periodo)).font(FrilaTipo.meta)
+                    FrilaPriceTag(texto: formatador.dinheiro(vaga.valor),
+                                  leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
+                }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -505,10 +501,11 @@ private struct TurnoConfirmado: View {
             Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
-            Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
-                .font(FrilaTipo.meta)
-                .monospacedDigit()
-                .foregroundStyle(FrilaCor.texto)
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: formatador.intervalo(vaga.periodo)).font(FrilaTipo.meta)
+                    FrilaPriceTag(texto: formatador.dinheiro(vaga.valor),
+                                  leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
+                }
             Text(verbatim: "\(vaga.local) · \(TextosDoProfissional.Detalhe.quemRecebe.lowercased()): \(vaga.responsavelLocal)")
                 .font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }

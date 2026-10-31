@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// Licença de um pacote do build, como sai de `Scripts/gerar-licencas.py`.
+/// Licença de um pacote ou fonte embutida do build, como sai de `Scripts/gerar-licencas.py`.
 public struct LicencaDePacote: Decodable, Identifiable, Equatable, Sendable {
-    /// Identidade do pacote no Package.resolved.
+    /// Identidade do pacote no Package.resolved ou da fonte em FONTES_EMBUTIDAS.
     public let id: String
     public let nome: String
     public let versao: String
+    /// Commit do SPM ou `sha256:<hash>` do binário da fonte embutida.
     public let revisao: String
     public let url: URL
     /// Identificador SPDX, como `Apache-2.0`.

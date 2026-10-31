@@ -152,9 +152,7 @@ public struct FrilaProposalBar: View {
         VStack(alignment: .leading, spacing: 6) {
             VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                 HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: formatarMoeda(hourlyRate))
-                        .font(FrilaTipo.preco)
-                        .foregroundStyle(FrilaCor.texto)
+                    FrilaPriceTag(texto: formatarMoeda(hourlyRate), leitura: FrilaMoney.spoken(reais: hourlyRate), tamanho: 26, isDark: isDark)
                     Text(verbatim: rotuloSufixoHora)
                         .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.textoSecundario)
@@ -162,10 +160,7 @@ public struct FrilaProposalBar: View {
                 .lineLimit(1)
 
                 if exibeEstimativa {
-                    Text(verbatim: "\(rotuloEstimativaPrefixo)\(formatarMoeda(totalEstimate))")
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .lineLimit(1)
+                    FrilaPriceTag(texto: "\(rotuloEstimativaPrefixo)\(formatarMoeda(totalEstimate))", tamanho: 13, isDark: isDark)
                 }
             }
 
@@ -195,10 +190,7 @@ public struct FrilaProposalBar: View {
                 .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .lineLimit(1)
-            Text(verbatim: formatarMoeda(totalEstimate))
-                .font(FrilaTipo.tituloDoCartao)
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(1)
+            FrilaPriceTag(texto: formatarMoeda(totalEstimate), leitura: FrilaMoney.spoken(reais: totalEstimate), tamanho: 22, isDark: isDark)
         }
         .accessibilityElement(children: .combine)
     }

@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 @testable import FrilaApresentacao
 import Testing
 
@@ -11,6 +12,7 @@ struct LicencasTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
+    private static let fontesEmbutidas = ["jost": "Jost"]
     private static let comoCorrigir = "Resolva os pacotes e rode Scripts/gerar-licencas.py."
 
     private struct PacotesResolvidos: Decodable {
@@ -46,8 +48,22 @@ struct LicencasTests {
         }.map(\.identity)
         #expect(emOutraRevisao.isEmpty, "licenças geradas de outra revisão do pacote: \(emOutraRevisao). \(Self.comoCorrigir)")
 
-        let foraDoBuild = Set(revisaoPorID.keys).subtracting(pinos.map(\.identity)).sorted()
+        let foraDoBuild = Set(revisaoPorID.keys).subtracting(pinos.map(\.identity)).subtracting(Self.fontesEmbutidas.keys).sorted()
         #expect(foraDoBuild.isEmpty, "Licencas.json lista pacotes que saíram do Package.resolved: \(foraDoBuild). \(Self.comoCorrigir)")
+    }
+
+    @Test("Fontes embutidas mantêm licença e revisão do binário distribuído")
+    func fontesEmbutidasTemLicenca() throws {
+        let licencas = try Licencas.carregar()
+        for (id, arquivo) in Self.fontesEmbutidas {
+            let licenca = try #require(licencas.first { $0.id == id })
+            let url = try #require(bundleApresentacao.url(forResource: arquivo, withExtension: "ttf"))
+            let hash = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
+            #expect(licenca.revisao == "sha256:" + hash)
+            #expect(licenca.tipo == "OFL-1.1")
+            let texto = try String(contentsOf: Self.raiz.appending(path: "Resources/Fonts/\(arquivo)-OFL.txt"), encoding: .utf8)
+            #expect(licenca.texto == texto.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
     }
 
     @Test("Toda licença traz nome, versão, tipo, URL e texto")

@@ -762,10 +762,14 @@ private struct LinhaDeVaga: View {
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .frame(width: larguraDoIcone)
                 .accessibilityHidden(true)
-            Text(verbatim: texto)
-                .font(fonte)
-                .foregroundStyle(destaque ? FrilaCor.texto : FrilaCor.textoSecundario)
-                .fixedSize(horizontal: false, vertical: true)
+            if texto.contains("R$") {
+                FrilaPriceTag(texto: texto, tamanho: 15)
+            } else {
+                Text(verbatim: texto)
+                    .font(fonte)
+                    .foregroundStyle(destaque ? FrilaCor.texto : FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -812,11 +816,15 @@ private struct LinhaDetalhePublicado: View {
                 if !dynamicTypeSize.isAccessibilitySize {
                     Spacer(minLength: FrilaEspaco.pequeno)
                 }
-                Text(verbatim: valor)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
-                    .fixedSize(horizontal: false, vertical: true)
+                if valor.contains("R$") {
+                    FrilaPriceTag(texto: valor, tamanho: 15)
+                } else {
+                    Text(verbatim: valor)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
             .padding(.trailing, FrilaEspaco.medio)

@@ -763,7 +763,7 @@ struct FrilaJobFormValorSection: View {
                         .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
                     Spacer()
                     if currentValue > 0 {
-                        Text(verbatim: isPerShift ? FrilaMoney.total(draft.payPerPosition) : FrilaMoney.rate(draft.rateHourly))
+                        FrilaPriceTag(texto: isPerShift ? FrilaMoney.total(draft.payPerPosition) : FrilaMoney.rate(draft.rateHourly), tamanho: 20, isDark: isDark)
                             .font(FrilaTypography.metricTabular(size: 20, weight: .bold))
                             .foregroundColor(FrilaColor.dynamicBrandAccent(isDark: isDark))
                             .contentTransition(.numericText())
@@ -893,7 +893,7 @@ struct FrilaJobFormValorSection: View {
                     .textCase(.uppercase)
                     .frilaType(FrilaFormType.microLabel, dynamic: true)
                     .foregroundColor(FrilaColor.dynamicFormTextMuted(isDark: isDark))
-                Text(verbatim: FrilaMoney.total(draft.totalBudget))
+                FrilaPriceTag(texto: FrilaMoney.total(draft.totalBudget), tamanho: 22, isDark: isDark)
                     .font(FrilaTypography.metricTabular(size: 22, weight: .bold))
                     .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
                     .contentTransition(.numericText())

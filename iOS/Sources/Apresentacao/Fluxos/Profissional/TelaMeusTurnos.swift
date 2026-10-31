@@ -103,10 +103,8 @@ public struct CartaoMeuTurno: View {
     }
 
     private var valor: some View {
-        Text(verbatim: formatador.dinheiro(turno.valorAcordado))
-            .font(FrilaTipo.preco)
-            .monospacedDigit()
-            .foregroundStyle(FrilaCor.texto)
+        FrilaPriceTag(texto: formatador.dinheiro(turno.valorAcordado),
+                      leitura: formatador.dinheiroFalado(turno.valorAcordado), tamanho: 18)
     }
 }
 

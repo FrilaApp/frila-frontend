@@ -928,7 +928,7 @@ public struct FrilaJobCelebrationSheet: View {
                         .lineLimit(2)
 
                     HStack(spacing: 8) {
-                        Text("\(FrilaMoney.total(item.payPerPosition)) \(item.paymentUnitLabel)", tableName: "Estudio", bundle: bundleApresentacao)
+                        FrilaPriceTag(texto: "\(FrilaMoney.total(item.payPerPosition)) \(item.paymentUnitLabel)", tamanho: 13, isDark: isDark)
                             .font(FrilaTypography.captionBold)
                             .foregroundColor(FrilaColor.dynamicBrandAccent(isDark: isDark))
 

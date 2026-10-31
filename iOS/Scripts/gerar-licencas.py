@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera Resources/Licencas.json com a licença de cada pacote do Package.resolved.
+"""Gera Resources/Licencas.json com as licenças do Package.resolved e das fontes embutidas.
 
 A tela de licenças (`TelaLicencas`) lê esse arquivo do bundle do FrilaApresentacao, e o
 `LicencasTests` falha quando um pacote do Package.resolved fica sem entrada ou em outra revisão.
@@ -20,6 +20,7 @@ tipo novo precisa ser olhado por uma pessoa antes de entrar no app.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -32,6 +33,12 @@ if not RESOLVIDO.exists():
     RESOLVIDO = ROOT / "Frila.xcodeproj" / "project.xcworkspace" / "xcshareddata" / "swiftpm" / "Package.resolved"
 DESTINO = ROOT / "Resources" / "Licencas.json"
 DERIVED_DATA_PADRAO = pathlib.Path.home() / "Library" / "Developer" / "Xcode" / "DerivedData"
+
+# Fontes fora do SPM: a revisão identifica exatamente o binário distribuído.
+FONTES_EMBUTIDAS = (
+    {"id": "jost", "nome": "Jost", "versao": "3.710", "arquivo": "Jost.ttf",
+     "licenca": "Jost-OFL.txt", "url": "https://github.com/google/fonts/tree/main/ofl/jost"},
+)
 
 ARQUIVO_DE_LICENCA = re.compile(r"^(licen[cs]e|copying)(\.(txt|md))?$", re.IGNORECASE)
 ARQUIVO_DE_AVISO = re.compile(r"^notice(\.(txt|md))?$", re.IGNORECASE)
@@ -49,6 +56,8 @@ def tipo_da_licenca(texto: str) -> str | None:
         return "BSD-3-Clause" if "Neither the name" in plano else "BSD-2-Clause"
     if "This software is provided 'as-is'" in plano and "Altered source versions must be plainly marked" in plano:
         return "Zlib"
+    if "SIL OPEN FONT LICENSE Version 1.1" in plano:
+        return "OFL-1.1"
     return None
 
 
@@ -121,12 +130,29 @@ def gerar(checkouts: pathlib.Path) -> tuple[list[dict], list[str]]:
             entrada["aviso"] = ler_texto(aviso)
         licencas.append(entrada)
 
+    for fonte in FONTES_EMBUTIDAS:
+        arquivo = ROOT / "Resources" / "Fonts" / fonte["arquivo"]
+        licenca = ROOT / "Resources" / "Fonts" / fonte["licenca"]
+        if not arquivo.is_file() or not licenca.is_file():
+            falhas.append(f"{fonte['id']}: fonte embutida ou licença não encontrada em Resources/Fonts")
+            continue
+        texto = ler_texto(licenca)
+        tipo = tipo_da_licenca(texto)
+        if tipo is None:
+            falhas.append(f"{fonte['id']}: tipo de licença não reconhecido em {licenca.name}")
+            continue
+        licencas.append({
+            "id": fonte["id"], "nome": fonte["nome"], "versao": fonte["versao"],
+            "revisao": "sha256:" + hashlib.sha256(arquivo.read_bytes()).hexdigest(),
+            "url": fonte["url"], "tipo": tipo, "texto": texto,
+        })
+
     licencas.sort(key=lambda entrada: entrada["nome"].casefold())
     return licencas, falhas
 
 
 def main() -> int:
-    argumentos = argparse.ArgumentParser(description="Gera Resources/Licencas.json a partir dos checkouts do SPM.")
+    argumentos = argparse.ArgumentParser(description="Gera Resources/Licencas.json a partir dos checkouts do SPM e das fontes embutidas.")
     argumentos.add_argument("--checkouts", type=pathlib.Path, help="pasta SourcePackages/checkouts de um DerivedData já resolvido")
     checkouts = argumentos.parse_args().checkouts or checkouts_padrao()
     if checkouts is None or not checkouts.is_dir():

@@ -279,10 +279,7 @@ public struct FrilaResumoVaga: View {
             Text("Valor", bundle: bundleApresentacao)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: valor)
-                .font(FrilaTipo.resumo)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityLabel(Text(verbatim: valorAcessibilidade))
+            FrilaPriceTag(texto: valor, leitura: valorAcessibilidade, tamanho: 22)
         }
         .accessibilityElement(children: .combine)
     }
