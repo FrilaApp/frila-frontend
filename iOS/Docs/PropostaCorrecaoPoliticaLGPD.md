@@ -1,3 +1,5 @@
+Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
+
 # Proposta de Retificação da Política de Privacidade — Contatos de Turnos (Seção 6)
 
 Para: **Cauê** (aprovação delegada ao Nick Fury em 15/10/2026)  
@@ -39,8 +41,9 @@ Assunto: Ajuste do trecho sobre expiração de contato na Seção 6 da Política
 
 ## 3. Base Legal e Avaliação de Risco
 
-- **Base legal vigente no banco:** Art. 7º, inciso V da LGPD (execução de contrato, declarada em `comentarios_lgpd.sql:11`).
-- **Avaliação de risco e redação final:** risco baixo; a nova redação descreve o que o app e o backend já fazem e só amplia a transparência. Redação final aplicada em 15/10/2026.
+- **Base legal vigente no banco e ratificada pelo Jurídico:** Art. 7º, inciso V da LGPD (execução de contrato e procedimentos conexos/pós-contratuais imediatos decorrentes do princípio da boa-fé objetiva, Código Civil art. 422). O prazo de 7 dias é proporcional e estritamente necessário para que contratante e profissional solucionem eventuais pendências do turno realizado (ex.: itens esquecidos, alinhamento de recibos, confirmação de horários).
+- **Salvaguardas de Minimização e Segurança:** Art. 6º, III e VII c/c Art. 46 da LGPD. O descarte do cache offline em 24h impede a permanência indevida de dados no aparelho após o evento.
+- **Avaliação de risco e redação final:** Risco baixo; a nova redação descreve o que o app e o backend já fazem e amplia a transparência. Redação final aplicada em 15/10/2026.
 
 ---
 

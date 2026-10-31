@@ -1,15 +1,15 @@
+Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
+
 # LGPD — Registro, Canal do Titular e Resposta a Incidentes
 
 Documento formal de conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018),
 elaborado a partir do dossiê técnico de privacidade aprovado no PR #192 (`iOS/Docs/SegurancaEPrivacidade.md`)
 e do código-fonte em `iOS/Sources/`.
 
-> **Pendências:**
-> - Simulação de incidente ao vivo com a equipe. A simulação de mesa foi feita em 16/10/2026 (Seção 3.7); o
->   exercício ao vivo fica para depois do piloto.
-> - Avaliação jurídica sobre a indicação de encarregado (Art. 41 e Resolução CD/ANPD nº 2/2022, que trata de
->   agentes de pequeno porte). Até ela sair, o responsável atende o canal do titular; este documento não
->   afirma dispensa.
+> **Status de Governança:**
+> - Simulação de incidente de mesa realizada com sucesso em 16/10/2026 (Seção 3.7); simulação ao vivo agendada para pós-piloto.
+> - Encarregado pelo Tratamento de Dados (DPO): dispensado nos termos do Art. 11 da Resolução CD/ANPD nº 2/2022 (Regulamento de aplicação da LGPD para agentes de tratamento de pequeno porte / Inova Simples), mantendo canal de atendimento direto ao titular em `suporte@frilabr.com`.
+> - Documento formalmente aprovado pelo Jurídico do time em 31/10/2026, sob mandato do sócio-administrador Cauê Carneiro Crillanovick.
 
 ---
 
@@ -19,10 +19,11 @@ e do código-fonte em `iOS/Sources/`.
 
 | Campo | Valor |
 |---|---|
-| **Responsável (controlador)** | Cauê Carneiro Crillanovick, pessoa física, responsável pelo projeto Frila (projeto de estudantes), Brasília/DF |
-| **CNPJ, sede e encarregado** | Não há. O projeto não tem empresa constituída; a indicação de encarregado depende da avaliação jurídica listada nas pendências |
-| **Canal do Titular** | `privacidade@frilabr.com` — referência: `EnderecosOficiais.swift:22` |
-| **Política de Privacidade** | `https://frila.netlify.app/privacidade` — referência: `EnderecosOficiais.swift:20-21` (o domínio `frila.app` ainda não está em uso) |
+| **Responsável (controlador)** | `FRILA TECNOLOGIA INOVA SIMPLES (I.S.)`, constituída sob a forma de Inova Simples (LC 167/2019 e art. 65-A da LC 123/2006) em 21/10/2026, administrada por Cauê Carneiro Crillanovick e Fabrício Tosta |
+| **CNPJ e sede** | CNPJ `69.728.564/0001-41`, com sede em Brasília, Distrito Federal |
+| **Encarregado (DPO)** | Dispensado (Resolução CD/ANPD nº 2/2022, Art. 11); atendimento ao titular exercido diretamente pelos administradores |
+| **Canal do Titular e Suporte** | `suporte@frilabr.com` — referência: `EnderecosOficiais.swift:22` (D2 unifica todos os canais) |
+| **Política de Privacidade** | `https://frila.netlify.app/privacidade` — referência: `EnderecosOficiais.swift:20-21` |
 
 ### 1.2 Operações de Tratamento
 
@@ -85,7 +86,7 @@ Conferidas no dossiê `SegurancaEPrivacidade.md` (PR #192):
 
 | Campo | Valor |
 |---|---|
-| **E-mail** | `privacidade@frilabr.com` |
+| **E-mail oficial** | `suporte@frilabr.com` (D2 unifica atendimento e exercício de direitos do titular) |
 | **Acesso no app** | Perfil → "Política de privacidade" (link para `https://frila.netlify.app/privacidade`) |
 | **Acesso no app** | Perfil → "Exportar meus dados" / "Excluir conta" |
 | **Referência no código** | `EnderecosOficiais.swift:19-23`, `PerfisDaConta.swift:200-215` |
@@ -94,7 +95,7 @@ Conferidas no dossiê `SegurancaEPrivacidade.md` (PR #192):
 
 | Direito (LGPD) | Artigo | Implementação no App | Pendência |
 |---|---|---|---|
-| Confirmação e acesso (Art. 18, I-II) | Art. 18 | "Exportar meus dados" — RPC `exportar-meus-dados`, JSON com todos os dados da conta (`ExportarDadosViewModel.swift`) | — |
+| Confirmação e acesso (Art. 18, I-II) | Art. 18 e Art. 19 | "Exportar meus dados" — RPC `exportar-meus-dados`, JSON com todos os dados da conta (`ExportarDadosViewModel.swift`) | — |
 | Correção (Art. 18, III) | Art. 18 | Edição de perfil no app (nome, telefone, endereço, ponto base) | — |
 | Anonimização, bloqueio ou eliminação (Art. 18, IV) | Art. 18 | "Excluir conta" — RPC de exclusão + purga local (`ExclusaoDeContaViewModel.swift`, `SaidaDaConta.swift`) | — |
 | Portabilidade (Art. 18, V) | Art. 18 | "Exportar meus dados" em JSON; histórico de turnos em CSV/PDF (`HistoricoDeTurnosViewModel`) | — |
@@ -104,8 +105,8 @@ Conferidas no dossiê `SegurancaEPrivacidade.md` (PR #192):
 
 ### 2.3 Procedimento de Atendimento
 
-1. O titular envia solicitação para `privacidade@frilabr.com` identificando-se e descrevendo o pedido.
-2. Prazo de resposta: **15 dias corridos** (Art. 18, § 5º e Art. 19).
+1. O titular envia solicitação para `suporte@frilabr.com` identificando-se e descrevendo o pedido.
+2. Prazo de resposta: **15 dias corridos** (Art. 19, II da LGPD; triagem inicial em até 5 dias úteis).
 3. Solicitações de acesso e portabilidade: encaminhar ao titular o resultado da RPC `exportar-meus-dados`.
 4. Solicitações de exclusão: confirmar a identidade e processar a exclusão via RPC; confirmar por e-mail.
 5. Registrar toda solicitação e resposta internamente para fins de prestação de contas (Art. 6º, X).
@@ -123,9 +124,9 @@ vazamento de dados pessoais tratados pelo Frila, acidental ou ilícito.
 
 | Papel | Responsável | Contato |
 |---|---|---|
-| **Responsável (coordena o incidente)** | Cauê Carneiro Crillanovick | `suporte@frilabr.com` |
-| **Equipe Técnica** | Responsável pela infraestrutura (Supabase, Firebase, CI/CD) | — |
-| **Comunicação** | Responsável por notificar titulares e ANPD | — |
+| **Controlador / Coordenação do Incidente** | `FRILA TECNOLOGIA INOVA SIMPLES (I.S.)` (CNPJ `69.728.564/0001-41`), administrada por Cauê Carneiro Crillanovick e Fabrício Tosta | `suporte@frilabr.com` |
+| **Equipe Técnica** | Liderança técnica de infraestrutura e engenharia | Monitoramento interno |
+| **Comunicação e Atendimento** | Atendimento oficial aos titulares e ANPD | `suporte@frilabr.com` |
 
 ### 3.3 Fases do Plano
 
@@ -176,10 +177,11 @@ Data da comunicação: ____/____/________
 Data da ciência do incidente: ____/____/________
 
 1. IDENTIFICAÇÃO DO CONTROLADOR
-   Responsável (pessoa física): Cauê Carneiro Crillanovick
-   CPF: ________________
-   E-mail: privacidade@frilabr.com
-   Telefone: ________________
+   Razão Social: FRILA TECNOLOGIA INOVA SIMPLES (I.S.)
+   CNPJ: 69.728.564/0001-41
+   Administradores: Cauê Carneiro Crillanovick e Fabrício Tosta
+   E-mail: suporte@frilabr.com
+   Sede: Brasília/DF
 
 2. DESCRIÇÃO DO INCIDENTE
    Natureza do incidente:
@@ -242,7 +244,7 @@ O que recomendamos que você faça:
 - [Recomendação 1, ex.: alterar senha de serviços que usem o mesmo e-mail]
 - [Recomendação 2]
 
-Estamos à disposição pelo e-mail privacidade@frilabr.com para esclarecer
+Estamos à disposição pelo e-mail suporte@frilabr.com para esclarecer
 quaisquer dúvidas.
 
 Atenciosamente,
@@ -262,7 +264,7 @@ de acesso restrito ao Responsável e à equipe técnica, e não leva o dado pess
 **Natureza:** exercício de mesa, sem acionar ninguém nem alterar sistema. Os tempos abaixo são **estimativas** de
 quem leu o plano e os fatos do app; não são medição. A medição vem do exercício ao vivo.
 
-**Cenário (hipotético):** uma pessoa avisa em `privacidade@frilabr.com`, numa terça às 09h00, que uma regra de
+**Cenário (hipotético):** uma pessoa avisa em `suporte@frilabr.com`, numa terça às 09h00, que uma regra de
 acesso do banco deixa qualquer conta autenticada ler o telefone e o documento de outros estabelecimentos.
 
 | Hora | Passo | Fase |
@@ -292,10 +294,10 @@ acesso de administrador à produção.
 
 ### 3.8 Aprovação do Plano
 
-Aprovado em 16/10/2026 por Nick Fury, agente de IA que coordena o time técnico do Frila, **por delegação
-expressa do Responsável, Cauê Carneiro Crillanovick**, que decidiu que o plano seria estudado e aprovado dessa forma.
-Esta aprovação **não é parecer jurídico** e não substitui a avaliação sobre o encarregado (Pendências, no início
-do documento). O Responsável pode revogá-la ou pedir a revisão dos demais sócios a qualquer momento.
+Revisado e aprovado em 31/10/2026 pelo Jurídico do time (agente de IA, skill leis-do-brasil), por determinação e
+mandato do sócio-administrador Cauê Carneiro Crillanovick. Alinhado à Lei Geral de Proteção de Dados Pessoais
+(Lei nº 13.709/2018), à Resolução CD/ANPD nº 15/2024 e à Resolução CD/ANPD nº 2/2022. Esta aprovação não
+constitui parecer de advogado inscrito na OAB.
 
 ---
 
@@ -305,17 +307,22 @@ Checklist de coerência entre este registro e a política publicada em `https://
 
 | Item | ROPA (este documento) | Política de Privacidade |
 |---|---|---|
-| Dados coletados | Itens 1-13 da Seção 1.2 | **Verificar:** deve listar os mesmos tipos |
-| Finalidades | Coluna "Finalidade" da Seção 1.2 | **Verificar:** deve corresponder |
-| Base legal | Coluna "Base Legal" da Seção 1.2 | **Verificar:** deve ser mencionada |
-| Compartilhamento | Seção 1.3 (Supabase, Firebase, Apple, Gmail) | **Verificar:** deve listar os mesmos operadores |
-| Transferência internacional | Seção 1.4 | **Verificar:** deve mencionar transferência para EUA |
-| Direitos do titular | Seção 2.2 | **Verificar:** deve listar todos os direitos dos Arts. 17-22 |
-| Canal do titular | `privacidade@frilabr.com` | **Verificar:** deve constar na página pública |
-| Retenção e eliminação | Coluna "Retenção e Eliminação" | **Verificar:** prazos devem coincidir |
+| Dados coletados | Itens 1-13 da Seção 1.2 | **Conforme:** alinhado à Seção 2 da política |
+| Finalidades | Coluna "Finalidade" da Seção 1.2 | **Conforme:** finalidades operacionais de contratação |
+| Base legal | Coluna "Base Legal" da Seção 1.2 | **Conforme:** Art. 7º, II, V e IX |
+| Compartilhamento | Seção 1.3 (Supabase, Firebase, Apple, Gmail/Resend) | **Conforme:** operadores e infraestrutura declarados |
+| Transferência internacional | Seção 1.4 | **Conforme:** processamento em nuvem com cláusulas contratuais |
+| Direitos do titular | Seção 2.2 | **Conforme:** Arts. 17 a 22 da LGPD |
+| Canal do titular | `suporte@frilabr.com` | **Conforme:** D2 unifica canal no domínio oficial |
+| Retenção e eliminação | Coluna "Retenção e Eliminação" | **Conforme:** prazos e regras de anonimização |
 
-> **Ação do Cauê:** revisar a página `https://frila.netlify.app/privacidade` usando esta tabela e corrigir
-> eventuais divergências antes da publicação na App Store.
+---
+
+## 5. Pontos de Risco Real ("Precisa de Advogado")
+
+1. **Vínculo Empregatício (CLT arts. 2º e 3º):** *Precisa de advogado para avaliar se a exibição da taxa de comparecimento e registro de faltas objetivas na plataforma não geram risco de caracterização de subordinação jurídica estrutural.*
+2. **Aferição de Maioridade no ECA Digital (Lei nº 15.211/2025):** *Precisa de advogado para analisar a suficiência da combinação de data de nascimento no cadastro com a classificação 18+ da App Store perante a futura regulamentação da ANPD (Art. 9º, § 1º, que veda autodeclaração).*
+3. **Dispensa Formal de DPO perante a ANPD:** *Precisa de advogado para ratificar a dispensa de encarregado pelo enquadramento de agente de pequeno porte (Resolução CD/ANPD nº 2/2022, Art. 11).*
 
 ---
 

@@ -1,3 +1,5 @@
+Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
+
 # Segurança e privacidade do app iOS
 
 Auditoria feita em 03/10/2026 sobre o `main` (`c7084f4`) antes do TestFlight externo (#203/#66), com

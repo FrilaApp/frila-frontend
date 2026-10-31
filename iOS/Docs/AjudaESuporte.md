@@ -1,3 +1,5 @@
+Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
+
 # Ajuda, Suporte e Termos no app iOS
 
 Documento oficial de auditoria técnica, matriz de rastreabilidade (Visão 7.2 e 7.3), rascunho de textos e recomendações de produto para a tela de Ajuda e Suporte do Frila iOS.
@@ -340,6 +342,13 @@ A Visão 7.2 cita as perguntas frequentes como parte do "conjunto mínimo de aju
 ## 7. Conformidade de Scripts e Verificações
 - O script oficial `iOS/Scripts/conferir-textos.sh` foi executado e concluiu com sucesso (`OK: textos no bundle da Apresentação e tokens em conformidade`).
 - Este documento é composto puramente por Markdown, não alterando código Swift nem disparando fluxos de CI de compilação de código nativo (0 CI).
+
+---
+
+## 8. Parecer e Ressalvas Jurídicas ("Precisa de Advogado")
+
+- **Exercício de Direitos do Titular (LGPD Arts. 18 e 19):** O canal oficial e unificado `suporte@frilabr.com` recebe solicitações de titulares, com prazo regulamentar de atendimento formal de até 15 dias corridos (Art. 19, II) e triagem em até 5 dias úteis.
+- **Ressalva Jurídica ("Precisa de Advogado"):** *Precisa de advogado para avaliar a redação dos fluxos de mediação de contestações operacionais e pagamento, assegurando que o suporte não configure ingerência apta a ensejar responsabilidade solidária consumerista (CDC art. 14) ou subordinação jurídica trabalhista (CLT art. 9º).*
 
 ---
 

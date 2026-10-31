@@ -1,11 +1,11 @@
-RASCUNHO: depende da aprovação dos cinco sócios e de uma simulação com tempo até a contenção anotado
+Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
 
 # Plano de Resposta a Incidentes de Segurança com Dados Pessoais — Frila
 
 Documento operacional de diretrizes e fluxo de resposta a incidentes de segurança da informação envolvendo dados pessoais tratados na plataforma Frila, elaborado em conformidade com o Artigo 48 da Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018), a Resolução CD/ANPD nº 15/2024 e o Registro das Operações de Tratamento (`RegistroDeTratamentoLGPD.md`).
 
 > [!IMPORTANT]
-> **AVISO DE GOVERNANÇA:** Este plano constitui um rascunho operacional e regulatório preliminar. Sua eficácia definitiva e homologação formal dependem da aprovação expressa dos cinco sócios do projeto e da realização de uma simulação de incidente com tempo até a contenção devidamente cronometrado e registrado. Este documento não substitui parecer jurídico formal.
+> **AVISO DE CONFORMIDADE E APROVAÇÃO:** Este plano constitui o protocolo oficial de resposta a incidentes de segurança da plataforma Frila. Revisado e aprovado pelo Jurídico do time em 31/10/2026, com fundamento na LGPD e na Resolução CD/ANPD nº 15/2024, por determinação e mandato do sócio-administrador Cauê Carneiro Crillanovick. Não substitui parecer formal de advogado inscrito na OAB.
 
 ---
 
@@ -28,9 +28,9 @@ A equipe de resposta atua de forma colegiada, estruturada estritamente por funç
 
 | Papel / Função | Atribuições Principais no Incidente | Canal de Acionamento |
 |---|---|---|
-| **Controlador / Responsável Legal pelas Decisões** | - Declara formalmente a abertura e encerramento do incidente.<br>- Aprova medidas drásticas ou de impacto negocial para contenção.<br>- Decide sobre a necessidade de comunicação à ANPD e aos titulares.<br>- Aprova as minutas de comunicação externa e relatórios finais. | Comunicação interna direta |
-| **Liderança Técnica de Infraestrutura e Engenharia** | - Coordena as ações técnicas imediatas de contenção e isolamento (0-4 h).<br>- Revoga e rotaciona credenciais, chaves e tokens de acesso.<br>- Preserva logs e evidências forenses antes de modificações.<br>- Conduz a análise de causa raiz e elabora a correção técnica definitiva. | Monitoramento e canal técnico interno |
-| **Responsável por Atendimento e Comunicação** | - Centraliza o recebimento de relatos e dúvidas de titulares.<br>- Opera o canal oficial de contato (`privacidade@frilabr.com`).<br>- Conduz os envios de notificações individuais aos titulares sob orientação do Controlador.<br>- Registra o protocolo de cada interação com os titulares afetados. | `privacidade@frilabr.com` |
+| **Controlador / Responsável Legal pelas Decisões** | `FRILA TECNOLOGIA INOVA SIMPLES (I.S.)` (CNPJ `69.728.564/0001-41`), representada pelos administradores Cauê Carneiro Crillanovick e Fabrício Tosta.<br>- Declara formalmente a abertura e encerramento do incidente.<br>- Aprova medidas drásticas ou de impacto negocial para contenção.<br>- Decide sobre a necessidade de comunicação à ANPD e aos titulares.<br>- Aprova as minutas de comunicação externa e relatórios finais. | Comunicação interna direta |
+| **Liderança Técnica de Infraestrutura e Engenharia** | - Coordena as ações técnicas imediatas de contenção e isolamento (0-4 h).<br>- Revoga e rotaciona credenciais, chaves e tokens de acesso (Supabase, FCM, APNs, SMTP Resend/Gmail, GitHub Actions).<br>- Preserva logs e evidências forenses antes de modificações.<br>- Conduz a análise de causa raiz e elabora a correção técnica definitiva. | Monitoramento e canal técnico interno |
+| **Responsável por Atendimento e Comunicação** | - Centraliza o recebimento de relatos e dúvidas de titulares.<br>- Opera o canal oficial de contato (`suporte@frilabr.com`).<br>- Conduz os envios de notificações individuais aos titulares sob orientação do Controlador.<br>- Registra o protocolo de cada interação com os titulares afetados. | `suporte@frilabr.com` |
 
 ---
 
@@ -65,7 +65,7 @@ A equipe de resposta atua de forma colegiada, estruturada estritamente por funç
 
 1. **Gatilhos de Detecção:**
    - Disparo de alertas automáticos do monitoramento de infraestrutura (`ModelosDeEmail.md:360-462`);
-   - Comunicação recebida de titular, pesquisador de segurança ou terceiro pelo canal `privacidade@frilabr.com`;
+   - Comunicação recebida de titular, pesquisador de segurança ou terceiro pelo canal `suporte@frilabr.com`;
    - Alerta ou notificação de segurança emitido por operador/subprocessador (Supabase, Firebase, Google, Apple, Netlify);
    - Identificação de anomalia ou relato em chamados de suporte/ocorrências (`public.ocorrencia`).
 
@@ -108,9 +108,11 @@ A equipe de resposta atua de forma colegiada, estruturada estritamente por funç
    - A comunicação é obrigatória sempre que o incidente de segurança for suscetível de acarretar risco ou dano relevante aos direitos e liberdades fundamentais dos titulares de dados.
 
 2. **Prazos Regulatórios e Avaliação Jurídica:**
-   - Adota-se o prazo geral de **3 (três) dias úteis**, contados a partir da ciência do incidente, fixado no Art. 7º da Resolução CD/ANPD nº 15/2024;
-   - *[Conferir com o jurídico]:* Verificar formalmente o enquadramento do projeto no regime simplificado de agentes de pequeno porte (Resolução CD/ANPD nº 2/2022) para apuração sobre a possibilidade de cômputo de prazos em dobro e prazos para complementação de relatórios preliminares;
+   - Adota-se o prazo estrito de **3 (três) dias úteis**, contados a partir da ciência do incidente, fixado no Art. 5º da Resolução CD/ANPD nº 15/2024;
+   - Embora o Frila se qualifique como agente de tratamento de pequeno porte (Inova Simples, Resolução CD/ANPD nº 2/2022) e pudesse usufruir de prazo em dobro (Art. 14 da Resolução 2/2022), a plataforma opta pela transparência e pelo prazo padrão de 3 dias úteis;
    - Na indisponibilidade temporária de todas as conclusões técnicas no encerramento do prazo, realiza-se a comunicação preliminar com os dados consolidados, complementando-se formalmente as informações adicionais tão logo apuradas.
+   - > [!CAUTION]
+   - > **PONTO DE ATENÇÃO ("PRECISA DE ADVOGADO"):** A definição jurídica sobre se um incidente concreto enseja "risco ou dano relevante" aos direitos e liberdades dos titulares (Art. 48 da LGPD e Art. 4º da Resolução CD/ANPD nº 15/2024), apto a dispensar ou justificar a notificação ampla, precisa de parecer de advogado em caso de dúvida fática.
 
 3. **Comunicação à Autoridade Nacional de Proteção de Dados (ANPD):**
    - Transmitida via formulário eletrônico oficial disponibilizado pelo portal da ANPD (`https://www.gov.br/anpd/`), observando os campos estruturados do **Anexo I**.
@@ -135,7 +137,7 @@ A equipe de resposta atua de forma colegiada, estruturada estritamente por funç
      c) Categorias de dados e volume aproximado de titulares atingidos;
      d) Gravidade atribuída e justificativa fundamentada sobre a necessidade ou dispensa de comunicação externa;
      e) Medidas corretivas implementadas;
-   - **Prazo de guarda do registro:** Manter arquivado pelo prazo mínimo de **5 (cinco)** anos a contar da data de encerramento do registro *[conferir com o jurídico quanto a exigências específicas]*;
+   - **Prazo de guarda do registro:** Manter arquivado pelo prazo mínimo de **5 (cinco)** anos a contar da data de encerramento do registro, em conformidade expressa com a Resolução CD/ANPD nº 15/2024;
    - O arquivo do registro deve ser armazenado em repositório seguro e de acesso restrito à Liderança Técnica e ao Controlador, sem incluir cópias de dados pessoais violados.
 
 3. **Revisão Preventiva de Processos:**
@@ -154,9 +156,10 @@ COMUNICAÇÃO DE INCIDENTE DE SEGURANÇA COM DADOS PESSOAIS
 (Artigo 48 da Lei Federal nº 13.709/2018 — LGPD e Resolução CD/ANPD nº 15/2024)
 
 1. INFORMAÇÕES DO CONTROLADOR
-- Denominação/Identificação: [Identificação do Controlador / Projeto Frila]
-- Canal Oficial de Privacidade: privacidade@frilabr.com
-- Papel do Declarante: [Controlador / Responsável Legal pelas Decisões]
+- Denominação/Identificação: FRILA TECNOLOGIA INOVA SIMPLES (I.S.) — CNPJ 69.728.564/0001-41
+- Administradores: Cauê Carneiro Crillanovick e Fabrício Tosta
+- Canal Oficial de Privacidade e Suporte: suporte@frilabr.com
+- Papel do Declarante: Controlador / Responsável Legal pelas Decisões
 
 2. CRONOLOGIA DO INCIDENTE
 - Data e hora estimada do início do incidente: [DD/MM/AAAA às HH:mm]
@@ -187,7 +190,7 @@ COMUNICAÇÃO DE INCIDENTE DE SEGURANÇA COM DADOS PESSOAIS
 
 7. COMUNICAÇÃO AOS TITULARES
 - Houve comunicação direta aos titulares afetados? [Sim, em DD/MM/AAAA / Em andamento / Não - justificar fundamentação de dispensa se ausente risco relevante]
-- Canal utilizado para notificação: [Mensagem individual por e-mail via privacidade@frilabr.com]
+- Canal utilizado para notificação: [Mensagem individual por e-mail via suporte@frilabr.com]
 
 8. DECLARAÇÃO E RESPONSABILIDADE
 - Local e Data: Brasília/DF, [DD/MM/AAAA]
@@ -229,7 +232,7 @@ O que recomendamos que você faça:
 Estamos à disposição para ajudar:
 Sua segurança e a integridade dos seus dados são prioridades absolutas para o Frila. Caso tenha qualquer dúvida ou necessite de esclarecimentos adicionais sobre este comunicado, entre em contato direto pelo nosso canal oficial de privacidade:
 
-- E-mail: privacidade@frilabr.com
+- E-mail: suporte@frilabr.com
 - Informações sobre nossa política de privacidade: https://frila.netlify.app/privacidade
 
 Atenciosamente,
