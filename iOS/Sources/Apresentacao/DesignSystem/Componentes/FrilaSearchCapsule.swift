@@ -264,6 +264,7 @@ public struct FrilaSearchCapsule: View {
             Rectangle()
                 .fill(FrilaCor.divisoria)
                 .frame(width: 1, height: 20)
+                .accessibilityHidden(true)
 
             Button(action: { onSelectZone(1) }) {
                 Text(verbatim: termsQuery)
@@ -280,6 +281,7 @@ public struct FrilaSearchCapsule: View {
             Rectangle()
                 .fill(FrilaCor.divisoria)
                 .frame(width: 1, height: 20)
+                .accessibilityHidden(true)
 
             Button(action: { onSelectZone(2) }) {
                 HStack(spacing: FrilaEspaco.minimo) {

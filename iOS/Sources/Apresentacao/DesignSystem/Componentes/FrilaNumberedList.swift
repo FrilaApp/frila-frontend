@@ -76,6 +76,7 @@ public struct FrilaNumberedList: View {
                         .fill(FrilaColor.dynamicDividerStrong(isDark: isDark))
                         .frame(height: 1)
                         .padding(.horizontal, FrilaGeometry.space24)
+                        .accessibilityHidden(true)
                 }
 
                 rowContent(for: item)
@@ -103,6 +104,7 @@ public struct FrilaNumberedList: View {
                 Rectangle()
                     .fill(FrilaColor.dynamicDividerStrong(isDark: isDark))
                     .frame(height: 2)
+                    .accessibilityHidden(true)
 
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     if index > 0 {
@@ -110,6 +112,7 @@ public struct FrilaNumberedList: View {
                         Rectangle()
                             .fill(FrilaColor.dynamicDividerStrong(isDark: isDark))
                             .frame(height: 2)
+                            .accessibilityHidden(true)
                     }
 
                     rowContent(for: item)
@@ -123,6 +126,7 @@ public struct FrilaNumberedList: View {
                 Rectangle()
                     .fill(FrilaColor.dynamicDividerStrong(isDark: isDark))
                     .frame(height: 2)
+                    .accessibilityHidden(true)
             }
         }
     }
