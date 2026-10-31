@@ -170,6 +170,7 @@ public struct TelaVagas: View {
                     Image(systemName: "magnifyingglass")
                         .font(FrilaTipo.secao)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityHidden(true)
                 }
             VStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosTitulo : TextosDoProfissional.Lista.vazioSemFiltrosTitulo)
@@ -204,6 +205,7 @@ public struct TelaVagas: View {
             Image(systemName: "mappin.slash")
                 .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityHidden(true)
             VStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Lista.semPontoDeReferenciaTitulo)
                     .font(FrilaTipo.tituloDeEstado)
@@ -241,6 +243,7 @@ public struct TelaVagas: View {
             Image(systemName: "wifi.slash")
                 .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityHidden(true)
             VStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Lista.semConexaoTitulo)
                     .font(FrilaTipo.tituloDeEstado)
@@ -268,6 +271,7 @@ public struct TelaVagas: View {
             Image(systemName: "exclamationmark.circle")
                 .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityHidden(true)
             VStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: TextosDoProfissional.Lista.erroMensagem)
                     .font(FrilaTipo.tituloDeEstado)
@@ -292,6 +296,7 @@ public struct TelaVagas: View {
         HStack(alignment: .top, spacing: FrilaEspaco.medio) {
             Image(systemName: "exclamationmark.triangle")
                 .foregroundStyle(FrilaCor.texto)
+                .accessibilityHidden(true)
             Text(verbatim: TextosDoProfissional.Lista.perfilIncompativel)
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.texto)
