@@ -1,11 +1,11 @@
-Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
+Revisado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026, com pendências operacionais e de comprovação documental registradas. Não é parecer de advogado.
 
 # Plano de Resposta a Incidentes de Segurança com Dados Pessoais — Frila
 
-Documento operacional de diretrizes e fluxo de resposta a incidentes de segurança da informação envolvendo dados pessoais tratados na plataforma Frila, elaborado em conformidade com o Artigo 48 da Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018), a Resolução CD/ANPD nº 15/2024 e o Registro das Operações de Tratamento (`RegistroDeTratamentoLGPD.md`).
+Documento operacional de diretrizes e fluxo de resposta a incidentes de segurança da informação envolvendo dados pessoais tratados na plataforma Frila, elaborado em conformidade com o Artigo 48 da Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018), o Regulamento anexo à Resolução CD/ANPD nº 15/2024 e o Registro das Operações de Tratamento (`RegistroDeTratamentoLGPD.md`).
 
 > [!IMPORTANT]
-> **AVISO DE CONFORMIDADE E APROVAÇÃO:** Este plano constitui o protocolo oficial de resposta a incidentes de segurança da plataforma Frila. Revisado e aprovado pelo Jurídico do time em 31/10/2026, com fundamento na LGPD e na Resolução CD/ANPD nº 15/2024, por determinação e mandato do sócio-administrador Cauê Carneiro Crillanovick. Não substitui parecer formal de advogado inscrito na OAB.
+> **AVISO DE REVISÃO E GOVERNANÇA:** Este plano constitui o protocolo operacional de resposta a incidentes de segurança da plataforma Frila. Revisado pelo Jurídico do time em 31/10/2026, com fundamento na LGPD e no Regulamento anexo à Resolução CD/ANPD nº 15/2024, sob determinação e mandato do sócio-administrador Cauê Carneiro Crillanovick. Registra pendências de comprovação cadastral formal e de teste de simulação de incidente ao vivo. Não substitui parecer formal de advogado inscrito na OAB.
 
 ---
 
@@ -108,11 +108,11 @@ A equipe de resposta atua de forma colegiada, estruturada estritamente por funç
    - A comunicação é obrigatória sempre que o incidente de segurança for suscetível de acarretar risco ou dano relevante aos direitos e liberdades fundamentais dos titulares de dados.
 
 2. **Prazos Regulatórios e Avaliação Jurídica:**
-   - Adota-se o prazo estrito de **3 (três) dias úteis**, contados a partir da ciência do incidente, fixado no Art. 5º da Resolução CD/ANPD nº 15/2024;
-   - Embora o Frila se qualifique como agente de tratamento de pequeno porte (Inova Simples, Resolução CD/ANPD nº 2/2022) e pudesse usufruir de prazo em dobro (Art. 14 da Resolução 2/2022), a plataforma opta pela transparência e pelo prazo padrão de 3 dias úteis;
+   - Adota-se o prazo estrito de **3 (três) dias úteis**, contados a partir da ciência de que o incidente afetou dados pessoais, em observância aos arts. 6º, caput e § 1º (para comunicação à ANPD) e 9º (para comunicação aos titulares) do Regulamento anexo à Resolução CD/ANPD nº 15/2024; o art. 5º do mesmo Regulamento disciplina os critérios objetivos de risco relevante (como o tratamento de dados de menores ou potencial de acarretar prejuízos morais e materiais aos titulares);
+   - Embora o Frila registre seu enquadramento em avaliação como agente de tratamento de pequeno porte nos termos da Resolução CD/ANPD nº 2/2022 (arts. 2º a 5º) e da LC nº 182/2021 (art. 4º, § 1º, III, "b" — Inova Simples), o que facultaria a comunicação de incidente em prazo em dobro (art. 14 da Resolução 2/2022), a plataforma opta por política voluntária de transparência e adota o prazo padrão de 3 (três) dias úteis;
    - Na indisponibilidade temporária de todas as conclusões técnicas no encerramento do prazo, realiza-se a comunicação preliminar com os dados consolidados, complementando-se formalmente as informações adicionais tão logo apuradas.
    - > [!CAUTION]
-   - > **PONTO DE ATENÇÃO ("PRECISA DE ADVOGADO"):** A definição jurídica sobre se um incidente concreto enseja "risco ou dano relevante" aos direitos e liberdades dos titulares (Art. 48 da LGPD e Art. 4º da Resolução CD/ANPD nº 15/2024), apto a dispensar ou justificar a notificação ampla, precisa de parecer de advogado em caso de dúvida fática.
+   - > **PONTO DE ATENÇÃO ("PRECISA DE ADVOGADO"):** A definição jurídica sobre se um incidente concreto enseja "risco ou dano relevante" aos direitos e liberdades dos titulares (Art. 48 da LGPD e Arts. 4º e 5º do Regulamento anexo à Resolução CD/ANPD nº 15/2024), apto a dispensar ou justificar a notificação externa, necessita de validação por advogado em situações fáticas dúbias.
 
 3. **Comunicação à Autoridade Nacional de Proteção de Dados (ANPD):**
    - Transmitida via formulário eletrônico oficial disponibilizado pelo portal da ANPD (`https://www.gov.br/anpd/`), observando os campos estruturados do **Anexo I**.
@@ -130,14 +130,14 @@ A equipe de resposta atua de forma colegiada, estruturada estritamente por funç
    - Execução de testes de regressão técnica e validação automatizada de segurança.
 
 2. **Livro/Registro de Incidentes de Segurança:**
-   - Conforme exigido pela Resolução CD/ANPD nº 15/2024, **todos** os incidentes de segurança devem ser lançados no Registro de Incidentes interno, mesmo aqueles que não ensejarem notificação à ANPD ou aos titulares;
+   - Conforme exigido pelo art. 10 do Regulamento anexo à Resolução CD/ANPD nº 15/2024, **todos** os incidentes de segurança devem ser lançados no Registro de Incidentes interno, inclusive aqueles que, após a avaliação, não ensejarem notificação à ANPD ou aos titulares;
    - O registro deve documentar:
      a) Data e hora da ciência e da contenção;
      b) Descrição fática da ocorrência;
      c) Categorias de dados e volume aproximado de titulares atingidos;
      d) Gravidade atribuída e justificativa fundamentada sobre a necessidade ou dispensa de comunicação externa;
      e) Medidas corretivas implementadas;
-   - **Prazo de guarda do registro:** Manter arquivado pelo prazo mínimo de **5 (cinco)** anos a contar da data de encerramento do registro, em conformidade expressa com a Resolução CD/ANPD nº 15/2024;
+   - **Prazo de guarda do registro:** Manter arquivado pelo prazo mínimo de **5 (cinco) anos a contar da data do seu registro** (art. 10, caput, do Regulamento anexo à Resolução CD/ANPD nº 15/2024) — e não da data de encerramento do incidente;
    - O arquivo do registro deve ser armazenado em repositório seguro e de acesso restrito à Liderança Técnica e ao Controlador, sem incluir cópias de dados pessoais violados.
 
 3. **Revisão Preventiva de Processos:**
@@ -153,7 +153,7 @@ Os modelos abaixo utilizam campos delimitados por colchetes `[...]`, a serem pre
 
 ```text
 COMUNICAÇÃO DE INCIDENTE DE SEGURANÇA COM DADOS PESSOAIS
-(Artigo 48 da Lei Federal nº 13.709/2018 — LGPD e Resolução CD/ANPD nº 15/2024)
+(Artigo 48 da Lei Federal nº 13.709/2018 — LGPD e Regulamento anexo à Resolução CD/ANPD nº 15/2024)
 
 1. INFORMAÇÕES DO CONTROLADOR
 - Denominação/Identificação: FRILA TECNOLOGIA INOVA SIMPLES (I.S.) — CNPJ 69.728.564/0001-41

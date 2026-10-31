@@ -1,4 +1,4 @@
-Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
+Revisado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026, com pendências operacionais e de comprovação documental registradas. Não é parecer de advogado.
 
 # Ajuda, Suporte e Termos no app iOS
 
@@ -54,7 +54,7 @@ A auditoria identificou que o código do aplicativo unificou o canal em `suporte
 
 ## 2. Conformidade com a Diretriz 1.2 da App Store (User-Generated Content e Moderação)
 
-A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuários ou interação direta incluam:
+A Diretriz 1.2 da App Store estabelece regras contratuais privadas da Apple para distribuição na loja, exigindo que aplicativos com conteúdo gerado por usuários incluam:
 1. Mecanismo para denúncia de conteúdo ofensivo/abusivo.
 2. Moderação tempestiva; compromisso operacional do Frila, definido pelo Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos.
 3. Mecanismo para bloqueio mútuo de usuários abusivos.
@@ -64,10 +64,10 @@ A Diretriz 1.2 da App Store exige que aplicativos com conteúdo gerado por usuá
 - **Mecanismo de Denúncia (Conforme):** `FolhaDeDenuncia` (`iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:62-150`), integrada à RPC `denunciar` (valida alvo, motivo, relato de no mínimo 10 caracteres e gera protocolo de acompanhamento).
 - **Mecanismo de Bloqueio (Conforme):** `BotaoBloquear` (`iOS/Sources/Apresentacao/Fluxos/Confianca/AcoesDeSeguranca.swift:20-60`), executando bloqueio definitivo entre profissional e estabelecimento para impedir visualizações mútuas, candidaturas e notificações.
 - **Informações de Contato (Conforme):** Disponibilizadas em `TelaAjudaPerfil` (`PerfisDaConta.swift:348-450`) com e-mail clicável e copiável.
-- **Prazo de Atendimento / SLA de Moderação (Alinhamento do app e backend pendente):**
+- **Prazo de Atendimento / SLA de Moderação e Direitos do Titular:**
   - O texto informativo geral de perfil indica `"Respondemos o mais breve possível, com triagem em até 5 dias úteis."` (`TextosPerfilConta.prazoSuporte`, linha 16, renderizado na linha 393; Fonte: Visão 7.2 e RF23). Dois fluxos do app ainda informam resposta "em até 5 dias úteis" sem menção à triagem: contestação de despacho (`TextosPorQueReceboVagas.swift:29`) e contestação de suspensão (`TextosContaSuspensa.swift:10`).
   - O protocolo de denúncia (`AcoesDeSeguranca.swift:82-88`) calcula a data limite a partir de `protocolo.prazoRespostaAte`, que no backend (`privado.prazo_de_resposta`) projeta o quinto dia útil.
-  - Compromisso de moderação e denúncia de conteúdo definido pelo Cauê em 15/10/2026: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos. Os fluxos específicos acima e a data calculada pelo backend ainda precisam ser alinhados em missão própria.
+  - Distinção normativa: a declaração completa de confirmação ou acesso aos dados pessoais pelo titular submete-se ao prazo legal peremptório de até 15 dias corridos contados do requerimento (LGPD, art. 19, II), enquanto os prazos de 5 dias úteis constituem meta operacional interna da plataforma para triagem de suporte, moderação e denúncias.
 
 ---
 
@@ -347,8 +347,8 @@ A Visão 7.2 cita as perguntas frequentes como parte do "conjunto mínimo de aju
 
 ## 8. Parecer e Ressalvas Jurídicas ("Precisa de Advogado")
 
-- **Exercício de Direitos do Titular (LGPD Arts. 18 e 19):** O canal oficial e unificado `suporte@frilabr.com` recebe solicitações de titulares, com prazo regulamentar de atendimento formal de até 15 dias corridos (Art. 19, II) e triagem em até 5 dias úteis.
-- **Ressalva Jurídica ("Precisa de Advogado"):** *Precisa de advogado para avaliar a redação dos fluxos de mediação de contestações operacionais e pagamento, assegurando que o suporte não configure ingerência apta a ensejar responsabilidade solidária consumerista (CDC art. 14) ou subordinação jurídica trabalhista (CLT art. 9º).*
+- **Exercício de Direitos do Titular (LGPD Arts. 18 e 19):** O canal oficial e unificado `suporte@frilabr.com` recebe solicitações de titulares, com prazo regulamentar para declaração completa de confirmação ou acesso de até 15 dias corridos contados do requerimento (Art. 19, II) e triagem operacional em até 5 dias úteis.
+- **Ressalva Jurídica Trabalhista e Consumerista ("Precisa de Advogado"):** *Precisa de advogado para avaliar a redação dos fluxos de suporte e mediação de contestações operacionais e pagamento, assegurando que as intervenções de suporte não configurem ingerência diretiva apta a caracterizar subordinação jurídica (CLT arts. 2º, 3º e 9º) ou desbordem para responsabilidade objetiva por fato ou vício do serviço na relação contratual autônoma (CDC art. 14).*
 
 ---
 

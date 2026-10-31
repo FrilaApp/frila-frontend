@@ -1,4 +1,4 @@
-Revisado e aprovado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026. Não é parecer de advogado.
+Revisado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026, com pendências operacionais e de comprovação documental registradas. Não é parecer de advogado.
 
 # Proposta de Retificação da Política de Privacidade — Contatos de Turnos (Seção 6)
 
@@ -35,15 +35,15 @@ Assunto: Ajuste do trecho sobre expiração de contato na Seção 6 da Política
 
 3. **Aplicativo iOS:**
    - **Com rede:** `iOS/Sources/Dados/SupabaseApiCliente.swift:282-284` chama `meus_turnos` da API, exibindo turnos anteriores de 2 a 7 dias com contato consultável. A interface declara o prazo em `iOS/Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift:59,115` e `iOS/Docs/GuiaDeVoz.md:304` (*"Liberado com a confirmação. Fica visível até 7 dias depois do turno."*).
-   - **Sem rede (cache offline):** `iOS/Sources/Dados/TurnosComCache.swift:6-8` e `iOS/Sources/Dados/CacheSwiftData.swift:182-187` (`let limite = instante.addingTimeInterval(-24 * 60 * 60)`). O descarte em 24 h após o fim ocorre **apenas no cache local offline** para economia e integridade de armazenamento em modo avião.
+   - **Sem rede (cache offline):** `iOS/Sources/Dados/TurnosComCache.swift:6-8` e `iOS/Sources/Dados/CacheSwiftData.swift:210-227` (`let limite = instante.addingTimeInterval(-24 * 60 * 60)`). O descarte em 24 h após o fim ocorre **apenas no cache local offline** como uma expiração lógica aplicada dinamicamente no momento da consulta/leitura (`turnosValidos`), ocasião em que turnos com término superior a 24 horas são filtrados e purgados do armazenamento SwiftData, e não por rotina de limpeza autônoma em segundo plano com o aplicativo fechado.
 
 ---
 
 ## 3. Base Legal e Avaliação de Risco
 
-- **Base legal vigente no banco e ratificada pelo Jurídico:** Art. 7º, inciso V da LGPD (execução de contrato e procedimentos conexos/pós-contratuais imediatos decorrentes do princípio da boa-fé objetiva, Código Civil art. 422). O prazo de 7 dias é proporcional e estritamente necessário para que contratante e profissional solucionem eventuais pendências do turno realizado (ex.: itens esquecidos, alinhamento de recibos, confirmação de horários).
-- **Salvaguardas de Minimização e Segurança:** Art. 6º, III e VII c/c Art. 46 da LGPD. O descarte do cache offline em 24h impede a permanência indevida de dados no aparelho após o evento.
-- **Avaliação de risco e redação final:** Risco baixo; a nova redação descreve o que o app e o backend já fazem e amplia a transparência. Redação final aplicada em 15/10/2026.
+- **Base legal e justificativa operacional:** Art. 7º, inciso V da LGPD (execução de contrato e procedimentos conexos/pós-contratuais imediatos decorrentes do dever de lealdade e boa-fé objetiva, Código Civil art. 422 interpretativo). O prazo de 7 dias é uma política operacional proporcional e estritamente necessária para que contratante e profissional solucionem eventuais pendências do turno realizado (ex.: itens esquecidos, alinhamento de recibos, confirmação de horários).
+- **Salvaguardas de Minimização e Segurança:** Art. 6º, III e VII c/c Art. 46 da LGPD. A expiração lógica dos dados no cache local offline em 24h após o turno impede a retenção persistente indevida no aparelho após o evento.
+- **Avaliação de risco e redação final:** Risco baixo; a redação descreve com exatidão o que o app e o backend executam, ampliando a transparência e separando a política de visualização (7 dias) do mecanismo de expiração no cache (24 h na leitura). Proposta aprovada em 15/10/2026.
 
 ---
 
