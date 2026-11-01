@@ -146,27 +146,31 @@ fun AppNavegacao(
             }
 
             composable(Rotas.FEED) {
-                val viewModel: FeedVagasViewModel = koinViewModel()
-                TelaFeedVagas(
-                    viewModel = viewModel,
-                    aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
-                    aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
-                )
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: FeedVagasViewModel = koinViewModel()
+                    TelaFeedVagas(
+                        viewModel = viewModel,
+                        aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
+                        aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
+                    )
+                }
             }
 
             composable(
                 route = Rotas.DETALHE,
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.DETALHE_VAGA }),
             ) { entrada ->
-                val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
-                val feedAnterior = navController.previousBackStackEntry?.let {
-                    koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
-                }
-                val vaga: VagaAbertaDto? = feedAnterior?.encontrarVagaPorId(vagaId)
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    val feedAnterior = navController.previousBackStackEntry?.let {
+                        koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
+                    }
+                    val vaga: VagaAbertaDto? = feedAnterior?.encontrarVagaPorId(vagaId)
 
-                if (vaga != null) {
-                    val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(vaga) })
-                    TelaDetalheVaga(viewModel = viewModel)
+                    if (vaga != null) {
+                        val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(vaga) })
+                        TelaDetalheVaga(viewModel = viewModel)
+                    }
                 }
             }
 
@@ -174,40 +178,46 @@ fun AppNavegacao(
                 route = Rotas.MEUS_TURNOS,
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.MEUS_TURNOS }),
             ) {
-                val viewModel: MeusTurnosViewModel = koinViewModel()
-                TelaMeusTurnos(
-                    viewModel = viewModel,
-                    criarCheckinViewModel = { turnoId ->
-                        // Contrato de `/rpc/meus_turnos` ainda não traz a coordenada da vaga
-                        // (schema `VagaResumo`), só `local`/`regiao_administrativa` em texto — por
-                        // ora o check-in sempre degrada para o caminho "sem localização" (manual
-                        // pendente, RN06), até o backend expor a coordenada aqui.
-                        koinViewModel(parameters = { parametersOf(turnoId, null) })
-                    },
-                    aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
-                )
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: MeusTurnosViewModel = koinViewModel()
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turnoId ->
+                            // Contrato de `/rpc/meus_turnos` ainda não traz a coordenada da vaga
+                            // (schema `VagaResumo`), só `local`/`regiao_administrativa` em texto — por
+                            // ora o check-in sempre degrada para o caminho "sem localização" (manual
+                            // pendente, RN06), até o backend expor a coordenada aqui.
+                            koinViewModel(parameters = { parametersOf(turnoId, null) })
+                        },
+                        aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
+                    )
+                }
             }
 
             composable(Rotas.AVALIACAO) { entrada ->
-                val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
-                val viewModel: AvaliacaoViewModel = koinViewModel()
-                TelaAvaliacao(
-                    turnoId = turnoId,
-                    viewModel = viewModel,
-                    aoVoltar = { navController.popBackStack() },
-                )
+                RotaProtegida(guardaBiometrico) {
+                    val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                    val viewModel: AvaliacaoViewModel = koinViewModel()
+                    TelaAvaliacao(
+                        turnoId = turnoId,
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
             }
 
             composable(
                 route = Rotas.OCORRENCIA,
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.SUPORTE }),
             ) { entrada ->
-                val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
-                val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
-                TelaOcorrencia(
-                    viewModel = viewModel,
-                    aoVoltar = { navController.popBackStack() },
-                )
+                RotaProtegida(guardaBiometrico) {
+                    val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                    val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
+                    TelaOcorrencia(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
             }
 
             composable(Rotas.DESBLOQUEIO) {
@@ -228,16 +238,18 @@ fun AppNavegacao(
             }
 
             composable(Rotas.PERFIL) {
-                val viewModel: PerfilViewModel = koinViewModel()
-                TelaPerfil(
-                    viewModel = viewModel,
-                    aoDeslogar = {
-                        guardaBiometrico.liberarAposLimparSessao()
-                        navController.navigate(Rotas.ENTRADA) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                )
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: PerfilViewModel = koinViewModel()
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {
+                            guardaBiometrico.liberarAposLimparSessao()
+                            navController.navigate(Rotas.ENTRADA) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                    )
+                }
             }
         }
 
