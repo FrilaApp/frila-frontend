@@ -166,7 +166,7 @@ class MeusTurnosViewModel(
     fun confirmarCancelamento(): Job? {
         val cancelamento = _estado.value.cancelamento ?: return null
         if (!cancelamento.podeConfirmar) return null
-        val motivo = cancelamento.motivoCompleto ?: return null
+        val motivo = cancelamento.motivoCompleto ?: "Cancelamento pelo profissional"
         _estado.update { it.copy(cancelamento = cancelamento.copy(enviando = true, mensagemErro = null)) }
 
         return escopoDeTrabalho.launch {
