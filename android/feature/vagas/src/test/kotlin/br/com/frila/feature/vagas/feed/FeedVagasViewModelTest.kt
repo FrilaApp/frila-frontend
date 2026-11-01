@@ -335,7 +335,7 @@ class FeedVagasViewModelTest {
         viewModel.aoSelecionarFiltroPeriodo(FiltroPeriodo.NOITE)
         assertEquals(1, viewModel.estado.value.vagas.size)
 
-        viewModel.aoLimparFiltrosAvancados()
+        viewModel.aoLimparFiltrosAvancados().join()
 
         assertEquals(3, viewModel.estado.value.vagas.size)
         assertEquals(FiltroRemuneracao.QUALQUER, viewModel.estado.value.filtroRemuneracao)
@@ -562,14 +562,14 @@ class FeedVagasViewModelTest {
     }
 
     @Test
-    fun `aoAlterarFaixaRemuneracaoHora persiste faixa e status no armazenamento local`() {
+    fun `aoAlterarFaixaRemuneracaoHora persiste faixa e status no armazenamento local`() = runBlocking {
         val preferencias = ArmazenamentoPreferenciasFiltroEmMemoria()
         val viewModel = viewModelComEngine(
             MockEngine { respond(content = "[]", status = HttpStatusCode.OK) },
             preferencias = preferencias,
         )
 
-        viewModel.aoAlterarFaixaRemuneracaoHora(30f..80f, ativa = true)
+        viewModel.aoAlterarFaixaRemuneracaoHora(30f..80f, ativa = true).join()
 
         val salva = preferencias.obterFaixaRemuneracaoHora()
         assertNotNull(salva)
@@ -579,7 +579,7 @@ class FeedVagasViewModelTest {
     }
 
     @Test
-    fun `inicializacao restaura preferencia de faixa de remuneracao salva`() {
+    fun `inicializacao restaura preferencia de faixa de remuneracao salva`() = runBlocking {
         val preferencias = ArmazenamentoPreferenciasFiltroEmMemoria()
         preferencias.salvarFaixaRemuneracaoHora(minimo = 35f, maximo = 95f, ativa = true)
 
@@ -588,13 +588,14 @@ class FeedVagasViewModelTest {
             preferencias = preferencias,
         )
 
+        viewModel.carregar().join()
         assertEquals(35f, viewModel.estado.value.faixaRemuneracaoHora.minima)
         assertEquals(95f, viewModel.estado.value.faixaRemuneracaoHora.maxima)
         assertEquals(true, viewModel.estado.value.faixaRemuneracaoHora.ativa)
     }
 
     @Test
-    fun `aoLimparFiltrosAvancados redefine faixa padrao e limpa persistencia`() {
+    fun `aoLimparFiltrosAvancados redefine faixa padrao e limpa persistencia`() = runBlocking {
         val preferencias = ArmazenamentoPreferenciasFiltroEmMemoria()
         preferencias.salvarFaixaRemuneracaoHora(minimo = 35f, maximo = 95f, ativa = true)
 
@@ -603,7 +604,7 @@ class FeedVagasViewModelTest {
             preferencias = preferencias,
         )
 
-        viewModel.aoLimparFiltrosAvancados()
+        viewModel.aoLimparFiltrosAvancados().join()
 
         assertEquals(FaixaRemuneracaoHora.PADRAO, viewModel.estado.value.faixaRemuneracaoHora)
         assertEquals(null, preferencias.obterFaixaRemuneracaoHora())

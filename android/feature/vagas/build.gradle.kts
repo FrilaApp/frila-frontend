@@ -48,6 +48,7 @@ android {
 
 dependencies {
     implementation(project(":core:dominio"))
+    implementation(project(":core:preferencias"))
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))

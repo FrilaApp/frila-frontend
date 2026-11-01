@@ -112,6 +112,7 @@ configurations.all {
 
 dependencies {
     implementation(project(":core:dominio"))
+    implementation(project(":core:preferencias"))
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
@@ -133,6 +134,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.koin.core)
     implementation(libs.koin.android)

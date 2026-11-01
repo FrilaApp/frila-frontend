@@ -9,6 +9,7 @@ import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.aindaDisponivelEm
 import br.com.frila.core.rede.ResultadoVagas
 import br.com.frila.core.rede.VagaAbertaDto
+import java.io.IOException
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
@@ -60,24 +61,47 @@ class FeedVagasViewModel(
         }
     }
 
-    init {
-        armazenamentoPreferencias.obterFaixaRemuneracaoHora()?.let { salva ->
-            _estado.update {
-                it.copy(
-                    faixaRemuneracaoHora = FaixaRemuneracaoHora(
-                        minima = salva.minima,
-                        maxima = salva.maxima,
-                        ativa = salva.ativa,
-                    ),
-                )
+    private var preferenciasRestauradas = false
+    private var gravacaoPreferencia: Job? = null
+
+    private suspend fun restaurarPreferencias() {
+        if (preferenciasRestauradas) return
+        try {
+            withTimeoutOrNull(2_000) {
+                val salva = armazenamentoPreferencias.obterFaixaRemuneracaoHora()
+                // Uma interação durante a leitura tem prioridade sobre o valor antigo.
+                if (!preferenciasRestauradas) {
+                    salva?.let {
+                        _estado.update { estado -> estado.copy(
+                            faixaRemuneracaoHora = FaixaRemuneracaoHora(it.minima, it.maxima, it.ativa),
+                        ) }
+                    }
+                    preferenciasRestauradas = true
+                }
             }
+        } catch (_: IOException) {
+            // O feed continua disponível; não apaga nem sobrescreve a preferência indisponível.
         }
+    }
+
+    private fun persistirPreferencia(operacao: suspend () -> Unit): Job {
+        preferenciasRestauradas = true
+        val anterior = gravacaoPreferencia
+        return escopoDeTrabalho.launch {
+            anterior?.join()
+            try {
+                operacao()
+            } catch (_: IOException) {
+                _estado.update { it.copy(mensagemErro = "Não foi possível salvar os filtros. Tente novamente.") }
+            }
+        }.also { gravacaoPreferencia = it }
     }
 
     fun carregar(): Job {
         _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
+                restaurarPreferencias()
                 // Exibe o disco antes de esperar localização ou rede, inclusive na abertura offline.
                 repositorioVagas?.obterCache()?.let(::aplicarResultado)
                 aplicarResultado(buscarVagas())
@@ -181,7 +205,7 @@ class FeedVagasViewModel(
      * RF05/RN01: Atualiza a faixa de remuneração líquida por hora através do RangeSlider
      * e persiste a preferência localmente.
      */
-    fun aoAlterarFaixaRemuneracaoHora(faixa: ClosedFloatingPointRange<Float>, ativa: Boolean = true) {
+    fun aoAlterarFaixaRemuneracaoHora(faixa: ClosedFloatingPointRange<Float>, ativa: Boolean = true): Job {
         _estado.update {
             it.copy(
                 faixaRemuneracaoHora = FaixaRemuneracaoHora(
@@ -191,27 +215,20 @@ class FeedVagasViewModel(
                 ),
             )
         }
-        armazenamentoPreferencias.salvarFaixaRemuneracaoHora(
-            minimo = faixa.start,
-            maximo = faixa.endInclusive,
-            ativa = ativa,
-        )
         aplicarFiltros()
+        return persistirPreferencia {
+            armazenamentoPreferencias.salvarFaixaRemuneracaoHora(faixa.start, faixa.endInclusive, ativa)
+        }
     }
 
     /** Desativa o filtro de faixa por hora sem apagar os limites configurados. */
-    fun aoDesativarFaixaRemuneracaoHora() {
-        _estado.update {
-            it.copy(
-                faixaRemuneracaoHora = it.faixaRemuneracaoHora.copy(ativa = false),
-            )
-        }
-        armazenamentoPreferencias.salvarFaixaRemuneracaoHora(
-            minimo = _estado.value.faixaRemuneracaoHora.minima,
-            maximo = _estado.value.faixaRemuneracaoHora.maxima,
-            ativa = false,
-        )
+    fun aoDesativarFaixaRemuneracaoHora(): Job {
+        val faixa = _estado.value.faixaRemuneracaoHora.copy(ativa = false)
+        _estado.update { it.copy(faixaRemuneracaoHora = faixa) }
         aplicarFiltros()
+        return persistirPreferencia {
+            armazenamentoPreferencias.salvarFaixaRemuneracaoHora(faixa.minima, faixa.maxima, false)
+        }
     }
 
     fun aoSelecionarFiltroPeriodo(filtro: FiltroPeriodo) {
@@ -225,8 +242,7 @@ class FeedVagasViewModel(
         aplicarFiltros()
     }
 
-    fun aoLimparFiltrosAvancados() {
-        armazenamentoPreferencias.limparFaixaRemuneracaoHora()
+    fun aoLimparFiltrosAvancados(): Job {
         _estado.update {
             it.copy(
                 filtroRemuneracao = FiltroRemuneracao.QUALQUER,
@@ -235,6 +251,7 @@ class FeedVagasViewModel(
             )
         }
         aplicarFiltros()
+        return persistirPreferencia { armazenamentoPreferencias.limparFaixaRemuneracaoHora() }
     }
 
     private fun aplicarFiltros() {

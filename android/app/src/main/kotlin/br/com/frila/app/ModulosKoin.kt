@@ -34,7 +34,7 @@ import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltro
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
-import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroSharedPreferences
+import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
@@ -43,6 +43,7 @@ import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.dsl.onClose
 import org.koin.dsl.module
 
 /** Endpoint real do Supabase do Frila. Em produção isto vem de `BuildConfig`, não de literal. */
@@ -115,12 +116,11 @@ val moduloLocalizacao = module {
 }
 
 val moduloFeatures = module {
+    single { PreferenciasAndroid(get()) } onClose { it?.close() }
     single<ArmazenamentoPreferenciasFiltro> {
         getOrNull<Context>()
-            ?.let { ctx ->
-                ArmazenamentoPreferenciasFiltroSharedPreferences(
-                    ctx.getSharedPreferences("preferencias_filtros_vagas", Context.MODE_PRIVATE),
-                )
+            ?.let { _ ->
+                ArmazenamentoPreferenciasFiltroDataStore(get<PreferenciasAndroid>().dados)
             }
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
