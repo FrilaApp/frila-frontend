@@ -106,7 +106,7 @@ struct RotuloDeLinha: View {
         self.titulo = titulo
     }
 
-    var body: some View {
+    public var body: some View {
         HStack(spacing: FrilaEspaco.pequeno) {
             Text(verbatim: titulo)
                 .font(FrilaTipo.corpo)
@@ -127,7 +127,7 @@ struct RotuloDeLinha: View {
 
 /// Divisória entre as linhas de um grupo.
 struct DivisoriaDeLinha: View {
-    var body: some View {
+    public var body: some View {
         Rectangle()
             .fill(FrilaCor.divisoria)
             .frame(height: 1)
@@ -143,7 +143,7 @@ struct GrupoDeLinhas<Conteudo: View>: View {
         self.conteudo = conteudo()
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             DivisoriaDeLinha()
             conteudo
@@ -155,7 +155,7 @@ struct GrupoDeLinhas<Conteudo: View>: View {
 
 /// Contorno destrutivo para "Excluir conta"; o toque abre a tela de confirmação.
 struct BotaoDeExclusaoDeConta: View {
-    var body: some View {
+    public var body: some View {
         Text(verbatim: TextosPerfilConta.excluir).capsulaDestrutiva()
     }
 }
@@ -545,15 +545,15 @@ public struct TelaPerfilEstabelecimento: View {
 }
 
 
-struct TelaAjudaPerfil: View {
+public struct TelaAjudaPerfil: View {
     @Environment(\.dismiss) private var dismiss
-    let enderecos: EnderecosOficiais
+    public let enderecos: EnderecosOficiais
 
-    init(enderecos: EnderecosOficiais = .padrao) {
+    public init(enderecos: EnderecosOficiais = .padrao) {
         self.enderecos = enderecos
     }
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             List {
                 Section {
