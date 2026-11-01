@@ -20,23 +20,25 @@ Este documento apresenta o **inventário sistemático dos componentes SwiftUI de
 Indica processamento assíncrono em andamento (leitura de rede, gravação de dados ou consulta a sensores).
 
 - **Variantes Implementadas:**
-  1. *Esqueleto Concêntrico (Lista / Tela Inteira):* `EstadoCarregando` (`EstadosDeTela.swift:31–50`).
+  1. *Esqueleto Concêntrico Padrão (Lista / Tela Inteira):* `EstadoCarregando` (`EstadosDeTela.swift:31–50`).
      - **Estrutura visual:** `VStack` vertical centralizado com padding médio (`FrilaEspaco.medio`), composto por osso de cartão com raio concêntrico (`FrilaSkeletonBone.concentric(outerRadius: 16, height: 120)`) e duas pílulas de texto simulado (`FrilaSkeletonBone.pill(width: 160, height: 16)` e `FrilaSkeletonBone.pill(width: 240, height: 12)`).
      - **Acessibilidade:** `accessibilityElement(children: .ignore)` com rótulo `"Carregando…"`.
   2. *Botão Primário com Indicador:* `BotaoPrimario(..., carregando: true)` (`Componentes.swift:81–110`).
      - **Estrutura visual:** Fundo primário (`FrilaCor.primaria`), altura mínima de 44 pt. Enquanto `carregando: true`, o texto do botão é temporariamente ocultado e substituído por `ProgressView().tint(FrilaCor.sobrePrimaria)`.
      - **Comportamento:** O botão fica desativado (`.disabled(carregando)`) prevenindo cliques duplos concorrentes. O VoiceOver anuncia o valor `"Carregando"` via `accessibilityValue`.
-  3. *Processamento Inline / Sensor:* `ProgressView()` compacto horizontal em `SecaoDePresenca.swift:160–175`.
-     - **Estrutura visual:** `HStack` horizontal com spinner nativo e legenda textual secundária (`"Lendo sua localização…"`, `"Enviando…"`).
+  3. *Processamento Inline / Sensor (Presença):* `progresso(_ texto: String)` em `SecaoDePresenca.swift:225–233`.
+     - **Estrutura visual:** `HStack(spacing: FrilaEspaco.pequeno)` horizontal alinhado à esquerda com spinner nativo `ProgressView()`, texto em `FrilaTipo.meta` e cor `FrilaCor.textoSecundario`, com dimensão mínima de 44 pt (`minHeight: FrilaMetrica.alvoMinimo`). Usado nos estados `.lendo` ("Lendo sua localização…", linha 116) e `.enviando` ("Enviando…", linha 118).
+  4. *Spinner Próprio de Feed (Lista de Vagas):* `estadoCarregando` em `TelaVagas.swift:145–160`.
+     - **Estrutura visual:** `VStack(spacing: FrilaEspaco.medio)` vertical com `ProgressView().controlSize(.regular).tint(FrilaCor.texto)`, texto `TextosDoProfissional.Lista.carregando` em `FrilaTipo.tituloDeEstado` (`FrilaCor.texto`), com padding superior grande (`FrilaEspaco.enorme`). Implementação própria da lista para manter coerência com o cabeçalho de busca.
 - **Onde o app usa (arquivo:linha):**
-  - `EstadosDeTela.swift:31`: Definição de `EstadoCarregando`.
+  - `EstadosDeTela.swift:31`: Definição canônica de `EstadoCarregando`.
   - `FrilaApp.swift:356, 516`: Resolução da sessão de inicialização do app.
-  - `TelaVagas.swift:113`: Feed de vagas no DF durante a leitura assíncrona.
+  - `TelaVagas.swift:145–160`: Feed de vagas no DF (variante própria com spinner e título de estado).
   - `TelaMeusTurnos.swift:145, 146`: Lista de turnos ativos do profissional.
   - `TelaDetalheVaga.swift:70, 106`: Leitura de detalhes da vaga e ações do profissional.
   - `TelaPerfilProfissional.swift:96, 545`: Perfil profissional e botão "Salvar".
   - `CandidaturaEmSelecao.swift:405, 477, 478`: Aba de candidaturas em seleção.
-  - `SecaoDePresenca.swift:160`: Leitura de GPS e registro de presença no turno.
+  - `SecaoDePresenca.swift:225–233`: Leitura de GPS e registro de presença no turno (progresso inline lendo/enviando).
   - `TelaPorQueReceboVagas.swift:47, 48, 204`: Histórico de critérios e envio de contestação.
   - `PerfisDaConta.swift:194, 405`: Perfil da conta e ajuda do perfil.
   - `AcoesDeSeguranca.swift:208, 306`: Denúncia e perfil público de segurança.
@@ -65,11 +67,14 @@ Indica ausência de registros após busca, aplicação de filtros ou antes da pr
   1. *Padrão de Lista / Tela Inteira:* `EstadoVazio` (`EstadosDeTela.swift:12–29`), estruturado via `MensagemDeEstado` (`EstadosDeTela.swift:91–120`).
      - **Estrutura visual:** `VStack` vertical centralizado com padding grande (`FrilaEspaco.grande`), ícone SF Symbol `"tray"` em `FrilaTipo.tituloGrande` na cor `FrilaCor.textoSecundario`, título em `FrilaTipo.tituloDoCartao` (`FrilaCor.texto`) e mensagem em `FrilaTipo.meta` (`FrilaCor.textoSecundario`).
      - **Dimensão:** `frame(maxWidth: .infinity, minHeight: 160)`.
-  2. *Variante em Cartão Elevado:* Cartão com `.cartaoFrila()` em `MinhasVagas.swift:303–311`.
-     - **Estrutura visual:** Bloco elevado de conteúdo vazio com título em `.title3.bold()` e corpo secundário explicativo, seguido do botão de ação de publicação.
+  2. *Variante Própria com Ícone em Círculo e Ação (Minhas Vagas):* `estadoVazio` em `MinhasVagas.swift:503–530`.
+     - **Estrutura visual:** `VStack` vertical com `Image(systemName: "briefcase")` em `FrilaTipo.secao` e cor `FrilaCor.textoSecundario`, emoldurado por `Circle()` com preenchimento `FrilaCor.controle` (diâmetro `FrilaMetrica.circuloDeEstado`), título em `FrilaTipo.secao` (`TextosMinhasVagas.vaziaTitulo`), corpo em `FrilaTipo.corpo` (`TextosMinhasVagas.vaziaMensagem`) e `BotaoPrimario("Publicar vaga")` opcional quando o contratante possui a ação.
+  3. *Variante Própria com Lupa e Limpar Filtros (Feed de Vagas):* `estadoVazio` em `TelaVagas.swift:162–190`.
+     - **Estrutura visual:** `VStack` com `Image(systemName: "magnifyingglass")` em círculo de estado `FrilaCor.controle`, título em `FrilaTipo.tituloDeEstado` (*"Nenhuma vaga aberta"*), mensagem secundária (*"Mude os filtros ou puxe para atualizar."*) e botão secundário `BotaoSecundario("Limpar filtros")`.
 - **Onde o app usa (arquivo:linha):**
-  - `EstadosDeTela.swift:12`: Definição de `EstadoVazio`.
-  - `TelaVagas.swift:110–112`: Feed de vagas vazio (*"Nenhuma vaga aberta / Mude os filtros ou puxe para atualizar."*).
+  - `EstadosDeTela.swift:12`: Definição canônica de `EstadoVazio`.
+  - `TelaVagas.swift:162–190`: Feed de vagas vazio (variante própria com lupa e botão de limpar filtros).
+  - `MinhasVagas.swift:503–530`: Painel do contratante sem vagas (variante própria com maleta e CTA de publicar).
   - `TelaMeusTurnos.swift:149`: Lista de turnos vazia (*"Nenhum turno confirmado / Quando você tiver turnos confirmados..."*).
   - `CandidaturaEmSelecao.swift:485`: Candidaturas vazias (*"Nenhuma candidatura / As vagas a que você se candidatar..."*).
   - `CandidatosDaVaga.swift:478`: Candidatos vazios (*"Ninguém se candidatou ainda / Os candidatos aparecem aqui..."*).
@@ -87,8 +92,10 @@ Comunica falha de operação, recusa de regra de negócio pelo servidor ou erro 
   1. *Tela Inteira com Retentativa:* `EstadoErro` (`EstadosDeTela.swift:52–78`).
      - **Estrutura visual:** `VStack` com ícone SF Symbol `"exclamationmark.triangle"` em `FrilaCor.textoSecundario`, título fixo `"Algo deu errado"`, mensagem dinâmica e `BotaoPrimario("Tentar novamente", acao: tentarNovamente)`.
      - **Acessibilidade:** Modificador `AnunciarAoAparecer(tom: .erro)` para leitor de tela.
-  2. *Faixa / Banner Contextual:* `AvisoFrila(tom: .erro)` (`Componentes.swift:215–280`).
-     - **Estrutura visual:** Fundo preenchido com `FrilaCor.perigo` a 12% de opacidade, raio de 12 pt, ícone `"xmark.octagon.fill"` e texto em `.callout`.
+  2. *Faixa / Banner Contextual:* `AvisoFrila(tom: .erro)` (`Componentes.swift:399–427`).
+     - **Estrutura visual canônica no app:** Fundo neutro preenchido com `FrilaCor.controle` em todos os tons (sem tintura vermelha ou azul na implementação atual do app), raio de curvatura contínuo de **16 pt** (`FrilaRaio.aviso` em `DesignTokens.swift:78`), tipografia `FrilaTipo.aviso` e texto em `FrilaCor.texto`.
+     - **Ícones:** `.erro` usa `"xmark.octagon.fill"`, `.alerta` usa `"exclamationmark.triangle.fill"` e `.informativo` usa `"info.circle.fill"`.
+     - **Acessibilidade:** Prefixo dinâmico `"Erro: "` ou `"Alerta: "` gerado via `Self.prefixo(tom: tom)` para leitura do VoiceOver, combinado no anúncio semântico via `AnunciarAoAparecer`.
 - **Onde o app usa (arquivo:linha):**
   - `EstadosDeTela.swift:52`: Definição de `EstadoErro`.
   - `FrilaApp.swift:519`: Falha ao avaliar sessão na raiz do app.
@@ -144,11 +151,11 @@ Informa necessidade de autorização do sistema operacional ou estado transitór
      - **Estrutura:** Ícone de sino, título em `.largeTitle.bold()`, lista de benefícios com checkmarks, `BotaoPrimario("Ativar notificações")` e `BotaoSecundario("Agora não")`.
   2. *Aviso Fixo de Permissão Negada:* `AvisoDePermissaoDePush` (`TelasDaPermissaoDePush.swift:63–98`).
      - **Estrutura:** `AvisoFrila(tom: .alerta)` com `BotaoSecundario("Abrir Ajustes")`.
-  3. *Localização Pendente no Check-in:* `SecaoDePresenca.swift:78–99`.
-     - **Estrutura:** Bloco de contingência com `BotaoPrimario("Fazer check-in manual")` e opções de retorno/ajustes.
+  3. *Localização Pendente no Check-in (Contingência GPS):* `SecaoDePresenca.swift:119–153`.
+     - **Estrutura:** Bloco de contingência no estado `.semGPS(registro, motivo)` com aviso `Textos.semGPSTitulo` e explicações específicas para check-in ou check-out, botão ativo de registro manual (`botaoPresencaAtivo`, linhas 124–129), botão de retentativa de GPS (`botaoPresencaInativo`, linhas 130–135), link direto para Ajustes do sistema via `UIApplication.openSettingsURLString` (linhas 136–147) quando a permissão for negada ou localização for aproximada, e botão de cancelamento (linhas 148–152).
 - **Onde o app usa (arquivo:linha):**
   - `TelasDaPermissaoDePush.swift:9, 65`: Tela e banner de permissão de push.
-  - `SecaoDePresenca.swift:68, 78`: Falta de autorização de GPS no check-in.
+  - `SecaoDePresenca.swift:119–153`: Contingência de GPS e check-in manual.
   - `TelaVagas.swift:21`: Banner de permissão injetado no topo do feed.
   - `MinhasVagas.swift:287`: Banner de permissão injetado em Minhas Vagas.
 
@@ -159,11 +166,11 @@ Informa necessidade de autorização do sistema operacional ou estado transitór
 | # | Componente / Estado | Situação no Código SwiftUI | Lacuna para o Figma (Design) | Prioridade |
 |---|---|---|---|:---:|
 | 01 | **EstadoCarregando (Esqueleto)** | Utiliza `FrilaSkeletonBone.concentric` (cartão raio 16 pt, alt 120 pt) + 2 pílulas (`EstadosDeTela.swift:39–43`). | Criar componente de esqueleto concêntrico com tokens de cor claro/escuro (`ControlFill` e `Surface`) espelhando as dimensões exatas do código. | **Alta** |
-| 02 | **EstadoVazio (Slot de Ação)** | `EstadoVazio` exibe apenas ícone `"tray"`, título e texto (`EstadosDeTela.swift:27`). | No Figma há telas vazias que pedem botão (ex.: "Ver outras regiões" ou "Limpar filtros"). Definir se o componente ganha slot de CTA opcional. | **Média** |
-| 03 | **EstadoOffline e EstadoPendente** | Definidos em `EstadosDeTela.swift:80,85`, mas as telas consom `AvisoFrila` diretamente. | Padronizar no Figma os tokens e ícones de banner persistente para "Modo Avião / Dados em cache" (`.alerta`) e "Na fila local" (`.informativo`). | **Alta** |
-| 04 | **AvisoFrila Variante Sucesso** | `AvisoFrila` só possui `.alerta`, `.erro` e `.informativo`. Telas de sucesso usam `.informativo` (azul). | Definir se entra variante de banner `.sucesso` em verde (`FrilaCor.sucesso`) ou se confirmações mantêm o tom primário azul. | **Média** |
+| 02 | **EstadoVazio (Variantes e Slots de Ação)** | `EstadoVazio` exibe apenas ícone `"tray"`, título e texto (`EstadosDeTela.swift:27`). No app, `TelaVagas.swift:162` e `MinhasVagas.swift:503` implementam variantes próprias com círculos de estado e botões de ação ("Limpar filtros" e "Publicar vaga"). | No Figma, unificar e documentar as variantes com slot de botão de ação (CTA) para telas com filtros e ações de primeiro uso. | **Média** |
+| 03 | **EstadoOffline e EstadoPendente** | Definidos em `EstadosDeTela.swift:80,85`, consumindo `AvisoFrila` diretamente com fundo `FrilaCor.controle` e raio 16 pt (`FrilaRaio.aviso`). | Padronizar no Figma os tokens e ícones de banner persistente para "Modo Avião / Dados em cache" (`.alerta`) e "Na fila local" (`.informativo`). | **Alta** |
+| 04 | **AvisoFrila — Proposta Visual vs Código** | O código atual (`Componentes.swift:425`) usa `FrilaCor.controle` (fundo cinza neutro) e raio 16 pt para todos os tons. | Avaliar se o Figma introduzirá fundos tintados (ex.: vermelho perigo a 12% ou azul informativo) ou se preserva o fundo neutro de controle atual. | **Média** |
 | 05 | **BotaoPrimario com Carregando** | Texto é ocultado e substituído por `ProgressView().tint(FrilaCor.sobrePrimaria)`. | Espelhar no Figma a variante do botão com o spinner centralizado sobre a cor primária (altura 44 pt / 52 pt). | **Baixa** |
-| 06 | **Contingência de GPS / Localização** | `SecaoDePresenca.swift:78–99` usa layout com botões empilhados para check-in manual e link Ajustes. | Alinhar no Figma o frame da folha de presença quando o GPS estiver desligado ou em modo aproximado. | **Média** |
+| 06 | **Contingência de GPS / Localização** | `SecaoDePresenca.swift:119–153` usa layout com botões empilhados para check-in manual, retentativa e link Ajustes. | Alinhar no Figma o frame da folha de presença quando o GPS estiver desligado ou em modo aproximado. | **Média** |
 
 ---
 
