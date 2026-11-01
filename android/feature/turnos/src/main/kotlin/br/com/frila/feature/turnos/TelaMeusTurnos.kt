@@ -365,6 +365,7 @@ fun DialogoCancelamentoTurno(
     aoConfirmar: () -> Unit,
     aoVoltar: () -> Unit,
 ) {
+    val emitirFeedback = lembrarFeedbackAcaoCritica()
     AlertDialog(
         onDismissRequest = { if (!estado.enviando) aoVoltar() },
         title = {
@@ -432,7 +433,7 @@ fun DialogoCancelamentoTurno(
         confirmButton = {
             BotaoPrimario(
                 texto = if (estado.enviando) "Cancelando…" else "Confirmar cancelamento",
-                aoClicar = aoConfirmar,
+                aoClicar = { emitirFeedback(); aoConfirmar() },
                 habilitado = estado.podeConfirmar,
             )
         },
@@ -514,6 +515,7 @@ private fun SecaoDeCheckin(
     val viewModel = criarCheckinViewModel(turno.turnoId)
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
+    val emitirFeedback = lembrarFeedbackAcaoCritica()
 
     LaunchedEffect(estado.comprovante) {
         estado.comprovante?.let { aoExibirComprovante(it) }
@@ -574,11 +576,11 @@ private fun SecaoDeCheckin(
                             error(estado.mensagemErro ?: "Não foi possível registrar o check-in.")
                         },
                     )
-                    BotaoSecundario(texto = "Tentar novamente", aoClicar = { viewModel.fazerCheckin() })
+                    BotaoSecundario(texto = "Tentar novamente", aoClicar = { emitirFeedback(); viewModel.fazerCheckin() })
                 }
             }
             else -> {
-                BotaoSecundario(texto = "Fazer check-in", aoClicar = { viewModel.fazerCheckin() })
+                BotaoSecundario(texto = "Fazer check-in", aoClicar = { emitirFeedback(); viewModel.fazerCheckin() })
             }
         }
     }
