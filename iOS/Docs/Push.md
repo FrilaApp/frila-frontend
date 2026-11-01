@@ -202,7 +202,7 @@ sai da central de notificações (na abertura, a cada mudança do vínculo e ao 
   Ele também **sai da central** no descarte: quem entra perde os próprios avisos desse primeiro
   minuto, e só os vê pelas telas do app.
 
-### Extensão de serviço de notificação (`FrilaNotificationService`, #253, h6RoObK6)
+### Extensão de serviço de notificação (`FrilaNotificationService`, #253, Cartão 57 / h6RoObK6)
 
 Para fechar a janela da tela bloqueada e do app fechado, o backend manda `mutable-content: 1` e o
 `vinculo_id` opaco em `data` (backend #178, contrato 0.2.30). Antes de o sistema exibir o aviso na
@@ -419,7 +419,7 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
 3. **App aberto, em segundo plano e fechado.** O toque abre o mesmo destino nos três.
 4. **Reinstalação.** Apague o app, instale de novo e entre: o token novo aparece no servidor, e o
    antigo deixa de receber.
-5. **Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6):**
+5. **Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6 / Cartão 57):**
    - Instalar o build assinado no iPhone e entrar com a Conta A. Aguardar a confirmação de `registrar_dispositivo` antes de bloquear o iPhone (o registro roda numa tarefa da view em `FrilaApp.swift:395-401` e o vínculo só é gravado no App Group por `AparelhoDePush.swift:155/167-168/225-227` após a resposta da rede).
    - Bloquear a tela ou fechar o app. Enviar push para a Conta A com `mutable-content: 1` e `vinculo_id`
      da Conta A → o aviso aparece com título e corpo originais.
