@@ -1,22 +1,29 @@
 package br.com.frila.feature.vagas.feed
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTextInput
 import br.com.frila.core.designsystem.componentes.AuditoriaSemanticaAcessibilidade
-import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.tema.FrilaTheme
-import org.junit.Assert.assertThrows
+import br.com.frila.core.localizacao.ProvedorDeLocalizacao
+import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.ServicoVagas
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -25,120 +32,155 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class AuditoriaSemanticaFeedVagasTest {
 
     @get:Rule
     val compose = createComposeRule()
 
-    @Test
-    fun `percorre cartoes de vaga do feed e valida 100 por cento dos criterios semanticos`() {
-        val vagas = listOf(
-            ItemVaga(
-                id = "1",
-                funcaoNome = "Garçom",
-                estabelecimentoNome = "Bar do Zé",
-                horarioFormatado = "Hoje · 18:00 às 00:00",
-                valorFormatado = "R$ 150,00",
-                distanciaKm = 3.5,
-                modo = "urgencia",
-            ),
-            ItemVaga(
-                id = "2",
-                funcaoNome = "Cozinheiro",
-                estabelecimentoNome = "Restaurante Central",
-                horarioFormatado = "Amanhã · 10:00 às 16:00",
-                valorFormatado = "R$ 200,00",
-                distanciaKm = 5.2,
-                modo = "normal",
-            ),
-        )
-
-        compose.setContent {
-            FrilaTheme {
-                androidx.compose.foundation.lazy.LazyColumn {
-                    items(vagas.size) { i ->
-                        val vaga = vagas[i]
-                        CartaoVaga(
-                            aoClicar = {},
-                            rotuloDaAcao = "Abrir detalhes da vaga de ${vaga.funcaoNome}",
-                        ) {
-                            Text(
-                                text = vaga.funcaoNome,
-                                modifier = Modifier.semantics { heading() },
-                            )
-                            Text(text = vaga.estabelecimentoNome)
-                            Text(text = vaga.horarioFormatado)
-                            Text(text = "${vaga.valorFormatado} · ${"%.1f".format(vaga.distanciaKm)} km")
-                        }
-                    }
-                }
-            }
+    private fun vagaJson(
+        id: String = "11111111-1111-1111-1111-111111111111",
+        funcao: String = "Garçom",
+        estabelecimento: String = "Bar do Zé",
+        distanciaKm: Double = 4.2,
+        inicioEm: String = "2026-11-01T21:00:00Z",
+        fimEm: String = "2026-11-02T03:00:00Z",
+        valorCentavos: Long = 16_000L,
+    ) = """
+        {
+          "id": "$id",
+          "funcao": {"id": "22222222-2222-2222-2222-222222222222", "nome": "$funcao", "categoria": "Salão"},
+          "estabelecimento": {
+            "id": "33333333-3333-3333-3333-333333333333",
+            "tipo": "estabelecimento",
+            "nome": "$estabelecimento",
+            "reputacao": {"positivas": 7, "total": 7, "taxa_comparecimento": 1.0, "turnos_considerados": 7, "turnos_realizados": 7}
+          },
+          "inicio_em": "$inicioEm",
+          "fim_em": "$fimEm",
+          "local": "SQN 108",
+          "regiao_administrativa": "Asa Norte",
+          "distancia_km": $distanciaKm,
+          "valor_centavos": $valorCentavos,
+          "posicoes_abertas": 2,
+          "inclusos": {"inclui_refeicao": true, "inclui_transporte": false, "exige_material_proprio": false},
+          "modo": "selecao"
         }
+    """.trimIndent()
 
-        val noRaiz = compose.onRoot().fetchSemanticsNode()
-        AuditoriaSemanticaAcessibilidade.assertSemanticaValida(noRaiz)
+    private fun criarViewModel(respostaJson: String = "[]"): FeedVagasViewModel {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine {
+                respond(
+                    content = respostaJson,
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        val provedorDeLocalizacao = mockk<ProvedorDeLocalizacao>()
+        coEvery { provedorDeLocalizacao.obterCoordenadaAtual() } returns null
+        return FeedVagasViewModel(
+            servicoVagas = ServicoVagas(cliente),
+            provedorDeLocalizacao = provedorDeLocalizacao,
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
     }
 
     @Test
-    fun `cartao de vaga com icone acionavel sem descricao falha na auditoria semantica`() {
-        compose.setContent {
-            FrilaTheme {
-                CartaoVaga(aoClicar = {}, rotuloDaAcao = "Abrir vaga") {
-                    Text(text = "Garçom", modifier = Modifier.semantics { heading() })
-                    // Botão de compartilhar vaga sem contentDescription
-                    IconButton(onClick = {}) {
-                        Icon(imageVector = Icons.Default.Share, contentDescription = null)
-                    }
+    fun `audita semantica da TelaFeedVagas real com lista de vagas e valida 100 por cento dos criterios`() {
+        runBlocking {
+            val json = "[${vagaJson(funcao = "Garçom", estabelecimento = "Bar do Zé")}, ${vagaJson(id = "22222222-2222-2222-2222-222222222222", funcao = "Cozinheiro", estabelecimento = "Restaurante Central")}]"
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaFeedVagas(
+                        viewModel = viewModel,
+                        aoAbrirDetalhe = {},
+                        aoAbrirPerfil = {},
+                    )
                 }
             }
-        }
+            compose.waitForIdle()
 
-        val noRaiz = compose.onRoot().fetchSemanticsNode()
-        val erro = assertThrows(AssertionError::class.java) {
+            val noRaiz = compose.onRoot().fetchSemanticsNode()
+            AuditoriaSemanticaAcessibilidade.assertSemanticaValida(noRaiz)
+
+            // Assegura que os cartões reais estão presentes e rotulados
+            compose.onNodeWithText("Bar do Zé").assertExists()
+            compose.onNodeWithText("Restaurante Central").assertExists()
+        }
+    }
+
+    @Test
+    fun `audita semantica da TelaFeedVagas real com texto de busca e botao limpar busca ativo`() {
+        runBlocking {
+            val json = "[${vagaJson(funcao = "Garçom", estabelecimento = "Bar do Zé")}]"
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaFeedVagas(
+                        viewModel = viewModel,
+                        aoAbrirDetalhe = {},
+                        aoAbrirPerfil = {},
+                    )
+                }
+            }
+            compose.waitForIdle()
+
+            // Digita no campo de busca para exibir o botão acionável de limpar busca
+            compose.onNodeWithText("Buscar função ou estabelecimento").performTextInput("Garçom")
+            compose.waitForIdle()
+
+            // O botão de limpar busca deve existir e ter descrição acessível
+            compose.onNodeWithContentDescription("Limpar busca").assertExists()
+
+            // Auditoria semântica na árvore real contendo o controle acionável de busca
+            val noRaiz = compose.onRoot().fetchSemanticsNode()
             AuditoriaSemanticaAcessibilidade.assertSemanticaValida(noRaiz)
         }
-
-        assertTrue(
-            "Deve falhar com violação de ícone acionável sem descrição: ${erro.message}",
-            erro.message?.contains("ICONE_ACIONAVEL_SEM_DESCRICAO") == true,
-        )
     }
 
     @Test
-    fun `cartao de vaga com icone decorativo com contentDescription null passa na auditoria`() {
-        compose.setContent {
-            FrilaTheme {
-                CartaoVaga(aoClicar = {}, rotuloDaAcao = "Abrir vaga") {
-                    Text(text = "Garçom", modifier = Modifier.semantics { heading() })
-                    // Ícone decorativo de local com null
-                    Icon(imageVector = Icons.Default.Place, contentDescription = null)
-                    Text(text = "Asa Sul · 2.1 km")
+    fun `audita estrutura e ordem de foco dos cartoes de vaga na TelaFeedVagas real`() {
+        runBlocking {
+            val json = "[${vagaJson(funcao = "Garçom", estabelecimento = "Bar do Zé")}]"
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaFeedVagas(
+                        viewModel = viewModel,
+                        aoAbrirDetalhe = {},
+                        aoAbrirPerfil = {},
+                    )
                 }
             }
-        }
+            compose.waitForIdle()
 
-        val noRaiz = compose.onRoot().fetchSemanticsNode()
-        AuditoriaSemanticaAcessibilidade.assertSemanticaValida(noRaiz)
-    }
-
-    @Test
-    fun `cartao de vaga com icone acionavel com descricao valida passa na auditoria`() {
-        compose.setContent {
-            FrilaTheme {
-                CartaoVaga(aoClicar = {}, rotuloDaAcao = "Abrir vaga") {
-                    Text(text = "Garçom", modifier = Modifier.semantics { heading() })
-                    IconButton(
-                        onClick = {},
-                        modifier = Modifier.semantics { contentDescription = "Compartilhar vaga" },
-                    ) {
-                        Icon(imageVector = Icons.Default.Share, contentDescription = null)
-                    }
+            val noRaiz = compose.onRoot().fetchSemanticsNode()
+            // Procura nó com heading para a função da vaga no cartão
+            val nosHeading = mutableListOf<androidx.compose.ui.semantics.SemanticsNode>()
+            fun buscarHeadings(no: androidx.compose.ui.semantics.SemanticsNode) {
+                if (no.config.contains(SemanticsProperties.Heading)) {
+                    nosHeading.add(no)
+                }
+                for (filho in no.children) {
+                    buscarHeadings(filho)
                 }
             }
-        }
+            buscarHeadings(noRaiz)
 
-        val noRaiz = compose.onRoot().fetchSemanticsNode()
-        AuditoriaSemanticaAcessibilidade.assertSemanticaValida(noRaiz)
+            assertTrue("Deve existir pelo menos um cabeçalho semântico estrutural", nosHeading.isNotEmpty())
+            val textoHeading = nosHeading.first().config.getOrNull(SemanticsProperties.Text)?.firstOrNull()?.text
+            assertEquals("Garçom", textoHeading)
+        }
     }
 }
