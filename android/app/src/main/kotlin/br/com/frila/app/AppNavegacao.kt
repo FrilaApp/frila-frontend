@@ -2,10 +2,13 @@ package br.com.frila.app
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -147,6 +150,7 @@ fun AppNavegacao(
 
             composable(Rotas.FEED) {
                 val viewModel: FeedVagasViewModel = koinViewModel()
+                LaunchedEffect(viewModel) { viewModel.carregar() }
                 TelaFeedVagas(
                     viewModel = viewModel,
                     aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
@@ -162,11 +166,20 @@ fun AppNavegacao(
                 val feedAnterior = navController.previousBackStackEntry?.let {
                     koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
                 }
-                val vaga: VagaAbertaDto? = feedAnterior?.encontrarVagaPorId(vagaId)
+                val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
+                val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
 
                 if (vaga != null) {
                     val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(vaga) })
-                    TelaDetalheVaga(viewModel = viewModel)
+                    Column {
+                        if (estadoFeed.emCache) Text(
+                            "Disponibilidade não confirmada. Conecte-se e atualize o feed antes de se candidatar.",
+                            modifier = Modifier.padding(16.dp),
+                        )
+                        TelaDetalheVaga(viewModel = viewModel)
+                    }
+                } else {
+                    Text("Vaga indisponível. Atualize o feed para consultar as vagas abertas.")
                 }
             }
 

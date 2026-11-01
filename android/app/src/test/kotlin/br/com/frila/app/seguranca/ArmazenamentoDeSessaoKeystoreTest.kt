@@ -2,6 +2,7 @@ package br.com.frila.app.seguranca
 
 import android.app.Application
 import android.content.Context
+import br.com.frila.app.SessaoComCacheVagas
 import br.com.frila.app.moduloSeguranca
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.Sessao
@@ -120,7 +121,7 @@ class ArmazenamentoDeSessaoKeystoreTest {
             modules(moduloSeguranca)
         }
 
-        assertTrue(GlobalContext.get().get<ArmazenamentoDeSessao>() is ArmazenamentoDeSessaoKeystore)
+        assertTrue((GlobalContext.get().get<ArmazenamentoDeSessao>() as SessaoComCacheVagas).origem is ArmazenamentoDeSessaoKeystore)
     }
 
     private fun novoArmazenamento() = ArmazenamentoDeSessaoKeystore(contexto) {

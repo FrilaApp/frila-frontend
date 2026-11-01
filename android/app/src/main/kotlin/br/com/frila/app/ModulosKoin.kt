@@ -22,6 +22,7 @@ import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
+import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
@@ -50,10 +51,11 @@ private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
 
 /** Usa Android Keystore em produção e mantém o grafo utilizável em testes JVM sem [Context]. */
 val moduloSeguranca = module {
+    single { CacheVagasDaSessao(getOrNull<Context>()?.noBackupFilesDir) }
     single<ArmazenamentoDeSessao> {
-        getOrNull<Context>()
-            ?.let(::ArmazenamentoDeSessaoKeystore)
+        val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)
             ?: ArmazenamentoDeSessaoEmMemoria()
+        SessaoComCacheVagas(origem, get())
     }
     /** RN15 (cartão Cdv0sS5w): leitura do ambiente para VerificadorDeIntegridade. */
     single<LeitorDeAmbiente> {
@@ -80,6 +82,11 @@ val moduloRede = module {
     }
     single { ServicoAutenticacao(get()) }
     single { ServicoVagas(get()) }
+    factory {
+        val servico = get<ServicoVagas>()
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        get<CacheVagasDaSessao>().criar(armazenamento) { coordenada -> servico.listarVagasAbertas(coordenada) }
+    }
     single { ServicoDispositivo(get()) }
     single { ServicoTurnos(get()) }
     single { ServicoPerfil(get()) }
@@ -120,7 +127,7 @@ val moduloFeatures = module {
     viewModel { EntradaViewModel(get()) }
     viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
     viewModel { CadastroViewModel() }
-    viewModel { FeedVagasViewModel(get(), get(), get()) }
+    viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     single { MonitorizadorDeTurnosProximos(gerenciadorGeofencing = get(), preferenciasNotificacao = get()) }
     viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }

@@ -124,4 +124,38 @@ class TelaDesbloqueioBiometricoTest {
         assertTrue(!autenticarFoiChamado)
         rule.onNodeWithText("Entrar com outra conta").assertIsDisplayed()
     }
+    @Test fun entrarComOutraContaApagaDiscoEMemoriaAntesDeNavegar() {
+        val raiz = java.nio.file.Files.createTempDirectory("cache-sessao-teste").toFile()
+        try {
+            val cache = CacheVagasDaSessao(raiz)
+            val armazenamento = SessaoComCacheVagas(br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria(), cache)
+            val corpo = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"sub\":\"conta-sintetica\"}".toByteArray())
+            armazenamento.salvarSessao(br.com.frila.core.seguranca.Sessao("cabecalho.$corpo.teste", "teste", "bearer", 60))
+            val arquivo = arquivoCacheVagas(raiz, armazenamento.obterSessao())!!
+            val repo = cache.criar(armazenamento) { emptyList() }
+            kotlinx.coroutines.runBlocking { repo.listar() }
+            assertTrue(arquivo.exists())
+            var navegou = false
+            rule.setContent {
+                FrilaTheme {
+                    TelaDesbloqueioBiometrico(
+                        armazenamentoDeSessao = armazenamento,
+                        aoDesbloquear = {},
+                        aoEntrarComOutraConta = {
+                            org.junit.Assert.assertNull(armazenamento.obterSessao())
+                            org.junit.Assert.assertFalse(arquivo.exists())
+                            kotlinx.coroutines.runBlocking { org.junit.Assert.assertNull(repo.obterCache()) }
+                            navegou = true
+                        },
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.SEM_HARDWARE },
+                    )
+                }
+            }
+            rule.onNodeWithText("Entrar com outra conta").performClick()
+            rule.waitForIdle()
+            assertTrue(navegou)
+        } finally { raiz.deleteRecursively() }
+    }
+
 }
