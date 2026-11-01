@@ -3,6 +3,7 @@ package br.com.frila.app
 import android.content.Context
 import br.com.frila.app.conectividade.MonitorDeConectividadeAndroid
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
+import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
@@ -15,6 +16,7 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemori
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
@@ -64,6 +66,15 @@ val moduloSeguranca = module {
             ?.let(::LeitorDeAmbienteAndroid)
             ?: LeitorDeAmbienteNulo()
     }
+    /** Cartão 101: coordenador central de logout com limpeza segura de dados. */
+    single {
+        CoordenadorDeLogout(
+            armazenamentoDeSessao = get(),
+            diretorioCache = getOrNull<Context>()?.cacheDir,
+            diretorioArquivos = getOrNull<Context>()?.filesDir,
+            gestorClienteKtor = getOrNull(),
+        )
+    }
 }
 
 val moduloRede = module {
@@ -73,14 +84,18 @@ val moduloRede = module {
             ?.let(::MonitorDeConectividadeAndroid)
             ?: MonitorDeConectividadeFalso()
     }
+    /** Cartão 101: gestor de ciclo de vida do cliente Ktor para recriação limpa após logout. */
     single {
-        ClienteSupabase(
-            baseUrl = SUPABASE_URL,
-            apiKey = SUPABASE_ANON_KEY,
-            armazenamentoDeSessao = get(),
-            monitorDeConectividade = get(),
-        )
+        GestorClienteKtor {
+            ClienteSupabase(
+                baseUrl = SUPABASE_URL,
+                apiKey = SUPABASE_ANON_KEY,
+                armazenamentoDeSessao = get(),
+                monitorDeConectividade = get(),
+            )
+        }
     }
+    single { get<GestorClienteKtor>().clienteAtual }
     single { ServicoAutenticacao(get()) }
     single { ServicoVagas(get()) }
     factory {

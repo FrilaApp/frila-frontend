@@ -432,4 +432,19 @@ class ClienteSupabaseTest {
 
         assertTrue(excecao is kotlinx.coroutines.CancellationException)
     }
+
+    @Test
+    fun `fechar cliente marca como fechado e fecha http`() = runTest {
+        val engine = MockEngine { respond("ok", HttpStatusCode.OK) }
+        val cliente = clienteCom(engine)
+
+        org.junit.jupiter.api.Assertions.assertFalse(cliente.estaFechado)
+
+        cliente.close()
+
+        assertTrue(cliente.estaFechado)
+        // Chamada idempotente adicional não lança exceção
+        cliente.close()
+        assertTrue(cliente.estaFechado)
+    }
 }
