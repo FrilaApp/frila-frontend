@@ -190,7 +190,7 @@ Exibida quando a notificação traz um identificador de turno que não pertence 
 | Nenhum push com motivo de suspensão | **Atendido** | Push de suspensão contém mensagem neutra e genérica ("Aviso sobre sua conta / Sua conta foi suspensa. Abra o aplicativo para mais detalhes."). |
 | Nenhum push com relato de denúncia | **Atendido** | Denúncias e relatos são restritos ao canal interno da Equipe Frila e e-mail operacional. |
 | Sem promessa vaga de tempo | **Atendido** | Prazos baseados exclusivamente em marcos objetivos ("às 19:00", "em 3 horas", "ao chegar ao local"). |
-| Contagem de caracteres e compatibilidade com iPhone SE | **Pendente de capturas no SE** | A contagem é coberta por `TextosDeNotificacaoTests`, com exceção documentada de `candidatura_recusada` (128 car. no contrato). Esse teste não verifica corte na tela bloqueada. Falta conferir cada texto no simulador do iPhone SE (3ª geração) e anexar as capturas ao cartão `VyY2SGsX`. |
+| Contagem de caracteres e compatibilidade com iPhone SE | **Atendido (com evidências)** | A contagem é coberta por `TextosDeNotificacaoTests` e a renderização visual foi conferida no simulador do iPhone SE (3ª geração) com envio de todos os 19 tipos via `xcrun simctl push`. Capturas e relatório consolidado disponíveis em [`Evidencias/relatorio-truncamento-push-se.md`](Evidencias/relatorio-truncamento-push-se.md) e pasta [`Evidencias/push-se/`](Evidencias/push-se/). Prova visual confirmou o truncamento do texto contratual de 128 car. e a conformidade da proposta de 79 car. (Critério 2 do cartão `VyY2SGsX`). |
 
 ---
 
