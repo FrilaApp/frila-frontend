@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -147,6 +148,7 @@ fun AppNavegacao(
 
             composable(Rotas.FEED) {
                 val viewModel: FeedVagasViewModel = koinViewModel()
+                LaunchedEffect(viewModel) { viewModel.carregar() }
                 TelaFeedVagas(
                     viewModel = viewModel,
                     aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },

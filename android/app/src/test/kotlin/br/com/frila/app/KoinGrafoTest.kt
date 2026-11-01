@@ -4,6 +4,7 @@ import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.FuncaoDto
@@ -106,7 +107,10 @@ class KoinGrafoTest : KoinTest {
 
         assertNotNull(get<EntradaViewModel>())
         assertNotNull(get<CadastroViewModel>())
-        assertNotNull(get<FeedVagasViewModel>())
+        val feed = get<FeedVagasViewModel>()
+        val propriedadeCache = FeedVagasViewModel::class.memberProperties.single { it.name == "repositorioVagas" }
+        propriedadeCache.isAccessible = true
+        assertInstanceOf(RepositorioVagas::class.java, propriedadeCache.get(feed))
         assertNotNull(get<PerfilViewModel>())
         assertNotNull(get<MonitorizadorDeTurnosProximos>())
         assertNotNull(get<MeusTurnosViewModel>())

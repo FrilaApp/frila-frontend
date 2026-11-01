@@ -84,4 +84,5 @@ data class EstadoFeed(
     val exibindoFiltrosAvancados: Boolean = false,
     val mensagemErro: String? = null,
     val atualizando: Boolean = false,
+    val emCache: Boolean = false,
 )
