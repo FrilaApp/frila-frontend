@@ -1,0 +1,90 @@
+{
+  "app": "Frila",
+  "versao": "1.0.0",
+  "build": "1",
+  "data_geracao": "2026-11-01T05:42:27Z",
+  "dispositivo": "iPhone 17 Pro Max (83AEA671-F077-4AFC-A3D9-B1C94491E6B8)",
+  "udid": "83AEA671-F077-4AFC-A3D9-B1C94491E6B8",
+  "dimensoes_esperadas": ["1320x2868", "1290x2796"],
+  "capturas": [
+    {
+      "id": "01_profissional_vagas_feed.png",
+      "titulo": "Feed de Vagas no DF",
+      "descricao": "Lista de oportunidades de turnos com remuneração e localização claras",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "3a731cb0a40e84ba6ed1d935a3f885c96be8f8128a75586867ff4ce95d2d22e6",
+      "privacidade_conforme": true
+    }
+    ,
+    {
+      "id": "02_profissional_detalhe_vaga.png",
+      "titulo": "Detalhe da Vaga",
+      "descricao": "Informações completas do turno com valor fechado e sem taxas",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "06fdfd797daa9d5283675adc8b5759d282f1dad6742b02b9b37e9e7804dc21c5",
+      "privacidade_conforme": true
+    }
+    ,
+    {
+      "id": "03_profissional_avaliacao_turno.png",
+      "titulo": "Avaliação Mútua",
+      "descricao": "Avaliação confidencial de pontualidade e ambiente de trabalho",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "2cec2dbe4c9fdea0fd9c9428c578b7b1a6eb18189a8c582fe80347b6490f2457",
+      "privacidade_conforme": true
+    }
+    ,
+    {
+      "id": "04_contratante_minhas_vagas.png",
+      "titulo": "Painel Minhas Vagas",
+      "descricao": "Painel de acompanhamento de vagas abertas e candidatos do estabelecimento",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "a8e99446a0c3cf9b6c07f97f9549b28d53ca8cad323c3a1022ca12107b11c48b",
+      "privacidade_conforme": true
+    }
+    ,
+    {
+      "id": "05_contratante_detalhe_vaga.png",
+      "titulo": "Gestão de Vaga do Estabelecimento",
+      "descricao": "Gestão de posições preenchidas e acompanhamento da equipe",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "e0dd45b1f4f56eec943c3262946821716b22b8633bb65ca4f60c58f11402a68f",
+      "privacidade_conforme": true
+    }
+    ,
+    {
+      "id": "06_contratante_cadastro_estabelecimento.png",
+      "titulo": "Cadastro do Negócio",
+      "descricao": "Cadastro simples e síncrono para início rápido de publicação",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "bf9ea62879ebf81ed45c69cbcac2cdd2b4b6162e966eab6316c7a7dc287ba6ac",
+      "privacidade_conforme": true
+    }
+    ,
+    {
+      "id": "07_geral_suporte_turno.png",
+      "titulo": "Suporte e Segurança",
+      "descricao": "Canal integrado de ajuda para ocorrências e suporte durante o turno",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "03ab5f534cde9d97a16306524beee0ed1dc574f87a8c4551a3c8ad1f984ff6f8",
+      "privacidade_conforme": true
+    }
+    ,
+    {
+      "id": "08_geral_entrada_autenticacao.png",
+      "titulo": "Autenticação Sem Senha",
+      "descricao": "Acesso seguro e sem atritos por código de verificação no e-mail",
+      "largura_px": 1320,
+      "altura_px": 2868,
+      "sha256": "ba1d68e3d443821429fe47fbf1b161cd9256eac07af6b2aa1e76728a5e478737",
+      "privacidade_conforme": true
+    }
+  ]
+}
