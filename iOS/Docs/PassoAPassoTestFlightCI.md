@@ -112,30 +112,35 @@ Após a conclusão verde do workflow no GitHub Actions:
 
 ## 7. Como Conferir a Simbolização no Crashlytics
 
-Para garantir que relatórios de falhas inesperadas cheguem legíveis com as linhas exatas do código Swift:
+Para que relatórios de falhas inesperadas cheguem legíveis com as linhas exatas do código Swift, há duas etapas distintas:
 
+### 7.1 Conferência do Envio de Símbolos (dSYMs)
 1. Acesse o **Console do Firebase** em [console.firebase.google.com](https://console.firebase.google.com/).
-2. Selecione o projeto correto:
-   - `frila-app-dev` para compilações do esquema `Frila-Beta`.
-   - `frila-app-prod` para compilações do esquema `Frila-Prod`.
-3. No menu lateral esquerdo, navegue até **Release & Monitor > Crashlytics**.
-4. Clique na aba superior **dSYMs**.
-5. Verifique a lista de versões e builds:
-   - O número do build enviado deve constar com status **OK** (Símbolos enviados com sucesso).
-   - Não deve haver avisos com triângulo amarelo indicando *"Missing dSYM"* para a versão correspondente.
-   - *Nota:* Como a CI executa o upload dos dSYMs durante a própria esteira via `upload-symbols`, os símbolos chegam ao Firebase antes mesmo de os primeiros usuários abrirem o app.
+2. Selecione o projeto associado ao ambiente correspondente (conforme configurado em `GoogleService-Info.plist` para Dev/Beta ou Prod).
+3. No menu lateral esquerdo, navegue até **Release & Monitor > Crashlytics** e clique na aba superior **dSYMs**.
+4. Verifique se o build enviado consta com status **OK** (símbolos processados sem triângulo amarelo de aviso *"Missing dSYM"*).
+   - *Nota:* A CI executa o upload dos dSYMs durante o job via `upload-symbols` (`testflight.yml`).
+
+### 7.2 Comprovação Efetiva da Simbolização de Falhas (Ensaio de Falha)
+A simples presença de dSYMs no painel atesta o recebimento dos arquivos de símbolo, mas não substitui a comprovação funcional de que uma falha real chega desofuscada. O procedimento canônico e obrigatório do projeto para comprovar a simbolização é o **Ensaio de Falha do TestFlight** (`iOS/Docs/CI.md:339–349`):
+1. No disparo manual do workflow (`testflight.yml`), ative a opção **Ensaio de falha** (`FRILA_ENSAIO_FALHA: true`). Esse parâmetro compila o botão especial `BotaoDeFalhaDoEnsaio` (`FalhaDoEnsaio.swift`) e marca a compilação como `testFlightInternalTestingOnly`.
+2. Instale o build de ensaio no iPhone via TestFlight (grupo interno).
+3. Toque em **Forçar falha (ensaio)** no canto inferior da tela. O aplicativo será encerrado intencionalmente.
+4. Abra o aplicativo novamente, sem reinstalar (o envio do relatório de travamento ao Firebase ocorre no lançamento subsequente).
+5. No painel do Crashlytics do projeto de desenvolvimento, confirme o registro da falha *"Falha forçada do ensaio do TestFlight"*, verificando se a pilha de execução (stack trace) aparece 100% legível com nomes de funções, arquivos (`FalhaDoEnsaio.swift`) e linhas de código Swift desofuscadas.
+6. *Nota Operacional:* A execução deste ensaio em aparelho físico é uma tarefa de teste reservada para a homologação humana antes da liberação a grupos externos.
 
 ---
 
-## 8. O que SÓ PESSOA COM CONTA APPLE Faz (Atividades Humanas)
+## 8. Atividades Reservadas a Pessoas Responsáveis (Governança e Política do Frila)
 
-Agentes automatizados de IA realizam a compilação, testes, empacotamento, envio e documentação técnica. As atividades abaixo dependem exclusivamente de uma **pessoa física com privilégios de Account Holder ou Admin** na conta da Apple e não podem ser realizadas por automação:
+Embora a API da App Store Connect disponibilize endpoints para operações de gerenciamento de perfis, grupos beta e submissões, **por governança estrita do projeto Frila, integridade de segurança e política definida pelos sócios**, as seguintes ações são categoricamente reservadas a pessoas físicas responsáveis (Account Holder ou Admin):
 
-1. **Aceitar Acordos Legais e Termos da Apple:** Qualquer alteração no *Apple Developer Program License Agreement* ou no *Paid Applications Agreement* exige que o titular da conta (Cauê Carneiro ou João Paulo) acesse o portal e clique em "Agree". Enquanto houver termos pendentes, a Apple bloqueia processamentos de TestFlight.
-2. **Gerar ou Renovar Certificados de Distribuição:** Apenas o titular pode solicitar certificados `Apple Distribution` no [developer.apple.com](https://developer.apple.com) e exportar a chave privada `.p12` para salvar nos segredos.
-3. **Criar e Renovar Perfis de Provisionamento:** A geração de perfis App Store no Developer Portal e o download do `.mobileprovision` anual (os perfis vigentes vencem em 01/07/2027) é atribuição humana.
-4. **Gerenciar Grupos Externos no TestFlight:**
-   - Adicionar ou remover e-mails de testadores externos convidados no TestFlight.
-   - Criar links públicos de convite para grupos de teste.
-5. **Submissão para Beta App Review:** Quando um build novo é disponibilizado para um grupo externo pela primeira vez, a Apple exige a submissão para revisão manual do TestFlight (*Beta App Review*), que é iniciada manualmente na interface do App Store Connect.
-6. **Aprovação Final para Produção na App Store:** A liberação definitiva do build 1.0 para todos os usuários na loja da Apple é uma decisão comercial e jurídica do titular da conta.
+1. **Aceitar Acordos Legais e Termos da Apple:** Qualquer atualização no *Apple Developer Program License Agreement* ou no *Paid Applications Agreement* exige anuência jurídica exclusiva do titular da conta (Account Holder, Cauê Carneiro ou João Paulo). A Apple bloqueia compilações do TestFlight enquanto houver termos pendentes.
+2. **Emissão e Guarda de Certificados de Distribuição:** Os certificados `Apple Distribution` e suas chaves privadas `.p12` são gerados e mantidos manualmente por pessoa com perfil de Account Holder ou Admin. É estritamente proibida a criação automatizada de certificados na CI, mitigando qualquer risco de revogação inadvertida de perfis corporativos.
+3. **Criação e Renovação de Perfis de Provisionamento:** A geração de perfis App Store no Developer Portal e a atualização periódica do `.mobileprovision` anual são realizadas e validadas manualmente.
+4. **Governança de Grupos Externos no TestFlight:**
+   - Adicionar ou remover e-mails de testadores externos convidados.
+   - Criar e gerenciar links públicos de convite para os grupos de validação do piloto no Distrito Federal.
+5. **Decisão de Submissão para Beta App Review:** A submissão inicial de compilações para revisão externa do TestFlight (*Beta App Review*) é iniciada intencionalmente por pessoa na interface web do App Store Connect, evitando abertura prematura de versões sem conferência humana.
+6. **Aprovação Definitiva de Lançamento na App Store:** A liberação do build 1.0 para o público geral na App Store é uma decisão soberana e colegiada dos sócios do Frila.
