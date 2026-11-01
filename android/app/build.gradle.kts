@@ -30,6 +30,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -91,6 +92,15 @@ android {
                 "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
                 "--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
             )
+        }
+        managedDevices {
+            devices {
+                maybeCreate<com.android.build.api.dsl.ManagedVirtualDevice>("pixel2api28").apply {
+                    device = "Pixel 2"
+                    apiLevel = 28
+                    systemImageSource = "aosp"
+                }
+            }
         }
     }
 }
@@ -164,6 +174,15 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.robolectric)
+
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.junit4)
+    androidTestImplementation(libs.ktor.client.mock)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }
 
 tasks.withType<Test> {
