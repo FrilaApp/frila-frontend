@@ -1,15 +1,20 @@
 package br.com.frila.feature.vagas.feed
 
-import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.first
 
 /**
  * Persistência local de preferências do filtro de vagas (RF05/RN01).
  * Permite manter a faixa de remuneração por hora selecionada entre sessões.
  */
 interface ArmazenamentoPreferenciasFiltro {
-    fun salvarFaixaRemuneracaoHora(minimo: Float, maximo: Float, ativa: Boolean)
-    fun obterFaixaRemuneracaoHora(): PreferenciaFaixaRemuneracao?
-    fun limparFaixaRemuneracaoHora()
+    suspend fun salvarFaixaRemuneracaoHora(minimo: Float, maximo: Float, ativa: Boolean)
+    suspend fun obterFaixaRemuneracaoHora(): PreferenciaFaixaRemuneracao?
+    suspend fun limparFaixaRemuneracaoHora()
 }
 
 data class PreferenciaFaixaRemuneracao(
@@ -23,51 +28,45 @@ class ArmazenamentoPreferenciasFiltroEmMemoria(
     private var preferencia: PreferenciaFaixaRemuneracao? = null,
 ) : ArmazenamentoPreferenciasFiltro {
 
-    override fun salvarFaixaRemuneracaoHora(minimo: Float, maximo: Float, ativa: Boolean) {
+    override suspend fun salvarFaixaRemuneracaoHora(minimo: Float, maximo: Float, ativa: Boolean) {
         preferencia = PreferenciaFaixaRemuneracao(minimo, maximo, ativa)
     }
 
-    override fun obterFaixaRemuneracaoHora(): PreferenciaFaixaRemuneracao? = preferencia
+    override suspend fun obterFaixaRemuneracaoHora(): PreferenciaFaixaRemuneracao? = preferencia
 
-    override fun limparFaixaRemuneracaoHora() {
+    override suspend fun limparFaixaRemuneracaoHora() {
         preferencia = null
     }
 }
 
-/** Implementação Android usando SharedPreferences do dispositivo. */
-class ArmazenamentoPreferenciasFiltroSharedPreferences(
-    private val preferences: SharedPreferences,
+/** Implementação persistente; as três chaves mantêm os nomes legados da migração. */
+class ArmazenamentoPreferenciasFiltroDataStore(
+    private val dados: DataStore<Preferences>,
 ) : ArmazenamentoPreferenciasFiltro {
-
-    override fun salvarFaixaRemuneracaoHora(minimo: Float, maximo: Float, ativa: Boolean) {
-        preferences.edit()
-            .putFloat(CHAVE_MINIMO, minimo)
-            .putFloat(CHAVE_MAXIMO, maximo)
-            .putBoolean(CHAVE_ATIVA, ativa)
-            .apply()
-    }
-
-    override fun obterFaixaRemuneracaoHora(): PreferenciaFaixaRemuneracao? {
-        if (!preferences.contains(CHAVE_MINIMO) || !preferences.contains(CHAVE_MAXIMO)) {
-            return null
+    override suspend fun salvarFaixaRemuneracaoHora(minimo: Float, maximo: Float, ativa: Boolean) {
+        dados.edit {
+            it[MINIMO] = minimo
+            it[MAXIMO] = maximo
+            it[ATIVA] = ativa
         }
-        val minimo = preferences.getFloat(CHAVE_MINIMO, 25f)
-        val maximo = preferences.getFloat(CHAVE_MAXIMO, 100f)
-        val ativa = preferences.getBoolean(CHAVE_ATIVA, false)
-        return PreferenciaFaixaRemuneracao(minima = minimo, maxima = maximo, ativa = ativa)
     }
 
-    override fun limparFaixaRemuneracaoHora() {
-        preferences.edit()
-            .remove(CHAVE_MINIMO)
-            .remove(CHAVE_MAXIMO)
-            .remove(CHAVE_ATIVA)
-            .apply()
+    override suspend fun obterFaixaRemuneracaoHora(): PreferenciaFaixaRemuneracao? {
+        val preferencias = dados.data.first()
+        return PreferenciaFaixaRemuneracao(
+            preferencias[MINIMO] ?: return null,
+            preferencias[MAXIMO] ?: return null,
+            preferencias[ATIVA] ?: false,
+        )
+    }
+
+    override suspend fun limparFaixaRemuneracaoHora() {
+        dados.edit { it.remove(MINIMO); it.remove(MAXIMO); it.remove(ATIVA) }
     }
 
     companion object {
-        private const val CHAVE_MINIMO = "filtro_remuneracao_hora_minimo"
-        private const val CHAVE_MAXIMO = "filtro_remuneracao_hora_maximo"
-        private const val CHAVE_ATIVA = "filtro_remuneracao_hora_ativa"
+        private val MINIMO = floatPreferencesKey("filtro_remuneracao_hora_minimo")
+        private val MAXIMO = floatPreferencesKey("filtro_remuneracao_hora_maximo")
+        private val ATIVA = booleanPreferencesKey("filtro_remuneracao_hora_ativa")
     }
 }

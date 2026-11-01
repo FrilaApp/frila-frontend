@@ -66,9 +66,9 @@ Perfil mínimo de homologação: Android 9.0 (API 28), 2 GB de RAM, tela 720p �
 excessivo de memória nem perda de quadros na rolagem. Esse é o alvo de prova de performance do
 Épico E6, não um requisito que os Épicos E1/E2 precisem validar em hardware físico.
 
-## Preferências locais — primeira fatia do cartão 64
+## Preferências locais — cartão 64
 
-`:core:preferencias` fornece `FabricaPreferencias.criar(arquivo, escopo)` com a engine real de
+`:core:preferencias` fornece `FabricaPreferencias.criar(arquivo, escopo, migracoes)` com a engine real de
 Preferences DataStore e `ReplaceFileCorruptionHandler`: conteúdo corrompido é substituído por
 preferências vazias, e os consumidores aplicam seus padrões na ausência de chaves. Erros de I/O
 não são escondidos. Use uma instância por arquivo privado `.preferences_pb`, um escopo com o
@@ -77,9 +77,20 @@ ciclo de vida apropriado e somente dados não sensíveis; sessão continua no ar
 A dependência nova `androidx.datastore:datastore-preferences-core:1.1.1` implementa o pedido do
 cartão sem exigir atualização do Kotlin 2.0.20, do AGP ou de outros módulos. É a variante JVM do
 Preferences DataStore, [documentada pelo Android](https://developer.android.com/jetpack/androidx/releases/datastore).
-A migração das preferências existentes de filtros/notificações e a injeção no app ficam para a
-próxima fatia; este módulo ainda não substitui `SharedPreferences` em produção.
+O app injeta uma instância por processo, com escopo de I/O encerrado pelo Koin. O adaptador
+Android usa também `androidx.datastore:datastore-preferences:1.1.1` para a
+[migração oficial](https://developer.android.com/reference/androidx/datastore/preferences/SharedPreferencesMigrationKt).
+Migra as três chaves de `preferencias_filtros_vagas` antes da primeira leitura para
+`files/datastore/filtros.preferences_pb`, preserva valores já existentes no DataStore e remove
+as chaves antigas após gravar com sucesso. Leituras/escritas do feed são suspensas; a restauração
+tem prazo de 2 segundos e as gravações respeitam a ordem das interações, sem bloquear a UI.
 
-Prova local (JDK 17): `cd android && ./gradlew :core:preferencias:testDebugUnitTest`.
+Notificações permanecem em `preferencias_notificacoes`: pendência **depende do #527**, por decisão
+do Orquestrador no N-021, para não colidir com o PR de outra pessoa. Nenhuma mudança em
+`ProcessadorDePush` nem no teste dele. Sessão/biometria continuam criptografadas no armazenamento
+seguro e não fazem parte desta migração. O cartão 64 permanece parcial por causa das notificações.
+
+Prova local (JDK 17): `cd android && ./gradlew :core:preferencias:testDebugUnitTest :feature:vagas:testDebugUnitTest :app:testDebugUnitTest`.
 Os testes usam a engine DataStore com arquivos temporários reais e escopos encerrados entre
-instâncias; nenhum emulador é necessário.
+instâncias. `MigracaoPreferenciasTest` exercita SharedPreferences do Robolectric, migração,
+reabertura sem duplicação, persistência/limpeza e corrupção. Nenhum emulador é necessário.
