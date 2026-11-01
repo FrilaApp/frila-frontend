@@ -3,6 +3,7 @@ package br.com.frila.app.desempenho
 import android.app.Activity
 import android.os.SystemClock
 import androidx.compose.ui.test.junit4.createComposeRule
+import br.com.frila.app.AppNavegacao
 import br.com.frila.app.FrilaApplication
 import br.com.frila.app.MainActivity
 import br.com.frila.core.rede.MonitorDeConectividade
@@ -11,6 +12,9 @@ import br.com.frila.core.rede.StatusConectividade
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.EstadoEntrada
+import br.com.frila.feature.vagas.feed.EstadoFeed
+import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.vagas.feed.StatusFeed
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -26,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.compose.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -128,25 +133,24 @@ class MedidorDeColdStartTest {
     }
 
     @Test
-    fun `MainActivity integra doOnPreDraw para primeiro quadro e notifica prontidao real da interface`() {
-        // Configura Koin isolado para alimentar AppNavegacao em MainActivity
+    fun `MainActivity mede primeiro quadro no pre-draw e so marca TTFD apos feed sair de carregando`() {
+        val estadoFluxo = MutableStateFlow(EstadoFeed(status = StatusFeed.CARREGANDO))
+        val feed = mockk<FeedVagasViewModel>(relaxed = true) {
+            every { estado } returns estadoFluxo
+        }
         startKoin {
             modules(
                 module {
                     single<ArmazenamentoDeSessao> {
                         mockk(relaxed = true) {
-                            every { estaAutenticado() } returns false
+                            every { estaAutenticado() } returns true
                             every { isBiometriaAtivada() } returns false
                         }
                     }
                     single<MonitorDeConectividade> {
                         MonitorDeConectividadeFalso(StatusConectividade.CONECTADO)
                     }
-                    viewModel {
-                        mockk<EntradaViewModel>(relaxed = true) {
-                            every { estado } returns MutableStateFlow(EstadoEntrada())
-                        }
-                    }
+                    viewModel { feed }
                 },
             )
         }
@@ -154,27 +158,79 @@ class MedidorDeColdStartTest {
         MedidorDeColdStart.iniciar(inicioMillis = SystemClock.elapsedRealtime() - 100L)
 
         val controller = Robolectric.buildActivity(MainActivity::class.java)
-        val activity = controller.create().get()
+        try {
+            val activity = controller.create().get()
 
-        assertFalse(
-            "Antes do pre-draw, o primeiro quadro não deve estar registrado",
-            MedidorDeColdStart.primeiroQuadroConcluido,
-        )
+            assertFalse(
+                "Antes do pre-draw, o primeiro quadro não deve estar registrado",
+                MedidorDeColdStart.primeiroQuadroConcluido,
+            )
 
-        // Simula o ciclo de pré-desenho da view root (primeiro quadro real antes do desenho)
-        activity.window.decorView.viewTreeObserver.dispatchOnPreDraw()
-        assertTrue(
-            "window.decorView.doOnPreDraw deve disparar e registrar o primeiro quadro (TTID)",
-            MedidorDeColdStart.primeiroQuadroConcluido,
-        )
+            // Simula o ciclo de pré-desenho da view root (primeiro quadro real antes do desenho)
+            activity.window.decorView.viewTreeObserver.dispatchOnPreDraw()
+            assertTrue(
+                "window.decorView.doOnPreDraw deve disparar e registrar o primeiro quadro (TTID)",
+                MedidorDeColdStart.primeiroQuadroConcluido,
+            )
 
-        // Ao tornar a Activity visível e deixar o Compose estabilizar
-        controller.start().postCreate(null).resume().visible()
+            // Ao tornar a Activity visível e deixar o Compose estabilizar
+            controller.start().postCreate(null).resume().visible()
+            compose.waitForIdle()
+
+            verify(exactly = 1) { feed.carregar() }
+            assertEquals(StatusFeed.CARREGANDO, feed.estado.value.status)
+            assertFalse(
+                "TTFD deve aguardar o feed sair de CARREGANDO; compor a navegacao nao e prontidao",
+                MedidorDeColdStart.interfaceProntaConcluida,
+            )
+
+            // Transiciona feed para conteúdo utilizável (SUCESSO)
+            estadoFluxo.value = EstadoFeed(status = StatusFeed.SUCESSO)
+            compose.waitForIdle()
+
+            assertTrue(
+                "Após transição para SUCESSO com conteúdo utilizável, TTFD deve ser marcado",
+                MedidorDeColdStart.interfaceProntaConcluida,
+            )
+        } finally {
+            controller.destroy()
+        }
+    }
+
+    @Test
+    fun `AppNavegacao em rota de entrada sinaliza prontidao imediatamente sem bloquear em carregamento`() {
+        var sinalizado = false
+        val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
+            every { estaAutenticado() } returns false
+            every { isBiometriaAtivada() } returns false
+        }
+        val entradaVm = mockk<EntradaViewModel>(relaxed = true) {
+            every { estado } returns MutableStateFlow(EstadoEntrada())
+        }
+
+        compose.setContent {
+            KoinApplication(application = {
+                modules(
+                    module {
+                        single { sessao }
+                        single<MonitorDeConectividade> {
+                            MonitorDeConectividadeFalso(StatusConectividade.CONECTADO)
+                        }
+                        viewModel { entradaVm }
+                    },
+                )
+            }) {
+                AppNavegacao(
+                    armazenamentoDeSessao = sessao,
+                    aoPronto = { sinalizado = true },
+                )
+            }
+        }
         compose.waitForIdle()
 
         assertTrue(
-            "aoPronto em AppNavegacao deve disparar marcarInterfacePronta (TTFD)",
-            MedidorDeColdStart.interfaceProntaConcluida,
+            "Em rotas estáticas como ENTRADA, a interface deve sinalizar prontidão após montagem",
+            sinalizado,
         )
     }
 
