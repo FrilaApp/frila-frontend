@@ -91,7 +91,12 @@ fun AppNavegacao(
     armazenamentoDeSessao: ArmazenamentoDeSessao = koinInject(),
     monitorDeConectividade: MonitorDeConectividade = koinInject(),
     navController: NavHostController = rememberNavController(),
+    aoPronto: (() -> Unit)? = null,
 ) {
+    LaunchedEffect(Unit) {
+        aoPronto?.invoke()
+    }
+
     val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
     // frila://meus_turnos, frila://suporte) que chega direto numa rota autenticada sem passar

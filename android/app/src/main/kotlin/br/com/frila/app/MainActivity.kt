@@ -2,6 +2,7 @@ package br.com.frila.app
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.FragmentActivity
 import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.tema.FrilaTheme
@@ -12,16 +13,16 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             FrilaTheme {
-                AppNavegacao()
+                AppNavegacao(
+                    aoPronto = {
+                        MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
+                    },
+                )
             }
         }
-        window.decorView.post {
+        // Observa o primeiro quadro real via doOnPreDraw (TTID), em vez de agendamento arbitrário na fila de mensagens (decorView.post)
+        window.decorView.doOnPreDraw {
             MedidorDeColdStart.marcarPrimeiroQuadro()
-            try {
-                reportFullyDrawn()
-            } catch (_: Exception) {
-                // reportFullyDrawn pode falhar em versões legadas de teste
-            }
         }
     }
 }
