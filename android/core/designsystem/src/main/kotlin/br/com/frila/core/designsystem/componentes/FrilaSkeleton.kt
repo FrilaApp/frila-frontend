@@ -29,12 +29,21 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaCores
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaRaios
+
+/**
+ * Propriedade semântica de teste que identifica se o esqueleto está renderizando no modo animado
+ * (shimmer ativo) ou estático (acessibilidade / Reduzir Movimento ativo).
+ */
+val FrilaSkeletonAnimado = SemanticsPropertyKey<Boolean>("FrilaSkeletonAnimado")
+private var SemanticsPropertyReceiver.skeletonAnimado by FrilaSkeletonAnimado
 
 /**
  * `true` quando o sistema permite animação (padrão), `false` quando o usuário desligou
@@ -82,7 +91,9 @@ fun FrilaSkeleton(
             modifier = modifier
                 .clip(shape)
                 .drawWithCache { onDrawBehind { drawRect(cores.first(), size = size) } }
-                .clearAndSetSemantics {},
+                .clearAndSetSemantics {
+                    skeletonAnimado = false
+                },
         )
         return
     }
@@ -129,7 +140,9 @@ fun FrilaSkeleton(
                     }
                 }
             }
-            .clearAndSetSemantics {},
+            .clearAndSetSemantics {
+                skeletonAnimado = true
+            },
     )
 }
 

@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
@@ -114,6 +116,8 @@ class FrilaSkeletonTest {
             .assertIsDisplayed()
             .assertWidthIsEqualTo(120.dp)
             .assertHeightIsEqualTo(24.dp)
+            .assert(SemanticsMatcher.expectValue(FrilaSkeletonAnimado, false))
+
         assertEquals(0, rule.onAllNodesWithContentDescription("Carregando conteúdo").fetchSemanticsNodes().size)
     }
 
@@ -135,6 +139,49 @@ class FrilaSkeletonTest {
             .assertIsDisplayed()
             .assertWidthIsEqualTo(80.dp)
             .assertHeightIsEqualTo(16.dp)
+            .assert(SemanticsMatcher.expectValue(FrilaSkeletonAnimado, true))
+    }
+
+    @Test
+    fun `cartao skeleton sob reduzir movimento renderiza todos os ossos no ramo estatico`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+
+        rule.setContent {
+            FrilaTheme {
+                FrilaCartaoSkeleton()
+            }
+        }
+        rule.waitForIdle()
+
+        val ossosEstaticos = rule.onAllNodes(SemanticsMatcher.expectValue(FrilaSkeletonAnimado, false))
+            .fetchSemanticsNodes()
+        assertEquals(3, ossosEstaticos.size)
+
+        val ossosAnimados = rule.onAllNodes(SemanticsMatcher.expectValue(FrilaSkeletonAnimado, true))
+            .fetchSemanticsNodes()
+        assertEquals(0, ossosAnimados.size)
+    }
+
+    @Test
+    fun `cartao skeleton sob movimento normal renderiza todos os ossos no ramo animado`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+
+        rule.setContent {
+            FrilaTheme {
+                FrilaCartaoSkeleton()
+            }
+        }
+        rule.waitForIdle()
+
+        val ossosAnimados = rule.onAllNodes(SemanticsMatcher.expectValue(FrilaSkeletonAnimado, true))
+            .fetchSemanticsNodes()
+        assertEquals(3, ossosAnimados.size)
+
+        val ossosEstaticos = rule.onAllNodes(SemanticsMatcher.expectValue(FrilaSkeletonAnimado, false))
+            .fetchSemanticsNodes()
+        assertEquals(0, ossosEstaticos.size)
     }
 
     @Test

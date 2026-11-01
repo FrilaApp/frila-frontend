@@ -52,7 +52,7 @@ Ao declarar `testImplementation(libs.compose.ui.test.manifest)`, a dependência 
 
 ---
 
-## 4. Recomendações
+## 4. Solução e Recomendações
 
 1. **Gate Normativo do Projeto:**
    O pipeline oficial de CI (`.github/workflows/android.yml` e `docs/android/05-ci-pipeline.md`) executa expressamente:
@@ -61,13 +61,17 @@ Ao declarar `testImplementation(libs.compose.ui.test.manifest)`, a dependência 
    ```
    Essa é a convenção padrão recomendada pela equipe do Android Jetpack para testes unitários com Robolectric e Compose.
 
-2. **Solução para Execução em Release (se necessária):**
-   Caso a equipe decida habilitar `testReleaseUnitTest` em todos os módulos de feature, basta padronizar a adição de `testImplementation(libs.compose.ui.test.manifest)` em cada módulo de feature com Compose, ou fixar a variante de teste unitário via:
+2. **Solução Comprovada para Execução em Release:**
+   Para permitir a execução de `testReleaseUnitTest` sem falhas de resolução de `ComponentActivity`, a solução é declarar a dependência no escopo de teste unitário:
    ```kotlin
-   android {
-       testBuildType = "debug"
-   }
+   testImplementation(libs.compose.ui.test.manifest)
    ```
+   Essa configuração garante que o manifesto de teste contenha a `ComponentActivity` em qualquer variante unitária (`debug` ou `release`), sem vazar código ou manifesto de teste para os APKs ou AABs finais de produção (já que `testImplementation` atua exclusivamente no source set de teste unitário).
+
+   > [!NOTE]
+   > A propriedade `android { testBuildType = "debug" }` configura a variante de build utilizada para **testes instrumentados** (`connectedAndroidTest`), não alterando o classpath nem o manifesto dos testes unitários JVM da variante `release` (`testReleaseUnitTest`). Portanto, ela não soluciona a ausência de manifesto em testes unitários de release.
+
+   A dependência `testImplementation(libs.compose.ui.test.manifest)` foi aplicada aos módulos de feature (`:feature:turnos`, `:feature:entrada`, `:feature:perfil`, `:feature:vagas`), permitindo que a suíte `testReleaseUnitTest` execute com 100% de sucesso.
 
 ---
 
@@ -76,4 +80,4 @@ Ao declarar `testImplementation(libs.compose.ui.test.manifest)`, a dependência 
 O teste visual via `PixelCopy` (`PixelCopy.request(surface, bitmap, callback, handler)`):
 - Requer uma superfície acelerada por hardware (SurfaceView ou Window) e uma RenderThread ativa do sistema operacional Android.
 - Em ambiente JVM puro (Robolectric / Headless), chamadas a `PixelCopy` lançam erro ou não executam a captura de frames de hardware.
-- Portanto, conforme especificado no cartão 70, os testes do ramo de Reduzir Movimento e dos parâmetros do esqueleto foram completamente provados na JVM, enquanto a validação de PixelCopy fica classificada como **não executada** nesta etapa por requerer emulador com aceleração gráfica ou aparelho físico.
+- Portanto, conforme especificado no cartão 70, os testes unitários na JVM cobrem a decisão condicional do ramo de Reduzir Movimento (via leitura de `Settings.Global.ANIMATOR_DURATION_SCALE` e da propriedade semântica `FrilaSkeletonAnimado`) e os parâmetros estruturais do esqueleto (dimensões e formato). A comprovação a nível de pixels desenhados e recorte por hardware via `PixelCopy` permanece classificada como **não executada** nesta etapa por requerer emulador com aceleração gráfica ou aparelho físico.
