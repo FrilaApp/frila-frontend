@@ -1,5 +1,11 @@
 package br.com.frila.feature.vagas.detalhe
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,8 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -17,6 +28,7 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
@@ -33,9 +45,59 @@ private val FORMATO_HORARIO: DateTimeFormatter = DateTimeFormatter.ofPattern("dd
 fun TelaDetalheVaga(
     viewModel: DetalheVagaViewModel,
     modifier: Modifier = Modifier,
+    verificarPermissaoNotificacao: (Context) -> Boolean = { ctx ->
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                ctx,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    },
+    jaPediuNaSessao: () -> Boolean = { ControleSessaoNotificacao.jaPediuNaSessao },
+    marcarPediuNaSessao: () -> Unit = { ControleSessaoNotificacao.marcarComoPedida() },
+    aoResultadoPermissao: (Boolean) -> Unit = {},
 ) {
+    val contexto = LocalContext.current
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val vaga = estado.vaga
+
+    var dialogoPermissaoVisivel by rememberSaveable { mutableStateOf(false) }
+
+    val launcherPermissao = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { concedida ->
+        aoResultadoPermissao(concedida)
+    }
+
+    LaunchedEffect(estado.statusCandidatura) {
+        if (estado.statusCandidatura == StatusCandidatura.CONFIRMADA && !jaPediuNaSessao()) {
+            if (!verificarPermissaoNotificacao(contexto)) {
+                marcarPediuNaSessao()
+                dialogoPermissaoVisivel = true
+            }
+        }
+    }
+
+    if (dialogoPermissaoVisivel) {
+        DialogoPermissaoNotificacao(
+            aoConfirmar = {
+                dialogoPermissaoVisivel = false
+                marcarPediuNaSessao()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    launcherPermissao.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    aoResultadoPermissao(true)
+                }
+            },
+            aoDispensar = {
+                dialogoPermissaoVisivel = false
+                marcarPediuNaSessao()
+                aoResultadoPermissao(false)
+            },
+        )
+    }
 
     Column(
         modifier = modifier

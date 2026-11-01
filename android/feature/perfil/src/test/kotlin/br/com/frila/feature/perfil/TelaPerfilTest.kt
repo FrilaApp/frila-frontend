@@ -573,4 +573,86 @@ class TelaPerfilTest {
             )
         }
     }
+
+    @Test
+    fun blocoDeNotificacoesMostraStatusAtivadoQuandoPermissaoDoSistemaConcedida() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarNotificacoesDoSistema = { true },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            val statusNode = rule.onNodeWithTag("status-notificacoes-sistema").performScrollTo()
+            statusNode.assertIsDisplayed()
+            rule.onNodeWithText("Ativadas").assertIsDisplayed()
+            rule.onNodeWithTag("aviso-notificacoes-desativadas-sistema").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun blocoDeNotificacoesMostraStatusDesativadoEAvisoQuandoPermissaoDoSistemaNegada() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarNotificacoesDoSistema = { false },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            val statusNode = rule.onNodeWithTag("status-notificacoes-sistema").performScrollTo()
+            statusNode.assertIsDisplayed()
+            rule.onNodeWithText("Desativadas").assertIsDisplayed()
+            rule.onNodeWithTag("aviso-notificacoes-desativadas-sistema").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText("Configurações de notificação do sistema").performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun lincePerfilAtualizaPermissaoQuandoRetornaDasConfiguracoes() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            val app = org.robolectric.RuntimeEnvironment.getApplication()
+            val manager = app.getSystemService(android.app.NotificationManager::class.java)
+            val sombra = org.robolectric.Shadows.shadowOf(manager)
+            sombra.setNotificationsEnabled(false)
+            val dono = object : androidx.lifecycle.LifecycleOwner {
+                val registro = androidx.lifecycle.LifecycleRegistry(this)
+                override val lifecycle: androidx.lifecycle.Lifecycle get() = registro
+            }
+            rule.runOnIdle { dono.registro.currentState = androidx.lifecycle.Lifecycle.State.RESUMED }
+            rule.setContent {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.lifecycle.compose.LocalLifecycleOwner provides dono,
+                ) { FrilaTheme { TelaPerfil(viewModel = vm, aoDeslogar = {}) } }
+            }
+            rule.waitForIdle()
+            rule.onNodeWithText("Desativadas").performScrollTo().assertIsDisplayed()
+            rule.runOnIdle {
+                dono.registro.currentState = androidx.lifecycle.Lifecycle.State.CREATED
+                sombra.setNotificationsEnabled(true)
+                dono.registro.currentState = androidx.lifecycle.Lifecycle.State.RESUMED
+            }
+            rule.waitForIdle()
+            assertTrue(androidx.core.app.NotificationManagerCompat.from(app).areNotificationsEnabled())
+            rule.onNodeWithText("Ativadas").assertExists()
+            rule.onNodeWithTag("aviso-notificacoes-desativadas-sistema").assertDoesNotExist()
+        }
+    }
 }
