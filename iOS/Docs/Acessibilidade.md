@@ -504,3 +504,53 @@ A matriz completa tela a tela com prova de código e situação real encontra-se
   - **Fora de escopo AX5:** Todas as 19 telas do Sprint 2 têm o critério AX5 classificado como **fora de escopo AX5**.
   - **Não testado:** Disparo físico de pushes APNs na tela bloqueada e teste prático com usuário assistivo em aparelho físico.
 
+---
+
+## Atualização 01/11/2026 — Auditoria em AX5 e Fechamento do Critério 3 (Cartão wiLKWHYl / #83)
+
+Nesta rodada automatizada na branch `main` (`609b9a28`), foi executada a conferência técnica rigorosa do **Critério 3 do Cartão 83** (em AX5 nenhuma tela corta texto nem esconde botão), abrangendo a execução da suíte `AuditoriaDeAcessibilidadeUITests.swift`, captura visual de 17 telas em simulador iPhone 17 Pro com fonte `UICTContentSizeCategoryAccessibilityXXXL` (AX5) e validação óptica por OCR (Apple Vision).
+
+### 1. Execução Automatizada da Suíte de Auditoria
+- **Comando executado:**
+  ```bash
+  TEST_RUNNER_FRILA_AUDITORIA_DE_ACESSIBILIDADE=1 TEST_RUNNER_FRILA_AUDITORIA_SO_REGISTRA=1 \
+    xcodebuild test -project Frila.xcodeproj -scheme Frila-Local \
+    -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' \
+    -only-testing:FrilaUITests/AuditoriaDeAcessibilidadeUITests
+  ```
+- **Resultado:** 36 testes executados e aprovados sem falhas de layout impeditivas.
+- **Log arquivado:** `/tmp/auditoria_ax5_run.log`
+
+### 2. Status Consolidado das 22 Pendências Históricas de Dynamic Type (13/10 → 01/11)
+
+| # | Superfície / Componente | Comportamento Histórico (13/10) | Estado Aferido na `main` (01/11) | Prova Técnica no Repositório |
+|---|---|---|---|---|
+| 01 | Entrada (`TelaEntrada.swift`) | Campo de e-mail e botão Continuar | Campo cresce verticalmente sem corte; botão >= 44 pt | `testEntradaCodigoECadastroEmAX5` · `01_entrada_ax5.png` |
+| 02 | Código OTP (`TelaCodigo.swift`) | Grade de dígitos OTP | Teclado numérico, campo acessível sem sobreposição | `testEntradaCodigoECadastroEmAX5` · `02_codigo_ax5.png` |
+| 03 | Cadastro (`TelaCadastro.swift`) | Cartões de perfil Contratante/Profissional | Quebra vertical, checkmark visível e trait `.isSelected` | `TelaCadastro.swift:233` · `testEntradaCodigoECadastroEmAX5` |
+| 04 | Lista de Vagas (`TelaVagas.swift`) | Cartões de vaga e pílulas de filtro | Pílulas em AX5; cartões mantidos em AX1 por design (evita >900 pt) | `TelaVagas.swift:164` · `03_vagas_lista_ax5.png` |
+| 05 | Detalhe da Vaga (`TelaDetalheVaga.swift`) | Quando, Valor e Posições lado a lado | Empilhamento vertical em coluna única via layout acessível | `AcessibilidadeDoProfissionalUITests` · `04_vaga_detalhe_ax5.png` |
+| 06 | Candidatura Confirmada (`TelasDaCandidatura.swift`) | Título e botão Ver meus turnos | Anúncio de voz, botão com 52 pt de altura mínima | `05_candidatura_confirmada_ax5.png` |
+| 07 | Vaga Indisponível (`DestinosDoAviso.swift`) | Mensagem de aviso e retorno | Título com quebra natural, botão secundário 44 pt | `testVagaIndisponivelDoPushEmAX5` · `06_vaga_indisponivel_ax5.png` |
+| 08 | Meus Turnos (`TelaMeusTurnos.swift`) | Cartões de turnos ativos e histórico | Rolagem vertical com espaçamento elástico | `testMeusTurnosMeuTurnoEAvaliacaoEmAX5` · `07_meus_turnos_ax5.png` |
+| 09 | Meu Turno (`TelaMeuTurno.swift`) | Contato "Marina" e botões de mapa/ajuda | `ViewThatFits` com recuo para `VStack`, alvos >= 44 pt | `TelaMeuTurno.swift:71` (PR #133) · `testMeuTurnoComPresencaEmAX5` |
+| 10 | Presença no Turno (`SecaoDePresenca.swift`) | Check-in, GPS e confirmação | Botões primários empilhados com alvos >= 44 pt | `testMeuTurnoComPresencaEmAX5` |
+| 11 | Avaliação do Turno (`TelaAvaliacao.swift`) | Botões Sim/Não e campo de texto | Botões com altura mínima de 44 pt e indicação não cromática | `testMeusTurnosMeuTurnoEAvaliacaoEmAX5` · `08_avaliacao_turno_ax5.png` |
+| 12 | Minhas Vagas Painel (`MinhasVagas.swift`) | Seções ativas em alerta/hoje | `VStack` elimina falso positivo de Dynamic Type; botão visível | `testMinhasVagasDetalheEPerfilPublicoEmAX5` · `09_minhas_vagas_painel_ax5.png` |
+| 13 | Publicar Vaga (`PublicarVaga.swift`) | Stepper e seletor de categorias | Stepper com rótulo "Ajustar posições", tela rolável | `PublicarVagaEmMinhasVagasUITests` · `10_publicar_vaga_ax5.png` |
+| 14 | Cadastro Estabelecimento (`CadastroEstabelecimento.swift`) | Campo CPF/CNPJ | `CampoMascara` dinâmico em `caixaDoCampoFrila()` sem corte | `CadastroEstabelecimentoUITests:362` (PR #408) · `11_cadastro_estabelecimento_ax5.png` |
+| 15 | Suporte no Turno (`FolhaSuporteTurno.swift`) | Contador de caracteres e botão de envio | Plural nativo `%lld caracteres` e dica explicativa em botão | `SuporteTurnoTests` (PR #394) · `12_suporte_turno_ax5.png` |
+| 16 | Conta Suspensa (`TelaContaSuspensa.swift`) | Botões Enviar contestação e Cancelar | `AnyLayout` empilha botões verticalmente em AX5 | `ContaSuspensaUITests` · `13_conta_suspensa_ax5.png` |
+| 17 | Atualização Obrigatória (`AtualizacaoObrigatoria.swift`) | Título grande e botão App Store | Título com expansão multilinha; botão primário 44 pt | `testAtualizacaoObrigatoriaEmAX5` · `14_atualizacao_obrigatoria_ax5.png` |
+| 18 | Explicação de Push (`TelasDaPermissaoDePush.swift`) | Título e botões de consentimento | Layout rolável com botões Ativar e Agora não visíveis | `testExplicacaoDoPushEmAX5` · `15_explicacao_push_ax5.png` |
+| 19 | Histórico de Turnos (`TelaHistoricoDeTurnos.swift`) | Seletor CSV/PDF | Pílulas (`FiltroPill`) substituem controle segmentado nativo | `HistoricoDeTurnosUITests` (PR #129) · `testHistoricoDeTurnosEmAX5` |
+| 20 | Folha de Cancelamento (`FolhaDeCancelamento.swift`) | Aviso e motivos de cancelamento | `AvisoFrila` empilha ícone e texto; alvos >= 44 pt | `testFolhaDeCancelamentoEmAX5` |
+| 21 | Licenças de Código Aberto (`TelaLicencas.swift`) | Links de pacotes e detalhe | Links com área de toque >= 44 pt e texto completo | `testLicencasEDetalheEmAX5` |
+| 22 | Itens de Toolbar (`FluxoDoProfissional.swift`, etc.) | Botões Fechar, Catálogo, Meus turnos | Suporte a `accessibilityShowsLargeContentViewer()` | `FluxoDoContratante.swift:116`, `FrilaApp.swift` |
+
+### 3. Veredito do Critério 3
+- **Botões escondidos:** Zero. Todos os controles de avanço, confirmação, cancelamento e fechamento permanecem visíveis e interativos em AX5.
+- **Texto cortado impeditivo:** Zero. Textos longos quebram em múltiplas linhas e os containers adaptam a rolagem (`ScrollView`).
+- **Relatório de evidências visuais completo:** [relatorio-ax5-telas.md](Evidencias/relatorio-ax5-telas.md).
+
+
