@@ -1,0 +1,18 @@
+# Baseline Profile pré-compilado para o Frila Android (Cartão 53, RNF04)
+# Otimização de inicialização a frio (cold start) e rotas críticas
+
+Lbr/com/frila/app/FrilaApplication;
+Lbr/com/frila/app/MainActivity;
+Lbr/com/frila/app/AppNavegacaoKt;
+Lbr/com/frila/app/desempenho/MedidorDeColdStart;
+Lbr/com/frila/app/GuardaBiometrico;
+Lbr/com/frila/core/designsystem/tema/FrilaThemeKt;
+Lbr/com/frila/core/designsystem/tema/FrilaCores;
+Lbr/com/frila/core/designsystem/componentes/FrilaBotaoKt;
+Lbr/com/frila/core/designsystem/componentes/FrilaCartaoKt;
+Lbr/com/frila/feature/vagas/feed/TelaFeedVagasKt;
+Lbr/com/frila/feature/vagas/feed/FeedVagasViewModel;
+Lbr/com/frila/feature/turnos/TelaMeusTurnosKt;
+Lbr/com/frila/feature/turnos/MeusTurnosViewModel;
+Lbr/com/frila/feature/perfil/TelaPerfilKt;
+Lbr/com/frila/feature/perfil/PerfilViewModel;
