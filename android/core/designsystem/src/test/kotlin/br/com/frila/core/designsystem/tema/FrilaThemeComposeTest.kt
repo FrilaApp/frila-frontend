@@ -3,18 +3,22 @@ package br.com.frila.core.designsystem.tema
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,7 +73,10 @@ class FrilaThemeComposeTest {
     @Config(sdk = [34])
     fun `dynamicColor na API 31+ ativa esquema dinamico preservando cores criticas da marca`() {
         var scheme: ColorScheme? = null
+        var dynamicEsperado: ColorScheme? = null
         compose.setContent {
+            val ctx = LocalContext.current
+            dynamicEsperado = dynamicLightColorScheme(ctx)
             FrilaTheme(temaEscuro = false, dynamicColor = true) {
                 scheme = MaterialTheme.colorScheme
             }
@@ -79,13 +86,21 @@ class FrilaThemeComposeTest {
         assertEquals(FrilaCores.brandPrimaryLight, scheme!!.primary)
         assertEquals(FrilaCores.brandOnPrimaryLight, scheme!!.onPrimary)
         assertEquals(FrilaCores.dangerLight, scheme!!.error)
+
+        // Papéis dinâmicos vêm da paleta do sistema (Material You) e distinguem da estática
+        assertEquals(dynamicEsperado!!.secondary, scheme!!.secondary)
+        assertEquals(dynamicEsperado!!.onSecondary, scheme!!.onSecondary)
+        assertNotEquals(EsquemaClaro.secondary, scheme!!.secondary)
     }
 
     @Test
     @Config(sdk = [34])
     fun `dynamicColor no tema escuro na API 31+ preserva cores criticas escuras`() {
         var scheme: ColorScheme? = null
+        var dynamicEsperado: ColorScheme? = null
         compose.setContent {
+            val ctx = LocalContext.current
+            dynamicEsperado = dynamicDarkColorScheme(ctx)
             FrilaTheme(temaEscuro = true, dynamicColor = true) {
                 scheme = MaterialTheme.colorScheme
             }
@@ -94,6 +109,11 @@ class FrilaThemeComposeTest {
         assertEquals(FrilaCores.brandPrimaryDark, scheme!!.primary)
         assertEquals(FrilaCores.brandOnPrimaryDark, scheme!!.onPrimary)
         assertEquals(FrilaCores.dangerDark, scheme!!.error)
+
+        // Papéis dinâmicos vêm da paleta escura do sistema (Material You) e distinguem da estática
+        assertEquals(dynamicEsperado!!.secondary, scheme!!.secondary)
+        assertEquals(dynamicEsperado!!.onSecondary, scheme!!.onSecondary)
+        assertNotEquals(EsquemaEscuro.secondary, scheme!!.secondary)
     }
 
     @Test
