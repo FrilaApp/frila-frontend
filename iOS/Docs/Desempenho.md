@@ -184,16 +184,31 @@ por servidor:
 
 O detalhe tem 21 medições porque a parte de Meu turno abre mais uma vaga para se candidatar.
 
-**Tráfego de rede da sessão com dublê HTTP local**, em 11/10/2026. O teste
-`MedicaoDeDesempenhoTests.bytesDaSessaoComHTTPReal` usa o cliente Supabase do app e o
-`MedidorDeRede`, com um servidor em `127.0.0.1` que devolve as fixtures do contrato. A sessão
-efêmera começa com cache e registro vazios: uma lista, três consultas ao detalhe da mesma vaga
-da fixture e uma candidatura confirmada. As cinco rotas são verificadas, e o teste exige bytes
-enviados diferentes de zero e bytes recebidos suficientes para os cinco corpos de resposta.
+**Tráfego de rede da sessão com dublê HTTP local**, atualizado em 01/11/2026 (Cartão 84 / N-015).
+O teste `MedicaoDeDesempenhoTests.bytesDaSessaoComHTTPReal` e a extensão `MedicaoDeDesempenhoTests.bytesDaSessaoComTresVagasDistintas`
+usam o cliente Supabase do app e o `MedidorDeRede`, com um servidor em `127.0.0.1` (`NWListener`) que devolve as
+fixtures do contrato. A sessão efêmera começa com cache vazio (`URLCache.removeAllCachedResponses()` e
+`requestCachePolicy = .reloadIgnoringLocalCacheData`): uma lista, três consultas ao detalhe e uma candidatura
+confirmada. Além disso, o teste de UI `MedicaoUITests.testSessaoDeConsultaECandidaturaConsomeMenosDeUmMegabyte`
+exercita o fluxo de navegação completo na tela e mede o transporte HTTP real da sessão via `URLSessionTaskMetrics`.
 
-| Sessão | Requisições | Enviados | Recebidos | Total (contador do app) |
-|---|---|---|---|---|
-| Lista, três detalhes e candidatura (HTTP local) | 5 | 2.595 B | 5.365 B | 7.960 B |
+| Sessão | Requisições | Enviados | Recebidos | Total (contador do app) | Limite RNF05 |
+|---|---|---|---|---|---|
+| Lista, três detalhes da mesma vaga e candidatura (HTTP local) | 5 | 2.595 B | 5.365 B | 7.960 B | 1.000.000 B |
+| Lista com 3 vagas distintas, 3 detalhes distintos e candidatura | 5 | 2.595 B | 6.600 B | 9.195 B | 1.000.000 B |
+| Sessão HTTP no teste de UI com cache vazio (`MedicaoUITests`) | 5 | 1.740 B | 1.404 B | 3.144 B | 1.000.000 B |
+
+Essas medições comprovam que o tráfego HTTP da API com cache vazio consome **menos de 1%** do limite de 1 MB (orçamento decimal).
+
+### O que só o aparelho físico prova (aberto para teste humano)
+
+Conforme a especificação do Cartão 84 (57hJ7FV0):
+1. **Critério 1 (p95 de 20 aberturas abaixo de 2 s em 4G real no aparelho de entrada):**
+   - **Só aparelho prova:** exige o hardware real de entrada (ex.: iPhone SE de 2ª/3ª geração ou iPhone 11) com restrições térmicas/CPU/GPU reais, operando em rede celular 4G real com latência e jitter de rádio de operadora comercial.
+   - O simulador no Mac com chip Apple Silicon não reproduz o gargalo do rádio 4G nem o processamento do hardware de entrada.
+2. **Critérios 2 e 4 (Tráfego de rede celular total e medições anotadas):**
+   - O contador do app e o `MedidorDeRede` medem o tráfego da API da aplicação (PostgREST/Auth/Functions).
+   - **Só o aparelho prova o tráfego celular total:** o contador nativo em **Ajustes > Celular > Frila** (com estatísticas redefinidas antes da sessão) é o único que soma o overhead de transporte de rádio celular (pacotes de controle TCP/IP, handshake TLS 1.3 / QUIC, resolução DNS) e o tráfego em segundo plano dos SDKs proprietários do Google Firebase (Crashlytics e APNs/FCM).
 
 Essa execução passa o limite de menos de 1.000.000 B **para estas fixtures**, pelo contador de
 HTTP do app. Não mede TLS, DNS, Firebase, respostas de produção ou tráfego celular. A coleta
