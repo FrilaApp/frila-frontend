@@ -1,6 +1,7 @@
 package br.com.frila.core.designsystem.tema
 
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +63,67 @@ class FrilaThemeComposeTest {
     fun `modoOled no tema claro nao tem efeito`() {
         // modoOled só se aplica no escuro — no claro, o fundo continua surfaceLight.
         assertEquals(FrilaCores.surfaceLight, backgroundDoTema(temaEscuro = false, modoOled = true))
+    }
+
+    @Test
+    @Config(sdk = [34])
+    fun `dynamicColor na API 31+ ativa esquema dinamico preservando cores criticas da marca`() {
+        var scheme: ColorScheme? = null
+        compose.setContent {
+            FrilaTheme(temaEscuro = false, dynamicColor = true) {
+                scheme = MaterialTheme.colorScheme
+            }
+        }
+        compose.waitForIdle()
+        // As cores críticas da marca devem sempre ser preservadas mesmo com dynamicColor ativo (RNF10)
+        assertEquals(FrilaCores.brandPrimaryLight, scheme!!.primary)
+        assertEquals(FrilaCores.brandOnPrimaryLight, scheme!!.onPrimary)
+        assertEquals(FrilaCores.dangerLight, scheme!!.error)
+    }
+
+    @Test
+    @Config(sdk = [34])
+    fun `dynamicColor no tema escuro na API 31+ preserva cores criticas escuras`() {
+        var scheme: ColorScheme? = null
+        compose.setContent {
+            FrilaTheme(temaEscuro = true, dynamicColor = true) {
+                scheme = MaterialTheme.colorScheme
+            }
+        }
+        compose.waitForIdle()
+        assertEquals(FrilaCores.brandPrimaryDark, scheme!!.primary)
+        assertEquals(FrilaCores.brandOnPrimaryDark, scheme!!.onPrimary)
+        assertEquals(FrilaCores.dangerDark, scheme!!.error)
+    }
+
+    @Test
+    @Config(sdk = [28])
+    fun `dynamicColor na API 28 faz fallback seguro para EsquemaClaro estatico da Frila`() {
+        var scheme: ColorScheme? = null
+        compose.setContent {
+            FrilaTheme(temaEscuro = false, dynamicColor = true) {
+                scheme = MaterialTheme.colorScheme
+            }
+        }
+        compose.waitForIdle()
+        assertEquals(FrilaCores.surfaceLight, scheme!!.background)
+        assertEquals(FrilaCores.brandPrimaryLight, scheme!!.primary)
+        assertEquals(FrilaCores.surfaceElevatedLight, scheme!!.surface)
+    }
+
+    @Test
+    @Config(sdk = [28])
+    fun `dynamicColor no escuro na API 28 faz fallback seguro para EsquemaEscuro estatico da Frila`() {
+        var scheme: ColorScheme? = null
+        compose.setContent {
+            FrilaTheme(temaEscuro = true, dynamicColor = true) {
+                scheme = MaterialTheme.colorScheme
+            }
+        }
+        compose.waitForIdle()
+        assertEquals(FrilaCores.surfaceDark, scheme!!.background)
+        assertEquals(FrilaCores.brandPrimaryDark, scheme!!.primary)
+        assertEquals(FrilaCores.surfaceElevatedDark, scheme!!.surface)
     }
 
     @Test
