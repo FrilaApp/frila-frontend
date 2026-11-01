@@ -42,12 +42,16 @@ import br.com.frila.core.designsystem.tema.FrilaRaios
  * == 0`). RNF10: nesse caso o skeleton fica estático em vez de forçar o shimmer — "Reduzir
  * movimento" é uma preferência de acessibilidade, não só uma opção de performance.
  */
+internal fun animacoesAtivadasNoSistema(contentResolver: android.content.ContentResolver): Boolean {
+    val escala = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+    return escala != 0f
+}
+
 @Composable
-private fun animacoesAtivadas(): Boolean {
+internal fun animacoesAtivadas(): Boolean {
     val contexto = LocalContext.current
     return remember {
-        val escala = Settings.Global.getFloat(contexto.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
-        escala != 0f
+        animacoesAtivadasNoSistema(contexto.contentResolver)
     }
 }
 
