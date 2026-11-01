@@ -65,3 +65,21 @@ documentação os fecha para efeito do alicerce do cartão `XTijdYVk`:
 Perfil mínimo de homologação: Android 9.0 (API 28), 2 GB de RAM, tela 720p — sem consumo
 excessivo de memória nem perda de quadros na rolagem. Esse é o alvo de prova de performance do
 Épico E6, não um requisito que os Épicos E1/E2 precisem validar em hardware físico.
+
+## Preferências locais — primeira fatia do cartão 64
+
+`:core:preferencias` fornece `FabricaPreferencias.criar(arquivo, escopo)` com a engine real de
+Preferences DataStore e `ReplaceFileCorruptionHandler`: conteúdo corrompido é substituído por
+preferências vazias, e os consumidores aplicam seus padrões na ausência de chaves. Erros de I/O
+não são escondidos. Use uma instância por arquivo privado `.preferences_pb`, um escopo com o
+ciclo de vida apropriado e somente dados não sensíveis; sessão continua no armazenamento seguro.
+
+A dependência nova `androidx.datastore:datastore-preferences-core:1.1.1` implementa o pedido do
+cartão sem exigir atualização do Kotlin 2.0.20, do AGP ou de outros módulos. É a variante JVM do
+Preferences DataStore, [documentada pelo Android](https://developer.android.com/jetpack/androidx/releases/datastore).
+A migração das preferências existentes de filtros/notificações e a injeção no app ficam para a
+próxima fatia; este módulo ainda não substitui `SharedPreferences` em produção.
+
+Prova local (JDK 17): `cd android && ./gradlew :core:preferencias:testDebugUnitTest`.
+Os testes usam a engine DataStore com arquivos temporários reais e escopos encerrados entre
+instâncias; nenhum emulador é necessário.
