@@ -573,4 +573,53 @@ class TelaPerfilTest {
             )
         }
     }
+
+    @Test
+    fun blocoDeNotificacoesMostraStatusAtivadoQuandoPermissaoDoSistemaConcedida() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarNotificacoesDoSistema = { true },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            val statusNode = rule.onNodeWithTag("status-notificacoes-sistema").performScrollTo()
+            statusNode.assertIsDisplayed()
+            rule.onNodeWithText("Ativadas").assertIsDisplayed()
+            rule.onNodeWithTag("aviso-notificacoes-desativadas-sistema").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun blocoDeNotificacoesMostraStatusDesativadoEAvisoQuandoPermissaoDoSistemaNegada() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarNotificacoesDoSistema = { false },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            val statusNode = rule.onNodeWithTag("status-notificacoes-sistema").performScrollTo()
+            statusNode.assertIsDisplayed()
+            rule.onNodeWithText("Desativadas").assertIsDisplayed()
+            rule.onNodeWithTag("aviso-notificacoes-desativadas-sistema").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText("Configurações de notificação do sistema").performScrollTo().assertIsDisplayed()
+        }
+    }
 }
