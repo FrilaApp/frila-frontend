@@ -2,6 +2,7 @@ package br.com.frila.app
 
 import android.app.Application
 import android.util.Log
+import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.seguranca.LeitorDeAmbiente
 import br.com.frila.core.seguranca.VerificadorDeIntegridade
@@ -16,6 +17,7 @@ class FrilaApplication : Application(), KoinComponent {
 
     override fun onCreate() {
         super.onCreate()
+        MedidorDeColdStart.iniciar()
 
         startKoin {
             androidContext(this@FrilaApplication)
