@@ -84,14 +84,18 @@ struct AcoesDeSeguranca: View {
 }
 
 /// Denúncia com campos Hi-Fi, atalhos de emergência e estado de confirmação com protocolo.
-private struct FolhaDeDenuncia: View {
+public struct FolhaDeDenuncia: View {
     @ScaledMetric(relativeTo: .body) private var colunaDoIcone: CGFloat = 28
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: SegurancaViewModel
     @AccessibilityFocusState private var protocoloEmFoco: Bool
     @FocusState private var focoNoRelato: Bool
 
-    var body: some View {
+    public init(model: SegurancaViewModel) {
+        self.model = model
+    }
+
+    public var body: some View {
         NavigationStack {
             Form {
                 if let protocolo = model.protocolo {
@@ -283,20 +287,20 @@ private struct FolhaDeDenuncia: View {
 }
 
 /// Perfil público de quem está do outro lado do turno, com as ações de segurança (#39).
-struct TelaPerfilPublico: View {
+public struct TelaPerfilPublico: View {
     @State private var model: PerfilPublicoViewModel
     let perfil: PerfilPublico
     let api: any ApiCliente
     let bloqueios: BloqueiosDaSessao
 
-    init(perfil: PerfilPublico, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
+    public init(perfil: PerfilPublico, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
         self.perfil = perfil
         self.api = api
         self.bloqueios = bloqueios
         _model = State(initialValue: PerfilPublicoViewModel(id: perfil.id, api: api))
     }
 
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if bloqueios.contem(perfil) {
