@@ -357,6 +357,24 @@ private struct EntradaDoApp: View {
                 }
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_SUPORTE_TURNO") {
                 TelaSuporteTurnoParaTeste()
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_HISTORICO_TURNOS") {
+                NavigationStack { TelaHistoricoDeTurnos(api: api) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_LICENCAS") {
+                NavigationStack { TelaLicencas() }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_POR_QUE_RECEBO_VAGAS") {
+                NavigationStack { TelaPorQueReceboVagas(api: api) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PERFIL_PROFISSIONAL") {
+                NavigationStack { TelaPerfilProfissional(api: api, modo: .edicao) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_EXCLUSAO_CONTA") {
+                NavigationStack { TelaExclusaoDeConta(viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: acaoDeSair)) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_EQUIPE_CONFIANCA") {
+                NavigationStack { TelaEquipeDeConfianca(api: api, estabelecimentoID: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PERFIL_ESTABELECIMENTO") {
+                NavigationStack { TelaPerfilEstabelecimento(api: api, sair: acaoDeSair) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_AJUDA_PERFIL") {
+                NavigationStack { TelaAjudaPerfil(enderecos: .padrao) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_EXPLICACAO_PUSH") {
+                TelaExplicacaoDoPush(modelo: permissaoDePush, perfil: .profissional)
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
                 catalogo
             } else {

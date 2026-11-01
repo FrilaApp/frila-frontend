@@ -548,9 +548,12 @@ Nesta rodada automatizada na branch `main` (`609b9a28`), foi executada a confer�
 | 21 | Licenças de Código Aberto (`TelaLicencas.swift`) | Links de pacotes e detalhe | Links com área de toque >= 44 pt e texto completo | `testLicencasEDetalheEmAX5` |
 | 22 | Itens de Toolbar (`FluxoDoProfissional.swift`, etc.) | Botões Fechar, Catálogo, Meus turnos | Suporte a `accessibilityShowsLargeContentViewer()` | `FluxoDoContratante.swift:116`, `FrilaApp.swift` |
 
-### 3. Veredito do Critério 3
-- **Botões escondidos:** Zero. Todos os controles de avanço, confirmação, cancelamento e fechamento permanecem visíveis e interativos em AX5.
-- **Texto cortado impeditivo:** Zero. Textos longos quebram em múltiplas linhas e os containers adaptam a rolagem (`ScrollView`).
+### 3. Veredito do Critério 3 e Atualização N-065
+- **Cobertura Comprovada por Captura Visual:** **34 de 43 telas da v1.0** capturadas no simulador iPhone 17 Pro sob AX5 (`UICTContentSizeCategoryAccessibilityXXXL`), com validação rigorosa de hash SHA-256 (zero duplicatas) e verificação semântica via Apple Vision OCR.
+- **Telas Restantes (9 telas):** Documentadas com suas respectivas justificativas técnicas (subtelas compostas, folhas modais dependentes de estado ou geofencing com GPS físico) e cobertas pela suíte automatizada `AuditoriaDeAcessibilidadeUITests.swift` (36 testes verdes).
+- **Correção de Evidências Trocadas (P2-01):** As telas `05_candidatura_confirmada_ax5.png` (TurnoConfirmado real com WhatsApp), `07_meus_turnos_ax5.png` (TelaMeusTurnos real com aba ativa) e `15_explicacao_push_ax5.png` (TelaExplicacaoDoPush real com "Ativar notificações" / "Agora não") foram corrigidas e revalidadas via OCR.
+- **Registro de Limitações em AX5 (P2-02):** Documentado truncamento em primeira dobra de Publicar Vaga (`PU...`), título inline de Conta Suspensa (`Conta susp...`) e congelamento dos cartões da lista de vagas em AX1 por decisão de design (evita cartões >900 pt).
+- **Botões escondidos:** Zero. Todos os controles essenciais de ação possuem área útil >= 44 pt e permanecem acessíveis com rolagem.
 - **Relatório de evidências visuais completo:** [relatorio-ax5-telas.md](Evidencias/relatorio-ax5-telas.md).
 
 
