@@ -69,7 +69,7 @@ fun TelaFeedVagas(
         modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Vagas abertas", modifier = Modifier.semantics { heading() }) },
+                title = { Text(if (estado.emCache) "Vagas salvas" else "Vagas abertas", modifier = Modifier.semantics { heading() }) },
                 actions = {
                     TextButton(
                         onClick = aoAbrirPerfil,
@@ -93,7 +93,7 @@ fun TelaFeedVagas(
                 .fillMaxSize()
                 .padding(paddingInterno)
                 .semantics {
-                    contentDescription = if (estado.atualizando) "Atualizando vagas abertas" else "Feed de vagas abertas"
+                    contentDescription = if (estado.atualizando) "Atualizando vagas abertas" else if (estado.emCache) "Feed de vagas salvas" else "Feed de vagas abertas"
                 },
         ) {
             Column(
@@ -101,7 +101,7 @@ fun TelaFeedVagas(
             ) {
                 if (estado.emCache) {
                     Text(
-                        text = "Exibindo vagas salvas. Os dados podem estar desatualizados.",
+                        text = "Exibindo vagas salvas. Disponibilidade não confirmada; conecte-se para verificar se ainda estão abertas.",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(FrilaEspacamento.compacto)
                             .semantics { liveRegion = LiveRegionMode.Polite },

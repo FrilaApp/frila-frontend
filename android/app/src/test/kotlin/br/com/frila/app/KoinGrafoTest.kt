@@ -96,7 +96,7 @@ class KoinGrafoTest : KoinTest {
     fun `grafo resolve todas as dependencias de rede, seguranca, notificacoes e features`() {
         startKoin { modules(modulosDeTeste) }
 
-        assertInstanceOf(ArmazenamentoDeSessaoEmMemoria::class.java, get<ArmazenamentoDeSessao>())
+        assertInstanceOf(ArmazenamentoDeSessaoEmMemoria::class.java, (get<ArmazenamentoDeSessao>() as SessaoComCacheVagas).origem)
         assertInstanceOf(LeitorDeAmbienteNulo::class.java, get<LeitorDeAmbiente>())
         assertInstanceOf(MonitorDeConectividadeFalso::class.java, get<MonitorDeConectividade>())
         assertNotNull(get<ClienteSupabase>())
