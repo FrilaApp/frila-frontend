@@ -47,7 +47,11 @@ import androidx.core.app.NotificationManagerCompat
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -119,7 +123,22 @@ fun TelaPerfil(
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val disponibilidadeBiometrica = remember { verificarDisponibilidadeBiometrica(contexto) }
-    val notificacoesDoSistemaAtivadas = remember(contexto) { verificarNotificacoesDoSistema(contexto) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var notificacoesDoSistemaAtivadas by remember {
+        mutableStateOf(verificarNotificacoesDoSistema(contexto))
+    }
+
+    DisposableEffect(lifecycleOwner, contexto) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificacoesDoSistemaAtivadas = verificarNotificacoesDoSistema(contexto)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
     var mensagemErroBiometria by remember { mutableStateOf<String?>(null) }
 
     // RF03/RNF04: repõe o avatar persistido ao montar a tela — independente do carregamento de

@@ -55,7 +55,8 @@ fun TelaDetalheVaga(
             true
         }
     },
-    aoRequisitarPermissao: (() -> Unit)? = null,
+    jaPediuNaSessao: () -> Boolean = { ControleSessaoNotificacao.jaPediuNaSessao },
+    marcarPediuNaSessao: () -> Unit = { ControleSessaoNotificacao.marcarComoPedida() },
     aoResultadoPermissao: (Boolean) -> Unit = {},
 ) {
     val contexto = LocalContext.current
@@ -63,7 +64,6 @@ fun TelaDetalheVaga(
     val vaga = estado.vaga
 
     var dialogoPermissaoVisivel by rememberSaveable { mutableStateOf(false) }
-    var jaPediuPermissaoNaSessao by rememberSaveable { mutableStateOf(false) }
 
     val launcherPermissao = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -72,9 +72,9 @@ fun TelaDetalheVaga(
     }
 
     LaunchedEffect(estado.statusCandidatura) {
-        if (estado.statusCandidatura == StatusCandidatura.CONFIRMADA && !jaPediuPermissaoNaSessao) {
+        if (estado.statusCandidatura == StatusCandidatura.CONFIRMADA && !jaPediuNaSessao()) {
             if (!verificarPermissaoNotificacao(contexto)) {
-                jaPediuPermissaoNaSessao = true
+                marcarPediuNaSessao()
                 dialogoPermissaoVisivel = true
             }
         }
@@ -84,9 +84,8 @@ fun TelaDetalheVaga(
         DialogoPermissaoNotificacao(
             aoConfirmar = {
                 dialogoPermissaoVisivel = false
-                if (aoRequisitarPermissao != null) {
-                    aoRequisitarPermissao()
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                marcarPediuNaSessao()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     launcherPermissao.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else {
                     aoResultadoPermissao(true)
@@ -94,6 +93,7 @@ fun TelaDetalheVaga(
             },
             aoDispensar = {
                 dialogoPermissaoVisivel = false
+                marcarPediuNaSessao()
                 aoResultadoPermissao(false)
             },
         )
