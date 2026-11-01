@@ -238,7 +238,28 @@ public protocol Relogio: Sendable {
 
 public struct RelogioDoSistema: Relogio {
     public init() {}
-    public var agora: Date { .now }
+    public var agora: Date {
+        #if DEBUG
+        if let data = Self.dataFixadaPeloAmbiente() {
+            return data
+        }
+        #endif
+        return .now
+    }
+
+    #if DEBUG
+    private static func dataFixadaPeloAmbiente() -> Date? {
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "-FRILA_RELOGIO_AGORA"), args.indices.contains(idx + 1) {
+            let str = args[idx + 1]
+            return ISO8601DateFormatter().date(from: str)
+        }
+        if let env = ProcessInfo.processInfo.environment["FRILA_RELOGIO_AGORA"] {
+            return ISO8601DateFormatter().date(from: env)
+        }
+        return nil
+    }
+    #endif
 }
 
 public struct RelogioFixo: Relogio {
