@@ -99,6 +99,14 @@ fun TelaFeedVagas(
             Column(
                 modifier = Modifier.fillMaxSize(),
             ) {
+                if (estado.emCache) {
+                    Text(
+                        text = "Exibindo vagas salvas. Os dados podem estar desatualizados.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(FrilaEspacamento.compacto)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
                 CampoBuscaVagas(
                     texto = estado.textoBusca,
                     aoAlterarTexto = viewModel::aoAlterarTextoBusca,

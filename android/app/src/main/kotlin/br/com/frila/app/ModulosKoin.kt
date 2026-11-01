@@ -22,6 +22,7 @@ import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
+import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
@@ -80,6 +81,12 @@ val moduloRede = module {
     }
     single { ServicoAutenticacao(get()) }
     single { ServicoVagas(get()) }
+    factory {
+        val servico = get<ServicoVagas>()
+        val sessao = get<ArmazenamentoDeSessao>().obterSessao()
+        val arquivo = getOrNull<Context>()?.let { arquivoCacheVagas(it.noBackupFilesDir, sessao) }
+        RepositorioVagas(arquivo) { coordenada -> servico.listarVagasAbertas(coordenada) }
+    }
     single { ServicoDispositivo(get()) }
     single { ServicoTurnos(get()) }
     single { ServicoPerfil(get()) }
@@ -120,7 +127,7 @@ val moduloFeatures = module {
     viewModel { EntradaViewModel(get()) }
     viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
     viewModel { CadastroViewModel() }
-    viewModel { FeedVagasViewModel(get(), get(), get()) }
+    viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     single { MonitorizadorDeTurnosProximos(gerenciadorGeofencing = get(), preferenciasNotificacao = get()) }
     viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }

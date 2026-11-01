@@ -5,11 +5,15 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
+import br.com.frila.core.rede.RepositorioVagas
+import br.com.frila.core.rede.ResultadoVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +38,7 @@ class FeedVagasViewModel(
     private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val armazenamentoPreferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
     escopo: CoroutineScope? = null,
+    private val repositorioVagas: RepositorioVagas? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -61,16 +66,28 @@ class FeedVagasViewModel(
         _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
-                val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
-                // distanciaMaxKm fica de fora de propósito (achado bloqueante do Shisui): restringir no
-                // servidor impede ampliar o raio sem forçar um recarregamento — vagasCarregadas precisa
-                // conter todo o raio possível para que aplicarFiltros() seja reativo em qualquer chip.
-                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
-                aplicarFiltros()
-            } catch (erro: ErroDaApi) {
+                // Exibe o disco antes de esperar localização ou rede, inclusive na abertura offline.
+                repositorioVagas?.obterCache()?.let(::aplicarResultado)
+                aplicarResultado(buscarVagas())
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
                 _estado.update { it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
         }
+    }
+
+    private suspend fun buscarVagas(): ResultadoVagas {
+        val coordenada = withTimeoutOrNull(3_000) { provedorDeLocalizacao.obterCoordenadaAtual() }
+        // Sem filtro de raio no servidor: ampliar o chip continua sendo uma operação local.
+        return repositorioVagas?.listar(coordenada)
+            ?: ResultadoVagas(servicoVagas.listarVagasAbertas(coordenada), emCache = false)
+    }
+
+    private fun aplicarResultado(resultado: ResultadoVagas) {
+        vagasCarregadas = resultado.vagas
+        _estado.update { it.copy(emCache = resultado.emCache) }
+        aplicarFiltros()
     }
 
     /** Mesma operação de [carregar]; nome próprio só para deixar a intenção explícita na tela de erro. */
@@ -84,13 +101,11 @@ class FeedVagasViewModel(
         _estado.update { it.copy(atualizando = true, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
-                val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
-                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
-                aplicarFiltros()
-            } catch (erro: ErroDaApi) {
+                aplicarResultado(buscarVagas())
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
-            } catch (t: Throwable) {
-                _estado.update { it.copy(mensagemErro = "Não foi possível carregar as vagas. Tente de novo em instantes.") }
             } finally {
                 _estado.update { it.copy(atualizando = false) }
             }
@@ -242,7 +257,7 @@ class FeedVagasViewModel(
         }
     }
 
-    private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {
+    private fun mensagemDeErro(erro: Exception): String = when ((erro as? ErroDaApi)?.codigo?.name) {
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível carregar as vagas. Tente de novo em instantes."
     }

@@ -1,6 +1,7 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.Coordenada
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -16,20 +17,25 @@ import kotlinx.serialization.json.Json
 data class ResultadoVagas(val vagas: List<VagaAbertaDto>, val emCache: Boolean)
 
 /**
- * Primeira fatia do modo offline: leitura com fallback apenas para SEM_REDE.
- * O chamador deve fornecer arquivo privado por sessão/consulta e removê-lo ao sair.
- * Ainda não ligado ao feed: coordenadas e isolamento de sessão serão integrados nessa etapa.
+ * Leitura com fallback apenas para SEM_REDE. Arquivo nulo mantém somente memória.
+ * O app fornece arquivo privado separado por sessão; distâncias em cache são da última consulta.
  */
 class RepositorioVagas(
-    private val arquivoCache: File,
-    private val buscarNaRede: suspend () -> List<VagaAbertaDto>,
+    private val arquivoCache: File?,
+    private val buscarNaRede: suspend (Coordenada?) -> List<VagaAbertaDto>,
 ) {
     private val mutex = Mutex()
     private var memoria: List<VagaAbertaDto>? = null
 
-    suspend fun listar(): ResultadoVagas = mutex.withLock {
+    suspend fun obterCache(): ResultadoVagas? = mutex.withLock {
+        val cache = memoria ?: lerDisco() ?: return@withLock null
+        memoria = cache
+        ResultadoVagas(cache, emCache = true)
+    }
+
+    suspend fun listar(coordenada: Coordenada? = null): ResultadoVagas = mutex.withLock {
         val vagas = try {
-            buscarNaRede()
+            buscarNaRede(coordenada)
         } catch (erro: ErroDaApi) {
             if (erro.codigo != CodigoErroAPI.SEM_REDE) throw erro
             val cache = memoria ?: lerDisco() ?: throw erro
@@ -42,8 +48,9 @@ class RepositorioVagas(
     }
 
     private suspend fun lerDisco(): List<VagaAbertaDto>? = withContext(Dispatchers.IO) {
+        val arquivo = arquivoCache ?: return@withContext null
         try {
-            Json.decodeFromString<List<VagaAbertaDto>>(arquivoCache.readText())
+            Json.decodeFromString<List<VagaAbertaDto>>(arquivo.readText())
         } catch (_: IOException) {
             null
         } catch (_: SerializationException) {
@@ -52,9 +59,10 @@ class RepositorioVagas(
     }
 
     private suspend fun gravarDisco(vagas: List<VagaAbertaDto>) = withContext(Dispatchers.IO) {
+        val arquivo = arquivoCache ?: return@withContext
         var temporario: File? = null
         try {
-            val destino = arquivoCache.absoluteFile
+            val destino = arquivo.absoluteFile
             destino.parentFile.mkdirs()
             temporario = File.createTempFile("vagas-", ".tmp", destino.parentFile)
             temporario.writeText(Json.encodeToString(vagas))
