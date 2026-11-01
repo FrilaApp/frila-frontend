@@ -51,10 +51,11 @@ private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
 
 /** Usa Android Keystore em produção e mantém o grafo utilizável em testes JVM sem [Context]. */
 val moduloSeguranca = module {
+    single { CacheVagasDaSessao(getOrNull<Context>()?.noBackupFilesDir) }
     single<ArmazenamentoDeSessao> {
-        getOrNull<Context>()
-            ?.let(::ArmazenamentoDeSessaoKeystore)
+        val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)
             ?: ArmazenamentoDeSessaoEmMemoria()
+        SessaoComCacheVagas(origem, get())
     }
     /** RN15 (cartão Cdv0sS5w): leitura do ambiente para VerificadorDeIntegridade. */
     single<LeitorDeAmbiente> {
@@ -83,9 +84,8 @@ val moduloRede = module {
     single { ServicoVagas(get()) }
     factory {
         val servico = get<ServicoVagas>()
-        val sessao = get<ArmazenamentoDeSessao>().obterSessao()
-        val arquivo = getOrNull<Context>()?.let { arquivoCacheVagas(it.noBackupFilesDir, sessao) }
-        RepositorioVagas(arquivo) { coordenada -> servico.listarVagasAbertas(coordenada) }
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        get<CacheVagasDaSessao>().criar(armazenamento) { coordenada -> servico.listarVagasAbertas(coordenada) }
     }
     single { ServicoDispositivo(get()) }
     single { ServicoTurnos(get()) }

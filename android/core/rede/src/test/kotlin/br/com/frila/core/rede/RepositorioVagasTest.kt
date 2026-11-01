@@ -15,7 +15,7 @@ class RepositorioVagasTest {
         id = "vaga-sintetica", funcao = FuncaoDto("funcao", "Atendimento", "Salão"),
         estabelecimento = PerfilPublicoDto("local", "estabelecimento", "Local de teste",
             reputacao = ReputacaoDto(0, 0, turnosConsiderados = 0, turnosRealizados = 0)),
-        inicioEm = "2026-11-01T12:00:00Z", fimEm = "2026-11-01T18:00:00Z",
+        inicioEm = java.time.Instant.now().plusSeconds(3600).toString(), fimEm = java.time.Instant.now().plusSeconds(7200).toString(),
         local = "Local sintético", regiaoAdministrativa = "Região de teste", distanciaKm = 1.0,
         valorCentavos = 12000, posicoesAbertas = 1, inclusos = InclusosDto(false, false, false), modo = "selecao",
     ))
@@ -83,4 +83,26 @@ class RepositorioVagasTest {
         offline = true
         assertEquals(ResultadoVagas(vagas, true), repositorio.listar())
     }
+    @Test fun cacheExcluiVencidasPreenchidasEDatasInvalidas() = runTest {
+        val agora = java.time.Instant.parse("2030-01-01T12:00:00Z")
+        val aberta = vagas.single().copy(fimEm = agora.plusSeconds(60).toString())
+        val snapshots = listOf(aberta, aberta.copy(id = "vencida", fimEm = agora.toString()),
+            aberta.copy(id = "preenchida", posicoesAbertas = 0), aberta.copy(id = "invalida", fimEm = "invalido"))
+        val repo = RepositorioVagas(arquivo, agora = { agora }) { snapshots }
+        repo.listar()
+        assertEquals(listOf(aberta), repo.obterCache()!!.vagas)
+        assertEquals(listOf(aberta), RepositorioVagas(arquivo, agora = { agora }) { throw erro() }.listar().vagas)
+    }
+
+    @Test fun memoriaReavaliaValidadeQuandoOTempoPassa() = runTest {
+        var instante = java.time.Instant.parse("2030-01-01T12:00:00Z")
+        val repo = RepositorioVagas(null, agora = { instante }) {
+            listOf(vagas.single().copy(fimEm = instante.plusSeconds(60).toString()))
+        }
+        repo.listar()
+        assertEquals(1, repo.obterCache()!!.vagas.size)
+        instante = instante.plusSeconds(60)
+        assertTrue(repo.obterCache()!!.vagas.isEmpty())
+    }
+
 }

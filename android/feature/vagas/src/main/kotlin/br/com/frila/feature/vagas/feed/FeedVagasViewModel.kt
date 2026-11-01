@@ -6,6 +6,7 @@ import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.RepositorioVagas
+import br.com.frila.core.rede.aindaDisponivelEm
 import br.com.frila.core.rede.ResultadoVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import java.time.Duration
@@ -16,6 +17,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +41,7 @@ class FeedVagasViewModel(
     private val armazenamentoPreferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
     escopo: CoroutineScope? = null,
     private val repositorioVagas: RepositorioVagas? = null,
+    private val agora: () -> Instant = Instant::now,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -47,6 +50,15 @@ class FeedVagasViewModel(
     val estado: StateFlow<EstadoFeed> = _estado.asStateFlow()
 
     private var vagasCarregadas: List<VagaAbertaDto> = emptyList()
+    private var validadeDoCache: Job? = null
+
+    init {
+        repositorioVagas?.observarInvalidacao {
+            validadeDoCache?.cancel()
+            vagasCarregadas = emptyList()
+            _estado.value = EstadoFeed()
+        }
+    }
 
     init {
         armazenamentoPreferencias.obterFaixaRemuneracaoHora()?.let { salva ->
@@ -85,9 +97,20 @@ class FeedVagasViewModel(
     }
 
     private fun aplicarResultado(resultado: ResultadoVagas) {
-        vagasCarregadas = resultado.vagas
-        _estado.update { it.copy(emCache = resultado.emCache) }
-        aplicarFiltros()
+        val aplicar = {
+            validadeDoCache?.cancel()
+            vagasCarregadas = resultado.vagas
+            _estado.update { it.copy(emCache = resultado.emCache) }
+            aplicarFiltros()
+            if (resultado.emCache) validadeDoCache = escopoDeTrabalho.launch {
+                while (vagasCarregadas.isNotEmpty()) {
+                    val proximoFim = vagasCarregadas.minOf { Instant.parse(it.fimEm) }
+                    delay(Duration.between(agora(), proximoFim).toMillis().coerceAtLeast(1))
+                    repositorioVagas?.usarSeValido { aplicarFiltros() }
+                }
+            }
+        }
+        if (repositorioVagas == null) aplicar() else repositorioVagas.usarSeValido(aplicar)
     }
 
     /** Mesma operação de [carregar]; nome próprio só para deixar a intenção explícita na tela de erro. */
@@ -116,7 +139,9 @@ class FeedVagasViewModel(
      * Vaga já carregada pelo feed, pelo id — usado pela navegação para abrir o detalhe sem
      * refazer a chamada de `/rpc/vagas_abertas` só para reler o mesmo objeto.
      */
-    fun encontrarVagaPorId(id: String): VagaAbertaDto? = vagasCarregadas.firstOrNull { it.id == id }
+    fun encontrarVagaPorId(id: String): VagaAbertaDto? = vagasCarregadas.firstOrNull {
+        it.id == id && (!_estado.value.emCache || it.aindaDisponivelEm(agora()))
+    }
 
     fun aoAlterarTextoBusca(texto: String) {
         _estado.update { it.copy(textoBusca = texto) }
@@ -214,6 +239,7 @@ class FeedVagasViewModel(
 
     private fun aplicarFiltros() {
         val filtroAtual = _estado.value
+        if (filtroAtual.emCache) vagasCarregadas = vagasCarregadas.filter { it.aindaDisponivelEm(agora()) }
         val termoBusca = filtroAtual.textoBusca.trim()
 
         val filtradas = vagasCarregadas
