@@ -36,6 +36,48 @@ struct PerfisDaContaTests {
         #expect(copia.pilulaAberta == .telefone)
     }
 
+    @Test("Cada travessia pulsa uma vez, a faixa de histerese não pulsa e nada é escrito até soltar")
+    func alternanciaDaTrava() {
+        var escritos: [String] = []
+        var pulsos: [Bool] = []
+        let copia = CopiaDeContato(escrever: { escritos.append($0) }, pulsarTrava: { pulsos.append($0) })
+        let curso: CGFloat = 200
+        let raio: CGFloat = 56
+        var travado = false
+        for posicao: CGFloat in [10, 144, 150, 200, 130, 125, 123, 120, 100, 144, 200, 100] {
+            let novo = ContatoCopiavel.deveTravar(posicao: posicao, estavaTravado: travado, curso: curso, raio: raio, ganho: 1)
+            if novo != travado {
+                copia.registrarAlternanciaDeTrava(ativa: novo)
+                travado = novo
+            }
+        }
+        #expect(pulsos == [true, false, true, false])
+        #expect(escritos.isEmpty)
+    }
+
+    @Test("Com ganho 3, destravar ainda pede 20 pt reais de dedo")
+    func histereseEmPontosDeDedo() {
+        let curso: CGFloat = 180
+        let raio: CGFloat = 54
+        let limiar = curso - raio
+        let dentro = limiar - ContatoCopiavel.copyLatchHysteresis * 3
+        #expect(ContatoCopiavel.deveTravar(posicao: limiar, estavaTravado: false, curso: curso, raio: raio, ganho: 3))
+        #expect(ContatoCopiavel.deveTravar(posicao: dentro, estavaTravado: true, curso: curso, raio: raio, ganho: 3))
+        #expect(!ContatoCopiavel.deveTravar(posicao: dentro - 1, estavaTravado: true, curso: curso, raio: raio, ganho: 3))
+    }
+
+    @Test("Sem curso físico à direita não há mapeamento, e o ganho fica entre 1 e 3")
+    func mapeamentoDoArrasto() throws {
+        #expect(ContatoCopiavel.MapeamentoDoArrasto(curso: 180, folgaDireita: 59) == nil)
+        let limite = try #require(ContatoCopiavel.MapeamentoDoArrasto(curso: 180, folgaDireita: 60))
+        #expect(limite.ganho == 3)
+        #expect(limite.progresso(dx: 60, curso: 180) == 180)
+        let folgado = try #require(ContatoCopiavel.MapeamentoDoArrasto(curso: 180, folgaDireita: 300))
+        #expect(folgado.ganho == 1)
+        #expect(folgado.progresso(dx: -10, curso: 180) == 0)
+        #expect(folgado.progresso(dx: 90, curso: 180) == 90)
+    }
+
     @Test("Meu perfil combina os dados da conta e do perfil profissional com a reputação pública")
     func meuPerfil() async {
         let api = ApiClienteEmMemoria()

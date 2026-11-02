@@ -59,6 +59,14 @@ public enum FrilaMotion {
     public static let copyLatchSpring: Animation = .spring(duration: 0.26, bounce: 0.18)
     /// Texto que sobe rolando ao trocar de "Copiar" para "Copiado".
     public static let copyTextRoll: Animation = .spring(duration: 0.32, bounce: 0.08)
+    /// A pílula cresce de leve enquanto a lente desliza, como a barra de abas nativa. A nativa, medida em
+    /// gravação, chega a 1,043; aqui 1,03, porque a pílula já corre quase rente às margens da tela.
+    public static let copyPillDragScale: CGFloat = 1.03
+    public static let copyPillDragSpring: Animation = .spring(duration: 0.25, bounce: 0.2)
+    /// Reduzir Movimento: toda troca do componente é só este fade de opacidade.
+    public static let copyReducedFade: Animation = .easeOut(duration: 0.12)
+    /// Pulso leve ao travar e ao destravar em "Copiar".
+    public static let copyLatchHapticIntensity: Double = 0.25
 
     // MARK: - Disclosure (expansão e recolhimento de containers)
 

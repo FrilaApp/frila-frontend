@@ -251,7 +251,6 @@ public struct TelaMeuPerfilProfissional: View {
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
         .sensoryFeedback(.success, trigger: copiaDeContato.copias)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.35), trigger: copiaDeContato.aberturas)
-        .sensoryFeedback(.alignment, trigger: copiaDeContato.travas)
         .onDisappear { copiaDeContato.limpar() }
     }
 
@@ -286,8 +285,11 @@ public struct TelaMeuPerfilProfissional: View {
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            ContatoCopiavel(titulo: TextosPerfilConta.telefone, valor: conta.telefone, id: "perfil-telefone", campo: .telefone, copia: copiaDeContato)
-            ContatoCopiavel(titulo: TextosPerfilConta.email, valor: conta.email, id: "perfil-email", campo: .email, copia: copiaDeContato)
+            // Áreas de toque encostadas: nenhuma faixa morta entre os dois contatos.
+            VStack(alignment: .leading, spacing: 0) {
+                ContatoCopiavel(titulo: TextosPerfilConta.telefone, valor: conta.telefone, id: "perfil-telefone", campo: .telefone, copia: copiaDeContato)
+                ContatoCopiavel(titulo: TextosPerfilConta.email, valor: conta.email, id: "perfil-email", campo: .email, copia: copiaDeContato)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -176,8 +176,9 @@ public enum FrilaMovimento {
     /// Mola dos chips (380/24): `FrilaMotion.chipPressSpring`.
     public static let molaTatilChip: Animation = FrilaMotion.chipPressSpring
 
-    public static func animacao(_ animacao: Animation = .default, reduzir: Bool) -> Animation? {
-        reduzir ? nil : animacao
+    /// `somenteOpacidade` é para quem garante que, sob Reduzir Movimento, a transação só muda opacidade.
+    public static func animacao(_ animacao: Animation = .default, reduzir: Bool, somenteOpacidade: Bool = false) -> Animation? {
+        reduzir && !somenteOpacidade ? nil : animacao
     }
 }
 
