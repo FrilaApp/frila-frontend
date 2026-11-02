@@ -20,6 +20,8 @@ enum TextosPerfilConta {
     static let exportar = String(localized: "Exportar meus dados", bundle: bundleApresentacao)
     static let excluir = String(localized: "Excluir conta", bundle: bundleApresentacao)
     static let sair = String(localized: "Sair", bundle: bundleApresentacao)
+    static let copiar = String(localized: "Copiar", bundle: bundleApresentacao)
+    static let copiado = String(localized: "Copiado", bundle: bundleApresentacao)
     static let contaEDados = String(localized: "Conta e dados", bundle: bundleApresentacao)
     static let sairOuExcluir = String(localized: "Sair ou excluir conta", bundle: bundleApresentacao)
     static let explicacaoSair = String(localized: "Encerra a sessão neste aparelho. Você pode entrar de novo quando quiser.", bundle: bundleApresentacao)
@@ -197,6 +199,7 @@ public struct TelaMeuPerfilProfissional: View {
     public let enderecos: EnderecosOficiais
     @State private var mostrarExplicacao = false
     @State private var mostrarAjuda = false
+    @State private var copiaDeContato = CopiaDeContato()
 
     public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
         self.api = api
@@ -246,6 +249,10 @@ public struct TelaMeuPerfilProfissional: View {
         .task { await model.carregar() }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
+        .sensoryFeedback(.success, trigger: copiaDeContato.copias)
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.35), trigger: copiaDeContato.aberturas)
+        .sensoryFeedback(.impact(weight: .medium, intensity: 0.7), trigger: copiaDeContato.travas)
+        .onDisappear { copiaDeContato.limpar() }
     }
 
     /// Seção que reúne dados e conta. Sair e Excluir conta ficam um passo adiante, de propósito: ações
@@ -279,24 +286,9 @@ public struct TelaMeuPerfilProfissional: View {
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            contato(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone")
-            contato(TextosPerfilConta.email, conta.email, id: "perfil-email")
+            ContatoCopiavel(titulo: TextosPerfilConta.telefone, valor: conta.telefone, id: "perfil-telefone", campo: .telefone, copia: copiaDeContato)
+            ContatoCopiavel(titulo: TextosPerfilConta.email, valor: conta.email, id: "perfil-email", campo: .email, copia: copiaDeContato)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func contato(_ titulo: String, _ valor: String, id: String) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: titulo)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .accessibilityIdentifier("\(id)-rotulo")
-            Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityIdentifier("\(id)-valor")
-        }
-        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

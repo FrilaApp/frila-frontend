@@ -7,6 +7,35 @@ import Testing
 @MainActor
 @Suite("Perfis e reputação (#54)")
 struct PerfisDaContaTests {
+    @Test("Cada cópia de contato escreve uma vez, e repetição rápida não repete o haptic")
+    func copiaDeContatoEscreveUmaVez() {
+        var escritos: [String] = []
+        let copia = CopiaDeContato(escrever: { escritos.append($0) })
+        let agora = Date()
+
+        copia.copiar(.telefone, valor: "+5561988887777", agora: agora)
+        copia.copiar(.telefone, valor: "+5561988887777", agora: agora.addingTimeInterval(0.05))
+        copia.copiar(.email, valor: "ana@frila.app", agora: agora.addingTimeInterval(0.5))
+
+        #expect(escritos == ["+5561988887777", "+5561988887777", "ana@frila.app"])
+        #expect(copia.copias == 2)
+        #expect(copia.tipVisivel == .email)
+    }
+
+    @Test("Valor vazio não copia, e abrir a pílula não conta como cópia")
+    func copiaDeContatoIgnoraVazioEAbertura() {
+        var escritos: [String] = []
+        let copia = CopiaDeContato(escrever: { escritos.append($0) })
+
+        copia.copiar(.email, valor: "  ")
+        copia.abrir(.telefone)
+
+        #expect(escritos.isEmpty)
+        #expect(copia.copias == 0)
+        #expect(copia.aberturas == 1)
+        #expect(copia.pilulaAberta == .telefone)
+    }
+
     @Test("Meu perfil combina os dados da conta e do perfil profissional com a reputação pública")
     func meuPerfil() async {
         let api = ApiClienteEmMemoria()

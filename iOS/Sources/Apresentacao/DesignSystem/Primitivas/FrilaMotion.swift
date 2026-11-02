@@ -42,6 +42,18 @@ public enum FrilaMotion {
     /// (rigidez: 300, amortecimento: 20). Fluida, sem oscilação excessiva, com resposta orgânica.
     public static let progressBarSpring: Animation = .interpolatingSpring(stiffness: 300, damping: 20)
 
+    // MARK: - Cópia de contato (tip e pílula de deslizar)
+
+    public static let copyTipHold: Double = 1.4
+    public static let copyHapticInterval: Double = 0.15
+    public static let copyLongPress: Double = 0.45
+    public static let copyPillOpen: Animation = .timingCurve(0.22, 1, 0.36, 1, duration: 0.24)
+    public static let copyPillClose: Animation = .timingCurve(0.4, 0, 1, 1, duration: 0.16)
+    /// Atração do nó para "Copiar" e a troca de lente para bolha, com leve excesso.
+    public static let copyLatchSpring: Animation = .spring(duration: 0.26, bounce: 0.18)
+    /// Texto que sobe rolando ao trocar de "Copiar" para "Copiado".
+    public static let copyTextRoll: Animation = .spring(duration: 0.32, bounce: 0.08)
+
     // MARK: - Disclosure (expansão e recolhimento de containers)
 
     /// Expansão: mola quase sem bounce (0.42 s, bounce 0.08). Abre com corpo, assenta sem balançar.
