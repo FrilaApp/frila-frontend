@@ -49,6 +49,7 @@ import br.com.frila.feature.perfil.TelaPerfil
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import br.com.frila.feature.turnos.StatusMeusTurnos
 import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
 import br.com.frila.feature.turnos.TelaOcorrencia
@@ -73,16 +74,19 @@ object Rotas {
     const val LICENCAS = "licencas"
     const val VAGA_INDISPONIVEL = "vaga_indisponivel"
     const val TURNO_NAO_ENCONTRADO = "turno_nao_encontrado"
+    const val TURNO_AVISO = "meus_turnos/{turnoId}"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
     fun ocorrencia(turnoId: String) = "ocorrencia/$turnoId"
+    fun turnoAviso(turnoId: String) = "meus_turnos/$turnoId"
 }
 
 object DeepLinks {
     const val DETALHE_VAGA = "frila://vagas/{vagaId}"
     const val MEUS_TURNOS = "frila://meus_turnos"
+    const val TURNO_AVISO = "frila://meus_turnos/{turnoId}"
     const val SUPORTE = "frila://suporte?turno_id={turnoId}"
 }
 
@@ -233,6 +237,75 @@ fun AppNavegacao(
                         }
                     },
                 )
+            }
+
+            composable(
+                route = Rotas.TURNO_AVISO,
+                deepLinks = listOf(navDeepLink { uriPattern = DeepLinks.TURNO_AVISO }),
+            ) { entrada ->
+                val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                val viewModel: MeusTurnosViewModel = koinViewModel()
+                val estado by viewModel.estado.collectAsStateWithLifecycle()
+
+                LaunchedEffect(turnoId) {
+                    viewModel.carregar()
+                }
+
+                when (estado.status) {
+                    StatusMeusTurnos.CARREGANDO -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Carregando...",
+                                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                    StatusMeusTurnos.SUCESSO -> {
+                        val turnoEncontrado = estado.agendados.any { it.id == turnoId } ||
+                            estado.historico.any { it.id == turnoId }
+                        if (turnoEncontrado) {
+                            TelaMeusTurnos(
+                                viewModel = viewModel,
+                                criarCheckinViewModel = { id ->
+                                    koinViewModel(parameters = { parametersOf(id, null) })
+                                },
+                                aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                            )
+                        } else {
+                            TelaTurnoNaoEncontrado(
+                                aoVoltar = { navController.popBackStack() },
+                                aoVerMeusTurnos = {
+                                    navController.navigate(Rotas.MEUS_TURNOS) {
+                                        popUpTo(Rotas.MEUS_TURNOS) { inclusive = true }
+                                    }
+                                },
+                            )
+                        }
+                    }
+                    StatusMeusTurnos.VAZIO -> {
+                        TelaTurnoNaoEncontrado(
+                            aoVoltar = { navController.popBackStack() },
+                            aoVerMeusTurnos = {
+                                navController.navigate(Rotas.MEUS_TURNOS) {
+                                    popUpTo(Rotas.MEUS_TURNOS) { inclusive = true }
+                                }
+                            },
+                        )
+                    }
+                    StatusMeusTurnos.ERRO -> {
+                        // Não transforma erro de conexão em "não encontrado" (DestinosDoAviso.swift:208)
+                        TelaMeusTurnos(
+                            viewModel = viewModel,
+                            criarCheckinViewModel = { id ->
+                                koinViewModel(parameters = { parametersOf(id, null) })
+                            },
+                            aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                        )
+                    }
+                }
             }
 
             composable(
