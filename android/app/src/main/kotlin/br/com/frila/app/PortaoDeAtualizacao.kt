@@ -9,21 +9,18 @@ import br.com.frila.core.rede.ClienteSupabase
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Modelo de configuração pública do app (paridade com `ConfiguracaoDoApp` do contrato OpenAPI 0.2.45).
  */
-@Serializable
 data class ConfiguracaoDoAppDto(
     val plataforma: String,
-    @SerialName("versao_minima")
     val versaoMinima: String,
-    @SerialName("versao_recomendada")
     val versaoRecomendada: String? = null,
-    @SerialName("url_da_loja")
     val urlDaLoja: String? = null,
     val mensagem: String? = null,
 )
@@ -38,8 +35,14 @@ suspend fun consultarConfiguracaoDoApp(
     val resposta = cliente.http.get(cliente.urlRpc("configuracao_do_app")) {
         parameter("plataforma", "android")
     }
-    val corpo = resposta.bodyAsText()
-    return Json { ignoreUnknownKeys = true }.decodeFromString(ConfiguracaoDoAppDto.serializer(), corpo)
+    val json = Json.parseToJsonElement(resposta.bodyAsText()).jsonObject
+    return ConfiguracaoDoAppDto(
+        plataforma = json["plataforma"]?.jsonPrimitive?.contentOrNull ?: "android",
+        versaoMinima = json["versao_minima"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+        versaoRecomendada = json["versao_recomendada"]?.jsonPrimitive?.contentOrNull,
+        urlDaLoja = json["url_da_loja"]?.jsonPrimitive?.contentOrNull,
+        mensagem = json["mensagem"]?.jsonPrimitive?.contentOrNull,
+    )
 }
 
 /**
