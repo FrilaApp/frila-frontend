@@ -67,9 +67,17 @@ public enum FrilaMotion {
     public static let copyReducedFade: Animation = .easeOut(duration: 0.12)
     /// Pulso seco ao travar e ao destravar em "Copiar". Dispara na captura, antes da troca visual.
     public static let copyLatchHapticIntensity: Double = 0.45
+    /// Sair para o espaço livre pesa menos que entrar: a ida e a volta não se somam num rufar.
+    public static let copyUnlatchHapticIntensity: Double = 0.25
+    /// Dois pulsos de trava nunca ficam mais perto que isto.
+    public static let copyLatchHapticMinGap: Double = 0.09
     /// A zona de captura cresce com o curso, até este teto: ativar o toggle mais cedo.
     public static let copyCaptureFraction: CGFloat = 0.4
     public static let copyCaptureMax: CGFloat = 80
+    /// Com várias paradas, cada zona de captura ocupa no máximo esta fração da distância até a vizinha, e a
+    /// histerese esta outra: as zonas de retenção de duas paradas nunca se sobrepõem.
+    public static let copyStopCaptureShare: CGFloat = 0.35
+    public static let copyStopHysteresisShare: CGFloat = 0.10
 
     // MARK: - Disclosure (expansão e recolhimento de containers)
 

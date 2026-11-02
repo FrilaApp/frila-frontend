@@ -41,13 +41,16 @@ struct PerfisDaContaTests {
         var escritos: [String] = []
         var pulsos: [Bool] = []
         let copia = CopiaDeContato(escrever: { escritos.append($0) }, pulsarTrava: { pulsos.append($0) })
-        let curso: CGFloat = 200
-        let raio: CGFloat = 56
-        var travado = false
-        for posicao: CGFloat in [10, 144, 150, 200, 130, 125, 123, 120, 100, 144, 200, 100] {
-            let novo = ContatoCopiavel.deveTravar(posicao: posicao, estavaTravado: travado, curso: curso, raio: raio, ganho: 1)
+        let zonas = ZonasDasParadas(alvos: [200], curso: 200, ganho: 1)
+        var travado: Int?
+        for posicao: CGFloat in [10, 100, 125, 150, 200, 105, 99, 110, 120, 100, 90] {
+            let novo = zonas.escolher(progresso: posicao, anterior: travado)
             if novo != travado {
-                copia.registrarAlternanciaDeTrava(ativa: novo)
+                if novo != nil {
+                    copia.registrarAlternanciaDeTrava(ativa: true)
+                } else if travado != nil {
+                    copia.registrarAlternanciaDeTrava(ativa: false)
+                }
                 travado = novo
             }
         }
@@ -57,13 +60,24 @@ struct PerfisDaContaTests {
 
     @Test("Com ganho 3, destravar ainda pede 20 pt reais de dedo")
     func histereseEmPontosDeDedo() {
-        let curso: CGFloat = 180
-        let raio: CGFloat = 54
-        let limiar = curso - raio
-        let dentro = limiar - ContatoCopiavel.copyLatchHysteresis * 3
-        #expect(ContatoCopiavel.deveTravar(posicao: limiar, estavaTravado: false, curso: curso, raio: raio, ganho: 3))
-        #expect(ContatoCopiavel.deveTravar(posicao: dentro, estavaTravado: true, curso: curso, raio: raio, ganho: 3))
-        #expect(!ContatoCopiavel.deveTravar(posicao: dentro - 1, estavaTravado: true, curso: curso, raio: raio, ganho: 3))
+        let zonas = ZonasDasParadas(alvos: [180], curso: 180, ganho: 3)
+        let raio = zonas.raios[0]
+        let retencao = raio + zonas.histereses[0]
+        #expect(zonas.histereses[0] == ContatoCopiavel.copyLatchHysteresis * 3)
+        #expect(zonas.escolher(progresso: 180 - raio, anterior: nil) == 0)
+        #expect(zonas.escolher(progresso: 180 - retencao, anterior: 0) == 0)
+        #expect(zonas.escolher(progresso: 180 - retencao - 1, anterior: 0) == nil)
+    }
+
+    @Test("Com duas paradas, a captura é a mais próxima, a troca é direta e as zonas não se sobrepõem")
+    func zonasComDuasParadas() {
+        let zonas = ZonasDasParadas(alvos: [100, 190], curso: 190, ganho: 1)
+        #expect(zonas.raios[0] + zonas.histereses[0] < 45)
+        #expect(zonas.escolher(progresso: 100, anterior: nil) == 0)
+        #expect(zonas.escolher(progresso: 145, anterior: nil) == nil)
+        #expect(zonas.escolher(progresso: 190, anterior: nil) == 1)
+        #expect(zonas.escolher(progresso: 160, anterior: 1) == 1)
+        #expect(zonas.escolher(progresso: 120, anterior: 1) == 0)
     }
 
     @Test("Sem curso físico à direita não há mapeamento, e o ganho fica entre 1 e 3")

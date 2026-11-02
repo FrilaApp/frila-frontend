@@ -34,6 +34,7 @@ public enum FrilaCor {
     public static let texto = Color("TextPrimary", bundle: recursos)
     /// O mesmo token para o UIKit, pelo catálogo: segue claro e escuro sozinho.
     static let textoUIKit = UIColor(named: "TextPrimary", in: recursos, compatibleWith: nil) ?? .label
+    static let marcaUIKit = UIColor(named: "BrandAccent", in: recursos, compatibleWith: nil) ?? .systemOrange
     /// Texto de apoio (`dynamicFormTextMuted`, #6B6B6B): 5,1:1 sobre o cartão; o `dynamicTextMuted` da origem (#767571) ficava em 4,4:1.
     public static let textoSecundario = Color("TextSecondary", bundle: recursos)
     public static let sucesso = Color("Success", bundle: recursos)

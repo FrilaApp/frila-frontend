@@ -11,6 +11,16 @@
         }
       }
     },
+    "Editar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar"
+          }
+        }
+      }
+    },
     "Copiado": {
       "localizations": {
         "pt-BR": {

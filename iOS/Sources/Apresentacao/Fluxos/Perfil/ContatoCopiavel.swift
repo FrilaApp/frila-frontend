@@ -21,6 +21,7 @@ final class CopiaDeContato {
     private var tarefaDoTip: Task<Void, Never>?
     private var tarefaDeFechamento: Task<Void, Never>?
     private var ultimoHaptic: Date?
+    private var ultimoPulsoDeTrava: Date?
 
     init(
         escrever: @escaping (String) -> Void = { UIPasteboard.general.string = $0 },
@@ -64,13 +65,15 @@ final class CopiaDeContato {
 
     /// Um pulso por transição, igual ao travar e ao destravar. Vai direto ao gerador porque idas e
     /// vindas rápidas no mesmo ciclo do SwiftUI se fundiriam em um único gatilho de `sensoryFeedback`.
-    func registrarAlternanciaDeTrava(ativa: Bool) {
+    func registrarAlternanciaDeTrava(ativa: Bool, agora: Date = Date()) {
         if let pulsarTrava {
             pulsarTrava(ativa)
-        } else {
-            geradorDaTrava.impactOccurred(intensity: FrilaMotion.copyLatchHapticIntensity)
-            geradorDaTrava.prepare()
+            return
         }
+        if let ultimo = ultimoPulsoDeTrava, agora.timeIntervalSince(ultimo) < FrilaMotion.copyLatchHapticMinGap { return }
+        ultimoPulsoDeTrava = agora
+        geradorDaTrava.impactOccurred(intensity: ativa ? FrilaMotion.copyLatchHapticIntensity : FrilaMotion.copyUnlatchHapticIntensity)
+        geradorDaTrava.prepare()
     }
 
     func fechar() {
@@ -102,15 +105,19 @@ private struct TextoRolante: View {
     let texto: String
     let identificador: String?
     var quebraLinha = false
+    var simbolo: String?
 
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     var body: some View {
-        Text(verbatim: texto)
-            .fixedSize(horizontal: !quebraLinha, vertical: true)
-            .accessibilityIdentifier(identificador ?? "")
-            .id(texto)
-            .transition(reduzirMovimento ? .opacity : Self.rolagem)
+        HStack(spacing: FrilaEspaco.minimo) {
+            if let simbolo { Image(systemName: simbolo).imageScale(.small) }
+            Text(verbatim: texto)
+                .fixedSize(horizontal: !quebraLinha, vertical: true)
+                .accessibilityIdentifier(identificador ?? "")
+        }
+        .id(texto)
+        .transition(reduzirMovimento ? .opacity : Self.rolagem)
     }
 
     private static let rolagem: AnyTransition = .asymmetric(
@@ -131,14 +138,66 @@ private struct RolagemDoTexto: ViewModifier {
     }
 }
 
+enum AcaoDaRail: Hashable {
+    case copiar, editar, compartilhar
+}
+
+/// Onde cada parada captura o nó e quanto ele resiste a sair. Com uma parada vale a regra aprovada da
+/// cópia; com mais, o raio e a histerese de cada uma são limitados pela distância até as vizinhas.
+struct ZonasDasParadas {
+    let alvos: [CGFloat]
+    let raios: [CGFloat]
+    let histereses: [CGFloat]
+
+    init(alvos: [CGFloat], curso: CGFloat, ganho: CGFloat) {
+        self.alvos = alvos
+        var raios: [CGFloat] = []
+        var histereses: [CGFloat] = []
+        for (i, alvo) in alvos.enumerated() {
+            var distancia = CGFloat.infinity
+            if alvos.count > 1 {
+                distancia = min(distancia, alvo)
+                if i > 0 { distancia = min(distancia, alvo - alvos[i - 1]) }
+                if i < alvos.count - 1 { distancia = min(distancia, alvos[i + 1] - alvo) }
+            }
+            raios.append(min(FrilaMotion.copyCaptureMax, curso * FrilaMotion.copyCaptureFraction, distancia * FrilaMotion.copyStopCaptureShare))
+            histereses.append(min(ContatoCopiavel.copyLatchHysteresis * ganho, distancia * FrilaMotion.copyStopHysteresisShare))
+        }
+        self.raios = raios
+        self.histereses = histereses
+    }
+
+    /// Escolhe pelo progresso bruto do dedo, nunca pela posição atraída. Travado, a parada resiste até o
+    /// raio mais a histerese; fora dela, só a captura de uma zona prende o nó.
+    func escolher(progresso: CGFloat, anterior: Int?) -> Int? {
+        if let anterior, abs(progresso - alvos[anterior]) <= raios[anterior] + histereses[anterior] {
+            return anterior
+        }
+        var melhor: Int?
+        var menor = CGFloat.infinity
+        for i in alvos.indices {
+            let distancia = abs(progresso - alvos[i])
+            if distancia <= raios[i], distancia < menor {
+                melhor = i
+                menor = distancia
+            }
+        }
+        return melhor
+    }
+}
+
 /// Par rótulo e valor. Em repouso é só texto: um toque copia. Segurar abre a pílula com o nó já ativo,
-/// que segue o dedo; perto de "Copiar" ele é atraído e trava, e soltar travado executa a cópia.
+/// que segue o dedo; perto de uma parada ele é atraído e trava, e soltar travado executa a ação dela.
 struct ContatoCopiavel: View {
     let titulo: String
     let valor: String
     let id: String
     let campo: CampoDeContato
     let copia: CopiaDeContato
+    var acoes: [AcaoDaRail] = [.copiar]
+    var edicao: EdicaoDeContato?
+    var aoAcionar: (AcaoDaRail) -> Void = { _ in }
+    var aoConfirmarEdicao: () -> Void = {}
 
     private enum Fase {
         case repouso, arrastando, travado, copiado
@@ -146,6 +205,7 @@ struct ContatoCopiavel: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @State private var fase = Fase.repouso
+    @State private var acaoTravada = AcaoDaRail.copiar
     @State private var aberta = false
     @State private var posicao: CGFloat = 0
     @State private var mapeamento: MapeamentoDoArrasto?
@@ -157,6 +217,7 @@ struct ContatoCopiavel: View {
     @State private var larguraDoValor: CGFloat = 0
     @State private var larguraDeCopiar: CGFloat = 0
     @State private var larguraDeCopiado: CGFloat = 0
+    @State private var larguraDeEditar: CGFloat = 0
 
     private static let alturaDaPilula: CGFloat = 40
     private static let recuoDoNo: CGFloat = 3
@@ -171,11 +232,13 @@ struct ContatoCopiavel: View {
     static let copyHitMinHeight: CGFloat = FrilaEspaco.enorme + FrilaEspaco.grande
     /// Assimétrica de propósito: a área de toque do contato sobra mais para baixo do que para cima.
     static let copyHitTopPadding: CGFloat = FrilaEspaco.minimo
-    static let copyHitBottomPadding: CGFloat = FrilaEspaco.compacto
+    static let copyHitBottomPadding: CGFloat = FrilaEspaco.medio + FrilaEspaco.minimo
     /// Em pontos de dedo: a folga para destravar é a mesma, qualquer que seja o ganho do gesto.
     static let copyLatchHysteresis: CGFloat = FrilaEspaco.medio + FrilaEspaco.minimo
     static let copyDragMinTravel: CGFloat = FrilaEspaco.grande * 2
     static let copyDragMaxGain: CGFloat = 3
+    static let copyStopSpacing: CGFloat = FrilaEspaco.fio
+    private static let simboloDeEditar = "pencil"
 
     /// Traduz o dedo em progresso do nó. É definido ao reconhecer o gesto e fica fixo até o fim. Sem
     /// curso físico à direita não existe mapeamento, e o toque longo nem começa.
@@ -193,29 +256,72 @@ struct ContatoCopiavel: View {
         }
     }
 
-    /// Mesma decisão nos dois modos. A entrada e a saída têm limites diferentes para não oscilar.
-    static func deveTravar(posicao: CGFloat, estavaTravado: Bool, curso: CGFloat, raio: CGFloat, ganho: CGFloat) -> Bool {
-        let distancia = curso - posicao
-        return estavaTravado ? distancia <= raio + copyLatchHysteresis * ganho : distancia <= raio
-    }
-
     private var alturaDoNo: CGFloat { Self.alturaDaPilula - 2 * Self.recuoDoNo }
     private var bolhaCopiar: CGFloat { larguraDeCopiar + 2 * Self.folgaDoRotulo }
     private var bolhaCopiado: CGFloat { larguraDeCopiado + 2 * Self.folgaDoRotulo }
 
-    /// A largura é reservada para "Copiado", a palavra maior: a pílula não muda de tamanho ao confirmar.
+    private func titulo(da acao: AcaoDaRail) -> String {
+        switch acao {
+        case .copiar: TextosPerfilConta.copiar
+        case .editar: TextosPerfilConta.editar
+        case .compartilhar: ""
+        }
+    }
+
+    private func simbolo(da acao: AcaoDaRail) -> String? {
+        acao == .editar ? Self.simboloDeEditar : nil
+    }
+
+    /// Rótulo da parada: o texto, e o símbolo quando a ação tem um.
+    private func rotulo(da acao: AcaoDaRail) -> some View {
+        HStack(spacing: FrilaEspaco.minimo) {
+            if let simbolo = simbolo(da: acao) { Image(systemName: simbolo).imageScale(.small) }
+            Text(verbatim: titulo(da: acao))
+        }
+    }
+
+    /// Cada parada reserva a largura da maior palavra que pode mostrar: "Copiar" reserva "Copiado".
+    private func larguraDaParada(_ acao: AcaoDaRail) -> CGFloat {
+        switch acao {
+        case .copiar: bolhaCopiado
+        case .editar: larguraDeEditar + 2 * Self.folgaDoRotulo
+        case .compartilhar: 0
+        }
+    }
+
+    private var somaDasParadas: CGFloat {
+        acoes.map(larguraDaParada).reduce(0, +) + CGFloat(max(acoes.count - 1, 0)) * Self.copyStopSpacing
+    }
+
     private var larguraDaPilula: CGFloat {
-        let ideal = Self.excessoEsquerdo + larguraDoValor + Self.intervalo + bolhaCopiado + Self.recuoDoNo
+        let ideal = Self.excessoEsquerdo + larguraDoValor + Self.intervalo + somaDasParadas + Self.recuoDoNo
         return min(ideal, larguraDaLinha + Self.excessoEsquerdo + Self.excessoDireito)
     }
     private var valorVisivel: CGFloat {
-        max(larguraDaPilula - Self.excessoEsquerdo - Self.intervalo - bolhaCopiado - Self.recuoDoNo, 0)
+        max(larguraDaPilula - Self.excessoEsquerdo - Self.intervalo - somaDasParadas - Self.recuoDoNo, 0)
     }
     private var larguraInicialDoNo: CGFloat { Self.excessoEsquerdo + valorVisivel + Self.excessoEsquerdo - Self.recuoDoNo }
     private var centroInicial: CGFloat { Self.recuoDoNo + larguraInicialDoNo / 2 }
-    private var centroFinal: CGFloat { larguraDaPilula - Self.recuoDoNo - bolhaCopiar / 2 }
-    private var curso: CGFloat { max(centroFinal - centroInicial, 1) }
-    private var raioDeCaptura: CGFloat { min(FrilaMotion.copyCaptureMax, curso * FrilaMotion.copyCaptureFraction) }
+
+    /// Centros das paradas, alinhadas à direita, em coordenadas da pílula.
+    private var centrosDasParadas: [CGFloat] {
+        var direita = larguraDaPilula - Self.recuoDoNo
+        var centros = [CGFloat](repeating: 0, count: acoes.count)
+        for i in acoes.indices.reversed() {
+            let largura = larguraDaParada(acoes[i])
+            centros[i] = direita - largura / 2
+            direita -= largura + Self.copyStopSpacing
+        }
+        return centros
+    }
+    private var alvos: [CGFloat] { centrosDasParadas.map { $0 - centroInicial } }
+    private var curso: CGFloat { max((centrosDasParadas.last ?? centroInicial) - centroInicial, 1) }
+    private func zonas(ganho: CGFloat) -> ZonasDasParadas { ZonasDasParadas(alvos: alvos, curso: curso, ganho: ganho) }
+    private var indiceTravado: Int? { acoes.firstIndex(of: acaoTravada) }
+    private func centro(de acao: AcaoDaRail) -> CGFloat {
+        guard let i = acoes.firstIndex(of: acao) else { return centroInicial }
+        return centrosDasParadas[i]
+    }
 
     var body: some View {
         if valor.isEmpty {
@@ -225,15 +331,17 @@ struct ContatoCopiavel: View {
             par(valorExibido: valor)
                 .modifier(SuperficieDoContato())
                 .overlay {
-                    ReconhecedorDeContato(
-                        podeSegurar: { MapeamentoDoArrasto(curso: curso, folgaDireita: $0) != nil },
-                        aoTocar: { copia.copiar(campo, valor: valor) },
-                        aoSegurar: segurar,
-                        aoMover: mover,
-                        aoSoltar: soltar,
-                        aoInterromper: interromper
-                    )
-                    .accessibilityHidden(true)
+                    if edicao?.campo == nil {
+                        ReconhecedorDeContato(
+                            podeSegurar: { MapeamentoDoArrasto(curso: curso, folgaDireita: $0) != nil },
+                            aoTocar: { copia.copiar(campo, valor: valor) },
+                            aoSegurar: segurar,
+                            aoMover: mover,
+                            aoSoltar: soltar,
+                            aoInterromper: interromper
+                        )
+                        .accessibilityHidden(true)
+                    }
                 }
                 .accessibilityElement(children: .contain)
                 .accessibilityAction(named: Text(verbatim: TextosPerfilConta.copiar)) {
@@ -253,17 +361,39 @@ struct ContatoCopiavel: View {
     }
 
     private func par(valorExibido: String) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        let editando = edicao?.campo == campo
+        return VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: titulo)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("\(id)-rotulo")
                 .opacity(aberta ? 0 : 1)
             valorOuCopiado(valorExibido)
-                .opacity(aberta ? 0 : 1)
+                .opacity(aberta || editando ? 0 : 1)
+                .frame(maxWidth: .infinity, minHeight: editando ? FrilaMetrica.alturaDoCampo : nil, alignment: .leading)
+                .overlay(alignment: .leading) {
+                    if editando, let edicao { editor(edicao) }
+                }
                 .overlay(alignment: .leading) { pilula.allowsHitTesting(false) }
         }
         .fixedSize(horizontal: false, vertical: true)
+        .animation(FrilaMovimento.animacao(FrilaMotion.copyPillOpen, reduzir: reduzirMovimento), value: editando)
+    }
+
+    /// Mesmas proporções do campo do app (`CampoFrila`, `CaixaDoCampoFrila`): 52 pt, respiro de 16 e 8, raio de
+    /// entrada e superfície do campo, só sem o contorno. O foco vem junto com a entrada, então o teclado sobe
+    /// com a pílula saindo.
+    private func editor(_ edicao: EdicaoDeContato) -> some View {
+        CampoDeEdicaoDeContato(
+            edicao: edicao, campo: campo, identificador: "\(id)-editar", aoConfirmar: aoConfirmarEdicao
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, FrilaEspaco.medio)
+        .padding(.vertical, FrilaEspaco.pequeno)
+        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+        .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+        .frilaFormField(id: "\(id)-editar", isFocused: edicao.focado, onDismiss: { edicao.cancelar() })
+        .transition(.opacity)
     }
 
     private var medidas: some View {
@@ -272,6 +402,8 @@ struct ContatoCopiavel: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { larguraDeCopiar = $0 }
             Text(verbatim: TextosPerfilConta.copiado)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { larguraDeCopiado = $0 }
+            rotulo(da: .editar)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { larguraDeEditar = $0 }
         }
         .font(FrilaTipo.corpo)
         .fixedSize()
@@ -310,32 +442,40 @@ struct ContatoCopiavel: View {
     }
 
     /// Reduzir Movimento: tudo já está no lugar desde a abertura. O arrasto só alterna o estado do nó
-    /// parado sobre "Copiar", em camadas fixas que trocam de opacidade.
+    /// parado sobre a parada escolhida, em camadas fixas que trocam de opacidade.
     private var pilulaEstatica: some View {
         let ativo = fase == .travado || fase == .copiado
         return ZStack(alignment: .leading) {
             SombraDaPilula()
             textoDoValor
-            ZStack {
-                Capsule()
-                    .fill(FrilaCor.superficieDoCampo)
-                    .overlay(Capsule().fill(FrilaCor.texto.opacity(0.12)))
-                Text(verbatim: TextosPerfilConta.copiar)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .opacity(ativo ? 0 : 1)
-                Capsule()
-                    .fill(FrilaCor.texto)
-                    .opacity(ativo ? 1 : 0)
-                Text(verbatim: TextosPerfilConta.copiar)
-                    .foregroundStyle(FrilaCor.fundo)
-                    .opacity(fase == .travado ? 1 : 0)
-                Text(verbatim: TextosPerfilConta.copiado)
-                    .foregroundStyle(FrilaCor.fundo)
-                    .accessibilityIdentifier("\(id)-copiado")
-                    .opacity(fase == .copiado ? 1 : 0)
+            HStack(spacing: Self.copyStopSpacing) {
+                ForEach(acoes, id: \.self) { acao in
+                    let selecionada = ativo && acaoTravada == acao
+                    let confirmando = acao == .copiar && fase == .copiado
+                    ZStack {
+                        Capsule()
+                            .fill(FrilaCor.superficieDoCampo)
+                            .overlay(Capsule().fill(FrilaCor.texto.opacity(0.12)))
+                        rotulo(da: acao)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .opacity(selecionada ? 0 : 1)
+                        Capsule()
+                            .fill(FrilaCor.texto)
+                            .opacity(selecionada ? 1 : 0)
+                        rotulo(da: acao)
+                            .foregroundStyle(FrilaCor.fundo)
+                            .opacity(selecionada && !confirmando ? 1 : 0)
+                        if acao == .copiar {
+                            Text(verbatim: TextosPerfilConta.copiado)
+                                .foregroundStyle(FrilaCor.fundo)
+                                .accessibilityIdentifier("\(id)-copiado")
+                                .opacity(confirmando ? 1 : 0)
+                        }
+                    }
+                    .font(FrilaTipo.corpo)
+                    .frame(width: larguraDaParada(acao), height: alturaDoNo)
+                }
             }
-            .font(FrilaTipo.corpo)
-            .frame(width: bolhaCopiado, height: alturaDoNo)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.trailing, Self.recuoDoNo)
         }
@@ -350,12 +490,17 @@ struct ContatoCopiavel: View {
             SombraDaPilula()
             // Conteúdo fica sob o nó: é ele que o vidro refrata ao passar.
             textoDoValor
-            Text(verbatim: TextosPerfilConta.copiar)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, Self.recuoDoNo + Self.folgaDoRotulo)
-                .opacity(recuando ? 0 : 1)
+            HStack(spacing: Self.copyStopSpacing) {
+                ForEach(acoes, id: \.self) { acao in
+                    rotulo(da: acao)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .frame(width: larguraDaParada(acao))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, Self.recuoDoNo)
+            .opacity(recuando ? 0 : 1)
         }
         .frame(width: recuando ? larguraInicialDoNo + 2 * Self.recuoDoNo : larguraDaPilula, height: Self.alturaDaPilula)
         // Em overlay, o nó não participa do layout: só a lente cresce e transborda, a pílula fica com 40 pt.
@@ -382,10 +527,10 @@ struct ContatoCopiavel: View {
     private var geometriaDoNo: (largura: CGFloat, altura: CGFloat, centro: CGFloat) {
         switch fase {
         case .travado:
-            return (bolhaCopiar, alturaDoNo, centroFinal)
+            let natural = acaoTravada == .copiar ? bolhaCopiar : larguraDaParada(acaoTravada)
+            return (natural, alturaDoNo, centro(de: acaoTravada))
         case .copiado:
-            return (assentado ? bolhaCopiado : bolhaCopiar, alturaDoNo,
-                    larguraDaPilula - Self.recuoDoNo - (assentado ? bolhaCopiado : bolhaCopiar) / 2)
+            return (assentado ? bolhaCopiado : bolhaCopiar, alturaDoNo, centro(de: .copiar))
         case .repouso, .arrastando:
             let avanco = min(posicao / max(curso * 0.25, 1), 1)
             let lente = min(Self.copyLensWidth, larguraDaPilula)
@@ -398,14 +543,14 @@ struct ContatoCopiavel: View {
     }
 
     /// Nó: o vidro está sempre presente, então nunca há troca brusca de material. Depois de assentar
-    /// em "Copiar", escurece por cima do vidro e recebe o rótulo.
+    /// na parada, escurece por cima do vidro e recebe o rótulo.
     private var no: some View {
         let g = geometriaDoNo
         return ZStack {
             Capsule().fill(FrilaCor.texto).opacity(assentado ? 1 : 0)
             ZStack {
                 if assentado, fase == .travado {
-                    TextoRolante(texto: TextosPerfilConta.copiar, identificador: nil)
+                    TextoRolante(texto: titulo(da: acaoTravada), identificador: nil, simbolo: simbolo(da: acaoTravada))
                 } else if assentado, fase == .copiado {
                     TextoRolante(texto: TextosPerfilConta.copiado, identificador: "\(id)-copiado")
                 }
@@ -435,13 +580,20 @@ struct ContatoCopiavel: View {
         .opacity(visibilidade)
     }
 
-    /// Conforme chega perto de "Copiar", o nó é puxado para o destino, antes mesmo da trava.
+    /// Conforme chega perto de uma parada, o nó é puxado para ela, antes mesmo da trava.
     private var posicaoAtraida: CGFloat {
-        let distancia = curso - posicao
-        let alcance = raioDeCaptura * 2
-        guard distancia < alcance else { return posicao }
-        let forca = 1 - distancia / alcance
-        return posicao + forca * forca * distancia * 0.5
+        let z = zonas(ganho: mapeamento?.ganho ?? 1)
+        var atraida = posicao
+        var menor = CGFloat.infinity
+        for i in z.alvos.indices {
+            let distancia = z.alvos[i] - posicao
+            let alcance = z.raios[i] * 2
+            guard abs(distancia) < alcance, abs(distancia) < menor else { continue }
+            let forca = 1 - abs(distancia) / alcance
+            atraida = posicao + forca * forca * distancia * 0.5
+            menor = abs(distancia)
+        }
+        return atraida
     }
 
     // MARK: - Gesto
@@ -464,27 +616,44 @@ struct ContatoCopiavel: View {
         guard aberta, fase == .arrastando || fase == .travado, let mapeamento else { return }
         let progresso = mapeamento.progresso(dx: dx, curso: curso)
         if !reduzirMovimento { posicao = progresso }
-        let estavaTravado = fase == .travado
-        let travar = Self.deveTravar(posicao: progresso, estavaTravado: estavaTravado, curso: curso, raio: raioDeCaptura, ganho: mapeamento.ganho)
-        if !reduzirMovimento, !travar, !deslizando, progresso > 0 {
+        let anterior = fase == .travado ? indiceTravado : nil
+        let nova = zonas(ganho: mapeamento.ganho).escolher(progresso: progresso, anterior: anterior)
+        if !reduzirMovimento, nova == nil, !deslizando, progresso > 0 {
             withAnimation(FrilaMovimento.animacao(FrilaMotion.copyPillDragSpring, reduzir: reduzirMovimento)) {
                 deslizando = true
             }
         }
-        guard travar != estavaTravado else { return }
-        copia.registrarAlternanciaDeTrava(ativa: travar)
+        guard nova != anterior else { return }
+        tarefaDeAssentamento?.cancel()
+        // Trocar direto de uma parada para outra é uma sensação só: o pulso é o da que prende.
+        if nova != nil {
+            copia.registrarAlternanciaDeTrava(ativa: true)
+        } else if anterior != nil {
+            copia.registrarAlternanciaDeTrava(ativa: false)
+        }
+        aplicarTrava(nova)
+    }
+
+    private func aplicarTrava(_ nova: Int?) {
         if reduzirMovimento {
             withAnimation(FrilaMovimento.animacao(FrilaMotion.copyReducedFade, reduzir: reduzirMovimento, somenteOpacidade: true)) {
-                fase = travar ? .travado : .arrastando
+                if let nova {
+                    acaoTravada = acoes[nova]
+                    fase = .travado
+                } else {
+                    fase = .arrastando
+                }
             }
-        } else if travar {
+        } else if let nova {
+            let acao = acoes[nova]
             withAnimation(FrilaMovimento.animacao(FrilaMotion.copyLatchSpring, reduzir: reduzirMovimento)) {
+                acaoTravada = acao
                 fase = .travado
                 deslizando = false
+                assentado = false
             }
-            assentarDepois { fase == .travado }
+            assentarDepois { fase == .travado && acaoTravada == acao }
         } else {
-            tarefaDeAssentamento?.cancel()
             withAnimation(FrilaMovimento.animacao(FrilaMotion.copyLatchSpring, reduzir: reduzirMovimento)) {
                 fase = .arrastando
                 assentado = false
@@ -492,7 +661,7 @@ struct ContatoCopiavel: View {
         }
     }
 
-    /// O nó primeiro assenta sobre "Copiar"; só então escurece e o rótulo entra.
+    /// O nó primeiro assenta sobre a parada; só então escurece e o rótulo entra.
     private func assentarDepois(_ aindaValido: @escaping () -> Bool) {
         tarefaDeAssentamento?.cancel()
         tarefaDeAssentamento = Task { @MainActor in
@@ -506,19 +675,27 @@ struct ContatoCopiavel: View {
 
     private func soltar() {
         guard aberta else { return }
-        if fase == .travado {
-            // Copia já no soltar. Se ainda não assentou, a troca visual espera a tarefa em curso.
-            withAnimation(FrilaMovimento.animacao(reduzirMovimento ? FrilaMotion.copyReducedFade : FrilaMotion.copyTextRoll, reduzir: reduzirMovimento, somenteOpacidade: true)) {
-                fase = .copiado
-            }
-            if !assentado, !reduzirMovimento { assentarDepois { fase == .copiado } }
-            copia.concluirDeslize(campo, valor: valor)
-        } else if fase == .arrastando {
-            cancelar()
+        guard fase == .travado else {
+            if fase == .arrastando { cancelar() }
+            return
         }
+        // Outras ações entregam o evento no mesmo ciclo e a pílula some; o que vem depois é da tela.
+        guard acaoTravada == .copiar else {
+            tarefaDeAssentamento?.cancel()
+            let acao = acaoTravada
+            copia.fechar()
+            aoAcionar(acao)
+            return
+        }
+        // Copia já no soltar. Se ainda não assentou, a troca visual espera a tarefa em curso.
+        withAnimation(FrilaMovimento.animacao(reduzirMovimento ? FrilaMotion.copyReducedFade : FrilaMotion.copyTextRoll, reduzir: reduzirMovimento, somenteOpacidade: true)) {
+            fase = .copiado
+        }
+        if !assentado, !reduzirMovimento { assentarDepois { fase == .copiado } }
+        copia.concluirDeslize(campo, valor: valor)
     }
 
-    /// O sistema interrompeu o gesto: só soltar é intenção de copiar, mesmo com o nó travado.
+    /// O sistema interrompeu o gesto: só soltar é intenção de agir, mesmo com o nó travado.
     private func interromper() {
         guard aberta, fase == .arrastando || fase == .travado else { return }
         tarefaDeAssentamento?.cancel()

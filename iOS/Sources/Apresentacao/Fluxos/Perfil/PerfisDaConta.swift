@@ -21,6 +21,7 @@ enum TextosPerfilConta {
     static let excluir = String(localized: "Excluir conta", bundle: bundleApresentacao)
     static let sair = String(localized: "Sair", bundle: bundleApresentacao)
     static let copiar = String(localized: "Copiar", bundle: bundleApresentacao)
+    static let editar = String(localized: "Editar", bundle: bundleApresentacao)
     static let copiado = String(localized: "Copiado", bundle: bundleApresentacao)
     static let contaEDados = String(localized: "Conta e dados", bundle: bundleApresentacao)
     static let sairOuExcluir = String(localized: "Sair ou excluir conta", bundle: bundleApresentacao)
@@ -48,17 +49,38 @@ public final class MeuPerfilProfissionalViewModel {
     private let carregarConta: @Sendable () async throws -> Conta
     private let carregarPerfil: @Sendable () async throws -> PerfilProfissional
     private let carregarPublico: @Sendable (UUID) async throws -> PerfilPublico
+    private let gravarContato: (@Sendable (AlteracaoDeContato) async throws -> Conta)?
+
+    /// Só há edição de contato quando o cliente a atende; senão a interface nem a oferece.
+    public var podeEditarContato: Bool { gravarContato != nil }
 
     public init(api: any ApiCliente) {
         carregarConta = { try await api.minhaConta() }
         carregarPerfil = { try await api.meuPerfilProfissional() }
         carregarPublico = { try await api.perfilPublico(id: $0) }
+        if api.suportaEdicaoDeContato {
+            gravarContato = { alteracao in try await api.atualizarContato(alteracao) }
+        } else {
+            gravarContato = nil
+        }
     }
 
     public init(conta: @escaping @Sendable () async throws -> Conta,
                 perfil: @escaping @Sendable () async throws -> PerfilProfissional,
-                publico: @escaping @Sendable (UUID) async throws -> PerfilPublico) {
+                publico: @escaping @Sendable (UUID) async throws -> PerfilPublico,
+                gravarContato: (@Sendable (AlteracaoDeContato) async throws -> Conta)? = nil) {
         carregarConta = conta; carregarPerfil = perfil; carregarPublico = publico
+        self.gravarContato = gravarContato
+    }
+
+    /// Grava e só então troca a conta mostrada. Falhou: a conta segue como estava, sem estado de erro.
+    @discardableResult
+    public func atualizarContato(_ alteracao: AlteracaoDeContato) async -> Bool {
+        guard let gravarContato else { return false }
+        do {
+            conta = try await gravarContato(alteracao)
+            return true
+        } catch { return false }
     }
 
     public func carregar() async {
@@ -200,6 +222,7 @@ public struct TelaMeuPerfilProfissional: View {
     @State private var mostrarExplicacao = false
     @State private var mostrarAjuda = false
     @State private var copiaDeContato = CopiaDeContato()
+    @State private var edicao = EdicaoDeContato()
 
     public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
         self.api = api
@@ -244,6 +267,7 @@ public struct TelaMeuPerfilProfissional: View {
             .padding(.bottom, FrilaEspaco.grande)
         }
         .background(FrilaCor.fundo)
+        .frilaKeyboardDismissScope()
         .navigationTitle(Text(verbatim: TextosPerfilConta.meuPerfil))
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.carregar() }
@@ -251,7 +275,37 @@ public struct TelaMeuPerfilProfissional: View {
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
         .sensoryFeedback(.success, trigger: copiaDeContato.copias)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.35), trigger: copiaDeContato.aberturas)
-        .onDisappear { copiaDeContato.limpar() }
+        .onDisappear {
+            copiaDeContato.limpar()
+            edicao.cancelar()
+        }
+    }
+
+    private func contato(_ titulo: String, _ valor: String, id: String, campo: CampoDeContato) -> some View {
+        ContatoCopiavel(
+            titulo: titulo, valor: valor, id: id, campo: campo, copia: copiaDeContato,
+            acoes: model.podeEditarContato ? [.copiar, .editar] : [.copiar],
+            edicao: edicao,
+            aoAcionar: { acao in
+                if acao == .editar { edicao.iniciar(campo, valor: valor) }
+            },
+            aoConfirmarEdicao: confirmarEdicao
+        )
+    }
+
+    /// Return confirma. Valor inválido não faz nada e segue editando; igual ao atual só fecha; novo grava.
+    private func confirmarEdicao() {
+        guard let campo = edicao.campo, !edicao.salvando, let conta = model.conta,
+              let novo = EdicaoDeContato.normalizar(campo, edicao.rascunho) else { return }
+        guard novo != (campo == .telefone ? conta.telefone : conta.email) else { return edicao.encerrar() }
+        edicao.comecarASalvar()
+        Task {
+            await model.atualizarContato(AlteracaoDeContato(
+                telefone: campo == .telefone ? novo : nil,
+                email: campo == .email ? novo : nil
+            ))
+            edicao.encerrar()
+        }
     }
 
     /// Seção que reúne dados e conta. Sair e Excluir conta ficam um passo adiante, de propósito: ações
@@ -287,8 +341,8 @@ public struct TelaMeuPerfilProfissional: View {
                 .accessibilityAddTraits(.isHeader)
             // Áreas de toque encostadas: nenhuma faixa morta entre os dois contatos.
             VStack(alignment: .leading, spacing: 0) {
-                ContatoCopiavel(titulo: TextosPerfilConta.telefone, valor: conta.telefone, id: "perfil-telefone", campo: .telefone, copia: copiaDeContato)
-                ContatoCopiavel(titulo: TextosPerfilConta.email, valor: conta.email, id: "perfil-email", campo: .email, copia: copiaDeContato)
+                contato(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", campo: .telefone)
+                contato(TextosPerfilConta.email, conta.email, id: "perfil-email", campo: .email)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
