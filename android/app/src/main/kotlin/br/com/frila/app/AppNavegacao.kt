@@ -61,6 +61,7 @@ object Rotas {
     const val PERFIL = "perfil"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
     const val DESBLOQUEIO = "desbloqueio"
+    const val ATUALIZACAO_OBRIGATORIA = "atualizacao_obrigatoria"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -262,6 +263,30 @@ fun AppNavegacao(
                         guardaBiometrico.liberarAposLimparSessao()
                         navController.navigate(Rotas.ENTRADA) {
                             popUpTo(0) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
+            composable(Rotas.ATUALIZACAO_OBRIGATORIA) {
+                val contexto = androidx.compose.ui.platform.LocalContext.current
+                br.com.frila.core.designsystem.componentes.TelaAtualizacaoObrigatoria(
+                    aoAtualizar = {
+                        val uriLoja = android.net.Uri.parse("market://details?id=${contexto.packageName}")
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uriLoja).apply {
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        try {
+                            contexto.startActivity(intent)
+                        } catch (e: Exception) {
+                            contexto.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=${contexto.packageName}"),
+                                ).apply {
+                                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
+                            )
                         }
                     },
                 )

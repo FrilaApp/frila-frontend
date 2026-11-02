@@ -43,4 +43,9 @@ class AppNavegacaoTest {
     fun `rota de detalhe embute o id da vaga`() {
         assertEquals("detalhe/vaga-123", Rotas.detalhe("vaga-123"))
     }
+
+    @Test
+    fun `rota de atualizacao obrigatoria existe no contrato de navegacao`() {
+        assertEquals("atualizacao_obrigatoria", Rotas.ATUALIZACAO_OBRIGATORIA)
+    }
 }
