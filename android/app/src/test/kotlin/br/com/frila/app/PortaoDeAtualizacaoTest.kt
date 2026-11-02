@@ -120,11 +120,14 @@ class PortaoDeAtualizacaoTest {
 
     @Test
     fun `consultarConfiguracaoDoApp busca configuracao da plataforma android e decodifica versao_minima`() = runBlocking {
+        var caminhoChamado: String? = null
+        var parametroPlataforma: String? = null
         val cliente = ClienteSupabase(
-            baseUrl = "https://frila.invalid",
-            apiKey = "chave-ficticia",
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
             engine = MockEngine { request ->
-                println("MockEngine requisitado: ${request.url}")
+                caminhoChamado = request.url.encodedPath
+                parametroPlataforma = request.url.parameters["plataforma"]
                 respond(
                     content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora"}""",
                     status = HttpStatusCode.OK,
@@ -136,6 +139,8 @@ class PortaoDeAtualizacaoTest {
         try {
             val resultado = consultarConfiguracaoDoApp(cliente)
             assertNotNull("Resultado nao deve ser nulo para resposta 200 OK com JSON valido", resultado)
+            assertEquals("/rest/v1/rpc/configuracao_do_app", caminhoChamado)
+            assertEquals("android", parametroPlataforma)
             assertEquals("android", resultado?.plataforma)
             assertEquals("99.0.0", resultado?.versaoMinima)
             assertEquals("Atualize agora", resultado?.mensagem)
@@ -147,8 +152,8 @@ class PortaoDeAtualizacaoTest {
     @Test
     fun `consultarConfiguracaoDoApp trata erro de rede e retorna null sem lancar excecao`() = runBlocking {
         val cliente = ClienteSupabase(
-            baseUrl = "https://frila.invalid",
-            apiKey = "chave-ficticia",
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
             engine = MockEngine {
                 respondError(HttpStatusCode.InternalServerError)
             },

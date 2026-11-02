@@ -7,12 +7,9 @@ import br.com.frila.core.designsystem.componentes.TelaAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.rede.ClienteSupabase
 import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.isSuccess
-import kotlinx.coroutines.withTimeoutOrNull
+import io.ktor.client.request.parameter
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 /**
  * Modelo de configuração pública do app (paridade com `ConfiguracaoDoApp` do contrato OpenAPI 0.2.45).
@@ -30,7 +27,7 @@ data class ConfiguracaoDoAppDto(
 )
 
 /**
- * Consulta a configuração pública de versão na API remota Supabase (endpoint `/rpc/configuracao_do_app?plataforma=android`).
+ * Consulta a configuração pública de versão na API remota Supabase (`GET /rest/v1/rpc/configuracao_do_app?plataforma=android`).
  * Retorna [ConfiguracaoDoAppDto] se bem-sucedido, ou `null` em caso de erro ou resposta inválida.
  * Falhas transitórias ou offline nunca devem impedir o uso do app.
  */
@@ -38,14 +35,11 @@ suspend fun consultarConfiguracaoDoApp(
     cliente: ClienteSupabase,
 ): ConfiguracaoDoAppDto? {
     return try {
-        val resposta = cliente.http.get("${cliente.baseUrl}/rpc/configuracao_do_app?plataforma=android")
-        if (resposta.status.isSuccess()) {
-            Json { ignoreUnknownKeys = true }.decodeFromString<ConfiguracaoDoAppDto>(resposta.bodyAsText())
-        } else {
-            null
+        val resposta = cliente.http.get(cliente.urlRpc("configuracao_do_app")) {
+            parameter("plataforma", "android")
         }
-    } catch (e: Exception) {
-        println("consultarConfiguracaoDoApp falhou: ${e.javaClass.simpleName}: ${e.message}")
+        cliente.corpoOuErro(resposta)
+    } catch (_: Exception) {
         null
     }
 }
