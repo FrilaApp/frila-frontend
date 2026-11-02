@@ -8,12 +8,19 @@
 # O tempo ao lado de cada classe é a soma dos testes da classe na execução 41322412132 (PR #636,
 # 01/11/2026), em minutos. Quando rebalancear e como: iOS/Docs/CI.md.
 #
-# 02/11/2026 (Cartão 344 / timeout na Parte 1): na 41322412132 a parte 1 somou 84,1 min de testes
-# (AcessibilidadeDoCatalogoUITests subiu para 30,7 min com as novas telas em AX5) e a parte 2 somou
-# 43,0 min de testes mais ~17 min de builds de Release. ExclusaoDeContaUITests (5,0 min),
-# CancelamentoDoProfissionalUITests (3,6 min) e ModoSelecaoDoProfissionalUITests (2,9 min) saíram
-# da lista e caem na parte 2: ~72,4 min de testes na parte 1 e ~54,5 min de testes (+ 17 min builds)
-# na parte 2, equilibrando os dois jobs em ~84 min e eliminando o estouro do timeout de 105 min.
+# 02/11/2026 (Cartão 344 / rebalanceamento calibrado): medições em três runs recentes da CI:
+# - Run 41306878893 (com Release): Parte 1 somou 84,3 min (79,3 min testes); Parte 2 somou 81,7 min
+#   (15,7 min Release + 61,2 min testes).
+# - Run 41285173133 (com Release): Parte 1 somou 88,0 min (83,4 min testes); Parte 2 somou 90,7 min
+#   (19,8 min Release + 65,2 min testes).
+# - Run 41322412132 (sem Release, diff Docs): Parte 1 somou 97,6 min (84,1 min testes); Parte 2
+#   somou 85,6 min (Release pulado + 43,0 min testes).
+#
+# Como a Parte 2 executa de 16 a 20 min de builds de Release em PRs com código, transferir mais de
+# 7 min para ela sobrecarregaria o job de Release próximo aos 105 min. Portanto, transferiram-se
+# 6,5 min (CancelamentoDoProfissionalUITests 3,6 min e ModoSelecaoDoProfissionalUITests 2,9 min).
+# Projeções estimadas: com Release, Parte 1 ~81,5 min e Parte 2 ~97,2 min (folga de ~7,8 min sob
+# 105 min); sem Release, Parte 1 ~91,1 min e Parte 2 ~92,1 min (folga de ~13 min).
 
 FrilaTests
 FrilaUITests/AcessibilidadeDoCatalogoUITests      # 30,7 min
@@ -22,6 +29,7 @@ FrilaUITests/AcessibilidadeDoProfissionalUITests  # 3,0 min
 FrilaUITests/CadastroEstabelecimentoUITests       # 3,3 min
 FrilaUITests/CandidaturaUITests                   # 4,6 min
 FrilaUITests/CicloDePontaAPontaUITests            # 3,9 min
+FrilaUITests/ExclusaoDeContaUITests               # 5,0 min
 FrilaUITests/FluxoDoContratanteUITests            # 5,9 min
 FrilaUITests/ModoSelecaoDoContratanteUITests      # 3,9 min
 FrilaUITests/PorQueReceboVagasUITests             # 1,1 min
