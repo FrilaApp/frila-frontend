@@ -44,7 +44,8 @@ suspend fun consultarConfiguracaoDoApp(
         } else {
             null
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        println("consultarConfiguracaoDoApp falhou: ${e.javaClass.simpleName}: ${e.message}")
         null
     }
 }

@@ -15,7 +15,7 @@ import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -119,11 +119,12 @@ class PortaoDeAtualizacaoTest {
     }
 
     @Test
-    fun `consultarConfiguracaoDoApp busca configuracao da plataforma android e decodifica versao_minima`() = runTest {
+    fun `consultarConfiguracaoDoApp busca configuracao da plataforma android e decodifica versao_minima`() = runBlocking {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.invalid",
             apiKey = "chave-ficticia",
-            engine = MockEngine {
+            engine = MockEngine { request ->
+                println("MockEngine requisitado: ${request.url}")
                 respond(
                     content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora"}""",
                     status = HttpStatusCode.OK,
@@ -144,7 +145,7 @@ class PortaoDeAtualizacaoTest {
     }
 
     @Test
-    fun `consultarConfiguracaoDoApp trata erro de rede e retorna null sem lancar excecao`() = runTest {
+    fun `consultarConfiguracaoDoApp trata erro de rede e retorna null sem lancar excecao`() = runBlocking {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.invalid",
             apiKey = "chave-ficticia",
