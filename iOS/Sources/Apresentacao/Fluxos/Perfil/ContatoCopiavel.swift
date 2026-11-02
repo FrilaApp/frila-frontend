@@ -17,7 +17,7 @@ final class CopiaDeContato {
 
     private let escrever: (String) -> Void
     private let pulsarTrava: ((Bool) -> Void)?
-    private let geradorDaTrava = UIImpactFeedbackGenerator(style: .soft)
+    private let geradorDaTrava = UIImpactFeedbackGenerator(style: .rigid)
     private var tarefaDoTip: Task<Void, Never>?
     private var tarefaDeFechamento: Task<Void, Never>?
     private var ultimoHaptic: Date?
@@ -215,7 +215,7 @@ struct ContatoCopiavel: View {
     private var centroInicial: CGFloat { Self.recuoDoNo + larguraInicialDoNo / 2 }
     private var centroFinal: CGFloat { larguraDaPilula - Self.recuoDoNo - bolhaCopiar / 2 }
     private var curso: CGFloat { max(centroFinal - centroInicial, 1) }
-    private var raioDeCaptura: CGFloat { min(56, curso * 0.3) }
+    private var raioDeCaptura: CGFloat { min(FrilaMotion.copyCaptureMax, curso * FrilaMotion.copyCaptureFraction) }
 
     var body: some View {
         if valor.isEmpty {

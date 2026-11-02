@@ -65,8 +65,11 @@ public enum FrilaMotion {
     public static let copyPillDragSpring: Animation = .spring(duration: 0.25, bounce: 0.2)
     /// Reduzir Movimento: toda troca do componente é só este fade de opacidade.
     public static let copyReducedFade: Animation = .easeOut(duration: 0.12)
-    /// Pulso leve ao travar e ao destravar em "Copiar".
-    public static let copyLatchHapticIntensity: Double = 0.25
+    /// Pulso seco ao travar e ao destravar em "Copiar". Dispara na captura, antes da troca visual.
+    public static let copyLatchHapticIntensity: Double = 0.45
+    /// A zona de captura cresce com o curso, até este teto: ativar o toggle mais cedo.
+    public static let copyCaptureFraction: CGFloat = 0.4
+    public static let copyCaptureMax: CGFloat = 80
 
     // MARK: - Disclosure (expansão e recolhimento de containers)
 
