@@ -281,16 +281,28 @@ fun AppNavegacao(
                     aoVoltar = { navController.popBackStack() },
                     aoNavegarParaLicencas = { navController.navigate(Rotas.LICENCAS) },
                     aoNavegarParaTermos = { url ->
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        contexto.startActivity(intent)
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            contexto.startActivity(intent)
+                        } catch (_: Exception) { }
                     },
                     aoNavegarParaPrivacidade = { url ->
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        contexto.startActivity(intent)
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            contexto.startActivity(intent)
+                        } catch (_: Exception) { }
                     },
                     aoAbrirEmailSuporte = { email ->
-                        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email"))
-                        contexto.startActivity(intent)
+                        try {
+                            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            contexto.startActivity(intent)
+                        } catch (_: Exception) { }
                     },
                 )
             }
