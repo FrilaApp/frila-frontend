@@ -8,8 +8,10 @@ import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.rede.ClienteSupabase
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * Modelo de configuração pública do app (paridade com `ConfiguracaoDoApp` do contrato OpenAPI 0.2.45).
@@ -36,7 +38,8 @@ suspend fun consultarConfiguracaoDoApp(
     val resposta = cliente.http.get(cliente.urlRpc("configuracao_do_app")) {
         parameter("plataforma", "android")
     }
-    return cliente.corpoOuErro(resposta)
+    val corpo = resposta.bodyAsText()
+    return Json { ignoreUnknownKeys = true }.decodeFromString(ConfiguracaoDoAppDto.serializer(), corpo)
 }
 
 /**
