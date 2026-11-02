@@ -20,6 +20,8 @@ Na primeira execução do desenho, a 37504092755 (06/10):
 
 Depois dela, `CancelamentoDoProfissionalUITests` (3,0 min) passou para a parte 1. A troca compensa as classes novas do #154 e do #155 (`PorQueReceboVagasUITests` e `EquipeDeConfiancaUITests`), que caíram sozinhas na parte 2.
 
+Em 02/11/2026 (Cartão 344), após a execução 41322412132 em que a parte 1 somou 84,1 min de testes (com `AcessibilidadeDoCatalogoUITests` crescendo para 30,7 min) e a parte 2 somou 43,0 min de testes (+ ~17 min de builds de Release), `ExclusaoDeContaUITests` (5,0 min), `CancelamentoDoProfissionalUITests` (3,6 min) e `ModoSelecaoDoProfissionalUITests` (2,9 min) saíram da lista para cair na parte 2. O rebalanceamento equalizou a carga em ~72,4 min de testes na parte 1 e ~54,5 min de testes (+ 17 min de builds de Release) na parte 2, mantendo ambos os jobs em ~84 min totais com margem sob o teto de 105 min.
+
 Cada parte compila o seu `build-for-testing`. A alternativa medida foi compilar uma vez e repassar os produtos às partes como artefato:
 - os produtos têm 218 MB, ou 56 MB zipados (medido localmente);
 - o upload na CI fez 360 MB em 19 s (xcresult da 37241695780);
