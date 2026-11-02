@@ -2052,16 +2052,6 @@
         }
       }
     },
-    "Horários em que você pode trabalhar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Horários em que você pode trabalhar"
-          }
-        }
-      }
-    },
     "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga.": {
       "localizations": {
         "pt-BR": {
@@ -3328,16 +3318,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail."
-          }
-        }
-      }
-    },
-    "Serve para calcular a distância até as vagas. Não é a sua localização em tempo real.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Serve para calcular a distância até as vagas. Não é a sua localização em tempo real."
           }
         }
       }
@@ -9548,16 +9528,6 @@
         }
       }
     },
-    "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista."
-          }
-        }
-      }
-    },
     "%lld de 1 preenchida": {
       "localizations": {
         "pt-BR": {
@@ -10438,12 +10408,22 @@
         }
       }
     },
-    "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois.": {
+    "Para calcular a distância até as vagas. Não é sua localização em tempo real.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois."
+            "value": "Para calcular a distância até as vagas. Não é sua localização em tempo real."
+          }
+        }
+      }
+    },
+    "Você só recebe avisos nos horários que marcar, para vagas da sua função e a até 15 km de você. A lista mostra todas as vagas do DF.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você só recebe avisos nos horários que marcar, para vagas da sua função e a até 15 km de você. A lista mostra todas as vagas do DF."
           }
         }
       }

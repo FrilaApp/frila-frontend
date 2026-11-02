@@ -37,8 +37,10 @@ public struct TelaPerfilProfissional: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                 conteudoDoCorpo
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("tela-perfil-profissional")
             .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.top, FrilaEspaco.pequeno)
+            .padding(.top, FrilaEspaco.compacto)
             .padding(.bottom, FrilaEspaco.grande)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -108,11 +110,9 @@ public struct TelaPerfilProfissional: View {
 
     @ViewBuilder
     private var formularioViews: some View {
-        secaoCabecalho
         secaoFuncoes
         secaoPontoBase
         secaoHorarios
-        secaoAviso
     }
 
     // MARK: - Estado de erro de carga
@@ -134,7 +134,6 @@ public struct TelaPerfilProfissional: View {
                 .foregroundStyle(FrilaCor.texto)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("tela-perfil-profissional")
 
             Text(verbatim: erro)
                 .font(FrilaTipo.meta)
@@ -154,31 +153,14 @@ public struct TelaPerfilProfissional: View {
 
     // MARK: - Subviews do formulário
 
-    private var secaoCabecalho: some View {
-        Text(verbatim: TextosDoProfissional.Perfil.cabecalho)
-            .font(FrilaTipo.subtituloDaTela)
-            .foregroundStyle(FrilaCor.textoSecundario)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityIdentifier("tela-perfil-profissional")
-    }
-
+    /// Sem título de seção: "Escolher funções" e "2 funções selecionadas" já dizem o que o bloco é, e a
+    /// tela se chama "Funções e horários".
     private var secaoFuncoes: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosDoProfissional.Perfil.secaoFuncoes)
-                .font(FrilaTipo.microRotulo)
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.secaoFuncoes))
-                .padding(.horizontal, FrilaEspaco.medio)
-                .accessibilityAddTraits(.isHeader)
-
-            SecaoDeFuncoes(
-                funcoes: funcoesExibidas,
-                selecionadas: viewModel.funcoesSelecionadas,
-                alternar: { viewModel.alternarFuncao($0) }
-            )
-        }
+        SecaoDeFuncoes(
+            funcoes: funcoesExibidas,
+            selecionadas: viewModel.funcoesSelecionadas,
+            alternar: { viewModel.alternarFuncao($0) }
+        )
     }
 
     private var funcoesExibidas: [Funcao] {
@@ -207,9 +189,11 @@ public struct TelaPerfilProfissional: View {
                 .tracking(0.8)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.pontoBase))
-                .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("titulo-secao-ponto-base")
 
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             FrilaSearchBar(
                 texto: $viewModel.enderecoTexto,
                 foco: $focoNoPontoBase,
@@ -276,15 +260,16 @@ public struct TelaPerfilProfissional: View {
                         .foregroundStyle(FrilaCor.texto)
                         .accessibilityHidden(true)
                 }
-                .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityIdentifier("label-ponto-base-selecionado")
             }
+            }
 
+            // A ajuda fica a 4 pt do campo: proximidade diz que ela explica o campo e não o bloco seguinte.
             Text(verbatim: TextosDoProfissional.Perfil.dicaPontoBase)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, FrilaEspaco.medio)
+            }
         }
     }
 
@@ -299,10 +284,10 @@ public struct TelaPerfilProfissional: View {
                     .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios))
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("titulo-secao-horarios")
                 Spacer(minLength: FrilaEspaco.pequeno)
                 botaoDeInfoDosHorarios
             }
-            .padding(.horizontal, FrilaEspaco.medio)
 
             // O aviso não abre a tela: aparece quando a pessoa pede, no botão de informação do título.
             if infoDeHorariosAberta {
@@ -336,16 +321,9 @@ public struct TelaPerfilProfissional: View {
         .accessibilityIdentifier("botao-info-horarios")
     }
 
-    /// Sem horários, diz o que isso muda; com horários, repete como eles entram nas vagas recebidas.
-    @ViewBuilder
     private var infoDosHorarios: some View {
-        if viewModel.disponibilidades.isEmpty {
-            AvisoFrila("**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois.", tom: .informativo)
-                .accessibilityIdentifier("info-horarios")
-        } else {
-            AvisoFrila(verbatim: TextosDoProfissional.Perfil.avisoFixo, tom: .informativo)
-                .accessibilityIdentifier("info-horarios")
-        }
+        AvisoFrila(verbatim: TextosDoProfissional.Perfil.avisoFixo, tom: .informativo)
+            .accessibilityIdentifier("info-horarios")
     }
 
     private var cartaoListaHorarios: some View {
@@ -496,12 +474,9 @@ public struct TelaPerfilProfissional: View {
             }
             .accessibilityIdentifier("botao-adicionar-janela")
         }
-        .cartaoFrila()
-    }
-
-    private var secaoAviso: some View {
-        AvisoFrila(verbatim: TextosDoProfissional.Perfil.avisoFixo, tom: .informativo)
-            .accessibilityIdentifier("aviso-fixo-perfil")
+        .padding(FrilaEspaco.medio)
+        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
     }
 
     // MARK: - Barra inferior fixa

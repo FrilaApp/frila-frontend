@@ -41,6 +41,7 @@ public struct FrilaSearchBar: View {
     private let limpar: (rotulo: String, identificador: String)?
     private let acao: FrilaSearchBarAcao?
     private let aoEnviar: (() -> Void)?
+    private let recuoInicial: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
@@ -55,6 +56,8 @@ public struct FrilaSearchBar: View {
     ///   - limpar: quando informado, mostra o botão de limpar enquanto o campo está em uso.
     ///   - acao: ação final fixa, à direita.
     ///   - aoEnviar: o que o Return faz além de fechar o teclado.
+    ///   - recuoInicial: distância do ícone até a borda do campo; reduza quando o campo estiver dentro de um
+    ///     contêiner, para o ícone cair na mesma borda interna do resto do contêiner.
     public init(
         texto: Binding<String>,
         foco: FocusState<Bool>.Binding,
@@ -65,7 +68,8 @@ public struct FrilaSearchBar: View {
         submitLabel: SubmitLabel = .done,
         limpar: (rotulo: String, identificador: String)? = nil,
         acao: FrilaSearchBarAcao? = nil,
-        aoEnviar: (() -> Void)? = nil
+        aoEnviar: (() -> Void)? = nil,
+        recuoInicial: CGFloat = FrilaEspaco.medio
     ) {
         _texto = texto
         self.foco = foco
@@ -77,6 +81,7 @@ public struct FrilaSearchBar: View {
         self.limpar = limpar
         self.acao = acao
         self.aoEnviar = aoEnviar
+        self.recuoInicial = recuoInicial
     }
 
     private var emUso: Bool { foco.wrappedValue || !texto.isEmpty }
@@ -143,7 +148,7 @@ public struct FrilaSearchBar: View {
                 .accessibilityIdentifier(acao.identificador)
             }
         }
-        .padding(.leading, FrilaEspaco.medio)
+        .padding(.leading, recuoInicial)
         .padding(.trailing, FrilaEspaco.minimo)
         .frame(minHeight: FrilaMetrica.alturaDoCampo)
         .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))

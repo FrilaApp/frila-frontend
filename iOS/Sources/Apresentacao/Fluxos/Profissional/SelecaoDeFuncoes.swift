@@ -103,7 +103,6 @@ struct SecaoDeFuncoes: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
             }
         }
-        .padding(.horizontal, convite ? 0 : FrilaEspaco.pequeno)
         .padding(.vertical, FrilaEspaco.minimo)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
@@ -142,8 +141,8 @@ struct SecaoDeFuncoes: View {
                     .rotationEffect(.degrees(aberto ? 180 : 0))
                     .accessibilityHidden(true)
             }
-            // O texto fica no mesmo alinhamento nos dois estados: a margem do botão compensa a do cartão.
-            .padding(.horizontal, convite ? FrilaEspaco.medio + FrilaEspaco.pequeno : FrilaEspaco.medio)
+            // Borda interna única: o texto fica a 16 pt da borda do contêiner nos dois estados.
+            .padding(.horizontal, FrilaEspaco.medio)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
             .background(
                 Capsule().fill(FrilaCor.quente.opacity(convite ? 1 : 0))
@@ -181,6 +180,7 @@ struct SecaoDeFuncoes: View {
                             .padding(.top, FrilaEspaco.pequeno)
                             .padding(.bottom, FrilaEspaco.minimo)
                             .accessibilityAddTraits(.isHeader)
+                            .accessibilityIdentifier("categoria-\(grupo.categoria)")
                         ForEach(Array(grupo.funcoes.enumerated()), id: \.element.id) { indice, funcao in
                             linha(funcao)
                             if indice < grupo.funcoes.count - 1 {
@@ -222,7 +222,7 @@ struct SecaoDeFuncoes: View {
                     .opacity(marcada ? 1 : 0)
                     .accessibilityHidden(true)
             }
-            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.pequeno)
             .padding(.vertical, FrilaEspaco.compacto)
             .frame(maxWidth: .infinity, alignment: .leading)
             // A seleção é um preenchimento suave na cor de seleção: não muda a geometria da linha.
@@ -234,6 +234,7 @@ struct SecaoDeFuncoes: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, FrilaEspaco.pequeno)
         .sensoryFeedback(.selection, trigger: marcada)
         .accessibilityAddTraits(marcada ? .isSelected : [])
         .accessibilityIdentifier("pill-funcao-\(funcao.id)")
@@ -248,8 +249,10 @@ struct SecaoDeFuncoes: View {
             rotulo: TextosDoProfissional.Perfil.buscarFuncao,
             idDoCampo: "perfil_funcoes_busca",
             identificador: "campo-busca-funcao",
-            limpar: (TextosDoProfissional.Perfil.fecharBuscaDeFuncao, "botao-fechar-busca-funcao")
+            limpar: (TextosDoProfissional.Perfil.fecharBuscaDeFuncao, "botao-fechar-busca-funcao"),
+            recuoInicial: FrilaEspaco.pequeno
         )
+        .padding(.horizontal, FrilaEspaco.pequeno)
     }
 
     private var semResultado: some View {

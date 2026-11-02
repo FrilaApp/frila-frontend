@@ -40,7 +40,7 @@ final class FrilaSearchBarUITests: XCTestCase {
         let campo = app.textFields["campo-busca-funcao"]
         digitar("bar", em: campo, app)
 
-        tocar(app.descendants(matching: .any)["tela-perfil-profissional"])
+        tocar(app.staticTexts["categoria-Bar"])
 
         aguardarTecladoFechado(app)
         XCTAssertEqual(campo.value as? String, "bar", "Tocar fora fecha o teclado e mantém o filtro.")
@@ -78,7 +78,7 @@ final class FrilaSearchBarUITests: XCTestCase {
         let campo = app.textFields["campo-ponto-base"]
         digitar("Guará", em: campo, app)
 
-        tocar(app.descendants(matching: .any)["tela-perfil-profissional"])
+        tocar(app.staticTexts["titulo-secao-horarios"])
 
         aguardarTecladoFechado(app)
         XCTAssertEqual(campo.value as? String, "Guará", "Tocar fora fecha o teclado e mantém o endereço digitado.")

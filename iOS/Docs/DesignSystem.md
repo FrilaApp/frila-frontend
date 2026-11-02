@@ -64,6 +64,16 @@ Decididos pelo Fabrício (02/11/2026). Valem para qualquer tela nova e para revi
 - **Ponto médio entre rótulos:** nunca separar rótulos ou palavras com "·", marcador ou travessão artificial; use linha própria, gramática comum ou espaço.
 - **Estado inicial que repreende:** uma tela vazia no primeiro passo convida ("Escolher funções"), não anuncia ausência ("Nenhuma função selecionada"). O erro só aparece depois da tentativa.
 
+## Alinhamento de formulário
+
+Duas bordas, sem exceção (tela "Funções e horários", 02/11/2026):
+
+- **Borda externa, 16 pt da tela:** título, rótulos de seção, textos de ajuda e a borda de todo contêiner.
+- **Borda interna, 16 pt de dentro do contêiner (32 pt da tela):** todo texto e ícone dentro de cartão, campo ou botão. Quando um filho é recuado (campo de busca dentro de cartão, linha com realce), o recuo do filho mais o interno dele soma os mesmos 16 pt (`FrilaSearchBar(recuoInicial:)`).
+- Rótulo de seção não leva `padding(.horizontal)` extra: ele já está dentro da margem da tela.
+- Espaço agrupa: 4 pt entre campo e ajuda, 8 pt entre rótulo e controle, 24 pt entre seções (pelo menos 2x o espaço de dentro do grupo).
+- Texto de apoio fixo na tela fica a uma frase curta. O que explica a regra do produto vai atrás de um botão de informação, não em parágrafo.
+
 ## Decisões da Fase 2
 
 - Botão principal e pílula neutra ativa continuam na tinta (`.ink` da origem), não na terracota viva: o rótulo
