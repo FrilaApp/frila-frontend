@@ -158,9 +158,9 @@ public struct FolhaDeDenuncia: View {
                             .padding(FrilaEspaco.compacto)
                             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada))
                             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
-                            .listRowSeparator(.hidden)
                             .focused($focoNoRelato)
                             .frilaFormField(id: "denuncia-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
+                            .listRowSeparator(.hidden)
                             .accessibilityIdentifier("relato-denuncia")
                             .accessibilityHint(Text(verbatim: model.relatoValido ? TextosDaSeguranca.relatoValidoAcessibilidade : "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
 
