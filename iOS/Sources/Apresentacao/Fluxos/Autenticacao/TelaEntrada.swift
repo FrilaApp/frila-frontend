@@ -6,13 +6,7 @@ public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
 
-    @FocusState private var campoFocado: Bool
     @State private var erroLocal: String?
-
-    /// O endereço de exemplo é sintaxe técnica de placeholder, não texto traduzível de produto.
-    /// É mantido como constante para preservar o contrato do conferir-textos.sh e alimentar
-    /// CampoFrila(verbatim:), impedindo que o SwiftUI interprete o e-mail como link azul.
-    private let exemploDeEmail = "nome@exemplo.com"
 
     public init(viewModel: EntradaViewModel, aoAvancarParaCodigo: @escaping (String) -> Void) {
         self.viewModel = viewModel
@@ -64,17 +58,10 @@ public struct TelaEntrada: View {
                                 .font(FrilaTipo.rotuloDoCampo)
                                 .foregroundStyle(FrilaCor.texto)
 
-                            CampoFrila(verbatim: exemploDeEmail, texto: $viewModel.email)
-                                .keyboardType(.emailAddress)
-                                .textContentType(.emailAddress)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .submitLabel(.send)
-                                .focused($campoFocado)
-                                .disabled(viewModel.carregando)
-                                .onSubmit {
-                                    executarEnvio()
-                                }
+                            CampoEmailComDominio(texto: $viewModel.email, habilitado: !viewModel.carregando, aoEnviar: executarEnvio)
+                                .frame(height: FrilaMetrica.alturaDoCampo)
+                                .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1).allowsHitTesting(false))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: FrilaRaio.entrada)
                                         .strokeBorder(erroLocal != nil ? FrilaCor.perigo : Color.clear, lineWidth: erroLocal != nil ? 2 : 0)
