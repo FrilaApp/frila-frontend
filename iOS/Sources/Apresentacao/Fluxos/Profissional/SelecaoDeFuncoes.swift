@@ -64,8 +64,8 @@ public enum OrganizacaoDeFuncoes {
 }
 
 /// Cartão expansível das funções do profissional: uma função por linha, agrupadas por categoria, com
-/// a busca como apoio. Abre sozinho quando não há nada escolhido (criação) e começa fechado quando há
-/// (edição). Abrir, fechar, buscar e filtrar nunca mexem na seleção.
+/// a busca como apoio. Começa sempre fechado: sem escolha é um convite de uma linha, com escolha é o resumo.
+/// Abrir, fechar, buscar e filtrar nunca mexem na seleção.
 struct SecaoDeFuncoes: View {
     let funcoes: [Funcao]
     let selecionadas: Set<UUID>
@@ -80,7 +80,7 @@ struct SecaoDeFuncoes: View {
         self.funcoes = funcoes
         self.selecionadas = selecionadas
         self.alternar = alternar
-        _aberto = State(initialValue: OrganizacaoDeFuncoes.escolhidasVisiveis(funcoes, selecionadas: selecionadas).isEmpty)
+        _aberto = State(initialValue: false)
     }
 
     /// A busca está em uso quando o campo tem foco ou texto. Não há dois elementos (botão e barra): é um
@@ -115,55 +115,20 @@ struct SecaoDeFuncoes: View {
 
     // MARK: - Cabeçalho
 
-    @ViewBuilder
+    /// O cartão fechado sem escolha é o próprio convite: uma linha, o segmento Quente na margem e o mais
+    /// à direita. Não anuncia ausência, não explica e não repete o que a tela já diz.
     private var cabecalho: some View {
-        if escolhidas.isEmpty && !aberto {
-            estadoVazio
-        } else {
-            botaoDoCabecalho
-        }
-    }
-
-    /// Sem nenhuma função e com o cartão fechado, o cartão diz o estado e mostra como sair dele: um traço
-    /// Quente de marca, o porquê e uma cápsula contornada. A cápsula é só desenho: o toque em qualquer
-    /// ponto da placa abre a lista, e a placa pressionada preenche a cápsula.
-    private var estadoVazio: some View {
-        Button(action: alternarAbertura) {
-            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(FrilaCor.quente)
-                    .frame(width: 4, height: 32)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosDoProfissional.Perfil.nenhumaFuncaoSelecionada)
-                        .font(FrilaTipo.tituloDoCartao)
-                        .foregroundStyle(FrilaCor.texto)
-                    Text(verbatim: TextosDoProfissional.Perfil.explicacaoSemFuncao)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .fixedSize(horizontal: false, vertical: true)
-                    CapsulaDeEscolherFuncoes()
-                        .padding(.top, FrilaEspaco.pequeno)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(FrilaEspaco.medio)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(PlacaDoEstadoVazio())
-        .accessibilityIdentifier("botao-expandir-funcoes")
-    }
-
-    private var botaoDoCabecalho: some View {
-        Button(action: alternarAbertura) {
+        let pendente = escolhidas.isEmpty
+        let convite = pendente && !aberto
+        return Button(action: alternarAbertura) {
             HStack(spacing: FrilaEspaco.compacto) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                    Text(verbatim: escolhidas.isEmpty
-                         ? TextosDoProfissional.Perfil.nenhumaFuncaoSelecionada
+                    Text(verbatim: pendente
+                         ? TextosDoProfissional.Perfil.escolherFuncoes
                          : TextosDoProfissional.Perfil.funcoesSelecionadas(escolhidas.count))
                         .font(FrilaTipo.corpo.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
+                        .frilaSegmento(ativo: pendente)
                     if !aberto, let resumo = OrganizacaoDeFuncoes.resumo(escolhidas) {
                         Text(verbatim: resumo)
                             .font(FrilaTipo.meta)
@@ -172,17 +137,19 @@ struct SecaoDeFuncoes: View {
                     }
                 }
                 Spacer(minLength: FrilaEspaco.pequeno)
-                Image(systemName: "chevron.down")
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .rotationEffect(.degrees(aberto ? 180 : 0))
+                Image(systemName: convite ? "plus.circle.fill" : "chevron.down")
+                    .font(convite ? FrilaTipo.secao : FrilaTipo.meta.weight(.semibold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(convite ? FrilaCor.sobreSelecao : FrilaCor.textoSecundario, FrilaCor.quente)
+                    .rotationEffect(.degrees(aberto && !convite ? 180 : 0))
+                    .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(EstiloDoCabecalhoDeFuncoes(realcar: convite))
         .accessibilityIdentifier("botao-expandir-funcoes")
     }
 
@@ -352,41 +319,23 @@ struct SecaoDeFuncoes: View {
     }
 }
 
-// MARK: - Placa do estado vazio
+// MARK: - Toque no cabeçalho
 
-private struct PlacaPressionadaChave: EnvironmentKey {
-    static let defaultValue = false
-}
+/// Feedback do toque: o cabeçalho afunda 2% e, no convite, ganha um véu Quente de 8%. Entra rápido e sai
+/// um pouco mais lento, com curva ease-out forte (sem ease-in, que atrasa o início do movimento).
+private struct EstiloDoCabecalhoDeFuncoes: ButtonStyle {
+    let realcar: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
-private extension EnvironmentValues {
-    var placaPressionada: Bool {
-        get { self[PlacaPressionadaChave.self] }
-        set { self[PlacaPressionadaChave.self] = newValue }
-    }
-}
-
-/// Repassa o estado de pressão da placa inteira para a cápsula, que é só desenho.
-private struct PlacaDoEstadoVazio: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.environment(\.placaPressionada, configuration.isPressed)
-    }
-}
-
-/// Cápsula contornada no Quente da identidade, com o mais à esquerda. Pressionada, preenche a 12%.
-private struct CapsulaDeEscolherFuncoes: View {
-    @Environment(\.placaPressionada) private var pressionada
-
-    var body: some View {
-        HStack(spacing: FrilaEspaco.minimo) {
-            Image(systemName: "plus")
-                .accessibilityHidden(true)
-            Text(verbatim: TextosDoProfissional.Perfil.escolherFuncoes)
-        }
-        .font(FrilaTipo.meta.weight(.semibold))
-        .foregroundStyle(FrilaCor.quente)
-        .padding(.horizontal, FrilaEspaco.medio)
-        .frame(minHeight: 44)
-        .background(Capsule().fill(FrilaCor.quente.opacity(pressionada ? 0.12 : 0)))
-        .overlay(Capsule().strokeBorder(FrilaCor.quente, lineWidth: 1.5))
+        let pressionado = configuration.isPressed
+        let curva = Animation.timingCurve(0.23, 1, 0.32, 1, duration: pressionado ? 0.14 : 0.2)
+        return configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                    .fill(FrilaCor.quente.opacity(realcar && pressionado ? 0.08 : 0))
+            )
+            .scaleEffect(reduzirMovimento ? 1 : (pressionado ? 0.98 : 1))
+            .animation(FrilaMovimento.animacao(curva, reduzir: reduzirMovimento), value: pressionado)
     }
 }

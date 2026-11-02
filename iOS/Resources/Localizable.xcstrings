@@ -10428,26 +10428,6 @@
         }
       }
     },
-    "Nenhuma função selecionada": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nenhuma função selecionada"
-          }
-        }
-      }
-    },
-    "As vagas que você recebe dependem das funções que escolher.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As vagas que você recebe dependem das funções que escolher."
-          }
-        }
-      }
-    },
     "Escolher funções": {
       "localizations": {
         "pt-BR": {

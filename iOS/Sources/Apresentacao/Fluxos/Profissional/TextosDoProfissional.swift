@@ -231,8 +231,6 @@ enum TextosDoProfissional {
         public static let cabecalho = String(localized: "Seu perfil de profissional", bundle: bundleApresentacao)
         public static let secaoFuncoes = String(localized: "Funções", bundle: bundleApresentacao)
         public static let escolherFuncoes = String(localized: "Escolher funções", bundle: bundleApresentacao)
-        public static let nenhumaFuncaoSelecionada = String(localized: "Nenhuma função selecionada", bundle: bundleApresentacao)
-        public static let explicacaoSemFuncao = String(localized: "As vagas que você recebe dependem das funções que escolher.", bundle: bundleApresentacao)
         public static let buscarFuncao = String(localized: "Buscar função", bundle: bundleApresentacao)
         public static let fecharBuscaDeFuncao = String(localized: "Fechar busca", bundle: bundleApresentacao)
         public static let nenhumaFuncaoEncontrada = String(localized: "Nenhuma função encontrada", bundle: bundleApresentacao)
