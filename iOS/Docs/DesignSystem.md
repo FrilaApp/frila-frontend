@@ -56,6 +56,14 @@ ficam em `Docs/Enxertos/FrilaLowPhase/` (`DESIGN.md`, `REGRAS-DE-DESIGN.md`, `de
 `Docs/Enxertos/FrilaLowPhase/REGRAS-DE-DESIGN.md`: zero emojis na UI (G3), pílulas 100% redondas (G6), alvo
 mínimo 44 pt (G8), nenhum texto solto como botão (M1), controle expandido fecha com toque fora (M20).
 
+## Antipadrões
+
+Decididos pelo Fabrício (02/11/2026). Valem para qualquer tela nova e para revisão de código.
+
+- **Accent strip:** nenhum filete vertical colorido ao lado de texto, cartão ou linha para marcar ênfase, estado ou próximo passo. Ênfase vem de tipografia, posição, preenchimento ou do próprio componente.
+- **Ponto médio entre rótulos:** nunca separar rótulos ou palavras com "·", marcador ou travessão artificial; use linha própria, gramática comum ou espaço.
+- **Estado inicial que repreende:** uma tela vazia no primeiro passo convida ("Escolher funções"), não anuncia ausência ("Nenhuma função selecionada"). O erro só aparece depois da tentativa.
+
 ## Decisões da Fase 2
 
 - Botão principal e pílula neutra ativa continuam na tinta (`.ink` da origem), não na terracota viva: o rótulo

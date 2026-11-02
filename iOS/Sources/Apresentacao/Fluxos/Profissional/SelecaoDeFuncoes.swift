@@ -95,6 +95,10 @@ struct SecaoDeFuncoes: View {
         OrganizacaoDeFuncoes.agrupar(funcoes, busca: consulta, categoriaVazia: TextosDoProfissional.Perfil.outrasFuncoes)
     }
 
+    /// Sem escolha e fechado, o cartão é um botão cheio na cor Quente (o convite). Ao abrir, o mesmo
+    /// elemento vira o cartão: o preenchimento esmaece, a superfície e o fio entram e a lista sai de dentro.
+    private var convite: Bool { escolhidas.isEmpty && !aberto }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             cabecalho
@@ -103,32 +107,31 @@ struct SecaoDeFuncoes: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
             }
         }
-        .padding(.horizontal, FrilaEspaco.pequeno)
+        .padding(.horizontal, convite ? 0 : FrilaEspaco.pequeno)
         .padding(.vertical, FrilaEspaco.minimo)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+                .fill(FrilaCor.superficie.opacity(convite ? 0 : 1))
+        )
         .overlay(
             RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
+                .strokeBorder(convite ? Color.clear : FrilaCor.divisoria, lineWidth: 1)
         )
     }
 
     // MARK: - Cabeçalho
 
-    /// O cartão fechado sem escolha é o próprio convite: uma linha, o segmento Quente na margem e o mais
-    /// à direita. Não anuncia ausência, não explica e não repete o que a tela já diz.
     private var cabecalho: some View {
         let pendente = escolhidas.isEmpty
-        let convite = pendente && !aberto
         return Button(action: alternarAbertura) {
             HStack(spacing: FrilaEspaco.compacto) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                     Text(verbatim: pendente
                          ? TextosDoProfissional.Perfil.escolherFuncoes
                          : TextosDoProfissional.Perfil.funcoesSelecionadas(escolhidas.count))
-                        .font(FrilaTipo.corpo.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
-                        .frilaSegmento(ativo: pendente)
+                        .font(pendente ? FrilaTipo.botaoSobreQuente : FrilaTipo.corpo.weight(.semibold))
+                        .foregroundStyle(convite ? FrilaCor.sobreSelecao : FrilaCor.texto)
                     if !aberto, let resumo = OrganizacaoDeFuncoes.resumo(escolhidas) {
                         Text(verbatim: resumo)
                             .font(FrilaTipo.meta)
@@ -137,19 +140,21 @@ struct SecaoDeFuncoes: View {
                     }
                 }
                 Spacer(minLength: FrilaEspaco.pequeno)
-                Image(systemName: convite ? "plus.circle.fill" : "chevron.down")
-                    .font(convite ? FrilaTipo.secao : FrilaTipo.meta.weight(.semibold))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(convite ? FrilaCor.sobreSelecao : FrilaCor.textoSecundario, FrilaCor.quente)
-                    .rotationEffect(.degrees(aberto && !convite ? 180 : 0))
-                    .contentTransition(.symbolEffect(.replace))
+                Image(systemName: "chevron.down")
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(convite ? FrilaCor.sobreSelecao : FrilaCor.textoSecundario)
+                    .rotationEffect(.degrees(aberto ? 180 : 0))
                     .accessibilityHidden(true)
             }
-            .padding(.horizontal, FrilaEspaco.medio)
+            // O texto fica no mesmo alinhamento nos dois estados: a margem do botão compensa a do cartão.
+            .padding(.horizontal, convite ? FrilaEspaco.medio + FrilaEspaco.pequeno : FrilaEspaco.medio)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+            .background(
+                Capsule().fill(FrilaCor.quente.opacity(convite ? 1 : 0))
+            )
             .contentShape(Rectangle())
         }
-        .buttonStyle(EstiloDoCabecalhoDeFuncoes(realcar: convite))
+        .buttonStyle(EstiloDoCabecalhoDeFuncoes(convite: convite))
         .accessibilityIdentifier("botao-expandir-funcoes")
     }
 
@@ -321,21 +326,18 @@ struct SecaoDeFuncoes: View {
 
 // MARK: - Toque no cabeçalho
 
-/// Feedback do toque: o cabeçalho afunda 2% e, no convite, ganha um véu Quente de 8%. Entra rápido e sai
-/// um pouco mais lento, com curva ease-out forte (sem ease-in, que atrasa o início do movimento).
+/// Feedback do toque: o cabeçalho afunda (3% no botão cheio, 2% no cartão) e o botão escurece um pouco.
+/// Entra rápido e sai um pouco mais lento, com curva ease-out forte (sem ease-in, que atrasa o início).
 private struct EstiloDoCabecalhoDeFuncoes: ButtonStyle {
-    let realcar: Bool
+    let convite: Bool
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     func makeBody(configuration: Configuration) -> some View {
         let pressionado = configuration.isPressed
         let curva = Animation.timingCurve(0.23, 1, 0.32, 1, duration: pressionado ? 0.14 : 0.2)
         return configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .fill(FrilaCor.quente.opacity(realcar && pressionado ? 0.08 : 0))
-            )
-            .scaleEffect(reduzirMovimento ? 1 : (pressionado ? 0.98 : 1))
+            .brightness(convite && pressionado ? -0.05 : 0)
+            .scaleEffect(reduzirMovimento ? 1 : (pressionado ? (convite ? 0.97 : 0.98) : 1))
             .animation(FrilaMovimento.animacao(curva, reduzir: reduzirMovimento), value: pressionado)
     }
 }

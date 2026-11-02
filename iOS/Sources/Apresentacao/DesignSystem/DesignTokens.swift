@@ -138,6 +138,8 @@ public enum FrilaTipo {
     public static let botao = FrilaTypography.sans(size: FrilaTypeScaleStep.placard.pointSize, weight: .bold)
     /// Rótulo do botão padrão (44 pt) e dos chips: SF Pro Semibold 15 (`FrilaTypography.button`).
     public static let botaoPadrao = FrilaTypography.button
+    /// Rótulo sobre o laranja: branco em negrito de pelo menos 19 (`statement/identidade.md`, regras do botão).
+    public static let botaoSobreQuente = FrilaTypography.sans(size: 19, weight: .bold)
 
     /// Pergunta do formulário: Bricolage Bold 26 (`FrilaFormType.question`), acompanha `.title`.
     public static var pergunta: Font { FrilaFormType.question.dynamicFont }
