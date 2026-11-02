@@ -58,10 +58,10 @@ mínimo 44 pt (G8), nenhum texto solto como botão (M1), controle expandido fech
 
 ## Antipadrões
 
-Decididos pelo Fabrício (02/11/2026). Valem para qualquer tela nova e para revisão de código.
+Decididos pelo Fabrício (02/11/2026). Valem para qualquer tela nova e para revisão de código. **O accent strip e o ponto médio ("dot segment") são marcas de design genérico de IA**: o Fabrício os ratificou antecipadamente, então nunca proponha, copie de uma referência nem implemente nenhum dos dois, em nenhuma tela ou estado.
 
 - **Accent strip:** nenhum filete vertical colorido ao lado de texto, cartão ou linha para marcar ênfase, estado ou próximo passo. Ênfase vem de tipografia, posição, preenchimento ou do próprio componente.
-- **Ponto médio entre rótulos:** nunca separar rótulos ou palavras com "·", marcador ou travessão artificial; use linha própria, gramática comum ou espaço.
+- **Ponto médio entre rótulos ("dot segment"):** nunca separar rótulos ou palavras com "·", marcador ou travessão artificial; use linha própria, gramática comum ou espaço.
 - **Menu flutuante nativo (`Menu`, `Picker` em menu) em tela de alta fidelidade:** não usar nem propor. Banido na tela "Funções e horários" pelo Fabrício em 02/11/2026, nesta fase de alta fidelidade; a escolha vira controle desenhado no próprio fluxo. Usos antigos em outras telas não foram tocados e viram correção quando a tela for refeita.
 - **Estado inicial que repreende:** uma tela vazia no primeiro passo convida ("Escolher funções"), não anuncia ausência ("Nenhuma função selecionada"). O erro só aparece depois da tentativa.
 
