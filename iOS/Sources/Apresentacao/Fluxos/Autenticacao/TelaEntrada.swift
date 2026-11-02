@@ -7,6 +7,7 @@ public struct TelaEntrada: View {
     var aoAvancarParaCodigo: (String) -> Void
 
     @State private var erroLocal: String?
+    @State private var controleDoCampo = ControleDoCampoEmail()
 
     public init(viewModel: EntradaViewModel, aoAvancarParaCodigo: @escaping (String) -> Void) {
         self.viewModel = viewModel
@@ -58,7 +59,7 @@ public struct TelaEntrada: View {
                                 .font(FrilaTipo.rotuloDoCampo)
                                 .foregroundStyle(FrilaCor.texto)
 
-                            CampoEmailComDominio(texto: $viewModel.email, habilitado: !viewModel.carregando, aoEnviar: executarEnvio)
+                            CampoEmailComDominio(texto: $viewModel.email, habilitado: !viewModel.carregando, aoEnviar: executarEnvio, controle: controleDoCampo)
                                 .frame(height: FrilaMetrica.alturaDoCampo)
                                 .zIndex(1)
                                 .overlay(
@@ -122,6 +123,8 @@ public struct TelaEntrada: View {
         }
         .barraInferiorFixa {
             BotaoPrimario("Receber código", carregando: viewModel.carregando) {
+                // Com ghost, o primeiro toque completa e o segundo envia, como no Return.
+                if controleDoCampo.completarAntesDeEnviar?() == true { return }
                 executarEnvio()
             }
             .disabled(viewModel.carregando)

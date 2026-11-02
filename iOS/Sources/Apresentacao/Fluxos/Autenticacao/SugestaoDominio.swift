@@ -71,6 +71,19 @@ enum LimiarDaRoda {
     static func intencional(deslocamento: Double, velocidade: Double) -> Bool {
         abs(deslocamento) >= 8 || (abs(deslocamento) >= 6 && abs(velocidade) >= 160 && deslocamento * velocidade > 0)
     }
+    /// Quanto o dedo percorre a mais que o item para a roda andar o mesmo: a roda pesa contra o dedo.
+    static let tracao = 1.3
+    /// Fração de item que precisa ser vencida para o snap trocar de item sem flick.
+    static let pontoDeTroca = 0.68
+    /// pt/s a partir de onde um flick curto basta para trocar.
+    static let velocidadeDeTroca = 260.0
+    /// Detente: a posição se demora perto de cada item e atravessa rápido o meio, onde ficava a zona de confusão.
+    static func comDetente(_ continuo: Double, base: Double, forca: Double = 0.85) -> Double {
+        let d = continuo - base
+        let k = d.rounded(.down)
+        let f = d - k
+        return base + k + f - forca * sin(2 * .pi * f) / (2 * .pi)
+    }
     static func resistencia(_ deslocamento: Double) -> Double {
         let excesso = max(0, abs(deslocamento) - 2)
         return (deslocamento < 0 ? -1 : 1) * 2.5 * (1 - exp(-excesso / 6))
