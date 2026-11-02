@@ -19,6 +19,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -36,6 +37,8 @@ class AuditoriaSemanticaMeusTurnosTest {
 
     @get:Rule
     val compose = createComposeRule()
+
+    private val relogioFixo: () -> Instant = { Instant.parse("2026-11-01T22:00:00Z") }
 
     private val provedorDeLocalizacaoFalso = object : ProvedorDeLocalizacao {
         override suspend fun obterCoordenadaAtual(): Coordenada? = null
@@ -123,6 +126,7 @@ class AuditoriaSemanticaMeusTurnosTest {
                     TelaMeusTurnos(
                         viewModel = viewModel,
                         criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        relogio = relogioFixo,
                     )
                 }
             }
@@ -150,6 +154,7 @@ class AuditoriaSemanticaMeusTurnosTest {
                     TelaMeusTurnos(
                         viewModel = viewModel,
                         criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        relogio = relogioFixo,
                     )
                 }
             }
@@ -180,6 +185,7 @@ class AuditoriaSemanticaMeusTurnosTest {
                     TelaMeusTurnos(
                         viewModel = viewModel,
                         criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        relogio = relogioFixo,
                     )
                 }
             }
