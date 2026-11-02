@@ -85,8 +85,17 @@ public struct TelaCodigo: View {
                     .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .background(FrilaCor.fundo.ignoresSafeArea())
                 .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button {
+                            campoFocado = false
+                        } label: {
+                            Text("OK", bundle: bundleApresentacao)
+                        }
+                    }
                     ToolbarItem(placement: .topBarLeading) {
                         Button(action: aoVoltar) {
                             Image(systemName: "chevron.left")
@@ -118,6 +127,7 @@ public struct TelaCodigo: View {
                 }
             }
         }
+        .frilaKeyboardDismissScope()
         .onChange(of: viewModel.codigo) { _, novoCodigo in
             if codigoComErro != nil && novoCodigo != codigoComErro {
                 codigoComErro = nil
@@ -181,6 +191,7 @@ public struct TelaCodigo: View {
                 campoFocado = true
             }
         }
+        .frilaFormField(id: "codigo-acesso", isFocused: campoFocado, onDismiss: { campoFocado = false })
     }
 
     private func caractereNoIndice(_ indice: Int) -> String {

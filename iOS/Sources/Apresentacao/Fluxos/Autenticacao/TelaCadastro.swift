@@ -5,6 +5,9 @@ import SwiftUI
 public struct TelaCadastro: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @FocusState private var focoNoNome: Bool
+    @State private var telefoneEmEdicao = false
+    @State private var nascimentoEmEdicao = false
     @Bindable var viewModel: CadastroViewModel
     var aoVoltar: () -> Void
     var aoConcluir: (DestinoAposEntrada) -> Void
@@ -82,6 +85,8 @@ public struct TelaCadastro: View {
 
                         CampoFrila("Como você quer ser chamado", texto: $viewModel.nome)
                             .accessibilityLabel(Text("Nome", bundle: bundleApresentacao))
+                            .focused($focoNoNome)
+                            .frilaFormField(id: "cadastro-nome", isFocused: focoNoNome, onDismiss: { focoNoNome = false })
                             .textContentType(.name)
                             .textInputAutocapitalization(.words)
                             .accessibilityIdentifier("cadastro-nome")
@@ -107,10 +112,12 @@ public struct TelaCadastro: View {
                             identificadorAcessibilidade: "cadastro-telefone",
                             teclado: .phonePad,
                             tipoConteudo: .telephoneNumber,
+                            emEdicao: $telefoneEmEdicao,
                             formatar: CadastroViewModel.formatarTelefone
                         )
                         .caixaDoCampoFrila()
                         .accessibilityLabel(Text("Telefone com WhatsApp", bundle: bundleApresentacao))
+                        .frilaFormField(id: "cadastro-telefone", isFocused: telefoneEmEdicao, onDismiss: { telefoneEmEdicao = false })
                         .accessibilityIdentifier("cadastro-telefone")
 
                         if viewModel.campoComErro == .telefone, let erro = viewModel.erro {
@@ -138,10 +145,12 @@ public struct TelaCadastro: View {
                             identificadorAcessibilidade: "cadastro-nascimento",
                             teclado: .numberPad,
                             tipoConteudo: nil,
+                            emEdicao: $nascimentoEmEdicao,
                             formatar: CadastroViewModel.formatarDataNascimento
                         )
                         .caixaDoCampoFrila()
                         .accessibilityLabel(Text("Data de nascimento", bundle: bundleApresentacao))
+                        .frilaFormField(id: "cadastro-nascimento", isFocused: nascimentoEmEdicao, onDismiss: { nascimentoEmEdicao = false })
                         .accessibilityIdentifier("cadastro-nascimento")
 
                         if viewModel.ehMenorDeIdade {
@@ -249,6 +258,7 @@ public struct TelaCadastro: View {
                 viewModel.erro = nil
             }
         }
+        .frilaKeyboardDismissScope()
         .scrollDismissesKeyboard(.interactively)
         .background(FrilaCor.fundo.ignoresSafeArea())
     }
