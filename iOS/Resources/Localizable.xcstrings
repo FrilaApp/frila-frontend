@@ -10348,16 +10348,6 @@
         }
       }
     },
-    "Escolha suas funções": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escolha suas funções"
-          }
-        }
-      }
-    },
     "Buscar função": {
       "localizations": {
         "pt-BR": {
@@ -10418,16 +10408,6 @@
         }
       }
     },
-    "Selecionada": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selecionada"
-          }
-        }
-      }
-    },
     "1 função selecionada": {
       "localizations": {
         "pt-BR": {
@@ -10454,6 +10434,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ e mais %lld"
+          }
+        }
+      }
+    },
+    "Nenhuma função selecionada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma função selecionada"
+          }
+        }
+      }
+    },
+    "As vagas que você recebe dependem das funções que escolher.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As vagas que você recebe dependem das funções que escolher."
           }
         }
       }

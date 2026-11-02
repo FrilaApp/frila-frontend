@@ -112,12 +112,36 @@ struct SecaoDeFuncoes: View {
 
     // MARK: - Cabeçalho
 
+    @ViewBuilder
     private var cabecalho: some View {
+        if escolhidas.isEmpty && !aberto {
+            estadoVazio
+        } else {
+            botaoDoCabecalho
+        }
+    }
+
+    /// Sem nenhuma função e com o cartão fechado, o cartão diz o estado em vez de mandar a pessoa agir:
+    /// o toque em qualquer ponto dele abre a lista.
+    private var estadoVazio: some View {
+        Button(action: alternarAbertura) {
+            EstadoVazio(
+                verbatim: TextosDoProfissional.Perfil.nenhumaFuncaoSelecionada,
+                mensagem: TextosDoProfissional.Perfil.explicacaoSemFuncao
+            )
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("botao-expandir-funcoes")
+    }
+
+    private var botaoDoCabecalho: some View {
         Button(action: alternarAbertura) {
             HStack(spacing: FrilaEspaco.compacto) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                     Text(verbatim: escolhidas.isEmpty
-                         ? TextosDoProfissional.Perfil.escolhaSuasFuncoes
+                         ? TextosDoProfissional.Perfil.nenhumaFuncaoSelecionada
                          : TextosDoProfissional.Perfil.funcoesSelecionadas(escolhidas.count))
                         .font(FrilaTipo.corpo.weight(.semibold))
                         .foregroundStyle(FrilaCor.texto)
@@ -173,10 +197,14 @@ struct SecaoDeFuncoes: View {
                         ForEach(Array(grupo.funcoes.enumerated()), id: \.element.id) { indice, funcao in
                             linha(funcao)
                             if indice < grupo.funcoes.count - 1 {
+                                // O divisor some ao lado de uma linha preenchida, para os blocos não ganharem um fio entre si.
+                                let ladoAladoMarcado = selecionadas.contains(funcao.id) || selecionadas.contains(grupo.funcoes[indice + 1].id)
                                 Rectangle()
                                     .fill(FrilaCor.divisoria)
                                     .frame(height: 1)
                                     .padding(.horizontal, FrilaEspaco.medio)
+                                    .opacity(ladoAladoMarcado ? 0 : 1)
+                                    .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: ladoAladoMarcado)
                             }
                         }
                     }
@@ -196,18 +224,19 @@ struct SecaoDeFuncoes: View {
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
                 Spacer(minLength: FrilaEspaco.pequeno)
-                Text(verbatim: TextosDoProfissional.Perfil.funcaoSelecionada)
-                    .font(FrilaTipo.nota.weight(.semibold))
+                Image(systemName: "checkmark")
+                    .font(FrilaTipo.meta.weight(.semibold))
                     .foregroundStyle(FrilaCor.selecao)
                     .opacity(marcada ? 1 : 0)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.compacto)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // O contorno é só desenho sobre a linha: a geometria é a mesma nos dois estados.
-            .overlay(
+            // A seleção é um preenchimento suave na cor de seleção: não muda a geometria da linha.
+            .background(
                 RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .strokeBorder(marcada ? FrilaCor.selecao : Color.clear, lineWidth: 2)
+                    .fill(FrilaCor.selecao.opacity(marcada ? 0.12 : 0))
             )
             .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: marcada)
             .contentShape(Rectangle())
