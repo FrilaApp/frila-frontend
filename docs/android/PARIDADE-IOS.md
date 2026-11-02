@@ -12,9 +12,9 @@ O Frila iOS v1.0 possui **46 superfícies de interface** (43 telas catalogadas n
 
 | Situação no Android | Quantidade | Percentual | Descrição |
 |---|:---:|:---:|---|
-| **Existe** | 10 | 21,7% | Telas plenamente funcionais com ViewModel, regras de domínio e cobertura de testes unitários/Compose |
-| **Parcial** | 6 | 13,0% | Funcionalidades implementadas parcialmente (ex.: backend/PDF presente mas sem lista navegável na UI) |
-| **Falta** | 30 | 65,3% | Telas ainda não iniciadas na plataforma Android |
+| **Existe** | 17 | 37,0% | Telas plenamente funcionais com ViewModel, regras de domínio e cobertura de testes unitários/Compose |
+| **Parcial** | 7 | 15,2% | Funcionalidades implementadas parcialmente (ex.: check-in com comprovante mas check-out pendente na UI, extrato PDF sem lista dedicada) |
+| **Falta** | 22 | 47,8% | Telas ainda não iniciadas na plataforma Android |
 | **Total** | **46** | **100,0%** | **Cobertura integral da camada de apresentação da v1.0** |
 
 ---
@@ -39,11 +39,11 @@ O Frila iOS v1.0 possui **46 superfícies de interface** (43 telas catalogadas n
 | 11 | Candidaturas (Aba Minhas Candidaturas) | `TelaMinhasCandidaturas` | **Falta** | — | M | depende do Fabrício | Fase 2 |
 | 12 | Meus turnos (Lista de turnos aceitos) | `TelaMeusTurnos` | **Existe** | `feature:turnos/.../TelaMeusTurnos.kt:60` | P | Nenhuma | Concluído |
 | 13 | Meu turno (Acompanhamento individual) | `TelaMeuTurno` | **Parcial** | `feature:turnos/.../TelaMeusTurnos.kt:180` | M | depende do Fabrício | Fase 2 |
-| 14 | Presença no turno (Check-in/Check-out) | `SecaoDePresenca` | **Existe** | `feature:turnos/.../DialogoComprovanteCheckin.kt:35` | P | Nenhuma | Concluído |
+| 14 | Presença no turno (Check-in/Check-out) | `SecaoDePresenca` | **Parcial** | `feature:turnos/.../DialogoComprovanteCheckin.kt:35` | P | Nenhuma (check-out na UI pendente) | Fase 2 |
 | 15 | Avaliação do turno (Profissional → Local) | `TelaAvaliacao` | **Existe** | `feature:turnos/.../TelaAvaliacao.kt:50` | P | Nenhuma | Concluído |
 | 16 | Meu perfil (Visão geral da conta) | `TelaMeuPerfilProfissional` | **Existe** | `feature:perfil/.../TelaPerfil.kt:60` | P | Nenhuma | Concluído |
 | 17 | Funções e horários (Disponibilidade) | `TelaPerfilProfissional` | **Falta** | — | M | depende do Fabrício | Fase 2 |
-| 18 | Exclusão de conta (Direito LGPD) | `TelaExclusaoDeConta` | **Falta** | — | M | backend (Edge Function) | Fase 2 |
+| 18 | Exclusão de conta (Direito LGPD) | `TelaExclusaoDeConta` | **Existe** | `feature:perfil/.../TelaPerfil.kt:239-249` | M | Nenhuma | Concluído |
 | 19 | Conta suspensa (Punição e contestação) | `TelaContaSuspensa` | **Falta** | — | M | depende do Fabrício | Fase 2 |
 | 20 | Cadastro do estabelecimento | `TelaCadastroEstabelecimento` | **Falta** | — | G | depende do Fabrício + contrato | Fase 3 |
 | 21 | Publicar vaga (Contratante) | `TelaPublicarVaga` | **Falta** | — | G | depende do Fabrício + contrato | Fase 3 |
@@ -58,18 +58,18 @@ O Frila iOS v1.0 possui **46 superfícies de interface** (43 telas catalogadas n
 | 30 | Publicar vaga: erro ao ler casa | `TelaPublicarVaga (estado erro)` | **Falta** | — | P | fluxo contratante | Fase 3 |
 | 31 | Folha de cancelamento (Contratante) | `FolhaDeCancelamento` | **Parcial** | `feature:turnos/.../DialogoCancelamentoTurno.kt:40` | M | depende do Fabrício | Fase 3 |
 | 32 | Histórico de turnos e extrato | `TelaHistoricoDeTurnos` | **Parcial** | `feature:perfil/.../GeradorExtratoPdf.kt:30` | M | depende do Fabrício | Fase 2 |
-| 33 | Confirmação de exclusão de conta | `TelaExclusaoDeConta (modal)` | **Falta** | — | P | tela de exclusão | Fase 2 |
+| 33 | Confirmação de exclusão de conta | `TelaExclusaoDeConta (modal)` | **Existe** | `feature:perfil/.../TelaPerfil.kt:900` | P | Nenhuma | Concluído |
 | 34 | Por que recebo vagas (Transparência) | `TelaPorQueReceboVagas` | **Falta** | — | P | depende do Fabrício | Fase 2 |
 | 35 | Equipe de confiança (Favoritos) | `TelaEquipeDeConfianca` | **Falta** | — | M | depende do Fabrício | Fase 3 |
 | 36 | Folha de suporte no turno | `FolhaSuporteTurno` | **Parcial** | `feature:turnos/.../TelaOcorrencia.kt:45` | P | Nenhuma | Concluído |
 | 37 | Folha de denúncia / bloqueio | `FolhaDeDenuncia` | **Falta** | — | M | depende do Fabrício + backend | Fase 2 |
-| 38 | Ajuda do perfil (Canais / Termos) | `TelaAjudaPerfil` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Próxima)** |
-| 39 | Licenças de código aberto | `TelaLicencas` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Imediata)** |
-| 40 | Detalhe da licença | `TelaDetalheLicenca` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Imediata)** |
+| 38 | Ajuda do perfil (Canais / Termos) | `TelaAjudaPerfil` | **Existe** | `feature:perfil/.../TelaAjudaPerfil.kt:50` | P | Nenhuma | Concluído |
+| 39 | Licenças de código aberto | `TelaLicencas` | **Existe** | `feature:perfil/.../TelaLicencas.kt:35` | P | Nenhuma | Concluído |
+| 40 | Detalhe da licença | `TelaDetalheLicenca` | **Existe** | `feature:perfil/.../TelaDetalheLicenca.kt:30` | P | Nenhuma | Concluído |
 | 41 | Explicação de notificações push | `TelaExplicacaoDoPush` | **Existe** | `feature:vagas/.../DialogoPermissaoNotificacao.kt:36` | P | Nenhuma | Concluído |
-| 42 | Vaga indisponível (Aviso Push) | `TelaVagaIndisponivel` | **Falta** | — | P | Nenhuma / independente | Fase 1 |
-| 43 | Turno do aviso não encontrado (Push) | `DestinoDoAviso` | **Falta** | — | P | Nenhuma / independente | Fase 1 |
-| 44 | Atualização obrigatória (Portão versão) | `TelaAtualizacaoObrigatoria` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Imediata)** |
+| 42 | Vaga indisponível (Aviso Push) | `TelaVagaIndisponivel` | **Existe** | `feature:vagas/.../TelaVagaIndisponivel.kt:40` | P | Nenhuma | Concluído |
+| 43 | Turno do aviso não encontrado (Push) | `TelaTurnoNaoEncontrado` | **Existe** | `feature:turnos/.../TelaTurnoNaoEncontrado.kt:40` | P | Nenhuma | Concluído |
+| 44 | Atualização obrigatória (Portão versão) | `TelaAtualizacaoObrigatoria` | **Existe** | `core:designsystem/.../TelaAtualizacaoObrigatoria.kt:42` | P | Nenhuma | Concluído |
 | 45 | Compartilhamento / exportação | `FolhaCompartilhamento` | **Parcial** | `feature:perfil/.../GeradorExtratoPdf.kt:85` | P | Nenhuma | Concluído |
 | 46 | Compositor de e-mail nativo | `CompositorDeEmailNativo` | **Parcial** | `feature:turnos/.../TelaOcorrencia.kt:120` | P | Nenhuma | Concluído |
 
