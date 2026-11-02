@@ -91,7 +91,8 @@ gh workflow run ios.yml --ref main
 
 O workflow `.github/workflows/testflight.yml` arquiva, assina, confere e manda o app ao TestFlight
 (#203). Todo o trabalho fica em `Scripts/enviar-testflight.sh`, que roda igual na CI e na máquina de
-quem precisar reproduzir. Ele não mexe na CI de PR.
+quem precisar reproduzir. Ele não mexe na CI de PR. O roteiro detalhado de operação, segredos, conferência
+no App Store Connect, Crashlytics e separação de tarefas humanas está em [PassoAPassoTestFlightCI.md](PassoAPassoTestFlightCI.md).
 
 ### Quando roda
 

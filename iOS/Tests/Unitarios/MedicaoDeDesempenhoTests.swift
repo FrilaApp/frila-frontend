@@ -130,6 +130,70 @@ struct MedicaoDeDesempenhoTests {
         print("MEDICOES HTTP local: requisições=\(resumo.requisicoes) enviados=\(resumo.bytesEnviados) B recebidos=\(resumo.bytesRecebidos) B total=\(resumo.bytesTotais) B limite=\(ResumoDasMedicoes.limiteDaSessao) B")
     }
 
+    @Test("Sessão HTTP local com cache vazio: 3 vagas distintas e candidatura abaixo de 1 MB", .timeLimit(.minutes(1)))
+    func bytesDaSessaoComTresVagasDistintas() async throws {
+        let baseLista = try JSONSerialization.jsonObject(with: FixturesDoContrato.dados("vagas-abertas")) as? [[String: Any]] ?? []
+        guard let primeira = baseLista.first else { throw ErroDeConversao(campo: "vagas-abertas") }
+        var v2 = primeira
+        v2["id"] = "40000000-0000-0000-0000-000000000002"
+        var v3 = primeira
+        v3["id"] = "40000000-0000-0000-0000-000000000003"
+        let listaTres = try JSONSerialization.data(withJSONObject: [primeira, v2, v3])
+
+        let baseDetalhe = try JSONSerialization.jsonObject(with: FixturesDoContrato.dados("vaga")) as? [String: Any] ?? [:]
+        var d2 = baseDetalhe
+        d2["id"] = "40000000-0000-0000-0000-000000000002"
+        var d3 = baseDetalhe
+        d3["id"] = "40000000-0000-0000-0000-000000000003"
+        let detalhe1 = try FixturesDoContrato.dados("vaga")
+        let candidatura = try FixturesDoContrato.dados("candidatura-urgencia")
+
+        let servidor = try ServidorHTTPDeMedicao(respostas: [
+            "/rest/v1/rpc/vagas_abertas": listaTres,
+            "/rest/v1/rpc/detalhe_vaga": detalhe1,
+            "/rest/v1/rpc/candidatar": candidatura
+        ])
+        defer { servidor.parar() }
+        let url = try await servidor.iniciar()
+        let (registro, _) = registroIsolado()
+        registro.zerar()
+        let configuracao = URLSessionConfiguration.ephemeral
+        configuracao.urlCache = URLCache(memoryCapacity: 1_000_000, diskCapacity: 0, diskPath: nil)
+        configuracao.urlCache?.removeAllCachedResponses()
+        configuracao.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuracao.timeoutIntervalForRequest = 5
+        let sessao = URLSession(configuration: configuracao, delegate: MedidorDeRede(registro: registro), delegateQueue: nil)
+        defer { sessao.invalidateAndCancel() }
+        let cliente = SupabaseApiCliente(
+            url: url, chavePublicavel: "sb_publishable_teste", telemetria: TelemetryNula(),
+            sessaoHTTP: sessao, armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria()
+        )
+        #expect(configuracao.urlCache?.currentMemoryUsage == 0)
+        #expect(registro.resumo().bytesTotais == 0)
+
+        let vagas = try await cliente.vagasAbertas(FiltroVagas())
+        #expect(vagas.count == 3)
+        for vaga in vagas {
+            _ = try await cliente.detalheDaVaga(id: vaga.id)
+        }
+        let vagaAlvo = try #require(vagas.last)
+        guard try await cliente.candidatar(vagaID: vagaAlvo.id).estado == .confirmada else {
+            Issue.record("A fixture deve confirmar a candidatura")
+            return
+        }
+
+        let prazo = ContinuousClock.now.advanced(by: .seconds(2))
+        while registro.resumo().requisicoes < 5, ContinuousClock.now < prazo {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let resumo = registro.resumo()
+        #expect(resumo.requisicoes == 5)
+        #expect(resumo.bytesEnviados > 0)
+        #expect(resumo.bytesRecebidos > 0)
+        #expect(resumo.bytesTotais < ResumoDasMedicoes.limiteDaSessao)
+        print("MEDICOES HTTP 3 vagas distintas: requisições=\(resumo.requisicoes) enviados=\(resumo.bytesEnviados) B recebidos=\(resumo.bytesRecebidos) B total=\(resumo.bytesTotais) B limite=\(ResumoDasMedicoes.limiteDaSessao) B")
+    }
+
     @Test("A abertura termina na mudança que publica o conteúdo, e não no fim da carga")
     @MainActor
     func aberturaTerminaNoConteudo() async {

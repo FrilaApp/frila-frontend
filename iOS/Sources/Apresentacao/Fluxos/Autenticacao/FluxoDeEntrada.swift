@@ -34,6 +34,10 @@ public struct FluxoDeEntrada: View {
             let emailTeste = "teste@frila.app"
             _rotaAtual = State(initialValue: .codigo(email: emailTeste))
             _codigoVM = State(initialValue: CodigoViewModel(api: api, email: emailTeste))
+        } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CADASTRO") {
+            let emailTeste = "novo@frila.app"
+            _rotaAtual = State(initialValue: .cadastro(email: emailTeste))
+            _cadastroVM = State(initialValue: CadastroViewModel(api: api, email: emailTeste, relogio: relogio, verificadorDeIdade: verificadorDeIdade))
         } else {
             _rotaAtual = State(initialValue: rotaInicial)
         }
