@@ -40,7 +40,7 @@ class AppNavegacaoTurnoNaoEncontradoIntegracaoTest {
     @Test
     fun rotaTurnoAvisoComTurnoAusenteExibeTelaTurnoNaoEncontradoERecupera() {
         val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
-            every { estaAutenticado() } returns true
+            every { estaAutenticado() } returns false
             every { isBiometriaAtivada() } returns false
         }
         val entrada = mockk<EntradaViewModel>(relaxed = true) {
