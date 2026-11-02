@@ -121,18 +121,34 @@ struct SecaoDeFuncoes: View {
         }
     }
 
-    /// Sem nenhuma função e com o cartão fechado, o cartão diz o estado em vez de mandar a pessoa agir:
-    /// o toque em qualquer ponto dele abre a lista.
+    /// Sem nenhuma função e com o cartão fechado, o cartão diz o estado e mostra como sair dele: um traço
+    /// Quente de marca, o porquê e uma cápsula contornada. A cápsula é só desenho: o toque em qualquer
+    /// ponto da placa abre a lista, e a placa pressionada preenche a cápsula.
     private var estadoVazio: some View {
         Button(action: alternarAbertura) {
-            EstadoVazio(
-                verbatim: TextosDoProfissional.Perfil.nenhumaFuncaoSelecionada,
-                mensagem: TextosDoProfissional.Perfil.explicacaoSemFuncao
-            )
-            .frame(maxWidth: .infinity)
+            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(FrilaCor.quente)
+                    .frame(width: 4, height: 32)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    Text(verbatim: TextosDoProfissional.Perfil.nenhumaFuncaoSelecionada)
+                        .font(FrilaTipo.tituloDoCartao)
+                        .foregroundStyle(FrilaCor.texto)
+                    Text(verbatim: TextosDoProfissional.Perfil.explicacaoSemFuncao)
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                    CapsulaDeEscolherFuncoes()
+                        .padding(.top, FrilaEspaco.pequeno)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(FrilaEspaco.medio)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlacaDoEstadoVazio())
         .accessibilityIdentifier("botao-expandir-funcoes")
     }
 
@@ -343,5 +359,44 @@ struct SecaoDeFuncoes: View {
         buscando = false
         consulta = ""
         focoNaBusca = false
+    }
+}
+
+// MARK: - Placa do estado vazio
+
+private struct PlacaPressionadaChave: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private extension EnvironmentValues {
+    var placaPressionada: Bool {
+        get { self[PlacaPressionadaChave.self] }
+        set { self[PlacaPressionadaChave.self] = newValue }
+    }
+}
+
+/// Repassa o estado de pressão da placa inteira para a cápsula, que é só desenho.
+private struct PlacaDoEstadoVazio: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.environment(\.placaPressionada, configuration.isPressed)
+    }
+}
+
+/// Cápsula contornada no Quente da identidade, com o mais à esquerda. Pressionada, preenche a 12%.
+private struct CapsulaDeEscolherFuncoes: View {
+    @Environment(\.placaPressionada) private var pressionada
+
+    var body: some View {
+        HStack(spacing: FrilaEspaco.minimo) {
+            Image(systemName: "plus")
+                .accessibilityHidden(true)
+            Text(verbatim: TextosDoProfissional.Perfil.escolherFuncoes)
+        }
+        .font(FrilaTipo.meta.weight(.semibold))
+        .foregroundStyle(FrilaCor.quente)
+        .padding(.horizontal, FrilaEspaco.medio)
+        .frame(minHeight: 44)
+        .background(Capsule().fill(FrilaCor.quente.opacity(pressionada ? 0.12 : 0)))
+        .overlay(Capsule().strokeBorder(FrilaCor.quente, lineWidth: 1.5))
     }
 }

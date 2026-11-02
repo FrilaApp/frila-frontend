@@ -41,6 +41,8 @@ public enum FrilaCor {
     public static let perigo = Color("Danger", bundle: recursos)
     /// Terracota da marca (`dynamicBrandAccent`, #EA5A36). Acento e botão de destaque do Estúdio (texto grande); nunca texto corrido.
     public static let marca = Color("BrandAccent", bundle: recursos)
+    /// Quente da identidade (`statement/identidade.md`, 500, #F16A00), o mesmo nos dois modos. A identidade o decide como cor da marca; o app ainda usa `marca` (#EA5A36) e `selecao` (#C9470F) nos demais lugares. Hoje só o estado vazio das funções o usa.
+    public static let quente = Color("BrandQuente", bundle: recursos)
     /// Preenchimento de controle e de aviso neutro (`dynamicInputBg`).
     public static let controle = Color("ControlFill", bundle: recursos)
     /// Fio de 1 pt de cartões e divisórias (`dynamicHairline`).

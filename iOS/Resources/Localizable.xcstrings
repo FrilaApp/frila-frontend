@@ -10457,6 +10457,16 @@
           }
         }
       }
+    },
+    "Escolher funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher funções"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
