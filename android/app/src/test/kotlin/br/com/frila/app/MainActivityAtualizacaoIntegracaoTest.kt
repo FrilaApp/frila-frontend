@@ -1,7 +1,8 @@
 package br.com.frila.app
 
 import android.app.Application
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
@@ -93,7 +94,7 @@ class MainActivityAtualizacaoIntegracaoTest {
             rule.waitForIdle()
 
             assertEquals("A abertura deve consultar a configuracao publica de versao", 1, chamadas.get())
-            rule.onNodeWithText(TextosAtualizacaoObrigatoria.TITULO).assertExists()
+            rule.onNodeWithText(TextosAtualizacaoObrigatoria.TITULO).assertIsDisplayed()
         } finally {
             controller.pause().stop().destroy()
             cliente.http.close()
