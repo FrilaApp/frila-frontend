@@ -33,7 +33,9 @@ import br.com.frila.feature.entrada.codigo.TelaCodigo
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.TelaEntrada
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
+import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
+import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
@@ -61,6 +63,7 @@ object Rotas {
     const val PERFIL = "perfil"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
     const val DESBLOQUEIO = "desbloqueio"
+    const val VAGA_INDISPONIVEL = "vaga_indisponivel"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -190,8 +193,26 @@ fun AppNavegacao(
                         TelaDetalheVaga(viewModel = viewModel)
                     }
                 } else {
-                    Text("Vaga indisponível. Atualize o feed para consultar as vagas abertas.")
+                    TelaVagaIndisponivel(
+                        motivo = MotivoIndisponibilidadeVaga.NAO_ENCONTRADA,
+                        aoVoltarParaFeed = {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        },
+                    )
                 }
+            }
+
+            composable(Rotas.VAGA_INDISPONIVEL) {
+                TelaVagaIndisponivel(
+                    motivo = MotivoIndisponibilidadeVaga.NAO_ENCONTRADA,
+                    aoVoltarParaFeed = {
+                        navController.navigate(Rotas.FEED) {
+                            popUpTo(Rotas.FEED) { inclusive = true }
+                        }
+                    },
+                )
             }
 
             composable(
