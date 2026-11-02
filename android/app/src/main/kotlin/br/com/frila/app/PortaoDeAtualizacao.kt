@@ -31,21 +31,18 @@ data class ConfiguracaoDoAppDto(
 
 /**
  * Consulta a configuração pública de versão na API remota Supabase (endpoint `/rpc/configuracao_do_app?plataforma=android`).
- * Retorna [ConfiguracaoDoAppDto] se bem-sucedido, ou `null` em caso de erro, timeout (3s) ou resposta inválida.
+ * Retorna [ConfiguracaoDoAppDto] se bem-sucedido, ou `null` em caso de erro ou resposta inválida.
  * Falhas transitórias ou offline nunca devem impedir o uso do app.
  */
 suspend fun consultarConfiguracaoDoApp(
     cliente: ClienteSupabase,
-    tempoLimiteMs: Long = 3000L,
 ): ConfiguracaoDoAppDto? {
     return try {
-        withTimeoutOrNull(tempoLimiteMs) {
-            val resposta = cliente.http.get("${cliente.baseUrl}/rpc/configuracao_do_app?plataforma=android")
-            if (resposta.status.isSuccess()) {
-                Json { ignoreUnknownKeys = true }.decodeFromString<ConfiguracaoDoAppDto>(resposta.bodyAsText())
-            } else {
-                null
-            }
+        val resposta = cliente.http.get("${cliente.baseUrl}/rpc/configuracao_do_app?plataforma=android")
+        if (resposta.status.isSuccess()) {
+            Json { ignoreUnknownKeys = true }.decodeFromString<ConfiguracaoDoAppDto>(resposta.bodyAsText())
+        } else {
+            null
         }
     } catch (_: Exception) {
         null

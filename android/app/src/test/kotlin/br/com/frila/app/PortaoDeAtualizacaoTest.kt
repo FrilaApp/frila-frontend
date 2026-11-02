@@ -134,7 +134,7 @@ class PortaoDeAtualizacaoTest {
 
         try {
             val resultado = consultarConfiguracaoDoApp(cliente)
-            assertNotNull(resultado)
+            assertNotNull("Resultado nao deve ser nulo para resposta 200 OK com JSON valido", resultado)
             assertEquals("android", resultado?.plataforma)
             assertEquals("99.0.0", resultado?.versaoMinima)
             assertEquals("Atualize agora", resultado?.mensagem)
