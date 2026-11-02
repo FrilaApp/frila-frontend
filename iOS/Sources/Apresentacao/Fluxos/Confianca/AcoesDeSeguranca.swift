@@ -160,6 +160,7 @@ public struct FolhaDeDenuncia: View {
                             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
                             .listRowSeparator(.hidden)
                             .focused($focoNoRelato)
+                            .frilaFormField(id: "denuncia-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
                             .accessibilityIdentifier("relato-denuncia")
                             .accessibilityHint(Text(verbatim: model.relatoValido ? TextosDaSeguranca.relatoValidoAcessibilidade : "\(model.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
 
@@ -264,6 +265,7 @@ public struct FolhaDeDenuncia: View {
             .onChange(of: model.protocolo) { protocoloEmFoco = model.protocolo != nil }
             .onAppear { if model.protocolo != nil { protocoloEmFoco = true } }
         }
+        .frilaKeyboardDismissScope()
     }
 
     /// Atalho de ligação de emergência: ícone em coluna fixa e toque de pelo menos 44 pt.
