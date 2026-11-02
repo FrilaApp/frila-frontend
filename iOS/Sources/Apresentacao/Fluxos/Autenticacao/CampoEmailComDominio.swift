@@ -160,7 +160,7 @@ struct CampoEmailComDominio: View {
                         aoCancelar: {
                             tarefaDeEncaixe?.cancel()
                             restaurarBlocoDoArroba()
-                            withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.12)) {
+                            withAnimation(FrilaMovimento.animacao(.timingCurve(0.16, 1, 0.3, 1, duration: 0.12), reduzir: reduzirMovimento)) {
                                 posicao = posicaoNoToque.rounded()
                                 destaque = 0
                                 acento = 0
@@ -181,7 +181,7 @@ struct CampoEmailComDominio: View {
                             confirmar(sugestao: sugestaoAtual, posicao: 0)
                         } label: {
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(Font(UIFont.systemFont(ofSize: UIFont.preferredFont(forTextStyle: .body).pointSize + 1, weight: .semibold)))
                                 .foregroundStyle(ctaAtivo ? FrilaCor.sobreSelecao : FrilaCor.textoSecundario)
                                 .frame(width: larguraDaCapsula, height: alturaVisual - respiro * 2)
                                 .background {
@@ -193,7 +193,7 @@ struct CampoEmailComDominio: View {
                                     .clipShape(RoundedRectangle(cornerRadius: raioDaCapsula, style: .continuous))
                                 }
                                 .scaleEffect(acentoCTA ? 1.015 : 1)
-                                .animation(.timingCurve(0.16, 1, 0.3, 1, duration: ctaAtivo ? 0.12 : 0.08), value: ctaAtivo)
+                                .animation(FrilaMovimento.animacao(.timingCurve(0.16, 1, 0.3, 1, duration: ctaAtivo ? 0.12 : 0.08), reduzir: reduzirMovimento), value: ctaAtivo)
                         }
                         .buttonStyle(ToqueDaSeta(aoPressionar: hapticos.toqueDaSeta))
                         .padding(.trailing, respiro)
@@ -206,8 +206,8 @@ struct CampoEmailComDominio: View {
             .frame(width: largura, height: altura)
             // Expande sem reflow; conserva 2 pt dos 8 pt que separam o rótulo.
             .offset(y: estendido ? max(0, (alturaVisual - altura) / 2 - 6) : 0)
-            .animation(!preenchendo ? .snappy(duration: 0.18) : nil, value: sugestaoAtual != nil)
-            .animation(estendido ? MovimentoDoCampo.expandir : MovimentoDoCampo.recolher, value: estendido)
+            .animation(FrilaMovimento.animacao(.snappy(duration: 0.18), reduzir: reduzirMovimento || preenchendo), value: sugestaoAtual != nil)
+            .animation(FrilaMovimento.animacao(estendido ? MovimentoDoCampo.expandir : MovimentoDoCampo.recolher, reduzir: reduzirMovimento), value: estendido)
         }
         .frame(height: altura)
         .onAppear { controle?.completarAntesDeEnviar = completarAntesDeEnviar }
@@ -218,7 +218,7 @@ struct CampoEmailComDominio: View {
             if tarefaDeEncaixe != nil {
                 tarefaDeEncaixe?.cancel()
                 tarefaDeEncaixe = nil
-                withAnimation(MovimentoDoCampo.recolher) { estendido = false; acento = 0 }
+                withAnimation(FrilaMovimento.animacao(MovimentoDoCampo.recolher, reduzir: reduzirMovimento)) { estendido = false; acento = 0 }
             }
             if preenchendo, novo != textoEsperado { cancelarPreenchimento() }
         }
@@ -228,9 +228,9 @@ struct CampoEmailComDominio: View {
             tarefaDoAcento = Task { @MainActor in
                 do { try await Task.sleep(for: .milliseconds(30)) } catch { return }
                 guard ctaAtivo else { return }
-                withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.05)) { acentoCTA = true }
+                withAnimation(FrilaMovimento.animacao(.timingCurve(0.16, 1, 0.3, 1, duration: 0.05), reduzir: reduzirMovimento)) { acentoCTA = true }
                 do { try await Task.sleep(for: .milliseconds(50)) } catch { return }
-                withAnimation(.spring(duration: 0.14, bounce: 0.04)) { acentoCTA = false }
+                withAnimation(FrilaMovimento.animacao(.spring(duration: 0.14, bounce: 0.04), reduzir: reduzirMovimento)) { acentoCTA = false }
             }
         }
         .onChange(of: estado.focado) { _, focado in
@@ -254,6 +254,7 @@ struct CampoEmailComDominio: View {
     @State private var menorPosicaoVista = 0.0
     @State private var maiorPosicaoVista = 0.0
     @State private var tarefaDeEncaixe: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @State private var hapticos = HapticosDoDominio()
     /// Texto de antes de a roda reiniciar o bloco do "@"; volta a ele se o gesto não trocar de domínio.
     @State private var textoAntesDoReinicio: String?
@@ -272,7 +273,7 @@ struct CampoEmailComDominio: View {
                 reiniciarBlocoDoArroba()
                 deslocamentoNaIntencao = deslocamentoAtual
                 offsetNaIntencao = offset
-                withAnimation(MovimentoDoCampo.expandir) { estendido = true; destaque = 1; acento = 1 }
+                withAnimation(FrilaMovimento.animacao(MovimentoDoCampo.expandir, reduzir: reduzirMovimento)) { estendido = true; destaque = 1; acento = 1 }
             } else {
                 posicao = posicaoNoToque - offset / Double(passoDaRoda)
                 return
@@ -334,7 +335,7 @@ struct CampoEmailComDominio: View {
         let intencional = LimiarDaRoda.intencional(deslocamento: deslocamentoAtual, velocidade: Double(velocidade))
         let duracao = intencional ? 0.20 : 0.14
         let bounce = intencional ? 0.02 : 0.02
-        withAnimation(.easeOut(duration: 0.12)) { destaque = 0 }
+        withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.12), reduzir: reduzirMovimento)) { destaque = 0 }
         let velocidadeEmItens = -Double(velocidade / passoDaRoda)
         let projecao = min(0.25, max(-0.25, velocidadeEmItens * 0.04))
         let direcao = deslocamentoAtual < 0 ? 1.0 : -1.0
@@ -345,7 +346,7 @@ struct CampoEmailComDominio: View {
         let cruzou = deslocadoEmItens >= LimiarDaRoda.pontoDeTroca || (rapido && deslocadoEmItens >= 0.2)
         let alvo = intencional ? (projetado == posicaoNoToque ? (cruzou ? posicaoNoToque + direcao : posicaoNoToque) : projetado) : posicaoNoToque
         // Sem troca não há escolha a afirmar: a cor sai já na volta ao item de partida.
-        if alvo == posicaoNoToque { withAnimation(.easeOut(duration: 0.12)) { acento = 0 } }
+        if alvo == posicaoNoToque { withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.12), reduzir: reduzirMovimento)) { acento = 0 } }
         let distancia = alvo - origem
         let velocidadeNormalizada = distancia == 0 ? 0 : velocidadeEmItens / distancia
         let velocidadeInicial = velocidadeNormalizada * distancia
@@ -366,11 +367,11 @@ struct CampoEmailComDominio: View {
             if Int(alvo) != Int(posicaoNoToque.rounded()) {
                 tarefaDeEncaixe = nil
                 confirmar(sugestao: sugestao, posicao: Int(alvo), espera: 200)
-                if transicao == nil { withAnimation(.easeOut(duration: 0.12)) { acento = 0 } }
+                if transicao == nil { withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.12), reduzir: reduzirMovimento)) { acento = 0 } }
             } else {
                 tarefaDeEncaixe = nil
                 restaurarBlocoDoArroba()
-                withAnimation(MovimentoDoCampo.recolher) { estendido = false }
+                withAnimation(FrilaMovimento.animacao(MovimentoDoCampo.recolher, reduzir: reduzirMovimento)) { estendido = false }
             }
         }
     }
@@ -445,13 +446,13 @@ struct CampoEmailComDominio: View {
             guard !Task.isCancelled, transicao?.id == apresentacao.id else { return }
             // O campo se recolhe dentro do dwell, antes de começar a troca de texto.
             // Assim o fill inteiro e o campo nativo final compartilham a mesma origem.
-            withAnimation(MovimentoDoCampo.recolher) { estendido = false }
+            withAnimation(FrilaMovimento.animacao(MovimentoDoCampo.recolher, reduzir: reduzirMovimento)) { estendido = false }
             if apresentacao.espera > 0 {
                 // A cor afirma a escolha no dwell e sai antes da troca, para o fill nascer no tom do texto.
                 let saidaDoAcento = min(100, apresentacao.espera)
                 do { try await Task.sleep(for: .milliseconds(apresentacao.espera - saidaDoAcento)) } catch { return }
                 guard transicao?.id == apresentacao.id else { return }
-                withAnimation(.easeOut(duration: Double(saidaDoAcento) / 1000)) { acento = 0 }
+                withAnimation(FrilaMovimento.animacao(.easeOut(duration: Double(saidaDoAcento) / 1000), reduzir: reduzirMovimento)) { acento = 0 }
                 do { try await Task.sleep(for: .milliseconds(saidaDoAcento)) } catch { return }
             }
             guard transicao?.id == apresentacao.id else { return }
@@ -459,7 +460,7 @@ struct CampoEmailComDominio: View {
             aguardandoCadeia = false
             animarHapticos(da: apresentacao.cadeia, id: apresentacao.id)
             // Relógio uniforme; o cronograma aplica a Bézier de conjunto e a curva de cada bloco.
-            withAnimation(.linear(duration: apresentacao.cadeia.duracao), completionCriteria: .logicallyComplete) {
+            withAnimation(FrilaMovimento.animacao(.linear(duration: apresentacao.cadeia.duracao), reduzir: reduzirMovimento) ?? .linear(duration: 0.01), completionCriteria: .logicallyComplete) {
                 tempoDaCadeia = apresentacao.cadeia.duracao
             } completion: {
                 guard transicao?.id == apresentacao.id else { return }
@@ -1025,14 +1026,6 @@ private struct CampoEmailNativo: UIViewRepresentable {
         func textFieldDidEndEditing(_ textField: UITextField) { relatar(textField) }
         func textFieldDidChangeSelection(_ textField: UITextField) {
             (textField as? CampoComMargens)?.corrigirSelecaoDoToque(origem: "delegate")
-            #if DEBUG
-            if let selecao = textField.selectedTextRange {
-                NSLog("Roda de domínio: seleção %d+%d de %d",
-                      textField.offset(from: textField.beginningOfDocument, to: selecao.start),
-                      textField.offset(from: selecao.start, to: selecao.end),
-                      (textField.text ?? "").count)
-            }
-            #endif
             relatar(textField)
         }
 
@@ -1099,9 +1092,6 @@ private final class CampoComMargens: UITextField {
             guard self.notificacaoAntesDoFim == geracao,
                   self.observadorDePrecisao.curto else { return }
             self.notificacaoAntesDoFim = nil
-            #if DEBUG
-            NSLog("Precisão %.6f g%llu fallback agendado", CACurrentMediaTime(), UInt64(geracao))
-            #endif
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.observadorDePrecisao.geracao == geracao else { return }
                 self.corrigirSelecaoDoToque(origem: "fallback")
@@ -1112,11 +1102,6 @@ private final class CampoComMargens: UITextField {
 
     func corrigirSelecaoDoToque(origem: String) {
         let toque = observadorDePrecisao
-        #if DEBUG
-        NSLog("Precisão %.6f g%llu %@ seleção fim=%d reentrada=%d",
-              CACurrentMediaTime(), UInt64(toque.geracao), origem, toque.fim != nil ? 1 : 0,
-              corrigindoSelecao ? 1 : 0)
-        #endif
         guard !corrigindoSelecao, toque.emCurso || toque.fim != nil else { return }
         if toque.emCurso {
             notificacaoAntesDoFim = toque.geracao
@@ -1134,10 +1119,6 @@ private final class CampoComMargens: UITextField {
         guard let alvo = closestPosition(to: ponto), compare(selecao.start, to: alvo) != .orderedSame else { return }
         corrigindoSelecao = true
         defer { corrigindoSelecao = false }
-        #if DEBUG
-        NSLog("Precisão %.6f g%llu correção %@ %d -> %d", CACurrentMediaTime(), UInt64(toque.geracao), origem,
-              offset(from: beginningOfDocument, to: selecao.start), offset(from: beginningOfDocument, to: alvo))
-        #endif
         selectedTextRange = textRange(from: alvo, to: alvo)
     }
 
@@ -1227,9 +1208,6 @@ private final class ObservadorDeToquePreciso: UIGestureRecognizer {
         deslocamentoMaximo = 0
         let agora = CACurrentMediaTime()
         aoComecar?()
-        #if DEBUG
-        NSLog("Precisão %.6f g%llu began (%.1f,%.1f)", agora, UInt64(geracao), ponto.x, ponto.y)
-        #endif
     }
 
     private func medir(_ toque: UITouch) {
@@ -1247,11 +1225,6 @@ private final class ObservadorDeToquePreciso: UIGestureRecognizer {
         fim = CACurrentMediaTime()
         emCurso = false
         curto = toque.timestamp - inicioTemporal < 0.3 && deslocamentoMaximo < 10
-        #if DEBUG
-        NSLog("Precisão %.6f g%llu ended (%.1f,%.1f) duração=%.3f máximo=%.1f curto=%d",
-              fim!, UInt64(geracao), ponto.x, ponto.y, toque.timestamp - inicioTemporal,
-              deslocamentoMaximo, curto ? 1 : 0)
-        #endif
         aoTerminar?()
         state = .failed
     }
