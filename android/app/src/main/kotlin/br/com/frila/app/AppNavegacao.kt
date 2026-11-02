@@ -52,6 +52,7 @@ import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
 import br.com.frila.feature.turnos.TelaOcorrencia
+import br.com.frila.feature.turnos.TelaTurnoNaoEncontrado
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -71,6 +72,7 @@ object Rotas {
     const val AJUDA = "ajuda"
     const val LICENCAS = "licencas"
     const val VAGA_INDISPONIVEL = "vaga_indisponivel"
+    const val TURNO_NAO_ENCONTRADO = "turno_nao_encontrado"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -217,6 +219,17 @@ fun AppNavegacao(
                     aoVoltarParaFeed = {
                         navController.navigate(Rotas.FEED) {
                             popUpTo(Rotas.FEED) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
+            composable(Rotas.TURNO_NAO_ENCONTRADO) {
+                TelaTurnoNaoEncontrado(
+                    aoVoltar = { navController.popBackStack() },
+                    aoVerMeusTurnos = {
+                        navController.navigate(Rotas.MEUS_TURNOS) {
+                            popUpTo(Rotas.MEUS_TURNOS) { inclusive = true }
                         }
                     },
                 )

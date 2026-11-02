@@ -54,4 +54,9 @@ class AppNavegacaoTest {
     fun `rota de vaga indisponivel existe no contrato de navegacao`() {
         assertEquals("vaga_indisponivel", Rotas.VAGA_INDISPONIVEL)
     }
+
+    @Test
+    fun `rota de turno nao encontrado existe no contrato de navegacao`() {
+        assertEquals("turno_nao_encontrado", Rotas.TURNO_NAO_ENCONTRADO)
+    }
 }
