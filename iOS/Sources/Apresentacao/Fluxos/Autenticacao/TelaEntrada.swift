@@ -60,8 +60,7 @@ public struct TelaEntrada: View {
 
                             CampoEmailComDominio(texto: $viewModel.email, habilitado: !viewModel.carregando, aoEnviar: executarEnvio)
                                 .frame(height: FrilaMetrica.alturaDoCampo)
-                                .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1).allowsHitTesting(false))
+                                .zIndex(1)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: FrilaRaio.entrada)
                                         .strokeBorder(erroLocal != nil ? FrilaCor.perigo : Color.clear, lineWidth: erroLocal != nil ? 2 : 0)
