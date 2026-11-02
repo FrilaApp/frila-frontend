@@ -17,31 +17,31 @@ public final class BloqueiosDaSessao {
 }
 
 @MainActor @Observable
-final class SegurancaViewModel {
-    var motivo: MotivoDenuncia = .assedio
-    var relato = ""
-    private(set) var enviando = false
-    private(set) var bloqueando = false
-    private(set) var protocolo: Protocolo?
-    private(set) var erroDenuncia: String?
-    private(set) var erroBloqueio: String?
-    var bloqueado: Bool { bloqueios.alvos.contains(alvo) }
+public final class SegurancaViewModel {
+    public var motivo: MotivoDenuncia = .assedio
+    public var relato = ""
+    public private(set) var enviando = false
+    public private(set) var bloqueando = false
+    public private(set) var protocolo: Protocolo?
+    public private(set) var erroDenuncia: String?
+    public private(set) var erroBloqueio: String?
+    public var bloqueado: Bool { bloqueios.alvos.contains(alvo) }
     private let alvo: Alvo
     private let turnoID: UUID?
     private let api: any ApiCliente
     private let bloqueios: BloqueiosDaSessao
     private var tentativa: Denuncia?
 
-    init(perfil: PerfilPublico, turnoID: UUID? = nil, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
+    public init(perfil: PerfilPublico, turnoID: UUID? = nil, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
         alvo = Alvo(perfil)
         self.turnoID = turnoID
         self.api = api
         self.bloqueios = bloqueios
     }
 
-    var relatoValido: Bool { relato.trimmingCharacters(in: .whitespacesAndNewlines).count >= 10 }
+    public var relatoValido: Bool { relato.trimmingCharacters(in: .whitespacesAndNewlines).count >= 10 }
 
-    func denunciar() async {
+    public func denunciar() async {
         guard !enviando, protocolo == nil else { return }
         guard relatoValido else { erroDenuncia = TextosDaSeguranca.relatoMinimo; return }
         let texto = relato.trimmingCharacters(in: .whitespacesAndNewlines)

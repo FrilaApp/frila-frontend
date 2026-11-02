@@ -357,6 +357,42 @@ private struct EntradaDoApp: View {
                 }
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_SUPORTE_TURNO") {
                 TelaSuporteTurnoParaTeste()
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_HISTORICO_TURNOS") {
+                NavigationStack { TelaHistoricoDeTurnos(api: api) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_LICENCAS") {
+                NavigationStack { TelaLicencas() }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_POR_QUE_RECEBO_VAGAS") {
+                NavigationStack { TelaPorQueReceboVagas(api: api) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PERFIL_PROFISSIONAL") {
+                NavigationStack { TelaPerfilProfissional(api: api, modo: .edicao) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_EXCLUSAO_CONTA") {
+                NavigationStack { TelaExclusaoDeConta(viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: acaoDeSair)) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_EQUIPE_CONFIANCA") {
+                NavigationStack { TelaEquipeDeConfianca(api: api, estabelecimentoID: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PERFIL_ESTABELECIMENTO") {
+                NavigationStack { TelaPerfilEstabelecimento(api: api, sair: acaoDeSair) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_AJUDA_PERFIL") {
+                NavigationStack { TelaAjudaPerfil(enderecos: .padrao) }
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_EXPLICACAO_PUSH") {
+                TelaExplicacaoDoPush(modelo: permissaoDePush, perfil: .profissional)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_MEU_TURNO_DETALHE") {
+                TelaMeuTurnoParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PRESENCA_TURNO") {
+                TelaPresencaParaTeste(api: api, localizacao: localizacao)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_SECAO_CANDIDATOS") {
+                TelaCandidatosParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_REPUBLICAR_VAGA") {
+                TelaRepublicarVagaParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_AVALIACAO_CONTRATANTE") {
+                TelaAvaliacaoContratanteParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_FOLHA_CANCELAMENTO") {
+                TelaCancelamentoParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_FOLHA_DENUNCIA") {
+                TelaFolhaDenunciaParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PERFIL_PUBLICO_TESTE") {
+                TelaPerfilPublicoParaTeste(api: api)
+            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_DETALHE_LICENCA") {
+                TelaDetalheLicencaParaTeste()
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
                 catalogo
             } else {
@@ -991,6 +1027,342 @@ private struct TelaSuporteTurnoParaTeste: View {
 
     var body: some View {
         FolhaSuporteTurno(viewModel: viewModel)
+    }
+}
+
+private struct TelaMeuTurnoParaTeste: View {
+    let api: any ApiCliente
+    @State private var viewModel: MeuTurnoViewModel?
+
+    init(api: any ApiCliente) {
+        self.api = api
+    }
+
+    var body: some View {
+        Group {
+            if let viewModel {
+                NavigationStack {
+                    TelaMeuTurno(viewModel: viewModel)
+                }
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let agora = Date()
+            let inicio = agora.addingTimeInterval(3600)
+            let fim = agora.addingTimeInterval(5 * 3600)
+            if let periodo = try? Periodo(inicio: inicio, fim: fim) {
+                let vaga = VagaResumo(id: UUID(), funcao: "Garçom", local: "Bar do Lago", regiaoAdministrativa: "Plano Piloto", periodo: periodo, valor: Dinheiro(centavos: 15000))
+                let reputacao = Reputacao(positivas: 10, total: 10, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+                let contraparte = PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bar do Lago", reputacao: reputacao)
+                let contato = Contato(nome: "Gerente Marcos", telefone: "(61) 98888-0000", whatsappURL: URL(string: "https://wa.me/5561988880000")!, visivelAte: fim.addingTimeInterval(86400))
+                let turno = Turno(id: UUID(), posicaoID: UUID(), vaga: vaga, contraparte: contraparte, contatoVisivelAte: fim.addingTimeInterval(86400), verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false, contato: contato)
+                viewModel = MeuTurnoViewModel(turno: turno, api: api)
+            }
+        }
+    }
+}
+
+private struct TelaPresencaParaTeste: View {
+    let api: any ApiCliente
+    let localizacao: any LeitorDeLocalizacao
+    @State private var presencaVM: PresencaDoTurnoViewModel?
+    @State private var meuTurnoVM: MeuTurnoViewModel?
+
+    init(api: any ApiCliente, localizacao: any LeitorDeLocalizacao) {
+        self.api = api
+        self.localizacao = localizacao
+    }
+
+    var body: some View {
+        Group {
+            if let presencaVM {
+                NavigationStack {
+                    ScrollView {
+                        SecaoDePresenca(viewModel: presencaVM, turno: meuTurnoVM)
+                            .padding(FrilaEspaco.medio)
+                    }
+                    .background(FrilaCor.fundo.ignoresSafeArea())
+                    .navigationTitle("Presença")
+                }
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let agora = Date()
+            let inicio = agora.addingTimeInterval(-15 * 60)
+            let fim = agora.addingTimeInterval(4 * 3600)
+            if let periodo = try? Periodo(inicio: inicio, fim: fim) {
+                let vaga = VagaResumo(id: UUID(), funcao: "Garçom", local: "Bar do Lago", regiaoAdministrativa: "Plano Piloto", periodo: periodo, valor: Dinheiro(centavos: 15000))
+                let reputacao = Reputacao(positivas: 10, total: 10, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+                let contraparte = PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bar do Lago", reputacao: reputacao)
+                let turno = Turno(id: UUID(), posicaoID: UUID(), vaga: vaga, contraparte: contraparte, contatoVisivelAte: fim.addingTimeInterval(86400), verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false)
+                let pVM = PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: localizacao)
+                let mVM = MeuTurnoViewModel(turno: turno, api: api, presenca: pVM)
+                presencaVM = pVM
+                meuTurnoVM = mVM
+            }
+        }
+    }
+}
+
+private struct TelaCandidatosParaTeste: View {
+    let api: any ApiCliente
+    @State private var vaga: VagaNoPainel?
+
+    init(api: any ApiCliente) {
+        self.api = api
+    }
+
+    var body: some View {
+        Group {
+            if let vaga {
+                NavigationStack {
+                    ScrollView {
+                        SecaoDeCandidatos(
+                            vaga: vaga,
+                            api: api,
+                            relerVaga: { vaga },
+                            abrirPerfil: { _ in }
+                        )
+                        .padding(FrilaEspaco.medio)
+                    }
+                    .background(FrilaCor.fundo.ignoresSafeArea())
+                    .navigationTitle("Candidatos")
+                }
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let agora = Date()
+            let inicio = agora.addingTimeInterval(72 * 3600)
+            let fim = inicio.addingTimeInterval(4 * 3600)
+            if let periodo = try? Periodo(inicio: inicio, fim: fim) {
+                let resumo = VagaResumo(id: UUID(), funcao: "Garçom", local: "Bar do Lago", regiaoAdministrativa: "Plano Piloto", periodo: periodo, valor: Dinheiro(centavos: 15000))
+                let v = VagaNoPainel(
+                    vaga: resumo,
+                    modo: .selecao,
+                    estado: .publicada,
+                    alertaVagaVazia: false,
+                    candidatosPendentes: 2,
+                    posicoes: [PosicaoNoPainel(id: UUID(), estado: .aberta, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false)]
+                )
+                self.vaga = v
+            }
+        }
+    }
+}
+
+private struct TelaRepublicarVagaParaTeste: View {
+    let api: any ApiCliente
+    @State private var viewModel: RepublicarVagaViewModel?
+
+    init(api: any ApiCliente) {
+        self.api = api
+    }
+
+    var body: some View {
+        Group {
+            if let viewModel {
+                TelaRepublicarVaga(viewModel: viewModel)
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let agora = Date()
+            let inicio = agora.addingTimeInterval(-24 * 3600)
+            let fim = agora.addingTimeInterval(-20 * 3600)
+            if let periodo = try? Periodo(inicio: inicio, fim: fim) {
+                let resumo = VagaResumo(id: UUID(), funcao: "Garçom", local: "Bar do Lago", regiaoAdministrativa: "Plano Piloto", periodo: periodo, valor: Dinheiro(centavos: 15000))
+                let vaga = VagaNoPainel(
+                    vaga: resumo,
+                    modo: .urgencia,
+                    estado: .encerrada,
+                    alertaVagaVazia: false,
+                    candidatosPendentes: 0,
+                    posicoes: []
+                )
+                viewModel = RepublicarVagaViewModel(vagaOriginal: vaga, api: api)
+            }
+        }
+    }
+}
+
+private struct TelaAvaliacaoContratanteParaTeste: View {
+    let api: any ApiCliente
+    @State private var acompanhamento: AcompanhamentoViewModel?
+    @State private var turno: TurnoAcompanhado?
+
+    init(api: any ApiCliente) {
+        self.api = api
+    }
+
+    var body: some View {
+        Group {
+            if let acompanhamento, let turno {
+                NavigationStack {
+                    DestinoAvaliacaoDoContratante(viewModel: acompanhamento, turno: turno, api: api)
+                }
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let casaID = UUID(uuidString: "30000000-0000-0000-0000-000000000001")!
+            let contaID = UUID(uuidString: "10000000-0000-0000-0000-000000000001")!
+            let agora = Date()
+            let vm = AcompanhamentoViewModel(api: api, estabelecimentoID: casaID, agora: { agora }, contaID: contaID)
+            let turnoID = UUID()
+            let posicaoID = UUID()
+            let inicio = agora.addingTimeInterval(-5 * 3600)
+            let fim = agora.addingTimeInterval(-1 * 3600)
+            if let periodo = try? Periodo(inicio: inicio, fim: fim) {
+                let resumo = VagaResumo(id: UUID(), funcao: "Garçom", local: "Bar do Lago", regiaoAdministrativa: "Plano Piloto", periodo: periodo, valor: Dinheiro(centavos: 15000))
+                let reputacao = Reputacao(positivas: 5, total: 5, taxaComparecimento: nil, turnosConsiderados: 5, turnosRealizados: 5)
+                let profissional = PerfilPublico(id: UUID(), tipo: .profissional, nome: "Lucas Silva", reputacao: reputacao)
+                let posicao = PosicaoNoPainel(
+                    id: posicaoID,
+                    estado: .cumprida,
+                    profissional: profissional,
+                    turnoID: turnoID,
+                    verificacao: .verificado,
+                    emAtraso: false
+                )
+                let t = TurnoAcompanhado(vaga: resumo, posicao: posicao)
+                self.turno = t
+                self.acompanhamento = vm
+            }
+        }
+    }
+}
+
+private struct TelaCancelamentoParaTeste: View {
+    let api: any ApiCliente
+    @State private var viewModel: CancelamentoViewModel?
+
+    init(api: any ApiCliente) {
+        self.api = api
+    }
+
+    var body: some View {
+        Group {
+            if let viewModel {
+                FolhaDeCancelamento(viewModel: viewModel, fechar: {})
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let agora = Date()
+            let inicio = agora.addingTimeInterval(3600)
+            let fim = agora.addingTimeInterval(5 * 3600)
+            if let periodo = try? Periodo(inicio: inicio, fim: fim) {
+                viewModel = CancelamentoViewModel(
+                    lado: .profissional,
+                    posicaoID: UUID(),
+                    turnoID: UUID(),
+                    periodo: periodo,
+                    api: api,
+                    relogio: RelogioDoSistema(),
+                    fila: nil,
+                    aoConcluir: { _ in }
+                )
+            }
+        }
+    }
+}
+
+private struct TelaFolhaDenunciaParaTeste: View {
+    let api: any ApiCliente
+    @State private var viewModel: SegurancaViewModel?
+
+    init(api: any ApiCliente) {
+        self.api = api
+    }
+
+    var body: some View {
+        Group {
+            if let viewModel {
+                FolhaDeDenuncia(model: viewModel)
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let reputacao = Reputacao(positivas: 10, total: 10, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+            let perfil = PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bar do Lago", reputacao: reputacao)
+            viewModel = SegurancaViewModel(
+                perfil: perfil,
+                turnoID: UUID(),
+                api: api,
+                bloqueios: BloqueiosDaSessao()
+            )
+        }
+    }
+}
+
+private struct TelaPerfilPublicoParaTeste: View {
+    let api: any ApiCliente
+    let bloqueios: BloqueiosDaSessao
+    @State private var perfil: PerfilPublico?
+
+    init(api: any ApiCliente) {
+        self.api = api
+        self.bloqueios = BloqueiosDaSessao()
+    }
+
+    var body: some View {
+        Group {
+            if let perfil {
+                NavigationStack {
+                    TelaPerfilPublico(perfil: perfil, api: api, bloqueios: bloqueios)
+                }
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            let id = UUID(uuidString: "80000000-0000-0000-0000-000000000001")!
+            let reputacao = Reputacao(positivas: 7, total: 7, taxaComparecimento: 1.0, turnosConsiderados: 7, turnosRealizados: 7)
+            let p = PerfilPublico(id: id, tipo: .profissional, nome: "Ana Cunha", funcoes: ["Garçom"], reputacao: reputacao)
+            self.perfil = p
+        }
+    }
+}
+
+private struct TelaDetalheLicencaParaTeste: View {
+    @State private var licenca: LicencaDePacote?
+
+    var body: some View {
+        Group {
+            if let licenca {
+                NavigationStack {
+                    TelaDetalheDaLicenca(licenca)
+                }
+            } else {
+                EstadoCarregando()
+            }
+        }
+        .task {
+            if let carregadas = try? Licencas.carregar(), let primeira = carregadas.first {
+                licenca = primeira
+            } else {
+                licenca = LicencaDePacote(
+                    id: "exemplo",
+                    nome: "Frila Framework",
+                    versao: "1.0.0",
+                    revisao: "abc1234",
+                    url: URL(string: "https://github.com/FrilaApp")!,
+                    tipo: "Apache-2.0",
+                    texto: "Apache License Version 2.0, January 2004 http://www.apache.org/licenses/",
+                    aviso: "Copyright 2026 Frila"
+                )
+            }
+        }
     }
 }
 #endif
