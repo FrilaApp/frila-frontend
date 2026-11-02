@@ -327,9 +327,9 @@ public struct TelaPerfilProfissional: View {
                 .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityAddTraits(.isHeader)
 
-            if viewModel.disponibilidades.isEmpty {
-                AvisoFrila("**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois.", tom: .informativo)
-            } else {
+            // Sem horários ainda não é um problema a anunciar: o formulário abaixo já convida a adicionar, e o
+            // aviso fixo no fim da tela diz como os horários entram nas vagas recebidas.
+            if !viewModel.disponibilidades.isEmpty {
                 cartaoListaHorarios
             }
 

@@ -9548,16 +9548,6 @@
         }
       }
     },
-    "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois."
-          }
-        }
-      }
-    },
     "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista.": {
       "localizations": {
         "pt-BR": {
