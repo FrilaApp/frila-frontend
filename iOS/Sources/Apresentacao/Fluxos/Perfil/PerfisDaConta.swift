@@ -251,7 +251,7 @@ public struct TelaMeuPerfilProfissional: View {
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
         .sensoryFeedback(.success, trigger: copiaDeContato.copias)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.35), trigger: copiaDeContato.aberturas)
-        .sensoryFeedback(.impact(weight: .medium, intensity: 0.7), trigger: copiaDeContato.travas)
+        .sensoryFeedback(.alignment, trigger: copiaDeContato.travas)
         .onDisappear { copiaDeContato.limpar() }
     }
 

@@ -45,9 +45,15 @@ public enum FrilaMotion {
     // MARK: - Cópia de contato (tip e pílula de deslizar)
 
     public static let copyTipHold: Double = 1.4
+    /// Tempo da pílula com "Copiado" antes de sumir.
+    public static let copyPillHold: Double = 1.8
+    /// Espera para o nó assentar sobre "Copiar" antes de escurecer e receber o rótulo.
+    public static let copySettleDelay: Double = 0.22
     public static let copyHapticInterval: Double = 0.15
     public static let copyLongPress: Double = 0.45
     public static let copyPillOpen: Animation = .timingCurve(0.22, 1, 0.36, 1, duration: 0.24)
+    /// Cancelamento: a lente recua e a pílula se retrai até o valor, rápido e com leve vida.
+    public static let copyCancelSpring: Animation = .spring(duration: 0.22, bounce: 0.1)
     public static let copyPillClose: Animation = .timingCurve(0.4, 0, 1, 1, duration: 0.16)
     /// Atração do nó para "Copiar" e a troca de lente para bolha, com leve excesso.
     public static let copyLatchSpring: Animation = .spring(duration: 0.26, bounce: 0.18)

@@ -34,10 +34,10 @@ final class ContatoCopiavelUITests: XCTestCase {
         valor.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(
             forDuration: 0.7,
             thenDragTo: direitaDaTela(app, naAlturaDe: valor),
-            withVelocity: .slow,
-            thenHoldForDuration: 0.2
+            withVelocity: XCUIGestureVelocity(rawValue: 80),
+            thenHoldForDuration: 1.2
         )
-        XCTAssertTrue(app.staticTexts["perfil-telefone-copiado"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["perfil-telefone-copiado"].waitForExistence(timeout: 10))
     }
 
     func testSegurarESoltarNaoCopia() {

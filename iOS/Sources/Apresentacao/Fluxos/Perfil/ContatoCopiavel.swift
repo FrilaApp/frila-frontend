@@ -41,7 +41,7 @@ final class CopiaDeContato {
         guard escreverValor(valor, agora: agora) else { return fechar() }
         tarefaDeFechamento?.cancel()
         tarefaDeFechamento = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(FrilaMotion.copyTipHold))
+            try? await Task.sleep(for: .seconds(FrilaMotion.copyPillHold))
             guard !Task.isCancelled else { return }
             self?.pilulaAberta = nil
         }
@@ -132,6 +132,9 @@ struct ContatoCopiavel: View {
     @State private var aberta = false
     @State private var posicao: CGFloat = 0
     @State private var ganho: CGFloat = 1
+    @State private var assentado = false
+    @State private var recuando = false
+    @State private var tarefaDeAssentamento: Task<Void, Never>?
     @State private var folgaDoDedo: CGFloat = 0
     @State private var larguraDaLinha: CGFloat = 0
     @State private var larguraDoValor: CGFloat = 0
@@ -146,6 +149,7 @@ struct ContatoCopiavel: View {
     private static let folgaDoRotulo: CGFloat = 14
     private static let larguraDaLente: CGFloat = 104
     private static let alturaDaLente: CGFloat = 46
+    private static let cursoDaDissolucao: CGFloat = 36
 
     private var alturaDoNo: CGFloat { Self.alturaDaPilula - 2 * Self.recuoDoNo }
     private var bolhaCopiar: CGFloat { larguraDeCopiar + 2 * Self.folgaDoRotulo }
@@ -176,7 +180,8 @@ struct ContatoCopiavel: View {
                         aoTocar: { copia.copiar(campo, valor: valor) },
                         aoSegurar: segurar,
                         aoMover: mover,
-                        aoSoltar: soltar
+                        aoSoltar: soltar,
+                        aoInterromper: interromper
                     )
                     .accessibilityHidden(true)
                 }
@@ -244,65 +249,64 @@ struct ContatoCopiavel: View {
 
     private var pilula: some View {
         ZStack(alignment: .leading) {
-            Capsule()
-                .fill(FrilaCor.superficieDoCampo)
-                .elevacaoFrila(.sutil)
-            // Parado, o nó é um preenchimento atrás do valor, que fica nítido. O vidro só entra ao andar.
-            Capsule()
-                .fill(FrilaCor.controle)
-                .frame(width: larguraInicialDoNo, height: alturaDoNo)
-                .offset(x: Self.recuoDoNo)
-                .opacity(fase == .arrastando && !noEmMovimento ? 1 : 0)
+            SombraDaPilula()
             // Conteúdo fica sob o nó: é ele que o vidro refrata ao passar.
-            Text(verbatim: valor)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(width: valorVisivel, alignment: .leading)
-                .padding(.leading, Self.excessoEsquerdo)
+            textoDoValor
             Text(verbatim: TextosPerfilConta.copiar)
                 .font(FrilaTipo.corpo)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.trailing, Self.recuoDoNo + Self.folgaDoRotulo)
+                .opacity(recuando ? 0 : 1)
             no
+            capaDoNo
         }
-        .frame(width: larguraDaPilula, height: Self.alturaDaPilula)
+        .frame(width: recuando ? larguraInicialDoNo + 2 * Self.recuoDoNo : larguraDaPilula, height: Self.alturaDaPilula)
         .opacity(aberta ? 1 : 0)
         .scaleEffect(aberta ? 1 : 0.97, anchor: .leading)
         .offset(x: -Self.excessoEsquerdo)
         .accessibilityHidden(fase != .copiado)
     }
 
-    /// Nó: nasce do tamanho do valor, vira lente ao andar e, travado, vira a bolha escura de "Copiar".
-    private var no: some View {
-        let avanco = min(posicao / max(curso * 0.25, 1), 1)
-        let escuro = fase == .travado || fase == .copiado
-        let largura: CGFloat
-        let altura: CGFloat
-        let centro: CGFloat
+    private var textoDoValor: some View {
+        Text(verbatim: valor)
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .frame(width: valorVisivel, alignment: .leading)
+            .padding(.leading, Self.excessoEsquerdo)
+    }
+
+    /// Geometria do nó em cada fase. Andando, tudo deriva da posição do dedo, sem saltos.
+    private var geometriaDoNo: (largura: CGFloat, altura: CGFloat, centro: CGFloat) {
         switch fase {
         case .travado:
-            (largura, altura, centro) = (bolhaCopiar, alturaDoNo, centroFinal)
+            return (bolhaCopiar, alturaDoNo, centroFinal)
         case .copiado:
-            (largura, altura, centro) = (bolhaCopiado, alturaDoNo, larguraDaPilula - Self.recuoDoNo - bolhaCopiado / 2)
+            return (assentado ? bolhaCopiado : bolhaCopiar, alturaDoNo,
+                    larguraDaPilula - Self.recuoDoNo - (assentado ? bolhaCopiado : bolhaCopiar) / 2)
         case .repouso, .arrastando:
+            let avanco = min(posicao / max(curso * 0.25, 1), 1)
             let lente = min(Self.larguraDaLente, larguraInicialDoNo)
-            let lado = larguraInicialDoNo + (lente - larguraInicialDoNo) * avanco
-            // O centro parte do centro do valor e usa a posição atraída pelo destino.
-            (largura, altura, centro) = (
-                lado,
+            return (
+                larguraInicialDoNo + (lente - larguraInicialDoNo) * avanco,
                 alturaDoNo + (Self.alturaDaLente - alturaDoNo) * avanco,
                 centroInicial + posicaoAtraida
             )
         }
+    }
+
+    /// Nó: o vidro está sempre presente, então nunca há troca brusca de material. Depois de assentar
+    /// em "Copiar", escurece por cima do vidro e recebe o rótulo.
+    private var no: some View {
+        let g = geometriaDoNo
         return ZStack {
-            Capsule().fill(FrilaCor.texto).opacity(escuro ? 1 : 0)
+            Capsule().fill(FrilaCor.texto).opacity(assentado ? 1 : 0)
             ZStack {
-                if fase == .travado {
+                if assentado, fase == .travado {
                     TextoRolante(texto: TextosPerfilConta.copiar, identificador: nil)
-                } else if fase == .copiado {
+                } else if assentado, fase == .copiado {
                     TextoRolante(texto: TextosPerfilConta.copiado, identificador: "\(id)-copiado")
                 }
             }
@@ -310,12 +314,26 @@ struct ContatoCopiavel: View {
             .foregroundStyle(FrilaCor.fundo)
         }
         .clipShape(Capsule())
-        .frame(width: largura, height: altura)
-        .modifier(LenteDeVidro(ativa: !escuro && noEmMovimento))
-        .offset(x: centro - largura / 2)
+        .frame(width: g.largura, height: g.altura)
+        .modifier(LenteDeVidro())
+        .offset(x: g.centro - g.largura / 2)
     }
 
-    private var noEmMovimento: Bool { posicao > 2 }
+    /// Parado, o nó é cinza sólido com o valor nítido. Esta capa cobre o vidro e se dissolve conforme
+    /// o dedo anda, e é isso que faz a passagem para a lente ser contínua.
+    private var capaDoNo: some View {
+        let g = geometriaDoNo
+        let visibilidade = fase == .arrastando ? max(1 - posicao / Self.cursoDaDissolucao, 0) : 0
+        return ZStack(alignment: .leading) {
+            Capsule()
+                .fill(FrilaCor.superficieDoCampo)
+                .overlay(Capsule().fill(FrilaCor.texto.opacity(0.12)))
+                .frame(width: g.largura, height: g.altura)
+                .offset(x: g.centro - g.largura / 2)
+            textoDoValor
+        }
+        .opacity(visibilidade)
+    }
 
     /// Conforme chega perto de "Copiar", o nó é puxado para o destino, antes mesmo da trava.
     private var posicaoAtraida: CGFloat {
@@ -331,6 +349,9 @@ struct ContatoCopiavel: View {
     private func segurar(folga: CGFloat) {
         folgaDoDedo = folga
         posicao = 0
+        assentado = false
+        recuando = false
+        tarefaDeAssentamento?.cancel()
         fase = .arrastando
         copia.abrir(campo)
         // Segurar longe da margem deixa pouco espaço: o ganho garante que o curso sempre caiba.
@@ -349,9 +370,24 @@ struct ContatoCopiavel: View {
             withAnimation(FrilaMovimento.animacao(FrilaMotion.copyLatchSpring, reduzir: reduzirMovimento)) {
                 fase = .travado
             }
+            assentarDepois { fase == .travado }
         } else if fase == .travado, distancia > raioDeCaptura + 20 {
+            tarefaDeAssentamento?.cancel()
             withAnimation(FrilaMovimento.animacao(FrilaMotion.copyLatchSpring, reduzir: reduzirMovimento)) {
                 fase = .arrastando
+                assentado = false
+            }
+        }
+    }
+
+    /// O nó primeiro assenta sobre "Copiar"; só então escurece e o rótulo entra.
+    private func assentarDepois(_ aindaValido: @escaping () -> Bool) {
+        tarefaDeAssentamento?.cancel()
+        tarefaDeAssentamento = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(FrilaMotion.copySettleDelay))
+            guard !Task.isCancelled, aindaValido() else { return }
+            withAnimation(FrilaMovimento.animacao(FrilaMotion.copyTextRoll, reduzir: reduzirMovimento)) {
+                assentado = true
             }
         }
     }
@@ -359,11 +395,34 @@ struct ContatoCopiavel: View {
     private func soltar() {
         guard aberta else { return }
         if fase == .travado {
+            // Copia já no soltar. Se ainda não assentou, a troca visual espera a tarefa em curso.
             withAnimation(FrilaMovimento.animacao(FrilaMotion.copyTextRoll, reduzir: reduzirMovimento)) {
                 fase = .copiado
             }
+            if !assentado { assentarDepois { fase == .copiado } }
             copia.concluirDeslize(campo, valor: valor)
         } else if fase == .arrastando {
+            cancelar()
+        }
+    }
+
+    /// O sistema interrompeu o gesto: só soltar é intenção de copiar, mesmo com o nó travado.
+    private func interromper() {
+        guard aberta, fase == .arrastando || fase == .travado else { return }
+        tarefaDeAssentamento?.cancel()
+        if fase == .travado {
+            assentado = false
+            fase = .arrastando
+        }
+        cancelar()
+    }
+
+    /// Soltar antes da trava: a lente volta para o valor enquanto a pílula se retrai até ele, e some.
+    private func cancelar() {
+        withAnimation(FrilaMovimento.animacao(FrilaMotion.copyCancelSpring, reduzir: reduzirMovimento), completionCriteria: .logicallyComplete) {
+            posicao = 0
+            recuando = true
+        } completion: {
             copia.fechar()
         }
     }
@@ -375,19 +434,39 @@ struct ContatoCopiavel: View {
             guard !aberta else { return }
             fase = .repouso
             posicao = 0
+            assentado = false
+            recuando = false
         }
     }
 }
 
-/// Vidro nativo no nó enquanto ele é lente. Abaixo do iOS 26, um véu neutro faz o mesmo papel.
+/// Vidro nativo do nó. Abaixo do iOS 26, um véu neutro faz o mesmo papel.
 private struct LenteDeVidro: ViewModifier {
-    let ativa: Bool
-
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
-            content.glassEffect(ativa ? .clear.tint(FrilaCor.texto.opacity(0.10)) : .identity, in: Capsule())
+            content.glassEffect(.clear.tint(FrilaCor.texto.opacity(0.10)), in: Capsule())
         } else {
-            content.background(FrilaCor.texto.opacity(ativa ? 0.10 : 0), in: Capsule())
+            content.background(FrilaCor.texto.opacity(0.10), in: Capsule())
+        }
+    }
+}
+
+/// Superfície da pílula com sombra em camadas: fio fino mais cinco degraus que dobram de distância,
+/// neutros, para a pílula se destacar da tela durante o toque longo.
+private struct SombraDaPilula: View {
+    @Environment(\.colorScheme) private var esquema
+
+    var body: some View {
+        ZStack {
+            ForEach([1.0, 3.0, 6.0, 12.0, 24.0], id: \.self) { y in
+                Capsule()
+                    .fill(FrilaCor.superficieDoCampo)
+                    .shadow(color: .black.opacity(esquema == .dark ? 0.24 : 0.07), radius: y / 2, y: y)
+            }
+            Capsule()
+                .fill(FrilaCor.superficieDoCampo)
+            Capsule()
+                .strokeBorder(esquema == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.06), lineWidth: 1)
         }
     }
 }
@@ -399,6 +478,7 @@ private struct ReconhecedorDeContato: UIViewRepresentable {
     let aoSegurar: (CGFloat) -> Void
     let aoMover: (CGFloat) -> Void
     let aoSoltar: () -> Void
+    let aoInterromper: () -> Void
 
     func makeCoordinator() -> Coordenador { Coordenador(self) }
 
@@ -437,8 +517,10 @@ private struct ReconhecedorDeContato: UIViewRepresentable {
                 ponte.aoSegurar((janela?.bounds.width ?? x) - x - FrilaEspaco.medio)
             case .changed:
                 ponte.aoMover(x - inicio)
-            case .ended, .cancelled, .failed:
+            case .ended:
                 ponte.aoSoltar()
+            case .cancelled, .failed:
+                ponte.aoInterromper()
             default:
                 break
             }
