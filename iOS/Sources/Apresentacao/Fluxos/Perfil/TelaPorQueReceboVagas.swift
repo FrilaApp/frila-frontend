@@ -8,6 +8,7 @@ public struct TelaPorQueReceboVagas: View {
     /// perfil, e o view model criado no `init` tem de sobreviver a isso para a carga da `.task`
     /// chegar à tela.
     @State private var viewModel: PorQueReceboVagasViewModel
+    @FocusState private var focoNoRelato: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(viewModel: PorQueReceboVagasViewModel) {
@@ -32,6 +33,8 @@ public struct TelaPorQueReceboVagas: View {
             }
             .padding(FrilaEspaco.medio)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .frilaKeyboardDismissScope()
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosPerfilConta.porQueRecebo))
         .navigationBarTitleDisplayMode(.inline)
@@ -181,6 +184,8 @@ public struct TelaPorQueReceboVagas: View {
             .padding(FrilaEspaco.medio)
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+            .focused($focoNoRelato)
+            .frilaFormField(id: "despacho-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
             .accessibilityIdentifier("campo-relato-despacho")
 
             HStack {

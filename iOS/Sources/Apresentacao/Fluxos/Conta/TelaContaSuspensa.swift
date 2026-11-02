@@ -6,6 +6,7 @@ public struct TelaContaSuspensa: View {
     @State private var mostrarConfirmacaoDeSaida = false
     @Bindable private var viewModel: ContaSuspensaViewModel
     @State private var exportarModel: ExportarDadosViewModel
+    @FocusState private var focoNoRelato: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let api: any ApiCliente
 
@@ -17,6 +18,7 @@ public struct TelaContaSuspensa: View {
 
     public var body: some View {
         conteudoDaTela
+            .frilaKeyboardDismissScope()
             .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
     }
 
@@ -32,6 +34,7 @@ public struct TelaContaSuspensa: View {
                 }
                 .padding(FrilaEspaco.medio)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosContaSuspensa.titulo))
             .navigationBarTitleDisplayMode(.large)
@@ -201,6 +204,8 @@ public struct TelaContaSuspensa: View {
             .font(FrilaTipo.valorDoCampo)
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+            .focused($focoNoRelato)
+            .frilaFormField(id: "contestacao-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
             .accessibilityIdentifier("campo-relato-contestacao")
 
             HStack {

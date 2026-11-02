@@ -44,6 +44,17 @@ class AppDeepLinkNavegacaoTest {
         assertTrue(destino(Rotas.MEUS_TURNOS, DeepLinks.MEUS_TURNOS).hasDeepLink(intent.data!!))
     }
 
+    @Test
+    fun `intent de turno do aviso resolve MainActivity e corresponde ao destino do turno com id`() {
+        val intent = intentPara("frila://meus_turnos/turno-999")
+
+        assertEquals(
+            ComponentName(contexto, MainActivity::class.java),
+            intent.resolveActivity(contexto.packageManager),
+        )
+        assertTrue(destino(Rotas.TURNO_AVISO, DeepLinks.TURNO_AVISO).hasDeepLink(intent.data!!))
+    }
+
     private fun intentPara(uri: String): Intent =
         Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage(contexto.packageName).also {
             assertNotNull(it.resolveActivity(contexto.packageManager))
