@@ -10,16 +10,18 @@ final class SaidaDaContaUITests: XCTestCase {
     func testCancelarSaidaMantemContaEConfirmarVoltaAoLogin() {
         let app = abrir("success")
         tocar(app.tabBars.buttons["Conta"])
-        let email = app.descendants(matching: .any)["perfil-email-valor"]
+        let email = app.buttons["perfil-email-copiar"]
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
-        let emailAntes = email.label
+        let emailAntes = email.value as? String
+        abrirSairOuExcluir(app)
         conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional")
-        XCTAssertTrue(app.navigationBars["Meu perfil"].exists)
-        app.swipeDown()
-        XCTAssertEqual(email.label, emailAntes)
+        XCTAssertTrue(app.navigationBars["Sair ou excluir conta"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertEqual(email.value as? String, emailAntes)
         XCTAssertFalse(app.textFields["entrada-email"].exists)
 
-        rolarAte(app.buttons["perfil-sair"], app: app)
+        abrirSairOuExcluir(app)
         tocar(app.buttons["perfil-sair"])
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
@@ -46,8 +48,9 @@ final class SaidaDaContaUITests: XCTestCase {
     func testCancelarSaidaDoPerfilEmAX4() {
         let app = abrir("success", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
         tocar(app.tabBars.buttons["Conta"])
+        abrirSairOuExcluir(app)
         conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional-ax4")
-        XCTAssertTrue(app.navigationBars["Meu perfil"].exists)
+        XCTAssertTrue(app.navigationBars["Sair ou excluir conta"].exists)
     }
 
     func testCancelarSaidaDaCriacaoDoPerfil() {
@@ -134,6 +137,14 @@ final class SaidaDaContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"] + argumentos
         app.launch()
         return app
+    }
+
+    /// Sair e Excluir conta ficam um passo adiante da raiz da Conta, na tela "Sair ou excluir conta".
+    private func abrirSairOuExcluir(_ app: XCUIApplication) {
+        let caminho = app.buttons["perfil-sair-ou-excluir"]
+        rolarAte(caminho, app: app)
+        tocar(caminho)
+        XCTAssertTrue(app.buttons["perfil-sair"].waitForExistence(timeout: Espera.aparecer))
     }
 
     private func conferirCancelamento(_ app: XCUIApplication, botao: XCUIElement, nome: String) {
