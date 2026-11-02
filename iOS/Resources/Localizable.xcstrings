@@ -1,26 +1,6 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
-    "Copiar telefone": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copiar telefone"
-          }
-        }
-      }
-    },
-    "Copiar e-mail": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copiar e-mail"
-          }
-        }
-      }
-    },
     "Conta e dados": {
       "localizations": {
         "pt-BR": {

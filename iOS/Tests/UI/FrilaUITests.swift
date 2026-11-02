@@ -10,15 +10,15 @@ final class SaidaDaContaUITests: XCTestCase {
     func testCancelarSaidaMantemContaEConfirmarVoltaAoLogin() {
         let app = abrir("success")
         tocar(app.tabBars.buttons["Conta"])
-        let email = app.buttons["perfil-email-copiar"]
+        let email = app.descendants(matching: .any)["perfil-email-valor"]
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
-        let emailAntes = email.value as? String
+        let emailAntes = email.label
         abrirSairOuExcluir(app)
         conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional")
         XCTAssertTrue(app.navigationBars["Sair ou excluir conta"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertEqual(email.value as? String, emailAntes)
+        XCTAssertEqual(email.label, emailAntes)
         XCTAssertFalse(app.textFields["entrada-email"].exists)
 
         abrirSairOuExcluir(app)

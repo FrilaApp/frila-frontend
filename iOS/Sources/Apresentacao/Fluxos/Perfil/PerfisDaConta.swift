@@ -1,7 +1,6 @@
 import FrilaDominio
 import Observation
 import SwiftUI
-import UIKit
 
 enum TextosPerfilConta {
     static let meuPerfil = String(localized: "Meu perfil", bundle: bundleApresentacao)
@@ -21,8 +20,6 @@ enum TextosPerfilConta {
     static let exportar = String(localized: "Exportar meus dados", bundle: bundleApresentacao)
     static let excluir = String(localized: "Excluir conta", bundle: bundleApresentacao)
     static let sair = String(localized: "Sair", bundle: bundleApresentacao)
-    static let copiarTelefone = String(localized: "Copiar telefone", bundle: bundleApresentacao)
-    static let copiarEmail = String(localized: "Copiar e-mail", bundle: bundleApresentacao)
     static let contaEDados = String(localized: "Conta e dados", bundle: bundleApresentacao)
     static let sairOuExcluir = String(localized: "Sair ou excluir conta", bundle: bundleApresentacao)
     static let explicacaoSair = String(localized: "Encerra a sessão neste aparelho. Você pode entrar de novo quando quiser.", bundle: bundleApresentacao)
@@ -167,7 +164,28 @@ struct BotaoDeExclusaoDeConta: View {
     }
 }
 
-private enum CampoDeContato: Hashable { case telefone, email }
+/// Superfície única de um grupo da Conta: fundo de superfície, raio de cartão e fio de contorno, sem sombra.
+/// As linhas de dentro seguem independentes; o container não é um botão.
+private struct ContainerDaConta<Conteudo: View>: View {
+    private let conteudo: Conteudo
+
+    init(@ViewBuilder conteudo: () -> Conteudo) {
+        self.conteudo = conteudo()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            conteudo
+        }
+        .padding(.horizontal, FrilaEspaco.medio)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+                .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
+        )
+    }
+}
 
 /// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
 public struct TelaMeuPerfilProfissional: View {
@@ -179,10 +197,6 @@ public struct TelaMeuPerfilProfissional: View {
     public let enderecos: EnderecosOficiais
     @State private var mostrarExplicacao = false
     @State private var mostrarAjuda = false
-    @State private var campoCopiado: CampoDeContato?
-    @State private var copias = 0
-    @State private var tarefaDeConfirmacao: Task<Void, Never>?
-    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
         self.api = api
@@ -232,11 +246,6 @@ public struct TelaMeuPerfilProfissional: View {
         .task { await model.carregar() }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
-        .sensoryFeedback(.success, trigger: copias)
-        .onDisappear {
-            tarefaDeConfirmacao?.cancel()
-            campoCopiado = nil
-        }
     }
 
     /// Seção que reúne dados e conta. Sair e Excluir conta ficam um passo adiante, de propósito: ações
@@ -247,16 +256,19 @@ public struct TelaMeuPerfilProfissional: View {
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
-            if perfilCarregado {
-                ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
+            ContainerDaConta {
+                if perfilCarregado {
+                    ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
+                    DivisoriaDeLinha()
+                }
+                NavigationLink {
+                    TelaSairOuExcluirConta(api: api, sair: sair)
+                } label: {
+                    RotuloDeLinha(TextosPerfilConta.sairOuExcluir)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-sair-ou-excluir")
             }
-            NavigationLink {
-                TelaSairOuExcluirConta(api: api, sair: sair)
-            } label: {
-                RotuloDeLinha(TextosPerfilConta.sairOuExcluir)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("perfil-sair-ou-excluir")
         }
     }
 
@@ -267,74 +279,25 @@ public struct TelaMeuPerfilProfissional: View {
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            contato(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", campo: .telefone)
-            contato(TextosPerfilConta.email, conta.email, id: "perfil-email", campo: .email)
+            contato(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone")
+            contato(TextosPerfilConta.email, conta.email, id: "perfil-email")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func rotuloDoContato(_ titulo: String, id: String) -> some View {
-        Text(verbatim: titulo)
-            .font(FrilaTipo.nota)
-            .foregroundStyle(FrilaCor.textoSecundario)
-            .accessibilityIdentifier("\(id)-rotulo")
-    }
-
-    /// Par rótulo e valor. Com valor, um toque copia o que está exibido e o glifo confirma por 1,4 s.
-    private func contato(_ titulo: String, _ valor: String, id: String, campo: CampoDeContato) -> some View {
-        Group {
-            if valor.isEmpty {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    rotuloDoContato(titulo, id: id)
-                    Text(verbatim: TextosPerfilConta.naoInformado)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .accessibilityIdentifier("\(id)-valor")
-                }
-            } else {
-                Button { copiar(campo, valor) } label: {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        rotuloDoContato(titulo, id: id)
-                        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
-                            Text(verbatim: valor)
-                                .font(FrilaTipo.corpo)
-                                .foregroundStyle(FrilaCor.texto)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityIdentifier("\(id)-valor")
-                            Image(systemName: campoCopiado == campo ? "checkmark" : "doc.on.doc")
-                                .font(FrilaTipo.nota.weight(.semibold))
-                                .foregroundStyle(campoCopiado == campo ? FrilaCor.sucesso : FrilaCor.textoSecundario)
-                                .contentTransition(.symbolEffect(.replace))
-                                .accessibilityHidden(true)
-                            Spacer(minLength: 0)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(EstiloDeCopia())
-                .accessibilityLabel(Text(verbatim: campo == .telefone ? TextosPerfilConta.copiarTelefone : TextosPerfilConta.copiarEmail))
-                .accessibilityValue(Text(verbatim: valor))
-                .accessibilityIdentifier("\(id)-copiar")
-            }
+    private func contato(_ titulo: String, _ valor: String, id: String) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityIdentifier("\(id)-rotulo")
+            Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityIdentifier("\(id)-valor")
         }
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func copiar(_ campo: CampoDeContato, _ valor: String) {
-        UIPasteboard.general.string = valor
-        copias += 1
-        withAnimation(FrilaMovimento.animacao(FrilaMotion.tactileSpring, reduzir: reduzirMovimento)) {
-            campoCopiado = campo
-        }
-        tarefaDeConfirmacao?.cancel()
-        tarefaDeConfirmacao = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.4))
-            guard !Task.isCancelled else { return }
-            withAnimation(FrilaMovimento.animacao(FrilaMotion.tactileSpring, reduzir: reduzirMovimento)) {
-                campoCopiado = nil
-            }
-        }
     }
 
     private var historico: some View {
@@ -342,19 +305,24 @@ public struct TelaMeuPerfilProfissional: View {
             Text("Seu histórico", bundle: bundleApresentacao)
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
-            if let reputacao = model.perfilPublico?.reputacao {
-                SeloReputacao(reputacao)
+                .accessibilityAddTraits(.isHeader)
+            ContainerDaConta {
+                if let reputacao = model.perfilPublico?.reputacao {
+                    SeloReputacao(reputacao)
+                        .padding(.vertical, FrilaEspaco.medio)
+                    DivisoriaDeLinha()
+                }
+                NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
+                    RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-historico-turnos")
             }
-            NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
-                RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("perfil-historico-turnos")
         }
     }
 
     private func configuracao(_ perfil: PerfilProfissional) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        ContainerDaConta {
             NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     HStack(spacing: FrilaEspaco.pequeno) {
@@ -382,12 +350,14 @@ public struct TelaMeuPerfilProfissional: View {
                     }
                     .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.vertical, FrilaEspaco.minimo)
+                .padding(.vertical, FrilaEspaco.medio)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("perfil-funcoes-horarios")
+
+            DivisoriaDeLinha()
 
             Button { mostrarExplicacao = true } label: {
                 RotuloDeLinha(TextosPerfilConta.porQueRecebo)
@@ -417,14 +387,6 @@ public struct TelaMeuPerfilProfissional: View {
     }
 }
 
-private struct EstiloDeCopia: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.55 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
 /// Passo adicional entre a Conta e as ações irreversíveis. Cada ação diz o que faz antes do toque;
 /// a confirmação de saída e o fluxo de exclusão seguem como estavam.
 struct TelaSairOuExcluirConta: View {
@@ -440,7 +402,7 @@ struct TelaSairOuExcluirConta: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.enorme) {
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                VStack(alignment: .leading, spacing: 0) {
                     Button { mostrarConfirmacaoDeSaida = true } label: {
                         RotuloDeLinha(TextosPerfilConta.sair)
                     }
@@ -452,7 +414,7 @@ struct TelaSairOuExcluirConta: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                VStack(alignment: .leading, spacing: 0) {
                     NavigationLink {
                         TelaExclusaoDeConta(
                             viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: sair)
