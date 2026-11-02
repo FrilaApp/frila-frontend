@@ -9,6 +9,7 @@ import br.com.frila.core.rede.ClienteSupabase
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.isSuccess
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -34,6 +35,9 @@ suspend fun consultarConfiguracaoDoApp(
 ): ConfiguracaoDoAppDto {
     val resposta = cliente.http.get(cliente.urlRpc("configuracao_do_app")) {
         parameter("plataforma", "android")
+    }
+    if (!resposta.status.isSuccess()) {
+        throw IllegalStateException("Falha ao consultar configuracao do app: ${resposta.status}")
     }
     val json = Json.parseToJsonElement(resposta.bodyAsText()).jsonObject
     return ConfiguracaoDoAppDto(
