@@ -23,11 +23,11 @@ Depois dela, `CancelamentoDoProfissionalUITests` (3,0 min) passou para a parte 1
 Em 02/11/2026 (Cartão 344), após análise detalhada dos tempos por passo em execuções recentes com e sem builds de Release:
 - **Run 41306878893 (com Release):** Parte 1 somou 84,3 min (79,3 min testes); Parte 2 somou 81,7 min (15,7 min Release + 61,2 min testes).
 - **Run 41285173133 (com Release):** Parte 1 somou 88,0 min (83,4 min testes); Parte 2 somou 90,7 min (19,8 min Release + 65,2 min testes).
-- **Run 41322412132 (sem Release, diff em Docs):** Parte 1 somou 97,6 min (84,1 min testes, com `AcessibilidadeDoCatalogoUITests` atingindo 30,7 min); Parte 2 somou 85,6 min (Release pulado + 43,0 min testes).
+- **Run 41322412132 (PR #636, com Release):** Parte 1 somou 97,6 min (91,3 min step de testes, com `AcessibilidadeDoCatalogoUITests` atingindo 30,7 min); Parte 2 somou 85,6 min (16,5 min de Release + 62,9 min testes).
 
 Como a Parte 2 executa de 16 a 20 min de compilações de Release (Dev, Beta, Prod) em PRs com código, transferir mais de 7 min para ela aproximaria o job de Release dos 105 min. Portanto, transferiram-se 6,5 min de testes da Parte 1 para a Parte 2 (`CancelamentoDoProfissionalUITests` 3,6 min e `ModoSelecaoDoProfissionalUITests` 2,9 min). As projeções estimadas indicam:
 - No cenário com Release: Parte 1 estimada em ~81,5 min e Parte 2 em ~97,2 min (margem de ~7,8 min sob o teto de 105 min).
-- No cenário sem Release: Parte 1 estimada em ~91,1 min e Parte 2 em ~92,1 min (margem de ~13 min sob o teto).
+- No Run 41322412132 (retries e latência): Parte 1 estimada em ~91,1 min e Parte 2 em ~92,1 min (margem de ~12,9 min sob o teto).
 Avaliação de capacidade: com a suíte somando >127 min de testes de UI e 1.322 testes unitários, o teto físico do particionamento em 2 jobs está próximo do limite nos runners macOS; caso novos fluxos sejam adicionados na v1.1, a elevação do timeout para 120 min ou a transição para 3 jobs paralelos será recomendada.
 
 Cada parte compila o seu `build-for-testing`. A alternativa medida foi compilar uma vez e repassar os produtos às partes como artefato:

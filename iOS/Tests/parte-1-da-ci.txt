@@ -13,14 +13,14 @@
 #   (15,7 min Release + 61,2 min testes).
 # - Run 41285173133 (com Release): Parte 1 somou 88,0 min (83,4 min testes); Parte 2 somou 90,7 min
 #   (19,8 min Release + 65,2 min testes).
-# - Run 41322412132 (sem Release, diff Docs): Parte 1 somou 97,6 min (84,1 min testes); Parte 2
-#   somou 85,6 min (Release pulado + 43,0 min testes).
+# - Run 41322412132 (PR #636, com Release): Parte 1 somou 97,6 min (91,3 min testes); Parte 2
+#   somou 85,6 min (16,5 min Release + 62,9 min testes).
 #
 # Como a Parte 2 executa de 16 a 20 min de builds de Release em PRs com código, transferir mais de
 # 7 min para ela sobrecarregaria o job de Release próximo aos 105 min. Portanto, transferiram-se
 # 6,5 min (CancelamentoDoProfissionalUITests 3,6 min e ModoSelecaoDoProfissionalUITests 2,9 min).
 # Projeções estimadas: com Release, Parte 1 ~81,5 min e Parte 2 ~97,2 min (folga de ~7,8 min sob
-# 105 min); sem Release, Parte 1 ~91,1 min e Parte 2 ~92,1 min (folga de ~13 min).
+# 105 min); no Run 41322412132 com retries, Parte 1 ~91,1 min e Parte 2 ~92,1 min (folga de ~12,9 min).
 
 FrilaTests
 FrilaUITests/AcessibilidadeDoCatalogoUITests      # 30,7 min
