@@ -43,4 +43,10 @@ class AppNavegacaoTest {
     fun `rota de detalhe embute o id da vaga`() {
         assertEquals("detalhe/vaga-123", Rotas.detalhe("vaga-123"))
     }
+
+    @Test
+    fun `rotas de ajuda e licencas existem no contrato de navegacao`() {
+        assertEquals("ajuda", Rotas.AJUDA)
+        assertEquals("licencas", Rotas.LICENCAS)
+    }
 }
