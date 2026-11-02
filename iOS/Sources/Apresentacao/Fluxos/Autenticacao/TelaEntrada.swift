@@ -56,6 +56,10 @@ public struct TelaEntrada: View {
 
                         // Formulário de e-mail
                         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                            Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
+                                .font(FrilaTipo.contextoDaResposta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+
                             Text("E-mail", bundle: bundleApresentacao)
                                 .font(FrilaTipo.rotuloDoCampo)
                                 .foregroundStyle(FrilaCor.texto)
@@ -91,10 +95,6 @@ public struct TelaEntrada: View {
                                         .foregroundStyle(FrilaCor.perigo)
                                 }
                             }
-
-                            Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
-                                .font(FrilaTipo.contextoDaResposta)
-                                .foregroundStyle(FrilaCor.textoSecundario)
                         }
                     }
 
