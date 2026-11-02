@@ -264,8 +264,8 @@ fun AppNavegacao(
                         }
                     }
                     StatusMeusTurnos.SUCESSO -> {
-                        val turnoEncontrado = estado.agendados.any { it.id == turnoId } ||
-                            estado.historico.any { it.id == turnoId }
+                        val turnoEncontrado = estado.agendados.any { it.turnoId == turnoId } ||
+                            estado.historicoCompleto.any { it.turnoId == turnoId }
                         if (turnoEncontrado) {
                             TelaMeusTurnos(
                                 viewModel = viewModel,

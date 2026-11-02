@@ -51,7 +51,7 @@ class AppNavegacaoTurnoNaoEncontradoIntegracaoTest {
                 EstadoMeusTurnos(
                     status = StatusMeusTurnos.SUCESSO,
                     agendados = emptyList(),
-                    historico = emptyList(),
+                    historicoCompleto = emptyList(),
                 ),
             )
             every { carregar() } returns mockk(relaxed = true)
