@@ -155,8 +155,8 @@ class AuditoriaSemanticaPerfilTest {
     fun `audita semantica da TelaPerfil real no estado de erro de rede`() {
         runBlocking {
             val viewModel = criarViewModel(
-                statusHttp = HttpStatusCode.InternalServerError,
-                respostaJson = """{"erro": "servico_indisponivel"}""",
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao existe"}""",
+                statusHttp = HttpStatusCode.NotFound,
             )
             viewModel.carregar().join()
 
@@ -241,16 +241,20 @@ class AuditoriaSemanticaPerfilTest {
         )
 
         // 2. Clica em um item de licença para abrir o detalhe
-        compose.onNodeWithText("Kotlin Coroutines").performClick()
+        compose.onNodeWithText("Kotlinx Coroutines").performClick()
         compose.waitForIdle()
 
         // 3. Auditoria semântica da tela de detalhe da licença
         val noRaizDetalhe = compose.onRoot().fetchSemanticsNode()
         AuditoriaSemanticaAcessibilidade.assertSemanticaValida(noRaizDetalhe)
 
-        // Botão voltar do detalhe deve ter rótulo acessível
-        compose.onNodeWithContentDescription("Voltar para a lista de licenças")
+        // 4. Botão voltar do detalhe deve ter rótulo acessível e retornar para a lista
+        compose.onNodeWithContentDescription("Voltar")
             .assertIsDisplayed()
             .assertHasClickAction()
+            .performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Licenças de código aberto").assertIsDisplayed()
     }
 }
