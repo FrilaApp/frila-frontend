@@ -755,12 +755,20 @@ private final class CampoComMargens: UITextField {
     var aoToqueNaJanela: (() -> Void)?
     private weak var janelaObservada: UIWindow?
     private lazy var observador = ObservadorDeInicioDeToque { [weak self] in self?.aoToqueNaJanela?() }
+    private lazy var dispensa = DispensaDoTecladoNaJanela { [weak self] ponto in
+        guard let self, let janela = self.window, self.isFirstResponder else { return false }
+        // Zona do campo, com folga vertical para a roda de domínios que cresce durante o deslize.
+        let zona = self.convert(self.bounds, to: janela).insetBy(dx: 0, dy: -48)
+        return !zona.contains(ponto)
+    } aoDispensar: { [weak self] in _ = self?.resignFirstResponder() }
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
         janelaObservada?.removeGestureRecognizer(observador)
+        janelaObservada?.removeGestureRecognizer(dispensa)
         janelaObservada = window
         window?.addGestureRecognizer(observador)
+        window?.addGestureRecognizer(dispensa)
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -793,4 +801,47 @@ private final class ObservadorDeInicioDeToque: UIGestureRecognizer {
         aoComecar()
         state = .failed
     }
+}
+
+/// Dispensa do teclado (regra do design system): toque curto ou arrasto para baixo fora da zona do campo.
+/// Nunca reconhece nem bloqueia outros gestos; só observa e pede para fechar.
+private final class DispensaDoTecladoNaJanela: UIGestureRecognizer {
+    private let podeDispensar: (CGPoint) -> Bool
+    private let aoDispensar: () -> Void
+    private var inicio: CGPoint?
+
+    init(podeDispensar: @escaping (CGPoint) -> Bool, aoDispensar: @escaping () -> Void) {
+        self.podeDispensar = podeDispensar
+        self.aoDispensar = aoDispensar
+        super.init(target: nil, action: nil)
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard touches.count == 1, let toque = touches.first, let janela = view else { state = .failed; return }
+        let ponto = toque.location(in: janela)
+        inicio = podeDispensar(ponto) ? ponto : nil
+        if inicio == nil { state = .failed }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard let inicio, let toque = touches.first, let janela = view else { return }
+        let ponto = toque.location(in: janela)
+        let dx = ponto.x - inicio.x, dy = ponto.y - inicio.y
+        if dy >= 14, dy > abs(dx) * 1.5 { aoDispensar(); self.inicio = nil; state = .failed }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        if let inicio, let toque = touches.first, let janela = view {
+            let ponto = toque.location(in: janela)
+            if hypot(ponto.x - inicio.x, ponto.y - inicio.y) < 10 { aoDispensar() }
+        }
+        inicio = nil
+        state = .failed
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) { inicio = nil; state = .failed }
+    override func reset() { inicio = nil }
 }

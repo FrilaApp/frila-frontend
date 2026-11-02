@@ -109,6 +109,7 @@ public struct TelaEntrada: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationBarBackButtonHidden(true)
         .onChange(of: viewModel.email) { _, _ in
