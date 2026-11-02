@@ -117,7 +117,7 @@ public struct TelaCadastro: View {
                         )
                         .caixaDoCampoFrila()
                         .accessibilityLabel(Text("Telefone com WhatsApp", bundle: bundleApresentacao))
-                        .frilaFormField(id: "cadastro-telefone", isFocused: telefoneEmEdicao)
+                        .frilaFormField(id: "cadastro-telefone", isFocused: telefoneEmEdicao, onDismiss: { telefoneEmEdicao = false })
                         .accessibilityIdentifier("cadastro-telefone")
 
                         if viewModel.campoComErro == .telefone, let erro = viewModel.erro {
@@ -150,7 +150,7 @@ public struct TelaCadastro: View {
                         )
                         .caixaDoCampoFrila()
                         .accessibilityLabel(Text("Data de nascimento", bundle: bundleApresentacao))
-                        .frilaFormField(id: "cadastro-nascimento", isFocused: nascimentoEmEdicao)
+                        .frilaFormField(id: "cadastro-nascimento", isFocused: nascimentoEmEdicao, onDismiss: { nascimentoEmEdicao = false })
                         .accessibilityIdentifier("cadastro-nascimento")
 
                         if viewModel.ehMenorDeIdade {
