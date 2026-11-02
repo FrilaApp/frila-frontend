@@ -5,8 +5,14 @@ import androidx.compose.runtime.remember
 import br.com.frila.core.designsystem.componentes.ComparadorDeVersao
 import br.com.frila.core.designsystem.componentes.TelaAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
+import br.com.frila.core.rede.ClienteSupabase
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * Modelo de configuração pública do app (paridade com `ConfiguracaoDoApp` do contrato OpenAPI 0.2.45).
@@ -22,6 +28,29 @@ data class ConfiguracaoDoAppDto(
     val urlDaLoja: String? = null,
     val mensagem: String? = null,
 )
+
+/**
+ * Consulta a configuração pública de versão na API remota Supabase (endpoint `/rpc/configuracao_do_app?plataforma=android`).
+ * Retorna [ConfiguracaoDoAppDto] se bem-sucedido, ou `null` em caso de erro, timeout (3s) ou resposta inválida.
+ * Falhas transitórias ou offline nunca devem impedir o uso do app.
+ */
+suspend fun consultarConfiguracaoDoApp(
+    cliente: ClienteSupabase,
+    tempoLimiteMs: Long = 3000L,
+): ConfiguracaoDoAppDto? {
+    return try {
+        withTimeoutOrNull(tempoLimiteMs) {
+            val resposta = cliente.http.get("${cliente.baseUrl}/rpc/configuracao_do_app?plataforma=android")
+            if (resposta.status.isSuccess()) {
+                Json { ignoreUnknownKeys = true }.decodeFromString<ConfiguracaoDoAppDto>(resposta.bodyAsText())
+            } else {
+                null
+            }
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
 
 /**
  * Portão de versão e atualização obrigatória (paridade com `PortaoDeAtualizacao` do iOS).

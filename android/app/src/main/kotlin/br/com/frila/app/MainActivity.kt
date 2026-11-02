@@ -15,11 +15,6 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.isSuccess
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.json.Json
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
@@ -40,17 +35,10 @@ class MainActivity : FragmentActivity() {
 
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
-                        try {
-                            withTimeoutOrNull(3000L) {
-                                val resposta = cliente.http.get("${cliente.baseUrl}/rpc/configuracao_do_app?plataforma=android")
-                                if (resposta.status.isSuccess()) {
-                                    val dto = Json { ignoreUnknownKeys = true }.decodeFromString<ConfiguracaoDoAppDto>(resposta.bodyAsText())
-                                    versaoMinima = dto.versaoMinima
-                                    dto.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
-                                }
-                            }
-                        } catch (_: Exception) {
-                            // Falha transitória de rede ou offline nunca bloqueia o acesso
+                        val configuracao = consultarConfiguracaoDoApp(cliente)
+                        if (configuracao != null) {
+                            versaoMinima = configuracao.versaoMinima
+                            configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
                         }
                     }
                 }
