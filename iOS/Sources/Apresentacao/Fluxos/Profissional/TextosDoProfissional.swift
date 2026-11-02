@@ -254,6 +254,7 @@ enum TextosDoProfissional {
         public static let dicaPontoBase = String(localized: "Serve para calcular a distância até as vagas. Não é a sua localização em tempo real.", bundle: bundleApresentacao)
         public static let buscarPontoBase = String(localized: "Buscar endereço ou bairro", bundle: bundleApresentacao)
         public static let secaoHorarios = String(localized: "Horários em que você pode trabalhar", bundle: bundleApresentacao)
+        public static let sobreOsHorarios = String(localized: "Sobre os horários", bundle: bundleApresentacao)
         public static let adicionarHorario = String(localized: "Adicionar horário", bundle: bundleApresentacao)
         public static let diaSeguinte = String(localized: "(dia seguinte)", bundle: bundleApresentacao)
         public static let avisoFixo = String(localized: "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista.", bundle: bundleApresentacao)

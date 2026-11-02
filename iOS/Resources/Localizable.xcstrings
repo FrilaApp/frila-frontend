@@ -10427,6 +10427,26 @@
           }
         }
       }
+    },
+    "Sobre os horários": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobre os horários"
+          }
+        }
+      }
+    },
+    "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -7,6 +7,8 @@ import SwiftUI
 public struct TelaPerfilProfissional: View {
     @State private var viewModel: PerfilProfissionalViewModel
     private let aoSalvar: () -> Void
+    @State private var infoDeHorariosAberta = false
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
@@ -317,23 +319,61 @@ public struct TelaPerfilProfissional: View {
 
     private var secaoHorarios: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios)
-                .font(FrilaTipo.microRotulo)
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios))
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, FrilaEspaco.medio)
-                .accessibilityAddTraits(.isHeader)
+            HStack(spacing: FrilaEspaco.pequeno) {
+                Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios)
+                    .font(FrilaTipo.microRotulo)
+                    .textCase(.uppercase)
+                    .tracking(0.8)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.secaoHorarios))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: FrilaEspaco.pequeno)
+                botaoDeInfoDosHorarios
+            }
+            .padding(.horizontal, FrilaEspaco.medio)
 
-            // Sem horários ainda não é um problema a anunciar: o formulário abaixo já convida a adicionar, e o
-            // aviso fixo no fim da tela diz como os horários entram nas vagas recebidas.
+            // O aviso não abre a tela: aparece quando a pessoa pede, no botão de informação do título.
+            if infoDeHorariosAberta {
+                infoDosHorarios
+                    .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+            }
+
             if !viewModel.disponibilidades.isEmpty {
                 cartaoListaHorarios
             }
 
             cartaoNovoHorario
+        }
+    }
+
+    private var botaoDeInfoDosHorarios: some View {
+        Button {
+            let animacao = infoDeHorariosAberta ? FrilaMotion.disclosureCollapse : FrilaMotion.disclosureExpand
+            withAnimation(FrilaMovimento.animacao(animacao, reduzir: reduzirMovimento)) {
+                infoDeHorariosAberta.toggle()
+            }
+        } label: {
+            Image(systemName: infoDeHorariosAberta ? "info.circle.fill" : "info.circle")
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.sobreOsHorarios))
+        .accessibilityIdentifier("botao-info-horarios")
+    }
+
+    /// Sem horários, diz o que isso muda; com horários, repete como eles entram nas vagas recebidas.
+    @ViewBuilder
+    private var infoDosHorarios: some View {
+        if viewModel.disponibilidades.isEmpty {
+            AvisoFrila("**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois.", tom: .informativo)
+                .accessibilityIdentifier("info-horarios")
+        } else {
+            AvisoFrila(verbatim: TextosDoProfissional.Perfil.avisoFixo, tom: .informativo)
+                .accessibilityIdentifier("info-horarios")
         }
     }
 
