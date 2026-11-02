@@ -35,10 +35,12 @@ class MainActivity : FragmentActivity() {
 
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
-                        val configuracao = consultarConfiguracaoDoApp(cliente)
-                        if (configuracao != null) {
+                        try {
+                            val configuracao = consultarConfiguracaoDoApp(cliente)
                             versaoMinima = configuracao.versaoMinima
                             configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
+                        } catch (_: Exception) {
+                            // Falha transitória de rede ou offline nunca bloqueia o acesso
                         }
                     }
                 }

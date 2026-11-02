@@ -11,14 +11,12 @@ import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.rede.ClienteSupabase
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -138,30 +136,39 @@ class PortaoDeAtualizacaoTest {
 
         try {
             val resultado = consultarConfiguracaoDoApp(cliente)
-            assertNotNull("Resultado nao deve ser nulo para resposta 200 OK com JSON valido", resultado)
+            assertNotNull(resultado)
             assertEquals("/rest/v1/rpc/configuracao_do_app", caminhoChamado)
             assertEquals("android", parametroPlataforma)
-            assertEquals("android", resultado?.plataforma)
-            assertEquals("99.0.0", resultado?.versaoMinima)
-            assertEquals("Atualize agora", resultado?.mensagem)
+            assertEquals("android", resultado.plataforma)
+            assertEquals("99.0.0", resultado.versaoMinima)
+            assertEquals("Atualize agora", resultado.mensagem)
         } finally {
             cliente.http.close()
         }
     }
 
     @Test
-    fun `consultarConfiguracaoDoApp trata erro de rede e retorna null sem lancar excecao`() = runBlocking {
+    fun `consultarConfiguracaoDoApp propaga erro quando backend responde com falha`() = runBlocking {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
             apiKey = "chave-teste",
             engine = MockEngine {
-                respondError(HttpStatusCode.InternalServerError)
+                respond(
+                    content = """{"code":"PGRST500","message":"Erro interno","details":null,"hint":null}""",
+                    status = HttpStatusCode.InternalServerError,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
             },
         )
 
         try {
-            val resultado = consultarConfiguracaoDoApp(cliente)
-            assertNull("Falha de rede deve retornar null sem quebrar a inicializacao", resultado)
+            var falhou = false
+            try {
+                consultarConfiguracaoDoApp(cliente)
+            } catch (e: Exception) {
+                falhou = true
+            }
+            assertTrue("Falha de rede ou 500 deve propagar excecao", falhou)
         } finally {
             cliente.http.close()
         }

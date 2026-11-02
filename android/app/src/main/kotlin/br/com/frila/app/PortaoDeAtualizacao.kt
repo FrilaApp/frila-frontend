@@ -28,20 +28,15 @@ data class ConfiguracaoDoAppDto(
 
 /**
  * Consulta a configuração pública de versão na API remota Supabase (`GET /rest/v1/rpc/configuracao_do_app?plataforma=android`).
- * Retorna [ConfiguracaoDoAppDto] se bem-sucedido, ou `null` em caso de erro ou resposta inválida.
- * Falhas transitórias ou offline nunca devem impedir o uso do app.
+ * Lança [Exception] caso o backend retorne erro ou falhe a rede.
  */
 suspend fun consultarConfiguracaoDoApp(
     cliente: ClienteSupabase,
-): ConfiguracaoDoAppDto? {
-    return try {
-        val resposta = cliente.http.get(cliente.urlRpc("configuracao_do_app")) {
-            parameter("plataforma", "android")
-        }
-        cliente.corpoOuErro(resposta)
-    } catch (_: Exception) {
-        null
+): ConfiguracaoDoAppDto {
+    val resposta = cliente.http.get(cliente.urlRpc("configuracao_do_app")) {
+        parameter("plataforma", "android")
     }
+    return cliente.corpoOuErro(resposta)
 }
 
 /**
