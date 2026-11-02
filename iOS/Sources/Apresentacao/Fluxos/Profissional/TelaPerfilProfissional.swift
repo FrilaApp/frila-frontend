@@ -252,7 +252,7 @@ public struct TelaPerfilProfissional: View {
                 .foregroundStyle(FrilaCor.texto)
                 .submitLabel(.search)
                 .focused($pontoBaseEmFoco)
-                .frilaFormField(id: "perfil-profissional-ponto-base", isFocused: pontoBaseEmFoco)
+                .frilaFormField(id: "perfil-profissional-ponto-base", isFocused: pontoBaseEmFoco, onDismiss: { pontoBaseEmFoco = false })
                 .onSubmit {
                     Task { await viewModel.buscarEndereco() }
                 }

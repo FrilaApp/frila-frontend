@@ -508,7 +508,7 @@ public struct TelaCadastroEstabelecimento: View {
             .overlay(bordaDoCampo(.nome))
             .accessibilityLabel(Text(verbatim: TextosCadastro.nomeCampo))
             .focused($campoFocado, equals: .nome)
-            .frilaFormField(id: "cadastro-estabelecimento-nome", isFocused: campoFocado == .nome)
+            .frilaFormField(id: "cadastro-estabelecimento-nome", isFocused: campoFocado == .nome, onDismiss: { campoFocado = nil })
 
             mensagemDeErroAbaixo(do: .nome)
         }
@@ -578,7 +578,7 @@ public struct TelaCadastroEstabelecimento: View {
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(bordaDoCampo(.documento))
-            .frilaFormField(id: "cadastro-estabelecimento-documento", isFocused: documentoEmEdicao)
+            .frilaFormField(id: "cadastro-estabelecimento-documento", isFocused: documentoEmEdicao, onDismiss: { documentoEmEdicao = false })
 
             mensagemDeErroAbaixo(do: .documento)
         }
@@ -608,7 +608,7 @@ public struct TelaCadastroEstabelecimento: View {
                 .foregroundStyle(FrilaCor.texto)
                 .submitLabel(.search)
                 .focused($campoFocado, equals: .endereco)
-                .frilaFormField(id: "cadastro-estabelecimento-endereco", isFocused: campoFocado == .endereco)
+                .frilaFormField(id: "cadastro-estabelecimento-endereco", isFocused: campoFocado == .endereco, onDismiss: { campoFocado = nil })
                 .onSubmit {
                     Task { await model.buscarEndereco() }
                 }
