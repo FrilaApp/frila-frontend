@@ -2,10 +2,13 @@ package br.com.frila.app
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,6 +35,7 @@ import br.com.frila.feature.entrada.entrada.TelaEntrada
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaPerfil
@@ -88,6 +92,7 @@ fun AppNavegacao(
     armazenamentoDeSessao: ArmazenamentoDeSessao = koinInject(),
     monitorDeConectividade: MonitorDeConectividade = koinInject(),
     navController: NavHostController = rememberNavController(),
+    aoPronto: (() -> Unit)? = null,
 ) {
     val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
@@ -112,6 +117,9 @@ fun AppNavegacao(
         NavHost(navController = navController, startDestination = destinoInicial) {
             composable(Rotas.ENTRADA) {
                 val viewModel: EntradaViewModel = koinViewModel()
+                LaunchedEffect(Unit) {
+                    aoPronto?.invoke()
+                }
                 TelaEntrada(
                     viewModel = viewModel,
                     aoReceberCodigo = {
@@ -148,6 +156,13 @@ fun AppNavegacao(
             composable(Rotas.FEED) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: FeedVagasViewModel = koinViewModel()
+                    LaunchedEffect(viewModel) { viewModel.carregar() }
+                    val estadoFeed by viewModel.estado.collectAsStateWithLifecycle()
+                    LaunchedEffect(estadoFeed.status) {
+                        if (estadoFeed.status != StatusFeed.CARREGANDO) {
+                            aoPronto?.invoke()
+                        }
+                    }
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
@@ -165,11 +180,20 @@ fun AppNavegacao(
                     val feedAnterior = navController.previousBackStackEntry?.let {
                         koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
                     }
-                    val vaga: VagaAbertaDto? = feedAnterior?.encontrarVagaPorId(vagaId)
+                    val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
+                    val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
 
                     if (vaga != null) {
                         val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(vaga) })
-                        TelaDetalheVaga(viewModel = viewModel)
+                        Column {
+                            if (estadoFeed.emCache) Text(
+                                "Disponibilidade não confirmada. Conecte-se e atualize o feed antes de se candidatar.",
+                                modifier = Modifier.padding(16.dp),
+                            )
+                            TelaDetalheVaga(viewModel = viewModel)
+                        }
+                    } else {
+                        Text("Vaga indisponível. Atualize o feed para consultar as vagas abertas.")
                     }
                 }
             }
@@ -221,6 +245,9 @@ fun AppNavegacao(
             }
 
             composable(Rotas.DESBLOQUEIO) {
+                LaunchedEffect(Unit) {
+                    aoPronto?.invoke()
+                }
                 TelaDesbloqueioBiometrico(
                     aoDesbloquear = {
                         val destino = guardaBiometrico.aoDesbloquearComSucesso()

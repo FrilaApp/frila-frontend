@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.baselineprofile)
 }
 
 // Revisão ANBU (PR #557): o build type release não pode assinar com o keystore de debug
@@ -112,6 +113,7 @@ configurations.all {
 
 dependencies {
     implementation(project(":core:dominio"))
+    implementation(project(":core:preferencias"))
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
@@ -133,6 +135,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.koin.core)
     implementation(libs.koin.android)
@@ -144,6 +147,8 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

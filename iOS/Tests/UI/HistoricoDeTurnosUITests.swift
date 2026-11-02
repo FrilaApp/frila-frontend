@@ -123,9 +123,14 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         anexar(app, "historico-formato-ax5")
     }
 
+    private static let dataEstavel = "2026-10-15T12:00:00Z"
+
     private func abrir(cenario: String, item: String, extras: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", cenario] + extras
+        app.launchArguments = [
+            "-FRILA_SCENARIO", cenario,
+            "-FRILA_RELOGIO_AGORA", Self.dataEstavel
+        ] + extras
         app.launch()
 
         let botaoPerfil = app.tabBars.buttons["Conta"]
@@ -162,7 +167,10 @@ final class HistoricoDeTurnosUITests: XCTestCase {
 
     func testCapturasHistoricoDeTurnosUX06() {
         let app = XCUIApplication()
-        app.launchArguments = ["-FRILA_SCENARIO", "success"]
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "success",
+            "-FRILA_RELOGIO_AGORA", Self.dataEstavel
+        ]
         app.launch()
 
         let botaoPerfil = app.tabBars.buttons["Conta"]
@@ -194,6 +202,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "-FRILA_SCENARIO", "success",
+            "-FRILA_RELOGIO_AGORA", Self.dataEstavel,
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
         ]
         app.launch()

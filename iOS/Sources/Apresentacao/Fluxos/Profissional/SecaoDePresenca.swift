@@ -6,7 +6,7 @@ import UIKit
 /// registro, a explicação antes do pedido de permissão e a saída manual quando o GPS não serve.
 /// É a seção "Chegada" do quadro "TurnoHoje" do MidFi (e o aviso de falha do "AlertaAtraso"):
 /// cartão com rótulo em caixa alta, linhas de estado, botão escuro e ações de apoio.
-struct SecaoDePresenca: View {
+public struct SecaoDePresenca: View {
     private typealias Textos = TextosDoProfissional.Presenca
 
     @Bindable private var viewModel: PresencaDoTurnoViewModel
@@ -14,12 +14,12 @@ struct SecaoDePresenca: View {
     @AccessibilityFocusState private var focoNoAviso: Bool
     private let formatador = FormatadorFrila()
 
-    init(viewModel: PresencaDoTurnoViewModel, turno: MeuTurnoViewModel? = nil) {
+    public init(viewModel: PresencaDoTurnoViewModel, turno: MeuTurnoViewModel? = nil) {
         self.viewModel = viewModel
         self.turno = turno
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
             Text(verbatim: Textos.titulo)
                 .font(FrilaTipo.secao)

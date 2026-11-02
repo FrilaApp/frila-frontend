@@ -11,7 +11,12 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.FuncaoDto
@@ -28,6 +33,7 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,6 +46,11 @@ class TelaDetalheVagaTest {
 
     @get:Rule
     val compose = createComposeRule()
+
+    @Before
+    fun setUp() {
+        ControleSessaoNotificacao.resetarParaTestes()
+    }
 
     private fun criarVaga(
         modo: String = "urgencia",
@@ -236,6 +247,266 @@ class TelaDetalheVagaTest {
                 .assertExists()
                 .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive))
             compose.onNodeWithText("Candidatar-se").assertExists().assertIsEnabled()
+        }
+    }
+
+    @Test
+    fun `apos primeira confirmacao de vaga exibe dialogo contextual de permissao de notificacao quando nao concedida`() {
+        runBlocking {
+            val respostaJson = """
+                {
+                  "estado": "confirmada",
+                  "candidatura_id": "c1",
+                  "posicao_id": "p1",
+                  "turno_id": "t1",
+                  "contato": { "nome": "Zé da Silva", "telefone": "61988887777" }
+                }
+            """.trimIndent()
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson)
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaDetalheVaga(
+                        viewModel = viewModel,
+                        verificarPermissaoNotificacao = { false },
+                    )
+                }
+            }
+
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+
+            // Diálogo contextual com explicação clara
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertIsDisplayed()
+            compose.onNodeWithText("Ativar notificações de turnos").assertIsDisplayed()
+            compose.onNodeWithText(
+                "Receba avisos imediatos sobre confirmações de presença, lembretes de início de turno " +
+                    "e chamados de vagas urgentes para você não perder nenhum compromisso.",
+            ).assertIsDisplayed()
+            compose.onNodeWithTag("botao-ativar-notificacoes").assertIsDisplayed()
+            compose.onNodeWithTag("botao-agora-nao-notificacoes").assertIsDisplayed()
+        }
+    }
+
+    private fun exercitarLauncherReal(concedida: Boolean) {
+        runBlocking {
+            val respostaJson = """
+                {
+                  "estado": "confirmada",
+                  "candidatura_id": "c1",
+                  "posicao_id": "p1",
+                  "turno_id": "t1",
+                  "contato": { "nome": "Zé da Silva", "telefone": "61988887777" }
+                }
+            """.trimIndent()
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson)
+            var resultado: Boolean? = null
+            var pedidos = 0
+            val registro = object : androidx.activity.result.ActivityResultRegistry() {
+                override fun <I, O> onLaunch(
+                    requestCode: Int,
+                    contract: androidx.activity.result.contract.ActivityResultContract<I, O>,
+                    input: I,
+                    options: androidx.core.app.ActivityOptionsCompat?,
+                ) {
+                    assertTrue(contract is androidx.activity.result.contract.ActivityResultContracts.RequestPermission)
+                    assertEquals(android.Manifest.permission.POST_NOTIFICATIONS, input)
+                    pedidos++
+                    dispatchResult(requestCode, concedida)
+                }
+            }
+            val dono = object : androidx.activity.result.ActivityResultRegistryOwner {
+                override val activityResultRegistry = registro
+            }
+            compose.setContent {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.activity.compose.LocalActivityResultRegistryOwner provides dono,
+                ) {
+                    FrilaTheme {
+                        TelaDetalheVaga(
+                            viewModel = viewModel,
+                            verificarPermissaoNotificacao = { false },
+                            aoResultadoPermissao = { resultado = it },
+                        )
+                    }
+                }
+            }
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+            compose.onNodeWithTag("botao-ativar-notificacoes").performClick()
+            compose.waitForIdle()
+            assertEquals(1, pedidos)
+            assertEquals(concedida, resultado)
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
+            compose.onNodeWithText("Candidatura confirmada! Confira o contato abaixo.").assertExists()
+        }
+    }
+
+    @Test
+    fun `ao confirmar no dialogo de permissao aciona o launcher real de permissao do Android com concessao`() {
+        exercitarLauncherReal(concedida = true)
+    }
+
+    @Test
+    fun `ao receber negacao no launcher real de permissao do Android preserva confirmacao sem travar fluxo`() {
+        exercitarLauncherReal(concedida = false)
+    }
+
+    @Test
+    fun `ao dispensar no dialogo contextual fecha dialogo sem acionar launcher de permissao`() {
+        runBlocking {
+            val respostaJson = """
+                {
+                  "estado": "confirmada",
+                  "candidatura_id": "c1",
+                  "posicao_id": "p1",
+                  "turno_id": "t1",
+                  "contato": { "nome": "Zé da Silva", "telefone": "61988887777" }
+                }
+            """.trimIndent()
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson)
+            var pedidosLauncher = 0
+            var resultadoRecebido: Boolean? = null
+
+            val registro = object : androidx.activity.result.ActivityResultRegistry() {
+                override fun <I, O> onLaunch(
+                    requestCode: Int,
+                    contract: androidx.activity.result.contract.ActivityResultContract<I, O>,
+                    input: I,
+                    options: androidx.core.app.ActivityOptionsCompat?,
+                ) {
+                    pedidosLauncher++
+                }
+            }
+            val dono = object : androidx.activity.result.ActivityResultRegistryOwner {
+                override val activityResultRegistry = registro
+            }
+
+            compose.setContent {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.activity.compose.LocalActivityResultRegistryOwner provides dono,
+                ) {
+                    FrilaTheme {
+                        TelaDetalheVaga(
+                            viewModel = viewModel,
+                            verificarPermissaoNotificacao = { false },
+                            aoResultadoPermissao = { resultadoRecebido = it },
+                        )
+                    }
+                }
+            }
+
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+
+            compose.onNodeWithTag("botao-agora-nao-notificacoes").performClick()
+            compose.waitForIdle()
+
+            assertEquals(0, pedidosLauncher)
+            assertEquals(false, resultadoRecebido)
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
+            compose.onNodeWithText("Candidatura confirmada! Confira o contato abaixo.").assertExists()
+        }
+    }
+
+    @Test
+    fun `nao repete dialogo contextual de permissao depois de dispensa em outra vaga na mesma sessao`() {
+        runBlocking {
+            val respostaJson = """
+                {
+                  "estado": "confirmada",
+                  "candidatura_id": "c1",
+                  "posicao_id": "p1",
+                  "turno_id": "t1",
+                  "contato": { "nome": "Zé da Silva", "telefone": "61988887777" }
+                }
+            """.trimIndent()
+            val vm1 = criarViewModel(criarVaga(), respostaJson = respostaJson)
+            val vm2 = criarViewModel(
+                criarVaga().copy(id = "22222222-2222-2222-2222-222222222222"),
+                respostaJson = respostaJson,
+            )
+            val tela = androidx.compose.runtime.mutableIntStateOf(0)
+            compose.setContent {
+                androidx.compose.runtime.key(tela.intValue) {
+                    FrilaTheme {
+                        TelaDetalheVaga(
+                            viewModel = if (tela.intValue == 0) vm1 else vm2,
+                            verificarPermissaoNotificacao = { false },
+                        )
+                    }
+                }
+            }
+            vm1.candidatar().join()
+            compose.waitForIdle()
+            compose.onNodeWithTag("botao-agora-nao-notificacoes").performClick()
+            compose.waitForIdle()
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
+            compose.runOnIdle { tela.intValue = 1 }
+            vm2.candidatar().join()
+            compose.waitForIdle()
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    @Config(sdk = [28])
+    fun `api 28 nao pede permissao runtime de notificacao`() {
+        runBlocking {
+            val respostaJson = """
+                {
+                  "estado": "confirmada",
+                  "candidatura_id": "c1",
+                  "posicao_id": "p1",
+                  "turno_id": "t1",
+                  "contato": { "nome": "Zé da Silva", "telefone": "61988887777" }
+                }
+            """.trimIndent()
+            val vm = criarViewModel(criarVaga(), respostaJson = respostaJson)
+            compose.setContent {
+                FrilaTheme {
+                    TelaDetalheVaga(viewModel = vm)
+                }
+            }
+            vm.candidatar().join()
+            compose.waitForIdle()
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
+            compose.onNodeWithText("Candidatura confirmada! Confira o contato abaixo.").assertExists()
+        }
+    }
+
+    @Test
+    fun `quando permissao ja estiver concedida nao exibe dialogo de permissao ao confirmar`() {
+        runBlocking {
+            val respostaJson = """
+                {
+                  "estado": "confirmada",
+                  "candidatura_id": "c1",
+                  "posicao_id": "p1",
+                  "turno_id": "t1",
+                  "contato": { "nome": "Zé da Silva", "telefone": "61988887777" }
+                }
+            """.trimIndent()
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson)
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaDetalheVaga(
+                        viewModel = viewModel,
+                        verificarPermissaoNotificacao = { true },
+                    )
+                }
+            }
+
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
+            compose.onNodeWithText("Candidatura confirmada! Confira o contato abaixo.").assertExists()
         }
     }
 }

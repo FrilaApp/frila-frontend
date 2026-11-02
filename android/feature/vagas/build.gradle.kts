@@ -48,10 +48,13 @@ android {
 
 dependencies {
     implementation(project(":core:dominio"))
+    implementation(project(":core:preferencias"))
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:localizacao"))
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
@@ -68,6 +71,7 @@ dependencies {
 
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.compose.ui.test.manifest)
     testImplementation(libs.junit4)
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)

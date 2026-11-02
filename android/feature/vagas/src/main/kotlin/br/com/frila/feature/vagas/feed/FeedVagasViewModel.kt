@@ -5,13 +5,20 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
+import br.com.frila.core.rede.RepositorioVagas
+import br.com.frila.core.rede.aindaDisponivelEm
+import br.com.frila.core.rede.ResultadoVagas
 import br.com.frila.core.rede.VagaAbertaDto
+import java.io.IOException
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +41,8 @@ class FeedVagasViewModel(
     private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val armazenamentoPreferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
     escopo: CoroutineScope? = null,
+    private val repositorioVagas: RepositorioVagas? = null,
+    private val agora: () -> Instant = Instant::now,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -42,35 +51,90 @@ class FeedVagasViewModel(
     val estado: StateFlow<EstadoFeed> = _estado.asStateFlow()
 
     private var vagasCarregadas: List<VagaAbertaDto> = emptyList()
+    private var validadeDoCache: Job? = null
 
     init {
-        armazenamentoPreferencias.obterFaixaRemuneracaoHora()?.let { salva ->
-            _estado.update {
-                it.copy(
-                    faixaRemuneracaoHora = FaixaRemuneracaoHora(
-                        minima = salva.minima,
-                        maxima = salva.maxima,
-                        ativa = salva.ativa,
-                    ),
-                )
-            }
+        repositorioVagas?.observarInvalidacao {
+            validadeDoCache?.cancel()
+            vagasCarregadas = emptyList()
+            _estado.value = EstadoFeed()
         }
+    }
+
+    private var preferenciasRestauradas = false
+    private var gravacaoPreferencia: Job? = null
+
+    private suspend fun restaurarPreferencias() {
+        if (preferenciasRestauradas) return
+        try {
+            withTimeoutOrNull(2_000) {
+                val salva = armazenamentoPreferencias.obterFaixaRemuneracaoHora()
+                // Uma interação durante a leitura tem prioridade sobre o valor antigo.
+                if (!preferenciasRestauradas) {
+                    salva?.let {
+                        _estado.update { estado -> estado.copy(
+                            faixaRemuneracaoHora = FaixaRemuneracaoHora(it.minima, it.maxima, it.ativa),
+                        ) }
+                    }
+                    preferenciasRestauradas = true
+                }
+            }
+        } catch (_: IOException) {
+            // O feed continua disponível; não apaga nem sobrescreve a preferência indisponível.
+        }
+    }
+
+    private fun persistirPreferencia(operacao: suspend () -> Unit): Job {
+        preferenciasRestauradas = true
+        val anterior = gravacaoPreferencia
+        return escopoDeTrabalho.launch {
+            anterior?.join()
+            try {
+                operacao()
+            } catch (_: IOException) {
+                _estado.update { it.copy(mensagemErro = "Não foi possível salvar os filtros. Tente novamente.") }
+            }
+        }.also { gravacaoPreferencia = it }
     }
 
     fun carregar(): Job {
         _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
-                val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
-                // distanciaMaxKm fica de fora de propósito (achado bloqueante do Shisui): restringir no
-                // servidor impede ampliar o raio sem forçar um recarregamento — vagasCarregadas precisa
-                // conter todo o raio possível para que aplicarFiltros() seja reativo em qualquer chip.
-                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
-                aplicarFiltros()
-            } catch (erro: ErroDaApi) {
+                restaurarPreferencias()
+                // Exibe o disco antes de esperar localização ou rede, inclusive na abertura offline.
+                repositorioVagas?.obterCache()?.let(::aplicarResultado)
+                aplicarResultado(buscarVagas())
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
                 _estado.update { it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
         }
+    }
+
+    private suspend fun buscarVagas(): ResultadoVagas {
+        val coordenada = withTimeoutOrNull(3_000) { provedorDeLocalizacao.obterCoordenadaAtual() }
+        // Sem filtro de raio no servidor: ampliar o chip continua sendo uma operação local.
+        return repositorioVagas?.listar(coordenada)
+            ?: ResultadoVagas(servicoVagas.listarVagasAbertas(coordenada), emCache = false)
+    }
+
+    private fun aplicarResultado(resultado: ResultadoVagas) {
+        val aplicar = {
+            validadeDoCache?.cancel()
+            vagasCarregadas = resultado.vagas
+            _estado.update { it.copy(emCache = resultado.emCache) }
+            aplicarFiltros()
+            if (resultado.emCache) validadeDoCache = escopoDeTrabalho.launch {
+                while (vagasCarregadas.isNotEmpty()) {
+                    val proximoFim = vagasCarregadas.minOf { Instant.parse(it.fimEm) }
+                    delay(Duration.between(agora(), proximoFim).toMillis().coerceAtLeast(1))
+                    repositorioVagas?.usarSeValido { aplicarFiltros() }
+                }
+            }
+        }
+        if (repositorioVagas == null) aplicar() else repositorioVagas.usarSeValido(aplicar)
     }
 
     /** Mesma operação de [carregar]; nome próprio só para deixar a intenção explícita na tela de erro. */
@@ -84,13 +148,11 @@ class FeedVagasViewModel(
         _estado.update { it.copy(atualizando = true, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
-                val coordenada = provedorDeLocalizacao.obterCoordenadaAtual()
-                vagasCarregadas = servicoVagas.listarVagasAbertas(coordenada = coordenada)
-                aplicarFiltros()
-            } catch (erro: ErroDaApi) {
+                aplicarResultado(buscarVagas())
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
-            } catch (t: Throwable) {
-                _estado.update { it.copy(mensagemErro = "Não foi possível carregar as vagas. Tente de novo em instantes.") }
             } finally {
                 _estado.update { it.copy(atualizando = false) }
             }
@@ -101,7 +163,9 @@ class FeedVagasViewModel(
      * Vaga já carregada pelo feed, pelo id — usado pela navegação para abrir o detalhe sem
      * refazer a chamada de `/rpc/vagas_abertas` só para reler o mesmo objeto.
      */
-    fun encontrarVagaPorId(id: String): VagaAbertaDto? = vagasCarregadas.firstOrNull { it.id == id }
+    fun encontrarVagaPorId(id: String): VagaAbertaDto? = vagasCarregadas.firstOrNull {
+        it.id == id && (!_estado.value.emCache || it.aindaDisponivelEm(agora()))
+    }
 
     fun aoAlterarTextoBusca(texto: String) {
         _estado.update { it.copy(textoBusca = texto) }
@@ -141,7 +205,7 @@ class FeedVagasViewModel(
      * RF05/RN01: Atualiza a faixa de remuneração líquida por hora através do RangeSlider
      * e persiste a preferência localmente.
      */
-    fun aoAlterarFaixaRemuneracaoHora(faixa: ClosedFloatingPointRange<Float>, ativa: Boolean = true) {
+    fun aoAlterarFaixaRemuneracaoHora(faixa: ClosedFloatingPointRange<Float>, ativa: Boolean = true): Job {
         _estado.update {
             it.copy(
                 faixaRemuneracaoHora = FaixaRemuneracaoHora(
@@ -151,27 +215,20 @@ class FeedVagasViewModel(
                 ),
             )
         }
-        armazenamentoPreferencias.salvarFaixaRemuneracaoHora(
-            minimo = faixa.start,
-            maximo = faixa.endInclusive,
-            ativa = ativa,
-        )
         aplicarFiltros()
+        return persistirPreferencia {
+            armazenamentoPreferencias.salvarFaixaRemuneracaoHora(faixa.start, faixa.endInclusive, ativa)
+        }
     }
 
     /** Desativa o filtro de faixa por hora sem apagar os limites configurados. */
-    fun aoDesativarFaixaRemuneracaoHora() {
-        _estado.update {
-            it.copy(
-                faixaRemuneracaoHora = it.faixaRemuneracaoHora.copy(ativa = false),
-            )
-        }
-        armazenamentoPreferencias.salvarFaixaRemuneracaoHora(
-            minimo = _estado.value.faixaRemuneracaoHora.minima,
-            maximo = _estado.value.faixaRemuneracaoHora.maxima,
-            ativa = false,
-        )
+    fun aoDesativarFaixaRemuneracaoHora(): Job {
+        val faixa = _estado.value.faixaRemuneracaoHora.copy(ativa = false)
+        _estado.update { it.copy(faixaRemuneracaoHora = faixa) }
         aplicarFiltros()
+        return persistirPreferencia {
+            armazenamentoPreferencias.salvarFaixaRemuneracaoHora(faixa.minima, faixa.maxima, false)
+        }
     }
 
     fun aoSelecionarFiltroPeriodo(filtro: FiltroPeriodo) {
@@ -185,8 +242,7 @@ class FeedVagasViewModel(
         aplicarFiltros()
     }
 
-    fun aoLimparFiltrosAvancados() {
-        armazenamentoPreferencias.limparFaixaRemuneracaoHora()
+    fun aoLimparFiltrosAvancados(): Job {
         _estado.update {
             it.copy(
                 filtroRemuneracao = FiltroRemuneracao.QUALQUER,
@@ -195,10 +251,12 @@ class FeedVagasViewModel(
             )
         }
         aplicarFiltros()
+        return persistirPreferencia { armazenamentoPreferencias.limparFaixaRemuneracaoHora() }
     }
 
     private fun aplicarFiltros() {
         val filtroAtual = _estado.value
+        if (filtroAtual.emCache) vagasCarregadas = vagasCarregadas.filter { it.aindaDisponivelEm(agora()) }
         val termoBusca = filtroAtual.textoBusca.trim()
 
         val filtradas = vagasCarregadas
@@ -242,7 +300,7 @@ class FeedVagasViewModel(
         }
     }
 
-    private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {
+    private fun mensagemDeErro(erro: Exception): String = when ((erro as? ErroDaApi)?.codigo?.name) {
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível carregar as vagas. Tente de novo em instantes."
     }
