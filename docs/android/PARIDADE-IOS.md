@@ -12,9 +12,9 @@ O Frila iOS v1.0 possui **46 superfícies de interface** (43 telas catalogadas n
 
 | Situação no Android | Quantidade | Percentual | Descrição |
 |---|:---:|:---:|---|
-| **Existe** | 10 | 21,7% | Telas plenamente funcionais com ViewModel, regras de domínio e cobertura de testes unitários/Compose |
+| **Existe** | 16 | 34,8% | Telas plenamente funcionais com ViewModel, regras de domínio e cobertura de testes unitários/Compose |
 | **Parcial** | 6 | 13,0% | Funcionalidades implementadas parcialmente (ex.: backend/PDF presente mas sem lista navegável na UI) |
-| **Falta** | 30 | 65,3% | Telas ainda não iniciadas na plataforma Android |
+| **Falta** | 24 | 52,2% | Telas ainda não iniciadas na plataforma Android |
 | **Total** | **46** | **100,0%** | **Cobertura integral da camada de apresentação da v1.0** |
 
 ---
@@ -63,13 +63,13 @@ O Frila iOS v1.0 possui **46 superfícies de interface** (43 telas catalogadas n
 | 35 | Equipe de confiança (Favoritos) | `TelaEquipeDeConfianca` | **Falta** | — | M | depende do Fabrício | Fase 3 |
 | 36 | Folha de suporte no turno | `FolhaSuporteTurno` | **Parcial** | `feature:turnos/.../TelaOcorrencia.kt:45` | P | Nenhuma | Concluído |
 | 37 | Folha de denúncia / bloqueio | `FolhaDeDenuncia` | **Falta** | — | M | depende do Fabrício + backend | Fase 2 |
-| 38 | Ajuda do perfil (Canais / Termos) | `TelaAjudaPerfil` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Próxima)** |
-| 39 | Licenças de código aberto | `TelaLicencas` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Imediata)** |
-| 40 | Detalhe da licença | `TelaDetalheLicenca` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Imediata)** |
+| 38 | Ajuda do perfil (Canais / Termos) | `TelaAjudaPerfil` | **Existe** | `feature:perfil/.../TelaAjudaPerfil.kt:50` | P | Nenhuma | Concluído |
+| 39 | Licenças de código aberto | `TelaLicencas` | **Existe** | `feature:perfil/.../TelaLicencas.kt:35` | P | Nenhuma | Concluído |
+| 40 | Detalhe da licença | `TelaDetalheLicenca` | **Existe** | `feature:perfil/.../TelaDetalheLicenca.kt:30` | P | Nenhuma | Concluído |
 | 41 | Explicação de notificações push | `TelaExplicacaoDoPush` | **Existe** | `feature:vagas/.../DialogoPermissaoNotificacao.kt:36` | P | Nenhuma | Concluído |
-| 42 | Vaga indisponível (Aviso Push) | `TelaVagaIndisponivel` | **Falta** | — | P | Nenhuma / independente | Fase 1 |
-| 43 | Turno do aviso não encontrado (Push) | `DestinoDoAviso` | **Falta** | — | P | Nenhuma / independente | Fase 1 |
-| 44 | Atualização obrigatória (Portão versão) | `TelaAtualizacaoObrigatoria` | **Falta** | — | P | Nenhuma / independente | **Fase 1 (Imediata)** |
+| 42 | Vaga indisponível (Aviso Push) | `TelaVagaIndisponivel` | **Existe** | `feature:vagas/.../TelaVagaIndisponivel.kt:40` | P | Nenhuma | Concluído |
+| 43 | Turno do aviso não encontrado (Push) | `TelaTurnoNaoEncontrado` | **Existe** | `feature:turnos/.../TelaTurnoNaoEncontrado.kt:40` | P | Nenhuma | Concluído |
+| 44 | Atualização obrigatória (Portão versão) | `TelaAtualizacaoObrigatoria` | **Existe** | `core:designsystem/.../TelaAtualizacaoObrigatoria.kt:42` | P | Nenhuma | Concluído |
 | 45 | Compartilhamento / exportação | `FolhaCompartilhamento` | **Parcial** | `feature:perfil/.../GeradorExtratoPdf.kt:85` | P | Nenhuma | Concluído |
 | 46 | Compositor de e-mail nativo | `CompositorDeEmailNativo` | **Parcial** | `feature:turnos/.../TelaOcorrencia.kt:120` | P | Nenhuma | Concluído |
 
