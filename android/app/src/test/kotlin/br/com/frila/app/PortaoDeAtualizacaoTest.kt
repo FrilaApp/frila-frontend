@@ -117,6 +117,44 @@ class PortaoDeAtualizacaoTest {
     }
 
     @Test
+    fun `quando verificando for verdadeiro portao nao renderiza conteudo nem tela de atualizacao`() {
+        rule.setContent {
+            PortaoDeAtualizacao(
+                versaoAtual = "1.0.0",
+                versaoMinima = "2.0.0",
+                verificando = true,
+                conteudo = { Text("Conteudo Protegido do App") },
+            )
+        }
+
+        rule.onNodeWithText("Conteudo Protegido do App").assertDoesNotExist()
+        rule.onNodeWithText(TextosAtualizacaoObrigatoria.TITULO).assertDoesNotExist()
+    }
+
+    @Test
+    fun `quando verificando transicionar para falso portao libera conteudo se versao compativel`() {
+        val verificando = mutableStateOf(true)
+
+        rule.setContent {
+            PortaoDeAtualizacao(
+                versaoAtual = "1.2.0",
+                versaoMinima = "1.0.0",
+                verificando = verificando.value,
+                conteudo = { Text("Conteudo Protegido do App") },
+            )
+        }
+
+        rule.onNodeWithText("Conteudo Protegido do App").assertDoesNotExist()
+
+        rule.runOnIdle {
+            verificando.value = false
+        }
+
+        rule.onNodeWithText("Conteudo Protegido do App").assertIsDisplayed()
+        rule.onNodeWithText(TextosAtualizacaoObrigatoria.TITULO).assertDoesNotExist()
+    }
+
+    @Test
     fun `consultarConfiguracaoDoApp busca configuracao da plataforma android e decodifica versao_minima`() = runBlocking {
         var caminhoChamado: String? = null
         var parametroPlataforma: String? = null

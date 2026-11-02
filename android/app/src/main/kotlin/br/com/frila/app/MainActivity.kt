@@ -15,6 +15,7 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
@@ -30,24 +31,32 @@ class MainActivity : FragmentActivity() {
                         null
                     }
                 }
+                var verificando by remember { mutableStateOf(cliente != null) }
                 var versaoMinima by remember { mutableStateOf<String?>(null) }
                 var mensagemBloqueio by remember { mutableStateOf(TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO) }
 
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
                         try {
-                            val configuracao = consultarConfiguracaoDoApp(cliente)
-                            versaoMinima = configuracao.versaoMinima
-                            configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
+                            withTimeoutOrNull(3000L) {
+                                val configuracao = consultarConfiguracaoDoApp(cliente)
+                                versaoMinima = configuracao.versaoMinima
+                                configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
+                            }
                         } catch (_: Exception) {
                             // Falha transitória de rede ou offline nunca bloqueia o acesso
+                        } finally {
+                            verificando = false
                         }
+                    } else {
+                        verificando = false
                     }
                 }
 
                 PortaoDeAtualizacao(
                     versaoAtual = BuildConfig.VERSION_NAME,
                     versaoMinima = versaoMinima,
+                    verificando = verificando,
                     mensagem = mensagemBloqueio,
                     aoAtualizar = {
                         val uriLoja = Uri.parse("market://details?id=$packageName")

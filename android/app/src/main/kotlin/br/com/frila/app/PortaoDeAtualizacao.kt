@@ -52,18 +52,25 @@ suspend fun consultarConfiguracaoDoApp(
 /**
  * Portão de versão e atualização obrigatória (paridade com `PortaoDeAtualizacao` do iOS).
  *
- * Avalia se a versão atual do app instalada é inferior à versão mínima exigida.
- * Se for inferior, bloqueia a navegação de todo o app e exibe a [TelaAtualizacaoObrigatoria].
+ * Enquanto a verificação estiver pendente ([verificando] = true), não compõe o conteúdo do app,
+ * impedindo que o feed ou rotas protegidas sejam expostos antes da decisão de versão mínima.
+ * Se a versão atual for inferior à versão mínima exigida, bloqueia a navegação de todo o app
+ * e exibe a [TelaAtualizacaoObrigatoria].
  * Caso contrário, libera a composição do [conteudo] principal.
  */
 @Composable
 fun PortaoDeAtualizacao(
     versaoAtual: String = BuildConfig.VERSION_NAME,
     versaoMinima: String? = null,
+    verificando: Boolean = false,
     mensagem: String = TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO,
     aoAtualizar: () -> Unit = {},
     conteudo: @Composable () -> Unit,
 ) {
+    if (verificando) {
+        return
+    }
+
     val precisaAtualizar = remember(versaoAtual, versaoMinima) {
         versaoMinima != null && ComparadorDeVersao.precisaAtualizar(versaoAtual, versaoMinima)
     }
