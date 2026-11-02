@@ -13,6 +13,17 @@ public struct LicencaDePacote: Decodable, Identifiable, Equatable, Sendable {
     public let texto: String
     /// Conteúdo do arquivo NOTICE do pacote, quando ele traz um.
     public let aviso: String?
+
+    public init(id: String, nome: String, versao: String, revisao: String, url: URL, tipo: String, texto: String, aviso: String? = nil) {
+        self.id = id
+        self.nome = nome
+        self.versao = versao
+        self.revisao = revisao
+        self.url = url
+        self.tipo = tipo
+        self.texto = texto
+        self.aviso = aviso
+    }
 }
 
 public enum Licencas {
@@ -92,12 +103,12 @@ public struct TelaLicencas: View {
     }
 }
 
-struct TelaDetalheDaLicenca: View {
+public struct TelaDetalheDaLicenca: View {
     private let licenca: LicencaDePacote
 
-    init(_ licenca: LicencaDePacote) { self.licenca = licenca }
+    public init(_ licenca: LicencaDePacote) { self.licenca = licenca }
 
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {

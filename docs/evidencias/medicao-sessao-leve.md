@@ -76,3 +76,28 @@ A mutação foi revertida antes da suíte final verde e não integra o commit.
 Há **2 bloqueios de cobertura** (vagas distintas e HTTP na UI) e **1 intercorrência recuperada**
 (finalização da mutação). Um teste local foi pulado pelo motivo acima.
 A CI é registrada no PR; este arquivo não afirma resultado de CI antes de sua conclusão.
+
+---
+
+# Extensão da medição — 01/11/2026 (Cartão 84 · N-015)
+
+Entrega complementar do critério de sessão abaixo de 1 MB do cartão **57hJ7FV0** cobrindo os bloqueios anteriores.
+
+## Cobertura estendida
+1. **3 vagas distintas exercitadas:** O teste `MedicaoDeDesempenhoTests.bytesDaSessaoComTresVagasDistintas` cria uma lista com 3 vagas distintas e requisita o detalhe de cada uma das 3 antes de confirmar a candidatura na terceira vaga, com transporte HTTP real e cache efêmero esvaziado.
+2. **Transporte HTTP no teste de UI:** O teste `MedicaoUITests.testSessaoDeConsultaECandidaturaConsomeMenosDeUmMegabyte` foi estendido com `medirBytesHTTPDaSessaoComCacheVazio()`, realizando as 5 requisições da sessão sobre loopback com `URLSessionTaskMetrics` e cache esvaziado, comprovando que o total transmitido pela rede é maior que zero e menor que 1.000.000 B.
+
+## Resultados obtidos no simulador (iPhone 17 Pro, iOS 27)
+
+```text
+MEDICOES HTTP local: requisições=5 enviados=2595 B recebidos=5365 B total=7960 B limite=1000000 B
+MEDICOES HTTP 3 vagas distintas: requisições=5 enviados=2595 B recebidos=6600 B total=9195 B limite=1000000 B
+MEDICOES listaDeVagas: Lista de vagas, n=1 · p50 106 ms · p95 106 ms · máx 106 ms
+MEDICOES detalheDaVaga: Detalhe da vaga, n=4 · p50 36 ms · p95 64 ms · máx 64 ms
+MEDICOES rede (app UI): 0 bytes (dublê em memória)
+MEDICOES HTTP local: requisições=5 enviados=1740 B recebidos=1404 B total=3144 B limite=1000000 B
+```
+
+## O que só o aparelho físico prova (pendências humanas)
+- **Critério 1 (p95 de 20 aberturas abaixo de 2 s em 4G real no aparelho de entrada):** Só um iPhone real antigo (iPhone SE 2ª/3ª geração ou iPhone 11) com chip celular e rádio 4G ativo pode comprovar a latência de torre e o tempo de abertura real.
+- **Critérios 2 e 4 (Tráfego de rede celular total):** Só o aparelho prova os dados celulares totais da sessão via **Ajustes > Celular > Frila**, pois engloba o overhead de transporte TLS/QUIC/DNS e conexões dos SDKs proprietários do Firebase.

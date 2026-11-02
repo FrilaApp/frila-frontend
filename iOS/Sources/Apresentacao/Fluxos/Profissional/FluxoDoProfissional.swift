@@ -138,6 +138,15 @@ public struct FluxoDoProfissional<Barra: View>: View {
         _candidaturasViewModel = State(initialValue: MinhasCandidaturasViewModel(api: api, repositorioTurnos: repo))
         self.barra = barra
         self.sair = sair
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_MEUS_TURNOS") || ProcessInfo.processInfo.arguments.contains("-FRILA_ABA_TURNOS") {
+            roteador.aba = .turnos
+        } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CANDIDATURAS") || ProcessInfo.processInfo.arguments.contains("-FRILA_ABA_CANDIDATURAS") {
+            roteador.aba = .candidaturas
+        } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PERFIL") || ProcessInfo.processInfo.arguments.contains("-FRILA_ABA_CONTA") {
+            roteador.aba = .conta
+        }
+        #endif
     }
 
     public var body: some View {

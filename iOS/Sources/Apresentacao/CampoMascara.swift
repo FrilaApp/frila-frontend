@@ -12,6 +12,9 @@ public struct CampoMascara: UIViewRepresentable {
     private let teclado: UIKeyboardType
     private let tipoConteudo: UITextContentType?
     private let formatar: (String, String) -> String
+    /// Reflete se o campo está em edição, para o chamador registrá-lo no escopo de teclado
+    /// (`.frilaFormField(id:isFocused:)`). Opcional: sem ele o campo se comporta como antes.
+    private let emEdicao: Binding<Bool>?
     @Environment(\.isEnabled) private var habilitado
 
     public init(
@@ -21,9 +24,11 @@ public struct CampoMascara: UIViewRepresentable {
         identificadorAcessibilidade: String? = nil,
         teclado: UIKeyboardType = .numberPad,
         tipoConteudo: UITextContentType? = nil,
+        emEdicao: Binding<Bool>? = nil,
         formatar: @escaping (String, String) -> String
     ) {
         _texto = texto
+        self.emEdicao = emEdicao
         self.placeholder = placeholder
         self.rotuloAcessibilidade = rotuloAcessibilidade
         self.identificadorAcessibilidade = identificadorAcessibilidade
@@ -33,7 +38,7 @@ public struct CampoMascara: UIViewRepresentable {
     }
 
     public func makeCoordinator() -> Coordenador {
-        Coordenador(texto: $texto, formatar: formatar)
+        Coordenador(texto: $texto, formatar: formatar, emEdicao: emEdicao)
     }
 
     public func makeUIView(context: Context) -> UITextField {
@@ -55,12 +60,16 @@ public struct CampoMascara: UIViewRepresentable {
         campo.addTarget(context.coordinator, action: #selector(Coordenador.editar(_:)), for: .editingChanged)
         campo.delegate = context.coordinator
         campo.text = texto
+        if Self.tecladoSemReturn(teclado) {
+            campo.inputAccessoryView = Self.barraOk(para: campo)
+        }
         return campo
     }
 
     public func updateUIView(_ campo: UITextField, context: Context) {
         context.coordinator.texto = $texto
         context.coordinator.formatar = formatar
+        context.coordinator.emEdicao = emEdicao
         campo.isEnabled = habilitado
         if campo.text != texto {
             let formatado = formatar(texto, campo.text ?? "")
@@ -69,16 +78,43 @@ public struct CampoMascara: UIViewRepresentable {
         }
     }
 
+    /// Teclados numéricos não têm tecla Return: precisam de uma saída explícita.
+    private static func tecladoSemReturn(_ tipo: UIKeyboardType) -> Bool {
+        [.numberPad, .phonePad, .decimalPad, .asciiCapableNumberPad].contains(tipo)
+    }
+
+    /// Barra "Ok" acima do teclado. Só encerra a edição, sem enviar nem avançar o formulário.
+    private static func barraOk(para campo: UITextField) -> UIToolbar {
+        let barra = UIToolbar(frame: CGRect(x: 0, y: 0, width: 0, height: 44))
+        let ok = UIBarButtonItem(
+            title: String(localized: "OK", bundle: bundleApresentacao),
+            primaryAction: UIAction { [weak campo] _ in campo?.resignFirstResponder() }
+        )
+        barra.items = [UIBarButtonItem(systemItem: .flexibleSpace), ok]
+        barra.sizeToFit()
+        return barra
+    }
+
     @MainActor
     public final class Coordenador: NSObject, UITextFieldDelegate {
         var texto: Binding<String>
         var formatar: (String, String) -> String
+        var emEdicao: Binding<Bool>?
         var ultimoTextoAplicado: String
 
-        init(texto: Binding<String>, formatar: @escaping (String, String) -> String) {
+        init(texto: Binding<String>, formatar: @escaping (String, String) -> String, emEdicao: Binding<Bool>?) {
             self.texto = texto
             self.formatar = formatar
+            self.emEdicao = emEdicao
             self.ultimoTextoAplicado = texto.wrappedValue
+        }
+
+        public func textFieldDidBeginEditing(_ campo: UITextField) {
+            emEdicao?.wrappedValue = true
+        }
+
+        public func textFieldDidEndEditing(_ campo: UITextField) {
+            emEdicao?.wrappedValue = false
         }
 
         public func textField(
