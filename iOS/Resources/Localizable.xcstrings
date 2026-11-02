@@ -10358,16 +10358,6 @@
         }
       }
     },
-    "Nome da função": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome da função"
-          }
-        }
-      }
-    },
     "Fechar busca": {
       "localizations": {
         "pt-BR": {
