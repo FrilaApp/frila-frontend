@@ -8,6 +8,7 @@ public struct TelaPerfilProfissional: View {
     @State private var viewModel: PerfilProfissionalViewModel
     private let aoSalvar: () -> Void
     @State private var infoDeHorariosAberta = false
+    @FocusState private var focoNoPontoBase: Bool
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
@@ -209,53 +210,23 @@ public struct TelaPerfilProfissional: View {
                 .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityAddTraits(.isHeader)
 
-            HStack(spacing: FrilaEspaco.compacto) {
-                Image(systemName: "mappin")
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityHidden(true)
-
-                TextField(
-                    text: $viewModel.enderecoTexto,
-                    prompt: Text(verbatim: TextosDoProfissional.Perfil.buscarPontoBase).foregroundStyle(FrilaCor.textoSecundario)
+            FrilaSearchBar(
+                texto: $viewModel.enderecoTexto,
+                foco: $focoNoPontoBase,
+                icone: "mappin",
+                rotulo: TextosDoProfissional.Perfil.buscarPontoBase,
+                idDoCampo: "perfil_ponto_base",
+                identificador: "campo-ponto-base",
+                submitLabel: .search,
+                acao: FrilaSearchBarAcao(
+                    icone: "magnifyingglass",
+                    rotulo: TextosDoProfissional.Perfil.buscar,
+                    identificador: "botao-buscar-endereco",
+                    carregando: viewModel.carregandoBusca
                 ) {
-                    Text(verbatim: TextosDoProfissional.Perfil.pontoBase)
-                }
-                .textFieldStyle(.plain)
-                .font(FrilaTipo.valorDoCampo)
-                .foregroundStyle(FrilaCor.texto)
-                .submitLabel(.search)
-                .onSubmit {
                     Task { await viewModel.buscarEndereco() }
-                }
-                .accessibilityIdentifier("campo-ponto-base")
-
-                Button {
-                    Task { await viewModel.buscarEndereco() }
-                } label: {
-                    Group {
-                        if viewModel.carregandoBusca {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "magnifyingglass")
-                                .font(FrilaTipo.corpo)
-                                .foregroundStyle(FrilaCor.texto)
-                        }
-                    }
-                    .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.buscar))
-                .accessibilityIdentifier("botao-buscar-endereco")
-            }
-            .padding(.leading, FrilaEspaco.medio)
-            .padding(.trailing, FrilaEspaco.minimo)
-            .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
+                },
+                aoEnviar: { Task { await viewModel.buscarEndereco() } }
             )
 
             if !viewModel.sugestoes.isEmpty {

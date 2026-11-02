@@ -83,10 +83,6 @@ struct SecaoDeFuncoes: View {
         _aberto = State(initialValue: false)
     }
 
-    /// A busca está em uso quando o campo tem foco ou texto. Não há dois elementos (botão e barra): é um
-    /// campo só, que ganha foco e contorno sem mudar de tamanho nem de lugar.
-    private var emBusca: Bool { focoNaBusca || !consulta.isEmpty }
-
     private var escolhidas: [Funcao] {
         OrganizacaoDeFuncoes.escolhidasVisiveis(funcoes, selecionadas: selecionadas)
     }
@@ -246,54 +242,14 @@ struct SecaoDeFuncoes: View {
     // MARK: - Busca
 
     private var barraDeBusca: some View {
-        HStack(spacing: FrilaEspaco.compacto) {
-            Image(systemName: "magnifyingglass")
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .accessibilityHidden(true)
-
-            TextField(
-                text: $consulta,
-                prompt: Text(verbatim: TextosDoProfissional.Perfil.buscarFuncao).foregroundStyle(FrilaCor.textoSecundario)
-            ) {
-                Text(verbatim: TextosDoProfissional.Perfil.buscarFuncao)
-            }
-            .textFieldStyle(.plain)
-            .font(FrilaTipo.valorDoCampo)
-            .foregroundStyle(FrilaCor.texto)
-            .submitLabel(.done)
-            .autocorrectionDisabled()
-            .focused($focoNaBusca)
-            .onSubmit { focoNaBusca = false }
-            .frilaFormField(id: "perfil_funcoes_busca", isFocused: focoNaBusca, onDismiss: { focoNaBusca = false })
-            .accessibilityIdentifier("campo-busca-funcao")
-
-            if emBusca {
-                Button(action: encerrarBusca) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .transition(.opacity)
-                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.fecharBuscaDeFuncao))
-                .accessibilityIdentifier("botao-fechar-busca-funcao")
-            }
-        }
-        .padding(.leading, FrilaEspaco.medio)
-        .padding(.trailing, FrilaEspaco.minimo)
-        .frame(minHeight: FrilaMetrica.alturaDoCampo)
-        .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-        // Em repouso o campo já tem contorno, para ler como campo; em uso o contorno ganha força.
-        .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                .strokeBorder(emBusca ? FrilaCor.bordaDoCampo : FrilaCor.divisoria, lineWidth: 1)
+        FrilaSearchBar(
+            texto: $consulta,
+            foco: $focoNaBusca,
+            rotulo: TextosDoProfissional.Perfil.buscarFuncao,
+            idDoCampo: "perfil_funcoes_busca",
+            identificador: "campo-busca-funcao",
+            limpar: (TextosDoProfissional.Perfil.fecharBuscaDeFuncao, "botao-fechar-busca-funcao")
         )
-        .contentShape(Rectangle())
-        .onTapGesture { focoNaBusca = true }
-        .animation(FrilaMovimento.animacao(.easeOut(duration: 0.16), reduzir: reduzirMovimento), value: emBusca)
     }
 
     private var semResultado: some View {
