@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import CoreText
 
 /// Campo de e-mail do Login com predição de domínio.
 /// Depois do "@", uma roda vertical mostra o domínio sugerido como um placeholder cinza,
@@ -13,9 +14,7 @@ struct CampoEmailComDominio: View {
     @State private var estado = EstadoDoCursor()
     @State private var posicao: Double = 0
     @State private var posicaoNoToque: Double = 0
-    @State private var preenchendo = false
     @State private var estendido = false
-    @State private var dominioEmPreenchimento: String?
     @State private var tarefaDePreenchimento: Task<Void, Never>?
     @State private var foco = PonteDeFoco()
     @State private var gestoIntencional = false
@@ -26,6 +25,11 @@ struct CampoEmailComDominio: View {
     @State private var acentoCTA = false
     @State private var usouAcentoCTA = false
     @State private var tarefaDoAcento: Task<Void, Never>?
+    @State private var transicao: TransicaoDoDominio?
+    @State private var tempoDaCadeia = 0.0
+    @State private var aguardandoCadeia = false
+
+    private var preenchendo: Bool { transicao != nil }
 
     private var ctaAtivo: Bool { sugestao.map { !$0.prefixo.isEmpty } == true && !preenchendo }
 
@@ -44,13 +48,8 @@ struct CampoEmailComDominio: View {
     private var alturaVisual: CGFloat { estendido ? altura * crescimento : altura }
 
     private var sugestao: SugestaoDominio? {
-        guard habilitado, estado.focado else { return nil }
-        let criada = SugestaoDominio.criar(texto: texto, cursorNoFim: estado.cursorNoFim)
-        // No preenchimento, o cinza é só o que falta do domínio escolhido e encolhe junto com o texto digitado.
-        if preenchendo, let dominio = dominioEmPreenchimento, let criada {
-            return SugestaoDominio(prefixo: criada.prefixo, candidatos: criada.candidatos.filter { $0 == dominio })
-        }
-        return preenchendo ? nil : criada
+        guard habilitado, estado.focado, !preenchendo else { return nil }
+        return SugestaoDominio.criar(texto: texto, cursorNoFim: estado.cursorNoFim)
     }
 
     /// x do fim do texto, medido pela largura (o cursor do UIKit chega atrasado durante o preenchimento).
@@ -82,10 +81,32 @@ struct CampoEmailComDominio: View {
                     habilitado: habilitado,
                     reservaDireita: reservaDireita,
                     foco: foco,
+                    ocultarTexto: preenchendo,
+                    aoInteragir: cancelarPreenchimento,
                     aoEnviar: aoEnviar,
                     aoMudarCursor: { novo in estado = novo }
                 )
                 .frame(width: largura, height: altura)
+
+                if let transicao {
+                    PreenchimentoPorBlocos(transicao: transicao, tempo: tempoDaCadeia, mostrarGhost: !aguardandoCadeia,
+                                           baseline: estado.baseline, linhaDoCursor: estado.linhaDoCursor)
+                        .frame(width: max(0, largura - FrilaEspaco.medio - reservaDireita), height: altura)
+                        .clipped()
+                        .offset(x: FrilaEspaco.medio)
+                        .allowsHitTesting(false)
+                        .id(transicao.id)
+                        .onAppear { animarCadeia(transicao) }
+
+                    if aguardandoCadeia {
+                        let inicio = min(medir(transicao.textoAnterior), max(0, largura - FrilaEspaco.medio - reservaDireita)) + FrilaEspaco.medio + 0.5
+                        RodaDeDominios(sugestao: transicao.sugestao, posicao: Double(transicao.posicao),
+                                       passo: passoDaRoda, interacao: destaque)
+                            .frame(width: max(0, largura - inicio - reservaDireita - 4), height: alturaVisual, alignment: .leading)
+                            .offset(x: inicio)
+                            .allowsHitTesting(false)
+                    }
+                }
 
                 if let sugestaoAtual, larguraDaRoda >= 56 {
                     RodaDeDominios(sugestao: sugestaoAtual, posicao: preenchendo ? 0 : posicao, passo: passoDaRoda, interacao: destaque)
@@ -157,7 +178,7 @@ struct CampoEmailComDominio: View {
             .frame(width: largura, height: altura)
             // Expande sem reflow; conserva 2 pt dos 8 pt que separam o rótulo.
             .offset(y: estendido ? max(0, (alturaVisual - altura) / 2 - 6) : 0)
-            .animation(.snappy(duration: 0.18), value: sugestaoAtual != nil)
+            .animation(!preenchendo ? .snappy(duration: 0.18) : nil, value: sugestaoAtual != nil)
             .animation(.timingCurve(0.16, 1, 0.3, 1, duration: estendido ? 0.15 : 0.12), value: estendido)
         }
         .frame(height: altura)
@@ -189,6 +210,9 @@ struct CampoEmailComDominio: View {
         }
         .onChange(of: estado.cursorNoFim) { _, noFim in
             if !noFim { cancelarPreenchimento() }
+        }
+        .onChange(of: habilitado) { _, habilitado in
+            if !habilitado { cancelarPreenchimento() }
         }
         .onDisappear { cancelarPreenchimento() }
     }
@@ -274,39 +298,50 @@ struct CampoEmailComDominio: View {
 
     // MARK: Confirmação com preenchimento animado
 
+    /// Seta e roda confirmam o valor inteiro antes da apresentação por blocos.
     private func confirmar(sugestao: SugestaoDominio, posicao: Int, espera: Int = 0) {
-        guard estado.focado, sugestao == SugestaoDominio.criar(texto: texto, cursorNoFim: estado.cursorNoFim) else { return }
+        guard preenchimentoValido(texto),
+              sugestao == SugestaoDominio.criar(texto: texto, cursorNoFim: estado.cursorNoFim) else { return }
         let escolhido = sugestao.candidato(em: posicao)
-        let restante = Array(sugestao.restante(de: escolhido))
+        let restante = sugestao.restante(de: escolhido)
         guard !restante.isEmpty else { return }
         cancelarPreenchimento()
-        dominioEmPreenchimento = escolhido
+        // Só uma apresentação nova começa em zero; a camada que sai conserva seu quadro final.
+        tempoDaCadeia = 0
         estendido = espera > 0
-        preenchendo = true
-        textoEsperado = texto
-        let inicial = texto
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        aguardandoCadeia = espera > 0
+        transicao = TransicaoDoDominio(textoAnterior: texto, sugestao: sugestao, posicao: posicao,
+                                      espera: espera, cadeia: CadeiaDoDominio(restante: restante))
+        textoEsperado = texto + restante
+        texto = textoEsperado
+        if espera > 0 { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+    }
+
+    private func animarCadeia(_ apresentacao: TransicaoDoDominio) {
         tarefaDePreenchimento = Task { @MainActor in
-            if espera > 0 {
-                do { try await Task.sleep(for: .milliseconds(espera)) } catch { return }
-            }
-            guard preenchimentoValido(inicial) else { cancelarPreenchimento(); return }
+            guard !Task.isCancelled, transicao?.id == apresentacao.id else { return }
+            // O campo se recolhe dentro do dwell, antes de começar a troca de texto.
+            // Assim o fill inteiro e o campo nativo final compartilham a mesma origem.
             withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.12)) { estendido = false }
-            let relogio = ContinuousClock()
-            let inicio = relogio.now
-            var corrente = inicial
-            for (indice, caractere) in restante.enumerated() {
-                let instante = RitmoDoDominio.instante(progresso: Double(indice + 1) / Double(restante.count))
-                do { try await relogio.sleep(until: inicio.advanced(by: .seconds(0.4 * instante))) } catch { return }
-                guard preenchimentoValido(corrente) else { cancelarPreenchimento(); return }
-                corrente.append(caractere)
-                textoEsperado = corrente
-                texto = corrente
+            if apresentacao.espera > 0 {
+                do { try await Task.sleep(for: .milliseconds(apresentacao.espera)) } catch { return }
             }
-            preenchendo = false
-            dominioEmPreenchimento = nil
-            self.posicao = 0
+            guard transicao?.id == apresentacao.id else { return }
+            guard preenchimentoValido(textoEsperado) else { cancelarPreenchimento(); return }
+            aguardandoCadeia = false
+            // Relógio uniforme; o cronograma aplica a Bézier de conjunto e a curva de cada bloco.
+            withAnimation(.linear(duration: apresentacao.cadeia.duracao), completionCriteria: .logicallyComplete) {
+                tempoDaCadeia = apresentacao.cadeia.duracao
+            } completion: {
+                guard transicao?.id == apresentacao.id else { return }
+                cancelarPreenchimento()
+                self.posicao = 0
+            }
         }
+    }
+
+    private func medir(_ valor: String) -> CGFloat {
+        (valor as NSString).size(withAttributes: [.font: UIFont.preferredFont(forTextStyle: .body)]).width
     }
 
     private func preenchimentoValido(_ esperado: String) -> Bool {
@@ -317,14 +352,123 @@ struct CampoEmailComDominio: View {
     }
 
     private func cancelarPreenchimento() {
+        // Remover a apresentação revela imediatamente o UITextField com o valor final.
+        var transacao = Transaction()
+        transacao.disablesAnimations = true
+        withTransaction(transacao) { transicao = nil; aguardandoCadeia = false }
         tarefaDeEncaixe?.cancel()
         tarefaDeEncaixe = nil
         tarefaDePreenchimento?.cancel()
         tarefaDePreenchimento = nil
-        preenchendo = false
-        dominioEmPreenchimento = nil
         destaque = 0
         estendido = false
+    }
+}
+
+private struct TransicaoDoDominio {
+    let id = UUID()
+    let textoAnterior: String
+    let sugestao: SugestaoDominio
+    let posicao: Int
+    let espera: Int
+    let cadeia: CadeiaDoDominio
+}
+
+/// Fade do ghost e entrada integral do restante, com blur curto como máscara da troca.
+/// O cursor visual acompanha a largura interpolada; o cursor nativo já está no fim real.
+private struct PreenchimentoPorBlocos: View, Animatable {
+    let transicao: TransicaoDoDominio
+    var tempo: Double
+    let mostrarGhost: Bool
+    let baseline: CGFloat
+    let linhaDoCursor: CGRect
+
+    nonisolated var animatableData: Double {
+        get { tempo }
+        set { tempo = newValue }
+    }
+
+    var body: some View {
+        GeometryReader { geometria in
+            let fonte = UIFont.preferredFont(forTextStyle: .body)
+            let blocos = transicao.cadeia.blocos
+            let completo = transicao.textoAnterior + blocos.map(\.texto).joined()
+            let linha = CTLineCreateWithAttributedString(NSAttributedString(string: completo, attributes: [.font: fonte]))
+            let anterior = CTLineGetOffsetForStringIndex(linha, transicao.textoAnterior.utf16.count, nil)
+            let limites = blocos.reduce(into: [transicao.textoAnterior.utf16.count]) { $0.append($0.last! + $1.texto.utf16.count) }
+                .map { CTLineGetOffsetForStringIndex(linha, $0, nil) }
+            let larguras = blocos.indices.map { limites[$0 + 1] - limites[$0] }
+            let largura = anterior + blocos.indices.reduce(CGFloat.zero) { $0 + larguras[$1] * blocos[$1].progresso(em: tempo) }
+            let recuo = max(0, largura - max(0, geometria.size.width - 2))
+            ZStack(alignment: .leading) {
+                TextoNaBaselineDoCampo(texto: completo, baseline: baseline, altura: geometria.size.height)
+                    .mask(alignment: .leading) { Rectangle().frame(width: anterior) }
+                ForEach(blocos.indices, id: \.self) { indice in
+                    let progresso = blocos[indice].progresso(em: tempo)
+                    let inicio = limites[indice]
+                    ZStack(alignment: .leading) {
+                        if mostrarGhost {
+                            TextoNaBaselineDoCampo(texto: completo, baseline: baseline, altura: geometria.size.height)
+                                .mask(alignment: .leading) { Rectangle().frame(width: larguras[indice]).offset(x: inicio) }
+                                .opacity(0.38 * (1 - progresso))
+                        }
+                        TextoNaBaselineDoCampo(texto: completo, baseline: baseline, altura: geometria.size.height)
+                            .mask(alignment: .leading) { Rectangle().frame(width: larguras[indice]).offset(x: inicio) }
+                            .blur(radius: 6 * (1 - progresso))
+                            .opacity(progresso)
+                    }
+                    .fixedSize()
+                }
+                Rectangle()
+                    .fill(FrilaCor.primaria)
+                    .frame(width: 2, height: linhaDoCursor.height)
+                    .offset(y: linhaDoCursor.midY - geometria.size.height / 2)
+                    .offset(x: largura)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            .frame(height: geometria.size.height)
+            .offset(x: -recuo)
+        }
+    }
+}
+
+/// Usa o mesmo motor de texto do UITextField, ancorado na baseline medida no campo.
+/// Não estima centro vertical com métricas ou arredondamentos do Text do SwiftUI.
+private struct TextoNaBaselineDoCampo: UIViewRepresentable {
+    let texto: String
+    let baseline: CGFloat
+    let altura: CGFloat
+
+    func makeUIView(context: Context) -> Vista {
+        Vista()
+    }
+
+    func updateUIView(_ vista: Vista, context: Context) {
+        vista.rotulo.text = texto
+        vista.rotulo.font = .preferredFont(forTextStyle: .body)
+        vista.rotulo.textColor = FrilaCor.textoUIKit
+        vista.baseline.constant = baseline
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: Vista, context: Context) -> CGSize? {
+        CGSize(width: (texto as NSString).size(withAttributes: [.font: UIFont.preferredFont(forTextStyle: .body)]).width,
+               height: altura)
+    }
+
+    final class Vista: UIView {
+        let rotulo = UILabel()
+        private(set) var baseline: NSLayoutConstraint!
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            isUserInteractionEnabled = false
+            rotulo.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(rotulo)
+            baseline = rotulo.firstBaselineAnchor.constraint(equalTo: topAnchor)
+            NSLayoutConstraint.activate([rotulo.leadingAnchor.constraint(equalTo: leadingAnchor), baseline])
+        }
+
+        required init?(coder: NSCoder) { nil }
     }
 }
 
@@ -388,21 +532,6 @@ private struct RodaDeDominios: View, Animatable {
             let opacidade = pontos[par].1 + (pontos[par + 1].1 - pontos[par].1) * suave
             return Gradient.Stop(color: .black.opacity(opacidade), location: y)
         }, startPoint: .top, endPoint: .bottom)
-    }
-}
-
-/// Inverte o progresso y da Bézier (0.2, 0, 0, 1) para obter o instante x de cada grafema.
-struct RitmoDoDominio {
-    static func instante(progresso: Double) -> Double {
-        var inferior = 0.0
-        var superior = 1.0
-        for _ in 0..<40 {
-            let u = (inferior + superior) / 2
-            let y = 3 * u * u - 2 * u * u * u
-            if y < progresso { inferior = u } else { superior = u }
-        }
-        let u = (inferior + superior) / 2
-        return 0.6 * u * (1 - u) * (1 - u) + u * u * u
     }
 }
 
@@ -509,6 +638,8 @@ struct EstadoDoCursor: Equatable {
     var caretX: CGFloat = 0
     var cursorNoFim = false
     var focado = false
+    var baseline: CGFloat = 0
+    var linhaDoCursor: CGRect = .zero
 }
 
 final class PonteDeFoco {
@@ -522,6 +653,8 @@ private struct CampoEmailNativo: UIViewRepresentable {
     let habilitado: Bool
     let reservaDireita: CGFloat
     let foco: PonteDeFoco
+    let ocultarTexto: Bool
+    let aoInteragir: () -> Void
     let aoEnviar: () -> Void
     let aoMudarCursor: (EstadoDoCursor) -> Void
 
@@ -550,11 +683,17 @@ private struct CampoEmailNativo: UIViewRepresentable {
         context.coordinator.pai = self
         campo.isEnabled = habilitado
         campo.reservaDireita = reservaDireita
+        campo.aoInteragir = aoInteragir
+        campo.aoToqueNaJanela = ocultarTexto ? aoInteragir : nil
         if campo.text != texto, campo.markedTextRange == nil {
             campo.text = texto
             campo.selectedTextRange = campo.textRange(from: campo.endOfDocument, to: campo.endOfDocument)
             context.coordinator.relatar(campo)
         }
+        // Publica primeiro conteúdo e seleção; só depois revela ou oculta a apresentação nativa.
+        campo.layoutIfNeeded()
+        campo.textColor = ocultarTexto ? .clear : FrilaCor.textoUIKit
+        campo.tintColor = ocultarTexto ? .clear : nil
     }
 
     final class Coordenador: NSObject, UITextFieldDelegate {
@@ -578,7 +717,9 @@ private struct CampoEmailNativo: UIViewRepresentable {
                 textField.layoutIfNeeded()
                 var novo = EstadoDoCursor()
                 novo.focado = textField.isFirstResponder
+                novo.baseline = (textField as? CampoComMargens)?.baselineDoTexto ?? 0
                 if let selecao = textField.selectedTextRange, selecao.isEmpty {
+                    novo.linhaDoCursor = textField.caretRect(for: selecao.start)
                     novo.cursorNoFim = textField.compare(selecao.start, to: textField.endOfDocument) == .orderedSame
                     // Com o cursor no fim, o x é a largura do texto: o caretRect do UIKit chega atrasado.
                     let largura = ((textField.text ?? "") as NSString)
@@ -593,6 +734,39 @@ private struct CampoEmailNativo: UIViewRepresentable {
 }
 
 private final class CampoComMargens: UITextField {
+    private let referenciaDaBaseline = UIView()
+    var baselineDoTexto: CGFloat { referenciaDaBaseline.frame.minY }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        referenciaDaBaseline.translatesAutoresizingMaskIntoConstraints = false
+        referenciaDaBaseline.isUserInteractionEnabled = false
+        addSubview(referenciaDaBaseline)
+        NSLayoutConstraint.activate([
+            referenciaDaBaseline.topAnchor.constraint(equalTo: firstBaselineAnchor),
+            referenciaDaBaseline.leadingAnchor.constraint(equalTo: leadingAnchor),
+            referenciaDaBaseline.widthAnchor.constraint(equalToConstant: 0),
+            referenciaDaBaseline.heightAnchor.constraint(equalToConstant: 0)
+        ])
+    }
+
+    required init?(coder: NSCoder) { nil }
+    var aoInteragir: (() -> Void)?
+    var aoToqueNaJanela: (() -> Void)?
+    private weak var janelaObservada: UIWindow?
+    private lazy var observador = ObservadorDeInicioDeToque { [weak self] in self?.aoToqueNaJanela?() }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        janelaObservada?.removeGestureRecognizer(observador)
+        janelaObservada = window
+        window?.addGestureRecognizer(observador)
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        aoInteragir?()
+        super.touchesBegan(touches, with: event)
+    }
     var reservaDireita: CGFloat = 0
     private func area(_ limites: CGRect) -> CGRect {
         CGRect(
@@ -603,4 +777,20 @@ private final class CampoComMargens: UITextField {
     override func textRect(forBounds bounds: CGRect) -> CGRect { area(bounds) }
     override func editingRect(forBounds bounds: CGRect) -> CGRect { area(bounds) }
     override func placeholderRect(forBounds bounds: CGRect) -> CGRect { area(bounds) }
+}
+
+/// Observa o começo de qualquer toque na janela sem reconhecer nem bloquear gestos.
+private final class ObservadorDeInicioDeToque: UIGestureRecognizer {
+    private let aoComecar: () -> Void
+
+    init(aoComecar: @escaping () -> Void) {
+        self.aoComecar = aoComecar
+        super.init(target: nil, action: nil)
+        cancelsTouchesInView = false
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        aoComecar()
+        state = .failed
+    }
 }
