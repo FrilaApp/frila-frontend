@@ -72,9 +72,11 @@ struct PerfisDaContaTests {
     @Test("Com duas paradas, a captura é a mais próxima, a troca é direta e as zonas não se sobrepõem")
     func zonasComDuasParadas() {
         let zonas = ZonasDasParadas(alvos: [100, 190], curso: 190, ganho: 1)
-        #expect(zonas.raios[0] + zonas.histereses[0] < 45)
+        #expect(zonas.histereses[0] < zonas.raios[0] / 4)
         #expect(zonas.escolher(progresso: 100, anterior: nil) == 0)
         #expect(zonas.escolher(progresso: 145, anterior: nil) == nil)
+        #expect(zonas.escolher(progresso: 140, anterior: 0) == 0)
+        #expect(zonas.escolher(progresso: 146, anterior: 0) == nil)
         #expect(zonas.escolher(progresso: 190, anterior: nil) == 1)
         #expect(zonas.escolher(progresso: 160, anterior: 1) == 1)
         #expect(zonas.escolher(progresso: 120, anterior: 1) == 0)
