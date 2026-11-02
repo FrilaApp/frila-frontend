@@ -302,6 +302,8 @@ public struct TelaCadastroEstabelecimento: View {
     @State private var posicaoMapa: MapCameraPosition = .automatic
     @State private var posicaoMarcador: CGPoint?
     @State private var tentativaDeEnvio = 0
+    @FocusState private var campoFocado: CampoDeTexto?
+    @State private var documentoEmEdicao = false
     #if DEBUG
     @State private var regiaoMapa: MKCoordinateRegion?
     #endif
@@ -355,6 +357,11 @@ public struct TelaCadastroEstabelecimento: View {
         }
     }
 
+    private enum CampoDeTexto: Hashable {
+        case nome
+        case endereco
+    }
+
     private var formulario: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -379,11 +386,13 @@ public struct TelaCadastroEstabelecimento: View {
                 .padding(.top, FrilaEspaco.medio)
                 .padding(.bottom, FrilaEspaco.enorme)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .barraInferiorFixa {
                 barraInferiorCta
             }
+            .frilaKeyboardDismissScope()
             .onChange(of: tentativaDeEnvio) { _, _ in
                 rolarParaErro(proxy: proxy)
             }
@@ -498,6 +507,8 @@ public struct TelaCadastroEstabelecimento: View {
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(bordaDoCampo(.nome))
             .accessibilityLabel(Text(verbatim: TextosCadastro.nomeCampo))
+            .focused($campoFocado, equals: .nome)
+            .frilaFormField(id: "cadastro-estabelecimento-nome", isFocused: campoFocado == .nome)
 
             mensagemDeErroAbaixo(do: .nome)
         }
@@ -559,6 +570,7 @@ public struct TelaCadastroEstabelecimento: View {
                 texto: $model.documentoFormatado,
                 placeholder: TextosCadastro.soNumeros,
                 rotuloAcessibilidade: TextosCadastro.documentoCampo,
+                emEdicao: $documentoEmEdicao,
                 formatar: { texto, _ in CadastroEstabelecimentoViewModel.formatarDocumento(texto) }
             )
             .padding(.horizontal, FrilaEspaco.medio)
@@ -566,6 +578,7 @@ public struct TelaCadastroEstabelecimento: View {
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(bordaDoCampo(.documento))
+            .frilaFormField(id: "cadastro-estabelecimento-documento", isFocused: documentoEmEdicao)
 
             mensagemDeErroAbaixo(do: .documento)
         }
@@ -594,6 +607,8 @@ public struct TelaCadastroEstabelecimento: View {
                 .font(FrilaTipo.corpo)
                 .foregroundStyle(FrilaCor.texto)
                 .submitLabel(.search)
+                .focused($campoFocado, equals: .endereco)
+                .frilaFormField(id: "cadastro-estabelecimento-endereco", isFocused: campoFocado == .endereco)
                 .onSubmit {
                     Task { await model.buscarEndereco() }
                 }
