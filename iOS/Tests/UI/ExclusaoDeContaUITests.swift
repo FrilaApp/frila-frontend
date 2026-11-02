@@ -12,7 +12,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
         abaConta.tap()
 
-        // 2. No perfil, aciona o item "Excluir conta"
+        // 2. No perfil, abre "Sair ou excluir conta" e aciona o item "Excluir conta"
+        let caminhoParaEncerrar = app.buttons["perfil-sair-ou-excluir"]
+        XCTAssertTrue(caminhoParaEncerrar.waitForExistence(timeout: Espera.aparecer))
+        caminhoParaEncerrar.tap()
         let botaoIrParaExclusao = app.buttons["perfil-excluir-conta"]
         XCTAssertTrue(botaoIrParaExclusao.waitForExistence(timeout: Espera.aparecer))
         botaoIrParaExclusao.tap()
@@ -284,6 +287,10 @@ final class ExclusaoDeContaUITests: XCTestCase {
         XCTAssertTrue(abaConta.waitForExistence(timeout: 10))
         abaConta.tap()
 
+        let caminhoParaEncerrar = app.buttons["perfil-sair-ou-excluir"]
+        XCTAssertTrue(caminhoParaEncerrar.waitForExistence(timeout: Espera.aparecer))
+        rolarAte(caminhoParaEncerrar, em: app)
+        caminhoParaEncerrar.tap()
         let irParaExclusao = app.buttons["perfil-excluir-conta"]
         XCTAssertTrue(irParaExclusao.waitForExistence(timeout: Espera.aparecer))
         rolarAte(irParaExclusao, em: app)

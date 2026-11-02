@@ -20,6 +20,10 @@ enum TextosPerfilConta {
     static let exportar = String(localized: "Exportar meus dados", bundle: bundleApresentacao)
     static let excluir = String(localized: "Excluir conta", bundle: bundleApresentacao)
     static let sair = String(localized: "Sair", bundle: bundleApresentacao)
+    static let contaEDados = String(localized: "Conta e dados", bundle: bundleApresentacao)
+    static let sairOuExcluir = String(localized: "Sair ou excluir conta", bundle: bundleApresentacao)
+    static let explicacaoSair = String(localized: "Encerra a sessão neste aparelho. Você pode entrar de novo quando quiser.", bundle: bundleApresentacao)
+    static let explicacaoExcluir = String(localized: "Encerra a conta de forma permanente e não dá para desfazer. Antes de confirmar, você vê o que acontece com seus dados e turnos.", bundle: bundleApresentacao)
     static let erro = String(localized: "Não foi possível carregar o perfil.", bundle: bundleApresentacao)
     static let vazio = String(localized: "Nenhum estabelecimento disponível.", bundle: bundleApresentacao)
     static let funcao = String(localized: "Funções", bundle: bundleApresentacao)
@@ -162,7 +166,6 @@ struct BotaoDeExclusaoDeConta: View {
 
 /// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
 public struct TelaMeuPerfilProfissional: View {
-    @State private var mostrarConfirmacaoDeSaida = false
     @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -183,7 +186,6 @@ public struct TelaMeuPerfilProfissional: View {
 
     public var body: some View {
         conteudoDaTela
-            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
     }
 
     private var perfilCarregado: Bool {
@@ -209,17 +211,7 @@ public struct TelaMeuPerfilProfissional: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("perfil-ajuda")
 
-                if perfilCarregado {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text("Seus dados", bundle: bundleApresentacao)
-                            .font(FrilaTipo.resumo)
-                            .foregroundStyle(FrilaCor.texto)
-                        ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
-                    }
-                }
-
-                encerramento
-                    .padding(.top, FrilaEspaco.pequeno)
+                contaEDados
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.medio)
@@ -231,6 +223,27 @@ public struct TelaMeuPerfilProfissional: View {
         .task { await model.carregar() }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
+    }
+
+    /// Seção que reúne dados e conta. Sair e Excluir conta ficam um passo adiante, de propósito: ações
+    /// irreversíveis não devem ser acionadas por exploração na raiz da Conta.
+    private var contaEDados: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPerfilConta.contaEDados)
+                .font(FrilaTipo.resumo)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+            if perfilCarregado {
+                ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
+            }
+            NavigationLink {
+                TelaSairOuExcluirConta(api: api, sair: sair)
+            } label: {
+                RotuloDeLinha(TextosPerfilConta.sairOuExcluir)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-sair-ou-excluir")
+        }
     }
 
     private func identidade(_ conta: Conta) -> some View {
@@ -321,41 +334,6 @@ public struct TelaMeuPerfilProfissional: View {
         }
     }
 
-    private var encerramento: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-            Button { mostrarConfirmacaoDeSaida = true } label: {
-                Text(verbatim: TextosPerfilConta.sair)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .padding(.vertical, FrilaEspaco.minimo)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("perfil-sair")
-
-            NavigationLink {
-                TelaExclusaoDeConta(
-                    viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: sair)
-                )
-            } label: {
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosPerfilConta.excluir)
-                        .font(FrilaTipo.corpo)
-                    Spacer(minLength: FrilaEspaco.pequeno)
-                    Image(systemName: "chevron.right")
-                        .font(FrilaTipo.meta.weight(.semibold))
-                }
-                .foregroundStyle(FrilaCor.perigo)
-                .padding(.vertical, FrilaEspaco.minimo)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("perfil-excluir-conta")
-        }
-    }
-
     /// A folha "Por que recebo vagas" (RF27, #18): texto aprovado, critérios reais e "Contestar".
     private var explicacao: some View {
         NavigationStack {
@@ -373,6 +351,72 @@ public struct TelaMeuPerfilProfissional: View {
                 }
             }
         }.presentationDetents([.large])
+    }
+}
+
+/// Passo adicional entre a Conta e as ações irreversíveis. Cada ação diz o que faz antes do toque;
+/// a confirmação de saída e o fluxo de exclusão seguem como estavam.
+struct TelaSairOuExcluirConta: View {
+    @State private var mostrarConfirmacaoDeSaida = false
+    private let api: any ApiCliente
+    private let sair: () -> Void
+
+    init(api: any ApiCliente, sair: @escaping () -> Void) {
+        self.api = api
+        self.sair = sair
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: FrilaEspaco.enorme) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    Button { mostrarConfirmacaoDeSaida = true } label: {
+                        RotuloDeLinha(TextosPerfilConta.sair)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("perfil-sair")
+                    Text(verbatim: TextosPerfilConta.explicacaoSair)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    NavigationLink {
+                        TelaExclusaoDeConta(
+                            viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: sair)
+                        )
+                    } label: {
+                        HStack(spacing: FrilaEspaco.pequeno) {
+                            Text(verbatim: TextosPerfilConta.excluir)
+                                .font(FrilaTipo.corpo)
+                            Spacer(minLength: FrilaEspaco.pequeno)
+                            Image(systemName: "chevron.right")
+                                .font(FrilaTipo.meta.weight(.semibold))
+                                .accessibilityHidden(true)
+                        }
+                        .foregroundStyle(FrilaCor.perigo)
+                        .padding(.vertical, FrilaEspaco.minimo)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("perfil-excluir-conta")
+                    Text(verbatim: TextosPerfilConta.explicacaoExcluir)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.top, FrilaEspaco.medio)
+            .padding(.bottom, FrilaEspaco.grande)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(FrilaCor.fundo)
+        .navigationTitle(Text(verbatim: TextosPerfilConta.sairOuExcluir))
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
     }
 
     /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
@@ -420,7 +464,6 @@ public struct TelaMeuPerfilProfissional: View {
         .presentationDragIndicator(.visible)
     }
 }
-
 /// Perfil do estabelecimento (#18), com a mesma lista aberta do perfil do profissional.
 public struct TelaPerfilEstabelecimento: View {
     @State private var mostrarConfirmacaoDeSaida = false

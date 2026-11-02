@@ -1,22 +1,52 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "Conta e dados": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta e dados"
+          }
+        }
+      }
+    },
+    "Sair ou excluir conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair ou excluir conta"
+          }
+        }
+      }
+    },
+    "Encerra a sessão neste aparelho. Você pode entrar de novo quando quiser.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerra a sessão neste aparelho. Você pode entrar de novo quando quiser."
+          }
+        }
+      }
+    },
+    "Encerra a conta de forma permanente e não dá para desfazer. Antes de confirmar, você vê o que acontece com seus dados e turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerra a conta de forma permanente e não dá para desfazer. Antes de confirmar, você vê o que acontece com seus dados e turnos."
+          }
+        }
+      }
+    },
     "Seu histórico": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Seu histórico"
-          }
-        }
-      }
-    },
-    "Seus dados": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seus dados"
           }
         }
       }
