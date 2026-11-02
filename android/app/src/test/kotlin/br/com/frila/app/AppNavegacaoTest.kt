@@ -43,4 +43,25 @@ class AppNavegacaoTest {
     fun `rota de detalhe embute o id da vaga`() {
         assertEquals("detalhe/vaga-123", Rotas.detalhe("vaga-123"))
     }
+
+    @Test
+    fun `rotas de ajuda e licencas existem no contrato de navegacao`() {
+        assertEquals("ajuda", Rotas.AJUDA)
+        assertEquals("licencas", Rotas.LICENCAS)
+    }
+
+    @Test
+    fun `rota de vaga indisponivel existe no contrato de navegacao`() {
+        assertEquals("vaga_indisponivel", Rotas.VAGA_INDISPONIVEL)
+    }
+
+    @Test
+    fun `rota de turno nao encontrado existe no contrato de navegacao`() {
+        assertEquals("turno_nao_encontrado", Rotas.TURNO_NAO_ENCONTRADO)
+    }
+
+    @Test
+    fun `rota de turno do aviso embute o id do turno`() {
+        assertEquals("meus_turnos/turno-456", Rotas.turnoAviso("turno-456"))
+    }
 }

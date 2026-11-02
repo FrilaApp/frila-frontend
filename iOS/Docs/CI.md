@@ -20,6 +20,16 @@ Na primeira execução do desenho, a 37504092755 (06/10):
 
 Depois dela, `CancelamentoDoProfissionalUITests` (3,0 min) passou para a parte 1. A troca compensa as classes novas do #154 e do #155 (`PorQueReceboVagasUITests` e `EquipeDeConfiancaUITests`), que caíram sozinhas na parte 2.
 
+Em 02/11/2026 (Cartão 344), após análise detalhada dos tempos por passo em execuções recentes com e sem builds de Release:
+- **Run 41306878893 (com Release):** Parte 1 somou 84,3 min (79,3 min testes); Parte 2 somou 81,7 min (15,7 min Release + 61,2 min testes).
+- **Run 41285173133 (com Release):** Parte 1 somou 88,0 min (83,4 min testes); Parte 2 somou 90,7 min (19,8 min Release + 65,2 min testes).
+- **Run 41322412132 (PR #636, com Release):** Parte 1 somou 97,6 min (91,3 min step de testes, com `AcessibilidadeDoCatalogoUITests` atingindo 30,7 min); Parte 2 somou 85,6 min (16,5 min de Release + 62,9 min testes).
+
+Como a Parte 2 executa de 16 a 20 min de compilações de Release (Dev, Beta, Prod) em PRs com código, transferir mais de 7 min para ela aproximaria o job de Release dos 105 min. Portanto, transferiram-se 6,5 min de testes da Parte 1 para a Parte 2 (`CancelamentoDoProfissionalUITests` 3,6 min e `ModoSelecaoDoProfissionalUITests` 2,9 min). As projeções estimadas indicam:
+- No cenário com Release: Parte 1 estimada em ~81,5 min e Parte 2 em ~97,2 min (margem de ~7,8 min sob o teto de 105 min).
+- No Run 41322412132 (retries e latência): Parte 1 estimada em ~91,1 min e Parte 2 em ~92,1 min (margem de ~12,9 min sob o teto).
+Avaliação de capacidade: com a suíte somando >127 min de testes de UI e 1.322 testes unitários, o teto físico do particionamento em 2 jobs está próximo do limite nos runners macOS; caso novos fluxos sejam adicionados na v1.1, a elevação do timeout para 120 min ou a transição para 3 jobs paralelos será recomendada.
+
 Cada parte compila o seu `build-for-testing`. A alternativa medida foi compilar uma vez e repassar os produtos às partes como artefato:
 - os produtos têm 218 MB, ou 56 MB zipados (medido localmente);
 - o upload na CI fez 360 MB em 19 s (xcresult da 37241695780);
@@ -91,7 +101,8 @@ gh workflow run ios.yml --ref main
 
 O workflow `.github/workflows/testflight.yml` arquiva, assina, confere e manda o app ao TestFlight
 (#203). Todo o trabalho fica em `Scripts/enviar-testflight.sh`, que roda igual na CI e na máquina de
-quem precisar reproduzir. Ele não mexe na CI de PR.
+quem precisar reproduzir. Ele não mexe na CI de PR. O roteiro detalhado de operação, segredos, conferência
+no App Store Connect, Crashlytics e separação de tarefas humanas está em [PassoAPassoTestFlightCI.md](PassoAPassoTestFlightCI.md).
 
 ### Quando roda
 
