@@ -369,17 +369,17 @@ enum SituacaoDaSelecao: Equatable {
 
 /// A seção "Candidatos" do detalhe da vaga em seleção, em Minhas vagas, com os cartões de candidato dos quadros
 /// "Candidata" e "Acompanhar" do MidFi do Fabrício.
-struct SecaoDeCandidatos: View {
+public struct SecaoDeCandidatos: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueios: BloqueiosDaSessao?
     private let vaga: VagaNoPainel
     private let abrirPerfil: (PerfilPublico) -> Void
     @State private var viewModel: CandidatosDaVagaViewModel
 
-    init(
+    public init(
         vaga: VagaNoPainel,
         api: any ApiCliente,
         relerVaga: @escaping @MainActor () async -> VagaNoPainel?,
-        abrirPerfil: @escaping (PerfilPublico) -> Void
+        abrirPerfil: @escaping (PerfilPublico) -> Void = { _ in }
     ) {
         self.vaga = vaga
         self.abrirPerfil = abrirPerfil
@@ -395,7 +395,7 @@ struct SecaoDeCandidatos: View {
 
     private var situacao: SituacaoDaSelecao { SituacaoDaSelecao(vaga) }
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             Text(verbatim: TextosDosCandidatos.titulo).font(FrilaTipo.secao).foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)

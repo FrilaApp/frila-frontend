@@ -5,6 +5,7 @@ import SwiftUI
 /// Segue os quadros "AlertaAtraso" e "Denuncia" do MidFi do Fabrício: seções em cartões agrupados,
 /// microrrótulos em caixa alta, motivos em lista com visto, avisos neutros e botões em cápsula.
 public struct FolhaSuporteTurno: View {
+    @FocusState private var focoNoRelato: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var sistemaReduzirMovimento
@@ -39,6 +40,7 @@ public struct FolhaSuporteTurno: View {
                 .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
                 .frame(maxWidth: .infinity)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosDoSuporte.titulo))
             .navigationBarTitleDisplayMode(.inline)
@@ -68,6 +70,7 @@ public struct FolhaSuporteTurno: View {
             }
             .accessibilityIdentifier("folha-suporte-turno")
         }
+        .frilaKeyboardDismissScope()
     }
 
     private var avisoPrazo: some View {
@@ -203,6 +206,8 @@ public struct FolhaSuporteTurno: View {
             .frame(minHeight: FrilaMetrica.alvoMinimo)
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+            .focused($focoNoRelato)
+            .frilaFormField(id: "suporte-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
             .accessibilityIdentifier("campo-relato-suporte")
             .accessibilityHint(Text(verbatim: TextosDoSuporte.quantidadeCaracteres(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)))
 
