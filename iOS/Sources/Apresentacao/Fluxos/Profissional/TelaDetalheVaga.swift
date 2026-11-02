@@ -640,10 +640,27 @@ public struct TelaDetalheVaga<Acao: View>: View {
         guard let idx = args.firstIndex(of: "-FRILA_CAPTURA"), idx + 1 < args.count else { return nil }
         let estado = args[idx + 1]
         switch estado {
+        case "confirmada":
+            let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
+            let contato = Contato(
+                nome: "Marina",
+                telefone: "(61) 98888-0000",
+                whatsappURL: URL(string: "https://wa.me/5561988880000")!,
+                visivelAte: Date().addingTimeInterval(7 * 24 * 60 * 60)
+            )
+            return .confirmada(turnoID: turnoID, contato: contato)
+        case "pendente":
+            return .pendente(candidaturaID: UUID(uuidString: "23000000-0000-0000-0000-000000000001")!)
         case "preenchida":
             return .vagaPreenchida
         case "encerrada":
             return .vagaEncerrada
+        case "conflito":
+            return .inelegivel(.turnoSobreposto)
+        case "funcao-incompativel":
+            return .inelegivel(.funcaoIncompativel)
+        case "conta-suspensa":
+            return .contaSuspensa
         default:
             return nil
         }

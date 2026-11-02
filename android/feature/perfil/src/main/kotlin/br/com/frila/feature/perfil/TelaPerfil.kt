@@ -43,8 +43,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.core.app.NotificationManagerCompat
+import br.com.frila.core.designsystem.componentes.AvisoFrila
+import br.com.frila.core.designsystem.componentes.TomAviso
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -109,10 +116,29 @@ fun TelaPerfil(
             aoErro("Não foi possível abrir a autenticação biométrica.")
         }
     },
+    verificarNotificacoesDoSistema: (Context) -> Boolean = { ctx ->
+        NotificationManagerCompat.from(ctx).areNotificationsEnabled()
+    },
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val disponibilidadeBiometrica = remember { verificarDisponibilidadeBiometrica(contexto) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var notificacoesDoSistemaAtivadas by remember {
+        mutableStateOf(verificarNotificacoesDoSistema(contexto))
+    }
+
+    DisposableEffect(lifecycleOwner, contexto) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificacoesDoSistemaAtivadas = verificarNotificacoesDoSistema(contexto)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
     var mensagemErroBiometria by remember { mutableStateOf<String?>(null) }
 
     // RF03/RNF04: repõe o avatar persistido ao montar a tela — independente do carregamento de
@@ -205,6 +231,7 @@ fun TelaPerfil(
                 notificacaoTurnosAtivada = estado.notificacaoTurnosAtivada,
                 notificacaoSistemaAtivada = estado.notificacaoSistemaAtivada,
                 aoAlternarNotificacao = viewModel::definirNotificacaoAtivada,
+                notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
                 paddingValues = paddingInterno,
             )
         }
@@ -255,6 +282,7 @@ private fun ConteudoDoPerfil(
     notificacaoTurnosAtivada: Boolean,
     notificacaoSistemaAtivada: Boolean,
     aoAlternarNotificacao: (canal: String, ativado: Boolean) -> Unit,
+    notificacoesDoSistemaAtivadas: Boolean,
     paddingValues: PaddingValues,
 ) {
     Column(
@@ -294,6 +322,7 @@ private fun ConteudoDoPerfil(
             turnosAtivada = notificacaoTurnosAtivada,
             sistemaAtivada = notificacaoSistemaAtivada,
             aoAlternar = aoAlternarNotificacao,
+            notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
         )
         BlocoDeConta(
             aoDeslogar = aoDeslogar,
@@ -318,6 +347,7 @@ private fun BlocoDeNotificacoes(
     turnosAtivada: Boolean,
     sistemaAtivada: Boolean,
     aoAlternar: (canal: String, ativado: Boolean) -> Unit,
+    notificacoesDoSistemaAtivadas: Boolean,
 ) {
     val contexto = LocalContext.current
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
@@ -326,6 +356,45 @@ private fun BlocoDeNotificacoes(
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.semantics { heading() },
         )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = FrilaEspacamento.pequeno)
+                .testTag("status-notificacoes-sistema"),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Permissão no sistema",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = if (notificacoesDoSistemaAtivadas) "Ativadas" else "Desativadas",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (notificacoesDoSistemaAtivadas) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                modifier = Modifier.semantics {
+                    stateDescription = if (notificacoesDoSistemaAtivadas) "ativado" else "desativado"
+                },
+            )
+        }
+
+        if (!notificacoesDoSistemaAtivadas) {
+            AvisoFrila(
+                tom = TomAviso.ALERTA,
+                mensagem = "Notificações desativadas no Android. Ative nas configurações do sistema para receber alertas de vagas e turnos.",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("aviso-notificacoes-desativadas-sistema"),
+            )
+        }
+
         LinhaDeNotificacao("Vagas urgentes", GerenciadorDeCanais.CANAL_URGENCIA, urgenciaAtivada, aoAlternar)
         LinhaDeNotificacao("Turnos", GerenciadorDeCanais.CANAL_TURNOS, turnosAtivada, aoAlternar)
         LinhaDeNotificacao("Geral", GerenciadorDeCanais.CANAL_SISTEMA, sistemaAtivada, aoAlternar)

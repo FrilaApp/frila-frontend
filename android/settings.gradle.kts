@@ -28,3 +28,6 @@ include(":feature:turnos")
 include(":feature:perfil")
 include(":core:notificacoes")
 include(":app")
+include(":baselineprofile")
+
+include(":core:preferencias")

@@ -22,6 +22,7 @@ import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
+import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
@@ -33,7 +34,7 @@ import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltro
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
-import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroSharedPreferences
+import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
@@ -42,6 +43,7 @@ import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.dsl.onClose
 import org.koin.dsl.module
 
 /** Endpoint real do Supabase do Frila. Em produção isto vem de `BuildConfig`, não de literal. */
@@ -50,10 +52,11 @@ private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
 
 /** Usa Android Keystore em produção e mantém o grafo utilizável em testes JVM sem [Context]. */
 val moduloSeguranca = module {
+    single { CacheVagasDaSessao(getOrNull<Context>()?.noBackupFilesDir) }
     single<ArmazenamentoDeSessao> {
-        getOrNull<Context>()
-            ?.let(::ArmazenamentoDeSessaoKeystore)
+        val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)
             ?: ArmazenamentoDeSessaoEmMemoria()
+        SessaoComCacheVagas(origem, get())
     }
     /** RN15 (cartão Cdv0sS5w): leitura do ambiente para VerificadorDeIntegridade. */
     single<LeitorDeAmbiente> {
@@ -80,6 +83,11 @@ val moduloRede = module {
     }
     single { ServicoAutenticacao(get()) }
     single { ServicoVagas(get()) }
+    factory {
+        val servico = get<ServicoVagas>()
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        get<CacheVagasDaSessao>().criar(armazenamento) { coordenada -> servico.listarVagasAbertas(coordenada) }
+    }
     single { ServicoDispositivo(get()) }
     single { ServicoTurnos(get()) }
     single { ServicoPerfil(get()) }
@@ -108,19 +116,18 @@ val moduloLocalizacao = module {
 }
 
 val moduloFeatures = module {
+    single { PreferenciasAndroid(get()) } onClose { it?.close() }
     single<ArmazenamentoPreferenciasFiltro> {
         getOrNull<Context>()
-            ?.let { ctx ->
-                ArmazenamentoPreferenciasFiltroSharedPreferences(
-                    ctx.getSharedPreferences("preferencias_filtros_vagas", Context.MODE_PRIVATE),
-                )
+            ?.let { _ ->
+                ArmazenamentoPreferenciasFiltroDataStore(get<PreferenciasAndroid>().dados)
             }
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
     viewModel { EntradaViewModel(get()) }
     viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
     viewModel { CadastroViewModel() }
-    viewModel { FeedVagasViewModel(get(), get(), get()) }
+    viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     single { MonitorizadorDeTurnosProximos(gerenciadorGeofencing = get(), preferenciasNotificacao = get()) }
     viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }
