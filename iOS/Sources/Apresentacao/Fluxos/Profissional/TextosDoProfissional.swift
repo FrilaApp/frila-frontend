@@ -230,6 +230,27 @@ enum TextosDoProfissional {
         public static let titulo = String(localized: "Funções e horários", bundle: bundleApresentacao)
         public static let cabecalho = String(localized: "Seu perfil de profissional", bundle: bundleApresentacao)
         public static let secaoFuncoes = String(localized: "Funções", bundle: bundleApresentacao)
+        public static let escolhaSuasFuncoes = String(localized: "Escolha suas funções", bundle: bundleApresentacao)
+        public static let buscarFuncao = String(localized: "Buscar função", bundle: bundleApresentacao)
+        public static let nomeDaFuncao = String(localized: "Nome da função", bundle: bundleApresentacao)
+        public static let fecharBuscaDeFuncao = String(localized: "Fechar busca", bundle: bundleApresentacao)
+        public static let nenhumaFuncaoEncontrada = String(localized: "Nenhuma função encontrada", bundle: bundleApresentacao)
+        public static let limparBusca = String(localized: "Limpar busca", bundle: bundleApresentacao)
+        public static let outrasFuncoes = String(localized: "Outras funções", bundle: bundleApresentacao)
+        public static let funcaoSelecionada = String(localized: "Selecionada", bundle: bundleApresentacao)
+
+        public static func funcoesSelecionadas(_ total: Int) -> String {
+            total == 1
+                ? String(localized: "1 função selecionada", bundle: bundleApresentacao)
+                : String(localized: "\(total) funções selecionadas", bundle: bundleApresentacao)
+        }
+
+        /// As duas primeiras funções escolhidas, em ordem alfabética, e quantas ficam de fora.
+        public static func resumoDeFuncoes(nomes: [String], restantes: Int) -> String {
+            let lista = nomes.joined(separator: ", ")
+            guard restantes > 0 else { return lista }
+            return String(localized: "\(lista) e mais \(restantes)", bundle: bundleApresentacao)
+        }
         public static let pontoBase = String(localized: "Ponto base", bundle: bundleApresentacao)
         public static let pontoBaseSalvo = String(localized: "Ponto base salvo", bundle: bundleApresentacao)
         public static let dicaPontoBase = String(localized: "Serve para calcular a distância até as vagas. Não é a sua localização em tempo real.", bundle: bundleApresentacao)

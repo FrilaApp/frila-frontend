@@ -434,6 +434,7 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["voltar-para-lista"].exists)
         tocar(ajustar)
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         tocar(funcao)
         let salvar = app.buttons["botao-salvar-perfil"]
@@ -598,6 +599,7 @@ final class AutenticacaoUITests: XCTestCase {
     private func preencherPerfil(_ app: XCUIApplication) {
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(funcao.waitForExistence(timeout: 10))
         funcao.tap()
@@ -1057,6 +1059,7 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(funcoesEHorarios.waitForExistence(timeout: 10))
         funcoesEHorarios.tap()
 
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         let horario = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
         XCTAssertTrue(funcao.waitForExistence(timeout: 10))
@@ -1404,3 +1407,10 @@ final class TrazerParaATelaCalculoTests: XCTestCase {
     }
 }
 
+/// A lista de funções começa fechada quando a pessoa já tem função escolhida (edição): abre o cartão
+/// antes de tocar numa linha.
+private func abrirFuncoesSeFechado(_ app: XCUIApplication) {
+    let expandir = app.buttons["botao-expandir-funcoes"]
+    guard expandir.waitForExistence(timeout: 10) else { return }
+    if !app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"].exists { expandir.tap() }
+}

@@ -41,6 +41,7 @@ public struct TelaPerfilProfissional: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollDismissesKeyboard(.interactively)
+        .frilaKeyboardDismissScope()
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
         .navigationBarTitleDisplayMode(.large)
@@ -169,24 +170,10 @@ public struct TelaPerfilProfissional: View {
                 .padding(.horizontal, FrilaEspaco.medio)
                 .accessibilityAddTraits(.isHeader)
 
-            Group {
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 0) {
-                        chipsDeFuncoes
-                    }
-                } else {
-                    FluxoDeChips(espaco: FrilaEspaco.pequeno) {
-                        chipsDeFuncoes
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.compacto)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                    .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
+            SecaoDeFuncoes(
+                funcoes: funcoesExibidas,
+                selecionadas: viewModel.funcoesSelecionadas,
+                alternar: { viewModel.alternarFuncao($0) }
             )
         }
     }
@@ -207,19 +194,6 @@ public struct TelaPerfilProfissional: View {
         }
         #endif
         return viewModel.funcoesDisponiveis
-    }
-
-    @ViewBuilder
-    private var chipsDeFuncoes: some View {
-        ForEach(funcoesExibidas) { funcao in
-            FiltroPill(
-                verbatim: funcao.nome,
-                selecionado: viewModel.funcoesSelecionadas.contains(funcao.id)
-            ) {
-                viewModel.alternarFuncao(funcao.id)
-            }
-            .accessibilityIdentifier("pill-funcao-\(funcao.id)")
-        }
     }
 
     private var secaoPontoBase: some View {
@@ -641,44 +615,6 @@ public struct TelaPerfilProfissional: View {
         }
     }
     #endif
-}
-
-// MARK: - Anexo A: Fluxo de Chips
-
-private struct FluxoDeChips: Layout {
-    var espaco: CGFloat = FrilaEspaco.pequeno
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        posicoes(subviews, largura: proposal.width ?? .infinity).tamanho
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let pontos = posicoes(subviews, largura: bounds.width).pontos
-        for (subview, ponto) in zip(subviews, pontos) {
-            subview.place(at: CGPoint(x: bounds.minX + ponto.x, y: bounds.minY + ponto.y), proposal: .unspecified)
-        }
-    }
-
-    private func posicoes(_ subviews: Subviews, largura: CGFloat) -> (pontos: [CGPoint], tamanho: CGSize) {
-        var pontos: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var alturaDaLinha: CGFloat = 0
-        var larguraUsada: CGFloat = 0
-        for subview in subviews {
-            let tamanho = subview.sizeThatFits(.unspecified)
-            if x > 0, x + tamanho.width > largura {
-                x = 0
-                y += alturaDaLinha
-                alturaDaLinha = 0
-            }
-            pontos.append(CGPoint(x: x, y: y))
-            alturaDaLinha = max(alturaDaLinha, tamanho.height)
-            larguraUsada = max(larguraUsada, x + tamanho.width)
-            x += tamanho.width + espaco
-        }
-        return (pontos, CGSize(width: larguraUsada, height: y + alturaDaLinha))
-    }
 }
 
 // MARK: - Barra inferior fixa

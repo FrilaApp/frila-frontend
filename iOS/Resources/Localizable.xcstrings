@@ -10347,6 +10347,116 @@
           }
         }
       }
+    },
+    "Escolha suas funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha suas funções"
+          }
+        }
+      }
+    },
+    "Buscar função": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar função"
+          }
+        }
+      }
+    },
+    "Nome da função": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome da função"
+          }
+        }
+      }
+    },
+    "Fechar busca": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar busca"
+          }
+        }
+      }
+    },
+    "Nenhuma função encontrada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma função encontrada"
+          }
+        }
+      }
+    },
+    "Limpar busca": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpar busca"
+          }
+        }
+      }
+    },
+    "Outras funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outras funções"
+          }
+        }
+      }
+    },
+    "Selecionada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecionada"
+          }
+        }
+      }
+    },
+    "1 função selecionada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 função selecionada"
+          }
+        }
+      }
+    },
+    "%lld funções selecionadas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld funções selecionadas"
+          }
+        }
+      }
+    },
+    "%@ e mais %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ e mais %lld"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
