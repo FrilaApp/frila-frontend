@@ -163,7 +163,6 @@ struct BotaoDeExclusaoDeConta: View {
 /// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
 public struct TelaMeuPerfilProfissional: View {
     @State private var mostrarConfirmacaoDeSaida = false
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -187,73 +186,44 @@ public struct TelaMeuPerfilProfissional: View {
             .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
     }
 
-    @ViewBuilder
+    private var perfilCarregado: Bool {
+        !model.carregando && model.mensagemErro == nil && model.conta != nil && model.perfil != nil
+    }
+
     private var conteudoDaTela: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                if model.carregando { EstadoCarregando() }
-                else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
-                else if let conta = model.conta, let perfil = model.perfil {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                if model.carregando {
+                    EstadoCarregando()
+                } else if let erro = model.mensagemErro {
+                    EstadoErro(verbatim: erro) { Task { await model.carregar() } }
+                } else if let conta = model.conta, let perfil = model.perfil {
+                    identidade(conta)
+                    historico
+                    configuracao(perfil)
+                }
+
+                Button { mostrarAjuda = true } label: {
+                    RotuloDeLinha(TextosPerfilConta.ajuda)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-ajuda")
+
+                if perfilCarregado {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text(verbatim: conta.nome)
-                            .font(FrilaTipo.secao)
+                        Text("Seus dados", bundle: bundleApresentacao)
+                            .font(FrilaTipo.resumo)
                             .foregroundStyle(FrilaCor.texto)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityAddTraits(.isHeader)
-                        GrupoDeLinhas {
-                            linha(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", contato: true)
-                                .padding(.vertical, FrilaEspaco.minimo)
-                            DivisoriaDeLinha()
-                            linha(TextosPerfilConta.email, conta.email, id: "perfil-email", contato: true)
-                                .padding(.vertical, FrilaEspaco.minimo)
-                            if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
-                            DivisoriaDeLinha()
-                            linha(TextosPerfilConta.funcao, perfil.funcoes.map(\.nome).joined(separator: ", "), id: "perfil-funcoes")
-                                .padding(.vertical, FrilaEspaco.minimo)
-                            DivisoriaDeLinha()
-                            linha(TextosPerfilConta.horarios, perfil.disponibilidades.isEmpty ? TextosPerfilConta.naoInformado : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao), id: "perfil-horarios")
-                                .padding(.vertical, FrilaEspaco.minimo)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                GrupoDeLinhas {
-                    if !model.carregando, model.mensagemErro == nil, model.conta != nil, model.perfil != nil {
-                        NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
-                            RotuloDeLinha(TextosPerfilConta.funcoesHorarios)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("perfil-funcoes-horarios")
-                        DivisoriaDeLinha()
-                        NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
-                            RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("perfil-historico-turnos")
-                        DivisoriaDeLinha()
-                        Button { mostrarExplicacao = true } label: {
-                            RotuloDeLinha(TextosPerfilConta.porQueRecebo)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("perfil-por-que-recebo")
-                        DivisoriaDeLinha()
-                        Button { mostrarAjuda = true } label: {
-                            RotuloDeLinha(TextosPerfilConta.ajuda)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("perfil-ajuda")
-                        DivisoriaDeLinha()
                         ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
-                        DivisoriaDeLinha()
                     }
-                    Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
-                        RotuloDeLinha(TextosPerfilConta.sair)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("perfil-sair")
                 }
-                excluirConta
-            }.padding(FrilaEspaco.medio)
+
+                encerramento
+                    .padding(.top, FrilaEspaco.pequeno)
+            }
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.top, FrilaEspaco.medio)
+            .padding(.bottom, FrilaEspaco.grande)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosPerfilConta.meuPerfil))
@@ -263,53 +233,127 @@ public struct TelaMeuPerfilProfissional: View {
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
 
-    @ViewBuilder
-    private func linha(_ titulo: String, _ valor: String, id: String, contato: Bool = false) -> some View {
-        let rotulo = Text(verbatim: titulo)
-            .font(FrilaTipo.meta)
-            .foregroundStyle(FrilaCor.texto)
-            .accessibilityIdentifier("\(id)-rotulo")
-        let conteudo = Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
-            .font(FrilaTipo.meta)
-            .foregroundStyle(FrilaCor.textoSecundario)
-            .accessibilityIdentifier("\(id)-valor")
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                rotulo.fixedSize(horizontal: false, vertical: true)
-                if contato {
-                    // Contatos longos permanecem inteiros, com o fim acessível por rolagem.
-                    ScrollView(.horizontal) {
-                        conteudo.fixedSize(horizontal: true, vertical: false)
-                            .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("\(id)-rolagem")
-                } else {
-                    conteudo.fixedSize(horizontal: false, vertical: true)
-                }
+    private func identidade(_ conta: Conta) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: conta.nome)
+                .font(FrilaTipo.secao)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            contato(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone")
+            contato(TextosPerfilConta.email, conta.email, id: "perfil-email")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func contato(_ titulo: String, _ valor: String, id: String) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityIdentifier("\(id)-rotulo")
+            Text(verbatim: valor.isEmpty ? TextosPerfilConta.naoInformado : valor)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityIdentifier("\(id)-valor")
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var historico: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text("Seu histórico", bundle: bundleApresentacao)
+                .font(FrilaTipo.resumo)
+                .foregroundStyle(FrilaCor.texto)
+            if let reputacao = model.perfilPublico?.reputacao {
+                SeloReputacao(reputacao)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .contain)
-        } else {
-            LabeledContent { conteudo } label: { rotulo }
-                .accessibilityElement(children: .combine)
+            NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
+                RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-historico-turnos")
         }
     }
 
-    /// Ação destrutiva de contorno, separada das linhas comuns.
-    private var excluirConta: some View {
-        NavigationLink {
-            TelaExclusaoDeConta(
-                viewModel: ExclusaoDeContaViewModel(
-                    api: api,
-                    aoConcluir: sair
-                )
-            )
-        } label: {
-            BotaoDeExclusaoDeConta()
+    private func configuracao(_ perfil: PerfilProfissional) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        Text(verbatim: TextosPerfilConta.funcoesHorarios)
+                            .font(FrilaTipo.tituloDoCartao)
+                            .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: FrilaEspaco.pequeno)
+                        Image(systemName: "chevron.right")
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        let funcoes = perfil.funcoes.map(\.nome).joined(separator: ", ")
+                        Text(verbatim: funcoes.isEmpty ? TextosPerfilConta.naoInformado : funcoes)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .accessibilityIdentifier("perfil-funcoes-valor")
+                        Text(verbatim: perfil.disponibilidades.isEmpty
+                             ? TextosPerfilConta.naoInformado
+                             : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao))
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityIdentifier("perfil-horarios-valor")
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, FrilaEspaco.minimo)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-funcoes-horarios")
+
+            Button { mostrarExplicacao = true } label: {
+                RotuloDeLinha(TextosPerfilConta.porQueRecebo)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-por-que-recebo")
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("perfil-excluir-conta")
+    }
+
+    private var encerramento: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+            Button { mostrarConfirmacaoDeSaida = true } label: {
+                Text(verbatim: TextosPerfilConta.sair)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .padding(.vertical, FrilaEspaco.minimo)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-sair")
+
+            NavigationLink {
+                TelaExclusaoDeConta(
+                    viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: sair)
+                )
+            } label: {
+                HStack(spacing: FrilaEspaco.pequeno) {
+                    Text(verbatim: TextosPerfilConta.excluir)
+                        .font(FrilaTipo.corpo)
+                    Spacer(minLength: FrilaEspaco.pequeno)
+                    Image(systemName: "chevron.right")
+                        .font(FrilaTipo.meta.weight(.semibold))
+                }
+                .foregroundStyle(FrilaCor.perigo)
+                .padding(.vertical, FrilaEspaco.minimo)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-excluir-conta")
+        }
     }
 
     /// A folha "Por que recebo vagas" (RF27, #18): texto aprovado, critérios reais e "Contestar".
