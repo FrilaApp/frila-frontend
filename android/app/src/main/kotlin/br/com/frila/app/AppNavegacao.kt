@@ -1,5 +1,7 @@
 package br.com.frila.app
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -33,11 +36,15 @@ import br.com.frila.feature.entrada.codigo.TelaCodigo
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.TelaEntrada
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
+import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
+import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.TelaAjudaPerfil
+import br.com.frila.feature.perfil.TelaLicencas
 import br.com.frila.feature.perfil.TelaPerfil
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
@@ -61,6 +68,9 @@ object Rotas {
     const val PERFIL = "perfil"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
     const val DESBLOQUEIO = "desbloqueio"
+    const val AJUDA = "ajuda"
+    const val LICENCAS = "licencas"
+    const val VAGA_INDISPONIVEL = "vaga_indisponivel"
     const val ATUALIZACAO_OBRIGATORIA = "atualizacao_obrigatoria"
 
     fun codigo(email: String) = "codigo/$email"
@@ -191,8 +201,26 @@ fun AppNavegacao(
                         TelaDetalheVaga(viewModel = viewModel)
                     }
                 } else {
-                    Text("Vaga indisponível. Atualize o feed para consultar as vagas abertas.")
+                    TelaVagaIndisponivel(
+                        motivo = MotivoIndisponibilidadeVaga.NAO_ENCONTRADA,
+                        aoVoltarParaFeed = {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        },
+                    )
                 }
+            }
+
+            composable(Rotas.VAGA_INDISPONIVEL) {
+                TelaVagaIndisponivel(
+                    motivo = MotivoIndisponibilidadeVaga.NAO_ENCONTRADA,
+                    aoVoltarParaFeed = {
+                        navController.navigate(Rotas.FEED) {
+                            popUpTo(Rotas.FEED) { inclusive = true }
+                        }
+                    },
+                )
             }
 
             composable(
@@ -265,6 +293,45 @@ fun AppNavegacao(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                    aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
+                )
+            }
+
+            composable(Rotas.AJUDA) {
+                val contexto = LocalContext.current
+                TelaAjudaPerfil(
+                    aoVoltar = { navController.popBackStack() },
+                    aoNavegarParaLicencas = { navController.navigate(Rotas.LICENCAS) },
+                    aoNavegarParaTermos = { url ->
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            contexto.startActivity(intent)
+                        } catch (_: Exception) { }
+                    },
+                    aoNavegarParaPrivacidade = { url ->
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            contexto.startActivity(intent)
+                        } catch (_: Exception) { }
+                    },
+                    aoAbrirEmailSuporte = { email ->
+                        try {
+                            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            contexto.startActivity(intent)
+                        } catch (_: Exception) { }
+                    },
+                )
+            }
+
+            composable(Rotas.LICENCAS) {
+                TelaLicencas(
+                    aoVoltar = { navController.popBackStack() },
                 )
             }
 

@@ -45,6 +45,17 @@ class AppNavegacaoTest {
     }
 
     @Test
+    fun `rotas de ajuda e licencas existem no contrato de navegacao`() {
+        assertEquals("ajuda", Rotas.AJUDA)
+        assertEquals("licencas", Rotas.LICENCAS)
+    }
+
+    @Test
+    fun `rota de vaga indisponivel existe no contrato de navegacao`() {
+        assertEquals("vaga_indisponivel", Rotas.VAGA_INDISPONIVEL)
+    }
+
+    @Test
     fun `rota de atualizacao obrigatoria existe no contrato de navegacao`() {
         assertEquals("atualizacao_obrigatoria", Rotas.ATUALIZACAO_OBRIGATORIA)
     }

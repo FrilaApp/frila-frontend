@@ -67,6 +67,7 @@ public struct TelaEntrada: View {
                                 .autocorrectionDisabled()
                                 .submitLabel(.send)
                                 .focused($campoFocado)
+                                .frilaFormField(id: "entrada-email", isFocused: campoFocado, onDismiss: { campoFocado = false })
                                 .disabled(viewModel.carregando)
                                 .onSubmit {
                                     executarEnvio()
@@ -122,6 +123,7 @@ public struct TelaEntrada: View {
                 .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
         }
         .navigationBarBackButtonHidden(true)
@@ -142,6 +144,7 @@ public struct TelaEntrada: View {
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.vertical, FrilaEspaco.compacto)
         }
+        .frilaKeyboardDismissScope()
         #if FRILA_DESIGN
         .exemploDebugEntrada()
         #endif
