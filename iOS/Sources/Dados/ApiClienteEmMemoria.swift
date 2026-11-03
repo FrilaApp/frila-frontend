@@ -707,6 +707,24 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return conta
     }
 
+    /// Demonstração: grava na conta em memória. O argumento de lançamento desliga a capacidade, para os
+    /// testes de cópia que não querem a parada Editar.
+    public nonisolated var suportaEdicaoDeContato: Bool {
+        !ProcessInfo.processInfo.arguments.contains("-FRILA_SEM_EDICAO_DE_CONTATO")
+    }
+
+    public func atualizarContato(_ alteracao: AlteracaoDeContato) async throws -> Conta {
+        try verificarRede()
+        guard let atual = conta else { throw erro("nao_encontrado") }
+        let nova = Conta(
+            id: atual.id, perfil: atual.perfil, nome: atual.nome,
+            telefone: alteracao.telefone ?? atual.telefone, email: alteracao.email ?? atual.email,
+            nascimento: atual.nascimento, estado: atual.estado
+        )
+        conta = nova
+        return nova
+    }
+
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
         chamadasACriarConta += 1
         await Task.yield()

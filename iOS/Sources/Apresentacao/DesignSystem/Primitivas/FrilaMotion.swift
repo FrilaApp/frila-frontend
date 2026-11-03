@@ -42,6 +42,51 @@ public enum FrilaMotion {
     /// (rigidez: 300, amortecimento: 20). Fluida, sem oscilação excessiva, com resposta orgânica.
     public static let progressBarSpring: Animation = .interpolatingSpring(stiffness: 300, damping: 20)
 
+    // MARK: - Cópia de contato (tip e pílula de deslizar)
+
+    public static let copyTipHold: Double = 1.4
+    /// Tempo da pílula com "Copiado" antes de sumir.
+    public static let copyPillHold: Double = 1.8
+    /// Espera para o nó assentar sobre "Copiar" antes de escurecer e receber o rótulo.
+    public static let copySettleDelay: Double = 0.10
+    /// Ao trocar direto de uma parada para outra, o nó vira lente de vidro enquanto viaja e só depois encolhe.
+    public static let copySwitchLensHold: Double = 0.18
+    /// A troca é mais lenta e macia que a trava; a cor ativa já vem na viagem, sem espera para assentar.
+    public static let copySwitchSpring: Animation = .spring(duration: 0.36, bounce: 0.14)
+    /// Durante a viagem o preenchimento ativo aparece parcial: o vidro continua visível por baixo.
+    public static let copySwitchFillOpacity: Double = 0.40
+    public static let copyHapticInterval: Double = 0.15
+    public static let copyLongPress: Double = 0.45
+    public static let copyPillOpen: Animation = .timingCurve(0.22, 1, 0.36, 1, duration: 0.24)
+    /// Cancelamento: a lente recua e a pílula se retrai até o valor, rápido e com leve vida.
+    public static let copyCancelSpring: Animation = .spring(duration: 0.22, bounce: 0.1)
+    public static let copyPillClose: Animation = .timingCurve(0.4, 0, 1, 1, duration: 0.16)
+    /// Atração do nó para "Copiar" e a troca de lente para bolha, com leve excesso.
+    public static let copyLatchSpring: Animation = .spring(duration: 0.20, bounce: 0.16)
+    /// Texto que sobe rolando ao trocar de "Copiar" para "Copiado".
+    public static let copyTextRoll: Animation = .spring(duration: 0.28, bounce: 0.08)
+    /// A pílula cresce de leve enquanto a lente desliza, como a barra de abas nativa. A nativa, medida em
+    /// gravação, chega a 1,043; aqui 1,03, porque a pílula já corre quase rente às margens da tela.
+    public static let copyPillDragScale: CGFloat = 1.06
+    public static let copyPillDragSpring: Animation = .spring(duration: 0.25, bounce: 0.2)
+    /// Reduzir Movimento: toda troca do componente é só este fade de opacidade.
+    public static let copyReducedFade: Animation = .easeOut(duration: 0.12)
+    /// Pulso seco ao travar e ao destravar em "Copiar". Dispara na captura, antes da troca visual.
+    public static let copyLatchHapticIntensity: Double = 0.45
+    /// Sair para o espaço livre pesa menos que entrar: a ida e a volta não se somam num rufar.
+    public static let copyUnlatchHapticIntensity: Double = 0.25
+    /// O pulso de saída espera um instante: se o nó prender noutra parada logo em seguida, só o da entrada vale.
+    public static let copyUnlatchHapticDelay: Double = 0.07
+    /// Dois pulsos de trava nunca ficam mais perto que isto.
+    public static let copyLatchHapticMinGap: Double = 0.09
+    /// A zona de captura cresce com o curso, até este teto: ativar o toggle mais cedo.
+    public static let copyCaptureFraction: CGFloat = 0.4
+    public static let copyCaptureMax: CGFloat = 80
+    /// Com várias paradas, cada zona de captura ocupa no máximo esta fração da distância até a vizinha, e a
+    /// histerese esta outra: as zonas de retenção de duas paradas nunca se sobrepõem.
+    public static let copyStopCaptureShare: CGFloat = 0.38
+    public static let copyStopHysteresisShare: CGFloat = 0.08
+
     // MARK: - Disclosure (expansão e recolhimento de containers)
 
     /// Expansão: mola quase sem bounce (0.42 s, bounce 0.08). Abre com corpo, assenta sem balançar.
