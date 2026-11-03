@@ -321,22 +321,13 @@ struct SecaoDeHorarios: View {
                     aoSelecionar: { id in ir(para: id == CampoDeHorario.inicio.id ? .inicio : .fim) }
                 )
 
-                // Moldura de altura fixa. As duas roletas existem sempre: Início fica à esquerda e Fim à direita, e a
-                // troca é o efeito de rolagem do "Copiado" da tela de Conta (offset, desfoque e opacidade), na
-                // horizontal e em sentido oposto ao do cursor: de Início para Fim a roleta anda da direita para a esquerda.
-                ZStack {
-                    ForEach([CampoDeHorario.inicio, .fim], id: \.self) { campo in
-                        roda(e, campo: campo)
-                            .modifier(RolagemHorizontalDaRoda(
-                                ativa: e.etapa == campo,
-                                lado: campo == .inicio ? -1 : 1,
-                                reduzirMovimento: reduzirMovimento
-                            ))
-                    }
+                // Moldura de altura fixa. As duas roletas são duas páginas de uma janela horizontal: Início na primeira e Fim na
+                // segunda. Trocar a etapa desliza a janela inteira, em sentido oposto ao do cursor (de Início para Fim a
+                // roleta nova vem da direita), recortada e com as pontas esmaecidas por uma máscara.
+                FrilaPaginasHorizontais(quantidade: 2, atual: e.etapa == .inicio ? 0 : 1) { indice in
+                    roda(e, campo: indice == 0 ? .inicio : .fim)
                 }
-                .animation(FrilaMovimento.animacao(FrilaMotion.horarioRodaRolagem, reduzir: reduzirMovimento), value: e.etapa)
                 .frame(height: Self.alturaDaRoda)
-                .clipped()
 
                 // A linha da nota sempre ocupa o lugar dela: aparecer e sumir não empurra o rodapé.
                 Text(verbatim: TextosDoProfissional.Perfil.horarioTerminaNoDiaSeguinte)
@@ -507,24 +498,5 @@ struct SecaoDeHorarios: View {
             viewModel.removerJanela(janela)
             if edicao?.origem == .existente(janela) { edicao = nil }
         }
-    }
-}
-
-/// A rolagem da roleta ao trocar de etapa, a mesma do texto "Copiado" da tela de Conta (`RolagemDoTexto`): deslocamento,
-/// desfoque como máscara e opacidade em proxy (zero enquanto há desfoque), só que na horizontal. A roleta inativa espera
-/// do lado dela: Início à esquerda, Fim à direita. Sem movimento (reduzir), só a opacidade.
-private struct RolagemHorizontalDaRoda: ViewModifier {
-    let ativa: Bool
-    /// −1: a roleta espera à esquerda; +1: à direita.
-    let lado: CGFloat
-    let reduzirMovimento: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .offset(x: ativa || reduzirMovimento ? 0 : lado * FrilaMotion.horarioRodaDeslocamento)
-            .blur(radius: ativa || reduzirMovimento ? 0 : FrilaMotion.horarioRodaDesfoque)
-            .opacity(ativa ? 1 : 0)
-            .allowsHitTesting(ativa)
-            .accessibilityHidden(!ativa)
     }
 }

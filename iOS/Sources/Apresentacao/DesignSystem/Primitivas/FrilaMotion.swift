@@ -230,11 +230,10 @@ public enum FrilaMotion {
 
     // MARK: - Horários (faixa semanal e lista acoplada)
 
-    /// Troca da roleta entre Início e Fim: o mesmo efeito de rolagem do texto "Copiado" na tela de Conta (offset, desfoque
-    /// como máscara e opacidade em proxy), na horizontal e em sentido oposto ao do cursor. Mola e desfoque vêm de lá.
-    public static let horarioRodaRolagem: Animation = .spring(duration: 0.28, bounce: 0.08)
-    public static let horarioRodaDeslocamento: CGFloat = 20
-    public static let horarioRodaDesfoque: CGFloat = 4
+    /// Troca de página em `FrilaPaginasHorizontais` (a roleta de Início e Fim): o conjunto desliza a distância inteira
+    /// da janela, em sentido oposto ao do cursor, e a máscara esmaece as pontas. 0,34 s com bounce de só 0,05: a
+    /// distância longa pede mais tempo que os 0,28 s do "Copiado" da tela de Conta, sem sobra de mola.
+    public static let paginasHorizontais: Animation = .spring(duration: 0.34, bounce: 0.05)
 
     /// O contêiner cresce para baixo quando ganha uma linha ou um painel de horários (240 ms).
     public static let horarioExpandir: Animation = .timingCurve(0.22, 1, 0.36, 1, duration: 0.24)
