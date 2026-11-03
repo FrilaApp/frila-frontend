@@ -32,8 +32,8 @@ public struct FrilaStepSegment: Identifiable, Hashable {
 /// - **Toque simples:** uma trajetória única de 440 ms para as duas bordas (`TrajetoriaDoToque`), desenhada à mão e
 ///   renderizada por relógio (`TimelineView`), sem mola. A bolha só existe no vão (0 com o cursor assentado, 1 no meio
 ///   do vão; sem vidro, o preenchimento fica em 100%) e fecha em 160 ms. Depois vem a reação à inércia, fixa: o corpo
-///   inteiro passa 2 pt do destino e recua 0,75 pt, e os rótulos reagem 1 pt no sentido oposto. A trilha e o cartão
-///   ficam parados, e o cursor nunca passa das margens da trilha.
+///   inteiro do cursor passa 2 pt do destino e recua 0,75 pt. Os rótulos Início e Fim, a trilha e o cartão ficam
+///   parados (rótulos que tremem dessincronizam a leitura), e o cursor nunca passa das margens da trilha.
 /// - **Soltar depois de arrastar:** a lente assenta e a bolha ganha uma mola em escala proporcional (comprime a 97% e
 ///   volta passando de leve de 100%), com um háptico leve no momento em que ela volta.
 /// - **Dois hápticos:** um pulso rígido quando o cursor vira de lado (na metade do arrasto, ou no toque) e um
@@ -129,20 +129,17 @@ public struct FrilaStepSegments: View {
     }
 
     /// As bordas apresentadas agora: as do relógio durante o toque, as de estado fora dele.
-    private func bordasApresentadas(em data: Date = .now) -> (esquerda: CGFloat, direita: CGFloat, vao: CGFloat, rotulos: CGFloat) {
-        guard let viagem else { return (esquerda, direita, 0, 0) }
+    private func bordasApresentadas(em data: Date = .now) -> (esquerda: CGFloat, direita: CGFloat, vao: CGFloat) {
+        guard let viagem else { return (esquerda, direita, 0) }
         return viagem.trajetoria.quadro(em: data.timeIntervalSince(viagem.inicio), passo: larguraDoSegmento)
     }
 
     // MARK: Corpo
 
     public var body: some View {
-        TimelineView(.animation(paused: viagem == nil)) { contexto in
-            let deslocamento = bordasApresentadas(em: contexto.date).rotulos
-            HStack(spacing: 0) {
-                ForEach(segmentos) { segmento in
-                    rotulo(segmento, deslocamento: deslocamento)
-                }
+        HStack(spacing: 0) {
+            ForEach(segmentos) { segmento in
+                rotulo(segmento)
             }
         }
         .background { cursor }
@@ -169,7 +166,7 @@ public struct FrilaStepSegments: View {
         }
     }
 
-    private func rotulo(_ segmento: FrilaStepSegment, deslocamento: CGFloat) -> some View {
+    private func rotulo(_ segmento: FrilaStepSegment) -> some View {
         let selecionado = segmento.id == ativo
         return Button {
             guard !arrastouAgora else { return }
@@ -194,7 +191,6 @@ public struct FrilaStepSegments: View {
                         ))
                 }
             }
-            .offset(x: deslocamento)
             .frame(maxWidth: .infinity, minHeight: 52)
             .contentShape(Capsule())
         }
@@ -458,7 +454,6 @@ struct ViagemDoToque: Equatable {
 ///   viagem, sem oscilação própria).
 /// - **Reação à inércia (fixa):** o corpo inteiro soma um deslocamento às duas bordas: 0 até 160 ms, +s·2 pt aos 220 ms,
 ///   −s·0,75 pt aos 310 ms e 0 aos 440 ms. Largura e altura não mudam.
-/// - **Rótulos:** um deslocamento único no sentido oposto: 0 até 160 ms, −s·1 pt aos 240 ms e 0 aos 420 ms.
 /// - **Bolha:** o centro nominal (origem → destino em 160 ms) atravessa o vão: 0 sobre um centro de célula, 1 no meio
 ///   do vão; fecha antes da reação e não renasce. Parte da posição apresentada, então uma interrupção no meio do vão
 ///   continua do ponto certo.
@@ -494,7 +489,7 @@ struct TrajetoriaDoToque: Equatable {
     private func de(_ de: CGFloat, para: CGFloat, em u: Double) -> CGFloat { de + (para - de) * Self.suave(u) }
 
     /// Bordas e bolha do vão no instante `t` (segundos desde o início). `passo` é a largura de um segmento.
-    func quadro(em tempo: TimeInterval, passo: CGFloat) -> (esquerda: CGFloat, direita: CGFloat, vao: CGFloat, rotulos: CGFloat) {
+    func quadro(em tempo: TimeInterval, passo: CGFloat) -> (esquerda: CGFloat, direita: CGFloat, vao: CGFloat) {
         let t = max(tempo, 0)
         let s = sentido
 
@@ -520,13 +515,6 @@ struct TrajetoriaDoToque: Equatable {
             (FrilaMotion.segmentoInerciaRecuoEm, -FrilaMotion.segmentoInerciaRecuo),
             (FrilaMotion.segmentoToqueDuracao, 0)
         ])
-        // Rótulos: sentido oposto, os dois grupos juntos.
-        let rotulos = -s * Self.trechos(t, [
-            (inicioDaReacao, 0),
-            (FrilaMotion.segmentoInerciaRotulosPico, FrilaMotion.segmentoInerciaRotulos),
-            (FrilaMotion.segmentoInerciaRotulosFim, 0)
-        ])
-
         let esquerdaAgora = (s > 0 ? tras : frente) + corpo
         let direitaAgora = (s > 0 ? frente : tras) + corpo
 
@@ -540,7 +528,7 @@ struct TrajetoriaDoToque: Equatable {
             let k = min(max((distanciaAoCentro - inicio) / (0.5 - inicio), 0), 1)
             vao = k * k * (3 - 2 * k)
         }
-        return (esquerdaAgora, direitaAgora, vao, rotulos)
+        return (esquerdaAgora, direitaAgora, vao)
     }
 }
 

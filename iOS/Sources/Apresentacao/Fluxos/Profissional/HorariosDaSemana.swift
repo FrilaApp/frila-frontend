@@ -321,16 +321,20 @@ struct SecaoDeHorarios: View {
                     aoSelecionar: { id in ir(para: id == CampoDeHorario.inicio.id ? .inicio : .fim) }
                 )
 
-                // Moldura de altura fixa: durante a troca existem as duas roletas, e a altura nunca dobra.
-                // A troca é escalonada, como no Estúdio: a antiga sai (90 ms) e só então a nova entra.
+                // Moldura de altura fixa. As duas roletas existem sempre: Início fica à esquerda e Fim à direita, e a
+                // troca é o efeito de rolagem do "Copiado" da tela de Conta (offset, desfoque e opacidade), na
+                // horizontal e em sentido oposto ao do cursor: de Início para Fim a roleta anda da direita para a esquerda.
                 ZStack {
-                    roda(e)
-                        .id(e.etapa)
-                        .transition(reduzirMovimento ? .identity : .asymmetric(
-                            insertion: .opacity.animation(FrilaMovimento.animacao(FrilaMotion.coreSwapFadeIn, reduzir: reduzirMovimento)),
-                            removal: .opacity.animation(FrilaMovimento.animacao(FrilaMotion.contentFadeOut, reduzir: reduzirMovimento))
-                        ))
+                    ForEach([CampoDeHorario.inicio, .fim], id: \.self) { campo in
+                        roda(e, campo: campo)
+                            .modifier(RolagemHorizontalDaRoda(
+                                ativa: e.etapa == campo,
+                                lado: campo == .inicio ? -1 : 1,
+                                reduzirMovimento: reduzirMovimento
+                            ))
+                    }
                 }
+                .animation(FrilaMovimento.animacao(FrilaMotion.horarioRodaRolagem, reduzir: reduzirMovimento), value: e.etapa)
                 .frame(height: Self.alturaDaRoda)
                 .clipped()
 
@@ -364,10 +368,10 @@ struct SecaoDeHorarios: View {
 
     /// A roleta nativa da etapa, com a tipografia tabular do Estúdio. O início não oferece o fim já escolhido;
     /// o fim vai do resto do dia à virada da meia-noite, e nunca oferece o próprio início.
-    private func roda(_ e: EdicaoDeHorario) -> some View {
+    private func roda(_ e: EdicaoDeHorario, campo: CampoDeHorario) -> some View {
         let opcoes: [HoraDoDia]
         let selecao: Binding<HoraDoDia>
-        switch e.etapa {
+        switch campo {
         case .inicio:
             opcoes = OpcoesDeHorario.inicio(atual: e.inicio, excluindo: e.fimVisitado ? e.fim : nil).map(\.hora)
             selecao = Binding(
@@ -388,12 +392,12 @@ struct SecaoDeHorarios: View {
                     .tag(hora)
             }
         } label: {
-            Text(verbatim: e.etapa == .inicio ? TextosDoProfissional.Perfil.inicio : TextosDoProfissional.Perfil.fim)
+            Text(verbatim: campo == .inicio ? TextosDoProfissional.Perfil.inicio : TextosDoProfissional.Perfil.fim)
         }
         .pickerStyle(.wheel)
         .labelsHidden()
         .frame(height: Self.alturaDaRoda)
-        .accessibilityIdentifier("roda-horario-\(e.etapa.id)")
+        .accessibilityIdentifier("roda-horario-\(campo.id)")
     }
 
     /// Seta Quente que avança do início para o fim e vira o visto na última etapa.
@@ -503,5 +507,24 @@ struct SecaoDeHorarios: View {
             viewModel.removerJanela(janela)
             if edicao?.origem == .existente(janela) { edicao = nil }
         }
+    }
+}
+
+/// A rolagem da roleta ao trocar de etapa, a mesma do texto "Copiado" da tela de Conta (`RolagemDoTexto`): deslocamento,
+/// desfoque como máscara e opacidade em proxy (zero enquanto há desfoque), só que na horizontal. A roleta inativa espera
+/// do lado dela: Início à esquerda, Fim à direita. Sem movimento (reduzir), só a opacidade.
+private struct RolagemHorizontalDaRoda: ViewModifier {
+    let ativa: Bool
+    /// −1: a roleta espera à esquerda; +1: à direita.
+    let lado: CGFloat
+    let reduzirMovimento: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .offset(x: ativa || reduzirMovimento ? 0 : lado * FrilaMotion.horarioRodaDeslocamento)
+            .blur(radius: ativa || reduzirMovimento ? 0 : FrilaMotion.horarioRodaDesfoque)
+            .opacity(ativa ? 1 : 0)
+            .allowsHitTesting(ativa)
+            .accessibilityHidden(!ativa)
     }
 }

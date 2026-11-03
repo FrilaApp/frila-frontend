@@ -198,11 +198,7 @@ public enum FrilaMotion {
     public static let segmentoInerciaExcesso: CGFloat = 2
     public static let segmentoInerciaRecuo: CGFloat = 0.75
     public static let segmentoInerciaRecuoEm: Double = 0.31
-    /// Rótulos: 1 pt no sentido oposto aos 240 ms, de volta a zero aos 420 ms. Os dois grupos usam o mesmo deslocamento,
-    /// então a distância entre eles não muda; o movimento relativo ao cursor chega a 3 pt.
-    public static let segmentoInerciaRotulos: CGFloat = 1
-    public static let segmentoInerciaRotulosPico: Double = 0.24
-    public static let segmentoInerciaRotulosFim: Double = 0.42
+    /// Os rótulos Início e Fim não reagem: ficam parados, porque rótulos que tremem dessincronizam a leitura.
 
     /// A bolha do vão vale 0 com o cursor num centro de célula e cresce até 1 no meio do vão (começa a 10% do passo,
     /// com suavização S). Cresce 8 por 5 pt além do cursor (no arraste são 28 por 14). Sem vidro e sem véu:
@@ -233,6 +229,12 @@ public enum FrilaMotion {
     public static let segmentoHapticAssentamento: Double = 0.55
 
     // MARK: - Horários (faixa semanal e lista acoplada)
+
+    /// Troca da roleta entre Início e Fim: o mesmo efeito de rolagem do texto "Copiado" na tela de Conta (offset, desfoque
+    /// como máscara e opacidade em proxy), na horizontal e em sentido oposto ao do cursor. Mola e desfoque vêm de lá.
+    public static let horarioRodaRolagem: Animation = .spring(duration: 0.28, bounce: 0.08)
+    public static let horarioRodaDeslocamento: CGFloat = 20
+    public static let horarioRodaDesfoque: CGFloat = 4
 
     /// O contêiner cresce para baixo quando ganha uma linha ou um painel de horários (240 ms).
     public static let horarioExpandir: Animation = .timingCurve(0.22, 1, 0.36, 1, duration: 0.24)
