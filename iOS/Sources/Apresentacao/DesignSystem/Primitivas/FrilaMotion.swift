@@ -129,16 +129,31 @@ public enum FrilaMotion {
     public static let disclosurePressDip: Double = 0.1
     public static let disclosurePressSettle: Double = 0.24
 
-    // MARK: - Segmentos com lente de vidro (movimento importado da rail de copiar contato)
+    // MARK: - Segmentos com lente de vidro (movimento da rail de copiar contato, refinado)
 
-    // Mesmos valores dos `copy*` da rail da Conta (PR #653): quando as duas entrarem na `main`, os dois
-    // grupos de tokens viram um só.
+    // A rail da Conta (PR #653) tem os `copy*`; aqui o movimento foi refinado depois do teste no aparelho:
+    // molas mais curtas e quase sem bounce (a mola dá a sensação de que algo assentou, nunca de brinquedo),
+    // bordas independentes (a da frente chega primeiro e a de trás um pouco depois, e a bolha se alonga na
+    // viagem) e tensão elástica contra a margem. Quando as duas entrarem na `main`, vale unificar.
 
-    /// Depois de a lente chegar, espera este tempo antes de assentar (`copySwitchLensHold`).
-    public static let segmentoLenteHold: Double = 0.18
+    /// Depois de a lente chegar, espera este tempo antes de assentar. Mais curto que o `copySwitchLensHold`
+    /// (0,18 s), com o assentamento também mais rápido.
+    public static let segmentoLenteHold: Double = 0.14
 
-    /// Viagem e assentamento do cursor: mola de 0,36 s com bounce 0,14 (`copySwitchSpring`).
-    public static let segmentoMola: Animation = .spring(duration: 0.36, bounce: 0.14)
+    /// Borda da frente do cursor na viagem: chega primeiro.
+    public static let segmentoBordaDaFrente: Animation = .spring(duration: 0.26, bounce: 0.08)
+
+    /// Borda de trás: chega um pouco depois e com menos bounce, e é isso que alonga a bolha enquanto viaja.
+    public static let segmentoBordaDeTras: Animation = Animation.spring(duration: 0.36, bounce: 0.06).delay(0.025)
+
+    /// A lente cresce sem bounce: tamanho que pula como mola vira desenho animado.
+    public static let segmentoLenteCresce: Animation = .spring(duration: 0.22, bounce: 0)
+
+    /// A lente assenta com um bounce curto de compensação: é o que dá a affordance de que algo assentou.
+    public static let segmentoLenteAssenta: Animation = .spring(duration: 0.26, bounce: 0.10)
+
+    /// Volta da tensão contra a margem: elástico firme, com pouco retorno.
+    public static let segmentoRetornoElastico: Animation = .spring(duration: 0.34, bounce: 0.14)
 
     /// Enquanto é lente, o preenchimento do cursor cai para 40% para o vidro aparecer (`copySwitchFillOpacity`).
     public static let segmentoPreenchimentoNaLente: Double = 0.40
@@ -147,8 +162,18 @@ public enum FrilaMotion {
     public static let segmentoLenteCresceX: CGFloat = 28
     public static let segmentoLenteCresceY: CGFloat = 14
 
-    /// Pulso rígido ao passar pela metade entre dois segmentos (`copyLatchHapticIntensity`).
-    public static let segmentoHapticIntensidade: Double = 0.45
+    /// Tensão contra a margem: a bolha estica no máximo 12% da largura de um segmento (cerca de 18 pt). Com a
+    /// lente (14 pt de cada lado) isso cabe no espaço livre até a borda do cartão, sem sair dele. Perto de zero
+    /// a resistência é de 40%, e vai fechando até o limite (curva `1 - exp`).
+    public static let segmentoEsticadaMaxima: CGFloat = 0.12
+    public static let segmentoResistencia: CGFloat = 0.6
+    /// Esticada ao máximo, a bolha afina 10% na altura, como um volume que se conserva.
+    public static let segmentoAfinarNaTensao: CGFloat = 0.10
+
+    /// Háptico 1, a troca de lado: pulso rígido (`copyLatchHapticIntensity`).
+    public static let segmentoHapticTroca: Double = 0.45
+    /// Háptico 2, o assentamento: um toque suave que confirma o estado.
+    public static let segmentoHapticAssentamento: Double = 0.55
 
     // MARK: - Horários (faixa semanal e lista acoplada)
 
