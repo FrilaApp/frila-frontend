@@ -129,6 +129,27 @@ public enum FrilaMotion {
     public static let disclosurePressDip: Double = 0.1
     public static let disclosurePressSettle: Double = 0.24
 
+    // MARK: - Segmentos com lente de vidro (movimento importado da rail de copiar contato)
+
+    // Mesmos valores dos `copy*` da rail da Conta (PR #653): quando as duas entrarem na `main`, os dois
+    // grupos de tokens viram um só.
+
+    /// Depois de a lente chegar, espera este tempo antes de assentar (`copySwitchLensHold`).
+    public static let segmentoLenteHold: Double = 0.18
+
+    /// Viagem e assentamento do cursor: mola de 0,36 s com bounce 0,14 (`copySwitchSpring`).
+    public static let segmentoMola: Animation = .spring(duration: 0.36, bounce: 0.14)
+
+    /// Enquanto é lente, o preenchimento do cursor cai para 40% para o vidro aparecer (`copySwitchFillOpacity`).
+    public static let segmentoPreenchimentoNaLente: Double = 0.40
+
+    /// A lente cresce além do cursor: 28 pt a mais na largura e 14 na altura, e transborda a trilha.
+    public static let segmentoLenteCresceX: CGFloat = 28
+    public static let segmentoLenteCresceY: CGFloat = 14
+
+    /// Pulso rígido ao passar pela metade entre dois segmentos (`copyLatchHapticIntensity`).
+    public static let segmentoHapticIntensidade: Double = 0.45
+
     // MARK: - Horários (faixa semanal e lista acoplada)
 
     /// O contêiner cresce para baixo quando ganha uma linha ou um painel de horários (240 ms).
