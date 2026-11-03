@@ -71,6 +71,10 @@ public struct CampoMascara: UIViewRepresentable {
         context.coordinator.formatar = formatar
         context.coordinator.emEdicao = emEdicao
         campo.isEnabled = habilitado
+        // O chamador pede para largar o foco (toque fora) ao marcar `emEdicao` como falso.
+        if let emEdicao, !emEdicao.wrappedValue, campo.isFirstResponder {
+            campo.resignFirstResponder()
+        }
         if campo.text != texto {
             let formatado = formatar(texto, campo.text ?? "")
             campo.text = formatado
