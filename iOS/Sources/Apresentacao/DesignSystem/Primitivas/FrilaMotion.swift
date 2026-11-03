@@ -170,6 +170,26 @@ public enum FrilaMotion {
     /// Esticada ao máximo, a bolha afina 10% na altura, como um volume que se conserva.
     public static let segmentoAfinarNaTensao: CGFloat = 0.10
 
+    /// Zona medial entre dois segmentos: faixa em que o arrasto ainda não decide. Vale 30% da largura de um segmento,
+    /// então o cursor só vira de lado depois de passar de 65% do caminho (e só volta ao passar de 35%). Um empurrão
+    /// curto ou um arremesso leve do cursor não troca de segmento sem querer. É uma histerese: o limite é medido a
+    /// partir do segmento que está valendo.
+    public static let segmentoZonaMedial: CGFloat = 0.30
+
+    // Toque simples: a bolha continua existindo, mas quase do tamanho do cursor ativo e sem bounce.
+
+    /// No toque, a lente cresce só 6 por 4 pt além do cursor (no arraste são 28 por 14).
+    public static let segmentoToqueCresceX: CGFloat = 6
+    public static let segmentoToqueCresceY: CGFloat = 4
+    /// No toque o preenchimento só cai para 80% e o vidro aparece a 60%.
+    public static let segmentoToquePreenchimento: Double = 0.80
+    public static let segmentoToqueVidro: Double = 0.60
+    /// As duas bordas viajam em molas sem bounce, quase juntas (15 ms de diferença): translação linear e calma.
+    public static let segmentoToqueBordaDaFrente: Animation = .spring(duration: 0.30, bounce: 0)
+    public static let segmentoToqueBordaDeTras: Animation = Animation.spring(duration: 0.34, bounce: 0).delay(0.015)
+    public static let segmentoToqueCresce: Animation = .spring(duration: 0.24, bounce: 0)
+    public static let segmentoToqueAssenta: Animation = .spring(duration: 0.28, bounce: 0.02)
+
     /// Háptico 1, a troca de lado: pulso rígido (`copyLatchHapticIntensity`).
     public static let segmentoHapticTroca: Double = 0.45
     /// Háptico 2, o assentamento: um toque suave que confirma o estado.

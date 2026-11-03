@@ -27,6 +27,10 @@ public struct FrilaStepSegment: Identifiable, Hashable {
 ///   algo assentou, sem efeito de brinquedo.
 /// - **Tensão na margem:** arrastar além do primeiro ou do último segmento estica a bolha com resistência
 ///   crescente (no máximo 12% de um segmento) e ela afina na altura; soltar devolve com um elástico firme.
+/// - **Zona medial:** o cursor só vira de lado depois de passar de 65% do caminho (e só volta ao passar de 35%), então um
+///   empurrão curto não troca de segmento. Soltar escolhe o segmento que está valendo.
+/// - **Toque simples:** a bolha continua, mas quase do tamanho do cursor ativo, sem bounce e com as duas bordas quase
+///   juntas: uma translação calma. Press e arrasto mantêm o movimento completo.
 /// - **Dois hápticos:** um pulso rígido quando o cursor vira de lado (na metade do arrasto, ou no toque) e um
 ///   toque suave quando a lente assenta, confirmando o estado.
 public struct FrilaStepSegments: View {
@@ -56,6 +60,11 @@ public struct FrilaStepSegments: View {
     @State private var gatilhoDeAssentamento = 0
     /// A troca veio de um arraste (o háptico de troca já tocou na metade): o toque não repete.
     @State private var trocaVeioDoArraste = false
+    /// A viagem veio de um toque simples: bolha quase do tamanho do cursor, sem bounce. No arraste, a lente inteira.
+    @State private var viagemSuave = false
+    /// Um arraste acabou de terminar: o toque que o botão sob o dedo dispara ao soltar não vale (senão o botão onde o
+    /// dedo começou desfaz a troca que o arraste acabou de fazer).
+    @State private var arrastouAgora = false
 
     public init(segmentos: [FrilaStepSegment], ativo: String, aoSelecionar: @escaping (String) -> Void) {
         self.segmentos = segmentos
@@ -86,7 +95,15 @@ public struct FrilaStepSegments: View {
     }
 
     private var crescimento: (x: CGFloat, y: CGFloat) {
-        lente && !reduzirMovimento ? (FrilaMotion.segmentoLenteCresceX, FrilaMotion.segmentoLenteCresceY) : (0, 0)
+        guard lente, !reduzirMovimento else { return (0, 0) }
+        return viagemSuave
+            ? (FrilaMotion.segmentoToqueCresceX, FrilaMotion.segmentoToqueCresceY)
+            : (FrilaMotion.segmentoLenteCresceX, FrilaMotion.segmentoLenteCresceY)
+    }
+
+    private var preenchimentoDoCursor: Double {
+        guard lente else { return 1 }
+        return viagemSuave ? FrilaMotion.segmentoToquePreenchimento : FrilaMotion.segmentoPreenchimentoNaLente
     }
 
     /// Corpo do cursor: do canto esquerdo ao direito, mais fino quando esticado.
@@ -121,14 +138,17 @@ public struct FrilaStepSegments: View {
         .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: segmentos)
         .onChange(of: ativo) { _, _ in
             // No arraste o háptico de troca já tocou na metade; no toque ele toca aqui.
-            viajar(trocou: !trocaVeioDoArraste)
+            viajar(trocou: !trocaVeioDoArraste, suave: !trocaVeioDoArraste)
             trocaVeioDoArraste = false
         }
     }
 
     private func rotulo(_ segmento: FrilaStepSegment) -> some View {
         let selecionado = segmento.id == ativo
-        return Button { aoSelecionar(segmento.id) } label: {
+        return Button {
+            guard !arrastouAgora else { return }
+            aoSelecionar(segmento.id)
+        } label: {
             VStack(spacing: 0) {
                 Text(verbatim: segmento.titulo)
                     .font(FrilaTipo.nota)
@@ -161,7 +181,7 @@ public struct FrilaStepSegments: View {
     private var cursor: some View {
         let c = corpo
         return Capsule()
-            .fill(FrilaCor.superficie.opacity(lente ? FrilaMotion.segmentoPreenchimentoNaLente : 1))
+            .fill(FrilaCor.superficie.opacity(preenchimentoDoCursor))
             .overlay(Capsule().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
             .frame(width: c.largura, height: c.altura)
             .position(x: c.centro, y: altura / 2)
@@ -174,7 +194,7 @@ public struct FrilaStepSegments: View {
         return Color.clear
             .frame(width: c.largura, height: c.altura)
             .modifier(LenteDeVidroDosSegmentos())
-            .opacity(lente && !reduzirMovimento ? 1 : 0)
+            .opacity(lente && !reduzirMovimento ? (viagemSuave ? FrilaMotion.segmentoToqueVidro : 1) : 0)
             .position(x: c.centro, y: altura / 2)
             .allowsHitTesting(false)
     }
@@ -209,9 +229,21 @@ public struct FrilaStepSegments: View {
             .onEnded { _ in soltar() }
     }
 
+    /// O segmento que vale agora, com zona medial: o cursor só passa para outro segmento depois de se afastar do
+    /// atual mais que metade do caminho mais a meia zona (65% com a zona de 30%). Entre 35% e 65% o segmento em
+    /// vigor é mantido, nos dois sentidos, e é isso que evita a troca por um empurrão curto.
+    private func alvoComZonaMedial(posicao: CGFloat) -> Int {
+        let atual = alvoDoArraste ?? indiceAtivo
+        let limite = larguraDoSegmento * (0.5 + FrilaMotion.segmentoZonaMedial / 2)
+        guard abs(posicao - centro(do: atual)) >= limite else { return atual }
+        return indiceMaisProximo(de: posicao)
+    }
+
     private func iniciarArraste() {
         tarefaDeAssentamento?.cancel()
         arrastando = true
+        arrastouAgora = true
+        viagemSuave = false
         alvoDoArraste = indiceAtivo
         withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteCresce, reduzir: reduzirMovimento)) { lente = true }
     }
@@ -226,7 +258,7 @@ public struct FrilaStepSegments: View {
         let livre = min(max(bruto, minimo), maximo)
         let excesso = bruto - livre
         let metade = larguraDoSegmento / 2
-        let alvo = indiceMaisProximo(de: livre)
+        let alvo = alvoComZonaMedial(posicao: livre)
         if alvo != alvoDoArraste {
             alvoDoArraste = alvo
             gatilhoDeTroca += 1
@@ -260,11 +292,13 @@ public struct FrilaStepSegments: View {
 
     private func soltar() {
         guard arrastando else { return }
-        let minimo = centro(do: 0)
-        let maximo = centro(do: quantidade - 1)
-        let livre = min(max(centro(do: indiceAtivo) + (traducao ?? 0), minimo), maximo)
-        let destino = indiceMaisProximo(de: livre)
+        let destino = alvoDoArraste ?? indiceAtivo
         arrastando = false
+        // O botão dispara o toque dele logo depois deste fim de arraste; só depois disso o toque volta a valer.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            arrastouAgora = false
+        }
         alvoDoArraste = nil
         traducao = nil
         withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoRetornoElastico, reduzir: reduzirMovimento)) { tensao = 0 }
@@ -272,7 +306,7 @@ public struct FrilaStepSegments: View {
             trocaVeioDoArraste = true
             aoSelecionar(segmentos[destino].id)
         } else {
-            viajar(trocou: false)
+            viajar(trocou: false, suave: false)
         }
     }
 
@@ -280,21 +314,26 @@ public struct FrilaStepSegments: View {
 
     /// O cursor vai para o segmento ativo: a borda da frente chega primeiro e a de trás depois, e a lente existe
     /// durante a viagem. Vale para toque, para arraste e para o retorno de um arraste que não trocou de lado.
-    /// `trocou` diz se o cursor virou de lado por um toque (então toca o háptico de troca).
-    private func viajar(trocou: Bool) {
+    /// `trocou` diz se o cursor virou de lado por um toque (então toca o háptico de troca); `suave` marca o toque
+    /// simples, com a bolha quase do tamanho do cursor e sem bounce.
+    private func viajar(trocou: Bool, suave: Bool) {
         guard largura > 0 else { return }
+        viagemSuave = suave
         let b = bordas(de: indiceAtivo)
         let paraDireita = (b.esquerda + b.direita) / 2 >= (esquerda + direita) / 2
+        let frente = suave ? FrilaMotion.segmentoToqueBordaDaFrente : FrilaMotion.segmentoBordaDaFrente
+        let tras = suave ? FrilaMotion.segmentoToqueBordaDeTras : FrilaMotion.segmentoBordaDeTras
+        let cresce = suave ? FrilaMotion.segmentoToqueCresce : FrilaMotion.segmentoLenteCresce
 
-        withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteCresce, reduzir: reduzirMovimento)) { lente = true }
+        withAnimation(FrilaMovimento.animacao(cresce, reduzir: reduzirMovimento)) { lente = true }
         if reduzirMovimento {
             esquerda = b.esquerda
             direita = b.direita
         } else {
-            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoBordaDaFrente, reduzir: reduzirMovimento)) {
+            withAnimation(FrilaMovimento.animacao(frente, reduzir: reduzirMovimento)) {
                 if paraDireita { direita = b.direita } else { esquerda = b.esquerda }
             }
-            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoBordaDeTras, reduzir: reduzirMovimento)) {
+            withAnimation(FrilaMovimento.animacao(tras, reduzir: reduzirMovimento)) {
                 if paraDireita { esquerda = b.esquerda } else { direita = b.direita }
             }
         }
@@ -308,7 +347,8 @@ public struct FrilaStepSegments: View {
         tarefaDeAssentamento = Task { @MainActor in
             try? await Task.sleep(for: .seconds(FrilaMotion.segmentoLenteHold))
             guard !Task.isCancelled, !arrastando else { return }
-            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteAssenta, reduzir: reduzirMovimento)) { lente = false }
+            let assenta = viagemSuave ? FrilaMotion.segmentoToqueAssenta : FrilaMotion.segmentoLenteAssenta
+            withAnimation(FrilaMovimento.animacao(assenta, reduzir: reduzirMovimento)) { lente = false }
             gatilhoDeAssentamento += 1
         }
     }

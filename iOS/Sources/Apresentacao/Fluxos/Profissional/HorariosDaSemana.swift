@@ -164,11 +164,14 @@ struct SecaoDeHorarios: View {
         }
         .padding(FrilaEspaco.pequeno)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-        )
+        // O fio do contêiner fica atrás do conteúdo, não por cima: quando a bolha dos segmentos estica rumo à
+        // margem e chega perto da borda, ela passa sobre o fio e não é cortada por ele.
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).fill(FrilaCor.superficie)
+                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1)
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("faixa-semanal")
         .onChange(of: edicao != nil) { _, aberto in
