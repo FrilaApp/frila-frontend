@@ -29,10 +29,11 @@ public struct FrilaStepSegment: Identifiable, Hashable {
 ///   crescente (no máximo 12% de um segmento) e ela afina na altura; soltar devolve com um elástico firme.
 /// - **Zona medial:** o cursor só vira de lado depois de passar de 65% do caminho (e só volta ao passar de 35%), então um
 ///   empurrão curto não troca de segmento. Soltar escolhe o segmento que está valendo.
-/// - **Toque simples:** a bolha existe só no vão entre as células. Ela é função da posição (0 com o cursor assentado,
-///   1 no meio do vão), então já voltou a ser a célula de seleção antes de chegar. Sem pausa e sem segunda animação
-///   de assentamento: a borda da frente se acopla direto ao destino, passa um pouco e volta (bounce curto para o lado
-///   de onde veio), enquanto a de trás só acompanha. Press e arrasto mantêm o movimento completo.
+/// - **Toque simples:** uma trajetória única de 420 ms para as duas bordas (`TrajetoriaDoToque`), desenhada à mão e
+///   renderizada por relógio (`TimelineView`), sem mola. A bolha só existe no vão (0 com o cursor assentado, 1 no meio
+///   do vão; sem vidro, o preenchimento fica em 100%) e termina antes do pico. A frente passa até 4 pt do destino,
+///   recua até 5 pt para dentro e assenta; a de trás fica até 6 pt atrás e chega primeiro: o corpo se alonga (+10 pt) e
+///   depois comprime (−5 pt). Press e arrasto mantêm o movimento completo.
 /// - **Dois hápticos:** um pulso rígido quando o cursor vira de lado (na metade do arrasto, ou no toque) e um
 ///   toque suave quando a lente assenta, confirmando o estado.
 public struct FrilaStepSegments: View {
@@ -62,11 +63,9 @@ public struct FrilaStepSegments: View {
     @State private var gatilhoDeAssentamento = 0
     /// A troca veio de um arraste (o háptico de troca já tocou na metade): o toque não repete.
     @State private var trocaVeioDoArraste = false
-    /// A viagem veio de um toque simples: a bolha é função da posição (só no vão). No arraste, a lente inteira.
-    @State private var viagemSuave = false
-    /// Toque simples: a borda de trás parte um instante depois da da frente, numa atualização própria. Duas
-    /// `withAnimation` seguidas na mesma atualização se fundem numa transação só, e as duas bordas ganhariam a mesma mola.
-    @State private var tarefaDaBordaDeTras: Task<Void, Never>?
+    /// Toque simples em curso: a trajetória das duas bordas, calculada pelo relógio. `nil` fora do toque; as bordas de
+    /// estado (`esquerda`, `direita`) já valem o destino desde o início e é de lá que o arraste continua.
+    @State private var viagem: ViagemDoToque?
     /// Um arraste acabou de terminar: o toque que o botão sob o dedo dispara ao soltar não vale (senão o botão onde o
     /// dedo começou desfaz a troca que o arraste acabou de fazer).
     @State private var arrastouAgora = false
@@ -99,7 +98,7 @@ public struct FrilaStepSegments: View {
         return maxima * (1 - exp(-FrilaMotion.segmentoResistencia * excesso / maxima))
     }
 
-    /// Crescimento da lente do arraste (de estado, animado pela mola da lente). O da bolha do toque vem da posição.
+    /// Crescimento da lente do arraste (de estado, animado pela mola da lente). O da bolha do toque vem do relógio.
     private var crescimentoDaLente: (x: CGFloat, y: CGFloat) {
         guard lente, !reduzirMovimento else { return (0, 0) }
         return (FrilaMotion.segmentoLenteCresceX, FrilaMotion.segmentoLenteCresceY)
@@ -107,23 +106,26 @@ public struct FrilaStepSegments: View {
 
     private var preenchimentoDoCursor: Double { lente ? FrilaMotion.segmentoPreenchimentoNaLente : 1 }
 
-    /// A bolha do toque só vale fora do movimento reduzido e fora do arraste.
-    private var bolhaDoToque: Bool { viagemSuave && !reduzirMovimento }
-
     /// Margem vertical do corpo: afina na tensão e cresce (margem negativa) na lente.
     private var margemVertical: CGFloat {
         altura * FrilaMotion.segmentoAfinarNaTensao * tensao / 2 - crescimentoDaLente.y / 2
     }
 
-    /// Posiciona o corpo do cursor entre as duas bordas. Cada borda é a margem de um `padding` próprio, então cada
-    /// uma anima com a mola dela (uma única posição derivada das duas misturaria as molas).
-    private func entreAsBordas<V: View>(_ conteudo: V) -> some View {
+    /// Posiciona o corpo do cursor entre as duas bordas. No arraste e no retorno, cada borda é a margem de um
+    /// `padding` próprio, então anima com a mola dela. No toque, as bordas vêm do relógio (`extra` é a bolha do vão).
+    private func entreAsBordas<V: View>(_ conteudo: V, esquerda e: CGFloat, direita d: CGFloat, extra: CGSize = .zero) -> some View {
         conteudo
-            .padding(.horizontal, -crescimentoDaLente.x / 2)
-            .padding(.vertical, margemVertical)
-            .padding(.leading, esquerda)
-            .padding(.trailing, largura - direita)
+            .padding(.horizontal, -(crescimentoDaLente.x + extra.width) / 2)
+            .padding(.vertical, margemVertical - extra.height / 2)
+            .padding(.leading, e)
+            .padding(.trailing, largura - d)
             .frame(width: largura, height: altura)
+    }
+
+    /// As bordas apresentadas agora: as do relógio durante o toque, as de estado fora dele.
+    private func bordasApresentadas(em data: Date = .now) -> (esquerda: CGFloat, direita: CGFloat, vao: CGFloat) {
+        guard let viagem else { return (esquerda, direita, 0) }
+        return viagem.trajetoria.quadro(em: data.timeIntervalSince(viagem.inicio), passo: larguraDoSegmento)
     }
 
     // MARK: Corpo
@@ -191,42 +193,32 @@ public struct FrilaStepSegments: View {
     }
 
     /// O cursor de sempre (a cápsula da superfície com o fio), atrás dos rótulos. Na lente do arraste o
-    /// preenchimento cai para 40% e o vidro, por cima dos rótulos, ocupa o lugar dele. No toque, quem manda é o vão.
+    /// preenchimento cai para 40% e o vidro, por cima dos rótulos, ocupa o lugar dele. No toque, o relógio
+    /// (`TimelineView`) manda nas bordas e na bolha do vão, e o preenchimento fica em 100%.
     private var cursor: some View {
-        entreAsBordas(
-            ZStack {
-                Capsule()
-                    .fill(FrilaCor.superficie.opacity(preenchimentoDoCursor))
-                    .modifier(NoVao(borda: esquerda, passo: larguraDoSegmento, ativo: bolhaDoToque,
-                                    cresceX: FrilaMotion.segmentoToqueCresceX, cresceY: FrilaMotion.segmentoToqueCresceY,
-                                    base: 1, pico: FrilaMotion.segmentoToquePreenchimento))
-                Capsule()
-                    .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-                    .modifier(NoVao(borda: esquerda, passo: larguraDoSegmento, ativo: bolhaDoToque,
-                                    cresceX: FrilaMotion.segmentoToqueCresceX, cresceY: FrilaMotion.segmentoToqueCresceY,
-                                    base: 1, pico: 1))
-            }
-        )
+        TimelineView(.animation(paused: viagem == nil)) { contexto in
+            let q = bordasApresentadas(em: contexto.date)
+            entreAsBordas(
+                ZStack {
+                    Capsule().fill(FrilaCor.superficie.opacity(preenchimentoDoCursor))
+                    Capsule().strokeBorder(FrilaCor.divisoria, lineWidth: 1)
+                },
+                esquerda: q.esquerda, direita: q.direita,
+                extra: CGSize(width: FrilaMotion.segmentoToqueCresceX * q.vao, height: FrilaMotion.segmentoToqueCresceY * q.vao)
+            )
+        }
         .allowsHitTesting(false)
     }
 
-    /// O vidro por cima dos rótulos. Duas camadas: a do arraste (opacidade de estado, some com a mola) e a do toque
-    /// (opacidade e tamanho pela posição, só no vão entre as células).
+    /// O vidro do arraste, por cima dos rótulos: só existe enquanto o cursor é lente, e some com a mola. O toque
+    /// simples não usa vidro (era a origem do flash claro sobre os rótulos).
     private var vidro: some View {
-        ZStack {
-            entreAsBordas(
-                Color.clear
-                    .modifier(LenteDeVidroDosSegmentos())
-                    .opacity(lente && !reduzirMovimento ? 1 : 0)
-            )
-            entreAsBordas(
-                Color.clear
-                    .modifier(LenteDeVidroDosSegmentos())
-                    .modifier(NoVao(borda: esquerda, passo: larguraDoSegmento, ativo: bolhaDoToque,
-                                    cresceX: FrilaMotion.segmentoToqueCresceX, cresceY: FrilaMotion.segmentoToqueCresceY,
-                                    base: 0, pico: FrilaMotion.segmentoToqueVidro))
-            )
-        }
+        entreAsBordas(
+            Color.clear
+                .modifier(LenteDeVidroDosSegmentos())
+                .opacity(lente && !reduzirMovimento ? 1 : 0),
+            esquerda: esquerda, direita: direita
+        )
         .allowsHitTesting(false)
     }
 
@@ -272,10 +264,9 @@ public struct FrilaStepSegments: View {
 
     private func iniciarArraste() {
         tarefaDeAssentamento?.cancel()
+        encerrarViagem()
         arrastando = true
         arrastouAgora = true
-        viagemSuave = false
-        tarefaDaBordaDeTras?.cancel()
         alvoDoArraste = indiceAtivo
         withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteCresce, reduzir: reduzirMovimento)) { lente = true }
     }
@@ -344,76 +335,83 @@ public struct FrilaStepSegments: View {
 
     // MARK: Viagem e assentamento
 
+    /// Termina o toque em curso (se houver) deixando nas bordas de estado a posição apresentada agora, sem animar,
+    /// para o arraste ou o retorno continuarem dali sem salto.
+    private func encerrarViagem() {
+        tarefaDeAssentamento?.cancel()
+        guard viagem != nil else { return }
+        let q = bordasApresentadas()
+        viagem = nil
+        var transacao = Transaction()
+        transacao.disablesAnimations = true
+        withTransaction(transacao) {
+            esquerda = q.esquerda
+            direita = q.direita
+        }
+    }
+
     /// O cursor vai para o segmento ativo. Vale para toque, para arraste e para o retorno de um arraste que não
     /// trocou de lado. `trocou` diz se o cursor virou de lado por um toque (então toca o háptico de troca); `suave`
     /// marca o toque simples.
     ///
-    /// - **Toque (`suave`):** não há lente de estado nem pausa. A borda da frente se acopla direto ao destino numa
-    ///   mola com bounce curto (passa um pouco e volta para o lado de onde veio) e a de trás só acompanha. A bolha é
-    ///   desenhada pela posição das bordas (`NoVao`), então só existe no vão e já é a célula quando assenta.
+    /// - **Toque (`suave`):** uma trajetória única, calculada pelo relógio a partir das bordas apresentadas (um toque
+    ///   no meio da viagem parte de onde o cursor está). Sem lente de estado, sem mola e sem pausa; o háptico de
+    ///   assentamento toca no pico da frente.
     /// - **Arraste e retorno:** a borda da frente chega primeiro, a de trás depois, e a lente de estado existe
     ///   durante a viagem e assenta depois de uma pausa curta.
     private func viajar(trocou: Bool, suave: Bool) {
         guard largura > 0 else { return }
-        viagemSuave = suave
         let b = bordas(de: indiceAtivo)
-        let paraDireita = (b.esquerda + b.direita) / 2 >= (esquerda + direita) / 2
-        let frente = suave ? FrilaMotion.segmentoToqueIda : FrilaMotion.segmentoBordaDaFrente
-        let tras = suave ? FrilaMotion.segmentoToqueBordaDeTras : FrilaMotion.segmentoBordaDeTras
 
         if suave {
             tarefaDeAssentamento?.cancel()
             if lente {
                 withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteCresce, reduzir: reduzirMovimento)) { lente = false }
             }
-        } else {
-            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteCresce, reduzir: reduzirMovimento)) { lente = true }
+            let origem = bordasApresentadas()
+            var transacao = Transaction()
+            transacao.disablesAnimations = true
+            if reduzirMovimento {
+                viagem = nil
+                withTransaction(transacao) { esquerda = b.esquerda; direita = b.direita }
+            } else {
+                let inicio = Date.now
+                viagem = ViagemDoToque(
+                    inicio: inicio,
+                    trajetoria: TrajetoriaDoToque(
+                        origem: (origem.esquerda, origem.direita), destino: (b.esquerda, b.direita)
+                    )
+                )
+                withTransaction(transacao) { esquerda = b.esquerda; direita = b.direita }
+                tarefaDeAssentamento = Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(FrilaMotion.segmentoToqueHapticApos))
+                    guard !Task.isCancelled, !arrastando else { return }
+                    gatilhoDeAssentamento += 1
+                    try? await Task.sleep(for: .seconds(FrilaMotion.segmentoToqueDuracao - FrilaMotion.segmentoToqueHapticApos + 0.02))
+                    guard !Task.isCancelled, viagem?.inicio == inicio else { return }
+                    viagem = nil
+                }
+            }
+            if trocou { gatilhoDeTroca += 1 }
+            return
         }
 
-        tarefaDaBordaDeTras?.cancel()
+        encerrarViagem()
+        let paraDireita = (b.esquerda + b.direita) / 2 >= (esquerda + direita) / 2
+        withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteCresce, reduzir: reduzirMovimento)) { lente = true }
         if reduzirMovimento {
             esquerda = b.esquerda
             direita = b.direita
-        } else if suave {
-            // A borda da frente passa do destino um pouco (o excesso) e volta: o retorno orgânico da margem. É um
-            // bounce desenhado em dois passos (ida e volta), porque o bounce da mola sozinho não aparece nesta
-            // geometria. A de trás só acompanha, um instante depois, sem bounce.
-            let excesso = FrilaMotion.segmentoToqueExcesso * (paraDireita ? 1 : -1)
-            withAnimation(FrilaMovimento.animacao(frente, reduzir: reduzirMovimento)) {
-                if paraDireita { direita = b.direita + excesso } else { esquerda = b.esquerda + excesso }
-            }
-            tarefaDaBordaDeTras = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(FrilaMotion.segmentoToqueAtrasoDeTras))
-                guard !Task.isCancelled else { return }
-                withAnimation(FrilaMovimento.animacao(tras, reduzir: reduzirMovimento)) {
-                    if paraDireita { esquerda = b.esquerda } else { direita = b.direita }
-                }
-                try? await Task.sleep(for: .milliseconds(FrilaMotion.segmentoToqueQuandoVolta - FrilaMotion.segmentoToqueAtrasoDeTras))
-                guard !Task.isCancelled else { return }
-                withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoToqueVolta, reduzir: reduzirMovimento)) {
-                    if paraDireita { direita = b.direita } else { esquerda = b.esquerda }
-                }
-            }
         } else {
-            withAnimation(FrilaMovimento.animacao(frente, reduzir: reduzirMovimento)) {
+            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoBordaDaFrente, reduzir: reduzirMovimento)) {
                 if paraDireita { direita = b.direita } else { esquerda = b.esquerda }
             }
-            withAnimation(FrilaMovimento.animacao(tras, reduzir: reduzirMovimento)) {
+            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoBordaDeTras, reduzir: reduzirMovimento)) {
                 if paraDireita { esquerda = b.esquerda } else { direita = b.direita }
             }
         }
-
         if trocou { gatilhoDeTroca += 1 }
-        if suave { confirmarChegadaDoToque() } else { assentarDepois() }
-    }
-
-    /// Toque simples: o háptico de assentamento toca quando a borda da frente chega, sem esperar nenhuma pausa.
-    private func confirmarChegadaDoToque() {
-        tarefaDeAssentamento = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(FrilaMotion.segmentoToqueHapticApos))
-            guard !Task.isCancelled, !arrastando else { return }
-            gatilhoDeAssentamento += 1
-        }
+        assentarDepois()
     }
 
     private func assentarDepois() {
@@ -427,39 +425,114 @@ public struct FrilaStepSegments: View {
     }
 }
 
-/// A bolha do toque, desenhada pela posição de uma borda do cursor (`animatableData`): vale 0 quando a borda está
-/// numa fronteira de célula (cursor assentado) e vai até 1 no meio do vão entre duas. Assim a bolha aparece no vão e
-/// já voltou a ser a célula de seleção antes de a mola assentar, e uma interrupção no meio do caminho continua coerente.
-/// Aplica o crescimento além do cursor e leva a opacidade de `base` (fora do vão) a `pico` (no meio do vão).
-private struct NoVao: ViewModifier, @preconcurrency Animatable {
-    var borda: CGFloat
-    let passo: CGFloat
-    let ativo: Bool
-    let cresceX: CGFloat
-    let cresceY: CGFloat
-    let base: Double
-    let pico: Double
+/// O toque em curso: quando começou e a trajetória das bordas.
+struct ViagemDoToque: Equatable {
+    let inicio: Date
+    let trajetoria: TrajetoriaDoToque
+}
 
-    var animatableData: CGFloat {
-        get { borda }
-        set { borda = newValue }
+/// A trajetória das duas bordas do cursor num toque simples, em função do tempo (sem mola nem `delay`).
+///
+/// Posições absolutas na trilha, em pt, com `s` o sentido (+1 direita, −1 esquerda) e D a distância entre centros:
+/// - **Frente** (a borda na direção do movimento): origem → destino + sE (0 a 220 ms) → destino − sR (até 320 ms) →
+///   destino (até 420 ms), cada trecho em cúbica 3u² − 2u³ (velocidade zero nas junções).
+/// - **Trás:** parada até 30 ms; depois, cúbica monotônica (Hermite) por origem (30 ms), destino − sL (220 ms) e
+///   destino (290 ms), com velocidade contínua no ponto do meio (média harmônica das secantes) e zero nas pontas.
+/// - **Bolha:** o centro nominal (origem → destino em 180 ms, cúbica) atravessa o vão: 0 sobre um centro de célula,
+///   1 no meio do vão. Termina antes do pico, então não renasce com o recuo. Parte da posição apresentada, então
+///   uma interrupção no meio do vão continua do ponto certo.
+///
+/// E, L e R são o menor entre o teto em pt e a fração de D (`FrilaMotion.segmentoToque*`).
+struct TrajetoriaDoToque: Equatable {
+    let origem: (esquerda: CGFloat, direita: CGFloat)
+    let destino: (esquerda: CGFloat, direita: CGFloat)
+
+    static func == (a: TrajetoriaDoToque, b: TrajetoriaDoToque) -> Bool {
+        a.origem == b.origem && a.destino == b.destino
     }
 
-    /// Distância da fronteira de célula mais próxima, em fração do passo (0 a 0,5), com suavização S a partir do início.
-    private var vao: CGFloat {
-        guard ativo, passo > 0 else { return 0 }
-        let posicao = borda / passo
-        let distancia = abs(posicao - posicao.rounded())
-        let inicio = FrilaMotion.segmentoToqueVaoInicio
-        let t = min(max((distancia - inicio) / (0.5 - inicio), 0), 1)
-        return t * t * (3 - 2 * t)
+    private var centroDaOrigem: CGFloat { (origem.esquerda + origem.direita) / 2 }
+    private var centroDoDestino: CGFloat { (destino.esquerda + destino.direita) / 2 }
+    private var sentido: CGFloat { centroDoDestino >= centroDaOrigem ? 1 : -1 }
+    private var distancia: CGFloat { abs(centroDoDestino - centroDaOrigem) }
+
+    private static func suave(_ u: Double) -> CGFloat {
+        let x = min(max(u, 0), 1)
+        return CGFloat(x * x * (3 - 2 * x))
     }
 
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, -cresceX * vao / 2)
-            .padding(.vertical, -cresceY * vao / 2)
-            .opacity(base + (pico - base) * Double(vao))
+    private func de(_ de: CGFloat, para: CGFloat, em u: Double) -> CGFloat { de + (para - de) * Self.suave(u) }
+
+    /// Cúbica de Hermite entre (t0, p0, m0) e (t1, p1, m1); `m` em pt por segundo.
+    private func hermite(_ t: Double, _ t0: Double, _ p0: CGFloat, _ m0: CGFloat, _ t1: Double, _ p1: CGFloat, _ m1: CGFloat) -> CGFloat {
+        let h = t1 - t0
+        let u = CGFloat((t - t0) / h)
+        let u2 = u * u, u3 = u2 * u
+        return (2 * u3 - 3 * u2 + 1) * p0 + (u3 - 2 * u2 + u) * CGFloat(h) * m0
+            + (-2 * u3 + 3 * u2) * p1 + (u3 - u2) * CGFloat(h) * m1
+    }
+
+    /// Bordas e bolha do vão no instante `t` (segundos desde o início). `passo` é a largura de um segmento.
+    func quadro(em tempo: TimeInterval, passo: CGFloat) -> (esquerda: CGFloat, direita: CGFloat, vao: CGFloat) {
+        let t = max(tempo, 0)
+        let s = sentido
+        let d = distancia
+        let excesso = min(FrilaMotion.segmentoToqueExcesso, FrilaMotion.segmentoToqueExcessoFracao * d)
+        let atraso = min(FrilaMotion.segmentoToqueAtrasoDeTras, FrilaMotion.segmentoToqueAtrasoFracao * d)
+        let recuo = min(FrilaMotion.segmentoToqueRecuo, FrilaMotion.segmentoToqueRecuoFracao * d)
+
+        let origemDaFrente = s > 0 ? origem.direita : origem.esquerda
+        let destinoDaFrente = s > 0 ? destino.direita : destino.esquerda
+        let origemDeTras = s > 0 ? origem.esquerda : origem.direita
+        let destinoDeTras = s > 0 ? destino.esquerda : destino.direita
+
+        let pico = FrilaMotion.segmentoToquePicoDaFrente
+        let fimDoRecuo = FrilaMotion.segmentoToqueFimDoRecuo
+        let duracao = FrilaMotion.segmentoToqueDuracao
+
+        let frente: CGFloat
+        if t >= duracao {
+            frente = destinoDaFrente
+        } else if t <= pico {
+            frente = de(origemDaFrente, para: destinoDaFrente + s * excesso, em: t / pico)
+        } else if t <= fimDoRecuo {
+            frente = de(destinoDaFrente + s * excesso, para: destinoDaFrente - s * recuo, em: (t - pico) / (fimDoRecuo - pico))
+        } else {
+            frente = de(destinoDaFrente - s * recuo, para: destinoDaFrente, em: (t - fimDoRecuo) / (duracao - fimDoRecuo))
+        }
+
+        let saida = FrilaMotion.segmentoToqueSaidaDeTras
+        let chegada = FrilaMotion.segmentoToqueChegadaDeTras
+        let picoDeTras = destinoDeTras - s * atraso
+        let tras: CGFloat
+        if t <= saida {
+            tras = origemDeTras
+        } else if t >= chegada {
+            tras = destinoDeTras
+        } else {
+            let m1 = (picoDeTras - origemDeTras) / CGFloat(pico - saida)
+            let m2 = (destinoDeTras - picoDeTras) / CGFloat(chegada - pico)
+            let soma = m1 + m2
+            let meio: CGFloat = (m1 * m2 > 0 && abs(soma) > 0.0001) ? 2 * m1 * m2 / soma : 0
+            tras = t <= pico
+                ? hermite(t, saida, origemDeTras, 0, pico, picoDeTras, meio)
+                : hermite(t, pico, picoDeTras, meio, chegada, destinoDeTras, 0)
+        }
+
+        let esquerdaAgora = s > 0 ? tras : frente
+        let direitaAgora = s > 0 ? frente : tras
+
+        // Bolha: o centro nominal atravessa o vão (0 sobre o centro de uma célula, 1 no meio do vão).
+        var vao: CGFloat = 0
+        if passo > 0, t < FrilaMotion.segmentoToqueTransporte {
+            let nominal = de(centroDaOrigem, para: centroDoDestino, em: t / FrilaMotion.segmentoToqueTransporte)
+            let x = nominal / passo - 0.5
+            let distanciaAoCentro = abs(x - x.rounded())
+            let inicio = FrilaMotion.segmentoToqueVaoInicio
+            let k = min(max((distanciaAoCentro - inicio) / (0.5 - inicio), 0), 1)
+            vao = k * k * (3 - 2 * k)
+        }
+        return (esquerdaAgora, direitaAgora, vao)
     }
 }
 

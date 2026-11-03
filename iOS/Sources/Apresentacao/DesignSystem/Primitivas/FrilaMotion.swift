@@ -176,30 +176,41 @@ public enum FrilaMotion {
     /// partir do segmento que está valendo.
     public static let segmentoZonaMedial: CGFloat = 0.30
 
-    // Toque simples: a bolha só existe no vão entre as células e vira célula antes de assentar.
+    // Toque simples: uma trajetória única de 420 ms para as duas bordas, desenhada à mão (sem mola), em que a bolha só
+    // existe no vão e a margem tem um retorno orgânico. Valores propostos pelos dois Codex e escolhidos pelo
+    // usuário (opção A, 03/11/2026); ainda a validar no aparelho.
 
-    /// A bolha do toque é função da posição, não do tempo: vale 0 com o cursor assentado numa célula e cresce até 1
-    /// no meio do vão entre duas. Começa a crescer depois de 10% do passo (distância da célula mais próxima, em
-    /// fração da largura de um segmento) e usa uma suavização S (smoothstep) até o meio do vão.
+    /// Duração total e marcos da trajetória (segundos). A frente vai ao destino mais o excesso até 220 ms, recua
+    /// para dentro até 320 ms e assenta em 420 ms. A de trás parte em 30 ms, fica atrás do destino aos 220 ms e
+    /// chega ao destino aos 290 ms.
+    public static let segmentoToqueDuracao: Double = 0.42
+    public static let segmentoToquePicoDaFrente: Double = 0.22
+    public static let segmentoToqueFimDoRecuo: Double = 0.32
+    public static let segmentoToqueSaidaDeTras: Double = 0.03
+    public static let segmentoToqueChegadaDeTras: Double = 0.29
+    /// A bolha acompanha o transporte nominal do centro, que termina em 180 ms, antes do pico da frente.
+    public static let segmentoToqueTransporte: Double = 0.18
+
+    /// Amplitudes: cada uma é o menor entre o teto em pt e a fração da distância entre os centros.
+    /// Excesso da frente para fora do destino: 4 pt, que é o recuo da trilha (o cursor não sai dela).
+    public static let segmentoToqueExcesso: CGFloat = 4
+    public static let segmentoToqueExcessoFracao: CGFloat = 0.05
+    /// Quanto a borda de trás fica atrás do destino no pico (alonga o corpo).
+    public static let segmentoToqueAtrasoDeTras: CGFloat = 6
+    public static let segmentoToqueAtrasoFracao: CGFloat = 0.06
+    /// Recuo interno da frente depois do excesso (comprime o corpo): é a "vida" da margem.
+    public static let segmentoToqueRecuo: CGFloat = 5
+    public static let segmentoToqueRecuoFracao: CGFloat = 0.05
+
+    /// A bolha do vão vale 0 com o cursor num centro de célula e cresce até 1 no meio do vão (começa a 10% do passo,
+    /// com suavização S). Cresce 8 por 5 pt além do cursor (no arraste são 28 por 14). Sem vidro e sem véu:
+    /// o preenchimento fica em 100%, o cursor só se alarga.
     public static let segmentoToqueVaoInicio: CGFloat = 0.10
-    /// No meio do vão a bolha cresce 8 por 5 pt além do cursor (no arraste são 28 por 14).
     public static let segmentoToqueCresceX: CGFloat = 8
     public static let segmentoToqueCresceY: CGFloat = 5
-    /// No meio do vão o preenchimento cai para 75% e o vidro aparece a 70%; fora do vão, volta a ser a célula.
-    public static let segmentoToquePreenchimento: Double = 0.75
-    public static let segmentoToqueVidro: Double = 0.70
-    /// A borda da frente se acopla direto ao destino, passa dele 5 pt (pouco além do recuo de 4 pt da trilha, sem chegar ao
-    /// cartão) e volta para o lado de onde veio. Sem pausa no destino e sem segunda animação de assentamento.
-    public static let segmentoToqueExcesso: CGFloat = 5
-    public static let segmentoToqueIda: Animation = .spring(duration: 0.24, bounce: 0)
-    public static let segmentoToqueVolta: Animation = .spring(duration: 0.30, bounce: 0)
-    /// A volta começa 150 ms depois do toque, já com a borda quase no fim da ida.
-    public static let segmentoToqueQuandoVolta: Int = 150
-    /// A borda de trás só acompanha, suave e sem bounce, 20 ms depois e numa atualização própria.
-    public static let segmentoToqueBordaDeTras: Animation = .spring(duration: 0.42, bounce: 0)
-    public static let segmentoToqueAtrasoDeTras: Int = 20
-    /// O segundo háptico do toque toca quando a borda da frente chega (não há mais "hold" para esperar).
-    public static let segmentoToqueHapticApos: Double = 0.18
+
+    /// O segundo háptico do toque toca no pico da frente.
+    public static let segmentoToqueHapticApos: Double = 0.22
 
     /// Háptico 1, a troca de lado: pulso rígido (`copyLatchHapticIntensity`).
     public static let segmentoHapticTroca: Double = 0.45
