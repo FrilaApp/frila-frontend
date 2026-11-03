@@ -9,7 +9,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
 /** Leitura de vagas abertas e candidatura (`/rpc/vagas_abertas`, `/rpc/candidatar`). */
-class ServicoVagas(private val cliente: ClienteSupabase) {
+class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
+    constructor(cliente: ClienteSupabase) : this({ cliente })
+
+    /** Lido a cada chamada: após `GestorClienteKtor.recriar()` o cliente anterior está fechado. */
+    private val cliente: ClienteSupabase get() = provedorDeCliente()
+
 
     /**
      * `GET /rpc/vagas_abertas` (RF05/RF07/RN02). `coordenada` é opcional — sem ela, o backend usa

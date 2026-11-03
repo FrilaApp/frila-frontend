@@ -53,6 +53,7 @@ public struct FolhaDeCancelamento: View {
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
         }
+        .frilaKeyboardDismissScope()
         .accessibilityIdentifier("folha-de-cancelamento")
         .interactiveDismissDisabled(viewModel.estado == .enviando)
     }
@@ -100,6 +101,7 @@ public struct FolhaDeCancelamento: View {
             .frame(minHeight: FrilaMetrica.alvoMinimo)
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+            .frilaFormField(id: "cancelamento-detalhes", isFocused: focoNosDetalhes, onDismiss: { focoNosDetalhes = false })
             .accessibilityIdentifier("detalhes-do-cancelamento")
         } else {
             Text(verbatim: TextosDoCancelamento.motivoObrigatorio)
