@@ -101,9 +101,13 @@ public struct FrilaOpportunityDetailView: View {
                         Text("Valor", tableName: "Estudio", bundle: bundleApresentacao)
                             .font(FrilaTypography.caption)
                             .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-                        Text(verbatim: item.payPerPosition > 0 ? "\(FrilaMoney.total(item.payPerPosition)) \(item.paymentUnitLabel)" : "A definir")
-                            .font(FrilaTypography.captionBold)
-                            .foregroundColor(item.payPerPosition > 0 ? FrilaColor.dynamicTextPrimary(isDark: isDark) : FrilaColor.dynamicTextMuted(isDark: isDark))
+                        if item.payPerPosition > 0 {
+                            FrilaPriceTag(texto: "\(FrilaMoney.total(item.payPerPosition)) \(item.paymentUnitLabel)", tamanho: 13, isDark: isDark)
+                        } else {
+                            Text(verbatim: FrilaJobShiftOverview.pendingLabel)
+                                .font(FrilaTypography.captionBold)
+                                .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 

@@ -95,8 +95,14 @@ public enum FrilaMetrica {
 /// Tipografia. Os papéis das telas leem a escala Minor Third da origem (`FrilaTypeScaleStep`: 11/13/15/18/22/26/32)
 /// e as specs do paradigma Swiss (`FrilaTypography`: display, title, placard, entity, body, caption, micro, metric),
 /// sempre com Dynamic Type (`FrilaFonteDoSistema.fonte` mede pelo estilo mais próximo). A Bricolage Grotesque é a voz
-/// das perguntas e respostas dos formulários (`FrilaFormType`); números e dinheiro ficam sempre em SF Pro.
+/// das perguntas e respostas dos formulários (`FrilaFormType`); valores monetários usam Jost 600 (LOG-016).
 public enum FrilaTipo {
+    /// LOG-016: Jost 600; preserva a curva de tamanho de texto dos papéis nativos.
+    public static func fonteValor(tamanho: CGFloat) -> Font {
+        FontesFrila.registrar()
+        return Font.custom("JostRoman-SemiBold", size: tamanho, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho).textStyle)
+    }
+
     /// Título da tela fora da barra: display 32 heavy, tracking −0.8 (`FrilaTypography.display`).
     public static let tituloGrande = FrilaTypography.display
     /// Cabeçalho de seção ("Abertas", "Seus dados"): title 22 bold (`FrilaTypography.title`).
@@ -153,7 +159,7 @@ public enum FontesFrila {
     public static let nomes = ["BricolageGrotesque-Regular", "BricolageGrotesque-Medium", "BricolageGrotesque-Bold", "BricolageGrotesque-ExtraBold"]
 
     static let registradas: Void = {
-        for nome in nomes {
+        for nome in nomes + ["Jost"] {
             guard let url = bundleApresentacao.url(forResource: nome, withExtension: "ttf") else { continue }
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         }

@@ -58,12 +58,16 @@ public struct FrilaStatCard: View {
 
     @ViewBuilder
     private func metricView(number: String, label: String, source: String?, isMonumental: Bool) -> some View {
-        Text(verbatim: number)
-            .font(isMonumental ? FrilaTypography.metricMonumental : FrilaTypography.metricCardBig)
-            .tracking(isMonumental ? FrilaTypography.metricMonumentalSpec.tracking : FrilaTypography.metricCardBigSpec.tracking)
-            .foregroundColor(FrilaColor.dynamicBrandAccent(isDark: isDark))
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
+        if number.contains("R$") {
+            FrilaPriceTag(texto: number, tamanho: isMonumental ? 38 : 34, isDark: isDark)
+        } else {
+            Text(verbatim: number)
+                .font(isMonumental ? FrilaTypography.metricMonumental : FrilaTypography.metricCardBig)
+                .tracking(isMonumental ? FrilaTypography.metricMonumentalSpec.tracking : FrilaTypography.metricCardBigSpec.tracking)
+                .foregroundColor(FrilaColor.dynamicBrandAccent(isDark: isDark))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
 
         Text(verbatim: label)
             .font(FrilaTypography.bodyMedium)

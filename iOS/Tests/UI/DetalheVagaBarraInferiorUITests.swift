@@ -59,8 +59,8 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("01-detalhe-amanha-23h30-claro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertLessThan(botao.frame.width, 250, "O botão não deve ocupar a largura inteira (não deve quebrar em 2 linhas)")
-        XCTAssertGreaterThan(botao.frame.midX, 200, "O botão deve ficar alinhado à direita na barra horizontal")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 
     func testCapturaAmanha23h30Escuro() {
@@ -68,8 +68,8 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("02-detalhe-amanha-23h30-escuro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertLessThan(botao.frame.width, 250, "O botão não deve ocupar a largura inteira (não deve quebrar em 2 linhas)")
-        XCTAssertGreaterThan(botao.frame.midX, 200, "O botão deve ficar alinhado à direita na barra horizontal")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 
     func testCapturaHoje18hClaro() {
@@ -77,8 +77,8 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("03-detalhe-hoje-18h-claro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertLessThan(botao.frame.width, 250, "O botão não deve ocupar a largura inteira (não deve quebrar em 2 linhas)")
-        XCTAssertGreaterThan(botao.frame.midX, 200, "O botão deve ficar alinhado à direita na barra horizontal")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 
     func testCapturaHoje18hEscuro() {
@@ -86,8 +86,8 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("04-detalhe-hoje-18h-escuro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertLessThan(botao.frame.width, 250, "O botão não deve ocupar a largura inteira (não deve quebrar em 2 linhas)")
-        XCTAssertGreaterThan(botao.frame.midX, 200, "O botão deve ficar alinhado à direita na barra horizontal")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 
     func testCapturaVizinhaFeedClaro() {
