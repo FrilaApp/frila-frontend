@@ -203,7 +203,7 @@ public struct FrilaLensSegments: View {
     /// preenchimento cai para 40% e o vidro, por cima dos rótulos, ocupa o lugar dele. No toque, o relógio
     /// (`TimelineView`) manda nas bordas e na bolha do vão, e o preenchimento fica em 100%.
     private var cursor: some View {
-        TimelineView(.animation(paused: viagem == nil)) { contexto in
+        TimelineView(AnimationTimelineSchedule(paused: viagem == nil)) { contexto in
             let q = bordasApresentadas(em: contexto.date)
             entreAsBordas(
                 ZStack {
@@ -431,11 +431,11 @@ public struct FrilaLensSegments: View {
             guard !Task.isCancelled, !arrastando else { return }
             withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteAssenta, reduzir: reduzirMovimento)) { lente = false }
             guard !reduzirMovimento else { gatilhoDeAssentamento += 1; return }
-            withAnimation(FrilaMotion.segmentoSoltarCompressao) { escalaDoAssentamento = FrilaMotion.segmentoSoltarEscala }
+            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoSoltarCompressao, reduzir: reduzirMovimento)) { escalaDoAssentamento = FrilaMotion.segmentoSoltarEscala }
             try? await Task.sleep(for: .seconds(FrilaMotion.segmentoSoltarCompressaoDuracao))
             guard !Task.isCancelled, !arrastando else { escalaDoAssentamento = 1; return }
             gatilhoDeSoltar += 1
-            withAnimation(FrilaMotion.segmentoSoltarMola) { escalaDoAssentamento = 1 }
+            withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoSoltarMola, reduzir: reduzirMovimento)) { escalaDoAssentamento = 1 }
         }
     }
 }
