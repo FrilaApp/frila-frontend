@@ -97,6 +97,7 @@ class TelaEntradaInstrumentedTest {
         composeTestRule.waitForIdle()
 
         assertEquals("demo@frila.com.br", viewModel.estado.value.email)
+        assertTrue(codigoRecebido)
     }
 
     @Test
@@ -118,5 +119,31 @@ class TelaEntradaInstrumentedTest {
         composeTestRule.waitForIdle()
 
         assertEquals("profissional@teste.com", viewModel.estado.value.email)
+    }
+
+    @Test
+    fun aoDigitarEmailValidoEClicarReceberCodigoInvocaCallback() {
+        val viewModel = criarViewModel()
+        var codigoRecebido = false
+
+        composeTestRule.setContent {
+            FrilaTheme {
+                TelaEntrada(
+                    viewModel = viewModel,
+                    aoReceberCodigo = { codigoRecebido = true },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("E-mail")
+            .performTextInput("profissional@teste.com")
+
+        composeTestRule.onNodeWithText("Receber código")
+            .performClick()
+
+        composeTestRule.waitUntil(timeoutMillis = 5_000) { codigoRecebido }
+        composeTestRule.waitForIdle()
+
+        assertTrue(codigoRecebido)
     }
 }

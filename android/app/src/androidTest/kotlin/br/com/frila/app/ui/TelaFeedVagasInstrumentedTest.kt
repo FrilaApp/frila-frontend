@@ -4,13 +4,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
-import br.com.frila.feature.vagas.feed.EstadoFeed
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.OpcaoOrdenacaoVagas
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
@@ -45,27 +45,45 @@ class TelaFeedVagasInstrumentedTest {
         override fun isGpsAtivado(): Boolean = true
     }
 
-    private fun respostaVagasJson() = """
-        [
-          {
-            "id": "11111111-1111-1111-1111-111111111111",
-            "funcao": {"id": "22222222-2222-2222-2222-222222222222", "nome": "Garçom", "categoria": "Salão"},
-            "estabelecimento": {"nome": "Bar do Lago", "bairro": "Asa Sul", "latitude": -15.80, "longitude": -47.89},
-            "inicio_em": "2026-11-01T20:00:00Z",
-            "fim_em": "2026-11-02T02:00:00Z",
-            "valor_centavos": 18000,
-            "distancia_km": 2.5
-          }
-        ]
+    private fun vagaJson(
+        id: String = "11111111-1111-1111-1111-111111111111",
+        funcao: String = "Garçom",
+        estabelecimento: String = "Bar do Lago",
+        distanciaKm: Double = 2.5,
+        inicioEm: String = "2026-11-01T20:00:00Z",
+        fimEm: String = "2026-11-02T02:00:00Z",
+        valorCentavos: Long = 18_000L,
+    ) = """
+        {
+          "id": "$id",
+          "funcao": {"id": "22222222-2222-2222-2222-222222222222", "nome": "$funcao", "categoria": "Salão"},
+          "estabelecimento": {
+            "id": "33333333-3333-3333-3333-333333333333",
+            "tipo": "estabelecimento",
+            "nome": "$estabelecimento",
+            "reputacao": {"positivas": 7, "total": 7, "taxa_comparecimento": 1.0, "turnos_considerados": 7, "turnos_realizados": 7}
+          },
+          "inicio_em": "$inicioEm",
+          "fim_em": "$fimEm",
+          "local": "SQS 405",
+          "regiao_administrativa": "Asa Sul",
+          "distancia_km": $distanciaKm,
+          "valor_centavos": $valorCentavos,
+          "posicoes_abertas": 2,
+          "inclusos": {"inclui_refeicao": true, "inclui_transporte": false, "exige_material_proprio": false},
+          "modo": "selecao"
+        }
     """.trimIndent()
 
-    private fun criarViewModel(): FeedVagasViewModel {
+    private fun respostaVagasJson() = "[\n${vagaJson()}\n]"
+
+    private fun criarViewModel(respostaJson: String = respostaVagasJson()): FeedVagasViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
             apiKey = "chave-feed-instrumentado",
             engine = MockEngine {
                 respond(
-                    content = respostaVagasJson(),
+                    content = respostaJson,
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -127,6 +145,28 @@ class TelaFeedVagasInstrumentedTest {
     }
 
     @Test
+    fun aoClicarFiltroMenorDistanciaAlteraOrdenacaoNoEstado() {
+        val viewModel = criarViewModel()
+        viewModel.aoSelecionarOrdenacao(OpcaoOrdenacaoVagas.MAIOR_VALOR)
+
+        composeTestRule.setContent {
+            FrilaTheme {
+                TelaFeedVagas(
+                    viewModel = viewModel,
+                    aoAbrirDetalhe = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Menor distância")
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        assertEquals(OpcaoOrdenacaoVagas.MENOR_DISTANCIA, viewModel.estado.value.opcaoOrdenacao)
+    }
+
+    @Test
     fun exibeVagaCarregadaComNomeDaFuncao() {
         val viewModel = criarViewModel()
         runBlocking {
@@ -146,5 +186,44 @@ class TelaFeedVagasInstrumentedTest {
 
         composeTestRule.onNodeWithText("Garçom")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun aoRolarAteVagaEClicarNoCardInvocaCallbackComId() {
+        val vagasJson = (1..10).joinToString(prefix = "[\n", separator = ",\n", postfix = "\n]") { i ->
+            vagaJson(
+                id = "vaga-$i",
+                funcao = if (i == 10) "Sommelier Especialista" else "Função $i",
+                estabelecimento = "Restaurante $i",
+                distanciaKm = i * 1.5,
+                valorCentavos = 10_000L + i * 1_000L,
+            )
+        }
+
+        val viewModel = criarViewModel(respostaJson = vagasJson)
+        runBlocking {
+            viewModel.carregar().join()
+        }
+
+        var idVagaAberta: String? = null
+
+        composeTestRule.setContent {
+            FrilaTheme {
+                TelaFeedVagas(
+                    viewModel = viewModel,
+                    aoAbrirDetalhe = { idVagaAberta = it },
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Sommelier Especialista")
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        assertEquals("vaga-10", idVagaAberta)
     }
 }
