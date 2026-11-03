@@ -51,6 +51,20 @@ extension XCUIElement {
     }
 }
 
+/// Fecha o teclado numérico pela barra "Ok" que o `CampoMascara` põe acima dele desde o #650. A barra
+/// aumenta o teclado em 44 pt e cobre o que vem logo abaixo do campo (Termos, no cadastro), e o arraste
+/// não o recolhe. Devolve `true` quando o teclado fechou.
+@discardableResult
+func fecharTecladoPeloOk(_ app: XCUIApplication) -> Bool {
+    let teclado = app.keyboards.firstMatch
+    guard teclado.exists else { return true }
+    let ok = app.toolbars.buttons.matching(NSPredicate(format: "label ==[c] %@", "ok")).firstMatch
+    guard ok.exists, ok.isHittable else { return false }
+    ok.tap()
+    let sumiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: teclado)
+    return XCTWaiter.wait(for: [sumiu], timeout: 2) == .completed
+}
+
 /// O formulário de publicar vaga (o Estúdio de Criação) na tela. A barra do Estúdio mostra
 /// "Publicar vaga, etapa n de 3" no lugar do título "Nova vaga" do formulário antigo.
 @discardableResult

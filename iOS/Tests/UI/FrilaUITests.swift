@@ -638,6 +638,7 @@ final class AutenticacaoUITests: XCTestCase {
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if fecharTecladoPeloOk(app) { return }
         if app.keyboards.element.exists {
             let botoesTeclado = ["Buscar", "Search", "Done", "Concluído", "Retorno", "return"]
             for nome in botoesTeclado {
@@ -654,6 +655,7 @@ final class AutenticacaoUITests: XCTestCase {
     }
 
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        fecharTecladoPeloOk(app)
         if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
             if elemento.isHittable && !app.keyboards.element.exists { return }
