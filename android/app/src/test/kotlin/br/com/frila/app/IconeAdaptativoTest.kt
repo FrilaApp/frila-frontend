@@ -2,6 +2,7 @@ package br.com.frila.app
 
 import android.app.Application
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.graphics.drawable.AdaptiveIconDrawable
 import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
@@ -73,5 +74,31 @@ class IconeAdaptativoTest {
     fun `manifesto declara icon e roundIcon apontando para mipmap ic_launcher`() {
         val appInfo = context.packageManager.getApplicationInfo(context.packageName, 0)
         assertEquals(R.mipmap.ic_launcher, appInfo.icon)
+        assertEquals(R.mipmap.ic_launcher_round, roundIconRes(appInfo))
     }
+
+    @Test
+    @Config(sdk = [35])
+    fun `roundIcon do manifesto resolve para AdaptiveIconDrawable`() {
+        val appInfo = context.packageManager.getApplicationInfo(context.packageName, 0)
+        val recurso = roundIconRes(appInfo)
+        assertEquals(R.mipmap.ic_launcher_round, recurso)
+        assertTrue(
+            "roundIcon deve resolver para AdaptiveIconDrawable",
+            ContextCompat.getDrawable(context, recurso) is AdaptiveIconDrawable,
+        )
+    }
+
+    @Test
+    @Config(sdk = [28])
+    fun `icone redondo e AdaptiveIconDrawable tambem na API 28`() {
+        // MEDIDO: em API 28 o Robolectric não reflete o roundIcon do manifesto em ApplicationInfo
+        // (roundIconRes sai igual a icon), então a declaração é provada só na API 35 acima.
+        val drawable = ContextCompat.getDrawable(context, R.mipmap.ic_launcher_round)
+        assertTrue("ic_launcher_round deve ser AdaptiveIconDrawable", drawable is AdaptiveIconDrawable)
+    }
+
+    /** `roundIconRes` não é API pública do SDK; lido por reflexão a partir do manifesto empacotado. */
+    private fun roundIconRes(appInfo: ApplicationInfo): Int =
+        ApplicationInfo::class.java.getField("roundIconRes").getInt(appInfo)
 }
