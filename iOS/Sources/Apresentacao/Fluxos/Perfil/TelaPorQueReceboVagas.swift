@@ -185,8 +185,8 @@ public struct TelaPorQueReceboVagas: View {
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .focused($focoNoRelato)
-            .frilaFormField(id: "despacho-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
             .accessibilityIdentifier("campo-relato-despacho")
+            .frilaFormField(id: "despacho-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
 
             HStack {
                 if viewModel.relatoValido {

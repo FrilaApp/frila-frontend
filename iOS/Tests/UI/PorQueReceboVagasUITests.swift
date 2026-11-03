@@ -71,7 +71,7 @@ final class PorQueReceboVagasUITests: XCTestCase {
         let enviar = app.buttons["botao-enviar-revisao"]
         rolarAte(enviar, em: app)
         XCTAssertTrue(enviar.waitForExistence(timeout: 5))
-        enviar.tap()
+        tocarFechandoTeclado(enviar, em: app)
 
         let enviado = app.descendants(matching: .any)["status-revisao-enviada"]
         XCTAssertTrue(enviado.waitForExistence(timeout: 5), "o pedido enviado deve aparecer")
@@ -102,7 +102,7 @@ final class PorQueReceboVagasUITests: XCTestCase {
         campo.typeText("Não recebi a vaga de sexta no Bistrô Ipê")
         let enviar = app.buttons["botao-enviar-revisao"]
         rolarAte(enviar, em: app)
-        enviar.tap()
+        tocarFechandoTeclado(enviar, em: app)
         let aviso = app.descendants(matching: .any)["status-revisao-ja-aberta"]
         XCTAssertTrue(aviso.waitForExistence(timeout: 10))
         XCTAssertTrue(aviso.label.contains("Já existe uma contestação"))

@@ -48,7 +48,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -73,7 +73,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -101,11 +101,11 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         XCTAssertTrue(app.buttons["continuar-cadastro"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Responsável do Café"].exists)
@@ -139,7 +139,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -167,11 +167,11 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         // 1. Tela de Cadastro do Estabelecimento
         let continuarCadastro = app.buttons["continuar-cadastro"]
@@ -213,7 +213,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -245,11 +245,11 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         trazerParaATela(termos, em: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         trazerParaATela(continuar, em: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         let continuarCadastro = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuarCadastro.waitForExistence(timeout: 10))
@@ -318,6 +318,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if fecharTecladoPeloOk(app) { return }
         if app.keyboards.element.exists {
             let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
             let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
@@ -326,6 +327,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
     }
 
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        fecharTecladoPeloOk(app)
         if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
             if elemento.isHittable && !app.keyboards.element.exists { return }

@@ -475,7 +475,7 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(relato.waitForExistence(timeout: Espera.aparecer))
         relato.tap()
         relato.typeText("Solicito a revisão da suspensão da minha conta")
-        tocar(app.buttons["botao-enviar-contestacao"])
+        tocarFechandoTeclado(app.buttons["botao-enviar-contestacao"], em: app)
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-contestacao"].waitForExistence(timeout: Espera.aparecer))
     }
 
@@ -512,7 +512,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("novo@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
@@ -541,11 +541,11 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         preencherPerfil(app)
         tocar(app.buttons["botao-salvar-perfil"])
@@ -638,6 +638,7 @@ final class AutenticacaoUITests: XCTestCase {
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if fecharTecladoPeloOk(app) { return }
         if app.keyboards.element.exists {
             let botoesTeclado = ["Buscar", "Search", "Done", "Concluído", "Retorno", "return"]
             for nome in botoesTeclado {
@@ -654,6 +655,7 @@ final class AutenticacaoUITests: XCTestCase {
     }
 
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        fecharTecladoPeloOk(app)
         if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
             if elemento.isHittable && !app.keyboards.element.exists { return }
@@ -677,7 +679,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("existente@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
 
@@ -706,7 +708,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("existente@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
@@ -728,7 +730,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("existente@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -761,7 +763,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("teste@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
@@ -783,7 +785,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("jovem@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
@@ -810,7 +812,7 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         XCTAssertTrue(app.staticTexts["cadastro-menor-idade-erro"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
@@ -833,7 +835,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("menor.declarado@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
@@ -862,11 +864,11 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         // O sinal Declared Age Range diz que é menor de 18: recusa com a mensagem da RN20
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
@@ -882,7 +884,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("novo@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let tfCodigo = app.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
@@ -913,13 +915,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve estar habilitado para maior de idade")
 
         // Toca Continuar sem marcar termos: exibe erro destacando os termos
-        btnContinuar.tap()
+        tocarFechandoTeclado(btnContinuar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
 
         // Marca termos e confere que continua habilitado
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
         rolarAte(btnContinuar, app: app)
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve continuar habilitado com os termos aceitos")
     }
@@ -947,7 +949,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("novo@frila.app")
-        tocar(appPadrao.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(appPadrao.buttons["entrada-receber-codigo"], em: appPadrao)
 
         let tfCodigo = appPadrao.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
@@ -975,7 +977,7 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = appPadrao.buttons["cadastro-termos"]
         rolarAte(termos, app: appPadrao)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: appPadrao)
 
         salvar(appPadrao, nome: "01-cadastro-padrao.png")
 
@@ -993,7 +995,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(emailAX5.waitForExistence(timeout: 10))
         emailAX5.tap()
         emailAX5.digitarEEsperar("novo@frila.app")
-        tocar(appAX5.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(appAX5.buttons["entrada-receber-codigo"], em: appAX5)
 
         let tfCodigoAX5 = appAX5.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigoAX5.waitForExistence(timeout: 10))
@@ -1031,7 +1033,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(emailMenor.waitForExistence(timeout: 10))
         emailMenor.tap()
         emailMenor.digitarEEsperar("jovem@frila.app")
-        tocar(appMenor.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(appMenor.buttons["entrada-receber-codigo"], em: appMenor)
 
         let tfCodigoMenor = appMenor.textFields["Código de acesso"]
         XCTAssertTrue(tfCodigoMenor.waitForExistence(timeout: 10))
@@ -1263,6 +1265,7 @@ extension XCUIElement {
     /// contenção do texto ou equivalência dos dígitos numéricos.
     func digitarEEsperar(_ texto: String, esperado: String? = nil, timeout: TimeInterval = Espera.aparecer, file: StaticString = #filePath, line: UInt = #line) {
         let valorEsperado = esperado ?? (texto.hasSuffix("\n") ? String(texto.dropLast()) : texto)
+        garantirFocoDoTeclado(file: file, line: line)
 
         if let esperado, esperado != texto || !esperado.filter(\.isNumber).isEmpty {
             // Em campos mascarados (telefone, data, valor), digita em pedaços curtos

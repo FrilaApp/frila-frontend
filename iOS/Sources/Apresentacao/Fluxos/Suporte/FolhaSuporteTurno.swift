@@ -207,9 +207,9 @@ public struct FolhaSuporteTurno: View {
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .focused($focoNoRelato)
-            .frilaFormField(id: "suporte-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
             .accessibilityIdentifier("campo-relato-suporte")
             .accessibilityHint(Text(verbatim: TextosDoSuporte.quantidadeCaracteres(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)))
+            .frilaFormField(id: "suporte-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
 
             HStack {
                 Text(verbatim: TextosDoSuporte.dicaRelato)

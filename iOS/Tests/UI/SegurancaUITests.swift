@@ -89,7 +89,7 @@ final class SegurancaUITests: XCTestCase {
         relato.tap()
         relato.typeText("Relato de risco ocorrido no estabelecimento.")
         trazerParaATela(enviar, em: app)
-        enviar.tap()
+        tocarFechandoTeclado(enviar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
     }
@@ -195,7 +195,7 @@ final class SegurancaUITests: XCTestCase {
         }
         relato.typeText("Relato de incidente durante o turno.")
         XCTAssertTrue(enviar.isHittable)
-        enviar.tap()
+        tocarFechandoTeclado(enviar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
         tocar(app.buttons["Fechar"])
@@ -262,7 +262,7 @@ final class SegurancaUITests: XCTestCase {
         }
         relato.typeText("Relato de conduta durante o atendimento.")
         XCTAssertTrue(enviar.isHittable)
-        enviar.tap()
+        tocarFechandoTeclado(enviar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
         tocar(app.buttons["Fechar"])

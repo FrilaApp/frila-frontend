@@ -30,7 +30,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10), "Campo de e-mail deve estar visível")
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10), "Campo de código deve estar visível")
@@ -64,12 +64,12 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
         XCTAssertTrue(termos.waitForExistence(timeout: 10))
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
         XCTAssertTrue(continuar.waitForExistence(timeout: 10))
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         // 3. Cadastro do Estabelecimento (pré-preenchido pelo -FRILA_CADASTRO_UI_TEST)
         let continuarCadastro = app.buttons["continuar-cadastro"]
@@ -351,6 +351,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
+        if fecharTecladoPeloOk(app) { return }
         if app.keyboards.element.exists {
             let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
             let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
@@ -359,6 +360,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
     }
 
     private func rolarAte(_ elemento: XCUIElement, app: XCUIApplication) {
+        fecharTecladoPeloOk(app)
         if elemento.isHittable && !app.keyboards.element.exists { return }
         for _ in 0..<6 {
             if elemento.isHittable && !app.keyboards.element.exists { return }

@@ -21,7 +21,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertEqual(email.label, "E-mail")
         email.tap()
         email.digitarEEsperar("novo@frila.app")
-        app.buttons["entrada-receber-codigo"].tap()
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         // 2. TelaCodigo: campo de codigo
         let codigo = app.textFields["Código de acesso"]
@@ -42,7 +42,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(termos.isHittable)
 
         // Alterna opcao pelo toque
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
         XCTAssertTrue(termos.isSelected)
     }
 
