@@ -75,6 +75,16 @@ Duas bordas, sem exceção (tela "Funções e horários", 02/11/2026):
 - Espaço agrupa: 4 pt entre campo e ajuda, 8 pt entre rótulo e controle, 24 pt entre seções (pelo menos 2x o espaço de dentro do grupo).
 - Texto de apoio fixo na tela fica a uma frase curta. O que explica a regra do produto vai atrás de um botão de informação, não em parágrafo.
 
+## Horários da semana (tela "Funções e horários")
+
+Componentes: `FrilaWeekStrip` (faixa fixa de sete dias, não é calendário corrido), `FrilaTimeChipRow` (fileira de chips de horário em passos de 30 minutos, no lugar da roleta nativa) e `SecaoDeHorarios` (a composição). Regras:
+
+- **Sem horário presumido.** O repouso abre no domingo com uma linha de rascunho "Selecionar"; nada entra em `disponibilidades` enquanto a pessoa não escolher início e fim. Rascunho com um só lado escolhido nunca é gravado: o salvar pede para completar ou descartar.
+- **Confirmação automática:** escolher o fim com o início já escolhido grava o horário. Editar um horário salvo aplica ao tocar no chip, pela troca segura `substituirJanela` (valida a nova antes de tirar a antiga).
+- **Toque num dia vazio** cria o rascunho dele e abre o início; **toque num dia com horário** só destaca as linhas dele. Mais de um horário no dia: "Adicionar horário".
+- **Fim antes do início** atravessa a meia-noite; a fileira marca "dia seguinte". Um horário salvo que não cai num passo de 30 minutos (18:15) continua na fileira, no lugar certo.
+- **Movimento** (tokens `FrilaMotion.horario*`): o contêiner cresce em 240 ms, a linha nasce em 180 ms com 40 ms de atraso, o destaque leva 160 ms e a remoção 200 ms, todas com curva ease-out forte; a última seleção prevalece em toques rápidos.
+
 ## Decisões da Fase 2
 
 - Botão principal e pílula neutra ativa continuam na tinta (`.ink` da origem), não na terracota viva: o rótulo

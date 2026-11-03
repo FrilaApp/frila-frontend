@@ -129,6 +129,25 @@ public enum FrilaMotion {
     public static let disclosurePressDip: Double = 0.1
     public static let disclosurePressSettle: Double = 0.24
 
+    // MARK: - Horários (faixa semanal e lista acoplada)
+
+    /// O contêiner cresce para baixo quando ganha uma linha ou um painel de horários (240 ms).
+    public static let horarioExpandir: Animation = .timingCurve(0.22, 1, 0.36, 1, duration: 0.24)
+
+    /// A linha nova nasce depois que o contêiner começou a abrir: 180 ms, com 40 ms de atraso.
+    public static let horarioLinhaEntrada: Animation = Animation.timingCurve(0.22, 1, 0.36, 1, duration: 0.18).delay(0.04)
+
+    /// Destaque do dia (fundo do grupo e da célula): 160 ms, ease-out.
+    public static let horarioDestaque: Animation = .easeOut(duration: 0.16)
+
+    /// A linha removida some e o contêiner recolhe em 200 ms, ease-out.
+    public static let horarioRemover: Animation = .easeOut(duration: 0.2)
+
+    /// Toque numa célula: afunda em 140 ms; ao soltar volta em 200 ms.
+    public static func horarioToque(pressionado: Bool) -> Animation {
+        .timingCurve(0.23, 1, 0.32, 1, duration: pressionado ? 0.14 : 0.2)
+    }
+
     // MARK: - Toque Fora (Outside Tap Dismissal)
 
     /// Duração máxima de contato para reconhecimento de toque fora (0.30 s).

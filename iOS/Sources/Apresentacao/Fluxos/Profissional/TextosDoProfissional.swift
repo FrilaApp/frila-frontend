@@ -255,6 +255,19 @@ enum TextosDoProfissional {
         public static let buscarPontoBase = String(localized: "Buscar endereço ou bairro", bundle: bundleApresentacao)
         public static let secaoHorarios = String(localized: "Seus horários", bundle: bundleApresentacao)
         public static let sobreOsHorarios = String(localized: "Sobre os horários", bundle: bundleApresentacao)
+        public static let horarioSelecionar = String(localized: "Selecionar", bundle: bundleApresentacao)
+        public static let horarioDescartar = String(localized: "Descartar", bundle: bundleApresentacao)
+        public static let horarioDiaSeguinte = String(localized: "dia seguinte", bundle: bundleApresentacao)
+        public static let horarioCompletar = String(localized: "Complete o horário ou descarte-o para salvar.", bundle: bundleApresentacao)
+        public static let diasAbreviados: [String] = [
+            String(localized: "Dom", bundle: bundleApresentacao),
+            String(localized: "Seg", bundle: bundleApresentacao),
+            String(localized: "Ter", bundle: bundleApresentacao),
+            String(localized: "Qua", bundle: bundleApresentacao),
+            String(localized: "Qui", bundle: bundleApresentacao),
+            String(localized: "Sex", bundle: bundleApresentacao),
+            String(localized: "Sáb", bundle: bundleApresentacao)
+        ]
         public static let adicionarHorario = String(localized: "Adicionar horário", bundle: bundleApresentacao)
         public static let diaSeguinte = String(localized: "(dia seguinte)", bundle: bundleApresentacao)
         public static let avisoFixo = String(localized: "Você só recebe avisos nos horários que marcar, para vagas da sua função e a até 15 km de você. A lista mostra todas as vagas do DF.", bundle: bundleApresentacao)

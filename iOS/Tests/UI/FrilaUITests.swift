@@ -611,9 +611,18 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(sugestao.waitForExistence(timeout: 10))
         sugestao.tap()
         fecharTecladoSeVisivel(app: app)
-        rolarAte(app.buttons["botao-adicionar-janela"], app: app)
-        app.buttons["botao-adicionar-janela"].tap()
+        adicionarHorarioDeTeste(app)
         rolarAte(app.buttons["botao-salvar-perfil"], app: app)
+    }
+
+    /// O domingo abre com um rascunho vazio: escolher início e fim pelos chips de 30 minutos confirma o horário sozinho.
+    private func adicionarHorarioDeTeste(_ app: XCUIApplication) {
+        let inicio = app.buttons["rascunho-inicio"]
+        rolarAte(inicio, app: app)
+        inicio.tap()
+        tocar(app.buttons["chip-horario-18:00"])
+        tocar(app.buttons["chip-horario-18:30"])
+        XCTAssertTrue(app.buttons["remover-janela-0-18:00"].waitForExistence(timeout: 5), "O horário deveria ter sido confirmado ao escolher o fim.")
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
