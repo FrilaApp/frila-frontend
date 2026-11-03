@@ -2052,6 +2052,16 @@
         }
       }
     },
+    "Horários em que você pode trabalhar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horários em que você pode trabalhar"
+          }
+        }
+      }
+    },
     "Há uma publicação pendente. Tente novamente para concluir sem criar outra vaga.": {
       "localizations": {
         "pt-BR": {
@@ -3318,6 +3328,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail."
+          }
+        }
+      }
+    },
+    "Serve para calcular a distância até as vagas. Não é a sua localização em tempo real.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serve para calcular a distância até as vagas. Não é a sua localização em tempo real."
           }
         }
       }
@@ -9524,6 +9544,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível carregar as funções e horários."
+          }
+        }
+      }
+    },
+    "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois."
+          }
+        }
+      }
+    },
+    "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista."
           }
         }
       }
