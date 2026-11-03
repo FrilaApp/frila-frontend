@@ -1,5 +1,9 @@
 package br.com.frila.app
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavController
 
 /**
@@ -26,7 +30,7 @@ private fun preencherRota(padrao: String, argumentos: Map<String, String>): Stri
  * não se tranca de novo sozinha; só volta a bloquear num novo processo.
  */
 class GuardaBiometrico(sessaoDesbloqueadaInicial: Boolean) {
-    var desbloqueada: Boolean = sessaoDesbloqueadaInicial
+    var desbloqueada: Boolean by mutableStateOf(sessaoDesbloqueadaInicial)
         private set
 
     private var destinoPendente: String? = null
@@ -70,6 +74,22 @@ class GuardaBiometrico(sessaoDesbloqueadaInicial: Boolean) {
     companion object {
         /** Rotas do fluxo de login/desbloqueio em si — nunca fazem sentido gatear a si mesmas. */
         val ROTAS_SEM_GATE = setOf(Rotas.ENTRADA, Rotas.CODIGO, Rotas.CADASTRO, Rotas.DESBLOQUEIO)
+    }
+}
+
+/**
+ * RN15: Elimina o frame de vazamento em deep links a frio para rotas protegidas.
+ * Se o gate estiver travado (![GuardaBiometrico.desbloqueada]), o conteúdo protegido
+ * NÃO é composto nem por 1 frame enquanto o [instalarGuardaBiometrico] redireciona
+ * para [Rotas.DESBLOQUEIO].
+ */
+@Composable
+fun RotaProtegida(
+    guarda: GuardaBiometrico,
+    conteudo: @Composable () -> Unit,
+) {
+    if (guarda.desbloqueada) {
+        conteudo()
     }
 }
 
