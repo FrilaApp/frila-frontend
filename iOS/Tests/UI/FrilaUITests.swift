@@ -615,14 +615,14 @@ final class AutenticacaoUITests: XCTestCase {
         rolarAte(app.buttons["botao-salvar-perfil"], app: app)
     }
 
-    /// O domingo abre com um rascunho vazio: escolher início e fim pelos chips de 30 minutos confirma o horário sozinho.
+    /// O domingo abre com "Escolher horário": a seta leva do início ao fim e o visto conclui (a roleta abre em 18:00 e o fim sugerido é seis horas depois).
     private func adicionarHorarioDeTeste(_ app: XCUIApplication) {
-        let inicio = app.buttons["rascunho-inicio"]
-        rolarAte(inicio, app: app)
-        inicio.tap()
-        tocar(app.buttons["chip-horario-18:00"])
-        tocar(app.buttons["chip-horario-18:30"])
-        XCTAssertTrue(app.buttons["remover-janela-0-18:00"].waitForExistence(timeout: 5), "O horário deveria ter sido confirmado ao escolher o fim.")
+        let escolher = app.buttons["escolher-horario"]
+        rolarAte(escolher, app: app)
+        escolher.tap()
+        tocar(app.buttons["horario-avancar"])
+        tocar(app.buttons["horario-avancar"])
+        XCTAssertTrue(app.buttons["remover-janela-0-18:00"].waitForExistence(timeout: 5), "O horário deveria ter sido confirmado no visto.")
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {

@@ -18,8 +18,8 @@ public struct FrilaWeekStripDia: Identifiable, Hashable {
 /// Faixa fixa com os sete dias da semana, uma célula por dia. Não é calendário corrido: serve para dizer
 /// em quais dias da semana a pessoa trabalha.
 ///
-/// Estados da célula: neutra (dia sem horário), preenchida (fundo suave na cor de seleção) e selecionada
-/// (contorno completo e texto em peso maior). Preenchida e selecionada somam os dois. A célula tem o raio
+/// Estados da célula: neutra (dia sem horário), preenchida (fundo neutro do campo) e selecionada
+/// (contorno de 2 pt por dentro, no Quente do botão de escolher funções, e texto em peso maior). Preenchida e selecionada somam os dois. A célula tem o raio
 /// concêntrico do contêiner que a abriga: raio do contêiner menos o recuo.
 public struct FrilaWeekStrip: View {
     private let dias: [FrilaWeekStripDia]
@@ -47,11 +47,11 @@ public struct FrilaWeekStrip: View {
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .background(
                             RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous)
-                                .fill(FrilaCor.selecao.opacity(dia.preenchido ? 0.12 : 0))
+                                .fill(dia.preenchido ? FrilaCor.superficieDoCampo : Color.clear)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous)
-                                .strokeBorder(ativo ? FrilaCor.selecao : Color.clear, lineWidth: 1)
+                                .strokeBorder(ativo ? FrilaCor.quente : Color.clear, lineWidth: 2)
                         )
                         .contentShape(Rectangle())
                 }

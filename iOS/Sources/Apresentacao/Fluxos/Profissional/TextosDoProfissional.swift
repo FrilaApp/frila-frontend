@@ -255,10 +255,17 @@ enum TextosDoProfissional {
         public static let buscarPontoBase = String(localized: "Buscar endereço ou bairro", bundle: bundleApresentacao)
         public static let secaoHorarios = String(localized: "Seus horários", bundle: bundleApresentacao)
         public static let sobreOsHorarios = String(localized: "Sobre os horários", bundle: bundleApresentacao)
+        public static let horarioEscolher = String(localized: "Escolher horário", bundle: bundleApresentacao)
+        public static let horarioProximo = String(localized: "Próximo", bundle: bundleApresentacao)
+        public static let horarioConcluir = String(localized: "Concluir", bundle: bundleApresentacao)
+        public static let horarioCancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+        public static let horarioTerminaNoDiaSeguinte = String(localized: "Termina no dia seguinte", bundle: bundleApresentacao)
+        public static let horarioConclua = String(localized: "Conclua ou cancele o horário para salvar.", bundle: bundleApresentacao)
+        public static func horarioDeAte(inicio: String, fim: String) -> String {
+            String(localized: "\(inicio) até \(fim)", bundle: bundleApresentacao)
+        }
         public static let horarioSelecionar = String(localized: "Selecionar", bundle: bundleApresentacao)
-        public static let horarioDescartar = String(localized: "Descartar", bundle: bundleApresentacao)
         public static let horarioDiaSeguinte = String(localized: "dia seguinte", bundle: bundleApresentacao)
-        public static let horarioCompletar = String(localized: "Complete o horário ou descarte-o para salvar.", bundle: bundleApresentacao)
         public static let diasAbreviados: [String] = [
             String(localized: "Dom", bundle: bundleApresentacao),
             String(localized: "Seg", bundle: bundleApresentacao),

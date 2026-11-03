@@ -10428,32 +10428,12 @@
         }
       }
     },
-    "Descartar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Descartar"
-          }
-        }
-      }
-    },
     "dia seguinte": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "dia seguinte"
-          }
-        }
-      }
-    },
-    "Complete o horário ou descarte-o para salvar.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Complete o horário ou descarte-o para salvar."
           }
         }
       }
@@ -10524,6 +10504,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sáb"
+          }
+        }
+      }
+    },
+    "Escolher horário": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher horário"
+          }
+        }
+      }
+    },
+    "Próximo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo"
+          }
+        }
+      }
+    },
+    "Termina no dia seguinte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina no dia seguinte"
+          }
+        }
+      }
+    },
+    "Conclua ou cancele o horário para salvar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conclua ou cancele o horário para salvar."
+          }
+        }
+      }
+    },
+    "%@ até %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ até %@"
           }
         }
       }

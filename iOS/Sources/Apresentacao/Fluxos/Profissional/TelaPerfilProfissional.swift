@@ -9,6 +9,8 @@ public struct TelaPerfilProfissional: View {
     private let aoSalvar: () -> Void
     @State private var infoDeHorariosAberta = false
     @State private var rascunhoDeHorarioIncompleto = false
+    /// Pedido, vindo do editor de horários, para rolar até ele quando abre e o botão fixo o cobriria.
+    @State private var pedidoDeRolagem: String?
     @State private var avisoDeRascunhoDeHorario = false
     @FocusState private var focoNoPontoBase: Bool
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
@@ -34,6 +36,19 @@ public struct TelaPerfilProfissional: View {
     }
 
     public var body: some View {
+        ScrollViewReader { leitor in
+            corpoComRolagem
+                .onChange(of: pedidoDeRolagem) { _, id in
+                    guard let id else { return }
+                    withAnimation(FrilaMovimento.animacao(FrilaMotion.horarioExpandir, reduzir: FrilaMovimentoReduzido.ativo)) {
+                        leitor.scrollTo(id, anchor: .bottom)
+                    }
+                    pedidoDeRolagem = nil
+                }
+        }
+    }
+
+    private var corpoComRolagem: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                 conteudoDoCorpo
@@ -299,7 +314,8 @@ public struct TelaPerfilProfissional: View {
             SecaoDeHorarios(
                 viewModel: viewModel,
                 rascunhoIncompleto: $rascunhoDeHorarioIncompleto,
-                avisoDeRascunho: $avisoDeRascunhoDeHorario
+                avisoDeRascunho: $avisoDeRascunhoDeHorario,
+                pedidoDeRolagem: $pedidoDeRolagem
             )
         }
     }

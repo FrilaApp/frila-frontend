@@ -4,7 +4,7 @@ import FrilaDados
 import FrilaDominio
 import Testing
 
-@Suite("Horários da semana: chips de 30 minutos e troca segura")
+@Suite("Horários da semana: opções da roleta e troca segura")
 struct HorariosDaSemanaTests {
     private func hora(_ h: Int, _ m: Int = 0) throws -> HoraDoDia {
         try HoraDoDia(hora: h, minuto: m)
@@ -50,7 +50,7 @@ struct HorariosDaSemanaTests {
         #expect(tarde.first?.iniciaDiaSeguinte == true)
     }
 
-    @Test("um horário que não cai num passo (18:15) continua na fileira, no lugar certo")
+    @Test("um horário que não cai num passo (18:15) continua na roleta, no lugar certo")
     func preservaMinutosQueNaoSaoPassos() throws {
         let inicio = OpcoesDeHorario.inicio(atual: try hora(18, 15), excluindo: nil).map(\.hora)
         #expect(inicio.count == 49)

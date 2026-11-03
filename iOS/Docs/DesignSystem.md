@@ -62,6 +62,7 @@ Decididos pelo Fabrício (02/11/2026). Valem para qualquer tela nova e para revi
 
 - **Accent strip:** nenhum filete vertical colorido ao lado de texto, cartão ou linha para marcar ênfase, estado ou próximo passo. Ênfase vem de tipografia, posição, preenchimento ou do próprio componente.
 - **Ponto médio entre rótulos ("dot segment"):** nunca separar rótulos ou palavras com "·", marcador ou travessão artificial; use linha própria, gramática comum ou espaço.
+- **Chips de hora pré-definidos:** nenhuma fileira ou grade de botões de hora ("18:00", "18:30"...) para escolher um horário. A hora se escolhe na roleta, personalizada, com segmentos de início e fim e uma seta que avança. Banido pelo Fabrício em 03/11/2026, depois do teste no aparelho. Chips seguem válidos para filtros e categorias.
 - **Menu flutuante nativo (`Menu`, `Picker` em menu) em tela de alta fidelidade:** não usar nem propor. Banido na tela "Funções e horários" pelo Fabrício em 02/11/2026, nesta fase de alta fidelidade; a escolha vira controle desenhado no próprio fluxo. Usos antigos em outras telas não foram tocados e viram correção quando a tela for refeita.
 - **Estado inicial que repreende:** uma tela vazia no primeiro passo convida ("Escolher funções"), não anuncia ausência ("Nenhuma função selecionada"). O erro só aparece depois da tentativa.
 
@@ -77,13 +78,15 @@ Duas bordas, sem exceção (tela "Funções e horários", 02/11/2026):
 
 ## Horários da semana (tela "Funções e horários")
 
-Componentes: `FrilaWeekStrip` (faixa fixa de sete dias, não é calendário corrido), `FrilaTimeChipRow` (fileira de chips de horário em passos de 30 minutos, no lugar da roleta nativa) e `SecaoDeHorarios` (a composição). Regras:
+Componentes: `FrilaWeekStrip` (faixa fixa de sete dias, não é calendário corrido), `FrilaStepSegments` (segmentos Início e Fim com o valor vivo e uma cápsula que desliza) e `SecaoDeHorarios` (a composição). O desenho segue o contrato do fluxo de turno da publicação de vaga (`FrilaJobShiftFlowCard`):
 
-- **Sem horário presumido.** O repouso abre no domingo com uma linha de rascunho "Selecionar"; nada entra em `disponibilidades` enquanto a pessoa não escolher início e fim. Rascunho com um só lado escolhido nunca é gravado: o salvar pede para completar ou descartar.
-- **Confirmação automática:** escolher o fim com o início já escolhido grava o horário. Editar um horário salvo aplica ao tocar no chip, pela troca segura `substituirJanela` (valida a nova antes de tirar a antiga).
-- **Toque num dia vazio** cria o rascunho dele e abre o início; **toque num dia com horário** só destaca as linhas dele. Mais de um horário no dia: "Adicionar horário".
-- **Fim antes do início** atravessa a meia-noite; a fileira marca "dia seguinte". Um horário salvo que não cai num passo de 30 minutos (18:15) continua na fileira, no lugar certo.
-- **Movimento** (tokens `FrilaMotion.horario*`): o contêiner cresce em 240 ms, a linha nasce em 180 ms com 40 ms de atraso, o destaque leva 160 ms e a remoção 200 ms, todas com curva ease-out forte; a última seleção prevalece em toques rápidos.
+- **Uma etapa por vez, um controle só:** a roleta nativa (`Picker(.wheel)`) com a tipografia tabular do Estúdio, em passos de 30 minutos. Um horário salvo fora do passo (18:15) continua na roleta, no lugar certo.
+- **A seta avança e vira o visto:** a seta Quente leva do Início ao Fim e, no Fim, concluir grava. Tocar num segmento salta para a etapa. "Cancelar" fecha sem gravar.
+- **Nada entra antes do visto:** a roleta abre em 18:00 e o fim sugerido é seis horas depois, mas isso é só o ponto de partida. Nenhum valor entra em `disponibilidades` até o "Concluir", e o salvar da tela avisa se há um horário aberto no editor. Editar um horário salvo troca por `substituirJanela`, que valida a nova janela antes de tirar a antiga.
+- **Repouso:** domingo selecionado e uma linha "Escolher horário" com seta. Dia vazio abre o editor no Início; dia com horário só destaca (o nome do dia fica em texto principal). Segundo horário no dia: "Adicionar horário".
+- **Fim antes do início** atravessa a meia-noite; o editor mostra "Termina no dia seguinte" e a linha salva traz a nota "dia seguinte".
+- **Cor:** o dia selecionado tem contorno de 2 pt por dentro no Quente (o mesmo do botão "Escolher funções"); o dia com horário tem fundo neutro do campo. Nenhum tom alaranjado esmaecido em contêiner.
+- **Movimento** (`FrilaMotion.horario*`): o contêiner cresce em 240 ms, a linha nasce em 180 ms com 40 ms de atraso, o destaque leva 160 ms e a remoção 200 ms, com curva ease-out forte. Ao abrir o editor, a tela rola até o rodapé dele para o botão fixo não o cobrir.
 
 ## Decisões da Fase 2
 

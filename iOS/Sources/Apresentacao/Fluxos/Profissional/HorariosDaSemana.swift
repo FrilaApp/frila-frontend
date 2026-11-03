@@ -11,8 +11,8 @@ public struct OpcaoDeHorario: Identifiable, Equatable, Sendable {
     public var id: String { hora.contrato }
 }
 
-/// As opções de início e de fim que a fileira de chips oferece: passos de 30 minutos. Um horário já salvo
-/// que não cai num passo (por exemplo 18:15, vindo do contrato) continua existindo e aparece na fileira,
+/// As opções de início e de fim que a roleta oferece: passos de 30 minutos, como a roleta de turno do Estúdio. Um horário já salvo
+/// que não cai num passo (por exemplo 18:15, vindo do contrato) continua existindo e aparece na roleta,
 /// no lugar certo, para a precisão de minutos nunca se perder.
 public enum OpcoesDeHorario {
     public static let passoEmMinutos = 30
@@ -51,43 +51,75 @@ public enum OpcoesDeHorario {
 enum CampoDeHorario: Hashable {
     case inicio
     case fim
+
+    var id: String { self == .inicio ? "inicio" : "fim" }
 }
 
-/// O que está sendo editado: um campo do rascunho ou um campo de um horário já salvo.
-enum AlvoDeEdicao: Hashable {
-    case rascunho(CampoDeHorario)
-    case janela(JanelaDeDisponibilidade, CampoDeHorario)
-}
+/// Um horário em edição no editor linear. Fica só na tela: nada entra em `disponibilidades` antes do
+/// "Concluir", então abrir, mexer e cancelar nunca preenche um horário sem intenção.
+struct EdicaoDeHorario: Equatable {
+    enum Origem: Equatable {
+        case nova(dia: Int)
+        case existente(JanelaDeDisponibilidade)
+    }
 
-/// Um horário ainda sem os dois valores. Fica só na tela: nunca entra em `disponibilidades` enquanto não
-/// tiver início e fim escolhidos pela pessoa, e então entra sozinho.
-struct RascunhoDeHorario: Equatable {
-    var dia: Int
-    var inicio: HoraDoDia?
-    var fim: HoraDoDia?
+    var origem: Origem
+    var etapa: CampoDeHorario = .inicio
+    var inicio: HoraDoDia
+    var fim: HoraDoDia
+    /// O fim só vira valor da pessoa quando ela passa por ele: antes disso o segmento mostra "Selecionar".
+    var fimVisitado: Bool
 
-    var temValor: Bool { inicio != nil || fim != nil }
+    var dia: Int {
+        switch origem {
+        case let .nova(dia): dia
+        case let .existente(janela): janela.diaDaSemana
+        }
+    }
+
+    /// Ponto de partida da roleta (não é uma escolha): início às 18:00 e fim 6 horas depois, como no Estúdio.
+    static func nova(dia: Int) -> EdicaoDeHorario {
+        let inicio = Self.inicioPadrao
+        return EdicaoDeHorario(origem: .nova(dia: dia), inicio: inicio, fim: sugestaoDeFim(apos: inicio), fimVisitado: false)
+    }
+
+    static func existente(_ janela: JanelaDeDisponibilidade) -> EdicaoDeHorario {
+        EdicaoDeHorario(origem: .existente(janela), inicio: janela.inicio, fim: janela.fim, fimVisitado: true)
+    }
+
+    private static let inicioPadrao: HoraDoDia = {
+        do { return try HoraDoDia(hora: 18, minuto: 0) } catch { preconditionFailure("18:00 é um horário válido.") }
+    }()
+
+    static func sugestaoDeFim(apos inicio: HoraDoDia) -> HoraDoDia {
+        (try? HoraDoDia(hora: (inicio.hora + 6) % 24, minuto: inicio.minuto)) ?? inicio
+    }
 }
 
 // MARK: - Seção
 
 /// Bloco "Seus horários": a faixa fixa dos sete dias e, no mesmo contêiner, os horários agrupados por dia.
 ///
-/// - Abre com o domingo selecionado e uma linha de rascunho vazia ("Selecionar"), sem horário presumido.
-/// - Tocar num dia sem horário cria o rascunho dele e abre a escolha do início; tocar num dia com horário
-///   só põe em evidência as linhas dele.
-/// - Escolher início e fim (chips de 30 minutos) confirma o horário sozinho; o fim antes do início
-///   atravessa a meia-noite e é marcado como dia seguinte.
-/// - Sem `Menu`, sem `Picker`, sem roleta nativa.
+/// O desenho segue o contrato do fluxo de turno da publicação de vaga: **uma etapa por vez**, com o valor
+/// vivo nos segmentos Início e Fim, **um controle só** (a roleta nativa, com tipografia própria) e um botão
+/// de seta que avança e vira "Concluir" na última etapa. Nada entra em `disponibilidades` antes do "Concluir".
+///
+/// - Abre no domingo, sem horário presumido: uma linha "Escolher horário".
+/// - Tocar num dia sem horário abre o editor no início; tocar num dia com horário só o põe em evidência.
+/// - Sem `Menu`, sem chips de hora: a hora é da roleta.
 struct SecaoDeHorarios: View {
     let viewModel: PerfilProfissionalViewModel
+    /// Há um horário aberto no editor, ainda sem "Concluir": o salvar pede para concluir ou cancelar.
     @Binding var rascunhoIncompleto: Bool
     @Binding var avisoDeRascunho: Bool
+    /// A seção pede à tela para rolar até o editor quando ele abre.
+    @Binding var pedidoDeRolagem: String?
 
     @State private var diaSelecionado = 0
-    @State private var rascunho: RascunhoDeHorario?
-    @State private var campo: AlvoDeEdicao?
+    @State private var edicao: EdicaoDeHorario?
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+
+    static let idDoEditor = "editor-horario"
 
     // MARK: Dados derivados
 
@@ -105,8 +137,9 @@ struct SecaoDeHorarios: View {
         }
     }
 
+    /// Dias que aparecem na lista: os que têm horário, o dia selecionado e o dia em edição.
     private var diasComConteudo: [Int] {
-        (0...6).filter { !janelas(do: $0).isEmpty || rascunho?.dia == $0 }
+        (0...6).filter { !janelas(do: $0).isEmpty || $0 == diaSelecionado || edicao?.dia == $0 }
     }
 
     // MARK: Corpo
@@ -119,12 +152,14 @@ struct SecaoDeHorarios: View {
                 .fill(FrilaCor.divisoria)
                 .frame(height: 1)
 
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
                 ForEach(diasComConteudo, id: \.self) { dia in
                     grupo(dia)
                         .transition(transicaoDeLinha)
                 }
             }
+            .padding(.horizontal, FrilaEspaco.pequeno)
+            .padding(.bottom, FrilaEspaco.pequeno)
         }
         .padding(FrilaEspaco.pequeno)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -135,10 +170,10 @@ struct SecaoDeHorarios: View {
         )
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("faixa-semanal")
-        .onAppear { garantirRascunhoDoDiaSelecionado() }
-        .onChange(of: rascunho) { _, novo in
-            rascunhoIncompleto = novo?.temValor ?? false
+        .onChange(of: edicao != nil) { _, aberto in
+            rascunhoIncompleto = aberto
             avisoDeRascunho = false
+            if aberto { pedirRolagemAoEditor() }
         }
     }
 
@@ -155,206 +190,211 @@ struct SecaoDeHorarios: View {
 
     private func grupo(_ dia: Int) -> some View {
         let selecionado = dia == diaSelecionado
+        let janelasDoDia = janelas(do: dia)
         return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: PerfilProfissionalViewModel.nomeDoDia(dia))
                 .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.textoSecundario)
+                .foregroundStyle(selecionado ? FrilaCor.texto : FrilaCor.textoSecundario)
 
-            ForEach(janelas(do: dia), id: \.self) { janela in
-                linhaDeJanela(janela)
-                    .transition(transicaoDeLinha)
+            ForEach(janelasDoDia, id: \.self) { janela in
+                if edicao?.origem == .existente(janela) {
+                    editor
+                        .transition(transicaoDeLinha)
+                } else {
+                    linhaDeJanela(janela)
+                        .transition(transicaoDeLinha)
+                }
             }
 
-            if let rascunho, rascunho.dia == dia {
-                linhaDeRascunho(rascunho)
+            if case .nova(dia) = edicao?.origem {
+                editor
                     .transition(transicaoDeLinha)
                 if avisoDeRascunho {
-                    Text(verbatim: TextosDoProfissional.Perfil.horarioCompletar)
+                    Text(verbatim: TextosDoProfissional.Perfil.horarioConclua)
                         .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.perigo)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("aviso-rascunho-horario")
                 }
-            } else if selecionado {
-                Button(action: adicionarOutroHorario) {
-                    Text(verbatim: TextosDoProfissional.Perfil.adicionarHorario)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.selecao)
-                        .frame(minHeight: 36, alignment: .leading)
-                        .contentShape(Rectangle())
+            } else if selecionado, edicao == nil {
+                if janelasDoDia.isEmpty {
+                    linhaEscolherHorario
+                } else {
+                    Button(action: adicionarOutroHorario) {
+                        Text(verbatim: TextosDoProfissional.Perfil.adicionarHorario)
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.selecao)
+                            .frame(minHeight: 36, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("botao-adicionar-janela")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("botao-adicionar-janela")
             }
         }
-        .padding(FrilaEspaco.pequeno)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                .fill(FrilaCor.selecao.opacity(selecionado ? 0.08 : 0))
-        )
-        .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: selecionado)
     }
 
     // MARK: Linhas
 
-    private func linhaDeJanela(_ janela: JanelaDeDisponibilidade) -> some View {
-        let inicio = AlvoDeEdicao.janela(janela, .inicio)
-        let fim = AlvoDeEdicao.janela(janela, .fim)
-        return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                campoDeHora(
-                    rotulo: TextosDoProfissional.Perfil.inicio,
-                    valor: janela.inicio,
-                    ativo: campo == inicio,
-                    identificador: "janela-inicio-\(janela.diaDaSemana)-\(janela.inicio.contrato)"
-                ) { abrir(inicio) }
-                campoDeHora(
-                    rotulo: TextosDoProfissional.Perfil.fim,
-                    valor: janela.fim,
-                    nota: janela.atravessaMeiaNoite ? TextosDoProfissional.Perfil.horarioDiaSeguinte : nil,
-                    ativo: campo == fim,
-                    identificador: "janela-fim-\(janela.diaDaSemana)-\(janela.inicio.contrato)"
-                ) { abrir(fim) }
-                Spacer(minLength: 0)
-                Button { remover(janela) } label: {
-                    Text(verbatim: TextosDoProfissional.Perfil.remover)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
-            }
-            .fixedSize(horizontal: false, vertical: true)
-            painel(se: inicio)
-            painel(se: fim)
-        }
-    }
-
-    private func linhaDeRascunho(_ r: RascunhoDeHorario) -> some View {
-        let inicio = AlvoDeEdicao.rascunho(.inicio)
-        let fim = AlvoDeEdicao.rascunho(.fim)
-        return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                campoDeHora(
-                    rotulo: TextosDoProfissional.Perfil.inicio,
-                    valor: r.inicio,
-                    ativo: campo == inicio,
-                    identificador: "rascunho-inicio"
-                ) { abrir(inicio) }
-                campoDeHora(
-                    rotulo: TextosDoProfissional.Perfil.fim,
-                    valor: r.fim,
-                    ativo: campo == fim,
-                    identificador: "rascunho-fim"
-                ) { abrir(fim) }
-                Spacer(minLength: 0)
-                if r.temValor {
-                    Button(action: descartarRascunho) {
-                        Text(verbatim: TextosDoProfissional.Perfil.horarioDescartar)
-                            .font(FrilaTipo.meta.weight(.semibold))
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("descartar-rascunho")
-                }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-            painel(se: inicio)
-            painel(se: fim)
-        }
-    }
-
-    /// Campo de hora: o rótulo pequeno, o valor (ou "Selecionar") e, no fim que vira o dia seguinte, uma nota.
-    private func campoDeHora(
-        rotulo: String,
-        valor: HoraDoDia?,
-        nota: String? = nil,
-        ativo: Bool,
-        identificador: String,
-        acao: @escaping () -> Void
-    ) -> some View {
-        Button(action: acao) {
-            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                Text(verbatim: rotulo)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                Text(verbatim: valor?.contrato ?? TextosDoProfissional.Perfil.horarioSelecionar)
+    /// Dia sem horário: um convite de uma linha que começa o fluxo. A seta diz que tem próximo passo.
+    private var linhaEscolherHorario: some View {
+        Button { abrirNovo(dia: diaSelecionado) } label: {
+            HStack {
+                Text(verbatim: TextosDoProfissional.Perfil.horarioEscolher)
                     .font(FrilaTipo.corpo.weight(.semibold))
-                    .foregroundStyle(valor == nil ? FrilaCor.textoSecundario : FrilaCor.texto)
-                if let nota {
-                    Text(verbatim: nota)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                }
+                    .foregroundStyle(FrilaCor.texto)
+                Spacer(minLength: FrilaEspaco.pequeno)
+                Image(systemName: "arrow.right")
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, FrilaEspaco.compacto)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(minWidth: 88, maxHeight: .infinity, alignment: .leading)
-            .frame(minHeight: FrilaMetrica.alturaDoCampo)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .strokeBorder(ativo ? FrilaCor.selecao : FrilaCor.divisoria, lineWidth: 1)
-            )
-            .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: ativo)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier(identificador)
+        .accessibilityIdentifier("escolher-horario")
     }
 
-    // MARK: Painel de chips
-
-    @ViewBuilder
-    private func painel(se alvo: AlvoDeEdicao) -> some View {
-        if campo == alvo, let conteudo = itens(para: alvo) {
-            FrilaTimeChipRow(itens: conteudo.itens, ancora: conteudo.ancora) { id in
-                if let hora = try? HoraDoDia(id) { escolher(hora, para: alvo) }
+    /// Horário salvo: "18:00 até 02:00" e, quando atravessa a meia-noite, uma nota. Tocar edita; Remover tira.
+    private func linhaDeJanela(_ janela: JanelaDeDisponibilidade) -> some View {
+        HStack(spacing: FrilaEspaco.pequeno) {
+            Button { abrirExistente(janela) } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                        Text(verbatim: TextosDoProfissional.Perfil.horarioDeAte(inicio: janela.inicio.contrato, fim: janela.fim.contrato))
+                            .font(FrilaTipo.corpo.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                            .monospacedDigit()
+                        if janela.atravessaMeiaNoite {
+                            Text(verbatim: TextosDoProfissional.Perfil.horarioDiaSeguinte)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, FrilaEspaco.compacto)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+                .contentShape(Rectangle())
             }
-            .id(alvo)
-            .transition(transicaoDeLinha)
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
+
+            Button { remover(janela) } label: {
+                Text(verbatim: TextosDoProfissional.Perfil.remover)
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
         }
     }
 
-    private func itens(para alvo: AlvoDeEdicao) -> (itens: [FrilaTimeChipItem], ancora: String?)? {
-        let opcoes: [OpcaoDeHorario]
-        let atual: HoraDoDia?
-        let ehInicio: Bool
-        switch alvo {
-        case .rascunho(.inicio):
-            atual = rascunho?.inicio
-            opcoes = OpcoesDeHorario.inicio(atual: atual, excluindo: rascunho?.fim)
-            ehInicio = true
-        case .rascunho(.fim):
-            guard let inicio = rascunho?.inicio else { return nil }
-            atual = rascunho?.fim
-            opcoes = OpcoesDeHorario.fim(apos: inicio, atual: atual)
-            ehInicio = false
-        case let .janela(janela, .inicio):
-            atual = janela.inicio
-            opcoes = OpcoesDeHorario.inicio(atual: atual, excluindo: janela.fim)
-            ehInicio = true
-        case let .janela(janela, .fim):
-            atual = janela.fim
-            opcoes = OpcoesDeHorario.fim(apos: janela.inicio, atual: atual)
-            ehInicio = false
+    // MARK: Editor linear
+
+    /// Início e Fim em segmentos, a roleta da etapa atual, e a seta que avança e vira "Concluir".
+    @ViewBuilder
+    private var editor: some View {
+        if let e = edicao {
+            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                FrilaStepSegments(
+                    segmentos: [
+                        FrilaStepSegment(id: CampoDeHorario.inicio.id, titulo: TextosDoProfissional.Perfil.inicio, valor: e.inicio.contrato),
+                        FrilaStepSegment(
+                            id: CampoDeHorario.fim.id,
+                            titulo: TextosDoProfissional.Perfil.fim,
+                            valor: e.fimVisitado ? e.fim.contrato : TextosDoProfissional.Perfil.horarioSelecionar
+                        )
+                    ],
+                    ativo: e.etapa.id,
+                    aoSelecionar: { id in ir(para: id == CampoDeHorario.inicio.id ? .inicio : .fim) }
+                )
+
+                roda(e)
+                    .id(e.etapa)
+                    .transition(.opacity.animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento)))
+
+                if e.etapa == .fim, e.fim < e.inicio {
+                    Text(verbatim: TextosDoProfissional.Perfil.horarioTerminaNoDiaSeguinte)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+
+                HStack {
+                    Button(action: cancelar) {
+                        Text(verbatim: TextosDoProfissional.Perfil.horarioCancelar)
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .frame(minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("cancelar-horario")
+
+                    Spacer(minLength: 0)
+
+                    botaoDeSeta(ultima: e.etapa == .fim)
+                }
+            }
+            .id(Self.idDoEditor)
         }
-        let itens = opcoes.map {
-            FrilaTimeChipItem(
-                id: $0.id,
-                rotulo: $0.id,
-                selecionado: $0.hora == atual,
-                marcaAntes: $0.iniciaDiaSeguinte ? TextosDoProfissional.Perfil.horarioDiaSeguinte : nil
+    }
+
+    /// A roleta nativa da etapa, com a tipografia tabular do Estúdio. O início não oferece o fim já escolhido;
+    /// o fim vai do resto do dia à virada da meia-noite, e nunca oferece o próprio início.
+    private func roda(_ e: EdicaoDeHorario) -> some View {
+        let opcoes: [HoraDoDia]
+        let selecao: Binding<HoraDoDia>
+        switch e.etapa {
+        case .inicio:
+            opcoes = OpcoesDeHorario.inicio(atual: e.inicio, excluindo: e.fimVisitado ? e.fim : nil).map(\.hora)
+            selecao = Binding(
+                get: { edicao?.inicio ?? e.inicio },
+                set: { novo in
+                    edicao?.inicio = novo
+                    if edicao?.fim == novo { edicao?.fim = EdicaoDeHorario.sugestaoDeFim(apos: novo) }
+                }
             )
+        case .fim:
+            opcoes = OpcoesDeHorario.fim(apos: e.inicio, atual: e.fim).map(\.hora)
+            selecao = Binding(get: { edicao?.fim ?? e.fim }, set: { edicao?.fim = $0 })
         }
-        // A âncora é só onde a fileira abre, nunca uma escolha: o início abre perto do começo da noite.
-        let ancora = atual?.contrato ?? (ehInicio ? "18:00" : opcoes.first?.id)
-        return (itens, ancora)
+        return Picker(selection: selecao) {
+            ForEach(opcoes, id: \.self) { hora in
+                Text(verbatim: hora.contrato)
+                    .font(FrilaTypography.metricTabular(size: 22, weight: .medium))
+                    .tag(hora)
+            }
+        } label: {
+            Text(verbatim: e.etapa == .inicio ? TextosDoProfissional.Perfil.inicio : TextosDoProfissional.Perfil.fim)
+        }
+        .pickerStyle(.wheel)
+        .labelsHidden()
+        .frame(height: 150)
+        .accessibilityIdentifier("roda-horario-\(e.etapa.id)")
+    }
+
+    /// Seta Quente que avança do início para o fim e vira o visto na última etapa.
+    private func botaoDeSeta(ultima: Bool) -> some View {
+        Button(action: avancar) {
+            Image(systemName: ultima ? "checkmark" : "arrow.right")
+                .font(FrilaTipo.corpo.weight(.bold))
+                .foregroundStyle(FrilaCor.sobreSelecao)
+                .frame(width: 52, height: 52)
+                .background(Circle().fill(FrilaCor.quente))
+                .contentTransition(reduzirMovimento ? .identity : .symbolEffect(.replace))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: ultima ? TextosDoProfissional.Perfil.horarioConcluir : TextosDoProfissional.Perfil.horarioProximo))
+        .accessibilityIdentifier("horario-avancar")
     }
 
     // MARK: Ações
@@ -363,82 +403,84 @@ struct SecaoDeHorarios: View {
         withAnimation(FrilaMovimento.animacao(animacao, reduzir: reduzirMovimento), mudanca)
     }
 
-    private func garantirRascunhoDoDiaSelecionado() {
-        guard janelas(do: diaSelecionado).isEmpty, rascunho?.dia != diaSelecionado else { return }
-        rascunho = RascunhoDeHorario(dia: diaSelecionado)
+    /// Espera o contêiner terminar de crescer e então pede a rolagem: o rodapé do editor (Cancelar e a seta)
+    /// não pode ficar atrás do botão fixo da tela.
+    private func pedirRolagemAoEditor() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(260))
+            pedidoDeRolagem = Self.idDoEditor
+        }
     }
 
     private func tocarDia(_ dia: Int) {
         animar {
             diaSelecionado = dia
-            if janelas(do: dia).isEmpty {
-                if rascunho?.dia != dia { rascunho = RascunhoDeHorario(dia: dia) }
-                campo = .rascunho(rascunho?.inicio == nil ? .inicio : .fim)
-            } else {
-                campo = nil
-            }
             avisoDeRascunho = false
+            if case .nova(let diaEmEdicao) = edicao?.origem, diaEmEdicao == dia { return }
+            if janelas(do: dia).isEmpty {
+                edicao = .nova(dia: dia)
+            } else {
+                edicao = nil
+            }
         }
+    }
+
+    private func abrirNovo(dia: Int) {
+        animar { edicao = .nova(dia: dia) }
     }
 
     private func adicionarOutroHorario() {
+        animar { edicao = .nova(dia: diaSelecionado) }
+    }
+
+    private func abrirExistente(_ janela: JanelaDeDisponibilidade) {
         animar {
-            rascunho = RascunhoDeHorario(dia: diaSelecionado)
-            campo = .rascunho(.inicio)
+            diaSelecionado = janela.diaDaSemana
+            edicao = .existente(janela)
         }
     }
 
-    private func abrir(_ alvo: AlvoDeEdicao) {
-        // O fim do rascunho depende do início: sem início, a pessoa começa por ele.
-        var destino = alvo
-        if alvo == .rascunho(.fim), rascunho?.inicio == nil { destino = .rascunho(.inicio) }
-        animar { campo = (campo == destino) ? nil : destino }
+    private func ir(para campo: CampoDeHorario) {
+        animar(FrilaMotion.horarioDestaque) {
+            edicao?.etapa = campo
+            if campo == .fim { edicao?.fimVisitado = true }
+        }
     }
 
-    private func escolher(_ hora: HoraDoDia, para alvo: AlvoDeEdicao) {
+    private func avancar() {
+        guard let e = edicao else { return }
+        if e.etapa == .inicio {
+            ir(para: .fim)
+        } else {
+            concluir(e)
+        }
+    }
+
+    private func concluir(_ e: EdicaoDeHorario) {
+        guard e.inicio != e.fim else { return }
         animar {
-            switch alvo {
-            case let .rascunho(qual):
-                guard var r = rascunho else { return }
-                if qual == .inicio {
-                    r.inicio = hora
-                    if r.fim == hora { r.fim = nil }
-                } else {
-                    r.fim = hora
-                }
-                rascunho = r
-                if let inicio = r.inicio, let fim = r.fim {
-                    viewModel.adicionarJanela(diaDaSemana: r.dia, inicio: inicio, fim: fim)
-                    rascunho = nil
-                    campo = nil
-                } else {
-                    campo = .rascunho(r.inicio == nil ? .inicio : .fim)
-                }
-            case let .janela(janela, qual):
-                let nova = JanelaDeDisponibilidade(
-                    diaDaSemana: janela.diaDaSemana,
-                    inicio: qual == .inicio ? hora : janela.inicio,
-                    fim: qual == .fim ? hora : janela.fim
-                )
-                if viewModel.substituirJanela(janela, por: nova) { campo = nil }
+            switch e.origem {
+            case let .nova(dia):
+                viewModel.adicionarJanela(diaDaSemana: dia, inicio: e.inicio, fim: e.fim)
+            case let .existente(janela):
+                let nova = JanelaDeDisponibilidade(diaDaSemana: janela.diaDaSemana, inicio: e.inicio, fim: e.fim)
+                viewModel.substituirJanela(janela, por: nova)
             }
+            edicao = nil
+        }
+    }
+
+    private func cancelar() {
+        animar(FrilaMotion.horarioRemover) {
+            edicao = nil
+            avisoDeRascunho = false
         }
     }
 
     private func remover(_ janela: JanelaDeDisponibilidade) {
         animar(FrilaMotion.horarioRemover) {
             viewModel.removerJanela(janela)
-            campo = nil
-            garantirRascunhoDoDiaSelecionado()
-        }
-    }
-
-    private func descartarRascunho() {
-        animar(FrilaMotion.horarioRemover) {
-            rascunho = nil
-            campo = nil
-            avisoDeRascunho = false
-            garantirRascunhoDoDiaSelecionado()
+            if edicao?.origem == .existente(janela) { edicao = nil }
         }
     }
 }
