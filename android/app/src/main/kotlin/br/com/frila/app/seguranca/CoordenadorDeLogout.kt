@@ -108,10 +108,11 @@ class CoordenadorDeLogout(
     }
 
     /**
-     * Cancela todas as corrotinas filhas ativas em segundo plano.
+     * Cancela todas as corrotinas filhas ativas em segundo plano. Devolve `false` quando não há
+     * escopo configurado: nada foi cancelado e o resultado não pode afirmar o contrário.
      */
     fun cancelarCorrotinasEmSegundoPlano(): Boolean {
-        val contexto = escopoDeCorrotinas?.coroutineContext ?: return true
+        val contexto = escopoDeCorrotinas?.coroutineContext ?: return false
         contexto.cancelChildren()
         return true
     }

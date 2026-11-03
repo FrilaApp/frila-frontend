@@ -8,7 +8,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
 /** Turnos do chamador como profissional (RF13/RF14/RF15/RN06/RN07/RN08/RN11/RN12/RN22/RNF06, UC05/UC06/UC13). */
-class ServicoTurnos(private val cliente: ClienteSupabase) {
+class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
+    constructor(cliente: ClienteSupabase) : this({ cliente })
+
+    /** Lido a cada chamada: após `GestorClienteKtor.recriar()` o cliente anterior está fechado. */
+    private val cliente: ClienteSupabase get() = provedorDeCliente()
+
 
     /**
      * `GET /rest/v1/rpc/meus_turnos`. Hoje e os próximos primeiro; os anteriores depois, do

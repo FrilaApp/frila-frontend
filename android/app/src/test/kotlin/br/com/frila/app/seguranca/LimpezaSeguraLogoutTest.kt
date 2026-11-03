@@ -194,6 +194,14 @@ class LimpezaSeguraLogoutTest {
     }
 
     @Test
+    fun `sem escopo de corrotinas o resultado nao afirma cancelamento`() {
+        val coordenador = CoordenadorDeLogout(armazenamentoDeSessao = armazenamento, contexto = contexto)
+
+        assertFalse(coordenador.cancelarCorrotinasEmSegundoPlano())
+        assertFalse(coordenador.deslogar().corrotinasCanceladas)
+    }
+
+    @Test
     fun `limpeza de cache preserva arquivos e configuracoes que nao sao imagens`() {
         val avatar = File(contexto.filesDir, "${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}foto.jpg").apply { writeBytes(byteArrayOf(1)) }
         val arquivoJson = File(contexto.filesDir, "config.json").apply { writeText("""{"tema":"escuro"}""") }

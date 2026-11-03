@@ -15,6 +15,8 @@ import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoDispositivo
+import br.com.frila.core.rede.ServicoPerfil
+import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -33,6 +35,7 @@ import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import io.mockk.mockk
+import kotlinx.coroutines.launch
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -131,7 +134,43 @@ class KoinGrafoTest : KoinTest {
         val segundaResolucao = get<ClienteSupabase>()
 
         assertNotNull(primeiraResolucao)
-        org.junit.jupiter.api.Assertions.assertSame(primeiraResolucao, segundaResolucao)
+        assertSame(primeiraResolucao, segundaResolucao)
+    }
+
+    @Test
+    fun `servicos de rede leem o cliente vigente depois do logout recriar o cliente`() {
+        startKoin { modules(modulosDeTeste) }
+        val gestor = get<GestorClienteKtor>()
+        val servicos = listOf(
+            get<ServicoAutenticacao>(), get<ServicoVagas>(), get<ServicoDispositivo>(),
+            get<ServicoTurnos>(), get<ServicoPerfil>(),
+        )
+        val antigo = gestor.clienteAtual
+
+        get<CoordenadorDeLogout>().deslogar()
+
+        assertTrue(antigo.estaFechado)
+        val vigente = gestor.clienteAtual
+        servicos.forEach { servico ->
+            val propriedade = servico::class.memberProperties.single { it.name == "cliente" }
+            propriedade.isAccessible = true
+            val usado = propriedade.getter.call(servico)
+            assertSame(vigente, usado, "${servico::class.simpleName} reteve cliente fechado")
+        }
+        assertSame(vigente, get<ClienteSupabase>())
+    }
+
+    @Test
+    fun `logout em producao cancela corrotinas do escopo da sessao registrado no Koin`() = kotlinx.coroutines.runBlocking {
+        startKoin { modules(modulosDeTeste) }
+        val escopo = get<kotlinx.coroutines.CoroutineScope>(org.koin.core.qualifier.named(ESCOPO_DA_SESSAO))
+        val job = escopo.launch { kotlinx.coroutines.delay(60_000) }
+
+        val resultado = get<CoordenadorDeLogout>().deslogar()
+
+        assertTrue(resultado.corrotinasCanceladas)
+        job.join()
+        assertTrue(job.isCancelled)
     }
 
     @Test

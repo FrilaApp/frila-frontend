@@ -6,7 +6,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
 /** Registro de token de push do aparelho (RF06/RN15/RNF02). */
-class ServicoDispositivo(private val cliente: ClienteSupabase) {
+class ServicoDispositivo(private val provedorDeCliente: () -> ClienteSupabase) {
+    constructor(cliente: ClienteSupabase) : this({ cliente })
+
+    /** Lido a cada chamada: após `GestorClienteKtor.recriar()` o cliente anterior está fechado. */
+    private val cliente: ClienteSupabase get() = provedorDeCliente()
+
 
     /**
      * `POST /rest/v1/rpc/registrar_dispositivo`. Chamar a cada abertura do app e sempre que o
