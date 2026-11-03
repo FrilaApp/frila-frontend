@@ -7,7 +7,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
 /** Perfil de profissional do chamador (RF03/RF16/RF25/RN15/RNF08, UC09/UC16). */
-class ServicoPerfil(private val cliente: ClienteSupabase) {
+class ServicoPerfil(private val provedorDeCliente: () -> ClienteSupabase) {
+    constructor(cliente: ClienteSupabase) : this({ cliente })
+
+    /** Lido a cada chamada: após `GestorClienteKtor.recriar()` o cliente anterior está fechado. */
+    private val cliente: ClienteSupabase get() = provedorDeCliente()
+
 
     /** `GET /rest/v1/rpc/meu_perfil_profissional`. Perfil com reputação agregada (RF03/RF16). */
     suspend fun obterMeuPerfilProfissional(): PerfilProfissionalDto {
