@@ -9,12 +9,12 @@ import java.text.Normalizer
 data class CoordenadaResolvida(val coordenada: Coordenada, val rotulo: String)
 
 /**
- * Infere uma coordenada aproximada para o estabelecimento de um turno (RN06, cartão Uu04zAt4).
+ * Resolve a coordenada do estabelecimento de um turno (RN06, cartões Uu04zAt4 e 72/cR7Oklyu).
  *
- * `TurnoDto.vaga` é um `VagaResumoDto` — MEDIDO em `Dtos.kt`: só tem `local`/`regiao_administrativa`
- * em texto, nunca latitude/longitude. Não existe cache de `VagaAbertaDto` com coordenada própria
- * (ela também não traz coordenada — mesma limitação do contrato OpenAPI). A única fonte possível
- * é a geocodificação offline por texto, via [GeocodificadorDfOffline].
+ * Quando `TurnoDto.vaga.ponto` é fornecido pelo backend (Cartão 72), a coordenada exata é usada
+ * diretamente com prioridade máxima, e o rótulo é o próprio endereço `vaga.local`.
+ * Quando `vaga.ponto` for nulo, infere uma coordenada aproximada via geocodificação offline por
+ * texto ([GeocodificadorDfOffline]).
  *
  * MEDIDO (Shisui, PR #598, bloqueante): usar só [GeocodificadorDfOffline.casarRegiaoAdministrativa]
  * resolve para o centroide da Região Administrativa inteira — 11 de 22 `POLOS_URBANOS` ficam a
@@ -30,6 +30,8 @@ object ResolvedorCoordenadaDaVaga {
 
     fun resolver(turno: TurnoDto): CoordenadaResolvida? {
         val vaga = turno.vaga
+        vaga.ponto?.let { return CoordenadaResolvida(Coordenada(it.latitude, it.longitude), vaga.local) }
+
         poloDoTexto(vaga.local)?.let { return CoordenadaResolvida(it.centroide, it.nomeExibicao) }
 
         val nomeDaRegiao = GeocodificadorDfOffline.casarRegiaoAdministrativa(vaga.local) ?: vaga.regiaoAdministrativa
