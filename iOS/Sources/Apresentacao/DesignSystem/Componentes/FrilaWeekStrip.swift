@@ -75,17 +75,23 @@ public struct FrilaWeekStrip: View {
             aoSelecionar(dia.id)
         } label: {
             Text(verbatim: dia.rotulo)
-                .font(ativo ? FrilaTipo.chip.weight(.bold) : FrilaTipo.chip)
+                // Hierarquia dos estados: dia selecionado ou com horário em negrito e texto principal; dia vazio em peso
+                // regular e texto de apoio. O dia com horário ganha também um fundo um passo acima do campo.
+                .font(ativo || dia.preenchido ? FrilaTipo.chip.weight(.bold) : FrilaTipo.chip.weight(.regular))
                 .foregroundStyle(ativo || dia.preenchido ? FrilaCor.texto : FrilaCor.textoSecundario)
+                .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: dia.preenchido)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .scaleEffect(escalaDoRotulo)
                 // Cor, peso e escala vêm do relógio: nada de animação herdada do pai (240 ms) por cima.
-                .transaction { $0.animation = nil }
+                // Só as mudanças de estado do dia e do relógio saem sem a animação do pai. A animação de layout do pai
+                // (o aviso acima abrindo e fechando) passa: sem isso o rótulo pula para o lugar final e o fundo ainda anima.
+                .transaction(value: ativo) { $0.animation = nil }
+                .transaction(value: escalaDoRotulo) { $0.animation = nil }
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .background(
                     RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous)
-                        .fill(dia.preenchido ? FrilaCor.superficieDoCampo : Color.clear)
+                        .fill(dia.preenchido ? FrilaCor.semanaDiaComHorario : Color.clear)
                         .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: dia.preenchido)
                 )
                 .overlay(
@@ -93,7 +99,7 @@ public struct FrilaWeekStrip: View {
                         .strokeBorder(FrilaCor.quente, lineWidth: Self.espessura(presenca))
                         .scaleEffect(FrilaMotion.semanaDestaqueEscalaOculta + (1 - FrilaMotion.semanaDestaqueEscalaOculta) * presenca)
                         .opacity(presenca)
-                        .transaction { $0.animation = nil }
+                        .transaction(value: presenca) { $0.animation = nil }
                         .allowsHitTesting(false)
                 )
                 .contentShape(Rectangle())

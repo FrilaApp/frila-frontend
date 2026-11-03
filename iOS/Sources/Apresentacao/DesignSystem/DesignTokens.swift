@@ -29,6 +29,12 @@ public enum FrilaCor {
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
     /// Preenchimento dos campos de formulário (`dynamicFormFieldSurface`).
     public static let superficieDoCampo = Color("FieldSurface", bundle: recursos)
+    /// Fundo do dia com horário na faixa semanal: um passo acima do campo, para ler de relance sobre o cartão.
+    /// Escuro #2E2E2E, claro #E6E6E4.
+    public static let semanaDiaComHorario = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark ? UIColor(red: 0x2E / 255, green: 0x2E / 255, blue: 0x2E / 255, alpha: 1)
+                                           : UIColor(red: 0xE6 / 255, green: 0xE6 / 255, blue: 0xE4 / 255, alpha: 1)
+    })
     /// Fio de 1 pt dos campos (`dynamicFormFieldBorder`): 3:1 sobre a tela e sobre o cartão.
     public static let bordaDoCampo = Color("FieldBorder", bundle: recursos)
     public static let texto = Color("TextPrimary", bundle: recursos)
