@@ -9,6 +9,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
     paths:
       - "android/**"
       - "iOS/Contrato/openapi.yaml"
@@ -72,6 +74,7 @@ jobs:
           if [ -n "$FRILA_RELEASE_KEYSTORE_BASE64" ]; then
             echo "Keystore de release configurado via segredos. Decodificando..."
             echo "$FRILA_RELEASE_KEYSTORE_BASE64" | base64 --decode > /tmp/release.keystore
+            trap "rm -f /tmp/release.keystore" EXIT
             export FRILA_RELEASE_KEYSTORE_PATH="/tmp/release.keystore"
           else
             echo "Segredos de release ausentes (pendente de configuração por pessoa). Gerando artefato sem assinar."
