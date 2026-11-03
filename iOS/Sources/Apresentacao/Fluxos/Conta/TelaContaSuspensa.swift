@@ -205,8 +205,8 @@ public struct TelaContaSuspensa: View {
             .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
             .focused($focoNoRelato)
-            .frilaFormField(id: "contestacao-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
             .accessibilityIdentifier("campo-relato-contestacao")
+            .frilaFormField(id: "contestacao-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
 
             HStack {
                 if viewModel.relatoValido {

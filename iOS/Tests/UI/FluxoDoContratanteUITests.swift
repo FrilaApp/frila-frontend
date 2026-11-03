@@ -48,7 +48,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -73,7 +73,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -139,7 +139,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()
@@ -213,7 +213,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         codigo.tap()

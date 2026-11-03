@@ -30,7 +30,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         XCTAssertTrue(email.waitForExistence(timeout: 10), "Campo de e-mail deve estar visível")
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"])
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10), "Campo de código deve estar visível")

@@ -200,7 +200,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
         email.tap()
         email.digitarEEsperar("novo@frila.app")
-        tocar(app.buttons["entrada-receber-codigo"], em: app)
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let codigo = app.textFields["Código de acesso"]
         guard esperar(codigo, "A tela do código deve abrir") else { return }

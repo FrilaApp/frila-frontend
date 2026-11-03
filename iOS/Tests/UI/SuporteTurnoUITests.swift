@@ -55,7 +55,7 @@ final class SuporteTurnoUITests: XCTestCase {
         if !botaoCopiar.isHittable {
             app.swipeUp()
         }
-        botaoCopiar.tap()
+        tocarFechandoTeclado(botaoCopiar, em: app)
 
         let avisoCopiado = app.descendants(matching: .any)["aviso-dados-copiados"]
         XCTAssertTrue(avisoCopiado.waitForExistence(timeout: Espera.aparecer), "Confirmação de cópia dos dados deve ser exibida após o toque")

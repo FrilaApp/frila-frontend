@@ -17,6 +17,40 @@ func tocar(_ elemento: XCUIElement, timeout: TimeInterval = Espera.aparecer, fil
     elemento.tap()
 }
 
+/// Toca em um botão quando um campo pode estar com o teclado aberto.
+///
+/// O escopo de fechamento do teclado (`frilaKeyboardDismissScope`, M21, decisão Q3) consome o primeiro
+/// toque fora do campo focado só para fechar o teclado: o botão não age. Foi o que derrubou 66 testes
+/// de interface depois do #650 (a Entrada não abria a tela do código). Aqui o primeiro toque fecha o
+/// teclado e, se a tela continuou a mesma, o segundo toque aciona o botão, como a pessoa faria.
+func tocarFechandoTeclado(_ elemento: XCUIElement, em app: XCUIApplication, timeout: TimeInterval = Espera.aparecer, file: StaticString = #filePath, line: UInt = #line) {
+    let teclado = app.keyboards.firstMatch
+    let estavaAberto = teclado.exists
+    tocar(elemento, timeout: timeout, file: file, line: line)
+    guard estavaAberto else { return }
+    let sumiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: teclado)
+    guard XCTWaiter.wait(for: [sumiu], timeout: 3) == .completed else { return }
+    // Folga para uma transição de tela iniciada pelo primeiro toque terminar antes de decidir.
+    let saiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: elemento)
+    guard XCTWaiter.wait(for: [saiu], timeout: 1) != .completed else { return }
+    if elemento.isHittable && elemento.isEnabled {
+        elemento.tap()
+    }
+}
+
+extension XCUIElement {
+    /// Garante o foco do teclado antes de digitar. Com o teclado de outro campo aberto, o escopo de
+    /// fechamento (M21, decisão Q3) consome o toque no campo seguinte só para fechar o teclado, e o
+    /// `typeText` falharia com "Neither element nor any descendant has keyboard focus". Toca de novo.
+    func garantirFocoDoTeclado(file: StaticString = #filePath, line: UInt = #line) {
+        guard !esperarFocoDoTeclado(self, timeout: 1) else { return }
+        for _ in 0..<2 {
+            if isHittable { tap() }
+            if esperarFocoDoTeclado(self, timeout: 2) { return }
+        }
+    }
+}
+
 /// O formulário de publicar vaga (o Estúdio de Criação) na tela. A barra do Estúdio mostra
 /// "Publicar vaga, etapa n de 3" no lugar do título "Nova vaga" do formulário antigo.
 @discardableResult
