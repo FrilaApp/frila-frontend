@@ -213,13 +213,14 @@ public enum FrilaMotion {
 
     // Soltar o dedo depois de um arraste: o assentamento da bolha ganha uma mola em escala proporcional.
 
-    /// A bolha se comprime a 95,5% (uniforme nos dois eixos) e volta numa mola com bounce, passando um pouco de 100%.
-    public static let segmentoSoltarEscala: CGFloat = 0.955
-    public static let segmentoSoltarCompressao: Animation = .easeOut(duration: 0.09)
-    public static let segmentoSoltarMola: Animation = .spring(duration: 0.34, bounce: 0.42)
-    public static let segmentoSoltarCompressaoDuracao: Double = 0.09
+    /// A bolha se comprime a 97% (uniforme nos dois eixos) e volta numa mola longa e macia, passando de leve de 100%.
+    /// Bounce entre 0,1 e 0,3 é o que se aceita em UI; aqui 0,25, com 0,46 s para a mola não parecer brinquedo.
+    public static let segmentoSoltarEscala: CGFloat = 0.97
+    public static let segmentoSoltarCompressao: Animation = .easeOut(duration: 0.11)
+    public static let segmentoSoltarMola: Animation = .spring(duration: 0.46, bounce: 0.25)
+    public static let segmentoSoltarCompressaoDuracao: Double = 0.11
     /// Háptico do assentamento depois de arrastar: mais leve que o do toque, no momento em que a bolha volta.
-    public static let segmentoHapticSoltar: Double = 0.42
+    public static let segmentoHapticSoltar: Double = 0.35
 
     /// Háptico 1, a troca de lado: pulso rígido (`copyLatchHapticIntensity`).
     public static let segmentoHapticTroca: Double = 0.45

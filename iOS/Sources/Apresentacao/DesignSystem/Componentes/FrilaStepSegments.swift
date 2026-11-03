@@ -34,8 +34,8 @@ public struct FrilaStepSegment: Identifiable, Hashable {
 ///   do vão; sem vidro, o preenchimento fica em 100%) e termina antes da chegada. A frente para na parede; o bounce vem
 ///   da borda de trás, do lado oposto à colisão: o corpo alonga (+8 pt), comprime (−8 pt) e dilata (+3 pt) até assentar,
 ///   como uma mola horizontal.
-/// - **Soltar depois de arrastar:** a lente assenta e a bolha ganha uma mola em escala proporcional (comprime a 95,5% e
-///   volta passando um pouco de 100%), com um háptico leve no momento em que ela volta.
+/// - **Soltar depois de arrastar:** a lente assenta e a bolha ganha uma mola em escala proporcional (comprime a 97% e
+///   volta passando de leve de 100%), com um háptico leve no momento em que ela volta.
 /// - **Dois hápticos:** um pulso rígido quando o cursor vira de lado (na metade do arrasto, ou no toque) e um
 ///   toque suave quando a lente assenta, confirmando o estado.
 public struct FrilaStepSegments: View {
@@ -422,7 +422,7 @@ public struct FrilaStepSegments: View {
         assentarDepois()
     }
 
-    /// Depois de arrastar: a lente assenta e a bolha comprime a 95,5% e volta numa mola com bounce, em escala
+    /// Depois de arrastar: a lente assenta e a bolha comprime a 97% e volta numa mola macia, em escala
     /// proporcional. O háptico leve toca quando ela começa a voltar.
     private func assentarDepois() {
         tarefaDeAssentamento?.cancel()
