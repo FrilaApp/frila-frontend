@@ -431,8 +431,12 @@ public struct AvisoFrila: View {
 public struct CartaoVaga: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let vaga: VagaNaLista
+    private let agora: Date
     private let formatador = FormatadorFrila()
-    public init(_ vaga: VagaNaLista) { self.vaga = vaga }
+    public init(_ vaga: VagaNaLista, agora: Date = .now) {
+        self.vaga = vaga
+        self.agora = agora
+    }
 
     public var body: some View {
         // Placa de museu da origem (`FrilaOpportunityCard`): entidade em caixa alta, título, grade de
@@ -449,7 +453,7 @@ public struct CartaoVaga: View {
                 }
             }
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                linha("clock") { Text(verbatim: formatador.intervalo(vaga.periodo)) }
+                linha("clock") { Text(verbatim: FormatoDataVaga.cartao(vaga.periodo, agora: agora)) }
                 linha("mappin") { Text(verbatim: localizacao) }
                 linha("checkmark") { Text(verbatim: textoBeneficios) }
                 linha("person") { Text(verbatim: posicoesTexto) }
@@ -532,11 +536,9 @@ public struct CartaoVaga: View {
     }
 
     private var posicoesTexto: String {
-        if vaga.posicoesAbertas == 1 {
-            return String(localized: "1 posição aberta", bundle: bundleApresentacao)
-        } else {
-            return String(localized: "\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao)
-        }
+        let modo = FormatoDataVaga.modoEfetivo(modo: vaga.modo, posicoesAbertas: vaga.posicoesAbertas,
+                                             inicio: vaga.periodo.inicio, agora: agora)
+        return TextosDoProfissional.Lista.posicoes(vaga.posicoesAbertas, modo: modo)
     }
 
     @ViewBuilder
@@ -587,7 +589,7 @@ public struct CartaoVaga: View {
         let partes = [
             String(localized: "Vaga de \(vaga.funcao.nome)", bundle: bundleApresentacao),
             vaga.estabelecimento.nome,
-            formatador.intervalo(vaga.periodo),
+            FormatoDataVaga.cartao(vaga.periodo, agora: agora),
             rotuloAcessibilidadeValor,
             "a \(localizacao)",
             textoBeneficios,

@@ -1,6 +1,46 @@
 {
   "sourceLanguage": "pt-BR",
   "strings": {
+    "1 posição aberta, confirmação imediata se elegível": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 posição aberta, confirmação imediata se elegível"
+          }
+        }
+      }
+    },
+    "%lld posições abertas, confirmação imediata se elegível": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld posições abertas, confirmação imediata se elegível"
+          }
+        }
+      }
+    },
+    "1 posição aberta, a casa escolhe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 posição aberta, a casa escolhe"
+          }
+        }
+      }
+    },
+    "%lld posições abertas, a casa escolhe": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld posições abertas, a casa escolhe"
+          }
+        }
+      }
+    },
     "Versões": {
       "localizations": {
         "pt-BR": {
