@@ -356,14 +356,22 @@ fun BlocoContagemRegressiva(
     }
 }
 
-/** Diálogo RN12: explica o efeito antes do envio e exige um motivo válido. */
+/**
+ * Diálogo RN12: modal de confirmação de cancelamento com a regra de antecedência.
+ *
+ * Apresenta o efeito do cancelamento segundo a regra RN12 (se antecedência < 24h,
+ * conta como falta e alerta sobre impacto na reputação; se >= 24h, sem falta).
+ *
+ * O campo de motivo NÃO entra na interface, conforme contrato do Android (decisão
+ * de produto de 02/10/2026, com contradição registrada como decisão pendente do Cauê).
+ */
 @Composable
 fun DialogoCancelamentoTurno(
     estado: EstadoCancelamentoTurno,
-    aoSelecionarMotivo: (MotivoCancelamento) -> Unit,
-    aoAtualizarDetalhes: (String) -> Unit,
     aoConfirmar: () -> Unit,
     aoVoltar: () -> Unit,
+    aoSelecionarMotivo: ((MotivoCancelamento) -> Unit)? = null,
+    aoAtualizarDetalhes: ((String) -> Unit)? = null,
 ) {
     val emitirFeedback = lembrarFeedbackAcaoCritica()
     AlertDialog(
@@ -384,43 +392,6 @@ fun DialogoCancelamentoTurno(
                     },
                     color = if (estado.contaComoFalta) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = "Qual é o motivo?",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Column(modifier = Modifier.selectableGroup()) {
-                    MotivoCancelamento.entries.forEach { motivo ->
-                        val selecionado = estado.motivoSelecionado == motivo
-                        androidx.compose.foundation.layout.Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                                .selectable(
-                                    selected = selecionado,
-                                    role = Role.RadioButton,
-                                    onClick = { aoSelecionarMotivo(motivo) },
-                                )
-                                .semantics {
-                                    stateDescription = if (selecionado) "selecionado" else "não selecionado"
-                                },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = selecionado, onClick = null)
-                            Text(text = motivo.descricao, modifier = Modifier.padding(start = FrilaEspacamento.pequeno))
-                        }
-                    }
-                }
-                if (estado.motivoSelecionado?.exigeDetalhes == true) {
-                    OutlinedTextField(
-                        value = estado.detalhes,
-                        onValueChange = aoAtualizarDetalhes,
-                        label = { Text("Descreva o motivo") },
-                        supportingText = { Text("Pelo menos 3 caracteres") },
-                        modifier = Modifier.fillMaxWidth().sizeIn(minHeight = FrilaMetricas.alvoMinimo),
-                        minLines = 2,
-                    )
-                }
                 estado.mensagemErro?.let { mensagem ->
                     Text(
                         text = mensagem,

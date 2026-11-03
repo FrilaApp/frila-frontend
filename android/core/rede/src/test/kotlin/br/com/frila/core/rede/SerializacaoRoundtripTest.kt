@@ -4,6 +4,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 /**
@@ -192,5 +193,61 @@ class SerializacaoRoundtripTest {
         val decoded = json.decodeFromString<VagaAbertaDto>(jsonComCamposExtras)
         assertNotNull(decoded)
         assertEquals("vaga-999", decoded.id)
+    }
+
+    @Test
+    fun `roundtrip VagaResumoDto com ponto de coordenada exata preserva latitude e longitude (Cartao 72)`() {
+        val original = VagaResumoDto(
+            id = "vaga-com-ponto",
+            funcao = "cozinheiro",
+            local = "CLN 201 Bloco B",
+            regiaoAdministrativa = "Plano Piloto",
+            inicioEm = "2026-11-01T12:00:00Z",
+            fimEm = "2026-11-01T18:00:00Z",
+            valorCentavos = 15_000L,
+            ponto = CoordenadaDto(latitude = -15.7801, longitude = -47.8899),
+        )
+
+        val encoded = json.encodeToString(original)
+        val decoded = json.decodeFromString<VagaResumoDto>(encoded)
+
+        assertEquals(original, decoded)
+        assertEquals(-15.7801, decoded.ponto?.latitude)
+        assertEquals(-47.8899, decoded.ponto?.longitude)
+    }
+
+    @Test
+    fun `roundtrip VagaResumoDto sem ponto e compativel com json legado sem a chave`() {
+        val original = VagaResumoDto(
+            id = "vaga-sem-ponto",
+            funcao = "cozinheiro",
+            local = "CLN 201 Bloco B",
+            regiaoAdministrativa = "Plano Piloto",
+            inicioEm = "2026-11-01T12:00:00Z",
+            fimEm = "2026-11-01T18:00:00Z",
+            valorCentavos = 15_000L,
+            ponto = null,
+        )
+
+        val encoded = json.encodeToString(original)
+        val decoded = json.decodeFromString<VagaResumoDto>(encoded)
+
+        assertEquals(original, decoded)
+        assertNull(decoded.ponto)
+
+        val jsonLegadoSemPonto = """
+            {
+                "id": "vaga-legada",
+                "funcao": "bartender",
+                "local": "Asa Sul",
+                "regiao_administrativa": "Plano Piloto",
+                "inicio_em": "2026-11-01T20:00:00Z",
+                "fim_em": "2026-11-02T02:00:00Z",
+                "valor_centavos": 18000
+            }
+        """.trimIndent()
+        val decodedLegado = json.decodeFromString<VagaResumoDto>(jsonLegadoSemPonto)
+        assertEquals("vaga-legada", decodedLegado.id)
+        assertNull(decodedLegado.ponto)
     }
 }

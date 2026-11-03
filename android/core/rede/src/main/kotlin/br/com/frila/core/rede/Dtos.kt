@@ -152,6 +152,7 @@ data class VagaResumoDto(
     @SerialName("inicio_em") val inicioEm: String,
     @SerialName("fim_em") val fimEm: String,
     @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("ponto") val ponto: CoordenadaDto? = null,
 )
 
 /**

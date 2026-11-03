@@ -46,7 +46,7 @@ data class EstadoCancelamentoTurno(
         }
 
     val podeConfirmar: Boolean
-        get() = motivoCompleto != null && !enviando
+        get() = !enviando
 }
 
 /** RF16: tamanho de cada fatia da paginação progressiva do histórico. */
