@@ -180,30 +180,35 @@ public enum FrilaMotion {
     // existe no vão e a margem tem um retorno orgânico. Valores propostos pelos dois Codex e escolhidos pelo
     // usuário (opção A, 03/11/2026); ainda a validar no aparelho.
 
-    /// Duração total e marcos da trajetória (segundos). A frente vai ao destino e para na parede, sem passar dela (até
-    /// 220 ms). Quem faz o bounce é a borda de trás, do lado oposto à colisão: parte em 30 ms, fica atrás do destino
-    /// quando a frente chega (o corpo alonga), passa do destino aos 310 ms (o corpo comprime), volta um pouco aos
-    /// 380 ms (dilata) e assenta aos 440 ms. É uma mola horizontal: compressão, dilatação e estabilização.
+    /// Relógio único de 440 ms, com a curva quíntica Q(u) = 6u⁵ − 15u⁴ + 10u³ em cada trecho (velocidade e aceleração
+    /// zero nas junções). O transporte chega ao destino aos 220 ms: a frente em 0 a 220 ms, a de trás em 20 a 240 ms
+    /// (um alongamento curto de viagem, sem oscilação própria). O háptico toca na chegada.
     public static let segmentoToqueDuracao: Double = 0.44
     public static let segmentoToqueChegadaDaFrente: Double = 0.22
-    public static let segmentoToqueSaidaDeTras: Double = 0.03
-    public static let segmentoToqueCompressaoEm: Double = 0.31
-    public static let segmentoToqueDilataEm: Double = 0.38
-    /// A bolha acompanha o transporte nominal do centro, que termina em 180 ms, antes da chegada da frente.
-    public static let segmentoToqueTransporte: Double = 0.18
+    public static let segmentoToqueSaidaDeTras: Double = 0.02
+    public static let segmentoToqueChegadaDeTras: Double = 0.24
 
-    /// Amplitudes da borda de trás: cada uma é o menor entre o teto em pt e a fração da distância entre os centros.
-    /// Alongamento quando a frente chega, compressão logo depois e dilatação final. A frente não sai da trilha.
-    public static let segmentoToqueAlongamento: CGFloat = 8
-    public static let segmentoToqueAlongamentoFracao: CGFloat = 0.07
-    public static let segmentoToqueCompressao: CGFloat = 8
-    public static let segmentoToqueCompressaoFracao: CGFloat = 0.07
-    public static let segmentoToqueDilatacao: CGFloat = 3
-    public static let segmentoToqueDilatacaoFracao: CGFloat = 0.025
+    /// Reação à inércia: o corpo inteiro (as duas bordas juntas, fio incluso) passa do destino e volta, e os rótulos
+    /// reagem no sentido oposto. Efeito fixo, sem proporção com a distância. A trilha e o cartão ficam parados: a trilha
+    /// é a referência que faz o movimento ler como inércia. Começa aos 160 ms (nos últimos 60 ms do transporte), para
+    /// não parecer uma segunda ação depois da chegada.
+    public static let segmentoInerciaInicio: Double = 0.16
+    /// Excesso do corpo aos 220 ms e recuo para dentro aos 310 ms, em pt. Com o recuo de 4 pt da trilha e o fio de 1 pt,
+    /// sobra 1 pt livre até a borda da trilha.
+    public static let segmentoInerciaExcesso: CGFloat = 2
+    public static let segmentoInerciaRecuo: CGFloat = 0.75
+    public static let segmentoInerciaRecuoEm: Double = 0.31
+    /// Rótulos: 1 pt no sentido oposto aos 240 ms, de volta a zero aos 420 ms. Os dois grupos usam o mesmo deslocamento,
+    /// então a distância entre eles não muda; o movimento relativo ao cursor chega a 3 pt.
+    public static let segmentoInerciaRotulos: CGFloat = 1
+    public static let segmentoInerciaRotulosPico: Double = 0.24
+    public static let segmentoInerciaRotulosFim: Double = 0.42
 
     /// A bolha do vão vale 0 com o cursor num centro de célula e cresce até 1 no meio do vão (começa a 10% do passo,
     /// com suavização S). Cresce 8 por 5 pt além do cursor (no arraste são 28 por 14). Sem vidro e sem véu:
     /// o preenchimento fica em 100%, o cursor só se alarga.
+    /// A bolha acompanha o transporte nominal do centro e fecha em 160 ms, antes de a reação inercial começar.
+    public static let segmentoToqueTransporte: Double = 0.16
     public static let segmentoToqueVaoInicio: CGFloat = 0.10
     public static let segmentoToqueCresceX: CGFloat = 8
     public static let segmentoToqueCresceY: CGFloat = 5
