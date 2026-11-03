@@ -252,6 +252,66 @@ public enum FrilaMotion {
         .timingCurve(0.23, 1, 0.32, 1, duration: pressionado ? 0.14 : 0.2)
     }
 
+    // MARK: - Faixa semanal (dissolução do destaque, 03/11/2026, segunda rodada)
+    //
+    // O contorno não viaja: recolhe para dentro do dia que sai e nasce de dentro no dia que entra. Espessura, escala e
+    // opacidade andam juntas por uma só curva de arrancada forte (ease-out: o anel some ou nasce rápido e assenta
+    // devagar). No meio da troca a espessura incha para dentro (o stroke é interno), o que impede o vale em que os dois
+    // contornos, finos e translúcidos, deixariam a célula sem destaque. Os rótulos reagem com um pop.
+    // A primeira rodada (180 ms, escalas de 3%) era imperceptível no aparelho; esta alonga e abre os valores.
+    // A validar no aparelho.
+
+    /// Duração do contorno, da saída e da entrada, em segundos.
+    public static let semanaDestaqueDuracao: Double = 0.34
+    /// A entrada espera a saída começar a abrir espaço: 60 ms de atraso (só quando parte do repouso).
+    public static let semanaDestaqueAtraso: Double = 0.06
+    /// Espessura nominal do contorno com o dia ativo, em pt.
+    public static let semanaDestaqueEspessura: CGFloat = 2
+    /// Espessura extra no meio da troca (pico em p = 0,5), em pt: o stroke incha para dentro.
+    public static let semanaDestaqueEspessuraExtra: CGFloat = 1.5
+    /// Escala do contorno quando o dia está oculto (0), crescendo até 1 com o dia ativo. Recolhe 18% para dentro.
+    public static let semanaDestaqueEscalaOculta: CGFloat = 0.82
+
+    /// Quíntica suave Q(u) = 6u⁵ − 15u⁴ + 10u³ (velocidade e aceleração zero nas pontas), com u limitado a [0, 1].
+    /// Usada nos pops dos rótulos.
+    public static func semanaDestaqueProgresso(_ u: Double) -> Double {
+        let x = min(max(u, 0), 1)
+        return x * x * x * (x * (6 * x - 15) + 10)
+    }
+
+    /// Derivada de Q em u: 30u²(1 − u)².
+    public static func semanaDestaqueDerivada(_ u: Double) -> Double {
+        let x = min(max(u, 0), 1)
+        return 30 * x * x * (1 - x) * (1 - x)
+    }
+
+    /// Curva de arrancada do contorno: 1 − (1 − u)⁴. Começa rápida (velocidade 4) e chega a 0 devagar.
+    public static func semanaContornoProgresso(_ u: Double) -> Double {
+        let x = 1 - min(max(u, 0), 1)
+        return 1 - x * x * x * x
+    }
+
+    /// Derivada da curva de arrancada: 4(1 − u)³. Serve à continuidade de velocidade quando um toque interrompe a troca.
+    public static func semanaContornoDerivada(_ u: Double) -> Double {
+        let x = 1 - min(max(u, 0), 1)
+        return 4 * x * x * x
+    }
+
+    /// Frenagem máxima ao interromper uma trajetória em curso: até 24 ms, desaceleração constante até velocidade 0.
+    public static let semanaInterrupcaoFreioMaximo: Double = 0.024
+
+    /// Pop do rótulo que perde o destaque: afunda a 0,92 em 100 ms e volta a 1 até o fim dos 340 ms.
+    public static let semanaRotuloSaidaEscala: CGFloat = 0.92
+    public static let semanaRotuloSaidaPico: Double = 0.10
+    /// Pop do rótulo que recebe o destaque: afunda a 0,95 em 70 ms, passa a 1,04 aos 190 ms e assenta em 1 aos 340 ms.
+    public static let semanaRotuloEntradaCompressao: CGFloat = 0.95
+    public static let semanaRotuloEntradaExcesso: CGFloat = 1.04
+    public static let semanaRotuloEntradaCompressaoEm: Double = 0.07
+    public static let semanaRotuloEntradaExcessoEm: Double = 0.19
+
+    /// Háptico leve da troca de dia por toque: uma vez por troca, sem pulso de assentamento.
+    public static let semanaHapticIntensidade: Double = 0.35
+
     // MARK: - Toque Fora (Outside Tap Dismissal)
 
     /// Duração máxima de contato para reconhecimento de toque fora (0.30 s).
