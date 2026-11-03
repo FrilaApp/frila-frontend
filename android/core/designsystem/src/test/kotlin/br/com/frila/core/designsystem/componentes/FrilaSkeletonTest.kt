@@ -15,11 +15,15 @@ import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.TweenSpec
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -218,5 +222,80 @@ class FrilaSkeletonTest {
             .assertIsDisplayed()
             .assertHeightIsEqualTo(160.dp)
     }
-}
 
+    @Test
+    fun `shimmer usa 1500ms e LinearEasing`() {
+        assertEquals(1500, FrilaSkeletonShimmer.DURACAO_MS)
+        assertSame(LinearEasing, FrilaSkeletonShimmer.curva)
+        assertEquals(0.3f, FrilaSkeletonShimmer.curva.transform(0.3f), 0f)
+    }
+
+    @Test
+    fun `especificacao do shimmer repete em tween linear de 1500ms reiniciando`() {
+        val especificacao = FrilaSkeletonShimmer.especificacao
+        val tween = especificacao.animation as TweenSpec<Float>
+        assertEquals(1500, tween.durationMillis)
+        assertEquals(0, tween.delay)
+        assertSame(LinearEasing, tween.easing)
+        assertEquals(RepeatMode.Restart, especificacao.repeatMode)
+    }
+
+    @Test
+    fun `escala de animacao reduzida mas nao zero ainda anima`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0.5f)
+        assertTrue(animacoesAtivadasNoSistema(resolver))
+    }
+
+    @Test
+    fun `escala de animacao ausente conta como animacao ativada`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putString(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, null)
+        assertTrue(animacoesAtivadasNoSistema(resolver))
+    }
+
+    private fun deslocamentoDoOsso(): Float =
+        rule.onNodeWithTag("osso-medido").fetchSemanticsNode().config[FrilaSkeletonDeslocamento]()
+
+    @Test
+    fun `composable anima linearmente em 1500ms e reinicia ao fim do ciclo`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            FrilaTheme {
+                FrilaSkeleton(modifier = Modifier.testTag("osso-medido").width(100.dp).height(20.dp))
+            }
+        }
+        rule.mainClock.advanceTimeBy(200)
+        val inicio = deslocamentoDoOsso()
+
+        rule.mainClock.advanceTimeBy(375)
+        val umQuarto = deslocamentoDoOsso()
+        rule.mainClock.advanceTimeBy(375)
+        val meio = deslocamentoDoOsso()
+        // Curso total -1f..2f (3f) em 1500ms: 375ms percorrem 0.75f; linear, os dois passos são iguais.
+        assertEquals(0.75f, umQuarto - inicio, 0.05f)
+        assertEquals(0.75f, meio - umQuarto, 0.05f)
+
+        rule.mainClock.advanceTimeBy(FrilaSkeletonShimmer.DURACAO_MS.toLong() - 750)
+        // Restart: um ciclo inteiro (1500ms) depois do ponto de partida volta ao mesmo valor.
+        assertEquals(inicio, deslocamentoDoOsso(), 0.05f)
+        rule.mainClock.advanceTimeBy(750)
+        assertEquals(meio, deslocamentoDoOsso(), 0.05f)
+    }
+
+    @Test
+    fun `composable estatico nao expoe deslocamento de shimmer`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        rule.setContent {
+            FrilaTheme {
+                FrilaSkeleton(modifier = Modifier.testTag("osso-medido").width(100.dp).height(20.dp))
+            }
+        }
+        rule.waitForIdle()
+
+        assertFalse(rule.onNodeWithTag("osso-medido").fetchSemanticsNode().config.contains(FrilaSkeletonDeslocamento))
+    }
+}

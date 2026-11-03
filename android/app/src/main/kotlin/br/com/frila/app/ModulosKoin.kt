@@ -3,6 +3,7 @@ package br.com.frila.app
 import android.content.Context
 import br.com.frila.app.conectividade.MonitorDeConectividadeAndroid
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
+import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
@@ -15,6 +16,7 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemori
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
@@ -43,12 +45,19 @@ import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import org.koin.core.qualifier.named
 import org.koin.dsl.onClose
 import org.koin.dsl.module
 
 /** Endpoint real do Supabase do Frila. Em produção isto vem de `BuildConfig`, não de literal. */
 private const val SUPABASE_URL = "https://frila.supabase.co"
 private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
+
+/** Qualificador do [CoroutineScope] cujos filhos o logout cancela. */
+const val ESCOPO_DA_SESSAO = "escopoDaSessao"
 
 /** Usa Android Keystore em produção e mantém o grafo utilizável em testes JVM sem [Context]. */
 val moduloSeguranca = module {
@@ -64,6 +73,18 @@ val moduloSeguranca = module {
             ?.let(::LeitorDeAmbienteAndroid)
             ?: LeitorDeAmbienteNulo()
     }
+    /** Cartão 101: escopo das corrotinas de sessão; o logout cancela os filhos, não o escopo. */
+    single(named(ESCOPO_DA_SESSAO)) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    /** Cartão 101: coordenador central de logout com limpeza segura de dados. */
+    single {
+        CoordenadorDeLogout(
+            armazenamentoDeSessao = get(),
+            diretorioCache = getOrNull<Context>()?.cacheDir,
+            diretorioArquivos = getOrNull<Context>()?.filesDir,
+            escopoDeCorrotinas = get(named(ESCOPO_DA_SESSAO)),
+            gestorClienteKtor = getOrNull(),
+        )
+    }
 }
 
 val moduloRede = module {
@@ -73,24 +94,30 @@ val moduloRede = module {
             ?.let(::MonitorDeConectividadeAndroid)
             ?: MonitorDeConectividadeFalso()
     }
+    /** Cartão 101: gestor de ciclo de vida do cliente Ktor para recriação limpa após logout. */
     single {
-        ClienteSupabase(
-            baseUrl = SUPABASE_URL,
-            apiKey = SUPABASE_ANON_KEY,
-            armazenamentoDeSessao = get(),
-            monitorDeConectividade = get(),
-        )
+        GestorClienteKtor {
+            ClienteSupabase(
+                baseUrl = SUPABASE_URL,
+                apiKey = SUPABASE_ANON_KEY,
+                armazenamentoDeSessao = get(),
+                monitorDeConectividade = get(),
+            )
+        }
     }
-    single { ServicoAutenticacao(get()) }
-    single { ServicoVagas(get()) }
+    /** Sem cache: o cliente muda a cada `GestorClienteKtor.recriar()` (logout). */
+    factory { get<GestorClienteKtor>().clienteAtual }
+    /** Serviços singleton, mas leem o cliente vigente do gestor a cada chamada. */
+    single { ServicoAutenticacao { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoVagas { get<GestorClienteKtor>().clienteAtual } }
     factory {
         val servico = get<ServicoVagas>()
         val armazenamento = get<ArmazenamentoDeSessao>()
         get<CacheVagasDaSessao>().criar(armazenamento) { coordenada -> servico.listarVagasAbertas(coordenada) }
     }
-    single { ServicoDispositivo(get()) }
-    single { ServicoTurnos(get()) }
-    single { ServicoPerfil(get()) }
+    single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
 }
 
 val moduloNotificacoes = module {

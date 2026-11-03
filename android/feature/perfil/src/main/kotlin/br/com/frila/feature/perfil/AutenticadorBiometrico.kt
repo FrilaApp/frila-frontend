@@ -1,13 +1,15 @@
 package br.com.frila.feature.perfil
 
+import android.app.KeyguardManager
 import android.content.Context
+import android.os.Build
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
 /** RN15: autenticadores aceitos para desbloqueio rápido — biometria forte ou PIN/padrão do aparelho. */
-private const val AUTENTICADORES_PERMITIDOS =
+internal const val AUTENTICADORES_PERMITIDOS =
     BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
 
 /** Disponibilidade de autenticação biométrica/credencial neste aparelho (RN15). */
@@ -21,15 +23,56 @@ enum class DisponibilidadeBiometrica { DISPONIVEL, SEM_HARDWARE, HARDWARE_INDISP
  */
 object AutenticadorBiometrico {
 
-    fun verificarDisponibilidade(contexto: Context): DisponibilidadeBiometrica {
-        val resultado = BiometricManager.from(contexto).canAuthenticate(AUTENTICADORES_PERMITIDOS)
-        return when (resultado) {
-            BiometricManager.BIOMETRIC_SUCCESS -> DisponibilidadeBiometrica.DISPONIVEL
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> DisponibilidadeBiometrica.SEM_HARDWARE
-            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> DisponibilidadeBiometrica.HARDWARE_INDISPONIVEL
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> DisponibilidadeBiometrica.NAO_CADASTRADA
+    fun verificarDisponibilidade(
+        contexto: Context,
+        sdkInt: Int = Build.VERSION.SDK_INT,
+    ): DisponibilidadeBiometrica {
+        if (sdkInt >= Build.VERSION_CODES.R) {
+            val resultado = BiometricManager.from(contexto).canAuthenticate(AUTENTICADORES_PERMITIDOS)
+            return traduzirResultado(resultado)
+        }
+
+        // RN15 / Android 9-10 (API 28-29): BiometricManager.canAuthenticate não suporta
+        // a combinação BIOMETRIC_STRONG or DEVICE_CREDENTIAL (retorna BIOMETRIC_ERROR_UNSUPPORTED).
+        // Consultamos o hardware biométrico e a credencial do dispositivo (PIN/padrão) separadamente.
+        val keyguardManager = contexto.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        val temCredencial = keyguardManager?.isDeviceSecure == true
+
+        val resultadoBiometria = BiometricManager.from(contexto)
+            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+
+        return when {
+            resultadoBiometria == BiometricManager.BIOMETRIC_SUCCESS || temCredencial -> DisponibilidadeBiometrica.DISPONIVEL
+            resultadoBiometria == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> DisponibilidadeBiometrica.NAO_CADASTRADA
+            resultadoBiometria == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> DisponibilidadeBiometrica.SEM_HARDWARE
+            resultadoBiometria == BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> DisponibilidadeBiometrica.HARDWARE_INDISPONIVEL
             else -> DisponibilidadeBiometrica.INDISPONIVEL
         }
+    }
+
+    private fun traduzirResultado(resultado: Int): DisponibilidadeBiometrica = when (resultado) {
+        BiometricManager.BIOMETRIC_SUCCESS -> DisponibilidadeBiometrica.DISPONIVEL
+        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> DisponibilidadeBiometrica.SEM_HARDWARE
+        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> DisponibilidadeBiometrica.HARDWARE_INDISPONIVEL
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> DisponibilidadeBiometrica.NAO_CADASTRADA
+        else -> DisponibilidadeBiometrica.INDISPONIVEL
+    }
+
+    fun criarPromptInfo(sdkInt: Int = Build.VERSION.SDK_INT): BiometricPrompt.PromptInfo {
+        val builder = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Ativar desbloqueio rápido")
+            .setSubtitle("Confirme sua identidade para ativar")
+
+        if (sdkInt >= Build.VERSION_CODES.R) {
+            builder.setAllowedAuthenticators(AUTENTICADORES_PERMITIDOS)
+        } else {
+            // API 28-29: setAllowedAuthenticators com DEVICE_CREDENTIAL não é compatível.
+            // setDeviceCredentialAllowed(true) habilita fallback para PIN/padrão/senha
+            // e dispensa o botão negativo explícito.
+            @Suppress("DEPRECATION")
+            builder.setDeviceCredentialAllowed(true)
+        }
+        return builder.build()
     }
 
     /**
@@ -52,11 +95,7 @@ object AutenticadorBiometrico {
                 }
             },
         )
-        val info = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Ativar desbloqueio rápido")
-            .setSubtitle("Confirme sua identidade para ativar")
-            .setAllowedAuthenticators(AUTENTICADORES_PERMITIDOS)
-            .build()
+        val info = criarPromptInfo()
         prompt.authenticate(info)
     }
 }
